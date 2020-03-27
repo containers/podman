@@ -2161,7 +2161,7 @@ _podman_run() {
 
 _podman_restart() {
      local options_with_args="
-     --timeout -t
+     --time -t
      "
      local boolean_options="
 	  --all
@@ -2171,8 +2171,6 @@ _podman_restart() {
 	  --latest
 	  -l
 	  --running
-	  --timeout
-	  -t
      "
      case "$cur" in
 	-*)
@@ -2462,7 +2460,7 @@ _podman_start() {
 }
 _podman_stop() {
      local options_with_args="
-     --timeout -t
+     --time -t
      "
      local boolean_options="
 	  --all
@@ -2656,7 +2654,7 @@ _podman_generate_systemd() {
     local options_with_args="
     --restart-policy
     -t
-    --timeout"
+    --time"
 
     local boolean_options="
     -h
@@ -3088,7 +3086,7 @@ _podman_pod_start() {
 _podman_pod_stop() {
   local options_with_args="
       -t
-      --timeout
+      --time
   "
 
   local boolean_options="

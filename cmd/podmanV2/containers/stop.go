@@ -8,14 +8,13 @@ import (
 	"github.com/containers/libpod/cmd/podmanV2/registry"
 	"github.com/containers/libpod/cmd/podmanV2/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 var (
-	stopDescription = `Stops one or more running containers.  The container name or ID can be used.
+	stopDescription = fmt.Sprintf(`Stops one or more running containers.  The container name or ID can be used.
 
-  A timeout to forcibly stop the container can also be set but defaults to 10 seconds otherwise.`
+  A timeout to forcibly stop the container can also be set but defaults to %d seconds otherwise.`, defaultContainerConfig.Engine.StopTimeout)
 	stopCommand = &cobra.Command{
 		Use:               "stop [flags] CONTAINER [CONTAINER...]",
 		Short:             "Stop one or more containers",
@@ -27,7 +26,7 @@ var (
 		},
 		Example: `podman stop ctrID
   podman stop --latest
-  podman stop --timeout 2 mywebserver 6e534f14da9d`,
+  podman stop --time 2 mywebserver 6e534f14da9d`,
 	}
 )
 
@@ -46,24 +45,21 @@ func init() {
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 	flags.StringArrayVarP(&stopOptions.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
 	flags.BoolVarP(&stopOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.UintVar(&stopTimeout, "time", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVarP(&stopTimeout, "timeout", "t", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&stopTimeout, "time", "t", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 	if registry.EngineOptions.EngineMode == entities.ABIMode {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("cidfile")
 		_ = flags.MarkHidden("ignore")
 	}
+	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
 func stop(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	if cmd.Flag("timeout").Changed && cmd.Flag("time").Changed {
-		return errors.New("the --timeout and --time flags are mutually exclusive")
-	}
 	stopOptions.Timeout = defaultContainerConfig.Engine.StopTimeout
-	if cmd.Flag("timeout").Changed || cmd.Flag("time").Changed {
+	if cmd.Flag("time").Changed {
 		stopOptions.Timeout = stopTimeout
 	}
 

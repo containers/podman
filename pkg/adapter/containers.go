@@ -1213,8 +1213,8 @@ func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSyst
 		return nil, false, err
 	}
 
-	timeout := int(ctr.StopTimeout())
-	if c.StopTimeout >= 0 {
+	timeout := ctr.StopTimeout()
+	if c.Flags().Changed("timeout") || c.Flags().Changed("time") {
 		timeout = c.StopTimeout
 	}
 

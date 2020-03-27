@@ -174,7 +174,7 @@ type GenerateSystemdValues struct {
 	New           bool
 	Files         bool
 	RestartPolicy string
-	StopTimeout   int
+	StopTimeout   uint
 }
 
 type HistoryValues struct {

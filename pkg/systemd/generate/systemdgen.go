@@ -31,7 +31,7 @@ type ContainerInfo struct {
 	InfraContainer string
 	// StopTimeout sets the timeout Podman waits before killing the container
 	// during service stop.
-	StopTimeout int
+	StopTimeout uint
 	// RestartPolicy of the systemd unit (e.g., no, on-failure, always).
 	RestartPolicy string
 	// PIDFile of the service. Required for forking services. Must point to the

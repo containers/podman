@@ -47,7 +47,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd bad timeout value", func() {
-		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "-1", "foobar"})
+		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "-1", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
@@ -57,7 +57,7 @@ var _ = Describe("Podman generate systemd", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"generate", "systemd", "--timeout", "1234", "foobar"})
+		session = podmanTest.Podman([]string{"generate", "systemd", "--time", "1234", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -97,7 +97,7 @@ var _ = Describe("Podman generate systemd", func() {
 		n.WaitWithDefaultTimeout()
 		Expect(n.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "5", "nginx"})
+		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "5", "nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -118,7 +118,7 @@ var _ = Describe("Podman generate systemd", func() {
 		n.WaitWithDefaultTimeout()
 		Expect(n.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "foo"})
+		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "42", "--name", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -183,7 +183,7 @@ var _ = Describe("Podman generate systemd", func() {
 		n.WaitWithDefaultTimeout()
 		Expect(n.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "--new", "foo"})
+		session := podmanTest.Podman([]string{"generate", "systemd", "-t", "42", "--name", "--new", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -214,7 +214,7 @@ var _ = Describe("Podman generate systemd", func() {
 		n.WaitWithDefaultTimeout()
 		Expect(n.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "--new", "foo"})
+		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "42", "--name", "--new", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -228,7 +228,7 @@ var _ = Describe("Podman generate systemd", func() {
 		n.WaitWithDefaultTimeout()
 		Expect(n.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "--new", "foo"})
+		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "42", "--name", "--new", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 	})

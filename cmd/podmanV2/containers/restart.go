@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	restartDescription = `Restarts one or more running containers. The container ID or name can be used.
+	restartDescription = fmt.Sprintf(`Restarts one or more running containers. The container ID or name can be used.
 
-  A timeout before forcibly stopping can be set, but defaults to 10 seconds.`
+  A timeout before forcibly stopping can be set, but defaults to %d seconds.`, defaultContainerConfig.Engine.StopTimeout)
+
 	restartCommand = &cobra.Command{
 		Use:               "restart [flags] CONTAINER [CONTAINER...]",
 		Short:             "Restart one or more containers",
@@ -46,11 +47,11 @@ func init() {
 	flags.BoolVarP(&restartOptions.All, "all", "a", false, "Restart all non-running containers")
 	flags.BoolVarP(&restartOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restartOptions.Running, "running", false, "Restart only running containers when --all is used")
-	flags.UintVarP(&restartTimeout, "timeout", "t", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVar(&restartTimeout, "time", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&restartTimeout, "time", "t", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 	}
+	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
 func restart(cmd *cobra.Command, args []string) error {
@@ -61,7 +62,7 @@ func restart(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(define.ErrInvalidArg, "you must provide at least one container name or ID")
 	}
 
-	if cmd.Flag("timeout").Changed || cmd.Flag("time").Changed {
+	if cmd.Flag("time").Changed {
 		restartOptions.Timeout = &restartTimeout
 	}
 	responses, err := registry.ContainerEngine().ContainerRestart(context.Background(), args, restartOptions)

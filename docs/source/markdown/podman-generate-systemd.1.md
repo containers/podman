@@ -27,7 +27,7 @@ Use the name of the container for the start, stop, and description in the unit f
 Create a new container via podman-run instead of starting an existing one.  This option relies on container configuration files, which may not map directly to podman CLI flags; please review the generated output carefully before placing in production.
 Since we use systemd `Type=forking` service, using this option will force the container run with the detached param `-d`
 
-**--timeout**, **-t**=*value*
+**--time**, **-t**=*value*
 
 Override the default stop timeout for the container with the given value.
 
