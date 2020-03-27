@@ -26,7 +26,7 @@ var (
 	ImageCacheDir    = "/tmp/podman/imagecachedir"
 	VarlinkBinary    = "/usr/bin/varlink"
 	ALPINE           = "docker.io/library/alpine:latest"
-	infra            = "k8s.gcr.io/pause:3.1"
+	infra            = "k8s.gcr.io/pause:3.2"
 	BB               = "docker.io/library/busybox:latest"
 	redis            = "docker.io/library/redis:alpine"
 	fedoraMinimal    = "quay.io/libpod/fedora-minimal:latest"
