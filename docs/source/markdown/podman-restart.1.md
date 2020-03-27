@@ -26,7 +26,7 @@ The latest option is not supported on the remote client.
 **--running**
 Restart all containers that are already in the *running* state.
 
-**-t**, **--time**, **--timeout**=*time*
+**-t**, **--time**=*time*
 Timeout to wait before forcibly stopping the container.
 
 

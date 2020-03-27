@@ -31,17 +31,8 @@ Note: CGroup manager is not supported in rootless mode when using CGroups Versio
 **--cni-config-dir**
 Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d`)
 
-**--config**
-Path of a libpod config file detailing container server configuration options
-
-Default libpod config file is /usr/share/containers/libpod.conf.  Override file is in /etc/containers/libpod.conf.  In rootless mode the config file will be read from $HOME/.config/containers/libpod.conf.
-
 **--conmon**
 Path of the conmon binary (Default path is configured in `libpod.conf`)
-
-**--cpu-profile**=*path*
-
-Path to where the cpu performance results should be written
 
 **--events-backend**=*type*
 

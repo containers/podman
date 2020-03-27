@@ -124,7 +124,7 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 			if err != nil {
 				return nil, nil, err
 			}
-			initPath = rtc.InitPath
+			initPath = rtc.Engine.InitPath
 		}
 		initMount, err := config.addContainerInitBinary(initPath)
 		if err != nil {

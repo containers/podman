@@ -1296,6 +1296,10 @@ password [string](https://godoc.org/builtin#string)
 
 BuildInfo is used to describe user input for building images
 
+architecture [string](https://godoc.org/builtin#string)
+
+addCapabilities [[]string](#[]string)
+
 additionalTags [[]string](#[]string)
 
 annotations [[]string](#[]string)
@@ -1314,7 +1318,11 @@ contextDir [string](https://godoc.org/builtin#string)
 
 defaultsMountFilePath [string](https://godoc.org/builtin#string)
 
+devices [[]string](#[]string)
+
 dockerfiles [[]string](#[]string)
+
+dropCapabilities [[]string](#[]string)
 
 err [string](https://godoc.org/builtin#string)
 
@@ -1327,6 +1335,8 @@ label [[]string](#[]string)
 layers [bool](https://godoc.org/builtin#bool)
 
 nocache [bool](https://godoc.org/builtin#bool)
+
+os [string](https://godoc.org/builtin#string)
 
 out [string](https://godoc.org/builtin#string)
 
@@ -1344,7 +1354,13 @@ reportWriter [string](https://godoc.org/builtin#string)
 
 runtimeArgs [[]string](#[]string)
 
+signBy [string](https://godoc.org/builtin#string)
+
 squash [bool](https://godoc.org/builtin#bool)
+
+target [string](https://godoc.org/builtin#string)
+
+transientMounts [[]string](#[]string)
 ### <a name="BuildOptions"></a>type BuildOptions
 
 BuildOptions are are used to describe describe physical attributes of the build

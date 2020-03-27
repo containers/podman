@@ -316,6 +316,7 @@ func intFromVarlink(v *int64, flagName string, defaultValue *int) CRInt {
 // structure.
 func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 
+	defaultContainerConfig := cliconfig.GetDefaultConfig()
 	// TODO | WARN
 	// We do not get a default network over varlink. Unlike the other default values for some cli
 	// elements, it seems it gets set to the default anyway.
@@ -405,7 +406,7 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	m["rm"] = boolFromVarlink(opts.Rm, "rm", false)
 	m["rootfs"] = boolFromVarlink(opts.Rootfs, "rootfs", false)
 	m["security-opt"] = stringArrayFromVarlink(opts.SecurityOpt, "security-opt", nil)
-	m["shm-size"] = stringFromVarlink(opts.ShmSize, "shm-size", &cliconfig.DefaultShmSize)
+	m["shm-size"] = stringFromVarlink(opts.ShmSize, "shm-size", &defaultContainerConfig.Containers.ShmSize)
 	m["stop-signal"] = stringFromVarlink(opts.StopSignal, "stop-signal", nil)
 	m["stop-timeout"] = uintFromVarlink(opts.StopTimeout, "stop-timeout", nil)
 	m["storage-opt"] = stringSliceFromVarlink(opts.StorageOpt, "storage-opt", nil)

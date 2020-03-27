@@ -88,14 +88,13 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		}
 		prevError = err
 	}
-
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
-	tempDir := r.config.TmpDir
-	if r.config.TmpDir == runtimeDir {
-		tempDir = filepath.Join(r.config.TmpDir, "containers")
+	tempDir := r.config.Engine.TmpDir
+	if tempDir == runtimeDir {
+		tempDir = filepath.Join(tempDir, "containers")
 	}
 	if err := os.RemoveAll(tempDir); err != nil {
 		if prevError != nil {

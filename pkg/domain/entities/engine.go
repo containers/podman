@@ -4,7 +4,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/common/pkg/config"
 	"github.com/spf13/pflag"
 )
 
@@ -60,7 +60,7 @@ type EngineOptions struct {
 func NewEngineOptions() (EngineOptions, error) {
 	u, _ := user.Current()
 	return EngineOptions{
-		CGroupManager:        define.SystemdCgroupsManager,
+		CGroupManager:        config.SystemdCgroupsManager,
 		CniConfigDir:         "",
 		Config:               "",
 		ConmonPath:           filepath.Join("usr", "bin", "conmon"),

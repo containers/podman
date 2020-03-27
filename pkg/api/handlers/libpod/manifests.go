@@ -36,7 +36,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
 	manID, err := image.CreateManifestList(runtime.ImageRuntime(), *sc, query.Name, query.Image, query.All)
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -79,7 +79,7 @@ func ManifestAdd(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
 	newID, err := newImage.AddManifest(*sc, manifestInput)
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -149,7 +149,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
 	opts := manifests.PushOptions{
 		ImageListSelection: copy2.CopySpecificImages,
 		SystemContext:      sc,

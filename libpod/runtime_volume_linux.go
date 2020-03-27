@@ -71,7 +71,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 
 	// Create the mountpoint of this volume
-	volPathRoot := filepath.Join(r.config.VolumePath, volume.config.Name)
+	volPathRoot := filepath.Join(r.config.Engine.VolumePath, volume.config.Name)
 	if err := os.MkdirAll(volPathRoot, 0700); err != nil {
 		return nil, errors.Wrapf(err, "error creating volume directory %q", volPathRoot)
 	}

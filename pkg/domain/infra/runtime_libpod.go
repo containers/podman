@@ -220,9 +220,6 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if !opts.withFDS {
 		options = append(options, libpod.WithEnableSDNotify())
 	}
-	if fs.Changed("config") {
-		return libpod.NewRuntimeFromConfig(ctx, opts.flags.Config, options...)
-	}
 	return libpod.NewRuntime(ctx, options...)
 }
 

@@ -18,10 +18,6 @@ const (
 	SQLiteStateStore RuntimeStateStore = iota
 	// BoltDBStateStore is a state backed by a BoltDB database
 	BoltDBStateStore RuntimeStateStore = iota
-	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
-	CgroupfsCgroupsManager = "cgroupfs"
-	// SystemdCgroupsManager represents systemd native cgroup manager
-	SystemdCgroupsManager = "systemd"
 	// ContainerCreateTimeout is the timeout before we decide we've failed
 	// to create a container.
 	// TODO: Make this generic - all OCI runtime operations should use the
@@ -29,9 +25,4 @@ const (
 	// TODO: Consider dropping from 240 to 60 seconds. I don't think waiting
 	// 4 minutes versus 1 minute makes a real difference.
 	ContainerCreateTimeout = 240 * time.Second
-	// DefaultShmSize is the default shm size
-	DefaultShmSize = 64 * 1024 * 1024
-	// NsRunDir is the default directory in which running network namespaces
-	// are stored
-	NsRunDir = "/var/run/netns"
 )

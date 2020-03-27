@@ -3,15 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/containers/buildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/containers/libpod/pkg/util/camelcase"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -110,29 +106,22 @@ func getContext() context.Context {
 	return context.TODO()
 }
 
-func getDefaultNetwork() string {
-	if rootless.IsRootless() {
-		return "slirp4netns"
-	}
-	return "bridge"
-}
-
 func getNetFlags() *pflag.FlagSet {
 	netFlags := pflag.FlagSet{}
 	netFlags.StringSlice(
 		"add-host", []string{},
-		"Add a custom host-to-IP mapping (host:ip) (default [])",
+		"Add a custom host-to-IP mapping (host:ip)",
 	)
 	netFlags.StringSlice(
-		"dns", []string{},
+		"dns", getDefaultDNSServers(),
 		"Set custom DNS servers",
 	)
 	netFlags.StringSlice(
-		"dns-opt", []string{},
+		"dns-opt", getDefaultDNSOptions(),
 		"Set custom DNS options",
 	)
 	netFlags.StringSlice(
-		"dns-search", []string{},
+		"dns-search", getDefaultDNSSearches(),
 		"Set custom DNS search domains",
 	)
 	netFlags.String(
@@ -144,7 +133,7 @@ func getNetFlags() *pflag.FlagSet {
 		"Container MAC address (e.g. 92:d0:c6:0a:29:33)",
 	)
 	netFlags.String(
-		"network", getDefaultNetwork(),
+		"network", getDefaultNetNS(),
 		"Connect a container to a network",
 	)
 	netFlags.StringSliceP(
@@ -162,11 +151,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags := c.Flags()
 	createFlags.StringSlice(
 		"annotation", []string{},
-		"Add annotations to container (key:value) (default [])",
+		"Add annotations to container (key:value)",
 	)
 	createFlags.StringSliceP(
 		"attach", "a", []string{},
-		"Attach to STDIN, STDOUT or STDERR (default [])",
+		"Attach to STDIN, STDOUT or STDERR",
 	)
 	createFlags.String(
 		"authfile", buildahcli.GetDefaultAuthFile(),
@@ -189,7 +178,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Drop capabilities from the container",
 	)
 	createFlags.String(
-		"cgroupns", "",
+		"cgroupns", getDefaultCgroupNS(),
 		"cgroup namespace to use",
 	)
 	createFlags.String(
@@ -244,17 +233,13 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"detach", "d", false,
 		"Run container in background and print container ID",
 	)
-	detachKeys := createFlags.String(
-		"detach-keys", define.DefaultDetachKeys,
+	createFlags.String(
+		"detach-keys", getDefaultDetachKeys(),
 		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
 	)
-	// Clear the default, the value specified in the config file should have the
-	// priority
-	*detachKeys = ""
-
 	createFlags.StringSlice(
-		"device", []string{},
-		"Add a host device to the container (default [])",
+		"device", getDefaultDevices(),
+		fmt.Sprintf("Add a host device to the container"),
 	)
 	createFlags.StringSlice(
 		"device-cgroup-rule", []string{},
@@ -281,7 +266,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Overwrite the default ENTRYPOINT of the image",
 	)
 	createFlags.StringArrayP(
-		"env", "e", []string{},
+		"env", "e", getDefaultEnv(),
 		"Set environment variables in container",
 	)
 	createFlags.Bool(
@@ -293,7 +278,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringSlice(
 		"expose", []string{},
-		"Expose a port or a range of ports (default [])",
+		"Expose a port or a range of ports",
 	)
 	createFlags.StringSlice(
 		"gidmap", []string{},
@@ -301,7 +286,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringSlice(
 		"group-add", []string{},
-		"Add additional groups to join (default [])",
+		"Add additional groups to join",
 	)
 	createFlags.Bool(
 		"help", false, "",
@@ -343,16 +328,16 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Run an init binary inside the container that forwards signals and reaps processes",
 	)
 	createFlags.String(
-		"init-path", "",
+		"init-path", getDefaultInitPath(),
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
-		fmt.Sprintf("Path to the container-init binary (default: %q)", define.DefaultInitPath),
+		fmt.Sprintf("Path to the container-init binary"),
 	)
 	createFlags.BoolP(
 		"interactive", "i", false,
 		"Keep STDIN open even if not attached",
 	)
 	createFlags.String(
-		"ipc", "",
+		"ipc", getDefaultIPCNS(),
 		"IPC namespace to use",
 	)
 	createFlags.String(
@@ -361,11 +346,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringArrayP(
 		"label", "l", []string{},
-		"Set metadata on container (default [])",
+		"Set metadata on container",
 	)
 	createFlags.StringSlice(
 		"label-file", []string{},
-		"Read in a line delimited file of labels (default [])",
+		"Read in a line delimited file of labels",
 	)
 	createFlags.String(
 		"log-driver", "",
@@ -373,7 +358,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringSlice(
 		"log-opt", []string{},
-		"Logging driver options (default [])",
+		"Logging driver options",
 	)
 	createFlags.StringP(
 		"memory", "m", "",
@@ -418,12 +403,12 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	markFlagHidden(createFlags, "override-os")
 	createFlags.String(
-		"pid", "",
+		"pid", getDefaultPidNS(),
 		"PID namespace to use",
 	)
 	createFlags.Int64(
-		"pids-limit", sysinfo.GetDefaultPidsLimit(),
-		"Tune container pids limit (set 0 for unlimited)",
+		"pids-limit", getDefaultPidsLimit(),
+		getDefaultPidsDescription(),
 	)
 	createFlags.String(
 		"pod", "",
@@ -466,11 +451,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"The first argument is not an image but the rootfs to the exploded container",
 	)
 	createFlags.StringArray(
-		"security-opt", []string{},
-		"Security Options (default [])",
+		"security-opt", getDefaultSecurityOptions(),
+		fmt.Sprintf("Security Options"),
 	)
 	createFlags.String(
-		"shm-size", cliconfig.DefaultShmSize,
+		"shm-size", getDefaultShmSize(),
 		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
 	createFlags.String(
@@ -478,12 +463,12 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Signal to stop a container. Default is SIGTERM",
 	)
 	createFlags.Uint(
-		"stop-timeout", define.CtrRemoveTimeout,
+		"stop-timeout", defaultContainerConfig.Engine.StopTimeout,
 		"Timeout (in seconds) to stop a container. Default is 10",
 	)
 	createFlags.StringSlice(
 		"storage-opt", []string{},
-		"Storage driver options per container (default [])",
+		"Storage driver options per container",
 	)
 	createFlags.String(
 		"subgidname", "",
@@ -495,8 +480,8 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 
 	createFlags.StringSlice(
-		"sysctl", []string{},
-		"Sysctl options (default [])",
+		"sysctl", getDefaultSysctls(),
+		"Sysctl options",
 	)
 	createFlags.String(
 		"systemd", "true",
@@ -504,7 +489,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringArray(
 		"tmpfs", []string{},
-		"Mount a temporary filesystem (`tmpfs`) into a container (default [])",
+		"Mount a temporary filesystem (`tmpfs`) into a container",
 	)
 	createFlags.BoolP(
 		"tty", "t", false,
@@ -515,32 +500,32 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"UID map to use for the user namespace",
 	)
 	createFlags.StringSlice(
-		"ulimit", []string{},
-		"Ulimit options (default [])",
+		"ulimit", getDefaultUlimits(),
+		"Ulimit options",
 	)
 	createFlags.StringP(
 		"user", "u", "",
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
 	createFlags.String(
-		"userns", os.Getenv("PODMAN_USERNS"),
+		"userns", getDefaultUserNS(),
 		"User namespace to use",
 	)
 	createFlags.String(
-		"uts", "",
+		"uts", getDefaultUTSNS(),
 		"UTS namespace to use",
 	)
 	createFlags.StringArray(
 		"mount", []string{},
-		"Attach a filesystem mount to the container (default [])",
+		"Attach a filesystem mount to the container",
 	)
 	createFlags.StringArrayP(
-		"volume", "v", []string{},
-		"Bind mount a volume into the container (default [])",
+		"volume", "v", getDefaultVolumes(),
+		"Bind mount a volume into the container",
 	)
 	createFlags.StringSlice(
 		"volumes-from", []string{},
-		"Mount volumes from the specified container(s) (default [])",
+		"Mount volumes from the specified container(s)",
 	)
 	createFlags.StringP(
 		"workdir", "w", "",
