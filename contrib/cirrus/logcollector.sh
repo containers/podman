@@ -61,6 +61,7 @@ case $1 in
                 PKG_NAMES+=(\
                     container-selinux \
                     crun \
+                    libseccomp \
                     runc \
                 )
                 ;;
@@ -69,6 +70,7 @@ case $1 in
                 PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
                 PKG_NAMES+=(\
                     cri-o-runc \
+                    libseccomp2 \
                 )
                 ;;
             *) bad_os_id_ver ;;
