@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 
 	"github.com/containers/libpod/cmd/podman/shared"
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // VolumeCreate creates a libpod volume based on input from a varlink connection

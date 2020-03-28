@@ -10,9 +10,9 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

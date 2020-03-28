@@ -10,10 +10,10 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"

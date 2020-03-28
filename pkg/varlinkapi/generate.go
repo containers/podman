@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/containers/libpod/cmd/podman/shared"
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // GenerateKube ...

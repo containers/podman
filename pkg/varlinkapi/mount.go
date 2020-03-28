@@ -2,9 +2,7 @@
 
 package varlinkapi
 
-import (
-	"github.com/containers/libpod/cmd/podman/varlink"
-)
+import iopodman "github.com/containers/libpod/pkg/varlink"
 
 // ListContainerMounts ...
 func (i *LibpodAPI) ListContainerMounts(call iopodman.VarlinkCall) error {

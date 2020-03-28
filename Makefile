@@ -46,7 +46,7 @@ endif
 
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
-	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go
+	PODMAN_VARLINK_DEPENDENCIES = pkg/varlink/iopodman.go
 endif
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
@@ -237,7 +237,7 @@ clean: ## Clean artifacts
 		test/checkseccomp/checkseccomp \
 		test/goecho/goecho \
 		test/testdata/redis-image \
-		cmd/podman/varlink/iopodman.go \
+		pkg/varlink/iopodman.go \
 		libpod/container_ffjson.go \
 		libpod/pod_ffjson.go \
 		libpod/container_easyjson.go \
@@ -597,7 +597,7 @@ endef
 	fi
 
 .PHONY: varlink_generate
-varlink_generate: .gopathok cmd/podman/varlink/iopodman.go ## Generate varlink
+varlink_generate: .gopathok pkg/varlink/iopodman.go ## Generate varlink
 
 .PHONY: varlink_api_generate
 varlink_api_generate: .gopathok API.md
@@ -609,13 +609,13 @@ install.libseccomp.sudo:
 	cd ../../seccomp/libseccomp && git checkout --detach $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
 
 
-cmd/podman/varlink/iopodman.go: .gopathok cmd/podman/varlink/io.podman.varlink
+pkg/varlink/iopodman.go: .gopathok pkg/varlink/io.podman.varlink
 ifneq (,$(findstring Linux,$(shell uname -s)))
 	# Only generate the varlink code on Linux (see issue #4814).
-	GO111MODULE=off $(GO) generate ./cmd/podman/varlink/...
+	GO111MODULE=off $(GO) generate ./pkg/varlink/...
 endif
 
-API.md: cmd/podman/varlink/io.podman.varlink
+API.md: pkg/varlink/io.podman.varlink
 	$(GO) generate ./docs/...
 
 .PHONY: validate.completions

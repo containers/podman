@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/sirupsen/logrus"
 )
 

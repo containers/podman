@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/pkg/rootless"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -90,7 +90,7 @@ func Setup(tempDir string) *EndpointTestIntegration {
 		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
 		StorageOptions:      storageOptions,
 		TmpDir:              tempDir,
-		//Timings:             nil,
+		// Timings:             nil,
 		VarlinkBinary:   VarlinkBinary,
 		VarlinkCommand:  nil,
 		VarlinkEndpoint: endpoint,
@@ -105,7 +105,7 @@ func (p *EndpointTestIntegration) Cleanup() {
 
 	p.stopAllContainers()
 
-	//TODO need to make stop all pods
+	// TODO need to make stop all pods
 
 	p.StopVarlink()
 	// Nuke tempdir
@@ -153,9 +153,9 @@ func (p *EndpointTestIntegration) createArtifact(image string) {
 		Expect(pull.ExitCode()).To(Equal(0))
 
 		imageSave := iopodman.ImageSaveOptions{
-			//Name:image,
-			//Output: destName,
-			//Format: "oci-archive",
+			// Name:image,
+			// Output: destName,
+			// Format: "oci-archive",
 		}
 		imageSave.Name = image
 		imageSave.Output = destName
@@ -186,7 +186,7 @@ func (p *EndpointTestIntegration) RestoreArtifactToCache(image string) error {
 	fmt.Printf("Restoring %s...\n", image)
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	//fmt.Println(destName, p.ImageCacheDir)
+	// fmt.Println(destName, p.ImageCacheDir)
 	load := p.Varlink("LoadImage", fmt.Sprintf("{\"name\": \"%s\", \"inputFile\": \"%s\"}", image, destName), false)
 	Expect(load.ExitCode()).To(BeZero())
 	return nil

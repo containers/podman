@@ -3,8 +3,8 @@
 package adapter
 
 import (
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod/define"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/pkg/errors"
 )
 

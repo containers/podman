@@ -394,7 +394,7 @@ export GO111MODULE=off
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
 export BUILDTAGS="varlink selinux seccomp $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 
-GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
+GOPATH=$GOPATH go generate ./pkg/varlink/...
 
 %if %{with doc}
 BUILDTAGS=$BUILDTAGS make binaries docs
