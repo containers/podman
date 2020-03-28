@@ -34,6 +34,7 @@ PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 # Important filepaths
 SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
 AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
+BUILDAH_PACKAGES_FILEPATH="./contrib/cirrus/packages.sh"  # in buildah repo.
 
 # Log remote-client system test varlink output here
 export VARLINK_LOG=/var/tmp/varlink.log
@@ -61,8 +62,8 @@ PACKER_VER="1.4.2"
 # Base-images rarely change, define them here so they're out of the way.
 export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-31,fedora-30}"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export UBUNTU_BASE_IMAGE="ubuntu-1904-disco-v20190724"
-export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
+export UBUNTU_BASE_IMAGE="ubuntu-1910-eoan-v20200211"
+export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20200218"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
 export FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1578586410"
 export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1578586410"
@@ -446,6 +447,26 @@ $PRIOR_FEDORA_BASE_IMAGE
 
 systemd_banish() {
     $GOSRC/$PACKER_BASE/systemd_banish.sh
+}
+
+install_buildah_packages() {
+    git clone https://github.com/containers/buildah.git /tmp/buildah
+    if [[ -r "$BUILDAH_PACKAGES_FILEPATH" ]]; then
+        source "$BUILDAH_PACKAGES_FILEPATH"
+        req_env_var UBUNTU_BUILDAH_PACKAGES FEDORA_BUILDAH_PACKAGES OS_RELEASE_ID
+        case "$OS_RELEASE_ID" in
+            fedora)
+                $BIGTO ooe.sh sudo dnf install -y ${FEDORA_BUILDAH_PACKAGES[@]}
+                ;;
+            ubuntu)
+                $LILTO $SUDOAPTGET update
+                $BIGTO $SUDOAPTGET install ${UBUNTU_BUILDAH_PACKAGES[@]}
+                ;;
+            *) bad_os_id_ver ;;
+        esac
+    else
+        warn "Could not find $BUILDAH_PACKAGES_FILEPATH in buildah repository root."
+    fi
 }
 
 _finalize() {
