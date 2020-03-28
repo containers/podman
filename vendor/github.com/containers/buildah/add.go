@@ -322,10 +322,6 @@ func (b *Builder) addHelper(excludes *fileutils.PatternMatcher, extract bool, de
 					if err != nil {
 						return errors.Wrapf(err, "error checking if %s is an excluded path", path)
 					}
-					// Skip the whole directory if the pattern matches exclusively
-					if res.Excludes() == 0 && res.Matches() == 1 && info.IsDir() {
-						return filepath.SkipDir
-					}
 					// The latest match result has the highest priority,
 					// which means that we only skip the filepath if
 					// the last result matched.
