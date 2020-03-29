@@ -2,6 +2,8 @@ package entities
 
 import (
 	"context"
+
+	"github.com/containers/libpod/libpod/define"
 )
 
 type ContainerEngine interface {
@@ -31,4 +33,6 @@ type ContainerEngine interface {
 	VolumeRm(ctx context.Context, namesOrIds []string, opts VolumeRmOptions) ([]*VolumeRmReport, error)
 	VolumePrune(ctx context.Context, opts VolumePruneOptions) ([]*VolumePruneReport, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)
+
+	HealthCheckRun(ctx context.Context, nameOrId string, options HealthCheckOptions) (*define.HealthCheckResults, error)
 }
