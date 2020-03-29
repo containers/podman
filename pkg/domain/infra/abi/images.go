@@ -264,3 +264,28 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 // 	copy(report.Report.Id, id)
 // 	return &report, nil
 // }
+
+func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, options entities.ImageTagOptions) error {
+	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+	if err != nil {
+		return err
+	}
+	for _, tag := range tags {
+		if err := newImage.TagImage(tag); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string, options entities.ImageUntagOptions) error {
+	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+	if err != nil {
+		return err
+	}
+	for _, tag := range tags {
+		if err := newImage.UntagImage(tag); err != nil {
+			return err
+		}
+	}
+	return nil
+}

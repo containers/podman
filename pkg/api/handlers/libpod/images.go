@@ -510,3 +510,29 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: commitImage.ID()}) // nolint
 }
+
+func UntagImage(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	name := utils.GetName(r)
+	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
+		return
+	}
+	tag := "latest"
+	if len(r.Form.Get("tag")) > 0 {
+		tag = r.Form.Get("tag")
+	}
+	if len(r.Form.Get("repo")) < 1 {
+		utils.Error(w, "repo tag is required", http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
+		return
+	}
+	repo := r.Form.Get("repo")
+	tagName := fmt.Sprintf("%s:%s", repo, tag)
+	if err := newImage.UntagImage(tagName); err != nil {
+		utils.Error(w, "failed to untag", http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusCreated, "")
+}

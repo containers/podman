@@ -1019,5 +1019,39 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/commit"), s.APIHandler(libpod.CommitContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/images/{name:.*}/untag libpod libpodUntagImage
+	// ---
+	// tags:
+	//  - images
+	// summary: Untag an image
+	// description: Untag an image
+	// parameters:
+	//  - in: path
+	//    name: name:.*
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the container
+	//  - in: query
+	//    name: repo
+	//    type: string
+	//    description: the repository to untag
+	//  - in: query
+	//    name: tag
+	//    type: string
+	//    description: the name of the tag to untag
+	// produces:
+	// - application/json
+	// responses:
+	//   201:
+	//     description: no error
+	//   400:
+	//     $ref: '#/responses/BadParamError'
+	//   404:
+	//     $ref: '#/responses/NoSuchImage'
+	//   409:
+	//     $ref: '#/responses/ConflictError'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/images/{name:.*}/untag"), s.APIHandler(libpod.UntagImage)).Methods(http.MethodPost)
 	return nil
 }

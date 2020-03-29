@@ -3,9 +3,11 @@ package tunnel
 import (
 	"context"
 
+	"github.com/containers/image/v5/docker/reference"
 	images "github.com/containers/libpod/pkg/bindings/images"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/utils"
+	"github.com/pkg/errors"
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.BoolReport, error) {
@@ -92,4 +94,54 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 		return nil, err
 	}
 	return &entities.ImagePullReport{Images: pulledImages}, nil
+}
+
+func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, options entities.ImageTagOptions) error {
+	for _, newTag := range tags {
+		var (
+			tag, repo string
+		)
+		ref, err := reference.Parse(newTag)
+		if err != nil {
+			return err
+		}
+		if t, ok := ref.(reference.Tagged); ok {
+			tag = t.Tag()
+		}
+		if r, ok := ref.(reference.Named); ok {
+			repo = r.Name()
+		}
+		if len(repo) < 1 {
+			return errors.Errorf("invalid image name %q", nameOrId)
+		}
+		if err := images.Tag(ir.ClientCxt, nameOrId, tag, repo); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string, options entities.ImageUntagOptions) error {
+	for _, newTag := range tags {
+		var (
+			tag, repo string
+		)
+		ref, err := reference.Parse(newTag)
+		if err != nil {
+			return err
+		}
+		if t, ok := ref.(reference.Tagged); ok {
+			tag = t.Tag()
+		}
+		if r, ok := ref.(reference.Named); ok {
+			repo = r.Name()
+		}
+		if len(repo) < 1 {
+			return errors.Errorf("invalid image name %q", nameOrId)
+		}
+		if err := images.Untag(ir.ClientCxt, nameOrId, tag, repo); err != nil {
+			return err
+		}
+	}
+	return nil
 }

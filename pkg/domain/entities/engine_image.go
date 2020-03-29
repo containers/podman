@@ -11,4 +11,6 @@ type ImageEngine interface {
 	List(ctx context.Context, opts ImageListOptions) ([]*ImageSummary, error)
 	Prune(ctx context.Context, opts ImagePruneOptions) (*ImagePruneReport, error)
 	Pull(ctx context.Context, rawImage string, opts ImagePullOptions) (*ImagePullReport, error)
+	Tag(ctx context.Context, nameOrId string, tags []string, options ImageTagOptions) error
+	Untag(ctx context.Context, nameOrId string, tags []string, options ImageUntagOptions) error
 }

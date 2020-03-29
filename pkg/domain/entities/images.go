@@ -171,3 +171,6 @@ type ImagePruneReport struct {
 	Report Report
 	Size   int64
 }
+
+type ImageTagOptions struct{}
+type ImageUntagOptions struct{}
