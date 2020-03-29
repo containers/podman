@@ -7,8 +7,11 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/containers/buildah"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/signal"
@@ -276,4 +279,49 @@ func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.To
 	report := &entities.StringSliceReport{}
 	report.Value, err = container.Top(options.Descriptors)
 	return report, err
+}
+
+func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string, options entities.CommitOptions) (*entities.CommitReport, error) {
+	var (
+		mimeType string
+	)
+	ctr, err := ic.Libpod.LookupContainer(nameOrId)
+	if err != nil {
+		return nil, err
+	}
+	rtc, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	switch options.Format {
+	case "oci":
+		mimeType = buildah.OCIv1ImageManifest
+		if len(options.Message) > 0 {
+			return nil, errors.Errorf("messages are only compatible with the docker image format (-f docker)")
+		}
+	case "docker":
+		mimeType = manifest.DockerV2Schema2MediaType
+	default:
+		return nil, errors.Errorf("unrecognized image format %q", options.Format)
+	}
+	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
+	coptions := buildah.CommitOptions{
+		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
+		ReportWriter:          options.Writer,
+		SystemContext:         sc,
+		PreferredManifestType: mimeType,
+	}
+	opts := libpod.ContainerCommitOptions{
+		CommitOptions:  coptions,
+		Pause:          options.Pause,
+		IncludeVolumes: options.IncludeVolumes,
+		Message:        options.Message,
+		Changes:        options.Changes,
+		Author:         options.Author,
+	}
+	newImage, err := ctr.Commit(ctx, options.ImageName, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.CommitReport{Id: newImage.ID()}, nil
 }

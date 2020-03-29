@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"io"
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
@@ -105,4 +106,20 @@ type ContainerInspectOptions struct {
 
 type ContainerInspectReport struct {
 	*define.InspectContainerData
+}
+
+type CommitOptions struct {
+	Author         string
+	Changes        []string
+	Format         string
+	ImageName      string
+	IncludeVolumes bool
+	Message        string
+	Pause          bool
+	Quiet          bool
+	Writer         io.Writer
+}
+
+type CommitReport struct {
+	Id string
 }

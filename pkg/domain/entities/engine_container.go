@@ -5,6 +5,7 @@ import (
 )
 
 type ContainerEngine interface {
+	ContainerCommit(ctx context.Context, nameOrId string, options CommitOptions) (*CommitReport, error)
 	ContainerExists(ctx context.Context, nameOrId string) (*BoolReport, error)
 	ContainerInspect(ctx context.Context, namesOrIds []string, options ContainerInspectOptions) ([]*ContainerInspectReport, error)
 	ContainerKill(ctx context.Context, namesOrIds []string, options KillOptions) ([]*KillReport, error)
