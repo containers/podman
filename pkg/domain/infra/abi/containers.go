@@ -16,6 +16,8 @@ import (
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/signal"
+	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/specgen/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -441,4 +443,15 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		})
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*entities.ContainerCreateReport, error) {
+	if err := generate.CompleteSpec(ctx, ic.Libpod, s); err != nil {
+		return nil, err
+	}
+	ctr, err := generate.MakeContainer(ic.Libpod, s)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.ContainerCreateReport{Id: ctr.ID()}, nil
 }

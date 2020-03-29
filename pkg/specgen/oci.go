@@ -11,7 +11,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
-func (s *SpecGenerator) toOCISpec(rt *libpod.Runtime, newImage *image.Image) (*spec.Spec, error) {
+func (s *SpecGenerator) ToOCISpec(rt *libpod.Runtime, newImage *image.Image) (*spec.Spec, error) {
 	var (
 		inUserNS bool
 	)

@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/specgen/generate"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +20,11 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	ctr, err := sg.MakeContainer(runtime)
+	if err := generate.CompleteSpec(r.Context(), runtime, &sg); err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	ctr, err := generate.MakeContainer(runtime, &sg)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

@@ -16,6 +16,9 @@ import (
 type NamespaceMode string
 
 const (
+	// Default indicates the spec generator should determine
+	// a sane default
+	Default NamespaceMode = "default"
 	// Host means the the namespace is derived from
 	// the host
 	Host NamespaceMode = "host"
@@ -83,7 +86,7 @@ func validateNetNS(n *Namespace) error {
 	return nil
 }
 
-// validate perform simple validation on the namespace to make sure it is not
+// Validate perform simple validation on the namespace to make sure it is not
 // invalid from the get-go
 func (n *Namespace) validate() error {
 	if n == nil {
@@ -103,7 +106,7 @@ func (n *Namespace) validate() error {
 	return nil
 }
 
-func (s *SpecGenerator) generateNamespaceContainerOpts(rt *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
+func (s *SpecGenerator) GenerateNamespaceContainerOpts(rt *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	var portBindings []ocicni.PortMapping
 	options := make([]libpod.CtrCreateOption, 0)
 
