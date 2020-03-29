@@ -9,9 +9,9 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
-	bolt "github.com/etcd-io/bbolt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (

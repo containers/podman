@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
+	platform "github.com/containers/image/v5/internal/pkg/platform"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
@@ -64,9 +65,6 @@ func (index *OCI1Index) UpdateInstances(updates []ListUpdate) error {
 		if updates[i].MediaType == "" {
 			return errors.Errorf("update %d of %d passed to OCI1Index.UpdateInstances had no media type (was %q)", i+1, len(updates), index.Manifests[i].MediaType)
 		}
-		if err := SupportedOCI1MediaType(updates[i].MediaType); err != nil && SupportedSchema2MediaType(updates[i].MediaType) != nil && updates[i].MediaType != imgspecv1.MediaTypeImageIndex {
-			return errors.Wrapf(err, "update %d of %d passed to OCI1Index.UpdateInstances had an unsupported media type (was %q): %q", i+1, len(updates), index.Manifests[i].MediaType, updates[i].MediaType)
-		}
 		index.Manifests[i].MediaType = updates[i].MediaType
 	}
 	return nil
@@ -75,26 +73,31 @@ func (index *OCI1Index) UpdateInstances(updates []ListUpdate) error {
 // ChooseInstance parses blob as an oci v1 manifest index, and returns the digest
 // of the image which is appropriate for the current environment.
 func (index *OCI1Index) ChooseInstance(ctx *types.SystemContext) (digest.Digest, error) {
-	wantedArch := runtime.GOARCH
-	if ctx != nil && ctx.ArchitectureChoice != "" {
-		wantedArch = ctx.ArchitectureChoice
+	wantedPlatforms, err := platform.WantedPlatforms(ctx)
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting platform information %#v", ctx)
 	}
-	wantedOS := runtime.GOOS
-	if ctx != nil && ctx.OSChoice != "" {
-		wantedOS = ctx.OSChoice
-	}
-
-	for _, d := range index.Manifests {
-		if d.Platform != nil && d.Platform.Architecture == wantedArch && d.Platform.OS == wantedOS {
-			return d.Digest, nil
+	for _, wantedPlatform := range wantedPlatforms {
+		for _, d := range index.Manifests {
+			imagePlatform := imgspecv1.Platform{
+				Architecture: d.Platform.Architecture,
+				OS:           d.Platform.OS,
+				OSVersion:    d.Platform.OSVersion,
+				OSFeatures:   dupStringSlice(d.Platform.OSFeatures),
+				Variant:      d.Platform.Variant,
+			}
+			if platform.MatchesPlatform(imagePlatform, wantedPlatform) {
+				return d.Digest, nil
+			}
 		}
 	}
+
 	for _, d := range index.Manifests {
 		if d.Platform == nil {
 			return d.Digest, nil
 		}
 	}
-	return "", fmt.Errorf("no image found in image index for architecture %s, OS %s", wantedArch, wantedOS)
+	return "", fmt.Errorf("no image found in image index for architecture %s, variant %s, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
 }
 
 // Serialize returns the index in a blob format.

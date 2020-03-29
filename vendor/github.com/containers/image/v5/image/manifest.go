@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 )
 
 // genericManifest is an interface for parsing, modifying image manifests and related data.
@@ -45,6 +46,10 @@ type genericManifest interface {
 	// This does not change the state of the original Image object.
 	UpdatedImage(ctx context.Context, options types.ManifestUpdateOptions) (types.Image, error)
 	// SupportsEncryption returns if encryption is supported for the manifest type
+	//
+	// Deprecated: Initially used to determine if a manifest can be copied from a source manifest type since
+	// the process of updating a manifest between different manifest types was to update then convert.
+	// This resulted in some fields in the update being lost. This has been fixed by: https://github.com/containers/image/pull/836
 	SupportsEncryption(ctx context.Context) bool
 }
 
@@ -74,4 +79,35 @@ func manifestLayerInfosToBlobInfos(layers []manifest.LayerInfo) []types.BlobInfo
 		blobs[i] = layer.BlobInfo
 	}
 	return blobs
+}
+
+// manifestConvertFn (a method of genericManifest object) returns a genericManifest implementation
+// converted to a specific manifest MIME type.
+// It may use options.InformationOnly and also adjust *options to be appropriate for editing the returned
+// value.
+// This does not change the state of the original genericManifest object.
+type manifestConvertFn func(ctx context.Context, options *types.ManifestUpdateOptions) (genericManifest, error)
+
+// convertManifestIfRequiredWithUpdate will run conversion functions of a manifest if
+// required and re-apply the options to the converted type.
+// It returns (nil, nil) if no conversion was requested.
+func convertManifestIfRequiredWithUpdate(ctx context.Context, options types.ManifestUpdateOptions, converters map[string]manifestConvertFn) (types.Image, error) {
+	if options.ManifestMIMEType == "" {
+		return nil, nil
+	}
+
+	converter, ok := converters[options.ManifestMIMEType]
+	if !ok {
+		return nil, errors.Errorf("Unsupported conversion type: %v", options.ManifestMIMEType)
+	}
+
+	optionsCopy := options
+	convertedManifest, err := converter(ctx, &optionsCopy)
+	if err != nil {
+		return nil, err
+	}
+	convertedImage := memoryImageFromManifest(convertedManifest)
+
+	optionsCopy.ManifestMIMEType = ""
+	return convertedImage.UpdatedImage(ctx, optionsCopy)
 }

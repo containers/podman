@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"container/heap"
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -97,18 +98,19 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	return p
 }
 
-// AddBar creates a new progress bar and adds to the container.
+// AddBar creates a new progress bar and adds it to the rendering queue.
 func (p *Progress) AddBar(total int64, options ...BarOption) *Bar {
 	return p.Add(total, NewBarFiller(DefaultBarStyle, false), options...)
 }
 
-// AddSpinner creates a new spinner bar and adds to the container.
+// AddSpinner creates a new spinner bar and adds it to the rendering queue.
 func (p *Progress) AddSpinner(total int64, alignment SpinnerAlignment, options ...BarOption) *Bar {
 	return p.Add(total, NewSpinnerFiller(DefaultSpinnerStyle, alignment), options...)
 }
 
 // Add creates a bar which renders itself by provided filler.
 // Set total to 0, if you plan to update it later.
+// Panics if *Progress instance is done, i.e. called after *Progress.Wait().
 func (p *Progress) Add(total int64, filler Filler, options ...BarOption) *Bar {
 	if filler == nil {
 		filler = NewBarFiller(DefaultBarStyle, false)
@@ -134,7 +136,7 @@ func (p *Progress) Add(total int64, filler Filler, options ...BarOption) *Bar {
 		return bar
 	case <-p.done:
 		p.bwg.Done()
-		return nil
+		panic(fmt.Sprintf("%T instance can't be reused after it's done!", p))
 	}
 }
 
@@ -387,7 +389,7 @@ func syncWidth(matrix map[int][]chan int) {
 }
 
 func extractBaseFiller(f Filler) Filler {
-	if f, ok := f.(Wrapper); ok {
+	if f, ok := f.(WrapFiller); ok {
 		return extractBaseFiller(f.Base())
 	}
 	return f

@@ -87,12 +87,12 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 		return nil
 	case config.ErrNotLoggedIn:
 		// username of user logged in to server (if one exists)
-		userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)
+		authConfig, err := config.GetCredentials(sc, server)
 		if err != nil {
 			return errors.Wrapf(err, "error reading auth file")
 		}
-		islogin := docker.CheckAuth(getContext(), sc, userFromAuthFile, passFromAuthFile, server)
-		if userFromAuthFile != "" && passFromAuthFile != "" && islogin == nil {
+		islogin := docker.CheckAuth(getContext(), sc, authConfig.Username, authConfig.Password, server)
+		if authConfig.IdentityToken != "" && authConfig.Username != "" && authConfig.Password != "" && islogin == nil {
 			fmt.Printf("Not logged into %s with podman. Existing credentials were established via docker login. Please use docker logout instead.\n", server)
 			return nil
 		}

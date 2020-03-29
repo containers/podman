@@ -37,36 +37,22 @@ func Percentage(wcc ...WC) Decorator {
 	return NewPercentage("% d", wcc...)
 }
 
-// NewPercentage percentage decorator with custom fmt string.
+// NewPercentage percentage decorator with custom format string.
 //
-// fmt examples:
+// format examples:
 //
-//	fmt="%.1f"  output: "1.0%"
-//	fmt="% .1f" output: "1.0 %"
-//	fmt="%d"    output: "1%"
-//	fmt="% d"   output: "1 %"
+//	format="%.1f"  output: "1.0%"
+//	format="% .1f" output: "1.0 %"
+//	format="%d"    output: "1%"
+//	format="% d"   output: "1 %"
 //
-func NewPercentage(fmt string, wcc ...WC) Decorator {
-	var wc WC
-	for _, widthConf := range wcc {
-		wc = widthConf
+func NewPercentage(format string, wcc ...WC) Decorator {
+	if format == "" {
+		format = "% d"
 	}
-	if fmt == "" {
-		fmt = "% d"
+	f := func(s *Statistics) string {
+		p := internal.Percentage(s.Total, s.Current, 100)
+		return fmt.Sprintf(format, percentageType(p))
 	}
-	d := &percentageDecorator{
-		WC:  wc.Init(),
-		fmt: fmt,
-	}
-	return d
-}
-
-type percentageDecorator struct {
-	WC
-	fmt string
-}
-
-func (d *percentageDecorator) Decor(st *Statistics) string {
-	p := internal.Percentage(st.Total, st.Current, 100)
-	return d.FormatMsg(fmt.Sprintf(d.fmt, percentageType(p)))
+	return Any(f, wcc...)
 }
