@@ -193,3 +193,7 @@ func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOp
 	}
 	return &entities.StringSliceReport{Value: topOutput}, nil
 }
+
+func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOptions) ([]*entities.ListPodsReport, error) {
+	return pods.List(ic.ClientCxt, options.Filters)
+}
