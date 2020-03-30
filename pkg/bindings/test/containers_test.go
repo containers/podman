@@ -387,15 +387,15 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 
 		// By name
-		output, err := containers.Top(bt.conn, name, nil)
+		_, err = containers.Top(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
 		// By id
-		output, err = containers.Top(bt.conn, cid, nil)
+		_, err = containers.Top(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
 
 		// With descriptors
-		output, err = containers.Top(bt.conn, cid, []string{"user,pid,hpid"})
+		output, err := containers.Top(bt.conn, cid, []string{"user,pid,hpid"})
 		Expect(err).To(BeNil())
 		header := strings.Split(output[0], "\t")
 		for _, d := range []string{"USER", "PID", "HPID"} {

@@ -250,3 +250,25 @@ func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreat
 	}
 	return &entities.PodCreateReport{Id: pod.ID()}, nil
 }
+
+func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOptions) (*entities.StringSliceReport, error) {
+	var (
+		pod *libpod.Pod
+		err error
+	)
+
+	// Look up the pod.
+	if options.Latest {
+		pod, err = ic.Libpod.GetLatestPod()
+	} else {
+		pod, err = ic.Libpod.LookupPod(options.NameOrID)
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to lookup requested container")
+	}
+
+	// Run Top.
+	report := &entities.StringSliceReport{}
+	report.Value, err = pod.GetPodPidInformation(options.Descriptors)
+	return report, err
+}

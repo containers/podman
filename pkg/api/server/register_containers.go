@@ -429,7 +429,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/DockerTopResponse"
+	//     $ref: "#/responses/DocsContainerTopResponse"
 	//   404:
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
@@ -1041,7 +1041,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/DockerTopResponse"
+	//     $ref: "#/responses/DocsContainerTopResponse"
 	//   404:
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:

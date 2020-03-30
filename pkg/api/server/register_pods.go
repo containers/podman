@@ -263,5 +263,36 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/unpause"), s.APIHandler(libpod.PodUnpause)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/pods/{name}/top pods topPod
+	// ---
+	// summary: List processes
+	// description: List processes running inside a pod
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: |
+	//      Name of pod to query for processes
+	//  - in: query
+	//    name: stream
+	//    type: boolean
+	//    default: true
+	//    description: Stream the output
+	//  - in: query
+	//    name: ps_args
+	//    type: string
+	//    default: -ef
+	//    description: arguments to pass to ps such as aux. Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
+	// responses:
+	//   200:
+	//     $ref: "#/responses/DocsPodTopResponse"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.Handle(VersionedPath("/libpod/pods/{name}/top"), s.APIHandler(libpod.PodTop)).Methods(http.MethodGet)
 	return nil
 }

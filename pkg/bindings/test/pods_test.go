@@ -2,6 +2,7 @@ package test_bindings
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
@@ -318,5 +319,34 @@ var _ = Describe("Podman pods", func() {
 		exists, err := pods.Exists(bt.conn, "foobar")
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
+	})
+
+	// Test validates the pod top bindings
+	It("pod top", func() {
+		var name string = "podA"
+
+		bt.Podcreate(&name)
+		_, err := pods.Start(bt.conn, name)
+		Expect(err).To(BeNil())
+
+		// By name
+		_, err = pods.Top(bt.conn, name, nil)
+		Expect(err).To(BeNil())
+
+		// With descriptors
+		output, err := pods.Top(bt.conn, name, []string{"user,pid,hpid"})
+		Expect(err).To(BeNil())
+		header := strings.Split(output[0], "\t")
+		for _, d := range []string{"USER", "PID", "HPID"} {
+			Expect(d).To(BeElementOf(header))
+		}
+
+		// With bogus ID
+		_, err = pods.Top(bt.conn, "IdoNotExist", nil)
+		Expect(err).ToNot(BeNil())
+
+		// With bogus descriptors
+		_, err = pods.Top(bt.conn, name, []string{"Me,Neither"})
+		Expect(err).ToNot(BeNil())
 	})
 })

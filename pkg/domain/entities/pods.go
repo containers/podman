@@ -141,3 +141,13 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 	// Cgroup
 	s.CgroupParent = p.CGroupParent
 }
+
+type PodTopOptions struct {
+	// CLI flags.
+	ListDescriptors bool
+	Latest          bool
+
+	// Options for the API.
+	Descriptors []string
+	NameOrID    string
+}

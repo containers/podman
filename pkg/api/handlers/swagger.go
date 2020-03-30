@@ -97,11 +97,20 @@ type swagContainerInspectResponse struct {
 }
 
 // List processes in container
-// swagger:response DockerTopResponse
-type swagDockerTopResponse struct {
+// swagger:response DocsContainerTopResponse
+type swagContainerTopResponse struct {
 	// in:body
 	Body struct {
 		ContainerTopOKBody
+	}
+}
+
+// List processes in pod
+// swagger:response DocsPodTopResponse
+type swagPodTopResponse struct {
+	// in:body
+	Body struct {
+		PodTopOKBody
 	}
 }
 

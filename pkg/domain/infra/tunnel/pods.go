@@ -6,6 +6,7 @@ import (
 	"github.com/containers/libpod/pkg/bindings/pods"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
@@ -176,4 +177,19 @@ func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreat
 	podSpec := specgen.NewPodSpecGenerator()
 	opts.ToPodSpecGen(podSpec)
 	return pods.CreatePodFromSpec(ic.ClientCxt, podSpec)
+}
+
+func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOptions) (*entities.StringSliceReport, error) {
+	switch {
+	case options.Latest:
+		return nil, errors.New("latest is not supported")
+	case options.NameOrID == "":
+		return nil, errors.New("NameOrID must be specified")
+	}
+
+	topOutput, err := pods.Top(ic.ClientCxt, options.NameOrID, options.Descriptors)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.StringSliceReport{Value: topOutput}, nil
 }
