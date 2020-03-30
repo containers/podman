@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	"github.com/containers/libpod/libpod/define"
-	bolt "github.com/etcd-io/bbolt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

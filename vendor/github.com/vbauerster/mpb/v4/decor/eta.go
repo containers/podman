@@ -33,7 +33,7 @@ func EwmaETA(style TimeStyle, age float64, wcc ...WC) Decorator {
 	} else {
 		average = ewma.NewMovingAverage(age)
 	}
-	return MovingAverageETA(style, average, nil, wcc...)
+	return MovingAverageETA(style, NewThreadSafeMovingAverage(average), nil, wcc...)
 }
 
 // MovingAverageETA decorator relies on MovingAverage implementation to calculate its average.
@@ -45,13 +45,10 @@ func EwmaETA(style TimeStyle, age float64, wcc ...WC) Decorator {
 //	`normalizer` available implementations are [FixedIntervalTimeNormalizer|MaxTolerateTimeNormalizer]
 //
 //	`wcc` optional WC config
+//
 func MovingAverageETA(style TimeStyle, average MovingAverage, normalizer TimeNormalizer, wcc ...WC) Decorator {
-	var wc WC
-	for _, widthConf := range wcc {
-		wc = widthConf
-	}
 	d := &movingAverageETA{
-		WC:         wc.Init(),
+		WC:         initWC(wcc...),
 		average:    average,
 		normalizer: normalizer,
 		producer:   chooseTimeProducer(style),
@@ -66,9 +63,9 @@ type movingAverageETA struct {
 	producer   func(time.Duration) string
 }
 
-func (d *movingAverageETA) Decor(st *Statistics) string {
+func (d *movingAverageETA) Decor(s *Statistics) string {
 	v := math.Round(d.average.Value())
-	remaining := time.Duration((st.Total - st.Current) * int64(v))
+	remaining := time.Duration((s.Total - s.Current) * int64(v))
 	if d.normalizer != nil {
 		remaining = d.normalizer.Normalize(remaining)
 	}
@@ -92,6 +89,7 @@ func (d *movingAverageETA) NextAmount(n int64, wdd ...time.Duration) {
 //	`style` one of [ET_STYLE_GO|ET_STYLE_HHMMSS|ET_STYLE_HHMM|ET_STYLE_MMSS]
 //
 //	`wcc` optional WC config
+//
 func AverageETA(style TimeStyle, wcc ...WC) Decorator {
 	return NewAverageETA(style, time.Now(), nil, wcc...)
 }
@@ -105,13 +103,10 @@ func AverageETA(style TimeStyle, wcc ...WC) Decorator {
 //	`normalizer` available implementations are [FixedIntervalTimeNormalizer|MaxTolerateTimeNormalizer]
 //
 //	`wcc` optional WC config
+//
 func NewAverageETA(style TimeStyle, startTime time.Time, normalizer TimeNormalizer, wcc ...WC) Decorator {
-	var wc WC
-	for _, widthConf := range wcc {
-		wc = widthConf
-	}
 	d := &averageETA{
-		WC:         wc.Init(),
+		WC:         initWC(wcc...),
 		startTime:  startTime,
 		normalizer: normalizer,
 		producer:   chooseTimeProducer(style),
@@ -126,12 +121,12 @@ type averageETA struct {
 	producer   func(time.Duration) string
 }
 
-func (d *averageETA) Decor(st *Statistics) string {
+func (d *averageETA) Decor(s *Statistics) string {
 	var remaining time.Duration
-	if st.Current != 0 {
-		durPerItem := float64(time.Since(d.startTime)) / float64(st.Current)
+	if s.Current != 0 {
+		durPerItem := float64(time.Since(d.startTime)) / float64(s.Current)
 		durPerItem = math.Round(durPerItem)
-		remaining = time.Duration((st.Total - st.Current) * int64(durPerItem))
+		remaining = time.Duration((s.Total - s.Current) * int64(durPerItem))
 		if d.normalizer != nil {
 			remaining = d.normalizer.Normalize(remaining)
 		}

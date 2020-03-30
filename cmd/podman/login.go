@@ -95,17 +95,19 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	}
 
 	// username of user logged in to server (if one exists)
-	userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)
+	authConfig, err := config.GetCredentials(sc, server)
 	// Do not return error if no credentials found in credHelpers, new credentials will be stored by config.SetAuthentication
 	if err != nil && err != credentials.NewErrCredentialsNotFound() {
 		return errors.Wrapf(err, "error reading auth file")
 	}
-
+	if authConfig.IdentityToken != "" {
+		return errors.Errorf("currently logged in, auth file contains an Identity token")
+	}
 	if c.Flag("get-login").Changed {
-		if userFromAuthFile == "" {
+		if authConfig.Username == "" {
 			return errors.Errorf("not logged into %s", server)
 		}
-		fmt.Printf("%s\n", userFromAuthFile)
+		fmt.Printf("%s\n", authConfig.Username)
 		return nil
 	}
 
@@ -129,16 +131,16 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	}
 
 	// If no username and no password is specified, try to use existing ones.
-	if c.Username == "" && password == "" && userFromAuthFile != "" && passFromAuthFile != "" {
+	if c.Username == "" && password == "" && authConfig.Username == "" && authConfig.Password != "" {
 		fmt.Println("Authenticating with existing credentials...")
-		if err := docker.CheckAuth(ctx, sc, userFromAuthFile, passFromAuthFile, server); err == nil {
+		if err := docker.CheckAuth(ctx, sc, authConfig.Username, authConfig.Password, server); err == nil {
 			fmt.Println("Existing credentials are valid. Already logged in to", server)
 			return nil
 		}
 		fmt.Println("Existing credentials are invalid, please enter valid username and password")
 	}
 
-	username, password, err := getUserAndPass(c.Username, password, userFromAuthFile)
+	username, password, err := getUserAndPass(c.Username, password, authConfig.Username)
 	if err != nil {
 		return errors.Wrapf(err, "error getting username and password")
 	}

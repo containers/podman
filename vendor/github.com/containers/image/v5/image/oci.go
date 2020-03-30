@@ -140,30 +140,27 @@ func (m *manifestOCI1) UpdatedImage(ctx context.Context, options types.ManifestU
 		configBlob: m.configBlob,
 		m:          manifest.OCI1Clone(m.m),
 	}
+
+	converted, err := convertManifestIfRequiredWithUpdate(ctx, options, map[string]manifestConvertFn{
+		manifest.DockerV2Schema2MediaType:       copy.convertToManifestSchema2Generic,
+		manifest.DockerV2Schema1MediaType:       copy.convertToManifestSchema1,
+		manifest.DockerV2Schema1SignedMediaType: copy.convertToManifestSchema1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if converted != nil {
+		return converted, nil
+	}
+
+	// No conversion required, update manifest
 	if options.LayerInfos != nil {
 		if err := copy.m.UpdateLayerInfos(options.LayerInfos); err != nil {
 			return nil, err
 		}
 	}
 	// Ignore options.EmbeddedDockerReference: it may be set when converting from schema1, but we really don't care.
-
-	switch options.ManifestMIMEType {
-	case "": // No conversion, OK
-	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType:
-		// We can't directly convert to V1, but we can transitively convert via a V2 image
-		m2, err := copy.convertToManifestSchema2()
-		if err != nil {
-			return nil, err
-		}
-		return m2.UpdatedImage(ctx, types.ManifestUpdateOptions{
-			ManifestMIMEType: options.ManifestMIMEType,
-			InformationOnly:  options.InformationOnly,
-		})
-	case manifest.DockerV2Schema2MediaType:
-		return copy.convertToManifestSchema2()
-	default:
-		return nil, errors.Errorf("Conversion of image manifest from %s to %s is not implemented", imgspecv1.MediaTypeImageManifest, options.ManifestMIMEType)
-	}
 
 	return memoryImageFromManifest(&copy), nil
 }
@@ -177,7 +174,22 @@ func schema2DescriptorFromOCI1Descriptor(d imgspecv1.Descriptor) manifest.Schema
 	}
 }
 
-func (m *manifestOCI1) convertToManifestSchema2() (types.Image, error) {
+// convertToManifestSchema2Generic returns a genericManifest implementation converted to manifest.DockerV2Schema2MediaType.
+// It may use options.InformationOnly and also adjust *options to be appropriate for editing the returned
+// value.
+// This does not change the state of the original manifestSchema1 object.
+//
+// We need this function just because a function returning an implementation of the genericManifest
+// interface is not automatically assignable to a function type returning the genericManifest interface
+func (m *manifestOCI1) convertToManifestSchema2Generic(ctx context.Context, options *types.ManifestUpdateOptions) (genericManifest, error) {
+	return m.convertToManifestSchema2(ctx, options)
+}
+
+// convertToManifestSchema2 returns a genericManifest implementation converted to manifest.DockerV2Schema2MediaType.
+// It may use options.InformationOnly and also adjust *options to be appropriate for editing the returned
+// value.
+// This does not change the state of the original manifestOCI1 object.
+func (m *manifestOCI1) convertToManifestSchema2(_ context.Context, _ *types.ManifestUpdateOptions) (*manifestSchema2, error) {
 	// Create a copy of the descriptor.
 	config := schema2DescriptorFromOCI1Descriptor(m.m.Config)
 
@@ -209,8 +221,21 @@ func (m *manifestOCI1) convertToManifestSchema2() (types.Image, error) {
 	// Rather than copying the ConfigBlob now, we just pass m.src to the
 	// translated manifest, since the only difference is the mediatype of
 	// descriptors there is no change to any blob stored in m.src.
-	m1 := manifestSchema2FromComponents(config, m.src, nil, layers)
-	return memoryImageFromManifest(m1), nil
+	return manifestSchema2FromComponents(config, m.src, nil, layers), nil
+}
+
+// convertToManifestSchema1 returns a genericManifest implementation converted to manifest.DockerV2Schema1{Signed,}MediaType.
+// It may use options.InformationOnly and also adjust *options to be appropriate for editing the returned
+// value.
+// This does not change the state of the original manifestOCI1 object.
+func (m *manifestOCI1) convertToManifestSchema1(ctx context.Context, options *types.ManifestUpdateOptions) (genericManifest, error) {
+	// We can't directly convert to V1, but we can transitively convert via a V2 image
+	m2, err := m.convertToManifestSchema2(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return m2.convertToManifestSchema1(ctx, options)
 }
 
 // SupportsEncryption returns if encryption is supported for the manifest type

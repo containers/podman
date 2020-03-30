@@ -108,6 +108,7 @@ func newImageSourceAttempt(ctx context.Context, sys *types.SystemContext, pullSo
 	if endpointSys != nil && endpointSys.DockerAuthConfig != nil && reference.Domain(ref.ref) != primaryDomain {
 		copy := *endpointSys
 		copy.DockerAuthConfig = nil
+		copy.DockerBearerRegistryToken = ""
 		endpointSys = &copy
 	}
 

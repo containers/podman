@@ -6,6 +6,7 @@ package decor
 //	`decorator` Decorator to wrap
 //
 //	`message` message to display on complete event
+//
 func OnComplete(decorator Decorator, message string) Decorator {
 	d := &onCompleteWrapper{
 		Decorator: decorator,
@@ -23,12 +24,12 @@ type onCompleteWrapper struct {
 	msg string
 }
 
-func (d *onCompleteWrapper) Decor(st *Statistics) string {
-	if st.Completed {
+func (d *onCompleteWrapper) Decor(s *Statistics) string {
+	if s.Completed {
 		wc := d.GetConf()
 		return wc.FormatMsg(d.msg)
 	}
-	return d.Decorator.Decor(st)
+	return d.Decorator.Decor(s)
 }
 
 func (d *onCompleteWrapper) Base() Decorator {

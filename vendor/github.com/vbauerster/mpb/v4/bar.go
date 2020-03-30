@@ -29,11 +29,11 @@ func (f FillerFunc) Fill(w io.Writer, width int, stat *decor.Statistics) {
 	f(w, width, stat)
 }
 
-// Wrapper interface.
+// WrapFiller interface.
 // If you're implementing custom Filler by wrapping a built-in one,
 // it is necessary to implement this interface to retain functionality
 // of built-in Filler.
-type Wrapper interface {
+type WrapFiller interface {
 	Base() Filler
 }
 

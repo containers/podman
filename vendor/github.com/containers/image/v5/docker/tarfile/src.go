@@ -249,6 +249,9 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
 		return errors.Wrapf(err, "Error decoding tar config %s", tarManifest[0].Config)
 	}
+	if parsedConfig.RootFS == nil {
+		return errors.Errorf("Invalid image config (rootFS is not set): %s", tarManifest[0].Config)
+	}
 
 	knownLayers, err := s.prepareLayerData(&tarManifest[0], &parsedConfig)
 	if err != nil {

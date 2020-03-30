@@ -3,8 +3,8 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
 
+	platform "github.com/containers/image/v5/internal/pkg/platform"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -81,9 +81,6 @@ func (list *Schema2List) UpdateInstances(updates []ListUpdate) error {
 		if updates[i].MediaType == "" {
 			return errors.Errorf("update %d of %d passed to Schema2List.UpdateInstances had no media type (was %q)", i+1, len(updates), list.Manifests[i].MediaType)
 		}
-		if err := SupportedSchema2MediaType(updates[i].MediaType); err != nil && SupportedOCI1MediaType(updates[i].MediaType) != nil {
-			return errors.Wrapf(err, "update %d of %d passed to Schema2List.UpdateInstances had an unsupported media type (was %q): %q", i+1, len(updates), list.Manifests[i].MediaType, updates[i].MediaType)
-		}
 		list.Manifests[i].MediaType = updates[i].MediaType
 	}
 	return nil
@@ -92,21 +89,25 @@ func (list *Schema2List) UpdateInstances(updates []ListUpdate) error {
 // ChooseInstance parses blob as a schema2 manifest list, and returns the digest
 // of the image which is appropriate for the current environment.
 func (list *Schema2List) ChooseInstance(ctx *types.SystemContext) (digest.Digest, error) {
-	wantedArch := runtime.GOARCH
-	if ctx != nil && ctx.ArchitectureChoice != "" {
-		wantedArch = ctx.ArchitectureChoice
+	wantedPlatforms, err := platform.WantedPlatforms(ctx)
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting platform information %#v", ctx)
 	}
-	wantedOS := runtime.GOOS
-	if ctx != nil && ctx.OSChoice != "" {
-		wantedOS = ctx.OSChoice
-	}
-
-	for _, d := range list.Manifests {
-		if d.Platform.Architecture == wantedArch && d.Platform.OS == wantedOS {
-			return d.Digest, nil
+	for _, wantedPlatform := range wantedPlatforms {
+		for _, d := range list.Manifests {
+			imagePlatform := imgspecv1.Platform{
+				Architecture: d.Platform.Architecture,
+				OS:           d.Platform.OS,
+				OSVersion:    d.Platform.OSVersion,
+				OSFeatures:   dupStringSlice(d.Platform.OSFeatures),
+				Variant:      d.Platform.Variant,
+			}
+			if platform.MatchesPlatform(imagePlatform, wantedPlatform) {
+				return d.Digest, nil
+			}
 		}
 	}
-	return "", fmt.Errorf("no image found in manifest list for architecture %s, OS %s", wantedArch, wantedOS)
+	return "", fmt.Errorf("no image found in manifest list for architecture %s, variant %s, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
 }
 
 // Serialize returns the list in a blob format.

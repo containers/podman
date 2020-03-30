@@ -176,3 +176,11 @@ func (wc *WC) GetConf() WC {
 func (wc *WC) SetConf(conf WC) {
 	*wc = conf.Init()
 }
+
+func initWC(wcc ...WC) WC {
+	var wc WC
+	for _, nwc := range wcc {
+		wc = nwc
+	}
+	return wc.Init()
+}
