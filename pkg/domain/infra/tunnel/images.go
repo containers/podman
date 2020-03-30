@@ -85,3 +85,11 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 	}
 	return &report, nil
 }
+
+func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+	pulledImages, err := images.Pull(ir.ClientCxt, rawImage, options)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.ImagePullReport{Images: pulledImages}, nil
+}

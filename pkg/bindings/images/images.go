@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -228,4 +229,42 @@ func Import(ctx context.Context, changes []string, message, reference, u *string
 		return "", err
 	}
 	return id.ID, response.Process(&id)
+}
+
+// Pull is the binding for libpod's v2 endpoints for pulling images.  Note that
+// `rawImage` must be a reference to a registry (i.e., of docker transport or be
+// normalized to one).  Other transports are rejected as they do not make sense
+// in a remote context.
+func Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) ([]string, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	params.Set("reference", rawImage)
+	params.Set("credentials", options.Credentials)
+	params.Set("overrideArch", options.OverrideArch)
+	params.Set("overrideOS", options.OverrideOS)
+	if options.TLSVerify != types.OptionalBoolUndefined {
+		val := bool(options.TLSVerify == types.OptionalBoolTrue)
+		params.Set("tlsVerify", strconv.FormatBool(val))
+	}
+	params.Set("allTags", strconv.FormatBool(options.AllTags))
+
+	response, err := conn.DoRequest(nil, http.MethodPost, "/images/pull", params)
+	if err != nil {
+		return nil, err
+	}
+
+	reports := []handlers.LibpodImagesPullReport{}
+	if err := response.Process(&reports); err != nil {
+		return nil, err
+	}
+
+	pulledImages := []string{}
+	for _, r := range reports {
+		pulledImages = append(pulledImages, r.ID)
+	}
+
+	return pulledImages, nil
 }
