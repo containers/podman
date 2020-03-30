@@ -64,6 +64,7 @@ github.com/containernetworking/plugins v0.8.5 h1:pCvEMrFf7yzJI8+/D/7jkvE96KD52b7
 github.com/containernetworking/plugins v0.8.5/go.mod h1:UZ2539umj8djuRQmBxuazHeJbYrLV8BSBejkk+she6o=
 github.com/containers/buildah v1.14.5 h1:0Q+UgkIG4gAgAEZCu+0Syu/fSKsM1EsrctwV8G299jo=
 github.com/containers/buildah v1.14.5/go.mod h1:2rfICEnpTtrMhWF6FZLnAL1Bh7SNmjhiKrjuIo0ZuN8=
+github.com/containers/common v0.5.0/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/common v0.6.1 h1:z9VeVXYeOnNV99uNLp7zoE5KO1n0hqz1mdm5a6AiIrA=
 github.com/containers/common v0.6.1/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/conmon v2.0.10+incompatible h1:EiwL41r5vx8SxG+dyUmbJ3baV9GUWjijPOdCkzM6gWU=
@@ -81,6 +82,8 @@ github.com/containers/storage v1.16.0/go.mod h1:nqN09JSi1/RSI1UAUwDYXPRiGSlq5FPb
 github.com/containers/storage v1.16.5/go.mod h1:SdysZeLKJOvfHYysUWg9OZUC3gdZWi5b2b7NC18VpPE=
 github.com/containers/storage v1.16.6 h1:G/thPW/LVRwJpQvve1V4DQXVZpxzSltC2fzc3yTEdi8=
 github.com/containers/storage v1.16.6/go.mod h1:Fws4I+U+C4DmJxDbBs1z9SKk50DzN4LtA+g1b+FmkTY=
+github.com/containers/storage v1.17.0 h1:ln6QLvea9dNnN+3RRY3lqRYqnHTboRqSBVoGAj5aIHg=
+github.com/containers/storage v1.17.0/go.mod h1:kFkAj3eJp8xIoBFqkk0hde0YXti1Py55gI99QSxyOWg=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5 h1:DpHb9vJrZQEFMcVLFKAAGMUVX0XoRC0ptCthinRYm38=
