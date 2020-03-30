@@ -955,7 +955,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     "$ref": "#/responses/NoSuchContainer"
 	//   500:
 	//     "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/pause"), s.APIHandler(compat.PauseContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/pause"), s.APIHandler(compat.PauseContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{name}/restart libpod libpodRestartContainer
 	// ---
 	// tags:
@@ -1282,7 +1282,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/export"), s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/containers/{name}/checkout libpod libpodCheckpointContainer
+	// swagger:operation POST /libpod/containers/{name}/checkpoint libpod libpodCheckpointContainer
 	// ---
 	// tags:
 	//   - containers
@@ -1323,7 +1323,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/checkpoint"), s.APIHandler(libpod.Checkpoint)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/{name} restore libpod libpodRestoreContainer
+	// swagger:operation POST /libpod/containers/{name}/restore libpod libpodRestoreContainer
 	// ---
 	// tags:
 	//   - containers
@@ -1407,9 +1407,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/changes"), s.APIHandler(compat.Changes))
-	r.HandleFunc("/containers/{name}/changes", s.APIHandler(compat.Changes))
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/changes"), s.APIHandler(compat.Changes))
+	r.HandleFunc(VersionedPath("/containers/{name}/changes"), s.APIHandler(compat.Changes)).Methods(http.MethodGet)
+	r.HandleFunc("/containers/{name}/changes", s.APIHandler(compat.Changes)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/changes"), s.APIHandler(compat.Changes)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{name}/init libpod libpodInitContainer
 	// ---
 	// tags:

@@ -397,6 +397,10 @@ install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
 man-page-check:
 	hack/man-page-checker
 
+.PHONY: swagger-check
+swagger-check:
+	hack/swagger-check
+
 .PHONY: codespell
 codespell:
 	codespell -S bin,vendor,.git,go.sum,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
@@ -624,7 +628,7 @@ validate.completions: completions/bash/podman
 	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
 
 .PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check
+validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
