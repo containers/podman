@@ -263,7 +263,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/unpause"), s.APIHandler(libpod.PodUnpause)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/pods/{name}/top pods topPod
+	// swagger:operation GET /libpod/pods/{name}/top pods topPod
 	// ---
 	// summary: List processes
 	// description: List processes running inside a pod
