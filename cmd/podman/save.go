@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -68,6 +69,10 @@ func saveCmd(c *cliconfig.SaveValues) error {
 	args := c.InputArgs
 	if len(args) == 0 {
 		return errors.Errorf("need at least 1 argument")
+	}
+
+	if len(args) > 1 {
+		logrus.Errorf("only the first image will be saved but %d are specified", len(args))
 	}
 
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
