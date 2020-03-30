@@ -24,8 +24,10 @@ IMAGE=$PODMAN_TEST_IMAGE_FQN
 TMPDIR=${TMPDIR:-/tmp}
 WORKDIR=$(mktemp --tmpdir -d $ME.tmp.XXXXXX)
 
-# Log of all HTTP requests and responses
-LOG=${TMPDIR}/$ME.log.$(date +'%Y%m%dT%H%M%S')
+# Log of all HTTP requests and responses; always make '.log' point to latest
+LOGBASE=${TMPDIR}/$ME.log
+LOG=${LOGBASE}.$(date +'%Y%m%dT%H%M%S')
+ln -sf $LOG $LOGBASE
 
 HOST=localhost
 PORT=${PODMAN_SERVICE_PORT:-8081}
@@ -110,16 +112,20 @@ function _show_ok() {
     _bump $testcounter_file
     count=$(<$testcounter_file)
     if [ $ok -eq 1 ]; then
-        echo -e "${green}ok $count $testname${reset}"
+        echo -e "${green}ok $count ${TEST_CONTEXT} $testname${reset}"
+        echo    "ok $count ${TEST_CONTEXT} $testname" >>$LOG
         return
     fi
 
     # Failed
     local expect=$3
     local actual=$4
-    echo -e "${red}not ok $count $testname${reset}"
+    echo -e "${red}not ok $count ${TEST_CONTEXT} $testname${reset}"
     echo -e "${red}#  expected: $expect${reset}"
     echo -e "${red}#    actual: ${bold}$actual${reset}"
+
+    echo    "not ok $count ${TEST_CONTEXT} $testname" >>$LOG
+    echo    "  expected: $expect"
 
     _bump $failures_file
 }
@@ -168,6 +174,10 @@ function t() {
         testname="$testname [$1]"
         shift
     fi
+
+    # entrypoint path can include a descriptive comment; strip it off
+    path=${path%% *}
+
     # curl -X HEAD but without --head seems to wait for output anyway
     if [[ $method == "HEAD" ]]; then
         curl_args="--head"
@@ -196,13 +206,20 @@ function t() {
         exit 1
     fi
 
-    cat $WORKDIR/curl.headers.out $WORKDIR/curl.result.out >>$LOG 2>/dev/null || true
+    cat $WORKDIR/curl.headers.out >>$LOG 2>/dev/null || true
+    output=$(< $WORKDIR/curl.result.out)
+
+    # Log results. If JSON, filter through jq for readability
+    if egrep -qi '^Content-Type: application/json' $WORKDIR/curl.headers.out; then
+        jq . <<<"$output" >>$LOG
+    else
+        echo "$output" >>$LOG
+    fi
 
     # Test return code
     actual_code=$(head -n1 $WORKDIR/curl.headers.out | awk '/^HTTP/ { print $2}')
     is "$actual_code" "$expected_code" "$testname : status"
 
-    output=$(< $WORKDIR/curl.result.out)
 
     # Special case: 204/304, by definition, MUST NOT return content (rfc2616)
     if [[ $expected_code = 204 || $expected_code = 304 ]]; then
@@ -327,6 +344,7 @@ fi
 start_service
 
 for i in ${tests_to_run[@]}; do
+    TEST_CONTEXT="[$(basename $i .at)]"
     source $i
 done
 
