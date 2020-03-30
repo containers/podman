@@ -234,3 +234,10 @@ type ImageImportOptions struct {
 type ImageImportReport struct {
 	Id string
 }
+
+type ImageSaveOptions struct {
+	Compress bool
+	Format   string
+	Output   string
+	Quiet    bool
+}

@@ -16,12 +16,14 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
+	utils2 "github.com/containers/libpod/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -161,13 +163,16 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {
+	var (
+		output string
+	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Compress bool   `schema:"compress"`
 		Format   string `schema:"format"`
 	}{
-		Format: "docker-archive",
+		Format: define.OCIArchive,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -175,14 +180,27 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-
-	tmpfile, err := ioutil.TempFile("", "api.tar")
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
-		return
-	}
-	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+	switch query.Format {
+	case define.OCIArchive, define.V2s2Archive:
+		tmpfile, err := ioutil.TempFile("", "api.tar")
+		if err != nil {
+			utils.Error(w, "unable to create tmpfile", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+			return
+		}
+		output = tmpfile.Name()
+		if err := tmpfile.Close(); err != nil {
+			utils.Error(w, "unable to close tmpfile", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+			return
+		}
+	case define.OCIManifestDir, define.V2s2ManifestDir:
+		tmpdir, err := ioutil.TempDir("", "save")
+		if err != nil {
+			utils.Error(w, "unable to create tmpdir", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempdir"))
+			return
+		}
+		output = tmpdir
+	default:
+		utils.Error(w, "unknown format", http.StatusInternalServerError, errors.Errorf("unknown format %q", query.Format))
 		return
 	}
 	name := utils.GetName(r)
@@ -192,17 +210,28 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := newImage.Save(r.Context(), name, query.Format, tmpfile.Name(), []string{}, false, query.Compress); err != nil {
+	if err := newImage.Save(r.Context(), name, query.Format, output, []string{}, false, query.Compress); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
-	rdr, err := os.Open(tmpfile.Name())
+	defer os.RemoveAll(output)
+	// if dir format, we need to tar it
+	if query.Format == "oci-dir" || query.Format == "docker-dir" {
+		rdr, err := utils2.Tar(output)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		defer rdr.Close()
+		utils.WriteResponse(w, http.StatusOK, rdr)
+		return
+	}
+	rdr, err := os.Open(output)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
 		return
 	}
 	defer rdr.Close()
-	defer os.Remove(tmpfile.Name())
 	utils.WriteResponse(w, http.StatusOK, rdr)
 }
 

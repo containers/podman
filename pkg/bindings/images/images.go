@@ -146,11 +146,12 @@ func Export(ctx context.Context, nameOrID string, w io.Writer, format *string, c
 	if err != nil {
 		return err
 	}
-	if err := response.Process(nil); err != nil {
+
+	if response.StatusCode/100 == 2 || response.StatusCode/100 == 3 {
+		_, err = io.Copy(w, response.Body)
 		return err
 	}
-	_, err = io.Copy(w, response.Body)
-	return err
+	return nil
 }
 
 // Prune removes unused images from local storage.  The optional filters can be used to further

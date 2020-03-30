@@ -955,7 +955,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images
 	// summary: Export an image
-	// description: Export an image as a tarball
+	// description: Export an image
 	// parameters:
 	//  - in: path
 	//    name: name:.*

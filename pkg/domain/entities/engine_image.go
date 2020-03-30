@@ -17,4 +17,5 @@ type ImageEngine interface {
 	Load(ctx context.Context, opts ImageLoadOptions) (*ImageLoadReport, error)
 	Import(ctx context.Context, opts ImageImportOptions) (*ImageImportReport, error)
 	Push(ctx context.Context, source string, destination string, opts ImagePushOptions) error
+	Save(ctx context.Context, nameOrId string, tags []string, options ImageSaveOptions) error
 }
