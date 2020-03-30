@@ -174,13 +174,13 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 	if os.Geteuid() == 0 {
 		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
 		if err != nil {
-			return err
-		}
-		conf, err := runtime.GetConfig()
-		if err != nil {
-			return err
+			logrus.Warnf("Failed to detect the owner for the current cgroup: %v", err)
 		}
 		if !ownsCgroup {
+			conf, err := runtime.GetConfig()
+			if err != nil {
+				return err
+			}
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
 			if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
 				if conf.Engine.CgroupManager == config.SystemdCgroupsManager {
