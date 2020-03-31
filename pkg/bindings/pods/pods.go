@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -49,17 +48,19 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 }
 
 // Inspect returns low-level information about the given pod.
-func Inspect(ctx context.Context, nameOrID string) (*libpod.PodInspect, error) {
+func Inspect(ctx context.Context, nameOrID string) (*entities.PodInspectReport, error) {
+	var (
+		report entities.PodInspectReport
+	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	inspect := libpod.PodInspect{}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/%s/json", nil, nameOrID)
 	if err != nil {
-		return &inspect, err
+		return nil, err
 	}
-	return &inspect, response.Process(&inspect)
+	return &report, response.Process(&report)
 }
 
 // Kill sends a SIGTERM to all the containers in a pod.  The optional signal parameter

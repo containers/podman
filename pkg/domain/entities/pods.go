@@ -3,6 +3,7 @@ package entities
 import (
 	"time"
 
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/specgen"
 )
 
@@ -163,4 +164,15 @@ type PodPSOptions struct {
 	Namespace bool
 	Quiet     bool
 	Sort      string
+}
+
+type PodInspectOptions struct {
+	Latest bool
+
+	// Options for the API.
+	NameOrID string
+}
+
+type PodInspectReport struct {
+	*libpod.PodInspect
 }
