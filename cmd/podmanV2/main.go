@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	_ "github.com/containers/libpod/cmd/podmanV2/containers"
+	_ "github.com/containers/libpod/cmd/podmanV2/healthcheck"
 	_ "github.com/containers/libpod/cmd/podmanV2/images"
 	_ "github.com/containers/libpod/cmd/podmanV2/networks"
 	_ "github.com/containers/libpod/cmd/podmanV2/pods"
