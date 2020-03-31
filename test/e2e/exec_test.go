@@ -122,6 +122,18 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.ExitCode()).To(Equal(100))
 	})
 
+	It("podman exec terminal doesn't hang", func() {
+		setup := podmanTest.Podman([]string{"run", "-dti", fedoraMinimal, "sleep", "+Inf"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		for i := 0; i < 5; i++ {
+			session := podmanTest.Podman([]string{"exec", "-lti", "true"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+		}
+	})
+
 	It("podman exec pseudo-terminal sanity check", func() {
 		setup := podmanTest.Podman([]string{"run", "--detach", "--name", "test1", fedoraMinimal, "sleep", "+Inf"})
 		setup.WaitWithDefaultTimeout()
