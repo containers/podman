@@ -38,7 +38,7 @@ type swagLibpodImagesLoadResponse struct {
 // swagger:response DocsLibpodImagesImportResponse
 type swagLibpodImagesImportResponse struct {
 	// in:body
-	Body LibpodImagesImportReport
+	Body entities.ImageImportReport
 }
 
 // Pull response

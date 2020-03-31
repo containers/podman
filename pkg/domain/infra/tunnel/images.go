@@ -167,3 +167,20 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 	defer f.Close()
 	return images.Load(ir.ClientCxt, f, &opts.Name)
 }
+
+func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
+	var (
+		err       error
+		sourceURL *string
+		f         *os.File
+	)
+	if opts.SourceIsURL {
+		sourceURL = &opts.Source
+	} else {
+		f, err = os.Open(opts.Source)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return images.Import(ir.ClientCxt, opts.Changes, &opts.Message, &opts.Reference, sourceURL, f)
+}

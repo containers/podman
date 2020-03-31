@@ -217,14 +217,14 @@ func Build(nameOrId string) {}
 // Imports adds the given image to the local image store.  This can be done by file and the given reader
 // or via the url parameter.  Additional metadata can be associated with the image by using the changes and
 // message parameters.  The image can also be tagged given a reference. One of url OR r must be provided.
-func Import(ctx context.Context, changes []string, message, reference, u *string, r io.Reader) (string, error) {
-	var id handlers.IDResponse
+func Import(ctx context.Context, changes []string, message, reference, u *string, r io.Reader) (*entities.ImageImportReport, error) {
+	var report entities.ImageImportReport
 	if r != nil && u != nil {
-		return "", errors.New("url and r parameters cannot be used together")
+		return nil, errors.New("url and r parameters cannot be used together")
 	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	params := url.Values{}
 	for _, change := range changes {
@@ -241,9 +241,9 @@ func Import(ctx context.Context, changes []string, message, reference, u *string
 	}
 	response, err := conn.DoRequest(r, http.MethodPost, "/images/import", params)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return id.ID, response.Process(&id)
+	return &report, response.Process(&report)
 }
 
 // Pull is the binding for libpod's v2 endpoints for pulling images.  Note that

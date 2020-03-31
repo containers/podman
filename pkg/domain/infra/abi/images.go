@@ -303,6 +303,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, 
 	}
 	return nil
 }
+
 func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string, options entities.ImageUntagOptions) error {
 	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
 	if err != nil {
@@ -335,4 +336,12 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 		return nil, errors.Wrapf(err, "error adding %q to image %q", opts.Name, newImage.InputName)
 	}
 	return &entities.ImageLoadReport{Name: name}, nil
+}
+
+func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
+	id, err := ir.Libpod.Import(ctx, opts.Source, opts.Reference, opts.Changes, opts.Message, opts.Quiet)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.ImageImportReport{Id: id}, nil
 }
