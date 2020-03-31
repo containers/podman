@@ -13,19 +13,17 @@ var (
 	ErrDupeMntOption = errors.Errorf("duplicate mount option passed")
 )
 
-// DefaultMountOptions sets default mount options for ProcessOptions.
-type DefaultMountOptions struct {
-	Noexec bool
-	Nosuid bool
-	Nodev  bool
+type defaultMountOptions struct {
+	noexec bool
+	nosuid bool
+	nodev  bool
 }
 
 // ProcessOptions parses the options for a bind or tmpfs mount and ensures that
 // they are sensible and follow convention. The isTmpfs variable controls
 // whether extra, tmpfs-specific options will be allowed.
-// The defaults variable controls default mount options that will be set. If it
-// is not included, they will be set unconditionally.
-func ProcessOptions(options []string, isTmpfs bool, defaults *DefaultMountOptions) ([]string, error) {
+// The sourcePath variable, if not empty, contains a bind mount source.
+func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string, error) {
 	var (
 		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ bool
 	)
@@ -122,13 +120,17 @@ func ProcessOptions(options []string, isTmpfs bool, defaults *DefaultMountOption
 	if !foundProp {
 		newOptions = append(newOptions, "rprivate")
 	}
-	if !foundExec && (defaults == nil || defaults.Noexec) {
+	defaults, err := getDefaultMountOptions(sourcePath)
+	if err != nil {
+		return nil, err
+	}
+	if !foundExec && defaults.noexec {
 		newOptions = append(newOptions, "noexec")
 	}
-	if !foundSuid && (defaults == nil || defaults.Nosuid) {
+	if !foundSuid && defaults.nosuid {
 		newOptions = append(newOptions, "nosuid")
 	}
-	if !foundDev && (defaults == nil || defaults.Nodev) {
+	if !foundDev && defaults.nodev {
 		newOptions = append(newOptions, "nodev")
 	}
 	if isTmpfs && !foundCopyUp {
