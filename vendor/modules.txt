@@ -86,7 +86,7 @@ github.com/containers/buildah/util
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/config
 github.com/containers/common/pkg/unshare
-# github.com/containers/conmon v2.0.10+incompatible
+# github.com/containers/conmon v2.0.14+incompatible
 github.com/containers/conmon/runner/config
 # github.com/containers/image/v5 v5.3.1
 github.com/containers/image/v5/copy
