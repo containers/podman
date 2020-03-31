@@ -867,9 +867,9 @@ func InitFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
 	var mounts []spec.Mount
 	for _, m := range inputMounts {
 		if m.Type == TypeBind {
-			baseMnt, err := findMount(m.Destination, systemMounts)
+			baseMnt, err := findMount(m.Source, systemMounts)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error looking up mountpoint for mount %s", m.Destination)
+				return nil, errors.Wrapf(err, "error looking up mountpoint for mount %s", m.Source)
 			}
 			var noexec, nosuid, nodev bool
 			for _, baseOpt := range strings.Split(baseMnt.Opts, ",") {
