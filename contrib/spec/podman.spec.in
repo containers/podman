@@ -392,7 +392,7 @@ popd
 ln -s vendor src
 export GO111MODULE=off
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
-export BUILDTAGS="varlink selinux seccomp $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
+export BUILDTAGS="varlink selinux seccomp systemd $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
 
@@ -410,7 +410,7 @@ mkdir -p src/%{provider}.%{provider_tld}/{containers,opencontainers}
 ln -s $(dirs +1 -l) src/%{import_path_conmon}
 popd
 
-export BUILDTAGS="selinux seccomp $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh)"
+export BUILDTAGS="selinux seccomp systemd $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh)"
 BUILDTAGS=$BUILDTAGS make
 popd
 
