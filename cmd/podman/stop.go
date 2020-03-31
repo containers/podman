@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/opentracing/opentracing-go"
@@ -10,9 +12,9 @@ import (
 
 var (
 	stopCommand     cliconfig.StopValues
-	stopDescription = `Stops one or more running containers.  The container name or ID can be used.
+	stopDescription = fmt.Sprintf(`Stops one or more running containers.  The container name or ID can be used.
 
-  A timeout to forcibly stop the container can also be set but defaults to 10 seconds otherwise.`
+  A timeout to forcibly stop the container can also be set but defaults to %d seconds otherwise.`, defaultContainerConfig.Engine.StopTimeout)
 	_stopCommand = &cobra.Command{
 		Use:   "stop [flags] CONTAINER [CONTAINER...]",
 		Short: "Stop one or more containers",
@@ -42,19 +44,14 @@ func init() {
 	flags.StringArrayVarP(&stopCommand.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
 	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.UintVarP(&stopCommand.Timeout, "time", "t", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVar(&stopCommand.Timeout, "timeout", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
-	markFlagHidden(flags, "timeout")
 	markFlagHiddenForRemoteClient("latest", flags)
 	markFlagHiddenForRemoteClient("cidfile", flags)
 	markFlagHiddenForRemoteClient("ignore", flags)
+	flags.SetNormalizeFunc(aliasFlags)
 }
 
 // stopCmd stops a container or containers
 func stopCmd(c *cliconfig.StopValues) error {
-	if c.Flag("timeout").Changed && c.Flag("time").Changed {
-		return errors.New("the --timeout and --time flags are mutually exclusive")
-	}
-
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "stopCmd")
 		defer span.Finish()

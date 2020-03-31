@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
@@ -10,9 +12,9 @@ import (
 
 var (
 	restartCommand     cliconfig.RestartValues
-	restartDescription = `Restarts one or more running containers. The container ID or name can be used.
+	restartDescription = fmt.Sprintf(`Restarts one or more running containers. The container ID or name can be used.
 
-  A timeout before forcibly stopping can be set, but defaults to 10 seconds.`
+  A timeout before forcibly stopping can be set, but defaults to %d seconds.`, defaultContainerConfig.Engine.StopTimeout)
 	_restartCommand = &cobra.Command{
 		Use:   "restart [flags] CONTAINER [CONTAINER...]",
 		Short: "Restart one or more containers",
@@ -40,10 +42,9 @@ func init() {
 	flags.BoolVarP(&restartCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restartCommand.Running, "running", false, "Restart only running containers when --all is used")
 	flags.UintVarP(&restartCommand.Timeout, "time", "t", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVar(&restartCommand.Timeout, "timeout", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 
-	markFlagHidden(flags, "timeout")
 	markFlagHiddenForRemoteClient("latest", flags)
+	flags.SetNormalizeFunc(aliasFlags)
 }
 
 func restartCmd(c *cliconfig.RestartValues) error {

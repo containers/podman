@@ -431,7 +431,7 @@ func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegrat
 // Cleanup cleans up the temporary store
 func (p *PodmanTestIntegration) Cleanup() {
 	// Remove all containers
-	stopall := p.Podman([]string{"stop", "-a", "--timeout", "0"})
+	stopall := p.Podman([]string{"stop", "-a", "--time", "0"})
 	stopall.Wait(90)
 
 	podstop := p.Podman([]string{"pod", "stop", "-a", "-t", "0"})

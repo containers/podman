@@ -43,9 +43,10 @@ func init() {
 	if !remoteclient {
 		flags.BoolVarP(&containerSystemdCommand.Files, "files", "f", false, "generate files instead of printing to stdout")
 	}
-	flags.IntVarP(&containerSystemdCommand.StopTimeout, "timeout", "t", -1, "stop timeout override")
+	flags.UintVarP(&containerSystemdCommand.StopTimeout, "time", "t", defaultContainerConfig.Engine.StopTimeout, "stop timeout override")
 	flags.StringVar(&containerSystemdCommand.RestartPolicy, "restart-policy", "on-failure", "applicable systemd restart-policy")
 	flags.BoolVarP(&containerSystemdCommand.New, "new", "", false, "create a new container instead of starting an existing one")
+	flags.SetNormalizeFunc(aliasFlags)
 }
 
 func generateSystemdCmd(c *cliconfig.GenerateSystemdValues) error {
@@ -54,11 +55,6 @@ func generateSystemdCmd(c *cliconfig.GenerateSystemdValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.DeferredShutdown(false)
-
-	// User input stop timeout must be 0 or greater
-	if c.Flag("timeout").Changed && c.StopTimeout < 0 {
-		return errors.New("timeout value must be 0 or greater")
-	}
 
 	unit, err := runtime.GenerateSystemd(c)
 	if err != nil {

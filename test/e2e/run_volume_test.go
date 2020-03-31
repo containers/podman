@@ -255,7 +255,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(strings.Contains(mountOut2, volName)).To(BeTrue())
 
 		// Stop the container to unmount
-		podmanStopSession := podmanTest.Podman([]string{"stop", "--timeout", "0", ctrName})
+		podmanStopSession := podmanTest.Podman([]string{"stop", "--time", "0", ctrName})
 		podmanStopSession.WaitWithDefaultTimeout()
 		Expect(podmanStopSession.ExitCode()).To(Equal(0))
 
