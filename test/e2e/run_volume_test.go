@@ -15,10 +15,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var VolumeTrailingSlashDockerfile = `
-FROM alpine:latest
-VOLUME /test/`
-
 var _ = Describe("Podman run with volumes", func() {
 	var (
 		tempdir    string
@@ -426,7 +422,10 @@ var _ = Describe("Podman run with volumes", func() {
 
 	It("Podman mount over image volume with trailing /", func() {
 		image := "podman-volume-test:trailing"
-		podmanTest.BuildImage(VolumeTrailingSlashDockerfile, image, "false")
+		dockerfile := `
+FROM alpine:latest
+VOLUME /test/`
+		podmanTest.BuildImage(dockerfile, image, "false")
 
 		ctrName := "testCtr"
 		create := podmanTest.Podman([]string{"create", "-v", "/tmp:/test", "--name", ctrName, image, "ls"})
