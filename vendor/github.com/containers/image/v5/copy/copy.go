@@ -27,8 +27,8 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vbauerster/mpb/v4"
-	"github.com/vbauerster/mpb/v4/decor"
+	"github.com/vbauerster/mpb/v5"
+	"github.com/vbauerster/mpb/v5/decor"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sync/semaphore"
 )
@@ -976,7 +976,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind
 	var bar *mpb.Bar
 	if info.Size > 0 {
 		bar = pool.AddBar(info.Size,
-			mpb.BarClearOnComplete(),
+			mpb.BarFillerClearOnComplete(),
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),
 			),
@@ -987,7 +987,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind
 	} else {
 		bar = pool.AddSpinner(info.Size,
 			mpb.SpinnerOnLeft,
-			mpb.BarClearOnComplete(),
+			mpb.BarFillerClearOnComplete(),
 			mpb.SpinnerStyle([]string{".", "..", "...", "....", ""}),
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),

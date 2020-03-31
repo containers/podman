@@ -4,6 +4,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5
 	github.com/Microsoft/hcsshim v0.8.7
+	github.com/containers/common v0.5.0
 	github.com/docker/go-units v0.4.0
 	github.com/klauspost/compress v1.10.3
 	github.com/klauspost/pgzip v1.2.3
@@ -20,7 +21,7 @@ require (
 	github.com/tchap/go-patricia v2.3.0+incompatible
 	github.com/vbatts/tar-split v0.11.1
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
-	golang.org/x/sys v0.0.0-20191115151921-52ab43148777
+	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	gotest.tools v2.2.0+incompatible
 )
 

@@ -152,6 +152,13 @@ type StoreOptions struct {
 	// for use inside of a user namespace where UID mapping is being used.
 	UIDMap []idtools.IDMap `json:"uidmap,omitempty"`
 	GIDMap []idtools.IDMap `json:"gidmap,omitempty"`
+	// RootAutoNsUser is the user used to pick a subrange when automatically setting
+	// a user namespace for the root user.
+	RootAutoNsUser string `json:"root_auto_ns_user,omitempty"`
+	// AutoNsMinSize is the minimum size for an automatic user namespace.
+	AutoNsMinSize uint32 `json:"auto_userns_min_size,omitempty"`
+	// AutoNsMaxSize is the maximum size for an automatic user namespace.
+	AutoNsMaxSize uint32 `json:"auto_userns_max_size,omitempty"`
 }
 
 // Store wraps up the various types of file-based stores that we use into a
@@ -469,6 +476,27 @@ type Store interface {
 	GetDigestLock(digest.Digest) (Locker, error)
 }
 
+// AutoUserNsOptions defines how to automatically create a user namespace.
+type AutoUserNsOptions struct {
+	// Size defines the size for the user namespace.  If it is set to a
+	// value bigger than 0, the user namespace will have exactly this size.
+	// If it is not set, some heuristics will be used to find its size.
+	Size uint32
+	// InitialSize defines the minimum size for the user namespace.
+	// The created user namespace will have at least this size.
+	InitialSize uint32
+	// PasswdFile to use if the container uses a volume.
+	PasswdFile string
+	// GroupFile to use if the container uses a volume.
+	GroupFile string
+	// AdditionalUIDMappings specified additional UID mappings to include in
+	// the generated user namespace.
+	AdditionalUIDMappings []idtools.IDMap
+	// AdditionalGIDMappings specified additional GID mappings to include in
+	// the generated user namespace.
+	AdditionalGIDMappings []idtools.IDMap
+}
+
 // IDMappingOptions are used for specifying how ID mapping should be set up for
 // a layer or container.
 type IDMappingOptions struct {
@@ -485,6 +513,8 @@ type IDMappingOptions struct {
 	HostGIDMapping bool
 	UIDMap         []idtools.IDMap
 	GIDMap         []idtools.IDMap
+	AutoUserNs     bool
+	AutoUserNsOpts AutoUserNsOptions
 }
 
 // LayerOptions is used for passing options to a Store's CreateLayer() and PutLayer() methods.
@@ -525,11 +555,17 @@ type store struct {
 	lastLoaded      time.Time
 	runRoot         string
 	graphLock       Locker
+	usernsLock      Locker
 	graphRoot       string
 	graphDriverName string
 	graphOptions    []string
 	uidMap          []idtools.IDMap
 	gidMap          []idtools.IDMap
+	autoUsernsUser  string
+	autoUIDMap      []idtools.IDMap // Set by getAvailableMappings()
+	autoGIDMap      []idtools.IDMap // Set by getAvailableMappings()
+	autoNsMinSize   uint32
+	autoNsMaxSize   uint32
 	graphDriver     drivers.Driver
 	layerStore      LayerStore
 	roLayerStores   []ROLayerStore
@@ -608,6 +644,20 @@ func GetStore(options StoreOptions) (Store, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	usernsLock, err := GetLockfile(filepath.Join(options.GraphRoot, "userns.lock"))
+	if err != nil {
+		return nil, err
+	}
+
+	autoNsMinSize := options.AutoNsMinSize
+	autoNsMaxSize := options.AutoNsMaxSize
+	if autoNsMinSize == 0 {
+		autoNsMinSize = AutoUserNsMinSize
+	}
+	if autoNsMaxSize == 0 {
+		autoNsMaxSize = AutoUserNsMaxSize
+	}
 	s := &store{
 		runRoot:         options.RunRoot,
 		graphLock:       graphLock,
@@ -616,6 +666,12 @@ func GetStore(options StoreOptions) (Store, error) {
 		graphOptions:    options.GraphDriverOptions,
 		uidMap:          copyIDMap(options.UIDMap),
 		gidMap:          copyIDMap(options.GIDMap),
+		autoUsernsUser:  options.RootAutoNsUser,
+		autoNsMinSize:   autoNsMinSize,
+		autoNsMaxSize:   autoNsMaxSize,
+		autoUIDMap:      nil,
+		autoGIDMap:      nil,
+		usernsLock:      usernsLock,
 	}
 	if err := s.load(); err != nil {
 		return nil, err
@@ -624,6 +680,18 @@ func GetStore(options StoreOptions) (Store, error) {
 	stores = append(stores, s)
 
 	return s, nil
+}
+
+func copyUint32Slice(slice []uint32) []uint32 {
+	m := []uint32{}
+	if slice != nil {
+		m = make([]uint32, len(slice))
+		copy(m, slice)
+	}
+	if len(m) > 0 {
+		return m[:]
+	}
+	return nil
 }
 
 func copyIDMap(idmap []idtools.IDMap) []idtools.IDMap {
@@ -1151,21 +1219,32 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 
 	var imageTopLayer *Layer
 	imageID := ""
-	uidMap := options.UIDMap
-	gidMap := options.GIDMap
 
-	idMappingsOptions := options.IDMappingOptions
+	if options.AutoUserNs || options.UIDMap != nil || options.GIDMap != nil {
+		// Prevent multiple instances to retrieve the same range when AutoUserNs
+		// are used.
+		// It doesn't prevent containers that specify an explicit mapping to overlap
+		// with AutoUserNs.
+		s.usernsLock.Lock()
+		defer s.usernsLock.Unlock()
+	}
+
+	var imageHomeStore ROImageStore
+	var istore ImageStore
+	var istores []ROImageStore
+	var lstores []ROLayerStore
+	var cimage *Image
 	if image != "" {
-		var imageHomeStore ROImageStore
-		lstores, err := s.ROLayerStores()
+		var err error
+		lstores, err = s.ROLayerStores()
 		if err != nil {
 			return nil, err
 		}
-		istore, err := s.ImageStore()
+		istore, err = s.ImageStore()
 		if err != nil {
 			return nil, err
 		}
-		istores, err := s.ROImageStores()
+		istores, err = s.ROImageStores()
 		if err != nil {
 			return nil, err
 		}
@@ -1176,7 +1255,6 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 				return nil, err
 			}
 		}
-		var cimage *Image
 		for _, s := range append([]ROImageStore{istore}, istores...) {
 			store := s
 			if store == istore {
@@ -1200,7 +1278,21 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 		}
 		imageID = cimage.ID
+	}
 
+	if options.AutoUserNs {
+		var err error
+		options.UIDMap, options.GIDMap, err = s.getAutoUserNS(id, &options.AutoUserNsOpts, cimage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	uidMap := options.UIDMap
+	gidMap := options.GIDMap
+
+	idMappingsOptions := options.IDMappingOptions
+	if image != "" {
 		if cimage.TopLayer != "" {
 			createMappedLayer := imageHomeStore == istore
 			ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, createMappedLayer, rlstore, lstores, idMappingsOptions)
@@ -3305,6 +3397,16 @@ func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
 // defaultConfigFile path to the system wide storage.conf file
 const defaultConfigFile = "/etc/containers/storage.conf"
 
+// AutoUserNsMinSize is the minimum size for automatically created user namespaces
+const AutoUserNsMinSize = 1024
+
+// AutoUserNsMaxSize is the maximum size for automatically created user namespaces
+const AutoUserNsMaxSize = 65536
+
+// RootAutoUserNsUser is the default user used for root containers when automatically
+// creating a user namespace.
+const RootAutoUserNsUser = "containers"
+
 // DefaultConfigFile returns the path to the storage config file used
 func DefaultConfigFile(rootless bool) (string, error) {
 	if rootless {
@@ -3405,6 +3507,13 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 		fmt.Print(err)
 	} else {
 		storeOptions.GIDMap = append(storeOptions.GIDMap, gidmap...)
+	}
+	storeOptions.RootAutoNsUser = config.Storage.Options.RootAutoUsernsUser
+	if config.Storage.Options.AutoUsernsMinSize > 0 {
+		storeOptions.AutoNsMinSize = config.Storage.Options.AutoUsernsMinSize
+	}
+	if config.Storage.Options.AutoUsernsMaxSize > 0 {
+		storeOptions.AutoNsMaxSize = config.Storage.Options.AutoUsernsMaxSize
 	}
 
 	storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, cfg.GetGraphDriverOptions(storeOptions.GraphDriverName, config.Storage.Options)...)
