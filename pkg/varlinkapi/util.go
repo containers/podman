@@ -10,10 +10,10 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/channelwriter"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/containers/storage/pkg/archive"
 )
 

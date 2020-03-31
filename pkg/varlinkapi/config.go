@@ -4,8 +4,8 @@ package varlinkapi
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/spf13/cobra"
 )
 

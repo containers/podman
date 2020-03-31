@@ -6,10 +6,10 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -28,7 +28,7 @@ func setupStreams(call iopodman.VarlinkCall) (*bufio.Reader, *bufio.Writer, *io.
 
 	stdoutWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.ToStdout)
 	// TODO if runc ever starts passing stderr, we can too
-	//stderrWriter := NewVirtWriteCloser(writer, ToStderr)
+	// stderrWriter := NewVirtWriteCloser(writer, ToStderr)
 
 	streams := libpod.AttachStreams{
 		OutputStream: stdoutWriter,

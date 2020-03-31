@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/pkg/rootless"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/gomega/gexec"
 )

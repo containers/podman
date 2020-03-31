@@ -3,7 +3,7 @@
 package adapter
 
 import (
-	"github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // Info returns information for the host system and its components

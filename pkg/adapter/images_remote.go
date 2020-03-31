@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/json"
 
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/pkg/inspect"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // Inspect returns returns an ImageData struct from over a varlink connection

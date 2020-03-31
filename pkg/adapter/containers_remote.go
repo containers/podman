@@ -15,11 +15,11 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
 	envLib "github.com/containers/libpod/pkg/env"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/term"

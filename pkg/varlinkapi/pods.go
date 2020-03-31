@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // CreatePod ...

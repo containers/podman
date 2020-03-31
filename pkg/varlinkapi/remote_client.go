@@ -3,8 +3,8 @@
 package varlinkapi
 
 import (
-	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // ContainerStatsToLibpodContainerStats converts the varlink containerstats to a libpod

@@ -4,9 +4,9 @@ package adapter
 
 import (
 	"encoding/json"
-	"github.com/containers/libpod/libpod/define"
 
-	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod/define"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // Info returns information for the host system and its components
