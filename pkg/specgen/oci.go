@@ -215,11 +215,9 @@ func (s *SpecGenerator) toOCISpec(rt *libpod.Runtime, newImage *image.Image) (*s
 	// BIND MOUNTS
 	configSpec.Mounts = createconfig.SupercedeUserMounts(s.Mounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
-	finalMounts, err := createconfig.InitFSMounts(configSpec.Mounts)
-	if err != nil {
+	if err := createconfig.InitFSMounts(configSpec.Mounts); err != nil {
 		return nil, err
 	}
-	configSpec.Mounts = finalMounts
 
 	// Add annotations
 	if configSpec.Annotations == nil {

@@ -855,21 +855,19 @@ func SupercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 }
 
 // Ensure mount options on all mounts are correct
-func InitFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
+func InitFSMounts(mounts []spec.Mount) error {
 	// We need to look up mounts so we can figure out the proper mount flags
 	// to apply.
 	systemMounts, err := pmount.GetMounts()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving system mounts to look up mount options")
+		return errors.Wrapf(err, "error retrieving system mounts to look up mount options")
 	}
 
-	// TODO: We probably don't need to re-build the mounts array
-	var mounts []spec.Mount
-	for _, m := range inputMounts {
+	for i, m := range mounts {
 		if m.Type == TypeBind {
 			baseMnt, err := findMount(m.Source, systemMounts)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error looking up mountpoint for mount %s", m.Source)
+				return errors.Wrapf(err, "error looking up mountpoint for mount %s", m.Source)
 			}
 			var noexec, nosuid, nodev bool
 			for _, baseOpt := range strings.Split(baseMnt.Opts, ",") {
@@ -890,21 +888,19 @@ func InitFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
 
 			opts, err := util.ProcessOptions(m.Options, false, defaultMountOpts)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			m.Options = opts
+			mounts[i].Options = opts
 		}
 		if m.Type == TypeTmpfs && filepath.Clean(m.Destination) != "/dev" {
 			opts, err := util.ProcessOptions(m.Options, true, nil)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			m.Options = opts
+			mounts[i].Options = opts
 		}
-
-		mounts = append(mounts, m)
 	}
-	return mounts, nil
+	return nil
 }
 
 // TODO: We could make this a bit faster by building a tree of the mountpoints
