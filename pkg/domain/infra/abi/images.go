@@ -5,11 +5,22 @@ package abi
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 
+	"github.com/containers/image/v5/docker"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/libpod/image"
 	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.BoolReport, error) {
@@ -132,6 +143,95 @@ func ToDomainHistoryLayer(layer *libpodImage.History) entities.ImageHistoryLayer
 	l.Size = layer.Size
 	l.Comment = layer.Comment
 	return l
+}
+
+func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+	var writer io.Writer
+	if !options.Quiet {
+		writer = os.Stderr
+	}
+
+	dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
+	imageRef, err := alltransports.ParseImageName(rawImage)
+	if err != nil {
+		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, rawImage))
+		if err != nil {
+			return nil, errors.Errorf("invalid image reference %q", rawImage)
+		}
+	}
+
+	// Special-case for docker-archive which allows multiple tags.
+	if imageRef.Transport().Name() == dockerarchive.Transport.Name() {
+		newImage, err := ir.Libpod.ImageRuntime().LoadFromArchiveReference(ctx, imageRef, options.SignaturePolicy, writer)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error pulling image %q", rawImage)
+		}
+		return &entities.ImagePullReport{Images: []string{newImage[0].ID()}}, nil
+	}
+
+	var registryCreds *types.DockerAuthConfig
+	if options.Credentials != "" {
+		creds, err := util.ParseRegistryCreds(options.Credentials)
+		if err != nil {
+			return nil, err
+		}
+		registryCreds = creds
+	}
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds:         registryCreds,
+		DockerCertPath:              options.CertDir,
+		OSChoice:                    options.OverrideOS,
+		ArchitectureChoice:          options.OverrideArch,
+		DockerInsecureSkipTLSVerify: options.TLSVerify,
+	}
+
+	if !options.AllTags {
+		newImage, err := ir.Libpod.ImageRuntime().New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error pulling image %q", rawImage)
+		}
+		return &entities.ImagePullReport{Images: []string{newImage.ID()}}, nil
+	}
+
+	// --all-tags requires the docker transport
+	if imageRef.Transport().Name() != docker.Transport.Name() {
+		return nil, errors.New("--all-tags requires docker transport")
+	}
+
+	// Trim the docker-transport prefix.
+	rawImage = strings.TrimPrefix(rawImage, docker.Transport.Name())
+
+	// all-tags doesn't work with a tagged reference, so let's check early
+	namedRef, err := reference.Parse(rawImage)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing %q", rawImage)
+	}
+	if _, isTagged := namedRef.(reference.Tagged); isTagged {
+		return nil, errors.New("--all-tags requires a reference without a tag")
+
+	}
+
+	systemContext := image.GetSystemContext("", options.Authfile, false)
+	tags, err := docker.GetRepositoryTags(ctx, systemContext, imageRef)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting repository tags")
+	}
+
+	var foundIDs []string
+	for _, tag := range tags {
+		name := rawImage + ":" + tag
+		newImage, err := ir.Libpod.ImageRuntime().New(ctx, name, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
+		if err != nil {
+			logrus.Errorf("error pulling image %q", name)
+			continue
+		}
+		foundIDs = append(foundIDs, newImage.ID())
+	}
+
+	if len(tags) != len(foundIDs) {
+		return nil, errors.Errorf("error pulling image %q", rawImage)
+	}
+	return &entities.ImagePullReport{Images: foundIDs}, nil
 }
 
 // func (r *imageRuntime) Delete(ctx context.Context, nameOrId string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {

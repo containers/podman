@@ -303,6 +303,10 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, handlers.LibpodImagesImportReport{ID: importedImage})
 }
 
+// ImagesPull is the v2 libpod endpoint for pulling images.  Note that the
+// mandatory `reference` must be a reference to a registry (i.e., of docker
+// transport or be normalized to one).  Other transports are rejected as they
+// do not make sense in a remote context.
 func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
@@ -328,10 +332,11 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Enforce the docker transport.  This is just a precaution as some callers
-	// might accustomed to using the "transport:reference" notation.  Using
+	// might be accustomed to using the "transport:reference" notation.  Using
 	// another than the "docker://" transport does not really make sense for a
 	// remote case. For loading tarballs, the load and import endpoints should
 	// be used.
+	dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
 	imageRef, err := alltransports.ParseImageName(query.Reference)
 	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
@@ -339,7 +344,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		origErr := err
-		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s://%s", docker.Transport.Name(), query.Reference))
+		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, query.Reference))
 		if err != nil {
 			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 				errors.Wrapf(origErr, "reference %q must be a docker reference", query.Reference))
@@ -347,16 +352,19 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Trim the docker-transport prefix.
+	rawImage := strings.TrimPrefix(query.Reference, dockerPrefix)
+
 	// all-tags doesn't work with a tagged reference, so let's check early
-	namedRef, err := reference.Parse(query.Reference)
+	namedRef, err := reference.Parse(rawImage)
 	if err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "error parsing reference %q", query.Reference))
+			errors.Wrapf(err, "error parsing reference %q", rawImage))
 		return
 	}
 	if _, isTagged := namedRef.(reference.Tagged); isTagged && query.AllTags {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Errorf("reference %q must not have a tag for all-tags", query.Reference))
+			errors.Errorf("reference %q must not have a tag for all-tags", rawImage))
 		return
 	}
 

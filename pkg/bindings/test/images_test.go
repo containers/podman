@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/bindings/images"
+	"github.com/containers/libpod/pkg/domain/entities"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -353,4 +354,24 @@ var _ = Describe("Podman images", func() {
 		Expect(results).To(ContainElement("docker.io/library/alpine:latest"))
 	})
 
+	// TODO: we really need to extent to pull tests once we have a more sophisticated CI.
+	It("Image Pull", func() {
+		rawImage := "docker.io/library/busybox:latest"
+
+		pulledImages, err := images.Pull(bt.conn, rawImage, entities.ImagePullOptions{})
+		Expect(err).To(BeNil())
+		Expect(len(pulledImages)).To(Equal(1))
+
+		exists, err := images.Exists(bt.conn, rawImage)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
+
+		// Make sure the normalization AND the full-transport reference works.
+		_, err = images.Pull(bt.conn, "docker://"+rawImage, entities.ImagePullOptions{})
+		Expect(err).To(BeNil())
+
+		// The v2 endpoint only supports the docker transport.  Let's see if that's really true.
+		_, err = images.Pull(bt.conn, "bogus-transport:bogus.com/image:reference", entities.ImagePullOptions{})
+		Expect(err).To(Not(BeNil()))
+	})
 })

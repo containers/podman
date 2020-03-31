@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/types"
 	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/opencontainers/go-digest"
@@ -115,6 +116,39 @@ type ImageInspectOptions struct {
 	Format     string `json:",omitempty"`
 	Size       bool   `json:",omitempty"`
 	Latest     bool   `json:",omitempty"`
+}
+
+// ImagePullOptions are the arguments for pulling images.
+type ImagePullOptions struct {
+	// AllTags can be specified to pull all tags of the spiecifed image. Note
+	// that this only works if the specified image does not include a tag.
+	AllTags bool
+	// Authfile is the path to the authentication file. Ignored for remote
+	// calls.
+	Authfile string
+	// CertDir is the path to certificate directories.  Ignored for remote
+	// calls.
+	CertDir string
+	// Credentials for authenticating against the registry in the format
+	// USERNAME:PASSWORD.
+	Credentials string
+	// OverrideArch will overwrite the local architecture for image pulls.
+	OverrideArch string
+	// OverrideOS will overwrite the local operating system (OS) for image
+	// pulls.
+	OverrideOS string
+	// Quiet can be specified to suppress pull progress when pulling.  Ignored
+	// for remote calls.
+	Quiet bool
+	// SignaturePolicy to use when pulling.  Ignored for remote calls.
+	SignaturePolicy string
+	// TLSVerify to enable/disable HTTPS and certificate verification.
+	TLSVerify types.OptionalBool
+}
+
+// ImagePullReport is the response from pulling one or more images.
+type ImagePullReport struct {
+	Images []string
 }
 
 type ImageListOptions struct {
