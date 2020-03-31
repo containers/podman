@@ -172,3 +172,15 @@ type ImageInspectReport struct {
 	Images []*ImageData
 	Errors map[string]error
 }
+
+type ImageLoadOptions struct {
+	Name            string
+	Tag             string
+	Input           string
+	Quiet           bool
+	SignaturePolicy string
+}
+
+type ImageLoadReport struct {
+	Name string
+}

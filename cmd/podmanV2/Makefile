@@ -1,2 +1,2 @@
 all:
-	GO111MODULE=off go build -tags 'ABISupport'
+	GO111MODULE=off go build -tags 'ABISupport systemd'

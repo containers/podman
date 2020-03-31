@@ -91,11 +91,11 @@ func History(ctx context.Context, nameOrID string) ([]*handlers.HistoryResponse,
 	return history, response.Process(&history)
 }
 
-func Load(ctx context.Context, r io.Reader, name *string) (string, error) {
-	var id handlers.IDResponse
+func Load(ctx context.Context, r io.Reader, name *string) (*entities.ImageLoadReport, error) {
+	var report entities.ImageLoadReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	params := url.Values{}
 	if name != nil {
@@ -103,9 +103,9 @@ func Load(ctx context.Context, r io.Reader, name *string) (string, error) {
 	}
 	response, err := conn.DoRequest(r, http.MethodPost, "/images/load", params)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return id.ID, response.Process(&id)
+	return &report, response.Process(&report)
 }
 
 // Remove deletes an image from local storage.  The optional force parameter will forcibly remove

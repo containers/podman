@@ -14,4 +14,5 @@ type ImageEngine interface {
 	Pull(ctx context.Context, rawImage string, opts ImagePullOptions) (*ImagePullReport, error)
 	Tag(ctx context.Context, nameOrId string, tags []string, options ImageTagOptions) error
 	Untag(ctx context.Context, nameOrId string, tags []string, options ImageUntagOptions) error
+	Load(ctx context.Context, opts ImageLoadOptions) (*ImageLoadReport, error)
 }
