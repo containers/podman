@@ -80,7 +80,7 @@ having `SPECIALMODE` set to 'cgroupv2`
 
 Modifying the contents of cache-images is tested by making changes to
 one or more of the ``./contrib/cirrus/packer/*_setup.sh`` files.  Then
-in the PR description, add the magic string:  ``***CIRRUS: TEST IMAGES***``
+in the PR description, add the magic string:  ``[CI:IMG]``
 
 ***N/B: Steps below are performed by automation***
 
@@ -153,7 +153,7 @@ env:
 ***NOTES:***
 * If re-using the same PR with new images in `.cirrus.yml`,
   take care to also *update the PR description* to remove
-  the magic ``***CIRRUS: TEST IMAGES***`` string.  Keeping it and
+  the magic ``[CI:IMG]`` string.  Keeping it and
   `--force` pushing would needlessly cause Cirrus-CI to build
   and test images again.
 * In the future, if you need to review the log from the build that produced
