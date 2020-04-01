@@ -197,6 +197,22 @@ func Tag(ctx context.Context, nameOrID, tag, repo string) error {
 	return response.Process(nil)
 }
 
+// Untag removes a name from locally-stored image. Both the tag and repo parameters are required.
+func Untag(ctx context.Context, nameOrID, tag, repo string) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	params := url.Values{}
+	params.Set("tag", tag)
+	params.Set("repo", repo)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/images/%s/untag", params, nameOrID)
+	if err != nil {
+		return err
+	}
+	return response.Process(nil)
+}
+
 func Build(nameOrId string) {}
 
 // Imports adds the given image to the local image store.  This can be done by file and the given reader
