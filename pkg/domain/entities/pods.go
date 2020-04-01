@@ -22,6 +22,7 @@ type ListPodsReport struct {
 	Containers []*ListPodContainer
 	Created    time.Time
 	Id         string
+	InfraId    string
 	Name       string
 	Namespace  string
 	Status     string
@@ -150,4 +151,16 @@ type PodTopOptions struct {
 	// Options for the API.
 	Descriptors []string
 	NameOrID    string
+}
+
+type PodPSOptions struct {
+	CtrNames  bool
+	CtrIds    bool
+	CtrStatus bool
+	Filters   map[string][]string
+	Format    string
+	Latest    bool
+	Namespace bool
+	Quiet     bool
+	Sort      string
 }

@@ -19,6 +19,9 @@ var defaultFuncMap = template.FuncMap{
 	"humanDuration": func(t int64) string {
 		return units.HumanDuration(time.Since(time.Unix(t, 0))) + " ago"
 	},
+	"humanDurationFromTime": func(t time.Time) string {
+		return units.HumanDuration(time.Since(t)) + " ago"
+	},
 	"humanSize": func(sz int64) string {
 		s := units.HumanSizeWithPrecision(float64(sz), 3)
 		i := strings.LastIndexFunc(s, unicode.IsNumber)

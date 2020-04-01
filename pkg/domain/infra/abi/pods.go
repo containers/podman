@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/podfilters"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/specgen"
@@ -271,4 +272,62 @@ func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOp
 	report := &entities.StringSliceReport{}
 	report.Value, err = pod.GetPodPidInformation(options.Descriptors)
 	return report, err
+}
+
+func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOptions) ([]*entities.ListPodsReport, error) {
+	var (
+		filters []libpod.PodFilter
+		reports []*entities.ListPodsReport
+	)
+	for k, v := range options.Filters {
+		for _, filter := range v {
+			f, err := podfilters.GeneratePodFilterFunc(k, filter)
+			if err != nil {
+				return nil, err
+			}
+			filters = append(filters, f)
+
+		}
+	}
+	pds, err := ic.Libpod.Pods(filters...)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range pds {
+		var lpcs []*entities.ListPodContainer
+		status, err := p.GetPodStatus()
+		if err != nil {
+			return nil, err
+		}
+		cons, err := p.AllContainers()
+		if err != nil {
+			return nil, err
+		}
+		for _, c := range cons {
+			state, err := c.State()
+			if err != nil {
+				return nil, err
+			}
+			lpcs = append(lpcs, &entities.ListPodContainer{
+				Id:     c.ID(),
+				Names:  c.Name(),
+				Status: state.String(),
+			})
+		}
+		infraId, err := p.InfraContainerID()
+		if err != nil {
+			return nil, err
+		}
+		reports = append(reports, &entities.ListPodsReport{
+			Cgroup:     p.CgroupParent(),
+			Containers: lpcs,
+			Created:    p.CreatedTime(),
+			Id:         p.ID(),
+			InfraId:    infraId,
+			Name:       p.Name(),
+			Namespace:  p.Namespace(),
+			Status:     status,
+		})
+	}
+	return reports, nil
 }
