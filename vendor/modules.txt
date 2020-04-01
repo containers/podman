@@ -148,7 +148,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.16.6
+# github.com/containers/storage v1.18.1
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -188,6 +188,7 @@ github.com/containers/storage/pkg/stringutils
 github.com/containers/storage/pkg/system
 github.com/containers/storage/pkg/tarlog
 github.com/containers/storage/pkg/truncindex
+github.com/containers/storage/pkg/unshare
 # github.com/coreos/go-iptables v0.4.5
 github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd/v22 v22.0.0
