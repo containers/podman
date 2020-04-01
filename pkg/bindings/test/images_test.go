@@ -219,7 +219,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 		names, err := images.Load(bt.conn, f, nil)
 		Expect(err).To(BeNil())
-		Expect(names).To(Equal(alpine.name))
+		Expect(names.Name).To(Equal(alpine.name))
 		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
@@ -235,7 +235,7 @@ var _ = Describe("Podman images", func() {
 		newName := "quay.io/newname:fizzle"
 		names, err = images.Load(bt.conn, f, &newName)
 		Expect(err).To(BeNil())
-		Expect(names).To(Equal(alpine.name))
+		Expect(names.Name).To(Equal(alpine.name))
 		exists, err = images.Exists(bt.conn, newName)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())

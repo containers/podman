@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"os"
 
 	"github.com/containers/image/v5/docker/reference"
 	images "github.com/containers/libpod/pkg/bindings/images"
@@ -156,4 +157,13 @@ func (ir *ImageEngine) Inspect(_ context.Context, names []string, opts entities.
 		report.Images = append(report.Images, r)
 	}
 	return &report, nil
+}
+
+func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {
+	f, err := os.Open(opts.Input)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return images.Load(ir.ClientCxt, f, &opts.Name)
 }

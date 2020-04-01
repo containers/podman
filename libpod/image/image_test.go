@@ -292,7 +292,7 @@ func TestNormalizedTag(t *testing.T) {
 		{"ns/busybox:latest", "localhost/ns/busybox:latest"},                                             // Unqualified with a dot-less namespace
 		{"docker.io/busybox:latest", "docker.io/library/busybox:latest"},                                 // docker.io without /library/
 	} {
-		res, err := normalizedTag(c.input)
+		res, err := NormalizedTag(c.input)
 		if c.expected == "" {
 			assert.Error(t, err, c.input)
 		} else {

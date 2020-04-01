@@ -15,6 +15,7 @@ import (
 	_ "github.com/containers/libpod/cmd/podmanV2/volumes"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,6 +46,11 @@ func init() {
 }
 
 func main() {
+	if reexec.Init() {
+		// We were invoked with a different argv[0] indicating that we
+		// had a specific job to do as a subprocess, and it's done.
+		return
+	}
 	for _, c := range registry.Commands {
 		if Contains(registry.EngineOptions.EngineMode, c.Mode) {
 			parent := rootCmd

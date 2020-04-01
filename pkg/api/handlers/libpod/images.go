@@ -254,7 +254,7 @@ func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	utils.WriteResponse(w, http.StatusOK, handlers.LibpodImagesLoadReport{ID: loadedImage})
+	utils.WriteResponse(w, http.StatusOK, entities.ImageLoadReport{Name: loadedImage})
 }
 
 func ImagesImport(w http.ResponseWriter, r *http.Request) {

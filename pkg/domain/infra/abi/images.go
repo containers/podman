@@ -315,3 +315,24 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string
 	}
 	return nil
 }
+
+func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {
+	var (
+		writer io.Writer
+	)
+	if !opts.Quiet {
+		writer = os.Stderr
+	}
+	name, err := ir.Libpod.LoadImage(ctx, opts.Name, opts.Input, writer, opts.SignaturePolicy)
+	if err != nil {
+		return nil, err
+	}
+	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		return nil, errors.Wrap(err, "image loaded but no additional tags were created")
+	}
+	if err := newImage.TagImage(opts.Name); err != nil {
+		return nil, errors.Wrapf(err, "error adding %q to image %q", opts.Name, newImage.InputName)
+	}
+	return &entities.ImageLoadReport{Name: name}, nil
+}

@@ -512,8 +512,8 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 	return "@" + imageDigest.Hex(), nil
 }
 
-// normalizedTag returns the canonical version of tag for use in Image.Names()
-func normalizedTag(tag string) (reference.Named, error) {
+// NormalizedTag returns the canonical version of tag for use in Image.Names()
+func NormalizedTag(tag string) (reference.Named, error) {
 	decomposedTag, err := decompose(tag)
 	if err != nil {
 		return nil, err
@@ -541,7 +541,7 @@ func (i *Image) TagImage(tag string) error {
 	if err := i.reloadImage(); err != nil {
 		return err
 	}
-	ref, err := normalizedTag(tag)
+	ref, err := NormalizedTag(tag)
 	if err != nil {
 		return err
 	}
