@@ -7,7 +7,6 @@ import (
 	"path"
 
 	"github.com/containers/libpod/cmd/podmanV2/registry"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/version"
 	"github.com/sirupsen/logrus"
@@ -88,8 +87,8 @@ func Execute() {
 	o := registry.NewOptions(rootCmd.Context(), &registry.EngineOptions)
 	if err := rootCmd.ExecuteContext(o); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err.Error())
-	} else if registry.GetExitCode() == define.ExecErrorCodeGeneric {
-		// The exitCode modified from define.ExecErrorCodeGeneric,
+	} else if registry.GetExitCode() == registry.ExecErrorCodeGeneric {
+		// The exitCode modified from registry.ExecErrorCodeGeneric,
 		// indicates an application
 		// running inside of a container failed, as opposed to the
 		// podman command failed.  Must exit with that exit code

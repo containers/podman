@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/pkg/inspect"
 	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/opencontainers/go-digest"
@@ -12,7 +13,6 @@ import (
 )
 
 type Image struct {
-	IdOrNamed
 	ID              string                 `json:"Id"`
 	RepoTags        []string               `json:",omitempty"`
 	RepoDigests     []string               `json:",omitempty"`
@@ -111,13 +111,6 @@ type ImageHistoryReport struct {
 	Layers []ImageHistoryLayer
 }
 
-type ImageInspectOptions struct {
-	TypeObject string `json:",omitempty"`
-	Format     string `json:",omitempty"`
-	Size       bool   `json:",omitempty"`
-	Latest     bool   `json:",omitempty"`
-}
-
 // ImagePullOptions are the arguments for pulling images.
 type ImagePullOptions struct {
 	// AllTags can be specified to pull all tags of the spiecifed image. Note
@@ -157,10 +150,6 @@ type ImageListOptions struct {
 	Filters url.Values `json:"filters" schema:"filters"`
 }
 
-// type ImageListReport struct {
-// 	Images []ImageSummary
-// }
-
 type ImagePruneOptions struct {
 	All     bool       `json:"all" schema:"all"`
 	Filter  []string   `json:"filter" schema:"filter"`
@@ -174,3 +163,12 @@ type ImagePruneReport struct {
 
 type ImageTagOptions struct{}
 type ImageUntagOptions struct{}
+
+type ImageData struct {
+	*inspect.ImageData
+}
+
+type ImageInspectReport struct {
+	Images []*ImageData
+	Errors map[string]error
+}

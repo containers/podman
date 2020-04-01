@@ -98,12 +98,6 @@ type RmReport struct {
 	Id  string
 }
 
-type ContainerInspectOptions struct {
-	Format string
-	Latest bool
-	Size   bool
-}
-
 type ContainerInspectReport struct {
 	*define.InspectContainerData
 }

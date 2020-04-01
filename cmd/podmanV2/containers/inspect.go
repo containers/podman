@@ -7,9 +7,11 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/containers/libpod/cmd/podmanV2/common"
 	"github.com/containers/libpod/cmd/podmanV2/registry"
+
 	"github.com/containers/libpod/pkg/domain/entities"
-	jsoniter "github.com/json-iterator/go"
+	json "github.com/json-iterator/go"
 	"github.com/spf13/cobra"
 )
 
@@ -24,10 +26,7 @@ var (
 		Example: `podman container inspect myCtr
   podman container inspect -l --format '{{.Id}} {{.Config.Labels}}'`,
 	}
-)
-
-var (
-	inspectOptions entities.ContainerInspectOptions
+	inspectOpts *entities.InspectOptions
 )
 
 func init() {
@@ -36,29 +35,29 @@ func init() {
 		Command: inspectCmd,
 		Parent:  containerCmd,
 	})
+	inspectOpts = common.AddInspectFlagSet(inspectCmd)
 	flags := inspectCmd.Flags()
-	flags.StringVarP(&inspectOptions.Format, "format", "f", "", "Change the output format to a Go template")
-	flags.BoolVarP(&inspectOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.BoolVarP(&inspectOptions.Size, "size", "s", false, "Display total file size")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
+
+	if !registry.IsRemote() {
+		flags.BoolVarP(&inspectOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	}
+
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	responses, err := registry.ContainerEngine().ContainerInspect(context.Background(), args, inspectOptions)
+	responses, err := registry.ContainerEngine().ContainerInspect(context.Background(), args, *inspectOpts)
 	if err != nil {
 		return err
 	}
-	if inspectOptions.Format == "" {
-		b, err := jsoniter.MarshalIndent(responses, "", "  ")
+	if inspectOpts.Format == "" {
+		b, err := json.MarshalIndent(responses, "", "  ")
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(b))
 		return nil
 	}
-	format := inspectOptions.Format
+	format := inspectOpts.Format
 	if !strings.HasSuffix(format, "\n") {
 		format += "\n"
 	}
@@ -72,4 +71,9 @@ func inspect(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return nil
+}
+
+func Inspect(cmd *cobra.Command, args []string, options *entities.InspectOptions) error {
+	inspectOpts = options
+	return inspect(cmd, args)
 }

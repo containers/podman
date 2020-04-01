@@ -3,7 +3,6 @@ package registry
 import (
 	"context"
 
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra"
 	"github.com/pkg/errors"
@@ -18,24 +17,24 @@ type CliCommand struct {
 	Parent  *cobra.Command
 }
 
+const ExecErrorCodeGeneric = 125
+
 var (
-	Commands []CliCommand
-
-	imageEngine     entities.ImageEngine
-	containerEngine entities.ContainerEngine
 	cliCtx          context.Context
+	containerEngine entities.ContainerEngine
+	exitCode        = ExecErrorCodeGeneric
+	imageEngine     entities.ImageEngine
 
+	Commands      []CliCommand
 	EngineOptions entities.EngineOptions
-
-	ExitCode = define.ExecErrorCodeGeneric
 )
 
 func SetExitCode(code int) {
-	ExitCode = code
+	exitCode = code
 }
 
 func GetExitCode() int {
-	return ExitCode
+	return exitCode
 }
 
 // HelpTemplate returns the help template for podman commands
