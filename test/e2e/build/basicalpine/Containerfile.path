@@ -1,0 +1,2 @@
+FROM alpine
+ENV PATH=/tmp:/bin:/usr/bin:/usr/sbin
