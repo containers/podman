@@ -142,7 +142,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.ContainerInspectOptions) ([]*entities.ContainerInspectReport, error) {
+func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, error) {
 	var (
 		reports []*entities.ContainerInspectReport
 	)

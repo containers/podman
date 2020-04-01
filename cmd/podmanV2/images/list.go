@@ -152,7 +152,7 @@ func writeTemplate(imageS []*entities.ImageSummary, err error) error {
 	hdr, row := imageListFormat(listFlag)
 	format := hdr + "{{range . }}" + row + "{{end}}"
 
-	tmpl := template.Must(template.New("report").Funcs(report.PodmanTemplateFuncs()).Parse(format))
+	tmpl := template.Must(template.New("list").Funcs(report.PodmanTemplateFuncs()).Parse(format))
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 	return tmpl.Execute(w, imgs)

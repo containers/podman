@@ -42,3 +42,10 @@ type NetOptions struct {
 	StaticIP     *net.IP
 	StaticMAC    *net.HardwareAddr
 }
+
+// All CLI inspect commands and inspect sub-commands use the same options
+type InspectOptions struct {
+	Format string `json:",omitempty"`
+	Latest bool   `json:",omitempty"`
+	Size   bool   `json:",omitempty"`
+}

@@ -145,3 +145,15 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string
 	}
 	return nil
 }
+
+func (ir *ImageEngine) Inspect(_ context.Context, names []string, opts entities.InspectOptions) (*entities.ImageInspectReport, error) {
+	report := entities.ImageInspectReport{}
+	for _, id := range names {
+		r, err := images.GetImage(ir.ClientCxt, id, &opts.Size)
+		if err != nil {
+			report.Errors[id] = err
+		}
+		report.Images = append(report.Images, r)
+	}
+	return &report, nil
+}

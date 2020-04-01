@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
+	domainUtils "github.com/containers/libpod/pkg/domain/utils"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -234,6 +235,31 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	return &entities.ImagePullReport{Images: foundIDs}, nil
 }
 
+func (ir *ImageEngine) Inspect(ctx context.Context, names []string, opts entities.InspectOptions) (*entities.ImageInspectReport, error) {
+	report := entities.ImageInspectReport{
+		Errors: make(map[string]error),
+	}
+
+	for _, id := range names {
+		img, err := ir.Libpod.ImageRuntime().NewFromLocal(id)
+		if err != nil {
+			report.Errors[id] = err
+			continue
+		}
+
+		results, err := img.Inspect(ctx)
+		if err != nil {
+			report.Errors[id] = err
+			continue
+		}
+
+		cookedResults := entities.ImageData{}
+		_ = domainUtils.DeepCopy(&cookedResults, results)
+		report.Images = append(report.Images, &cookedResults)
+	}
+	return &report, nil
+}
+
 // func (r *imageRuntime) Delete(ctx context.Context, nameOrId string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {
 // 	image, err := r.libpod.ImageEngine().NewFromLocal(nameOrId)
 // 	if err != nil {
@@ -246,7 +272,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 // 	}
 //
 // 	report := entities.ImageDeleteReport{}
-// 	if err := utils.DeepCopy(&report, results); err != nil {
+// 	if err := domainUtils.DeepCopy(&report, results); err != nil {
 // 		return nil, err
 // 	}
 // 	return &report, nil

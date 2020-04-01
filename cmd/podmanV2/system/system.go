@@ -1,4 +1,4 @@
-package images
+package system
 
 import (
 	"github.com/containers/libpod/cmd/podmanV2/registry"
