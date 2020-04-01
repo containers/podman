@@ -587,6 +587,29 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/resize"), s.APIHandler(compat.ResizeContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/resize", s.APIHandler(compat.ResizeContainer)).Methods(http.MethodPost)
+	// swagger:operation GET /containers/{name}/export compat exportContainer
+	// ---
+	// tags:
+	//   - containers (compat)
+	// summary: Export a container
+	// description: Export the contents of a container as a tarball.
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the container
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: tarball is returned in body
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/export"), s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
+	r.HandleFunc("/containers/{name}/export", s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
 
 	/*
 		libpod endpoints
@@ -1237,5 +1260,27 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/resize"), s.APIHandler(compat.ResizeContainer)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/containers/{name}/export libpod libpodExportContainer
+	// ---
+	// tags:
+	//   - containers
+	// summary: Export a container
+	// description: Export the contents of a container as a tarball.
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the container
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: tarball is returned in body
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/export"), s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
 	return nil
 }

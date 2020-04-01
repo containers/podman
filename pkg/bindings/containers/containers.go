@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -292,6 +293,25 @@ func Stop(ctx context.Context, nameOrID string, timeout *uint) error {
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/stop", params, nameOrID)
 	if err != nil {
+		return err
+	}
+	return response.Process(nil)
+}
+
+// Export creates a tarball of the given name or ID of a container.  It
+// requires an io.Writer be provided to write the tarball.
+func Export(ctx context.Context, nameOrID string, w io.Writer) error {
+	params := url.Values{}
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/export", params, nameOrID)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode/100 == 2 {
+		_, err = io.Copy(w, response.Body)
 		return err
 	}
 	return response.Process(nil)
