@@ -65,7 +65,6 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 					break
 				}
 				if i == len(keys)-1 {
-					// src.Close()
 					return 0, ErrDetach
 				}
 				nr, er = src.Read(buf)
