@@ -7,11 +7,18 @@ echo "Package manager binary: $pkg_manager"
 
 
 if [[ $pkg_manager == *yum ]]; then
-    echo "[virt7-container-common-candidate]
-name=virt7-container-common-candidate
-baseurl=https://cbs.centos.org/repos/virt7-container-common-candidate/x86_64/os/
+    echo "[virt7-container]
+name=virt7-container
+baseurl=https://buildlogs.centos.org/centos/7/virt/x86_64/container/
 enabled=1
 gpgcheck=0" > /etc/yum.repos.d/container_virt.repo
+    echo "[paas_openshift_origin311]
+name=paas_openshift_origin311
+# Use this if you need the newest *-testing packages
+# baseurl=https://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin311/
+baseurl=http://mirror.centos.org/centos/7/paas/x86_64/openshift-origin311/
+enabled=1
+gpgcheck=0" > /etc/yum.repos.d/paas_openshift_origin311.repo
 fi
 
 declare -a PKGS=(\
