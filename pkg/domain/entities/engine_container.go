@@ -10,6 +10,7 @@ type ContainerEngine interface {
 	ContainerCommit(ctx context.Context, nameOrId string, options CommitOptions) (*CommitReport, error)
 	ContainerExists(ctx context.Context, nameOrId string) (*BoolReport, error)
 	ContainerInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]*ContainerInspectReport, error)
+	ContainerExport(ctx context.Context, nameOrId string, options ContainerExportOptions) error
 	ContainerKill(ctx context.Context, namesOrIds []string, options KillOptions) ([]*KillReport, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)

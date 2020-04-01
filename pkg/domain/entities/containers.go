@@ -117,3 +117,7 @@ type CommitOptions struct {
 type CommitReport struct {
 	Id string
 }
+
+type ContainerExportOptions struct {
+	Output string
+}

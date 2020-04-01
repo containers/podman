@@ -2,6 +2,8 @@ package tunnel
 
 import (
 	"context"
+	"io"
+	"os"
 
 	"github.com/containers/image/v5/docker/reference"
 
@@ -209,4 +211,18 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string,
 		return nil, err
 	}
 	return &entities.CommitReport{Id: response.ID}, nil
+}
+
+func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrId string, options entities.ContainerExportOptions) error {
+	var (
+		err error
+		w   io.Writer
+	)
+	if len(options.Output) > 0 {
+		w, err = os.Create(options.Output)
+		if err != nil {
+			return err
+		}
+	}
+	return containers.Export(ic.ClientCxt, nameOrId, w)
 }

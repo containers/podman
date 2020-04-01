@@ -325,3 +325,11 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string,
 	}
 	return &entities.CommitReport{Id: newImage.ID()}, nil
 }
+
+func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrId string, options entities.ContainerExportOptions) error {
+	ctr, err := ic.Libpod.LookupContainer(nameOrId)
+	if err != nil {
+		return err
+	}
+	return ctr.Export(options.Output)
+}
