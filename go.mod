@@ -31,7 +31,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/schema v1.1.0
-	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.9
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
