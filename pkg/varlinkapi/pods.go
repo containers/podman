@@ -14,7 +14,7 @@ import (
 )
 
 // CreatePod ...
-func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCreate) error {
+func (i *VarlinkAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCreate) error {
 	var options []libpod.PodCreateOption
 	if create.Infra {
 		options = append(options, libpod.WithInfraContainer())
@@ -61,7 +61,7 @@ func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCrea
 }
 
 // ListPods ...
-func (i *LibpodAPI) ListPods(call iopodman.VarlinkCall) error {
+func (i *VarlinkAPI) ListPods(call iopodman.VarlinkCall) error {
 	var (
 		listPods []iopodman.ListPodData
 	)
@@ -82,7 +82,7 @@ func (i *LibpodAPI) ListPods(call iopodman.VarlinkCall) error {
 }
 
 // GetPod ...
-func (i *LibpodAPI) GetPod(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
@@ -98,7 +98,7 @@ func (i *LibpodAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 }
 
 // GetPodsByStatus returns a slice of pods filtered by a libpod status
-func (i *LibpodAPI) GetPodsByStatus(call iopodman.VarlinkCall, statuses []string) error {
+func (i *VarlinkAPI) GetPodsByStatus(call iopodman.VarlinkCall, statuses []string) error {
 	filterFuncs := func(p *libpod.Pod) bool {
 		state, _ := shared.GetPodStatus(p)
 		for _, status := range statuses {
@@ -120,7 +120,7 @@ func (i *LibpodAPI) GetPodsByStatus(call iopodman.VarlinkCall, statuses []string
 }
 
 // InspectPod ...
-func (i *LibpodAPI) InspectPod(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) InspectPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
@@ -137,7 +137,7 @@ func (i *LibpodAPI) InspectPod(call iopodman.VarlinkCall, name string) error {
 }
 
 // StartPod ...
-func (i *LibpodAPI) StartPod(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) StartPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
@@ -158,7 +158,7 @@ func (i *LibpodAPI) StartPod(call iopodman.VarlinkCall, name string) error {
 }
 
 // StopPod ...
-func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string, timeout int64) error {
+func (i *VarlinkAPI) StopPod(call iopodman.VarlinkCall, name string, timeout int64) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
@@ -172,7 +172,7 @@ func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string, timeout int6
 }
 
 // RestartPod ...
-func (i *LibpodAPI) RestartPod(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) RestartPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
@@ -194,7 +194,7 @@ func (i *LibpodAPI) RestartPod(call iopodman.VarlinkCall, name string) error {
 
 // KillPod kills the running containers in a pod.  If you want to use the default SIGTERM signal,
 // just send a -1 for the signal arg.
-func (i *LibpodAPI) KillPod(call iopodman.VarlinkCall, name string, signal int64) error {
+func (i *VarlinkAPI) KillPod(call iopodman.VarlinkCall, name string, signal int64) error {
 	killSignal := uint(syscall.SIGTERM)
 	if signal != -1 {
 		killSignal = uint(signal)
@@ -213,7 +213,7 @@ func (i *LibpodAPI) KillPod(call iopodman.VarlinkCall, name string, signal int64
 }
 
 // PausePod ...
-func (i *LibpodAPI) PausePod(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) PausePod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
@@ -227,7 +227,7 @@ func (i *LibpodAPI) PausePod(call iopodman.VarlinkCall, name string) error {
 }
 
 // UnpausePod ...
-func (i *LibpodAPI) UnpausePod(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) UnpausePod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
@@ -241,7 +241,7 @@ func (i *LibpodAPI) UnpausePod(call iopodman.VarlinkCall, name string) error {
 }
 
 // RemovePod ...
-func (i *LibpodAPI) RemovePod(call iopodman.VarlinkCall, name string, force bool) error {
+func (i *VarlinkAPI) RemovePod(call iopodman.VarlinkCall, name string, force bool) error {
 	ctx := getContext()
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
@@ -255,7 +255,7 @@ func (i *LibpodAPI) RemovePod(call iopodman.VarlinkCall, name string, force bool
 }
 
 // GetPodStats ...
-func (i *LibpodAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
@@ -291,7 +291,7 @@ func (i *LibpodAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
 }
 
 // GetPodsByContext returns a slice of pod ids based on all, latest, or a list
-func (i *LibpodAPI) GetPodsByContext(call iopodman.VarlinkCall, all, latest bool, input []string) error {
+func (i *VarlinkAPI) GetPodsByContext(call iopodman.VarlinkCall, all, latest bool, input []string) error {
 	var podids []string
 
 	pods, err := shortcuts.GetPodsByContext(all, latest, input, i.Runtime)
@@ -305,7 +305,7 @@ func (i *LibpodAPI) GetPodsByContext(call iopodman.VarlinkCall, all, latest bool
 }
 
 // PodStateData returns a container's state data in string format
-func (i *LibpodAPI) PodStateData(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) PodStateData(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -322,7 +322,7 @@ func (i *LibpodAPI) PodStateData(call iopodman.VarlinkCall, name string) error {
 }
 
 // TopPod provides the top stats for a given or latest pod
-func (i *LibpodAPI) TopPod(call iopodman.VarlinkCall, name string, latest bool, descriptors []string) error {
+func (i *VarlinkAPI) TopPod(call iopodman.VarlinkCall, name string, latest bool, descriptors []string) error {
 	var (
 		pod *libpod.Pod
 		err error

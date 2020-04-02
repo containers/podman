@@ -8,7 +8,7 @@ import (
 
 var (
 	// Command: podman _system_
-	cmd = &cobra.Command{
+	systemCmd = &cobra.Command{
 		Use:               "system",
 		Short:             "Manage podman",
 		Long:              "Manage podman",
@@ -21,10 +21,10 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: cmd,
+		Command: systemCmd,
 	})
-	cmd.SetHelpTemplate(registry.HelpTemplate())
-	cmd.SetUsageTemplate(registry.UsageTemplate())
+	systemCmd.SetHelpTemplate(registry.HelpTemplate())
+	systemCmd.SetUsageTemplate(registry.UsageTemplate())
 }
 
 func preRunE(cmd *cobra.Command, args []string) error {

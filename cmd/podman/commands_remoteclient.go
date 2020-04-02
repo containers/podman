@@ -14,7 +14,7 @@ func getMainCommands() []*cobra.Command {
 }
 
 // commands that only the remoteclient implements
-func getAppCommands() []*cobra.Command {
+func getAppCommands() []*cobra.Command { // nolint:varcheck,deadcode,unused
 	return []*cobra.Command{}
 }
 
@@ -29,7 +29,7 @@ func getContainerSubCommands() []*cobra.Command {
 }
 
 // commands that only the remoteclient implements
-func getGenerateSubCommands() []*cobra.Command {
+func getGenerateSubCommands() []*cobra.Command { // nolint:varcheck,deadcode,unused
 	return []*cobra.Command{}
 }
 
@@ -126,7 +126,7 @@ func getDefaultPidsDescription() string {
 	return "Tune container pids limit (set 0 for unlimited, -1 for server defaults)"
 }
 
-func getDefaultShareNetwork() string {
+func getDefaultShareNetwork() string { // nolint:varcheck,deadcode,unused
 	return ""
 }
 

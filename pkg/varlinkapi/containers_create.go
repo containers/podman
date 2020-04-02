@@ -8,7 +8,7 @@ import (
 )
 
 // CreateContainer ...
-func (i *LibpodAPI) CreateContainer(call iopodman.VarlinkCall, config iopodman.Create) error {
+func (i *VarlinkAPI) CreateContainer(call iopodman.VarlinkCall, config iopodman.Create) error {
 	generic := shared.VarlinkCreateToGeneric(config)
 	ctr, _, err := shared.CreateContainer(getContext(), &generic, i.Runtime)
 	if err != nil {

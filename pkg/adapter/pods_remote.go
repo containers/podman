@@ -515,10 +515,10 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*libpod.ContainerSta
 		newStats := varlinkapi.ContainerStatsToLibpodContainerStats(stats)
 		// If the container wasn't running, don't include it
 		// but also suppress the error
-		if err != nil && errors.Cause(err) != define.ErrCtrStateInvalid {
+		if err != nil && errors.Cause(err) != define.ErrCtrStateInvalid { // nolint: govet
 			return nil, err
 		}
-		if err == nil {
+		if err == nil { // nolint: govet
 			newContainerStats[c.ID()] = &newStats
 		}
 	}

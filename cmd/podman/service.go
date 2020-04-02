@@ -91,7 +91,7 @@ func resolveApiURI(c *cliconfig.ServiceValues) (string, error) {
 
 	if len(c.InputArgs) > 0 {
 		apiURI = c.InputArgs[0]
-	} else if ok := systemd.SocketActivated(); ok {
+	} else if ok := systemd.SocketActivated(); ok { // nolint: gocritic
 		apiURI = ""
 	} else if rootless.IsRootless() {
 		xdg, err := util.GetRuntimeDir()
@@ -161,7 +161,7 @@ func runREST(r *libpod.Runtime, uri string, timeout time.Duration) error {
 }
 
 func runVarlink(r *libpod.Runtime, uri string, timeout time.Duration, c *cliconfig.ServiceValues) error {
-	var varlinkInterfaces = []*iopodman.VarlinkInterface{varlinkapi.New(&c.PodmanCommand, r)}
+	var varlinkInterfaces = []*iopodman.VarlinkInterface{varlinkapi.New(c.PodmanCommand.Command, r)}
 	service, err := varlink.NewService(
 		"Atomic",
 		"podman",
@@ -182,7 +182,7 @@ func runVarlink(r *libpod.Runtime, uri string, timeout time.Duration, c *cliconf
 	if err = service.Listen(uri, timeout); err != nil {
 		switch err.(type) {
 		case varlink.ServiceTimeoutError:
-			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %d ms, 0 means never timeout)", timeout.String())
+			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %s ms, 0 means never timeout)", timeout.String())
 			return nil
 		default:
 			return errors.Wrapf(err, "unable to start varlink service")

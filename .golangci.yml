@@ -1,10 +1,5 @@
 ---
 run:
-  build-tags:
-    - apparmor
-    - seccomp
-    - selinux
-    - ABISupport
   concurrency: 6
   deadline: 5m
   skip-dirs-use-default: true
@@ -12,6 +7,8 @@ run:
     - contrib
     - dependencies
     - test
+    - pkg/varlink
+    - pkg/varlinkapi
   skip-files:
     - iopodman.go
     - swagger.go
@@ -31,3 +28,7 @@ linters:
     - misspell
     - prealloc
     - unparam
+linters-settings:
+  errcheck:
+    check-blank: false
+    ignore: encoding/json:^Unmarshal,fmt:.*

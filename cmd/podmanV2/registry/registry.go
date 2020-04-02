@@ -9,7 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type CobraFuncs func(cmd *cobra.Command, args []string) error
+// DefaultAPIAddress is the default address of the REST socket
+const DefaultAPIAddress = "unix:/run/podman/podman.sock"
+
+// DefaultVarlinkAddress is the default address of the varlink socket
+const DefaultVarlinkAddress = "unix:/run/podman/io.podman"
 
 type CliCommand struct {
 	Mode    []entities.EngineMode

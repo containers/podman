@@ -4,7 +4,6 @@ package varlinkapi
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -14,7 +13,7 @@ import (
 )
 
 // SendFile allows a client to send a file to the varlink server
-func (i *LibpodAPI) SendFile(call iopodman.VarlinkCall, ftype string, length int64) error {
+func (i *VarlinkAPI) SendFile(call iopodman.VarlinkCall, ftype string, length int64) error {
 	if !call.WantsUpgrade() {
 		return call.ReplyErrorOccurred("client must use upgraded connection to send files")
 	}
@@ -40,14 +39,14 @@ func (i *LibpodAPI) SendFile(call iopodman.VarlinkCall, ftype string, length int
 
 	logrus.Debugf("successfully received %s", outputFile.Name())
 	// Send an ACK to the client
-	call.Call.Writer.WriteString(fmt.Sprintf("%s:", outputFile.Name()))
+	call.Call.Writer.WriteString(outputFile.Name())
 	call.Call.Writer.Flush()
 	return nil
 
 }
 
 // ReceiveFile allows the varlink server to send a file to a client
-func (i *LibpodAPI) ReceiveFile(call iopodman.VarlinkCall, filepath string, delete bool) error {
+func (i *VarlinkAPI) ReceiveFile(call iopodman.VarlinkCall, filepath string, delete bool) error {
 	if !call.WantsUpgrade() {
 		return call.ReplyErrorOccurred("client must use upgraded connection to send files")
 	}

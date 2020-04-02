@@ -85,7 +85,7 @@ func varlinkCmd(c *cliconfig.VarlinkValues) error {
 	}
 	defer runtime.DeferredShutdown(false)
 
-	var varlinkInterfaces = []*iopodman.VarlinkInterface{varlinkapi.New(&c.PodmanCommand, runtime)}
+	var varlinkInterfaces = []*iopodman.VarlinkInterface{varlinkapi.New(c.PodmanCommand.Command, runtime)}
 	// Register varlink service. The metadata can be retrieved with:
 	// $ varlink info [varlink address URI]
 	service, err := varlink.NewService(

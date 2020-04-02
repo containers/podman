@@ -56,7 +56,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 	// If listener not provided try socket activation protocol
 	if listener == nil {
 		if _, found := os.LookupEnv("LISTEN_FDS"); !found {
-			return nil, errors.Errorf("Cannot create Server, no listener provided and socket activation protocol is not active.")
+			return nil, errors.Errorf("Cannot create API Server, no listener provided and socket activation protocol is not active.")
 		}
 
 		listeners, err := activation.Listeners()
