@@ -49,7 +49,7 @@ and
 tracking system.
 
 There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podman.io`.
-You can subscribe by sending a message to `podman@lists.podman.io` with the subject `subscribe`.
+You can subscribe by sending a message to `podman-join@lists.podman.io` with the subject `subscribe`.
 
 ## Rootless
 Podman can be easily run as a normal user, without requiring a setuid binary.
