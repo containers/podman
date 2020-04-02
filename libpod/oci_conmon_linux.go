@@ -575,13 +575,36 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf
 	}
 }
 
+// isRetryable returns whether the error was caused by a blocked syscall or the
+// specified operation on a non blocking file descriptor wasn't ready for completion.
+func isRetryable(err error) bool {
+	if errno, isErrno := errors.Cause(err).(syscall.Errno); isErrno {
+		return errno == syscall.EINTR || errno == syscall.EAGAIN
+	}
+	return false
+}
+
+// openControlFile opens the terminal control file.
+func openControlFile(ctr *Container, parentDir string) (*os.File, error) {
+	controlPath := filepath.Join(parentDir, "ctl")
+	for i := 0; i < 600; i++ {
+		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY|unix.O_NONBLOCK, 0)
+		if err == nil {
+			return controlFile, err
+		}
+		if !isRetryable(err) {
+			return nil, errors.Wrapf(err, "could not open ctl file for terminal resize for container %s", ctr.ID())
+		}
+		time.Sleep(time.Second / 10)
+	}
+	return nil, errors.Errorf("timeout waiting for %q", controlPath)
+}
+
 // AttachResize resizes the terminal used by the given container.
 func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error {
-	// TODO: probably want a dedicated function to get ctl file path?
-	controlPath := filepath.Join(ctr.bundlePath(), "ctl")
-	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
+	controlFile, err := openControlFile(ctr, ctr.bundlePath())
 	if err != nil {
-		return errors.Wrapf(err, "could not open ctl file for terminal resize")
+		return err
 	}
 	defer controlFile.Close()
 
@@ -785,11 +808,9 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 // ExecAttachResize resizes the TTY of the given exec session.
 func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error {
-	// TODO: probably want a dedicated function to get ctl file path?
-	controlPath := filepath.Join(ctr.execBundlePath(sessionID), "ctl")
-	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
+	controlFile, err := openControlFile(ctr, ctr.execBundlePath(sessionID))
 	if err != nil {
-		return errors.Wrapf(err, "could not open ctl file for terminal resize for container %s exec session %s", ctr.ID(), sessionID)
+		return err
 	}
 	defer controlFile.Close()
 
