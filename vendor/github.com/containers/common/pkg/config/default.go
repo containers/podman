@@ -2,14 +2,19 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 
-	"github.com/containers/common/pkg/unshare"
+	"github.com/containers/common/pkg/apparmor"
+	"github.com/containers/common/pkg/cgroupv2"
+	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/unshare"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +45,7 @@ var (
 	// DefaultInitPath is the default path to the container-init binary
 	DefaultInitPath = "/usr/libexec/podman/catatonit"
 	// DefaultInfraImage to use for infra container
-	DefaultInfraImage = "k8s.gcr.io/pause:3.1"
+	DefaultInfraImage = "k8s.gcr.io/pause:3.2"
 	// DefaultInfraCommand to be run in an infra container
 	DefaultInfraCommand = "/pause"
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
@@ -87,7 +92,7 @@ const (
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
-	DefaultApparmorProfile = "container-default"
+	DefaultApparmorProfile = apparmor.Profile
 	// SystemdCgroupsManager represents systemd native cgroup manager
 	SystemdCgroupsManager = "systemd"
 	// DefaultLogDriver is the default type of log files
@@ -207,11 +212,11 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.StateType = BoltDBStateStore
 
 	c.OCIRuntime = "runc"
-	// If we're running on cgroups v2, default to using crun.
-	if onCgroupsv2, _ := isCgroup2UnifiedMode(); onCgroupsv2 {
+	// If we're running on cgroupv2 v2, default to using crun.
+	if cgroup2, _ := cgroupv2.Enabled(); cgroup2 {
 		c.OCIRuntime = "crun"
 	}
-	c.CgroupManager = SystemdCgroupsManager
+	c.CgroupManager = defaultCgroupManager()
 	c.StopTimeout = uint(10)
 
 	c.OCIRuntimes = map[string][]string{
@@ -233,6 +238,14 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/crun",
 			"/bin/crun",
 			"/run/current-system/sw/bin/crun",
+		},
+		"kata": {
+			"/usr/bin/kata-runtime",
+			"/usr/sbin/kata-runtime",
+			"/usr/local/bin/kata-runtime",
+			"/usr/local/sbin/kata-runtime",
+			"/sbin/kata-runtime",
+			"/bin/kata-runtime",
 		},
 	}
 	c.ConmonEnvVars = []string{
@@ -261,7 +274,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.InfraImage = DefaultInfraImage
 	c.EnablePortReservation = true
 	c.NumLocks = 2048
-	c.EventsLogger = "journald"
+	c.EventsLogger = defaultEventsLogger()
 	c.DetachKeys = DefaultDetachKeys
 	c.SDNotify = false
 	// TODO - ideally we should expose a `type LockType string` along with
@@ -343,4 +356,113 @@ func probeConmon(conmonBinary string) error {
 	}
 
 	return nil
+}
+
+// NetNS returns the default network namespace
+func (c *Config) NetNS() string {
+	if c.Containers.NetNS == "private" && unshare.IsRootless() {
+		return "slirp4netns"
+	}
+	return c.Containers.NetNS
+}
+
+// SecurityOptions returns the default security options
+func (c *Config) SecurityOptions() []string {
+	securityOpts := []string{}
+	if c.Containers.SeccompProfile != "" && c.Containers.SeccompProfile != SeccompDefaultPath {
+		securityOpts = append(securityOpts, fmt.Sprintf("seccomp=%s", c.Containers.SeccompProfile))
+	}
+	if apparmor.IsEnabled() && c.Containers.ApparmorProfile != "" {
+		securityOpts = append(securityOpts, fmt.Sprintf("apparmor=%s", c.Containers.ApparmorProfile))
+	}
+	if selinux.GetEnabled() && !c.Containers.EnableLabeling {
+		securityOpts = append(securityOpts, fmt.Sprintf("label=%s", selinux.DisableSecOpt()[0]))
+	}
+	return securityOpts
+}
+
+// Sysctls returns the default sysctls
+func (c *Config) Sysctls() []string {
+	return c.Containers.DefaultSysctls
+}
+
+// Volumes returns the default additional volumes for containersvolumes
+func (c *Config) Volumes() []string {
+	return c.Containers.Volumes
+}
+
+// Devices returns the default additional devices for containers
+func (c *Config) Devices() []string {
+	return c.Containers.Devices
+}
+
+// DNSServers returns the default DNS servers to add to resolv.conf in containers
+func (c *Config) DNSServers() []string {
+	return c.Containers.DNSServers
+}
+
+// DNSSerches returns the default DNS searches to add to resolv.conf in containers
+func (c *Config) DNSSearches() []string {
+	return c.Containers.DNSSearches
+}
+
+// DNSOptions returns the default DNS options to add to resolv.conf in containers
+func (c *Config) DNSOptions() []string {
+	return c.Containers.DNSOptions
+}
+
+// Env returns the default additional environment variables to add to containers
+func (c *Config) Env() []string {
+	return c.Containers.Env
+}
+
+// InitPath returns the default init path to add to containers
+func (c *Config) InitPath() string {
+	return c.Containers.InitPath
+}
+
+// IPCNS returns the default IPC Namespace configuration to run containers with
+func (c *Config) IPCNS() string {
+	return c.Containers.IPCNS
+}
+
+// PIDNS returns the default PID Namespace configuration to run containers with
+func (c *Config) PidNS() string {
+	return c.Containers.PidNS
+}
+
+// CgroupNS returns the default Cgroup Namespace configuration to run containers with
+func (c *Config) CgroupNS() string {
+	return c.Containers.CgroupNS
+}
+
+// UTSNS returns the default UTS Namespace configuration to run containers with
+func (c *Config) UTSNS() string {
+	return c.Containers.UTSNS
+}
+
+// ShmSize returns the default size for temporary file systems to use in containers
+func (c *Config) ShmSize() string {
+	return c.Containers.ShmSize
+}
+
+// Ulimits returns the default ulimits to use in containers
+func (c *Config) Ulimits() []string {
+	return c.Containers.DefaultUlimits
+}
+
+// PidsLimit returns the default maximum number of pids to use in containers
+func (c *Config) PidsLimit() int64 {
+	if unshare.IsRootless() {
+		cgroup2, _ := cgroupv2.Enabled()
+		if cgroup2 {
+			return c.Containers.PidsLimit
+		}
+	}
+	return sysinfo.GetDefaultPidsLimit()
+}
+
+// DetachKeys returns the default detach keys to detach from a container
+func (c *Config) DetachKeys() string {
+	return c.Engine.DetachKeys
 }

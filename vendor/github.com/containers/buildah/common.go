@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/common/pkg/unshare"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/distribution/registry/api/errcode"
 	errcodev2 "github.com/docker/distribution/registry/api/v2"
 	multierror "github.com/hashicorp/go-multierror"

@@ -99,6 +99,10 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 		return base, nil
 	}
 
+	base, err := normalizeCapabilities(base)
+	if err != nil {
+		return nil, err
+	}
 	capDrop, err := normalizeCapabilities(drops)
 	if err != nil {
 		return nil, err

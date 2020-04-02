@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -56,6 +57,7 @@ type StageExecutor struct {
 	copyFrom        string // Used to keep track of the --from flag from COPY and ADD
 	output          string
 	containerIDs    []string
+	stage           *imagebuilder.Stage
 }
 
 // Preserve informs the stage executor that from this point on, it needs to
@@ -579,7 +581,8 @@ func (s *StageExecutor) UnrecognizedInstruction(step *imagebuilder.Step) error {
 // prepare creates a working container based on the specified image, or if one
 // isn't specified, the first argument passed to the first FROM instruction we
 // can find in the stage's parsed tree.
-func (s *StageExecutor) prepare(ctx context.Context, stage imagebuilder.Stage, from string, initializeIBConfig, rebase bool) (builder *buildah.Builder, err error) {
+func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBConfig, rebase bool) (builder *buildah.Builder, err error) {
+	stage := s.stage
 	ib := stage.Builder
 	node := stage.Node
 
@@ -732,11 +735,11 @@ func (*StageExecutor) stepRequiresLayer(step *imagebuilder.Step) bool {
 // storage.  If it isn't found, it pulls down a copy.  Then, if we don't have a
 // working container root filesystem based on the image, it creates one.  Then
 // it returns that root filesystem's location.
-func (s *StageExecutor) getImageRootfs(ctx context.Context, stage imagebuilder.Stage, image string) (mountPoint string, err error) {
+func (s *StageExecutor) getImageRootfs(ctx context.Context, image string) (mountPoint string, err error) {
 	if builder, ok := s.executor.containerMap[image]; ok {
 		return builder.MountPoint, nil
 	}
-	builder, err := s.prepare(ctx, stage, image, false, false)
+	builder, err := s.prepare(ctx, image, false, false)
 	if err != nil {
 		return "", err
 	}
@@ -745,7 +748,8 @@ func (s *StageExecutor) getImageRootfs(ctx context.Context, stage imagebuilder.S
 }
 
 // Execute runs each of the steps in the stage's parsed tree, in turn.
-func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, base string) (imgID string, ref reference.Canonical, err error) {
+func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string, ref reference.Canonical, err error) {
+	stage := s.stage
 	ib := stage.Builder
 	checkForLayers := s.executor.layers && s.executor.useCache
 	moreStages := s.index < s.stages-1
@@ -765,7 +769,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 	// Create the (first) working container for this stage.  Reinitializing
 	// the imagebuilder configuration may alter the list of steps we have,
 	// so take a snapshot of them *after* that.
-	if _, err := s.prepare(ctx, stage, base, true, true); err != nil {
+	if _, err := s.prepare(ctx, base, true, true); err != nil {
 		return "", nil, err
 	}
 	children := stage.Node.Children
@@ -809,14 +813,14 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			// squash the contents of the base image.  Whichever is
 			// the case, we need to commit() to create a new image.
 			logCommit(s.output, -1)
-			if imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(nil, ""), false, s.output); err != nil {
+			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), false, s.output); err != nil {
 				return "", nil, errors.Wrapf(err, "error committing base container")
 			}
 		} else if len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 {
 			// The image would be modified by the labels passed
 			// via the command line, so we need to commit.
 			logCommit(s.output, -1)
-			if imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(stage.Node, ""), true, s.output); err != nil {
+			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(stage.Node, ""), true, s.output); err != nil {
 				return "", nil, err
 			}
 		} else {
@@ -866,7 +870,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 				}
 				otherStage, ok := s.executor.stages[arr[1]]
 				if !ok {
-					if mountPoint, err = s.getImageRootfs(ctx, stage, arr[1]); err != nil {
+					if mountPoint, err = s.getImageRootfs(ctx, arr[1]); err != nil {
 						return "", nil, errors.Errorf("%s --from=%s: no stage or image found with that name", command, arr[1])
 					}
 				} else {
@@ -905,7 +909,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 				// instruction in the history that we'll write
 				// for the image when we eventually commit it.
 				now := time.Now()
-				s.builder.AddPrependedEmptyLayer(&now, s.executor.getCreatedBy(node, addedContentDigest), "", "")
+				s.builder.AddPrependedEmptyLayer(&now, s.getCreatedBy(node, addedContentDigest), "", "")
 				continue
 			} else {
 				// This is the last instruction for this stage,
@@ -914,7 +918,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 				// if it's used as the basis for a later stage.
 				if lastStage || imageIsUsedLater {
 					logCommit(s.output, i)
-					imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(node, addedContentDigest), false, s.output)
+					imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentDigest), false, s.output)
 					if err != nil {
 						return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
 					}
@@ -1008,7 +1012,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			}
 			// Create a new image, maybe with a new layer.
 			logCommit(s.output, i)
-			imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(node, addedContentDigest), !s.stepRequiresLayer(step), commitName)
+			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentDigest), !s.stepRequiresLayer(step), commitName)
 			if err != nil {
 				return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
 			}
@@ -1034,12 +1038,82 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			// creating a new working container with the
 			// just-committed or updated cached image as its new
 			// base image.
-			if _, err := s.prepare(ctx, stage, imgID, false, true); err != nil {
+			if _, err := s.prepare(ctx, imgID, false, true); err != nil {
 				return "", nil, errors.Wrap(err, "error preparing container for next step")
 			}
 		}
 	}
 	return imgID, ref, nil
+}
+
+// historyMatches returns true if a candidate history matches the history of our
+// base image (if we have one), plus the current instruction.
+// Used to verify whether a cache of the intermediate image exists and whether
+// to run the build again.
+func (s *StageExecutor) historyMatches(baseHistory []v1.History, child *parser.Node, history []v1.History, addedContentDigest string) bool {
+	if len(baseHistory) >= len(history) {
+		return false
+	}
+	if len(history)-len(baseHistory) != 1 {
+		return false
+	}
+	for i := range baseHistory {
+		if baseHistory[i].CreatedBy != history[i].CreatedBy {
+			return false
+		}
+		if baseHistory[i].Comment != history[i].Comment {
+			return false
+		}
+		if baseHistory[i].Author != history[i].Author {
+			return false
+		}
+		if baseHistory[i].EmptyLayer != history[i].EmptyLayer {
+			return false
+		}
+		if baseHistory[i].Created != nil && history[i].Created == nil {
+			return false
+		}
+		if baseHistory[i].Created == nil && history[i].Created != nil {
+			return false
+		}
+		if baseHistory[i].Created != nil && history[i].Created != nil && *baseHistory[i].Created != *history[i].Created {
+			return false
+		}
+	}
+	return history[len(baseHistory)].CreatedBy == s.getCreatedBy(child, addedContentDigest)
+}
+
+// getCreatedBy returns the command the image at node will be created by.  If
+// the passed-in CompositeDigester is not nil, it is assumed to have the digest
+// information for the content if the node is ADD or COPY.
+func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentDigest string) string {
+	if node == nil {
+		return "/bin/sh"
+	}
+	switch strings.ToUpper(node.Value) {
+	case "RUN":
+		buildArgs := s.getBuildArgs()
+		if buildArgs != "" {
+			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
+		}
+		return "/bin/sh -c " + node.Original[4:]
+	case "ADD", "COPY":
+		destination := node
+		for destination.Next != nil {
+			destination = destination.Next
+		}
+		return "/bin/sh -c #(nop) " + strings.ToUpper(node.Value) + " " + addedContentDigest + " in " + destination.Value + " "
+	default:
+		return "/bin/sh -c #(nop) " + node.Original
+	}
+}
+
+// getBuildArgs returns a string of the build-args specified during the build process
+// it excludes any build-args that were not used in the build process
+func (s *StageExecutor) getBuildArgs() string {
+	buildArgs := s.stage.Builder.Arguments()
+	sort.Strings(buildArgs)
+	return strings.Join(buildArgs, " ")
 }
 
 // tagExistingImage adds names to an image already in the store
@@ -1128,7 +1202,7 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 				return "", errors.Wrapf(err, "error getting history of %q", image.ID)
 			}
 			// children + currNode is the point of the Dockerfile we are currently at.
-			if s.executor.historyMatches(baseHistory, currNode, history, addedContentDigest) {
+			if s.historyMatches(baseHistory, currNode, history, addedContentDigest) {
 				return image.ID, nil
 			}
 		}
@@ -1138,7 +1212,8 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 
 // commit writes the container's contents to an image, using a passed-in tag as
 // the name if there is one, generating a unique ID-based one otherwise.
-func (s *StageExecutor) commit(ctx context.Context, ib *imagebuilder.Builder, createdBy string, emptyLayer bool, output string) (string, reference.Canonical, error) {
+func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer bool, output string) (string, reference.Canonical, error) {
+	ib := s.stage.Builder
 	var imageRef types.ImageReference
 	if output != "" {
 		imageRef2, err := s.executor.resolveNameToImageRef(output)

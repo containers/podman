@@ -281,6 +281,8 @@ func copyLayer(l *Layer) *Layer {
 		Flags:              copyStringInterfaceMap(l.Flags),
 		UIDMap:             copyIDMap(l.UIDMap),
 		GIDMap:             copyIDMap(l.GIDMap),
+		UIDs:               copyUint32Slice(l.UIDs),
+		GIDs:               copyUint32Slice(l.GIDs),
 	}
 }
 

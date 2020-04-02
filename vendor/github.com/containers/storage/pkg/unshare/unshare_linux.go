@@ -31,9 +31,9 @@ type Cmd struct {
 	*exec.Cmd
 	UnshareFlags               int
 	UseNewuidmap               bool
-	UidMappings                []specs.LinuxIDMapping
+	UidMappings                []specs.LinuxIDMapping // nolint: golint
 	UseNewgidmap               bool
-	GidMappings                []specs.LinuxIDMapping
+	GidMappings                []specs.LinuxIDMapping // nolint: golint
 	GidMappingsEnableSetgroups bool
 	Setsid                     bool
 	Setpgrp                    bool
@@ -367,7 +367,7 @@ type Runnable interface {
 	Run() error
 }
 
-func bailOnError(err error, format string, a ...interface{}) {
+func bailOnError(err error, format string, a ...interface{}) { // nolint: golint,goprintffuncname
 	if err != nil {
 		if format != "" {
 			logrus.Errorf("%s: %v", fmt.Sprintf(format, a...), err)
