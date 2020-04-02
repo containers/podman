@@ -184,3 +184,16 @@ type ImageLoadOptions struct {
 type ImageLoadReport struct {
 	Name string
 }
+
+type ImageImportOptions struct {
+	Changes     []string
+	Message     string
+	Quiet       bool
+	Reference   string
+	Source      string
+	SourceIsURL bool
+}
+
+type ImageImportReport struct {
+	Id string
+}

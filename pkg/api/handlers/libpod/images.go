@@ -300,7 +300,7 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteResponse(w, http.StatusOK, handlers.LibpodImagesImportReport{ID: importedImage})
+	utils.WriteResponse(w, http.StatusOK, entities.ImageImportReport{Id: importedImage})
 }
 
 // ImagesPull is the v2 libpod endpoint for pulling images.  Note that the
