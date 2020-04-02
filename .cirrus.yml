@@ -139,8 +139,6 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh clean podman xref_helpmsgs_manpages BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh local-cross |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh podman-remote-darwin |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh podman-remote-windows |& ${TIMESTAMP}'
 
     # Verify some aspects of ci/related scripts
     ci_script:
