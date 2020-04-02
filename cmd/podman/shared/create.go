@@ -538,14 +538,16 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 
-	// env overrides any previous variables
-	cmdlineEnv := c.StringSlice("env")
-	if len(cmdlineEnv) > 0 {
-		parsedEnv, err := envLib.ParseSlice(cmdlineEnv)
-		if err != nil {
-			return nil, err
+	if c.IsSet("env") {
+		// env overrides any previous variables
+		cmdlineEnv := c.StringSlice("env")
+		if len(cmdlineEnv) > 0 {
+			parsedEnv, err := envLib.ParseSlice(cmdlineEnv)
+			if err != nil {
+				return nil, err
+			}
+			env = envLib.Join(env, parsedEnv)
 		}
-		env = envLib.Join(env, parsedEnv)
 	}
 
 	// LABEL VARIABLES
@@ -636,10 +638,13 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to translate --shm-size")
 	}
-	// Verify the additional hosts are in correct format
-	for _, host := range c.StringSlice("add-host") {
-		if _, err := parse.ValidateExtraHost(host); err != nil {
-			return nil, err
+
+	if c.IsSet("add-host") {
+		// Verify the additional hosts are in correct format
+		for _, host := range c.StringSlice("add-host") {
+			if _, err := parse.ValidateExtraHost(host); err != nil {
+				return nil, err
+			}
 		}
 	}
 

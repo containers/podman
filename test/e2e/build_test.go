@@ -175,4 +175,24 @@ var _ = Describe("Podman build", func() {
 		data := inspect.InspectImageJSON()
 		Expect(data[0].ID).To(Equal(string(id)))
 	})
+
+	It("podman Test PATH in built image", func() {
+		path := "/tmp:/bin:/usr/bin:/usr/sbin"
+		session := podmanTest.PodmanNoCache([]string{
+			"build", "-f", "build/basicalpine/Containerfile.path", "-t", "test-path",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "test-path", "printenv", "PATH"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		stdoutLines := session.OutputToStringArray()
+		Expect(stdoutLines[0]).Should(Equal(path))
+
+		session = podmanTest.PodmanNoCache([]string{"rmi", "-a", "-f"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 })

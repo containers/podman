@@ -316,7 +316,17 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 
 	// Make sure to always set the default variables unless overridden in the
 	// config.
-	config.Env = env.Join(env.DefaultEnvVariables, config.Env)
+	var defaultEnv map[string]string
+	if runtimeConfig == nil {
+		defaultEnv = env.DefaultEnvVariables
+	} else {
+		defaultEnv, err = env.ParseSlice(runtimeConfig.Containers.Env)
+		if err != nil {
+			return nil, errors.Wrap(err, "Env fields in containers.conf failed ot parse")
+		}
+		defaultEnv = env.Join(env.DefaultEnvVariables, defaultEnv)
+	}
+	config.Env = env.Join(defaultEnv, config.Env)
 	for name, val := range config.Env {
 		g.AddProcessEnv(name, val)
 	}
