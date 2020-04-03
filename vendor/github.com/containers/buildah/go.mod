@@ -4,9 +4,9 @@ go 1.12
 
 require (
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
-	github.com/containers/common v0.6.1
-	github.com/containers/image/v5 v5.2.1
-	github.com/containers/storage v1.16.5
+	github.com/containers/common v0.7.0
+	github.com/containers/image/v5 v5.3.1
+	github.com/containers/storage v1.18.0
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -27,15 +27,15 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.4.0
 	github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316
-	github.com/openshift/imagebuilder v1.1.3
+	github.com/openshift/imagebuilder v1.1.4
 	github.com/pkg/errors v0.9.1
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f
 	github.com/seccomp/libseccomp-golang v0.9.1
-	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.6
+	github.com/sirupsen/logrus v1.5.0
+	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
-	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
+	golang.org/x/sys v0.0.0-20200217220822-9197077df867
 )

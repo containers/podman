@@ -209,12 +209,8 @@ func NewStages(node *parser.Node, b *Builder) (Stages, error) {
 		stages = append(stages, Stage{
 			Position: i,
 			Name:     name,
-			Builder: &Builder{
-				Args:        b.Args,
-				AllowedArgs: b.AllowedArgs,
-				Env:         b.Env,
-			},
-			Node: root,
+			Builder:  b.builderForStage(),
+			Node:     root,
 		})
 	}
 	return stages, nil
@@ -235,17 +231,30 @@ func (b *Builder) extractHeadingArgsFromNode(node *parser.Node) error {
 		}
 	}
 
+	// Set children equal to everything except the leading ARG nodes
+	node.Children = children
+
+	// Use a separate builder to evaluate the heading args
+	tempBuilder := NewBuilder(b.UserArgs)
+
+	// Evaluate all the heading arg commands
 	for _, c := range args {
-		step := b.Step()
+		step := tempBuilder.Step()
 		if err := step.Resolve(c); err != nil {
 			return err
 		}
-		if err := b.Run(step, NoopExecutor, false); err != nil {
+		if err := tempBuilder.Run(step, NoopExecutor, false); err != nil {
 			return err
 		}
 	}
 
-	node.Children = children
+	// Add all of the defined heading args to the original builder's HeadingArgs map
+	for k, v := range tempBuilder.Args {
+		if _, ok := tempBuilder.AllowedArgs[k]; ok {
+			b.HeadingArgs[k] = v
+		}
+	}
+
 	return nil
 }
 
@@ -264,13 +273,23 @@ func extractNameFromNode(node *parser.Node) (string, bool) {
 	return n.Next.Value, true
 }
 
+func (b *Builder) builderForStage() *Builder {
+	stageBuilder := NewBuilder(b.UserArgs)
+	for k, v := range b.HeadingArgs {
+		stageBuilder.HeadingArgs[k] = v
+	}
+	return stageBuilder
+}
+
 type Builder struct {
 	RunConfig docker.Config
 
-	Env    []string
-	Args   map[string]string
-	CmdSet bool
-	Author string
+	Env         []string
+	Args        map[string]string
+	HeadingArgs map[string]string
+	UserArgs    map[string]string
+	CmdSet      bool
+	Author      string
 
 	AllowedArgs map[string]bool
 	Volumes     VolumeSet
@@ -288,12 +307,16 @@ func NewBuilder(args map[string]string) *Builder {
 	for k, v := range builtinAllowedBuildArgs {
 		allowed[k] = v
 	}
-	provided := make(map[string]string)
+	userArgs := make(map[string]string)
+	initialArgs := make(map[string]string)
 	for k, v := range args {
-		provided[k] = v
+		userArgs[k] = v
+		initialArgs[k] = v
 	}
 	return &Builder{
-		Args:        provided,
+		Args:        initialArgs,
+		UserArgs:    userArgs,
+		HeadingArgs: make(map[string]string),
 		AllowedArgs: allowed,
 	}
 }

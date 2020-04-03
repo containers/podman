@@ -20,10 +20,10 @@ import (
 
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/util"
-	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"

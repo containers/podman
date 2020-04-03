@@ -28,11 +28,11 @@ import (
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/go-units"
 	"github.com/docker/libnetwork/resolvconf"
 	"github.com/docker/libnetwork/types"
@@ -1971,10 +1971,6 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 		if len(env) > 1 {
 			g.AddProcessEnv(env[0], env[1])
 		}
-	}
-
-	for src, dest := range b.Args {
-		g.AddProcessEnv(src, dest)
 	}
 }
 

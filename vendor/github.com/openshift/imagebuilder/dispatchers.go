@@ -216,7 +216,7 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 
 	// Support ARG before from
 	argStrs := []string{}
-	for n, v := range b.Args {
+	for n, v := range b.HeadingArgs {
 		argStrs = append(argStrs, n+"="+v)
 	}
 	var err error
@@ -598,10 +598,16 @@ func arg(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	// add the arg to allowed list of build-time args from this step on.
 	b.AllowedArgs[name] = true
 
+	// If there is still no default value, a value can be assigned from the heading args
+	if val, ok := b.HeadingArgs[name]; ok && !hasDefault {
+		b.Args[name] = val
+	}
+
 	// If there is a default value associated with this arg then add it to the
-	// b.buildArgs if one is not already passed to the builder. The args passed
-	// to builder override the default value of 'arg'.
-	if _, ok := b.Args[name]; !ok && hasDefault {
+	// b.buildArgs, later default values for the same arg override earlier ones.
+	// The args passed to builder (UserArgs) override the default value of 'arg'
+	// Don't add them here as they were already set in NewBuilder.
+	if _, ok := b.UserArgs[name]; !ok && hasDefault {
 		b.Args[name] = value
 	}
 

@@ -93,7 +93,6 @@ type Executor struct {
 	blobDirectory                  string
 	excludes                       []string
 	unusedArgs                     map[string]struct{}
-	buildArgs                      map[string]string
 	capabilities                   []string
 	devices                        []configs.Device
 	signBy                         string
@@ -179,7 +178,6 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		rootfsMap:                      make(map[string]bool),
 		blobDirectory:                  options.BlobDirectory,
 		unusedArgs:                     make(map[string]struct{}),
-		buildArgs:                      copyStringStringMap(options.Args),
 		capabilities:                   capabilities,
 		devices:                        devices,
 		signBy:                         options.SignBy,
@@ -232,25 +230,26 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 
 // startStage creates a new stage executor that will be referenced whenever a
 // COPY or ADD statement uses a --from=NAME flag.
-func (b *Executor) startStage(name string, index, stages int, from, output string) *StageExecutor {
+func (b *Executor) startStage(stage *imagebuilder.Stage, stages int, from, output string) *StageExecutor {
 	if b.stages == nil {
 		b.stages = make(map[string]*StageExecutor)
 	}
-	stage := &StageExecutor{
+	stageExec := &StageExecutor{
 		executor:        b,
-		index:           index,
+		index:           stage.Position,
 		stages:          stages,
-		name:            name,
+		name:            stage.Name,
 		volumeCache:     make(map[string]string),
 		volumeCacheInfo: make(map[string]os.FileInfo),
 		output:          output,
+		stage:           stage,
 	}
-	b.stages[name] = stage
-	b.stages[from] = stage
-	if idx := strconv.Itoa(index); idx != name {
-		b.stages[idx] = stage
+	b.stages[stage.Name] = stageExec
+	b.stages[from] = stageExec
+	if idx := strconv.Itoa(stage.Position); idx != stage.Name {
+		b.stages[idx] = stageExec
 	}
-	return stage
+	return stageExec
 }
 
 // resolveNameToImageRef creates a types.ImageReference for the output name in local storage
@@ -289,81 +288,6 @@ func (b *Executor) getImageHistory(ctx context.Context, imageID string) ([]v1.Hi
 		return nil, errors.Wrapf(err, "error getting possibly-converted OCI config of image %q", imageID)
 	}
 	return oci.History, nil
-}
-
-// getCreatedBy returns the command the image at node will be created by.  If
-// the passed-in CompositeDigester is not nil, it is assumed to have the digest
-// information for the content if the node is ADD or COPY.
-func (b *Executor) getCreatedBy(node *parser.Node, addedContentDigest string) string {
-	if node == nil {
-		return "/bin/sh"
-	}
-	switch strings.ToUpper(node.Value) {
-	case "RUN":
-		buildArgs := b.getBuildArgs()
-		if buildArgs != "" {
-			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
-		}
-		return "/bin/sh -c " + node.Original[4:]
-	case "ADD", "COPY":
-		destination := node
-		for destination.Next != nil {
-			destination = destination.Next
-		}
-		return "/bin/sh -c #(nop) " + strings.ToUpper(node.Value) + " " + addedContentDigest + " in " + destination.Value + " "
-	default:
-		return "/bin/sh -c #(nop) " + node.Original
-	}
-}
-
-// historyMatches returns true if a candidate history matches the history of our
-// base image (if we have one), plus the current instruction.
-// Used to verify whether a cache of the intermediate image exists and whether
-// to run the build again.
-func (b *Executor) historyMatches(baseHistory []v1.History, child *parser.Node, history []v1.History, addedContentDigest string) bool {
-	if len(baseHistory) >= len(history) {
-		return false
-	}
-	if len(history)-len(baseHistory) != 1 {
-		return false
-	}
-	for i := range baseHistory {
-		if baseHistory[i].CreatedBy != history[i].CreatedBy {
-			return false
-		}
-		if baseHistory[i].Comment != history[i].Comment {
-			return false
-		}
-		if baseHistory[i].Author != history[i].Author {
-			return false
-		}
-		if baseHistory[i].EmptyLayer != history[i].EmptyLayer {
-			return false
-		}
-		if baseHistory[i].Created != nil && history[i].Created == nil {
-			return false
-		}
-		if baseHistory[i].Created == nil && history[i].Created != nil {
-			return false
-		}
-		if baseHistory[i].Created != nil && history[i].Created != nil && *baseHistory[i].Created != *history[i].Created {
-			return false
-		}
-	}
-	return history[len(baseHistory)].CreatedBy == b.getCreatedBy(child, addedContentDigest)
-}
-
-// getBuildArgs returns a string of the build-args specified during the build process
-// it excludes any build-args that were not used in the build process
-func (b *Executor) getBuildArgs() string {
-	var buildArgs []string
-	for k, v := range b.buildArgs {
-		if _, ok := b.unusedArgs[k]; !ok {
-			buildArgs = append(buildArgs, k+"="+v)
-		}
-	}
-	sort.Strings(buildArgs)
-	return strings.Join(buildArgs, " ")
 }
 
 // Build takes care of the details of running Prepare/Execute/Commit/Delete
@@ -494,7 +418,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			output = b.output
 		}
 
-		stageExecutor := b.startStage(stage.Name, stage.Position, len(stages), base, output)
+		stageExecutor := b.startStage(&stage, len(stages), base, output)
 
 		// If this a single-layer build, or if it's a multi-layered
 		// build and b.forceRmIntermediateCtrs is set, make sure we
@@ -505,7 +429,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		}
 
 		// Build this stage.
-		if imageID, ref, err = stageExecutor.Execute(ctx, stage, base); err != nil {
+		if imageID, ref, err = stageExecutor.Execute(ctx, base); err != nil {
 			lastErr = err
 		}
 		if lastErr != nil {

@@ -9,7 +9,8 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
-	"github.com/containers/common/pkg/unshare"
+	"github.com/containers/common/pkg/cgroupv2"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -69,7 +70,7 @@ type ConfigFromLibpod struct {
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
-	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups,omitempty"`
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroupv2,omitempty"`
 
 	// RuntimePath is the path to OCI runtime binary for launching containers.
 	// The first path pointing to a valid file will be used This is used only
@@ -175,7 +176,7 @@ type ConfigFromLibpod struct {
 	SDNotify bool `toml:",omitempty"`
 
 	// CgroupCheck indicates the configuration has been rewritten after an
-	// upgrade to Fedora 31 to change the default OCI runtime for cgroupsv2.
+	// upgrade to Fedora 31 to change the default OCI runtime for cgroupv2v2.
 	CgroupCheck bool `toml:"cgroup_check,omitempty"`
 }
 
@@ -183,7 +184,7 @@ type ConfigFromLibpod struct {
 // Depending if we're running as root or rootless, we then merge the system configuration followed
 // by merging the default config (hard-coded default in memory).
 // Note that the OCI runtime is hard-set to `crun` if we're running on a system
-// with cgroupsv2. Other OCI runtimes are not yet supporting cgroupsv2. This
+// with cgroupv2v2. Other OCI runtimes are not yet supporting cgroupv2v2. This
 // might change in the future.
 func newLibpodConfig(c *Config) error {
 	// Start with the default config and interatively merge
@@ -205,13 +206,13 @@ func newLibpodConfig(c *Config) error {
 
 	// Since runc does not currently support cgroupV2
 	// Change to default crun on first running of libpod.conf
-	// TODO Once runc has support for cgroups, this function should be removed.
+	// TODO Once runc has support for cgroupv2, this function should be removed.
 	if !config.CgroupCheck && unshare.IsRootless() {
-		cgroupsV2, err := isCgroup2UnifiedMode()
+		cgroup2, err := cgroupv2.Enabled()
 		if err != nil {
 			return err
 		}
-		if cgroupsV2 {
+		if cgroup2 {
 			path, err := exec.LookPath("crun")
 			if err != nil {
 				// Can't find crun path so do nothing

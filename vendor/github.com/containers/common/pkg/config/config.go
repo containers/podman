@@ -11,7 +11,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/capabilities"
-	"github.com/containers/common/pkg/unshare"
+	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
@@ -173,7 +173,7 @@ type ContainersConfig struct {
 // EngineConfig contains configuration options used to set up a engine runtime
 type EngineConfig struct {
 	// CgroupCheck indicates the configuration has been rewritten after an
-	// upgrade to Fedora 31 to change the default OCI runtime for cgroupsv2.
+	// upgrade to Fedora 31 to change the default OCI runtime for cgroupv2v2.
 	CgroupCheck bool `toml:"cgroup_check,omitempty"`
 
 	// CGroupManager is the CGroup Manager to use Valid values are "cgroupfs"
@@ -269,7 +269,7 @@ type EngineConfig struct {
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
-	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups"`
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroupv2"`
 
 	// SetOptions contains a subset of config options. It's used to indicate if
 	// a given option has either been set by the user or by the parsed
@@ -373,7 +373,7 @@ type NetworkConfig struct {
 // running as root or rootless, we then merge the system configuration followed
 // by merging the default config (hard-coded default in memory).
 // Note that the OCI runtime is hard-set to `crun` if we're running on a system
-// with cgroupsv2. Other OCI runtimes are not yet supporting cgroupsv2. This
+// with cgroupv2v2. Other OCI runtimes are not yet supporting cgroupv2v2. This
 // might change in the future.
 func NewConfig(userConfigPath string) (*Config, error) {
 
@@ -494,7 +494,7 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 	}
 
 	if !hasSession {
-		logrus.Warningf("The cgroups manager is set to systemd but there is no systemd user session available")
+		logrus.Warningf("The cgroupv2 manager is set to systemd but there is no systemd user session available")
 		logrus.Warningf("For using systemd, you may need to login using an user session")
 		logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibly as root)", unshare.GetRootlessUID())
 		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
@@ -806,9 +806,35 @@ func IsValidDeviceMode(mode string) bool {
 	return true
 }
 
+// resolveHomeDir converts a path referencing the home directory via "~"
+// to an absolute path
+func resolveHomeDir(path string) (string, error) {
+	// check if the path references the home dir to avoid work
+	// don't use strings.HasPrefix(path, "~") as this doesn't match "~" alone
+	// use strings.HasPrefix(...) to not match "something/~/something"
+	if !(path == "~" || strings.HasPrefix(path, "~/")) {
+		// path does not reference home dir -> Nothing to do
+		return path, nil
+	}
+
+	// only get HomeDir when necessary
+	home, err := unshare.HomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	// replace the first "~" (start of path) with the HomeDir to resolve "~"
+	return strings.Replace(path, "~", home, 1), nil
+}
+
 // isDirectory tests whether the given path exists and is a directory. It
 // follows symlinks.
 func isDirectory(path string) error {
+	path, err := resolveHomeDir(path)
+	if err != nil {
+		return err
+	}
+
 	info, err := os.Stat(path)
 	if err != nil {
 		return err
