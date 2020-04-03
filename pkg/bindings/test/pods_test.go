@@ -262,7 +262,7 @@ var _ = Describe("Podman pods", func() {
 		var newpod2 string = "newpod2"
 		bt.Podcreate(&newpod2)
 		// No pods pruned since no pod in exited state
-		err = pods.Prune(bt.conn)
+		pruneResponse, err := pods.Prune(bt.conn)
 		Expect(err).To(BeNil())
 		podSummary, err := pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
@@ -279,13 +279,19 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 		// FIXME sujil please fix this
 		//Expect(response.State.Status).To(Equal(define.PodStateExited))
-		err = pods.Prune(bt.conn)
+		pruneResponse, err = pods.Prune(bt.conn)
 		Expect(err).To(BeNil())
+		// Validate status and record pod id of pod to be pruned
+		//Expect(response.State.Status).To(Equal(define.PodStateExited))
+		//podID := response.Config.ID
+		// Check if right pod was pruned
+		Expect(len(pruneResponse)).To(Equal(1))
+		// One pod is pruned hence only one pod should be active.
 		podSummary, err = pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
 		Expect(len(podSummary)).To(Equal(1))
 
-		// Test prune all pods in exited state.
+		// Test prune multiple pods.
 		bt.Podcreate(&newpod)
 		_, err = pods.Start(bt.conn, newpod)
 		Expect(err).To(BeNil())
@@ -311,7 +317,7 @@ var _ = Describe("Podman pods", func() {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateStopped))
 		}
-		err = pods.Prune(bt.conn)
+		_, err = pods.Prune(bt.conn)
 		Expect(err).To(BeNil())
 		podSummary, err = pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())

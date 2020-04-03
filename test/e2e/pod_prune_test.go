@@ -36,7 +36,7 @@ var _ = Describe("Podman pod prune", func() {
 		_, ec, _ := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "prune"})
+		result := podmanTest.Podman([]string{"pod", "prune", "--force"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 	})
@@ -49,7 +49,7 @@ var _ = Describe("Podman pod prune", func() {
 		ec2.WaitWithDefaultTimeout()
 		Expect(ec2.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "prune"})
+		result := podmanTest.Podman([]string{"pod", "prune", "-f"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To((Equal(0)))
 
@@ -65,29 +65,12 @@ var _ = Describe("Podman pod prune", func() {
 		_, ec2, _ := podmanTest.RunLsContainerInPod("", podid)
 		Expect(ec2).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "prune"})
+		result := podmanTest.Podman([]string{"pod", "prune", "-f"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
 		result = podmanTest.Podman([]string{"ps", "-qa"})
 		result.WaitWithDefaultTimeout()
 		Expect(len(result.OutputToStringArray())).To(Equal(0))
-	})
-
-	It("podman pod prune -f does remove a running container", func() {
-		_, ec, podid := podmanTest.CreatePod("")
-		Expect(ec).To(Equal(0))
-
-		session := podmanTest.RunTopContainerInPod("", podid)
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
-		result := podmanTest.Podman([]string{"pod", "prune", "-f"})
-		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
-
-		result = podmanTest.Podman([]string{"ps", "-q"})
-		result.WaitWithDefaultTimeout()
-		Expect(result.OutputToString()).To(BeEmpty())
 	})
 })

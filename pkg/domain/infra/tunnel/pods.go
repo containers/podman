@@ -173,6 +173,10 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 	return reports, nil
 }
 
+func (ic *ContainerEngine) PodPrune(ctx context.Context, opts entities.PodPruneOptions) ([]*entities.PodPruneReport, error) {
+	return pods.Prune(ic.ClientCxt)
+}
+
 func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreateOptions) (*entities.PodCreateReport, error) {
 	podSpec := specgen.NewPodSpecGenerator()
 	opts.ToPodSpecGen(podSpec)
