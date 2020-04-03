@@ -2,7 +2,6 @@ package images
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/pkg/errors"
 )
 
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a
@@ -307,4 +307,35 @@ func Push(ctx context.Context, source string, destination string, options entiti
 	path := fmt.Sprintf("/images/%s/push", source)
 	_, err = conn.DoRequest(nil, http.MethodPost, path, params)
 	return err
+}
+
+// Search is the binding for libpod's v2 endpoints for Search images.
+func Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	params.Set("term", term)
+	params.Set("limit", strconv.Itoa(opts.Limit))
+	for _, f := range opts.Filters {
+		params.Set("filters", f)
+	}
+
+	if opts.TLSVerify != types.OptionalBoolUndefined {
+		val := bool(opts.TLSVerify == types.OptionalBoolTrue)
+		params.Set("tlsVerify", strconv.FormatBool(val))
+	}
+
+	response, err := conn.DoRequest(nil, http.MethodGet, "/images/search", params)
+	if err != nil {
+		return nil, err
+	}
+
+	results := []entities.ImageSearchReport{}
+	if err := response.Process(&results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

@@ -919,7 +919,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      $ref: "#/responses/DocsSearchResponse"
 	//   500:
 	//      $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/search"), s.APIHandler(compat.SearchImages)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/images/search"), s.APIHandler(libpod.SearchImages)).Methods(http.MethodGet)
 	// swagger:operation DELETE /libpod/images/{name:.*} libpod libpodRemoveImage
 	// ---
 	// tags:

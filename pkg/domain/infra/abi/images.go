@@ -421,3 +421,38 @@ func (ir *ImageEngine) Diff(_ context.Context, nameOrId string, _ entities.DiffO
 	}
 	return &entities.DiffReport{Changes: changes}, nil
 }
+
+func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
+	filter, err := image.ParseSearchFilter(opts.Filters)
+	if err != nil {
+		return nil, err
+	}
+
+	searchOpts := image.SearchOptions{
+		Authfile:              opts.Authfile,
+		Filter:                *filter,
+		Limit:                 opts.Limit,
+		NoTrunc:               opts.NoTrunc,
+		InsecureSkipTLSVerify: opts.TLSVerify,
+	}
+
+	searchResults, err := image.SearchImages(term, searchOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert from image.SearchResults to entities.ImageSearchReport. We don't
+	// want to leak any low-level packages into the remote client, which
+	// requires converting.
+	reports := make([]entities.ImageSearchReport, len(searchResults))
+	for i := range searchResults {
+		reports[i].Index = searchResults[i].Index
+		reports[i].Name = searchResults[i].Name
+		reports[i].Description = searchResults[i].Index
+		reports[i].Stars = searchResults[i].Stars
+		reports[i].Official = searchResults[i].Official
+		reports[i].Automated = searchResults[i].Automated
+	}
+
+	return reports, nil
+}

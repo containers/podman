@@ -314,11 +314,11 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("Search for an image", func() {
-		imgs, err := images.Search(bt.conn, "alpine", nil, nil)
+		reports, err := images.Search(bt.conn, "alpine", entities.ImageSearchOptions{})
 		Expect(err).To(BeNil())
-		Expect(len(imgs)).To(BeNumerically(">", 1))
+		Expect(len(reports)).To(BeNumerically(">", 1))
 		var foundAlpine bool
-		for _, i := range imgs {
+		for _, i := range reports {
 			if i.Name == "docker.io/library/alpine" {
 				foundAlpine = true
 				break
@@ -327,23 +327,20 @@ var _ = Describe("Podman images", func() {
 		Expect(foundAlpine).To(BeTrue())
 
 		// Search for alpine with a limit of 10
-		ten := 10
-		imgs, err = images.Search(bt.conn, "docker.io/alpine", &ten, nil)
+		reports, err = images.Search(bt.conn, "docker.io/alpine", entities.ImageSearchOptions{Limit: 10})
 		Expect(err).To(BeNil())
-		Expect(len(imgs)).To(BeNumerically("<=", 10))
+		Expect(len(reports)).To(BeNumerically("<=", 10))
 
 		// Search for alpine with stars greater than 100
-		filters := make(map[string][]string)
-		filters["stars"] = []string{"100"}
-		imgs, err = images.Search(bt.conn, "docker.io/alpine", nil, filters)
+		reports, err = images.Search(bt.conn, "docker.io/alpine", entities.ImageSearchOptions{Filters: []string{"stars=100"}})
 		Expect(err).To(BeNil())
-		for _, i := range imgs {
+		for _, i := range reports {
 			Expect(i.Stars).To(BeNumerically(">=", 100))
 		}
 
 		//	Search with a fqdn
-		imgs, err = images.Search(bt.conn, "quay.io/libpod/alpine_nginx", nil, nil)
-		Expect(len(imgs)).To(BeNumerically(">=", 1))
+		reports, err = images.Search(bt.conn, "quay.io/libpod/alpine_nginx", entities.ImageSearchOptions{})
+		Expect(len(reports)).To(BeNumerically(">=", 1))
 	})
 
 	It("Prune images", func() {

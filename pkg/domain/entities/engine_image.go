@@ -19,4 +19,5 @@ type ImageEngine interface {
 	Save(ctx context.Context, nameOrId string, tags []string, options ImageSaveOptions) error
 	Tag(ctx context.Context, nameOrId string, tags []string, options ImageTagOptions) error
 	Untag(ctx context.Context, nameOrId string, tags []string, options ImageUntagOptions) error
+	Search(ctx context.Context, term string, opts ImageSearchOptions) ([]ImageSearchReport, error)
 }

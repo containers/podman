@@ -250,3 +250,7 @@ func (ir *ImageEngine) Diff(ctx context.Context, nameOrId string, _ entities.Dif
 	}
 	return &entities.DiffReport{Changes: changes}, nil
 }
+
+func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
+	return images.Search(ir.ClientCxt, term, opts)
+}
