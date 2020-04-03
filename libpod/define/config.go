@@ -26,3 +26,10 @@ type InfoData struct {
 // VolumeDriverLocal is the "local" volume driver. It is managed by libpod
 // itself.
 const VolumeDriverLocal = "local"
+
+const (
+	OCIManifestDir  = "oci-dir"
+	OCIArchive      = "oci-archive"
+	V2s2ManifestDir = "docker-dir"
+	V2s2Archive     = "docker-archive"
+)

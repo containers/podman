@@ -2,12 +2,14 @@ package tunnel
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 
 	"github.com/containers/image/v5/docker/reference"
 	images "github.com/containers/libpod/pkg/bindings/images"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/utils"
+	utils2 "github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
 )
 
@@ -187,4 +189,55 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
 	return images.Push(ir.ClientCxt, source, destination, options)
+}
+
+func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string, options entities.ImageSaveOptions) error {
+	var (
+		f   *os.File
+		err error
+	)
+
+	switch options.Format {
+	case "oci-dir", "docker-dir":
+		f, err = ioutil.TempFile("", "podman_save")
+		if err == nil {
+			defer func() { _ = os.Remove(f.Name()) }()
+		}
+	default:
+		f, err = os.Create(options.Output)
+	}
+	if err != nil {
+		return err
+	}
+
+	exErr := images.Export(ir.ClientCxt, nameOrId, f, &options.Format, &options.Compress)
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if exErr != nil {
+		return exErr
+	}
+
+	if options.Format != "oci-dir" && options.Format != "docker-dir" {
+		return nil
+	}
+
+	f, err = os.Open(f.Name())
+	if err != nil {
+		return err
+	}
+	info, err := os.Stat(options.Output)
+	switch {
+	case err == nil:
+		if info.Mode().IsRegular() {
+			return errors.Errorf("%q already exists as a regular file", options.Output)
+		}
+	case os.IsNotExist(err):
+		if err := os.Mkdir(options.Output, 0755); err != nil {
+			return err
+		}
+	default:
+		return err
+	}
+	return utils2.UntarToFileSystem(options.Output, f, nil)
 }

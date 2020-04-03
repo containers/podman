@@ -46,6 +46,13 @@ func WriteResponse(w http.ResponseWriter, code int, value interface{}) {
 		if _, err := io.Copy(w, v); err != nil {
 			logrus.Errorf("unable to copy to response: %q", err)
 		}
+	case io.Reader:
+		w.Header().Set("Content-Type", "application/x-tar")
+		w.WriteHeader(code)
+
+		if _, err := io.Copy(w, v); err != nil {
+			logrus.Errorf("unable to copy to response: %q", err)
+		}
 	default:
 		WriteJSON(w, code, value)
 	}
