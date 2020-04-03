@@ -11,7 +11,7 @@ require (
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.14.6-0.20200402210551-e9a6703edee2
 	github.com/containers/common v0.8.0
-	github.com/containers/conmon v2.0.14+incompatible
+	github.com/containers/conmon v2.0.15+incompatible
 	github.com/containers/image/v5 v5.3.1
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.18.1
