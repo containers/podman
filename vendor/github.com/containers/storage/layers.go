@@ -491,7 +491,10 @@ func (r *layerStore) saveMounts() error {
 	return r.loadMounts()
 }
 
-func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Driver) (LayerStore, error) {
+// newLayerStore creates a new layer storage based on the provided directories
+// and selected driver. The `withMountsLock` bool indicates if we want to
+// enable mount locking, which is necessary to have write access to the storage.
+func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Driver, withMountsLock bool) (LayerStore, error) {
 	if err := os.MkdirAll(rundir, 0700); err != nil {
 		return nil, err
 	}
@@ -502,9 +505,12 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 	if err != nil {
 		return nil, err
 	}
-	mountsLockfile, err := GetLockfile(filepath.Join(rundir, "mountpoints.lock"))
-	if err != nil {
-		return nil, err
+	var mountsLockfile Locker
+	if withMountsLock {
+		mountsLockfile, err = GetLockfile(filepath.Join(rundir, "mountpoints.lock"))
+		if err != nil {
+			return nil, err
+		}
 	}
 	rlstore := layerStore{
 		lockfile:       lockfile,
@@ -517,27 +523,6 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 		byname:         make(map[string]*Layer),
 		uidMap:         copyIDMap(s.uidMap),
 		gidMap:         copyIDMap(s.gidMap),
-	}
-	if err := rlstore.Load(); err != nil {
-		return nil, err
-	}
-	return &rlstore, nil
-}
-
-func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (ROLayerStore, error) {
-	lockfile, err := GetROLockfile(filepath.Join(layerdir, "layers.lock"))
-	if err != nil {
-		return nil, err
-	}
-	rlstore := layerStore{
-		lockfile:       lockfile,
-		mountsLockfile: nil,
-		driver:         driver,
-		rundir:         rundir,
-		layerdir:       layerdir,
-		byid:           make(map[string]*Layer),
-		bymount:        make(map[string]*Layer),
-		byname:         make(map[string]*Layer),
 	}
 	if err := rlstore.Load(); err != nil {
 		return nil, err
@@ -1470,7 +1455,8 @@ func (r *layerStore) Modified() (bool, error) {
 }
 
 func (r *layerStore) IsReadWrite() bool {
-	return r.lockfile.IsReadWrite()
+	// the mountsLockfile is only set for read-write enabled stores.
+	return r.lockfile.IsReadWrite() && r.mountsLockfile != nil
 }
 
 func (r *layerStore) TouchedSince(when time.Time) bool {
