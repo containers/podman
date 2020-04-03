@@ -353,6 +353,9 @@ func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
 	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 		env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
 	}
+	if path, ok := os.LookupEnv("PATH"); ok {
+		env = append(env, fmt.Sprintf("PATH=%s", path))
+	}
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "start", ctr.ID()); err != nil {
 		return err
 	}
