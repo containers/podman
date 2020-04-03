@@ -112,7 +112,7 @@ func (c *Container) execPS(args []string) ([]string, error) {
 	defer wErrPipe.Close()
 	defer rErrPipe.Close()
 
-	streams := new(AttachStreams)
+	streams := new(define.AttachStreams)
 	streams.OutputStream = wPipe
 	streams.ErrorStream = wErrPipe
 	streams.AttachOutput = true

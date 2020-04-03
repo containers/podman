@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-func setupStreams(call iopodman.VarlinkCall) (*bufio.Reader, *bufio.Writer, *io.PipeReader, *io.PipeWriter, *libpod.AttachStreams) {
+func setupStreams(call iopodman.VarlinkCall) (*bufio.Reader, *bufio.Writer, *io.PipeReader, *io.PipeWriter, *define.AttachStreams) {
 
 	// These are the varlink sockets
 	reader := call.Call.Reader
@@ -30,7 +30,7 @@ func setupStreams(call iopodman.VarlinkCall) (*bufio.Reader, *bufio.Writer, *io.
 	// TODO if runc ever starts passing stderr, we can too
 	// stderrWriter := NewVirtWriteCloser(writer, ToStderr)
 
-	streams := libpod.AttachStreams{
+	streams := define.AttachStreams{
 		OutputStream: stdoutWriter,
 		InputStream:  bufio.NewReader(pr),
 		// Runc eats the error stream
@@ -117,7 +117,7 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	return call.Writer.Flush()
 }
 
-func attach(ctr *libpod.Container, streams *libpod.AttachStreams, detachKeys string, resize chan remotecommand.TerminalSize, errChan chan error) error {
+func attach(ctr *libpod.Container, streams *define.AttachStreams, detachKeys string, resize chan remotecommand.TerminalSize, errChan chan error) error {
 	go func() {
 		if err := ctr.Attach(streams, detachKeys, resize); err != nil {
 			errChan <- err
@@ -127,7 +127,7 @@ func attach(ctr *libpod.Container, streams *libpod.AttachStreams, detachKeys str
 	return attachError
 }
 
-func startAndAttach(ctr *libpod.Container, streams *libpod.AttachStreams, detachKeys string, resize chan remotecommand.TerminalSize, errChan chan error) error {
+func startAndAttach(ctr *libpod.Container, streams *define.AttachStreams, detachKeys string, resize chan remotecommand.TerminalSize, errChan chan error) error {
 	var finalErr error
 	attachChan, err := ctr.StartAndAttach(getContext(), streams, detachKeys, resize, false)
 	if err != nil {

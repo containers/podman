@@ -305,3 +305,11 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	}
 	return &entities.ContainerCreateReport{Id: response.ID}, nil
 }
+
+func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string, options entities.AttachOptions) error {
+	return errors.New("not implemented")
+}
+
+func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions) (int, error) {
+	return 125, errors.New("not implemented")
+}

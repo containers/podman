@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"net"
 
+	"github.com/containers/libpod/libpod/define"
+
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -141,7 +143,7 @@ type ExecOptions struct {
 	// the container was run as will be used.
 	User string
 	// Streams are the streams that will be attached to the container.
-	Streams *AttachStreams
+	Streams *define.AttachStreams
 	// PreserveFDs is a number of additional file descriptors (in addition
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.

@@ -5,6 +5,7 @@ package abi
 import (
 	"context"
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -12,9 +13,9 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/domain/infra/abi/terminal"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/specgen/generate"
@@ -64,7 +65,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	var (
 		responses []entities.WaitReport
 	)
-	ctrs, err := shortcuts.GetContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, err := getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 	if options.All {
 		ctrs, err = ic.Libpod.GetAllContainers()
 	} else {
-		ctrs, err = shortcuts.GetContainersByContext(false, false, namesOrIds, ic.Libpod)
+		ctrs, err = getContainersByContext(false, false, namesOrIds, ic.Libpod)
 	}
 	if err != nil {
 		return nil, err
@@ -111,7 +112,7 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	if options.All {
 		ctrs, err = ic.Libpod.GetAllContainers()
 	} else {
-		ctrs, err = shortcuts.GetContainersByContext(false, false, namesOrIds, ic.Libpod)
+		ctrs, err = getContainersByContext(false, false, namesOrIds, ic.Libpod)
 	}
 	if err != nil {
 		return nil, err
@@ -135,7 +136,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		id := strings.Split(string(content), "\n")[0]
 		names = append(names, id)
 	}
-	ctrs, err := shortcuts.GetContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
 	}
@@ -171,7 +172,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	ctrs, err := shortcuts.GetContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +188,7 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 	var (
 		reports []*entities.RestartReport
 	)
-	ctrs, err := shortcuts.GetContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +230,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		names = append(names, id)
 	}
 
-	ctrs, err := shortcuts.GetContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		// Failed to get containers. If force is specified, get the containers ID
 		// and evict them
@@ -277,7 +278,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 
 func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, error) {
 	var reports []*entities.ContainerInspectReport
-	ctrs, err := shortcuts.GetContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, err := getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -454,4 +455,57 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 		return nil, err
 	}
 	return &entities.ContainerCreateReport{Id: ctr.ID()}, nil
+}
+
+func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string, options entities.AttachOptions) error {
+	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrId}, ic.Libpod)
+	if err != nil {
+		return err
+	}
+	ctr := ctrs[0]
+	conState, err := ctr.State()
+	if err != nil {
+		return errors.Wrapf(err, "unable to determine state of %s", ctr.ID())
+	}
+	if conState != define.ContainerStateRunning {
+		return errors.Errorf("you can only attach to running containers")
+	}
+
+	// If the container is in a pod, also set to recursively start dependencies
+	if err := terminal.StartAttachCtr(ctx, ctr, options.Stdin, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != define.ErrDetach {
+		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
+	}
+	return nil
+}
+
+func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions) (int, error) {
+	ec := define.ExecErrorCodeGeneric
+	if options.PreserveFDs > 0 {
+		entries, err := ioutil.ReadDir("/proc/self/fd")
+		if err != nil {
+			return ec, errors.Wrapf(err, "unable to read /proc/self/fd")
+		}
+
+		m := make(map[int]bool)
+		for _, e := range entries {
+			i, err := strconv.Atoi(e.Name())
+			if err != nil {
+				return ec, errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
+			}
+			m[i] = true
+		}
+
+		for i := 3; i < 3+int(options.PreserveFDs); i++ {
+			if _, found := m[i]; !found {
+				return ec, errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
+			}
+		}
+	}
+	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrId}, ic.Libpod)
+	if err != nil {
+		return ec, err
+	}
+	ctr := ctrs[0]
+	ec, err = terminal.ExecAttachCtr(ctx, ctr, options.Tty, options.Privileged, options.Envs, options.Cmd, options.User, options.WorkDir, &options.Streams, options.PreserveFDs, options.DetachKeys)
+	return define.TranslateExecErrorToExitCode(ec, err), err
 }

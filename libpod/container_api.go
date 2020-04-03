@@ -3,7 +3,6 @@ package libpod
 import (
 	"bufio"
 	"context"
-	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -96,7 +95,7 @@ func (c *Container) Start(ctx context.Context, recursive bool) (err error) {
 // The channel will be closed automatically after the result of attach has been
 // sent.
 // If recursive is set, StartAndAttach will also start all containers this container depends on.
-func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, recursive bool) (attachResChan <-chan error, err error) {
+func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, recursive bool) (attachResChan <-chan error, err error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -213,29 +212,10 @@ func (c *Container) Kill(signal uint) error {
 	return c.save()
 }
 
-// AttachStreams contains streams that will be attached to the container
-type AttachStreams struct {
-	// OutputStream will be attached to container's STDOUT
-	OutputStream io.WriteCloser
-	// ErrorStream will be attached to container's STDERR
-	ErrorStream io.WriteCloser
-	// InputStream will be attached to container's STDIN
-	InputStream *bufio.Reader
-	// AttachOutput is whether to attach to STDOUT
-	// If false, stdout will not be attached
-	AttachOutput bool
-	// AttachError is whether to attach to STDERR
-	// If false, stdout will not be attached
-	AttachError bool
-	// AttachInput is whether to attach to STDIN
-	// If false, stdout will not be attached
-	AttachInput bool
-}
-
 // Attach attaches to a container.
 // This function returns when the attach finishes. It does not hold the lock for
 // the duration of its runtime, only using it at the beginning to verify state.
-func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
+func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {

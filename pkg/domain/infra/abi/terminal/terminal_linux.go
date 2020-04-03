@@ -1,4 +1,6 @@
-package adapter
+// +build ABISupport
+
+package terminal
 
 import (
 	"bufio"

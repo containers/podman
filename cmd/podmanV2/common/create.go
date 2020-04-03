@@ -138,7 +138,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.DetachKeys,
-		"detach-keys", getDefaultDetachKeys(),
+		"detach-keys", GetDefaultDetachKeys(),
 		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-cf`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
 	)
 	createFlags.StringSliceVar(
