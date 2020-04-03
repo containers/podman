@@ -17,7 +17,6 @@ import (
 func (s *SpecGenerator) getSeccompConfig(configSpec *spec.Spec, img *image.Image) (*spec.LinuxSeccomp, error) {
 	var seccompConfig *spec.LinuxSeccomp
 	var err error
-
 	scp, err := seccomp.LookupPolicy(s.SeccompPolicy)
 	if err != nil {
 		return nil, err

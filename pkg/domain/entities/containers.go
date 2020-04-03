@@ -153,3 +153,7 @@ type RestoreReport struct {
 	Err error
 	Id  string
 }
+
+type ContainerCreateReport struct {
+	Id string
+}

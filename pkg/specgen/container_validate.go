@@ -14,7 +14,7 @@ var (
 	// SystemDValues describes the only values that SystemD can be
 	SystemDValues = []string{"true", "false", "always"}
 	// ImageVolumeModeValues describes the only values that ImageVolumeMode can be
-	ImageVolumeModeValues = []string{"ignore", "tmpfs", "anonymous"}
+	ImageVolumeModeValues = []string{"ignore", "tmpfs", "bind"}
 )
 
 func exclusiveOptions(opt1, opt2 string) error {
@@ -23,7 +23,7 @@ func exclusiveOptions(opt1, opt2 string) error {
 
 // Validate verifies that the given SpecGenerator is valid and satisfies required
 // input for creating a container.
-func (s *SpecGenerator) validate() error {
+func (s *SpecGenerator) Validate() error {
 
 	//
 	// ContainerBasicConfig

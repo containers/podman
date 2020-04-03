@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/pkg/errors"
 )
 
@@ -295,4 +296,12 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		reports = append(reports, report)
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*entities.ContainerCreateReport, error) {
+	response, err := containers.CreateWithSpec(ic.ClientCxt, s)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.ContainerCreateReport{Id: response.ID}, nil
 }

@@ -1,4 +1,4 @@
-package specgen
+package generate
 
 import (
 	"context"
@@ -7,14 +7,15 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // MakeContainer creates a container based on the SpecGenerator
-func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, error) {
-	if err := s.validate(); err != nil {
+func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Container, error) {
+	if err := s.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config provided")
 	}
 	rtc, err := rt.GetConfig()
@@ -22,7 +23,7 @@ func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, er
 		return nil, err
 	}
 
-	options, err := s.createContainerOptions(rt)
+	options, err := createContainerOptions(rt, s)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +32,7 @@ func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, er
 	if err != nil {
 		return nil, err
 	}
-	options = append(options, s.createExitCommandOption(rt.StorageConfig(), rtc, podmanPath))
+	options = append(options, createExitCommandOption(s, rt.StorageConfig(), rtc, podmanPath))
 	newImage, err := rt.ImageRuntime().NewFromLocal(s.Image)
 	if err != nil {
 		return nil, err
@@ -39,14 +40,14 @@ func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, er
 
 	options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image, s.RawImageName))
 
-	runtimeSpec, err := s.toOCISpec(rt, newImage)
+	runtimeSpec, err := s.ToOCISpec(rt, newImage)
 	if err != nil {
 		return nil, err
 	}
 	return rt.NewContainer(context.Background(), runtimeSpec, options...)
 }
 
-func (s *SpecGenerator) createContainerOptions(rt *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -114,7 +115,7 @@ func (s *SpecGenerator) createContainerOptions(rt *libpod.Runtime) ([]libpod.Ctr
 	options = append(options, libpod.WithPrivileged(s.Privileged))
 
 	// Get namespace related options
-	namespaceOptions, err := s.generateNamespaceContainerOpts(rt)
+	namespaceOptions, err := s.GenerateNamespaceContainerOpts(rt)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +150,7 @@ func (s *SpecGenerator) createContainerOptions(rt *libpod.Runtime) ([]libpod.Ctr
 	return options, nil
 }
 
-func (s *SpecGenerator) createExitCommandOption(storageConfig storage.StoreOptions, config *config.Config, podmanPath string) libpod.CtrCreateOption {
+func createExitCommandOption(s *specgen.SpecGenerator, storageConfig storage.StoreOptions, config *config.Config, podmanPath string) libpod.CtrCreateOption {
 	// We need a cleanup process for containers in the current model.
 	// But we can't assume that the caller is Podman - it could be another
 	// user of the API.

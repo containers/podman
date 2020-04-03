@@ -4,8 +4,9 @@ import (
 	"net"
 	"syscall"
 
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
+
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -371,6 +372,16 @@ type ContainerResourceConfig struct {
 	// processes to kill for the container's process.
 	// Optional.
 	OOMScoreAdj *int `json:"oom_score_adj,omitempty"`
+	// Weight per cgroup per device, can override BlkioWeight
+	WeightDevice map[string]spec.LinuxWeightDevice `json:"weightDevice,omitempty"`
+	// IO read rate limit per cgroup per device, bytes per second
+	ThrottleReadBpsDevice map[string]spec.LinuxThrottleDevice `json:"throttleReadBpsDevice,omitempty"`
+	// IO write rate limit per cgroup per device, bytes per second
+	ThrottleWriteBpsDevice map[string]spec.LinuxThrottleDevice `json:"throttleWriteBpsDevice,omitempty"`
+	// IO read rate limit per cgroup per device, IO per second
+	ThrottleReadIOPSDevice map[string]spec.LinuxThrottleDevice `json:"throttleReadIOPSDevice,omitempty"`
+	// IO write rate limit per cgroup per device, IO per second
+	ThrottleWriteIOPSDevice map[string]spec.LinuxThrottleDevice `json:"throttleWriteIOPSDevice,omitempty"`
 }
 
 // ContainerHealthCheckConfig describes a container healthcheck with attributes
