@@ -37,7 +37,7 @@ var _ = Describe("Podman checkpoint", func() {
 		podmanTest.SeedImages()
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
-		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "-h")
+		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "--help")
 		if err := cmd.Start(); err != nil {
 			Skip("OCI runtime does not support checkpoint/restore")
 		}

@@ -939,7 +939,7 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 func (r *ConmonOCIRuntime) SupportsCheckpoint() bool {
 	// Check if the runtime implements checkpointing. Currently only
 	// runc's checkpoint/restore implementation is supported.
-	cmd := exec.Command(r.path, "checkpoint", "-h")
+	cmd := exec.Command(r.path, "checkpoint", "--help")
 	if err := cmd.Start(); err != nil {
 		return false
 	}
