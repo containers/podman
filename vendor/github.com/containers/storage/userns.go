@@ -136,7 +136,7 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 // getMaxSizeFromImage returns the maximum ID used by the specified image.
 // The layer stores must be already locked.
 func (s *store) getMaxSizeFromImage(id string, image *Image, passwdFile, groupFile string) (uint32, error) {
-	lstore, err := s.LayerStore()
+	lstore, err := s.ROLayerStore()
 	if err != nil {
 		return 0, err
 	}
@@ -178,7 +178,7 @@ outer:
 		return 0, errors.Errorf("cannot find layer %q", layerName)
 	}
 
-	rlstore, err := s.LayerStore()
+	rlstore, err := s.RWLayerStore()
 	if err != nil {
 		return 0, err
 	}

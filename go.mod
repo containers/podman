@@ -65,3 +65,5 @@ require (
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace github.com/containers/storage => github.com/saschagrunert/storage v1.12.3-0.20200831115403-985bf9929ddc

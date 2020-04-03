@@ -158,7 +158,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.23.2
+# github.com/containers/storage v1.23.2 => github.com/saschagrunert/storage v1.12.3-0.20200831115403-985bf9929ddc
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
