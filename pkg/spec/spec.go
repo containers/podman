@@ -381,11 +381,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// BIND MOUNTS
 	configSpec.Mounts = SupercedeUserMounts(userMounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
-	finalMounts, err := InitFSMounts(configSpec.Mounts)
-	if err != nil {
+	if err := InitFSMounts(configSpec.Mounts); err != nil {
 		return nil, err
 	}
-	configSpec.Mounts = finalMounts
 
 	// BLOCK IO
 	blkio, err := config.CreateBlockIO()
