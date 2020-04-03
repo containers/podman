@@ -243,6 +243,23 @@ type RawSockaddrTIPC struct {
 	Addr     [12]byte
 }
 
+type RawSockaddrL2TPIP struct {
+	Family  uint16
+	Unused  uint16
+	Addr    [4]byte /* in_addr */
+	Conn_id uint32
+	_       [4]uint8
+}
+
+type RawSockaddrL2TPIP6 struct {
+	Family   uint16
+	Unused   uint16
+	Flowinfo uint32
+	Addr     [16]byte /* in6_addr */
+	Scope_id uint32
+	Conn_id  uint32
+}
+
 type _Socklen uint32
 
 type Linger struct {
@@ -353,6 +370,8 @@ const (
 	SizeofSockaddrXDP       = 0x10
 	SizeofSockaddrPPPoX     = 0x1e
 	SizeofSockaddrTIPC      = 0x10
+	SizeofSockaddrL2TPIP    = 0x10
+	SizeofSockaddrL2TPIP6   = 0x20
 	SizeofLinger            = 0x8
 	SizeofIPMreq            = 0x8
 	SizeofIPMreqn           = 0xc
@@ -2272,3 +2291,20 @@ const (
 	DEVLINK_DPIPE_HEADER_IPV4                 = 0x1
 	DEVLINK_DPIPE_HEADER_IPV6                 = 0x2
 )
+
+type FsverityDigest struct {
+	Algorithm uint16
+	Size      uint16
+}
+
+type FsverityEnableArg struct {
+	Version        uint32
+	Hash_algorithm uint32
+	Block_size     uint32
+	Salt_size      uint32
+	Salt_ptr       uint64
+	Sig_size       uint32
+	_              uint32
+	Sig_ptr        uint64
+	_              [11]uint64
+}
