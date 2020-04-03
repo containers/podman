@@ -211,6 +211,41 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}"), s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}", s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
+	// swagger:operation POST /images/{name:.*}/push compat pushImage
+	// ---
+	// tags:
+	//  - images (compat)
+	// summary: Push Image
+	// description: Push an image to a container registry
+	// parameters:
+	//  - in: path
+	//    name: name:.*
+	//    type: string
+	//    required: true
+	//    description: Name of image to push.
+	//  - in: query
+	//    name: tag
+	//    type: string
+	//    description: The tag to associate with the image on the registry.
+	//  - in: header
+	//    name: X-Registry-Auth
+	//    type: string
+	//    description: A base64-encoded auth configuration.
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//     schema:
+	//      type: string
+	//      format: binary
+	//   404:
+	//     $ref: '#/responses/NoSuchImage'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/images/{name:.*}/push"), s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/{name:.*}/push", s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
 	// swagger:operation GET /images/{name:.*}/get compat exportImage
 	// ---
 	// tags:
@@ -583,6 +618,43 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 		libpod endpoints
 	*/
 
+	// swagger:operation POST /libpod/images/{name:.*}/push libpod libpodPushImage
+	// ---
+	// tags:
+	//  - images (libpod)
+	// summary: Push Image
+	// description: Push an image to a container registry
+	// parameters:
+	//  - in: path
+	//    name: name:.*
+	//    type: string
+	//    required: true
+	//    description: Name of image to push.
+	//  - in: query
+	//    name: tag
+	//    type: string
+	//    description: The tag to associate with the image on the registry.
+	//  - in: query
+	//    name: credentials
+	//    description: username:password for the registry.
+	//    type: string
+	//  - in: header
+	//    name: X-Registry-Auth
+	//    type: string
+	//    description: A base64-encoded auth configuration.
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//     schema:
+	//      type: string
+	//      format: binary
+	//   404:
+	//     $ref: '#/responses/NoSuchImage'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/images/{name:.*}/push"), s.APIHandler(libpod.PushImage)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/images/{name:.*}/exists libpod libpodImageExists
 	// ---
 	// tags:

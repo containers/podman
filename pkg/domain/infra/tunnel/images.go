@@ -184,3 +184,7 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 	}
 	return images.Import(ir.ClientCxt, opts.Changes, &opts.Message, &opts.Reference, sourceURL, f)
 }
+
+func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
+	return images.Push(ir.ClientCxt, source, destination, options)
+}

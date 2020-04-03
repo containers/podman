@@ -4,10 +4,51 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/gorilla/schema"
+	"github.com/pkg/errors"
 )
+
+// ParseDockerReference parses the specified image name to a
+// `types.ImageReference` and enforces it to refer to a docker-transport
+// reference.
+func ParseDockerReference(name string) (types.ImageReference, error) {
+	dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
+	imageRef, err := alltransports.ParseImageName(name)
+	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
+		return nil, errors.Errorf("reference %q must be a docker reference", name)
+	} else if err != nil {
+		origErr := err
+		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, name))
+		if err != nil {
+			return nil, errors.Wrapf(origErr, "reference %q must be a docker reference", name)
+		}
+	}
+	return imageRef, nil
+}
+
+// ParseStorageReference parses the specified image name to a
+// `types.ImageReference` and enforces it to refer to a
+// containers-storage-transport reference.
+func ParseStorageReference(name string) (types.ImageReference, error) {
+	storagePrefix := fmt.Sprintf("%s:", storage.Transport.Name())
+	imageRef, err := alltransports.ParseImageName(name)
+	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
+		return nil, errors.Errorf("reference %q must be a storage reference", name)
+	} else if err != nil {
+		origErr := err
+		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", storagePrefix, name))
+		if err != nil {
+			return nil, errors.Wrapf(origErr, "reference %q must be a storage reference", name)
+		}
+	}
+	return imageRef, nil
+}
 
 // GetImages is a common function used to get images for libpod and other compatibility
 // mechanisms

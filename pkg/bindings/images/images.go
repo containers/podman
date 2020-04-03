@@ -3,6 +3,7 @@ package images
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -282,4 +283,27 @@ func Pull(ctx context.Context, rawImage string, options entities.ImagePullOption
 	}
 
 	return pulledImages, nil
+}
+
+// Push is the binding for libpod's v2 endpoints for push images.  Note that
+// `source` must be a refering to an image in the remote's container storage.
+// The destination must be a reference to a registry (i.e., of docker transport
+// or be normalized to one).  Other transports are rejected as they do not make
+// sense in a remote context.
+func Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	params := url.Values{}
+	params.Set("credentials", options.Credentials)
+	params.Set("destination", destination)
+	if options.TLSVerify != types.OptionalBoolUndefined {
+		val := bool(options.TLSVerify == types.OptionalBoolTrue)
+		params.Set("tlsVerify", strconv.FormatBool(val))
+	}
+
+	path := fmt.Sprintf("/images/%s/push", source)
+	_, err = conn.DoRequest(nil, http.MethodPost, path, params)
+	return err
 }

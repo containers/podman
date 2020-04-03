@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/image"
@@ -20,6 +21,7 @@ import (
 	domainUtils "github.com/containers/libpod/pkg/domain/utils"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -258,6 +260,64 @@ func (ir *ImageEngine) Inspect(ctx context.Context, names []string, opts entitie
 		report.Images = append(report.Images, &cookedResults)
 	}
 	return &report, nil
+}
+
+func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
+	var writer io.Writer
+	if !options.Quiet {
+		writer = os.Stderr
+	}
+
+	var manifestType string
+	switch options.Format {
+	case "":
+		// Default
+	case "oci":
+		manifestType = imgspecv1.MediaTypeImageManifest
+	case "v2s1":
+		manifestType = manifest.DockerV2Schema1SignedMediaType
+	case "v2s2", "docker":
+		manifestType = manifest.DockerV2Schema2MediaType
+	default:
+		return fmt.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", options.Format)
+	}
+
+	var registryCreds *types.DockerAuthConfig
+	if options.Credentials != "" {
+		creds, err := util.ParseRegistryCreds(options.Credentials)
+		if err != nil {
+			return err
+		}
+		registryCreds = creds
+	}
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds:         registryCreds,
+		DockerCertPath:              options.CertDir,
+		DockerInsecureSkipTLSVerify: options.TLSVerify,
+	}
+
+	signOptions := image.SigningOptions{
+		RemoveSignatures: options.RemoveSignatures,
+		SignBy:           options.SignBy,
+	}
+
+	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(source)
+	if err != nil {
+		return err
+	}
+
+	return newImage.PushImageToHeuristicDestination(
+		ctx,
+		destination,
+		manifestType,
+		options.Authfile,
+		options.DigestFile,
+		options.SignaturePolicy,
+		writer,
+		options.Compress,
+		signOptions,
+		&dockerRegistryOptions,
+		nil)
 }
 
 // func (r *imageRuntime) Delete(ctx context.Context, nameOrId string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {
