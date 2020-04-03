@@ -1282,5 +1282,100 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/export"), s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/containers/{name}/checkout libpod libpodCheckpointContainer
+	// ---
+	// tags:
+	//   - containers
+	// summary: Checkpoint a container
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the container
+	//  - in: query
+	//    name: keep
+	//    type: boolean
+	//    description: keep all temporary checkpoint files
+	//  - in: query
+	//    name: leaveRunning
+	//    type: boolean
+	//    description: leave the container running after writing checkpoint to disk
+	//  - in: query
+	//    name: tcpEstablished
+	//    type: boolean
+	//    description: checkpoint a container with established TCP connections
+	//  - in: query
+	//    name: export
+	//    type: boolean
+	//    description:  export the checkpoint image to a tar.gz
+	//  - in: query
+	//    name: ignoreRootFS
+	//    type: boolean
+	//    description: do not include root file-system changes when exporting
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: tarball is returned in body if exported
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/checkpoint"), s.APIHandler(libpod.Checkpoint)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/containers/{name} restore libpod libpodRestoreContainer
+	// ---
+	// tags:
+	//   - containers
+	// summary: Restore a container
+	// description: Restore a container from a checkpoint.
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or id of the container
+	//  - in: query
+	//    name: name
+	//    type: string
+	//    description: the name of the container when restored from a tar. can only be used with import
+	//  - in: query
+	//    name: keep
+	//    type: boolean
+	//    description: keep all temporary checkpoint files
+	//  - in: query
+	//    name: leaveRunning
+	//    type: boolean
+	//    description: leave the container running after writing checkpoint to disk
+	//  - in: query
+	//    name: tcpEstablished
+	//    type: boolean
+	//    description: checkpoint a container with established TCP connections
+	//  - in: query
+	//    name: import
+	//    type: boolean
+	//    description:  import the restore from a checkpoint tar.gz
+	//  - in: query
+	//    name: ignoreRootFS
+	//    type: boolean
+	//    description: do not include root file-system changes when exporting
+	//  - in: query
+	//    name: ignoreStaticIP
+	//    type: boolean
+	//    description: ignore IP address if set statically
+	//  - in: query
+	//    name: ignoreStaticMAC
+	//    type: boolean
+	//    description: ignore MAC address if set statically
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: tarball is returned in body if exported
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restore"), s.APIHandler(libpod.Restore)).Methods(http.MethodPost)
 	return nil
 }

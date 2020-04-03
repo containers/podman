@@ -26,6 +26,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	"github.com/containers/libpod/pkg/checkpoint"
 	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/systemd/generate"
 	"github.com/containers/storage"
@@ -625,7 +626,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) 
 
 	switch {
 	case c.Import != "":
-		containers, err = crImportCheckpoint(ctx, r.Runtime, c.Import, c.Name)
+		containers, err = checkpoint.CRImportCheckpoint(ctx, r.Runtime, c.Import, c.Name)
 	case c.All:
 		containers, err = r.GetContainers(filterFuncs...)
 	default:

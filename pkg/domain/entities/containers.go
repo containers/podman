@@ -121,3 +121,35 @@ type CommitReport struct {
 type ContainerExportOptions struct {
 	Output string
 }
+
+type CheckpointOptions struct {
+	All            bool
+	Export         string
+	IgnoreRootFS   bool
+	Keep           bool
+	Latest         bool
+	LeaveRuninng   bool
+	TCPEstablished bool
+}
+
+type CheckpointReport struct {
+	Err error
+	Id  string
+}
+
+type RestoreOptions struct {
+	All             bool
+	IgnoreRootFS    bool
+	IgnoreStaticIP  bool
+	IgnoreStaticMAC bool
+	Import          string
+	Keep            bool
+	Latest          bool
+	Name            string
+	TCPEstablished  bool
+}
+
+type RestoreReport struct {
+	Err error
+	Id  string
+}

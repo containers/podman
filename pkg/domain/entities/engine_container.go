@@ -8,6 +8,8 @@ import (
 
 type ContainerEngine interface {
 	ContainerCommit(ctx context.Context, nameOrId string, options CommitOptions) (*CommitReport, error)
+	ContainerCheckpoint(ctx context.Context, namesOrIds []string, options CheckpointOptions) ([]*CheckpointReport, error)
+	ContainerRestore(ctx context.Context, namesOrIds []string, options RestoreOptions) ([]*RestoreReport, error)
 	ContainerExists(ctx context.Context, nameOrId string) (*BoolReport, error)
 	ContainerInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]*ContainerInspectReport, error)
 	ContainerExport(ctx context.Context, nameOrId string, options ContainerExportOptions) error
