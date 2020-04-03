@@ -933,6 +933,13 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	if options.TCPEstablished {
 		args = append(args, "--tcp-established")
 	}
+	runtimeDir, err := util.GetRuntimeDir()
+	if err != nil {
+		return err
+	}
+	if err = os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
+		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+	}
 	args = append(args, ctr.ID())
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
 }
@@ -942,7 +949,7 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 func (r *ConmonOCIRuntime) SupportsCheckpoint() bool {
 	// Check if the runtime implements checkpointing. Currently only
 	// runc's checkpoint/restore implementation is supported.
-	cmd := exec.Command(r.path, "checkpoint", "-h")
+	cmd := exec.Command(r.path, "checkpoint", "--help")
 	if err := cmd.Start(); err != nil {
 		return false
 	}
