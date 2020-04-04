@@ -186,3 +186,24 @@ type ExecOptions struct {
 	User        string
 	WorkDir     string
 }
+
+// ContainerStartOptions describes the val from the
+// CLI needed to start a container
+type ContainerStartOptions struct {
+	Attach      bool
+	DetachKeys  string
+	Interactive bool
+	Latest      bool
+	SigProxy    bool
+	Stdout      *os.File
+	Stderr      *os.File
+	Stdin       *os.File
+}
+
+// ContainerStartReport describes the response from starting
+// containers from the cli
+type ContainerStartReport struct {
+	Id       string
+	Err      error
+	ExitCode int
+}

@@ -313,3 +313,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string,
 func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions) (int, error) {
 	return 125, errors.New("not implemented")
 }
+
+func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
+	return nil, errors.New("not implemented")
+}

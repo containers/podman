@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -508,4 +509,111 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, o
 	ctr := ctrs[0]
 	ec, err = terminal.ExecAttachCtr(ctx, ctr, options.Tty, options.Privileged, options.Envs, options.Cmd, options.User, options.WorkDir, &options.Streams, options.PreserveFDs, options.DetachKeys)
 	return define.TranslateExecErrorToExitCode(ec, err), err
+}
+
+func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
+	var reports []*entities.ContainerStartReport
+	var exitCode = define.ExecErrorCodeGeneric
+	ctrs, err := getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	// There can only be one container if attach was used
+	for _, ctr := range ctrs {
+		ctrState, err := ctr.State()
+		if err != nil {
+			return nil, err
+		}
+		ctrRunning := ctrState == define.ContainerStateRunning
+
+		if options.Attach {
+			err = terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, !ctrRunning, ctr.PodID() != "")
+			if errors.Cause(err) == define.ErrDetach {
+				// User manually detached
+				// Exit cleanly immediately
+				reports = append(reports, &entities.ContainerStartReport{
+					Id:       ctr.ID(),
+					Err:      nil,
+					ExitCode: 0,
+				})
+				return reports, nil
+			}
+
+			if errors.Cause(err) == define.ErrWillDeadlock {
+				logrus.Debugf("Deadlock error: %v", err)
+				reports = append(reports, &entities.ContainerStartReport{
+					Id:       ctr.ID(),
+					Err:      err,
+					ExitCode: define.ExitCode(err),
+				})
+				return reports, errors.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+			}
+
+			if ctrRunning {
+				reports = append(reports, &entities.ContainerStartReport{
+					Id:       ctr.ID(),
+					Err:      nil,
+					ExitCode: 0,
+				})
+				return reports, err
+			}
+
+			if err != nil {
+				reports = append(reports, &entities.ContainerStartReport{
+					Id:       ctr.ID(),
+					Err:      err,
+					ExitCode: exitCode,
+				})
+				return reports, errors.Wrapf(err, "unable to start container %s", ctr.ID())
+			}
+
+			if ecode, err := ctr.Wait(); err != nil {
+				if errors.Cause(err) == define.ErrNoSuchCtr {
+					// Check events
+					event, err := ic.Libpod.GetLastContainerEvent(ctr.ID(), events.Exited)
+					if err != nil {
+						logrus.Errorf("Cannot get exit code: %v", err)
+						exitCode = define.ExecErrorCodeNotFound
+					} else {
+						exitCode = event.ContainerExitCode
+					}
+				}
+			} else {
+				exitCode = int(ecode)
+			}
+			reports = append(reports, &entities.ContainerStartReport{
+				Id:       ctr.ID(),
+				Err:      err,
+				ExitCode: exitCode,
+			})
+			return reports, nil
+		} // end attach
+
+		// Start the container if it's not running already.
+		if !ctrRunning {
+			// Handle non-attach start
+			// If the container is in a pod, also set to recursively start dependencies
+			report := &entities.ContainerStartReport{
+				Id:       ctr.ID(),
+				ExitCode: 125,
+			}
+			if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
+				//if lastError != nil {
+				//	fmt.Fprintln(os.Stderr, lastError)
+				//}
+				report.Err = err
+				if errors.Cause(err) == define.ErrWillDeadlock {
+					report.Err = errors.Wrapf(err, "please run 'podman system renumber' to resolve deadlocks")
+					reports = append(reports, report)
+					continue
+				}
+				report.Err = errors.Wrapf(err, "unable to start container %q", ctr.ID())
+				reports = append(reports, report)
+				continue
+			}
+			report.ExitCode = 0
+			reports = append(reports, report)
+		}
+	}
+	return reports, nil
 }
