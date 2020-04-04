@@ -7,7 +7,6 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
@@ -233,7 +232,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	var (
 		reports []*entities.CheckpointReport
 		err     error
-		ctrs    []libpod.ListContainer
+		ctrs    []entities.ListContainer
 	)
 
 	if options.All {
@@ -268,7 +267,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	var (
 		reports []*entities.RestoreReport
 		err     error
-		ctrs    []libpod.ListContainer
+		ctrs    []entities.ListContainer
 	)
 	if options.All {
 		allCtrs, err := getContainersByContext(ic.ClientCxt, true, []string{})
@@ -316,4 +315,8 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, o
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	return nil, errors.New("not implemented")
+}
+
+func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
+	return containers.List(ic.ClientCxt, options.Filters, &options.All, &options.Last, &options.Pod, &options.Size, &options.Sync)
 }

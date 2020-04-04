@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/bindings/pods"
@@ -14,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getContainersByContext(contextWithConnection context.Context, all bool, namesOrIds []string) ([]libpod.ListContainer, error) {
+func getContainersByContext(contextWithConnection context.Context, all bool, namesOrIds []string) ([]entities.ListContainer, error) {
 	var (
-		cons []libpod.ListContainer
+		cons []entities.ListContainer
 	)
 	if all && len(namesOrIds) > 0 {
 		return nil, errors.New("cannot lookup containers and all")

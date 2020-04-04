@@ -207,3 +207,20 @@ type ContainerStartReport struct {
 	Err      error
 	ExitCode int
 }
+
+// ContainerListOptions describes the CLI options
+// for listing containers
+type ContainerListOptions struct {
+	All       bool
+	Filters   map[string][]string
+	Format    string
+	Last      int
+	Latest    bool
+	Namespace bool
+	Pod       bool
+	Quiet     bool
+	Size      bool
+	Sort      string
+	Sync      bool
+	Watch     uint
+}

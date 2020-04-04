@@ -88,7 +88,7 @@ func pods(cmd *cobra.Command, args []string) error {
 		fmt.Println(string(b))
 		return nil
 	}
-	headers, row := createPodPsOut(cmd)
+	headers, row := createPodPsOut()
 	if psInput.Quiet {
 		if noTrunc {
 			row = "{{.Id}}\n"
@@ -123,7 +123,7 @@ func pods(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func createPodPsOut(cmd *cobra.Command) (string, string) {
+func createPodPsOut() (string, string) {
 	var row string
 	headers := defaultHeaders
 	if noTrunc {
