@@ -320,3 +320,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	return containers.List(ic.ClientCxt, options.Filters, &options.All, &options.Last, &options.Pod, &options.Size, &options.Sync)
 }
+
+func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
+	return nil, errors.New("not implemented")
+}

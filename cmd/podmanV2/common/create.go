@@ -29,7 +29,6 @@ func getDefaultContainerConfig() *config.Config {
 }
 
 func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
-	//createFlags := c.Flags()
 	createFlags := pflag.FlagSet{}
 	createFlags.StringSliceVar(
 		&cf.Annotation,

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/specgen"
 )
 
 type WaitOptions struct {
@@ -223,4 +224,24 @@ type ContainerListOptions struct {
 	Sort      string
 	Sync      bool
 	Watch     uint
+}
+
+// ContainerRunOptions describes the options needed
+// to run a container from the CLI
+type ContainerRunOptions struct {
+	Detach       bool
+	DetachKeys   string
+	ErrorStream  *os.File
+	InputStream  *os.File
+	OutputStream *os.File
+	Rm           bool
+	SigProxy     bool
+	Spec         *specgen.SpecGenerator
+}
+
+// ContainerRunReport describes the results of running
+//a container
+type ContainerRunReport struct {
+	ExitCode int
+	Id       string
 }
