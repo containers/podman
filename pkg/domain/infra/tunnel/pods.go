@@ -197,3 +197,13 @@ func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOp
 func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOptions) ([]*entities.ListPodsReport, error) {
 	return pods.List(ic.ClientCxt, options.Filters)
 }
+
+func (ic *ContainerEngine) PodInspect(ctx context.Context, options entities.PodInspectOptions) (*entities.PodInspectReport, error) {
+	switch {
+	case options.Latest:
+		return nil, errors.New("latest is not supported")
+	case options.NameOrID == "":
+		return nil, errors.New("NameOrID must be specified")
+	}
+	return pods.Inspect(ic.ClientCxt, options.NameOrID)
+}

@@ -331,3 +331,24 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 	}
 	return reports, nil
 }
+
+func (ic *ContainerEngine) PodInspect(ctx context.Context, options entities.PodInspectOptions) (*entities.PodInspectReport, error) {
+	var (
+		pod *libpod.Pod
+		err error
+	)
+	// Look up the pod.
+	if options.Latest {
+		pod, err = ic.Libpod.GetLatestPod()
+	} else {
+		pod, err = ic.Libpod.LookupPod(options.NameOrID)
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to lookup requested container")
+	}
+	inspect, err := pod.Inspect()
+	if err != nil {
+		return nil, err
+	}
+	return &entities.PodInspectReport{PodInspect: inspect}, nil
+}

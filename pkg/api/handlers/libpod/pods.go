@@ -73,7 +73,10 @@ func PodInspect(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, podData)
+	report := entities.PodInspectReport{
+		PodInspect: podData,
+	}
+	utils.WriteResponse(w, http.StatusOK, report)
 }
 
 func PodStop(w http.ResponseWriter, r *http.Request) {
