@@ -113,6 +113,14 @@ func SubCommandExists(cmd *cobra.Command, args []string) error {
 	return errors.Errorf("missing command '%[1]s COMMAND'\nTry '%[1]s --help' for more information.", cmd.CommandPath())
 }
 
+// IdOrLatestArgs used to validate a nameOrId was provided or the "--latest" flag
+func IdOrLatestArgs(cmd *cobra.Command, args []string) error {
+	if len(args) > 1 || (len(args) == 0 && !cmd.Flag("latest").Changed) {
+		return errors.New(`command requires a name, id  or the "--latest" flag`)
+	}
+	return nil
+}
+
 type podmanContextKey string
 
 var podmanFactsKey = podmanContextKey("engineOptions")

@@ -413,3 +413,11 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string,
 	}
 	return newImage.Save(ctx, nameOrId, options.Format, options.Output, tags, options.Quiet, options.Compress)
 }
+
+func (ir *ImageEngine) Diff(_ context.Context, nameOrId string, _ entities.DiffOptions) (*entities.DiffReport, error) {
+	changes, err := ir.Libpod.GetDiff("", nameOrId)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.DiffReport{Changes: changes}, nil
+}

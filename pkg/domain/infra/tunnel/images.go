@@ -241,3 +241,12 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string,
 	}
 	return utils2.UntarToFileSystem(options.Output, f, nil)
 }
+
+// Diff reports the changes to the given image
+func (ir *ImageEngine) Diff(ctx context.Context, nameOrId string, _ entities.DiffOptions) (*entities.DiffReport, error) {
+	changes, err := images.Diff(ir.ClientCxt, nameOrId)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.DiffReport{Changes: changes}, nil
+}

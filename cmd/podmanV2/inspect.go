@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Inspect is one of the out layer commands in that it operates on images/containers/...
+// Inspect is one of the outlier commands in that it operates on images/containers/...
 
 var (
 	inspectOpts *entities.InspectOptions
