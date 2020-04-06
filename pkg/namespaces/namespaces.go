@@ -1,7 +1,11 @@
 package namespaces
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
+
+	"github.com/containers/storage"
 )
 
 const (
@@ -92,6 +96,54 @@ func (n UsernsMode) IsKeepID() bool {
 	return n == "keep-id"
 }
 
+// IsAuto indicates whether container uses the "auto" userns mode.
+func (n UsernsMode) IsAuto() bool {
+	parts := strings.Split(string(n), ":")
+	return parts[0] == "auto"
+}
+
+// GetAutoOptions returns a AutoUserNsOptions with the settings to setup automatically
+// a user namespace.
+func (n UsernsMode) GetAutoOptions() (*storage.AutoUserNsOptions, error) {
+	parts := strings.SplitN(string(n), ":", 2)
+	if parts[0] != "auto" {
+		return nil, fmt.Errorf("wrong user namespace mode")
+	}
+	options := storage.AutoUserNsOptions{}
+	if len(parts) == 1 {
+		return &options, nil
+	}
+	for _, o := range strings.Split(parts[1], ",") {
+		v := strings.SplitN(o, "=", 2)
+		if len(v) != 2 {
+			return nil, fmt.Errorf("invalid option specified: %q", o)
+		}
+		switch v[0] {
+		case "size":
+			s, err := strconv.ParseUint(v[1], 10, 32)
+			if err != nil {
+				return nil, err
+			}
+			options.Size = uint32(s)
+		case "uidmapping":
+			mapping, err := storage.ParseIDMapping([]string{v[1]}, nil, "", "")
+			if err != nil {
+				return nil, err
+			}
+			options.AdditionalUIDMappings = append(options.AdditionalUIDMappings, mapping.UIDMap...)
+		case "gidmapping":
+			mapping, err := storage.ParseIDMapping(nil, []string{v[1]}, "", "")
+			if err != nil {
+				return nil, err
+			}
+			options.AdditionalGIDMappings = append(options.AdditionalGIDMappings, mapping.GIDMap...)
+		default:
+			return nil, fmt.Errorf("unknown option specified: %q", v[0])
+		}
+	}
+	return &options, nil
+}
+
 // IsPrivate indicates whether the container uses the a private userns.
 func (n UsernsMode) IsPrivate() bool {
 	return !(n.IsHost() || n.IsContainer())
@@ -101,7 +153,7 @@ func (n UsernsMode) IsPrivate() bool {
 func (n UsernsMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", privateType, hostType, "keep-id", nsType:
+	case "", privateType, hostType, "keep-id", nsType, "auto":
 	case containerType:
 		if len(parts) != 2 || parts[1] == "" {
 			return false

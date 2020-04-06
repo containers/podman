@@ -277,7 +277,7 @@ func (c *UserConfig) ConfigureGenerator(g *generate.Generator) error {
 }
 
 func (c *UserConfig) getPostConfigureNetNS() bool {
-	hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
+	hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || c.UsernsMode.IsAuto() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
 	postConfigureNetNS := hasUserns && !c.UsernsMode.IsHost()
 	return postConfigureNetNS
 }
@@ -285,7 +285,7 @@ func (c *UserConfig) getPostConfigureNetNS() bool {
 // InNS returns true if the UserConfig indicates to be in a dedicated user
 // namespace.
 func (c *UserConfig) InNS(isRootless bool) bool {
-	hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
+	hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || c.UsernsMode.IsAuto() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
 	return isRootless || (hasUserns && !c.UsernsMode.IsHost())
 }
 

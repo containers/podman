@@ -327,6 +327,18 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		HostGIDMapping: true,
 	}
 
+	if mode.IsAuto() {
+		var err error
+		options.HostUIDMapping = false
+		options.HostGIDMapping = false
+		options.AutoUserNs = true
+		opts, err := mode.GetAutoOptions()
+		if err != nil {
+			return nil, err
+		}
+		options.AutoUserNsOpts = *opts
+		return &options, nil
+	}
 	if mode.IsKeepID() {
 		if len(uidMapSlice) > 0 || len(gidMapSlice) > 0 {
 			return nil, errors.New("cannot specify custom mappings with --userns=keep-id")

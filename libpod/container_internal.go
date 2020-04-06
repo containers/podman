@@ -339,6 +339,29 @@ func (c *Container) syncContainer() error {
 	return nil
 }
 
+func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
+	if c.config.Rootfs != "" {
+		return
+	}
+	*dest = *from
+	if dest.AutoUserNs {
+		overrides := c.getUserOverrides()
+		dest.AutoUserNsOpts.PasswdFile = overrides.ContainerEtcPasswdPath
+		dest.AutoUserNsOpts.GroupFile = overrides.ContainerEtcGroupPath
+		if c.config.User != "" {
+			initialSize := uint32(0)
+			parts := strings.Split(c.config.User, ":")
+			for _, p := range parts {
+				s, err := strconv.ParseUint(p, 10, 32)
+				if err == nil && uint32(s) > initialSize {
+					initialSize = uint32(s)
+				}
+			}
+			dest.AutoUserNsOpts.InitialSize = initialSize + 1
+		}
+	}
+}
+
 // Create container root filesystem for use
 func (c *Container) setupStorage(ctx context.Context) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "setupStorage")
@@ -398,13 +421,19 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		options.MountOpts = newOptions
 	}
 
-	if c.config.Rootfs == "" {
-		options.IDMappingOptions = c.config.IDMappings
-	}
+	c.setupStorageMapping(&options.IDMappingOptions, &c.config.IDMappings)
+
 	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
 	if err != nil {
 		return errors.Wrapf(err, "error creating container storage")
 	}
+
+	c.config.IDMappings.UIDMap = containerInfo.UIDMap
+	c.config.IDMappings.GIDMap = containerInfo.GIDMap
+	c.config.ProcessLabel = containerInfo.ProcessLabel
+	c.config.MountLabel = containerInfo.MountLabel
+	c.config.StaticDir = containerInfo.Dir
+	c.state.RunDir = containerInfo.RunDir
 
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
 		if err := os.Chown(containerInfo.RunDir, c.RootUID(), c.RootGID()); err != nil {
@@ -415,11 +444,6 @@ func (c *Container) setupStorage(ctx context.Context) error {
 			return err
 		}
 	}
-
-	c.config.ProcessLabel = containerInfo.ProcessLabel
-	c.config.MountLabel = containerInfo.MountLabel
-	c.config.StaticDir = containerInfo.Dir
-	c.state.RunDir = containerInfo.RunDir
 
 	// Set the default Entrypoint and Command
 	if containerInfo.Config != nil {

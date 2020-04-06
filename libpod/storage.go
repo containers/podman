@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -35,6 +36,8 @@ type ContainerInfo struct {
 	Config       *v1.Image
 	ProcessLabel string
 	MountLabel   string
+	UIDMap       []idtools.IDMap
+	GIDMap       []idtools.IDMap
 }
 
 // RuntimeContainerMetadata is the structure that we encode as JSON and store
@@ -166,6 +169,8 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	logrus.Debugf("container %q has run directory %q", container.ID, containerRunDir)
 
 	return ContainerInfo{
+		UIDMap:       options.UIDMap,
+		GIDMap:       options.GIDMap,
 		Dir:          containerDir,
 		RunDir:       containerRunDir,
 		Config:       imageConfig,
