@@ -92,6 +92,8 @@ github.com/containers/storage v1.16.6/go.mod h1:Fws4I+U+C4DmJxDbBs1z9SKk50DzN4Lt
 github.com/containers/storage v1.18.0/go.mod h1:gbFeFybWhlVCk3buJ0sovNKs8MzWEBTrk8/sbJw8irQ=
 github.com/containers/storage v1.18.1 h1:W134oYa8ALd78yo6DKiDp6n7EWXrc+fCnYmJi6o49vo=
 github.com/containers/storage v1.18.1/go.mod h1:6NtCgnUeYsRlyZyrZ5qKkXYC560GRgvA7YrKRSAYSlo=
+github.com/containers/storage v1.18.2 h1:4cgFbrrgr9nR9xCeOmfpyxk1MtXYZGr7XGPJfAVkGmc=
+github.com/containers/storage v1.18.2/go.mod h1:WTBMf+a9ZZ/LbmEVeLHH2TX4CikWbO1Bt+/m58ZHVPg=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5 h1:DpHb9vJrZQEFMcVLFKAAGMUVX0XoRC0ptCthinRYm38=
