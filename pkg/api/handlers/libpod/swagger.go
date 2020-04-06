@@ -18,7 +18,7 @@ const DefaultPodmanSwaggerSpec = "/usr/share/containers/podman/swagger.yaml"
 // swagger:response ListContainers
 type swagInspectPodResponse struct {
 	// in:body
-	Body []ListContainer
+	Body []entities.ListContainer
 }
 
 // Inspect Manifest

@@ -5,9 +5,10 @@ package abi
 import (
 	"context"
 
+	lpfilters "github.com/containers/libpod/libpod/filters"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/libpod/podfilters"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/specgen"
@@ -281,7 +282,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 	)
 	for k, v := range options.Filters {
 		for _, filter := range v {
-			f, err := podfilters.GeneratePodFilterFunc(k, filter)
+			f, err := lpfilters.GeneratePodFilterFunc(k, filter)
 			if err != nil {
 				return nil, err
 			}

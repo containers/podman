@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi/terminal"
+	"github.com/containers/libpod/pkg/ps"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/specgen/generate"
@@ -616,4 +617,8 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		}
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
+	return ps.GetContainerLists(ic.Libpod, options)
 }

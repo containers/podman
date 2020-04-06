@@ -1,4 +1,4 @@
-package podfilters
+package lpfilters
 
 import (
 	"strconv"

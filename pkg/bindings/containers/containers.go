@@ -10,8 +10,8 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
-	lpapiv2 "github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/domain/entities"
 )
 
 // List obtains a list of containers in local storage.  All parameters to this method are optional.
@@ -19,12 +19,12 @@ import (
 // the most recent number of containers.  The pod and size booleans indicate that pod information and rootfs
 // size information should also be included.  Finally, the sync bool synchronizes the OCI runtime and
 // container state.
-func List(ctx context.Context, filters map[string][]string, all *bool, last *int, pod, size, sync *bool) ([]lpapiv2.ListContainer, error) { // nolint:typecheck
+func List(ctx context.Context, filters map[string][]string, all *bool, last *int, pod, size, sync *bool) ([]entities.ListContainer, error) { // nolint:typecheck
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var containers []lpapiv2.ListContainer
+	var containers []entities.ListContainer
 	params := url.Values{}
 	if all != nil {
 		params.Set("all", strconv.FormatBool(*all))
