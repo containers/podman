@@ -51,6 +51,7 @@ func init() {
 		flags.StringVar(&playKubeCommand.SeccompProfileRoot, "seccomp-profile-root", defaultSeccompRoot, "Directory path for seccomp profiles")
 		markFlagHidden(flags, "signature-policy")
 	}
+	flags.StringVar(&playKubeCommand.Network, "network", "", "Connect pod to CNI network(s)")
 }
 
 func playKubeCmd(c *cliconfig.KubePlayValues) error {

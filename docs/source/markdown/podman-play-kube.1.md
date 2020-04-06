@@ -36,6 +36,10 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+**--network**=*cni networks*
+
+A comma-separated list of the names of CNI networks the pod should join.
+
 **--quiet**, **-q**
 
 Suppress output information when pulling images
@@ -62,8 +66,16 @@ $ podman play kube demo.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
+CNI network(s) can be specified as comma-separated list using ``--network``
+```
+$ podman play kube demo.yml --network cni1,cni2
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+```
+
+Please take into account that CNI networks must be created first using podman-network-create(1).
+
 ## SEE ALSO
-podman(1), podman-container(1), podman-pod(1), podman-generate-kube(1), podman-play(1)
+podman(1), podman-container(1), podman-pod(1), podman-generate-kube(1), podman-play(1), podman-network-create(1)
 
 ## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

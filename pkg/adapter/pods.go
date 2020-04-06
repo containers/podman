@@ -343,7 +343,7 @@ func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateVa
 			logrus.Debugf("Pod will use host networking")
 			options = append(options, libpod.WithPodHostNetwork())
 		case "":
-			return "", errors.Errorf("invalid value passed to --net: must provide a comma-separated list of CNI networks or host")
+			return "", errors.Errorf("invalid value passed to --network: must provide a comma-separated list of CNI networks or host")
 		default:
 			// We'll assume this is a comma-separated list of CNI
 			// networks.
@@ -594,6 +594,22 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 	podOptions = append(podOptions, nsOptions...)
 	podPorts := getPodPorts(podYAML.Spec.Containers)
 	podOptions = append(podOptions, libpod.WithInfraContainerPorts(podPorts))
+
+	if c.Flag("network").Changed {
+		netValue := c.String("network")
+		switch strings.ToLower(netValue) {
+		case "bridge", "host":
+			return nil, errors.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
+		case "":
+			return nil, errors.Errorf("invalid value passed to --network: must provide a comma-separated list of CNI networks")
+		default:
+			// We'll assume this is a comma-separated list of CNI
+			// networks.
+			networks := strings.Split(netValue, ",")
+			logrus.Debugf("Pod joining CNI networks: %v", networks)
+			podOptions = append(podOptions, libpod.WithPodNetworks(networks))
+		}
+	}
 
 	// Create the Pod
 	pod, err = r.NewPod(ctx, podOptions...)

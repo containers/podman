@@ -321,6 +321,7 @@ type KubePlayValues struct {
 	Authfile           string
 	CertDir            string
 	Creds              string
+	Network            string
 	Quiet              bool
 	SignaturePolicy    string
 	TlsVerify          bool
