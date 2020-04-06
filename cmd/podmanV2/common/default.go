@@ -116,6 +116,6 @@ func getDefaultPidsDescription() string {
 	return "Tune container pids limit (set 0 for unlimited)"
 }
 
-func getDefaultDetachKeys() string {
+func GetDefaultDetachKeys() string {
 	return defaultContainerConfig.Engine.DetachKeys
 }

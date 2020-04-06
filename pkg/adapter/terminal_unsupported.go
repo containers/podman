@@ -11,7 +11,7 @@ import (
 )
 
 // ExecAttachCtr execs and attaches to a container
-func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, tty, privileged bool, env map[string]string, cmd []string, user, workDir string, streams *libpod.AttachStreams, preserveFDs uint, detachKeys string) (int, error) {
+func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, tty, privileged bool, env map[string]string, cmd []string, user, workDir string, streams *define.AttachStreams, preserveFDs uint, detachKeys string) (int, error) {
 	return -1, define.ErrNotImplemented
 }
 

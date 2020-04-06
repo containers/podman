@@ -108,7 +108,7 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 	hcw := hcWriteCloser{
 		captureBuffer,
 	}
-	streams := new(AttachStreams)
+	streams := new(define.AttachStreams)
 	streams.OutputStream = hcw
 	streams.ErrorStream = hcw
 

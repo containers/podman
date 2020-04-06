@@ -221,7 +221,7 @@ func (c *Container) ExecStart(sessionID string) error {
 // ExecStartAndAttach starts and attaches to an exec session in a container.
 // TODO: Should we include detach keys in the signature to allow override?
 // TODO: How do we handle AttachStdin/AttachStdout/AttachStderr?
-func (c *Container) ExecStartAndAttach(sessionID string, streams *AttachStreams) error {
+func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -544,7 +544,7 @@ func (c *Container) ExecResize(sessionID string, newSize remotecommand.TerminalS
 // Exec emulates the old Libpod exec API, providing a single call to create,
 // run, and remove an exec session. Returns exit code and error. Exit code is
 // not guaranteed to be set sanely if error is not nil.
-func (c *Container) Exec(config *ExecConfig, streams *AttachStreams, resize <-chan remotecommand.TerminalSize) (int, error) {
+func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan remotecommand.TerminalSize) (int, error) {
 	sessionID, err := c.ExecCreate(config)
 	if err != nil {
 		return -1, err

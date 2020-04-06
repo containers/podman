@@ -2,6 +2,7 @@ package entities
 
 import (
 	"io"
+	"os"
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
@@ -156,4 +157,32 @@ type RestoreReport struct {
 
 type ContainerCreateReport struct {
 	Id string
+}
+
+// AttachOptions describes the cli and other values
+// needed to perform an attach
+type AttachOptions struct {
+	DetachKeys string
+	Latest     bool
+	NoStdin    bool
+	SigProxy   bool
+	Stdin      *os.File
+	Stdout     *os.File
+	Stderr     *os.File
+}
+
+// ExecOptions describes the cli values to exec into
+// a container
+type ExecOptions struct {
+	Cmd         []string
+	DetachKeys  string
+	Envs        map[string]string
+	Interactive bool
+	Latest      bool
+	PreserveFDs uint
+	Privileged  bool
+	Streams     define.AttachStreams
+	Tty         bool
+	User        string
+	WorkDir     string
 }

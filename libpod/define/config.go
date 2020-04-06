@@ -1,5 +1,10 @@
 package define
 
+import (
+	"bufio"
+	"io"
+)
+
 var (
 	// DefaultInfraImage to use for infra container
 	DefaultInfraImage = "k8s.gcr.io/pause:3.2"
@@ -33,3 +38,22 @@ const (
 	V2s2ManifestDir = "docker-dir"
 	V2s2Archive     = "docker-archive"
 )
+
+// AttachStreams contains streams that will be attached to the container
+type AttachStreams struct {
+	// OutputStream will be attached to container's STDOUT
+	OutputStream io.WriteCloser
+	// ErrorStream will be attached to container's STDERR
+	ErrorStream io.WriteCloser
+	// InputStream will be attached to container's STDIN
+	InputStream *bufio.Reader
+	// AttachOutput is whether to attach to STDOUT
+	// If false, stdout will not be attached
+	AttachOutput bool
+	// AttachError is whether to attach to STDERR
+	// If false, stdout will not be attached
+	AttachError bool
+	// AttachInput is whether to attach to STDIN
+	// If false, stdout will not be attached
+	AttachInput bool
+}

@@ -31,7 +31,7 @@ const (
 // Attach to the given container
 // Does not check if state is appropriate
 // started is only required if startContainer is true
-func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool) error {
+func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -94,7 +94,7 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 // 4. attachToExec sends on startFd, signalling it has attached to the socket and child is ready to go
 // 5. child receives on startFd, runs the runtime exec command
 // attachToExec is responsible for closing startFd and attachFd
-func (c *Container) attachToExec(streams *AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File) error {
+func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -189,7 +189,7 @@ func buildSocketPath(socketPath string) string {
 	return socketPath
 }
 
-func setupStdioChannels(streams *AttachStreams, conn *net.UnixConn, detachKeys []byte) (chan error, chan error) {
+func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detachKeys []byte) (chan error, chan error) {
 	receiveStdoutError := make(chan error)
 	go func() {
 		receiveStdoutError <- redirectResponseToOutputStreams(streams.OutputStream, streams.ErrorStream, streams.AttachOutput, streams.AttachError, conn)
@@ -257,7 +257,7 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeO
 	return err
 }
 
-func readStdio(streams *AttachStreams, receiveStdoutError, stdinDone chan error) error {
+func readStdio(streams *define.AttachStreams, receiveStdoutError, stdinDone chan error) error {
 	var err error
 	select {
 	case err = <-receiveStdoutError:

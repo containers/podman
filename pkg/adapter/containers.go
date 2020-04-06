@@ -1004,7 +1004,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	}
 	env = envLib.Join(env, cliEnv)
 
-	streams := new(libpod.AttachStreams)
+	streams := new(define.AttachStreams)
 	streams.OutputStream = os.Stdout
 	streams.ErrorStream = os.Stderr
 	if cli.Interactive {
