@@ -33,6 +33,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -145,6 +146,12 @@ func (l *jsonReferenceLoader) LoadJSON() (interface{}, error) {
 	if reference.HasFileScheme {
 
 		filename := strings.TrimPrefix(refToURL.String(), "file://")
+		filename, err = url.QueryUnescape(filename)
+
+		if err != nil {
+			return nil, err
+		}
+
 		if runtime.GOOS == "windows" {
 			// on Windows, a file URL may have an extra leading slash, use slashes
 			// instead of backslashes, and have spaces escaped

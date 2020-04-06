@@ -196,10 +196,13 @@ func decryptLayerKeyOptsData(dc *config.DecryptConfig, desc ocispec.Descriptor) 
 		if b64Annotation != "" {
 			keywrapper := GetKeyWrapper(scheme)
 
-			if len(keywrapper.GetPrivateKeys(dc.Parameters)) == 0 {
+			if keywrapper.NoPossibleKeys(dc.Parameters) {
 				continue
 			}
-			privKeyGiven = true
+
+			if len(keywrapper.GetPrivateKeys(dc.Parameters)) > 0 {
+				privKeyGiven = true
+			}
 
 			optsData, err := preUnwrapKey(keywrapper, dc, b64Annotation)
 			if err != nil {

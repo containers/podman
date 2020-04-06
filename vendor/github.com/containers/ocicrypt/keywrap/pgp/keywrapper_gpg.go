@@ -191,6 +191,10 @@ func (kw *gpgKeyWrapper) GetRecipients(b64pgpPackets string) ([]string, error) {
 	return array, nil
 }
 
+func (kw *gpgKeyWrapper) NoPossibleKeys(dcparameters map[string][][]byte) bool {
+	return len(kw.GetPrivateKeys(dcparameters)) == 0
+}
+
 func (kw *gpgKeyWrapper) GetPrivateKeys(dcparameters map[string][][]byte) [][]byte {
 	return dcparameters["gpg-privatekeys"]
 }

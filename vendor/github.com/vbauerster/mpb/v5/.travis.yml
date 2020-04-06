@@ -1,0 +1,8 @@
+language: go
+
+go:
+  - 1.14.x
+
+script:
+  - go test -race ./...
+  - for i in _examples/*/; do go build $i/*.go || exit 1; done

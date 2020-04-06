@@ -91,6 +91,10 @@ func (kw *jweKeyWrapper) UnwrapKey(dc *config.DecryptConfig, jweString []byte) (
 	return nil, errors.New("JWE: No suitable private key found for decryption")
 }
 
+func (kw *jweKeyWrapper) NoPossibleKeys(dcparameters map[string][][]byte) bool {
+	return len(kw.GetPrivateKeys(dcparameters)) == 0
+}
+
 func (kw *jweKeyWrapper) GetPrivateKeys(dcparameters map[string][][]byte) [][]byte {
 	return dcparameters["privkeys"]
 }

@@ -70,6 +70,10 @@ func collectX509s(x509s [][]byte) ([]*x509.Certificate, error) {
 	return x509Certs, nil
 }
 
+func (kw *pkcs7KeyWrapper) NoPossibleKeys(dcparameters map[string][][]byte) bool {
+	return len(kw.GetPrivateKeys(dcparameters)) == 0
+}
+
 func (kw *pkcs7KeyWrapper) GetPrivateKeys(dcparameters map[string][][]byte) [][]byte {
 	return dcparameters["privkeys"]
 }
