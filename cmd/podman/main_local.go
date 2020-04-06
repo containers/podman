@@ -11,7 +11,6 @@ import (
 	"os"
 	"runtime/pprof"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/containers/common/pkg/config"
@@ -192,7 +191,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if os.Geteuid() == 0 || cmd == _searchCommand || cmd == _versionCommand || cmd == _mountCommand || cmd == _migrateCommand || strings.HasPrefix(cmd.Use, "help") {
+	if !executeCommandInUserNS(cmd) {
 		return nil
 	}
 
@@ -241,6 +240,25 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		os.Exit(ret)
 	}
 	return nil
+}
+
+// Most podman commands when run in rootless mode, need to be executed in the
+// users usernamespace.  This function is updated with a  list of commands that
+// should NOT be run within the user namespace.
+func executeCommandInUserNS(cmd *cobra.Command) bool {
+	if os.Geteuid() == 0 {
+		return false
+	}
+	switch cmd {
+	case _migrateCommand,
+		_mountCommand,
+		_renumberCommand,
+		_infoCommand,
+		_searchCommand,
+		_versionCommand:
+		return false
+	}
+	return true
 }
 
 func setRLimits() error {
