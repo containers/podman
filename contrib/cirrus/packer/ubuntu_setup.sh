@@ -52,6 +52,7 @@ INSTALL_PACKAGES=(\
     bash-completion
     bison
     build-essential
+    buildah
     bzip2
     conmon
     containernetworking-plugins
@@ -151,8 +152,6 @@ echo "Installing general testing and system dependencies"
 # Necessary to update cache of newly added repos
 $LILTO $SUDOAPTGET update
 $BIGTO $SUDOAPTGET install ${INSTALL_PACKAGES[@]}
-
-install_buildah_packages
 
 echo "Installing cataonit and libseccomp.sudo"
 ooe.sh sudo /tmp/libpod/hack/install_catatonit.sh

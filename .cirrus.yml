@@ -34,12 +34,12 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-31"
-    PRIOR_FEDORA_NAME: "fedora-30"
+    FEDORA_NAME: "fedora-32"
+    PRIOR_FEDORA_NAME: "fedora-31"
     UBUNTU_NAME: "ubuntu-19"
     PRIOR_UBUNTU_NAME: "ubuntu-18"
 
-    _BUILT_IMAGE_SUFFIX: "libpod-6465271544152064"
+    _BUILT_IMAGE_SUFFIX: "libpod-6301182083727360"
     FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
@@ -405,7 +405,7 @@ testing_task:
         # - name: "test ${PRIOR_FEDORA_NAME}"
         #   gce_instance:
         #       image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-        # - name: "test ${UBUNTU_CACHE_IMAGE_NAME}"
+        # - name: "test ${UBUNTU_NAME}"
         #   gce_instance:
         #       image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
         # - name: "test ${PRIOR_UBUNTU_NAME}"
@@ -557,7 +557,7 @@ special_testing_in_podman_task:
         - name: "in-podman ${PRIOR_FEDORA_NAME}"
           gce_instance:
               image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-        - name: "in-podman ${FEDORA_CACHE_IMAGE_NAME}"
+        - name: "in-podman ${FEDORA_NAME}"
           gce_instance:
               image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
