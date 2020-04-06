@@ -12,6 +12,7 @@ import (
 	_ "github.com/containers/libpod/cmd/podmanV2/networks"
 	_ "github.com/containers/libpod/cmd/podmanV2/pods"
 	"github.com/containers/libpod/cmd/podmanV2/registry"
+	_ "github.com/containers/libpod/cmd/podmanV2/system"
 	_ "github.com/containers/libpod/cmd/podmanV2/volumes"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/domain/entities"
