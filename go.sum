@@ -71,6 +71,8 @@ github.com/containers/common v0.6.1/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaT
 github.com/containers/common v0.7.0/go.mod h1:UmhIdvSkhTR0hWR01AnuZGNufm80+A0s8isb05eTmz0=
 github.com/containers/common v0.8.0 h1:C+wjkcmR4gooeKCXZpyjsHSFARm5AZRegflGz0x0MMw=
 github.com/containers/common v0.8.0/go.mod h1:QJTx9+SvhHKP6e+p7Nxqc8oNnS5rSf0KVhxudIbDslU=
+github.com/containers/common v0.8.1 h1:1IUwAtZ4mC7GYRr4AC23cHf2oXCuoLzTUoSzIkSgnYw=
+github.com/containers/common v0.8.1/go.mod h1:VxDJbaA1k6N1TNv9Rt6bQEF4hyKVHNfOfGA5L91ADEs=
 github.com/containers/common v1.0.0 h1:sZB48LzGP4bP1CmrkQIFUzdUVBysqRv3kWVk4+qbaVA=
 github.com/containers/common v1.0.0/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/conmon v2.0.14+incompatible h1:knU1O1QxXy5YxtjMQVKEyCajROaehizK9FHaICl+P5Y=
@@ -92,6 +94,8 @@ github.com/containers/storage v1.16.6/go.mod h1:Fws4I+U+C4DmJxDbBs1z9SKk50DzN4Lt
 github.com/containers/storage v1.18.0/go.mod h1:gbFeFybWhlVCk3buJ0sovNKs8MzWEBTrk8/sbJw8irQ=
 github.com/containers/storage v1.18.1 h1:W134oYa8ALd78yo6DKiDp6n7EWXrc+fCnYmJi6o49vo=
 github.com/containers/storage v1.18.1/go.mod h1:6NtCgnUeYsRlyZyrZ5qKkXYC560GRgvA7YrKRSAYSlo=
+github.com/containers/storage v1.18.2 h1:4cgFbrrgr9nR9xCeOmfpyxk1MtXYZGr7XGPJfAVkGmc=
+github.com/containers/storage v1.18.2/go.mod h1:WTBMf+a9ZZ/LbmEVeLHH2TX4CikWbO1Bt+/m58ZHVPg=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5 h1:DpHb9vJrZQEFMcVLFKAAGMUVX0XoRC0ptCthinRYm38=
