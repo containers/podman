@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -74,6 +75,13 @@ type swagStartPodResponse struct {
 type swagRmPodResponse struct {
 	// in:body
 	Body entities.PodRmReport
+}
+
+// Info
+// swagger:response InfoResponse
+type swagInfoResponse struct {
+	// in:body
+	Body define.Info
 }
 
 func ServeSwagger(w http.ResponseWriter, r *http.Request) {

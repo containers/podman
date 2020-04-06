@@ -13,7 +13,9 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
+	registries2 "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
@@ -21,14 +23,80 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Info returns the store and host information
+func (r *Runtime) info() (*define.Info, error) {
+	info := define.Info{}
+	// get host information
+	hostInfo, err := r.hostInfo()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting host info")
+	}
+	info.Host = hostInfo
+
+	// get store information
+	storeInfo, err := r.storeInfo()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting store info")
+	}
+	info.Store = storeInfo
+	registries := make(map[string]interface{})
+	data, err := registries2.GetRegistriesData()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting registries")
+	}
+	for _, reg := range data {
+		registries[reg.Prefix] = reg
+	}
+	regs, err := registries2.GetRegistries()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting registries")
+	}
+	if len(regs) > 0 {
+		registries["search"] = regs
+	}
+
+	info.Registries = registries
+	return &info, nil
+}
+
 // top-level "host" info
-func (r *Runtime) hostInfo() (map[string]interface{}, error) {
+func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	// lets say OS, arch, number of cpus, amount of memory, maybe os distribution/version, hostname, kernel version, uptime
-	info := map[string]interface{}{}
-	info["os"] = runtime.GOOS
-	info["arch"] = runtime.GOARCH
-	info["cpus"] = runtime.NumCPU()
-	info["rootless"] = rootless.IsRootless()
+	mi, err := system.ReadMemInfo()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading memory info")
+	}
+
+	hostDistributionInfo := r.GetHostDistributionInfo()
+
+	kv, err := readKernelVersion()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading kernel version")
+	}
+
+	host, err := os.Hostname()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting hostname")
+	}
+	info := define.HostInfo{
+		Arch:           runtime.GOARCH,
+		BuildahVersion: buildah.Version,
+		CPUs:           runtime.NumCPU(),
+		Distribution:   hostDistributionInfo,
+		EventLogger:    r.eventer.String(),
+		Hostname:       host,
+		IDMappings:     define.IDMappings{},
+		Kernel:         kv,
+		MemFree:        mi.MemFree,
+		MemTotal:       mi.MemTotal,
+		OS:             runtime.GOOS,
+		Rootless:       rootless.IsRootless(),
+		Slirp4NetNS:    define.SlirpInfo{},
+		SwapFree:       mi.SwapFree,
+		SwapTotal:      mi.SwapTotal,
+	}
+
+	// CGroups version
 	unified, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading cgroups mode")
@@ -37,17 +105,8 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	if unified {
 		cgroupVersion = "v2"
 	}
-	info["CgroupVersion"] = cgroupVersion
-	mi, err := system.ReadMemInfo()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading memory info")
-	}
-	// TODO this might be a place for github.com/dustin/go-humanize
-	info["MemTotal"] = mi.MemTotal
-	info["MemFree"] = mi.MemFree
-	info["SwapTotal"] = mi.SwapTotal
-	info["SwapFree"] = mi.SwapFree
-	hostDistributionInfo := r.GetHostDistributionInfo()
+	info.CGroupsVersion = cgroupVersion
+
 	if rootless.IsRootless() {
 		if path, err := exec.LookPath("slirp4netns"); err == nil {
 			logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
@@ -55,11 +114,12 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 			if err != nil {
 				logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
 			}
-			program := map[string]interface{}{}
-			program["Executable"] = path
-			program["Version"] = version
-			program["Package"] = packageVersion(path)
-			info["slirp4netns"] = program
+			program := define.SlirpInfo{
+				Executable: path,
+				Package:    packageVersion(path),
+				Version:    version,
+			}
+			info.Slirp4NetNS = program
 		}
 		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
 		if err != nil {
@@ -69,29 +129,19 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading gid mappings")
 		}
-		idmappings := make(map[string]interface{})
-		idmappings["uidmap"] = uidmappings
-		idmappings["gidmap"] = gidmappings
-		info["IDMappings"] = idmappings
+		idmappings := define.IDMappings{
+			GIDMap: gidmappings,
+			UIDMap: uidmappings,
+		}
+		info.IDMappings = idmappings
 	}
-	info["Distribution"] = map[string]interface{}{
-		"distribution": hostDistributionInfo["Distribution"],
-		"version":      hostDistributionInfo["Version"],
-	}
-	info["BuildahVersion"] = buildah.Version
-	kv, err := readKernelVersion()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading kernel version")
-	}
-	info["kernel"] = kv
 
-	runtimeInfo, err := r.defaultOCIRuntime.RuntimeInfo()
+	conmonInfo, ociruntimeInfo, err := r.defaultOCIRuntime.RuntimeInfo()
 	if err != nil {
 		logrus.Errorf("Error getting info on OCI runtime %s: %v", r.defaultOCIRuntime.Name(), err)
 	} else {
-		for k, v := range runtimeInfo {
-			info[k] = v
-		}
+		info.Conmon = conmonInfo
+		info.OCIRuntime = ociruntimeInfo
 	}
 
 	up, err := readUptime()
@@ -105,6 +155,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		return nil, errors.Wrapf(err, "error parsing system uptime")
 	}
 
+	// TODO Isnt there a simple lib for this, something like humantime?
 	hoursFound := false
 	var timeBuffer bytes.Buffer
 	var hoursBuffer bytes.Buffer
@@ -121,32 +172,75 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		}
 	}
 
-	info["uptime"] = timeBuffer.String()
+	info.Uptime = timeBuffer.String()
 	if hoursFound {
 		hours, err := strconv.ParseFloat(hoursBuffer.String(), 64)
 		if err == nil {
 			days := hours / 24
-			info["uptime"] = fmt.Sprintf("%s (Approximately %.2f days)", info["uptime"], days)
+			info.Uptime = fmt.Sprintf("%s (Approximately %.2f days)", info.Uptime, days)
 		}
 	}
 
-	host, err := os.Hostname()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting hostname")
-	}
-	info["hostname"] = host
-	info["eventlogger"] = r.eventer.String()
+	return &info, nil
+}
 
-	return info, nil
+func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
+	var (
+		paused, running, stopped int
+	)
+	cs := define.ContainerStore{}
+	cons, err := r.GetAllContainers()
+	if err != nil {
+		return cs, err
+	}
+	for _, con := range cons {
+		state, err := con.State()
+		if err != nil {
+			return cs, err
+		}
+		switch state {
+		case define.ContainerStateRunning:
+			running += 1
+		case define.ContainerStatePaused:
+			paused += 1
+		default:
+			stopped += 1
+		}
+	}
+	cs.Number = len(cons)
+	cs.Paused = paused
+	cs.Stopped = stopped
+	cs.Running = running
+	return cs, nil
 }
 
 // top-level "store" info
-func (r *Runtime) storeInfo() (map[string]interface{}, error) {
+func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	// lets say storage driver in use, number of images, number of containers
-	info := map[string]interface{}{}
-	info["GraphRoot"] = r.store.GraphRoot()
-	info["RunRoot"] = r.store.RunRoot()
-	info["GraphDriverName"] = r.store.GraphDriverName()
+	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
+	if err != nil {
+		return nil, err
+	}
+	images, err := r.store.Images()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting number of images")
+	}
+	conInfo, err := r.getContainerStoreInfo()
+	if err != nil {
+		return nil, err
+	}
+	imageInfo := define.ImageStore{Number: len(images)}
+
+	info := define.StoreInfo{
+		ImageStore:      imageInfo,
+		ContainerStore:  conInfo,
+		GraphRoot:       r.store.GraphRoot(),
+		RunRoot:         r.store.RunRoot(),
+		GraphDriverName: r.store.GraphDriverName(),
+		GraphOptions:    nil,
+		VolumePath:      r.config.Engine.VolumePath,
+		ConfigFile:      configFile,
+	}
 	graphOptions := map[string]interface{}{}
 	for _, o := range r.store.GraphOptions() {
 		split := strings.SplitN(o, "=", 2)
@@ -164,14 +258,8 @@ func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 			graphOptions[split[0]] = split[1]
 		}
 	}
-	info["GraphOptions"] = graphOptions
-	info["VolumePath"] = r.config.Engine.VolumePath
+	info.GraphOptions = graphOptions
 
-	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
-	if err != nil {
-		return nil, err
-	}
-	info["ConfigFile"] = configFile
 	statusPairs, err := r.store.Status()
 	if err != nil {
 		return nil, err
@@ -180,24 +268,8 @@ func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 	for _, pair := range statusPairs {
 		status[pair[0]] = pair[1]
 	}
-	info["GraphStatus"] = status
-	images, err := r.store.Images()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting number of images")
-	}
-	info["ImageStore"] = map[string]interface{}{
-		"number": len(images),
-	}
-
-	containers, err := r.store.Containers()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting number of containers")
-	}
-	info["ContainerStore"] = map[string]interface{}{
-		"number": len(containers),
-	}
-
-	return info, nil
+	info.GraphStatus = status
+	return &info, nil
 }
 
 func readKernelVersion() (string, error) {
@@ -225,14 +297,13 @@ func readUptime() (string, error) {
 }
 
 // GetHostDistributionInfo returns a map containing the host's distribution and version
-func (r *Runtime) GetHostDistributionInfo() map[string]string {
-	dist := make(map[string]string)
-
+func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 	// Populate values in case we cannot find the values
 	// or the file
-	dist["Distribution"] = "unknown"
-	dist["Version"] = "unknown"
-
+	dist := define.DistributionInfo{
+		Distribution: "unknown",
+		Version:      "unknown",
+	}
 	f, err := os.Open("/etc/os-release")
 	if err != nil {
 		return dist
@@ -242,10 +313,10 @@ func (r *Runtime) GetHostDistributionInfo() map[string]string {
 	l := bufio.NewScanner(f)
 	for l.Scan() {
 		if strings.HasPrefix(l.Text(), "ID=") {
-			dist["Distribution"] = strings.TrimPrefix(l.Text(), "ID=")
+			dist.Distribution = strings.TrimPrefix(l.Text(), "ID=")
 		}
 		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
-			dist["Version"] = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_ID="), "\"")
+			dist.Version = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_ID="), "\"")
 		}
 	}
 	return dist

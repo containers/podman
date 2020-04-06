@@ -5,7 +5,6 @@ import (
 	"net"
 
 	"github.com/containers/libpod/libpod/define"
-
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -122,7 +121,7 @@ type OCIRuntime interface {
 	ExitFilePath(ctr *Container) (string, error)
 
 	// RuntimeInfo returns verbose information about the runtime.
-	RuntimeInfo() (map[string]interface{}, error)
+	RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error)
 }
 
 // ExecOptions are options passed into ExecContainer. They control the command

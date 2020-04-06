@@ -3,51 +3,62 @@
 package adapter
 
 import (
-	"encoding/json"
-
 	"github.com/containers/libpod/libpod/define"
 	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // Info returns information for the host system and its components
-func (r RemoteRuntime) Info() ([]define.InfoData, error) {
+func (r RemoteRuntime) Info() (*define.Info, error) {
 	// TODO the varlink implementation for info should be updated to match the output for regular info
 	var (
-		reply    []define.InfoData
-		regInfo  map[string]interface{}
-		hostInfo map[string]interface{}
-		store    map[string]interface{}
+		reply define.Info
 	)
 
 	info, err := iopodman.GetInfo().Call(r.Conn)
 	if err != nil {
 		return nil, err
 	}
-
-	// info.host -> map[string]interface{}
-	h, err := json.Marshal(info.Host)
-	if err != nil {
-		return nil, err
+	hostInfo := define.HostInfo{
+		Arch:           info.Host.Arch,
+		BuildahVersion: info.Host.Buildah_version,
+		CPUs:           int(info.Host.Cpus),
+		Distribution: define.DistributionInfo{
+			Distribution: info.Host.Distribution.Distribution,
+			Version:      info.Host.Distribution.Version,
+		},
+		EventLogger: info.Host.Eventlogger,
+		Hostname:    info.Host.Hostname,
+		Kernel:      info.Host.Kernel,
+		MemFree:     info.Host.Mem_free,
+		MemTotal:    info.Host.Mem_total,
+		OS:          info.Host.Os,
+		SwapFree:    info.Host.Swap_free,
+		SwapTotal:   info.Host.Swap_total,
+		Uptime:      info.Host.Uptime,
 	}
-	json.Unmarshal(h, &hostInfo)
-
-	// info.store -> map[string]interface{}
-	s, err := json.Marshal(info.Store)
-	if err != nil {
-		return nil, err
+	storeInfo := define.StoreInfo{
+		ContainerStore: define.ContainerStore{
+			Number: int(info.Store.Containers),
+		},
+		GraphDriverName: info.Store.Graph_driver_name,
+		GraphRoot:       info.Store.Graph_root,
+		ImageStore: define.ImageStore{
+			Number: int(info.Store.Images),
+		},
+		RunRoot: info.Store.Run_root,
 	}
-	json.Unmarshal(s, &store)
-
-	// info.Registries -> map[string]interface{}
-	reg, err := json.Marshal(info.Registries)
-	if err != nil {
-		return nil, err
+	reply.Host = &hostInfo
+	reply.Store = &storeInfo
+	regs := make(map[string]interface{})
+	if len(info.Registries.Search) > 0 {
+		regs["search"] = info.Registries.Search
 	}
-	json.Unmarshal(reg, &regInfo)
-
-	// Add everything to the reply
-	reply = append(reply, define.InfoData{Type: "host", Data: hostInfo})
-	reply = append(reply, define.InfoData{Type: "registries", Data: regInfo})
-	reply = append(reply, define.InfoData{Type: "store", Data: store})
-	return reply, nil
+	if len(info.Registries.Blocked) > 0 {
+		regs["blocked"] = info.Registries.Blocked
+	}
+	if len(info.Registries.Insecure) > 0 {
+		regs["insecure"] = info.Registries.Insecure
+	}
+	reply.Registries = regs
+	return &reply, nil
 }

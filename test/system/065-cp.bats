@@ -187,7 +187,7 @@ load helpers
     chmod 644 $srcdir/$rand_filename
 
     # Determine path to podman storage (eg /var/lib/c/s, or $HOME/.local/...)
-    run_podman info --format '{{.store.GraphRoot}}'
+    run_podman info --format '{{.Store.GraphRoot}}'
     graphroot=$output
 
     # Create that directory in the container, and sleep (to keep container

@@ -94,15 +94,9 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// TODO filters still need to be applied
-	infoData, err := runtime.Info()
-	if err != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain system info"))
-		return
-	}
-
 	var list = make([]*handlers.Container, len(containers))
 	for i, ctnr := range containers {
-		api, err := handlers.LibpodToContainer(ctnr, infoData, query.Size)
+		api, err := handlers.LibpodToContainer(ctnr, query.Size)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return

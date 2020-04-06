@@ -33,8 +33,6 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
 	}
-	hostInfo := infoData[0].Data
-	storeInfo := infoData[1].Data
 
 	configInfo, err := runtime.GetConfig()
 	if err != nil {
@@ -64,44 +62,44 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		ClusterAdvertise:   "",
 		ClusterStore:       "",
 		ContainerdCommit:   docker.Commit{},
-		Containers:         storeInfo["ContainerStore"].(map[string]interface{})["number"].(int),
+		Containers:         infoData.Store.ContainerStore.Number,
 		ContainersPaused:   stateInfo[define.ContainerStatePaused],
 		ContainersRunning:  stateInfo[define.ContainerStateRunning],
 		ContainersStopped:  stateInfo[define.ContainerStateStopped] + stateInfo[define.ContainerStateExited],
 		Debug:              log.IsLevelEnabled(log.DebugLevel),
 		DefaultRuntime:     configInfo.Engine.OCIRuntime,
-		DockerRootDir:      storeInfo["GraphRoot"].(string),
-		Driver:             storeInfo["GraphDriverName"].(string),
-		DriverStatus:       getGraphStatus(storeInfo),
+		DockerRootDir:      infoData.Store.GraphRoot,
+		Driver:             infoData.Store.GraphDriverName,
+		DriverStatus:       getGraphStatus(infoData.Store.GraphStatus),
 		ExperimentalBuild:  true,
 		GenericResources:   nil,
 		HTTPProxy:          getEnv("http_proxy"),
 		HTTPSProxy:         getEnv("https_proxy"),
 		ID:                 uuid.New().String(),
 		IPv4Forwarding:     !sysInfo.IPv4ForwardingDisabled,
-		Images:             storeInfo["ImageStore"].(map[string]interface{})["number"].(int),
+		Images:             infoData.Store.ImageStore.Number,
 		IndexServerAddress: "",
 		InitBinary:         "",
 		InitCommit:         docker.Commit{},
 		Isolation:          "",
 		KernelMemory:       sysInfo.KernelMemory,
 		KernelMemoryTCP:    false,
-		KernelVersion:      hostInfo["kernel"].(string),
+		KernelVersion:      infoData.Host.Kernel,
 		Labels:             nil,
 		LiveRestoreEnabled: false,
 		LoggingDriver:      "",
-		MemTotal:           hostInfo["MemTotal"].(int64),
+		MemTotal:           infoData.Host.MemTotal,
 		MemoryLimit:        sysInfo.MemoryLimit,
 		NCPU:               goRuntime.NumCPU(),
 		NEventsListener:    0,
 		NFd:                getFdCount(),
 		NGoroutines:        goRuntime.NumGoroutine(),
-		Name:               hostInfo["hostname"].(string),
+		Name:               infoData.Host.Hostname,
 		NoProxy:            getEnv("no_proxy"),
 		OSType:             goRuntime.GOOS,
-		OSVersion:          hostInfo["Distribution"].(map[string]interface{})["version"].(string),
+		OSVersion:          infoData.Host.Distribution.Version,
 		OomKillDisable:     sysInfo.OomKillDisable,
-		OperatingSystem:    hostInfo["Distribution"].(map[string]interface{})["distribution"].(string),
+		OperatingSystem:    infoData.Host.Distribution.Distribution,
 		PidsLimit:          sysInfo.PidsLimit,
 		Plugins:            docker.PluginsInfo{},
 		ProductLicense:     "Apache-2.0",
@@ -118,21 +116,21 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		SystemTime:   time.Now().Format(time.RFC3339Nano),
 		Warnings:     []string{},
 	},
-		BuildahVersion:     hostInfo["BuildahVersion"].(string),
+		BuildahVersion:     infoData.Host.BuildahVersion,
 		CPURealtimePeriod:  sysInfo.CPURealtimePeriod,
 		CPURealtimeRuntime: sysInfo.CPURealtimeRuntime,
-		CgroupVersion:      hostInfo["CgroupVersion"].(string),
+		CgroupVersion:      infoData.Host.CGroupsVersion,
 		Rootless:           rootless.IsRootless(),
-		SwapFree:           hostInfo["SwapFree"].(int64),
-		SwapTotal:          hostInfo["SwapTotal"].(int64),
-		Uptime:             hostInfo["uptime"].(string),
+		SwapFree:           infoData.Host.SwapFree,
+		SwapTotal:          infoData.Host.SwapTotal,
+		Uptime:             infoData.Host.Uptime,
 	}
 	utils.WriteResponse(w, http.StatusOK, info)
 }
 
-func getGraphStatus(storeInfo map[string]interface{}) [][2]string {
+func getGraphStatus(storeInfo map[string]string) [][2]string {
 	var graphStatus [][2]string
-	for k, v := range storeInfo["GraphStatus"].(map[string]string) {
+	for k, v := range storeInfo {
 		graphStatus = append(graphStatus, [2]string{k, v})
 	}
 	return graphStatus

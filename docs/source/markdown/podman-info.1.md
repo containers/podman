@@ -156,7 +156,7 @@ Run podman info with JSON formatted response:
 ```
 Run podman info and only get the registries information.
 ```
-$ podman info --format={{".registries"}}
+$ podman info --format={{".Registries"}}
 map[registries:[docker.io quay.io registry.fedoraproject.org registry.access.redhat.com]]
 ```
 

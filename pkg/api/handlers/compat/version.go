@@ -30,8 +30,6 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
 	}
-	hostInfo := infoData[0].Data
-
 	components := []docker.ComponentVersion{{
 		Name:    "Podman Engine",
 		Version: versionInfo.Version,
@@ -42,7 +40,7 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 			"Experimental":  "true",
 			"GitCommit":     versionInfo.GitCommit,
 			"GoVersion":     versionInfo.GoVersion,
-			"KernelVersion": hostInfo["kernel"].(string),
+			"KernelVersion": infoData.Host.Kernel,
 			"MinAPIVersion": handlers.MinimalApiVersion,
 			"Os":            goRuntime.GOOS,
 		},
@@ -52,7 +50,7 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 		Platform: struct {
 			Name string
 		}{
-			Name: fmt.Sprintf("%s/%s/%s", goRuntime.GOOS, goRuntime.GOARCH, hostInfo["Distribution"].(map[string]interface{})["distribution"].(string)),
+			Name: fmt.Sprintf("%s/%s/%s-%s", goRuntime.GOOS, goRuntime.GOARCH, infoData.Host.Distribution.Distribution, infoData.Host.Distribution.Version),
 		},
 		APIVersion:    components[0].Details["APIVersion"],
 		Arch:          components[0].Details["Arch"],

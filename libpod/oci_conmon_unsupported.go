@@ -117,8 +117,8 @@ func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
 }
 
 // RuntimeInfo is not supported on this OS.
-func (r *ConmonOCIRuntime) RuntimeInfo() (map[string]interface{}, error) {
-	return nil, define.ErrNotImplemented
+func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
+	return nil, nil, define.ErrNotImplemented
 }
 
 // Package is not supported on this OS.

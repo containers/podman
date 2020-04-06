@@ -12,7 +12,7 @@ load helpers
     err_no_exec_dir="Error: .*: starting container process caused .*exec:.* permission denied"
 
     # ...but check the configured runtime engine, and switch to crun as needed
-    run_podman info --format '{{ .host.OCIRuntime.path }}'
+    run_podman info --format '{{ .Host.OCIRuntime.Path }}'
     if expr "$output" : ".*/crun"; then
         err_no_such_cmd="Error: executable file not found in \$PATH: No such file or directory: OCI runtime command not found error"
         err_no_exec_dir="Error: open executable: Operation not permitted: OCI runtime permission denied error"
