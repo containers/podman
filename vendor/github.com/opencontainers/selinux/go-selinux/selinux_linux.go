@@ -31,6 +31,7 @@ const (
 	// Disabled constant to indicate SELinux is disabled
 	Disabled = -1
 
+	contextFile      = "/usr/share/containers/selinux/contexts"
 	selinuxDir       = "/etc/selinux/"
 	selinuxConfig    = selinuxDir + "config"
 	selinuxfsMount   = "/sys/fs/selinux"
@@ -684,23 +685,26 @@ func ROFileLabel() string {
 	return roFileLabel
 }
 
-/*
-ContainerLabels returns an allocated processLabel and fileLabel to be used for
-container labeling by the calling process.
-*/
-func ContainerLabels() (processLabel string, fileLabel string) {
+func openContextFile() (*os.File, error) {
+	if f, err := os.Open(contextFile); err == nil {
+		return f, nil
+	}
+	lxcPath := filepath.Join(getSELinuxPolicyRoot(), "/contexts/lxc_contexts")
+	return os.Open(lxcPath)
+}
+
+var labels = loadLabels()
+
+func loadLabels() map[string]string {
 	var (
 		val, key string
 		bufin    *bufio.Reader
 	)
 
-	if !GetEnabled() {
-		return "", ""
-	}
-	lxcPath := fmt.Sprintf("%s/contexts/lxc_contexts", getSELinuxPolicyRoot())
-	in, err := os.Open(lxcPath)
+	labels := make(map[string]string)
+	in, err := openContextFile()
 	if err != nil {
-		return "", ""
+		return labels
 	}
 	defer in.Close()
 
@@ -712,7 +716,7 @@ func ContainerLabels() (processLabel string, fileLabel string) {
 			if err == io.EOF {
 				done = true
 			} else {
-				goto exit
+				break
 			}
 		}
 		line = strings.TrimSpace(line)
@@ -726,26 +730,64 @@ func ContainerLabels() (processLabel string, fileLabel string) {
 		}
 		if groups := assignRegex.FindStringSubmatch(line); groups != nil {
 			key, val = strings.TrimSpace(groups[1]), strings.TrimSpace(groups[2])
-			if key == "process" {
-				processLabel = strings.Trim(val, "\"")
-			}
-			if key == "file" {
-				fileLabel = strings.Trim(val, "\"")
-			}
-			if key == "ro_file" {
-				roFileLabel = strings.Trim(val, "\"")
-			}
+			labels[key] = strings.Trim(val, "\"")
 		}
 	}
 
-	if processLabel == "" || fileLabel == "" {
+	return labels
+}
+
+/*
+KVMContainerLabels returns the default processLabel and mountLabel to be used
+for kvm containers by the calling process.
+*/
+func KVMContainerLabels() (string, string) {
+	processLabel := labels["kvm_process"]
+	if processLabel == "" {
+		processLabel = labels["process"]
+	}
+
+	return addMcs(processLabel, labels["file"])
+}
+
+/*
+InitContainerLabels returns the default processLabel and file labels to be
+used for containers running an init system like systemd by the calling process.
+*/
+func InitContainerLabels() (string, string) {
+	processLabel := labels["init_process"]
+	if processLabel == "" {
+		processLabel = labels["process"]
+	}
+
+	return addMcs(processLabel, labels["file"])
+}
+
+/*
+ContainerLabels returns an allocated processLabel and fileLabel to be used for
+container labeling by the calling process.
+*/
+func ContainerLabels() (processLabel string, fileLabel string) {
+	if !GetEnabled() {
 		return "", ""
+	}
+
+	processLabel = labels["process"]
+	fileLabel = labels["file"]
+	roFileLabel = labels["ro_file"]
+
+	if processLabel == "" || fileLabel == "" {
+		return "", fileLabel
 	}
 
 	if roFileLabel == "" {
 		roFileLabel = fileLabel
 	}
-exit:
+
+	return addMcs(processLabel, fileLabel)
+}
+
+func addMcs(processLabel, fileLabel string) (string, string) {
 	scon, _ := NewContext(processLabel)
 	if scon["level"] != "" {
 		mcs := uniqMcs(1024)
