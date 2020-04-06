@@ -10,11 +10,11 @@ require (
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.14.6-0.20200402210551-e9a6703edee2
-	github.com/containers/common v0.8.0
+	github.com/containers/common v0.8.1
 	github.com/containers/conmon v2.0.14+incompatible
 	github.com/containers/image/v5 v5.3.1
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.18.1
+	github.com/containers/storage v1.18.2
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 	github.com/cyphar/filepath-securejoin v0.2.2

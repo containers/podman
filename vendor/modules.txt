@@ -82,7 +82,7 @@ github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.8.0
+# github.com/containers/common v0.8.1
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/cgroupv2
@@ -150,7 +150,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.18.1
+# github.com/containers/storage v1.18.2
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
