@@ -610,6 +610,7 @@ func (c *dockerClient) getBearerTokenOAuth2(ctx context.Context, challenge chall
 	}
 	params.Add("grant_type", "refresh_token")
 	params.Add("refresh_token", c.auth.IdentityToken)
+	params.Add("client_id", "containers/image")
 
 	authReq.Body = ioutil.NopCloser(bytes.NewBufferString(params.Encode()))
 	authReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")

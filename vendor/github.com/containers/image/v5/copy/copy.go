@@ -484,6 +484,9 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 				return nil, "", errors.Errorf("Error: manifest list must be converted to type %q to be written to destination, but that would invalidate signatures", thisListType)
 			}
 			logrus.Debugf("Manifest list has been updated")
+		} else {
+			// We can just use the original value, so use it instead of the one we just rebuilt, so that we don't change the digest.
+			attemptedManifestList = manifestList
 		}
 
 		// Save the manifest list.
