@@ -24,6 +24,7 @@ var _ = Describe("Podman login and logout", func() {
 		podmanTest               *PodmanTestIntegration
 		authPath                 string
 		certPath                 string
+		certDirPath              string
 		port                     int
 		server                   string
 		testImg                  string
@@ -70,12 +71,12 @@ var _ = Describe("Podman login and logout", func() {
 
 		testImg = strings.Join([]string{server, "test-apline"}, "/")
 
-		os.MkdirAll(filepath.Join("/etc/containers/certs.d", server), os.ModePerm)
-
+		certDirPath = filepath.Join(os.Getenv("HOME"), ".config/containers/certs.d", server)
+		os.MkdirAll(certDirPath, os.ModePerm)
 		cwd, _ := os.Getwd()
 		certPath = filepath.Join(cwd, "../", "certs")
 
-		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join("/etc/containers/certs.d", server, "ca.crt")})
+		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDirPath, "ca.crt")})
 		setup.WaitWithDefaultTimeout()
 
 		session = podmanTest.Podman([]string{"run", "-d", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"),
@@ -95,11 +96,10 @@ var _ = Describe("Podman login and logout", func() {
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		os.RemoveAll(authPath)
-		os.RemoveAll(filepath.Join("/etc/containers/certs.d", server))
+		os.RemoveAll(certDirPath)
 	})
 
 	It("podman login and logout", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"login", "-u", "podmantest", "-p", "test", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -150,7 +150,6 @@ var _ = Describe("Podman login and logout", func() {
 	})
 
 	It("podman login and logout with flag --authfile", func() {
-		SkipIfRootless()
 		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
@@ -183,7 +182,6 @@ var _ = Describe("Podman login and logout", func() {
 	})
 
 	It("podman login and logout with --tls-verify", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--tls-verify=false", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -197,7 +195,6 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 	It("podman login and logout with --cert-dir", func() {
-		SkipIfRootless()
 		certDir := filepath.Join(podmanTest.TempDir, "certs")
 		os.MkdirAll(certDir, os.ModePerm)
 
@@ -208,7 +205,7 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "--cert-dir", certDir, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -217,15 +214,15 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 	It("podman login and logout with multi registry", func() {
-		SkipIfRootless()
-		os.MkdirAll("/etc/containers/certs.d/localhost:9001", os.ModePerm)
+		certDir := filepath.Join(os.Getenv("HOME"), ".config/containers/certs.d", "localhost:9001")
+		os.MkdirAll(certDir, os.ModePerm)
 
 		cwd, _ := os.Getwd()
 		certPath = filepath.Join(cwd, "../", "certs")
 
-		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:9001/ca.crt"})
+		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDir, "ca.crt")})
 		setup.WaitWithDefaultTimeout()
-		defer os.RemoveAll("/etc/containers/certs.d/localhost:9001")
+		defer os.RemoveAll(certDir)
 
 		session := podmanTest.Podman([]string{"run", "-d", "-p", "9001:9001", "-e", "REGISTRY_HTTP_ADDR=0.0.0.0:9001", "--name", "registry1", "-v",
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
