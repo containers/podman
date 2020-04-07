@@ -84,10 +84,17 @@ type Wrapper interface {
 	Base() Decorator
 }
 
-// AmountReceiver interface.
-// EWMA based decorators need to implement this one.
-type AmountReceiver interface {
-	NextAmount(int64, ...time.Duration)
+// EwmaDecorator interface.
+// EWMA based decorators should implement this one.
+type EwmaDecorator interface {
+	EwmaUpdate(int64, time.Duration)
+}
+
+// AverageDecorator interface.
+// Average decorators should implement this interface to provide start
+// time adjustment facility, for resume-able tasks.
+type AverageDecorator interface {
+	AverageAdjust(time.Time)
 }
 
 // ShutdownListener interface.
@@ -97,17 +104,8 @@ type ShutdownListener interface {
 	Shutdown()
 }
 
-// AverageAdjuster interface.
-// Average decorators should implement this interface to provide start
-// time adjustment facility, for resume-able tasks.
-type AverageAdjuster interface {
-	AverageAdjust(time.Time)
-}
-
-// CBFunc convenience call back func type.
-type CBFunc func(Decorator)
-
 // Global convenience instances of WC with sync width bit set.
+// To be used with multiple bars only, i.e. not effective for single bar usage.
 var (
 	WCSyncWidth  = WC{C: DSyncWidth}
 	WCSyncWidthR = WC{C: DSyncWidthR}

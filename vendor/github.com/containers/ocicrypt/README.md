@@ -2,6 +2,13 @@
 
 The `ocicrypt` library is the OCI image spec implementation of container image encryption. More details of the spec can be seen in the [OCI repository](https://github.com/opencontainers/image-spec/pull/775). The purpose of this library is to encode spec structures and consts in code, as well as provide a consistent implementation of image encryption across container runtimes and build tools.
 
+Consumers of OCIcrypt:
+
+- [containerd/imgcrypt](https://github.com/containerd/imgcrypt)
+- [cri-o](https://github.com/cri-o/cri-o)
+- [skopeo](https://github.com/containers/skopeo)
+
+
 ## Usage
 
 There are various levels of usage for this library. The main consumers of these would be runtime/buil tools, and a more specific use would be in the ability to extend cryptographic function.

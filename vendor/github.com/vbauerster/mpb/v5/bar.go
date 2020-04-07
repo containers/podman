@@ -5,36 +5,27 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"github.com/vbauerster/mpb/v4/decor"
+	"github.com/vbauerster/mpb/v5/decor"
 )
 
-// Filler interface.
-// Bar renders by calling Filler's Fill method. You can literally have
-// any bar kind, by implementing this interface and passing it to the
-// *Progress.Add method.
-type Filler interface {
+// BarFiller interface.
+// Bar renders itself by calling BarFiller's Fill method. You can
+// literally have any bar kind, by implementing this interface and
+// passing it to the *Progress.Add(...) *Bar method.
+type BarFiller interface {
 	Fill(w io.Writer, width int, stat *decor.Statistics)
 }
 
-// FillerFunc is function type adapter to convert function into Filler.
-type FillerFunc func(w io.Writer, width int, stat *decor.Statistics)
+// BarFillerFunc is function type adapter to convert function into Filler.
+type BarFillerFunc func(w io.Writer, width int, stat *decor.Statistics)
 
-func (f FillerFunc) Fill(w io.Writer, width int, stat *decor.Statistics) {
+func (f BarFillerFunc) Fill(w io.Writer, width int, stat *decor.Statistics) {
 	f(w, width, stat)
-}
-
-// WrapFiller interface.
-// If you're implementing custom Filler by wrapping a built-in one,
-// it is necessary to implement this interface to retain functionality
-// of built-in Filler.
-type WrapFiller interface {
-	Base() Filler
 }
 
 // Bar represents a progress Bar.
@@ -42,14 +33,15 @@ type Bar struct {
 	priority int // used by heap
 	index    int // used by heap
 
-	extendedLines int
-	toShutdown    bool
-	toDrop        bool
-	noPop         bool
-	operateState  chan func(*bState)
-	frameCh       chan io.Reader
-	syncTableCh   chan [][]chan int
-	completed     chan bool
+	extendedLines     int
+	toShutdown        bool
+	toDrop            bool
+	noPop             bool
+	hasEwmaDecorators bool
+	operateState      chan func(*bState)
+	frameCh           chan io.Reader
+	syncTableCh       chan [][]chan int
+	completed         chan bool
 
 	// cancel is called either by user or on complete event
 	cancel func()
@@ -66,21 +58,23 @@ type Bar struct {
 type extFunc func(in io.Reader, tw int, st *decor.Statistics) (out io.Reader, lines int)
 
 type bState struct {
-	baseF             Filler
-	filler            Filler
+	baseF             BarFiller
+	filler            BarFiller
 	id                int
 	width             int
 	total             int64
 	current           int64
+	lastN             int64
+	iterated          bool
 	trimSpace         bool
 	toComplete        bool
 	completeFlushed   bool
 	noPop             bool
 	aDecorators       []decor.Decorator
 	pDecorators       []decor.Decorator
-	amountReceivers   []decor.AmountReceiver
+	averageDecorators []decor.AverageDecorator
+	ewmaDecorators    []decor.EwmaDecorator
 	shutdownListeners []decor.ShutdownListener
-	averageAdjusters  []decor.AverageAdjuster
 	bufP, bufB, bufA  *bytes.Buffer
 	extender          extFunc
 
@@ -116,36 +110,13 @@ func newBar(container *Progress, bs *bState) *Bar {
 	return bar
 }
 
-// RemoveAllPrependers removes all prepend functions.
-func (b *Bar) RemoveAllPrependers() {
-	select {
-	case b.operateState <- func(s *bState) { s.pDecorators = nil }:
-	case <-b.done:
-	}
-}
-
-// RemoveAllAppenders removes all append functions.
-func (b *Bar) RemoveAllAppenders() {
-	select {
-	case b.operateState <- func(s *bState) { s.aDecorators = nil }:
-	case <-b.done:
-	}
-}
-
 // ProxyReader wraps r with metrics required for progress tracking.
+// Panics if r is nil.
 func (b *Bar) ProxyReader(r io.Reader) io.ReadCloser {
 	if r == nil {
-		return nil
+		panic("expected non nil io.Reader")
 	}
-	rc, ok := r.(io.ReadCloser)
-	if !ok {
-		rc = ioutil.NopCloser(r)
-	}
-	prox := &proxyReader{rc, b, time.Now()}
-	if wt, ok := r.(io.WriterTo); ok {
-		return &proxyWriterTo{prox, wt}
-	}
-	return prox
+	return newProxyReader(r, b)
 }
 
 // ID returs id of the bar.
@@ -170,8 +141,9 @@ func (b *Bar) Current() int64 {
 	}
 }
 
-// SetRefill sets refill, if supported by underlying Filler.
-// Useful for resume-able tasks.
+// SetRefill fills bar with refill rune up to amount argument.
+// Given default bar style is "[=>-]<+", refill rune is '+'.
+// To set bar style use mpb.BarStyle(string) BarOption.
 func (b *Bar) SetRefill(amount int64) {
 	type refiller interface {
 		SetRefill(int64)
@@ -183,18 +155,8 @@ func (b *Bar) SetRefill(amount int64) {
 	}
 }
 
-// AdjustAverageDecorators updates start time of all average decorators.
-// Useful for resume-able tasks.
-func (b *Bar) AdjustAverageDecorators(startTime time.Time) {
-	b.operateState <- func(s *bState) {
-		for _, adjuster := range s.averageAdjusters {
-			adjuster.AverageAdjust(startTime)
-		}
-	}
-}
-
 // TraverseDecorators traverses all available decorators and calls cb func on each.
-func (b *Bar) TraverseDecorators(cb decor.CBFunc) {
+func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 	b.operateState <- func(s *bState) {
 		for _, decorators := range [...][]decor.Decorator{
 			s.pDecorators,
@@ -208,7 +170,8 @@ func (b *Bar) TraverseDecorators(cb decor.CBFunc) {
 }
 
 // SetTotal sets total dynamically.
-// Set complete to true, to trigger bar complete event now.
+// If total is less or equal to zero it takes progress' current value.
+// If complete is true, complete event will be triggered.
 func (b *Bar) SetTotal(total int64, complete bool) {
 	select {
 	case b.operateState <- func(s *bState) {
@@ -227,13 +190,12 @@ func (b *Bar) SetTotal(total int64, complete bool) {
 	}
 }
 
-// SetCurrent sets progress' current to arbitrary amount.
-func (b *Bar) SetCurrent(current int64, wdd ...time.Duration) {
+// SetCurrent sets progress' current to an arbitrary value.
+func (b *Bar) SetCurrent(current int64) {
 	select {
 	case b.operateState <- func(s *bState) {
-		for _, ar := range s.amountReceivers {
-			ar.NextAmount(current-s.current, wdd...)
-		}
+		s.iterated = true
+		s.lastN = current - s.current
 		s.current = current
 		if s.total > 0 && s.current >= s.total {
 			s.current = s.total
@@ -245,30 +207,55 @@ func (b *Bar) SetCurrent(current int64, wdd ...time.Duration) {
 	}
 }
 
-// Increment is a shorthand for b.IncrInt64(1, wdd...).
-func (b *Bar) Increment(wdd ...time.Duration) {
-	b.IncrInt64(1, wdd...)
+// Increment is a shorthand for b.IncrInt64(1).
+func (b *Bar) Increment() {
+	b.IncrInt64(1)
 }
 
-// IncrBy is a shorthand for b.IncrInt64(int64(n), wdd...).
-func (b *Bar) IncrBy(n int, wdd ...time.Duration) {
-	b.IncrInt64(int64(n), wdd...)
+// IncrBy is a shorthand for b.IncrInt64(int64(n)).
+func (b *Bar) IncrBy(n int) {
+	b.IncrInt64(int64(n))
 }
 
-// IncrInt64 increments progress bar by amount of n. wdd is an optional
-// work duration i.e. time.Since(start), which expected to be passed,
-// if any ewma based decorator is used.
-func (b *Bar) IncrInt64(n int64, wdd ...time.Duration) {
+// IncrInt64 increments progress by amount of n.
+func (b *Bar) IncrInt64(n int64) {
 	select {
 	case b.operateState <- func(s *bState) {
-		for _, ar := range s.amountReceivers {
-			ar.NextAmount(n, wdd...)
-		}
+		s.iterated = true
+		s.lastN = n
 		s.current += n
 		if s.total > 0 && s.current >= s.total {
 			s.current = s.total
 			s.toComplete = true
 			go b.refreshTillShutdown()
+		}
+	}:
+	case <-b.done:
+	}
+}
+
+// DecoratorEwmaUpdate updates all EWMA based decorators. Should be
+// called on each iteration, because EWMA's unit of measure is an
+// iteration's duration. Panics if called before *Bar.Incr... family
+// methods.
+func (b *Bar) DecoratorEwmaUpdate(dur time.Duration) {
+	select {
+	case b.operateState <- func(s *bState) {
+		ewmaIterationUpdate(false, s, dur)
+	}:
+	case <-b.done:
+		ewmaIterationUpdate(true, b.cacheState, dur)
+	}
+}
+
+// DecoratorAverageAdjust adjusts all average based decorators. Call
+// if you need to adjust start time of all average based decorators
+// or after progress resume.
+func (b *Bar) DecoratorAverageAdjust(start time.Time) {
+	select {
+	case b.operateState <- func(s *bState) {
+		for _, d := range s.averageDecorators {
+			d.AverageAdjust(start)
 		}
 	}:
 	case <-b.done:
@@ -368,25 +355,26 @@ func (b *Bar) panicToFrame(termWidth int) io.Reader {
 }
 
 func (b *Bar) subscribeDecorators() {
-	var amountReceivers []decor.AmountReceiver
+	var averageDecorators []decor.AverageDecorator
+	var ewmaDecorators []decor.EwmaDecorator
 	var shutdownListeners []decor.ShutdownListener
-	var averageAdjusters []decor.AverageAdjuster
 	b.TraverseDecorators(func(d decor.Decorator) {
-		if d, ok := d.(decor.AmountReceiver); ok {
-			amountReceivers = append(amountReceivers, d)
+		if d, ok := d.(decor.AverageDecorator); ok {
+			averageDecorators = append(averageDecorators, d)
+		}
+		if d, ok := d.(decor.EwmaDecorator); ok {
+			ewmaDecorators = append(ewmaDecorators, d)
 		}
 		if d, ok := d.(decor.ShutdownListener); ok {
 			shutdownListeners = append(shutdownListeners, d)
 		}
-		if d, ok := d.(decor.AverageAdjuster); ok {
-			averageAdjusters = append(averageAdjusters, d)
-		}
 	})
 	b.operateState <- func(s *bState) {
-		s.amountReceivers = amountReceivers
+		s.averageDecorators = averageDecorators
+		s.ewmaDecorators = ewmaDecorators
 		s.shutdownListeners = shutdownListeners
-		s.averageAdjusters = averageAdjusters
 	}
+	b.hasEwmaDecorators = len(ewmaDecorators) != 0
 }
 
 func (b *Bar) refreshTillShutdown() {
@@ -474,4 +462,15 @@ func extractBaseDecorator(d decor.Decorator) decor.Decorator {
 		return extractBaseDecorator(d.Base())
 	}
 	return d
+}
+
+func ewmaIterationUpdate(done bool, s *bState, dur time.Duration) {
+	if !done && !s.iterated {
+		panic("increment required before ewma iteration update")
+	} else {
+		s.iterated = false
+	}
+	for _, d := range s.ewmaDecorators {
+		d.EwmaUpdate(s.lastN, dur)
+	}
 }

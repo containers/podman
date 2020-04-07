@@ -7,11 +7,6 @@ import (
 	"github.com/VividCortex/ewma"
 )
 
-// MovingAverage is the interface that computes a moving average over
-// a time-series stream of numbers. The average may be over a window
-// or exponentially decaying.
-type MovingAverage = ewma.MovingAverage
-
 type threadSafeMovingAverage struct {
 	ewma.MovingAverage
 	mu sync.Mutex
@@ -68,6 +63,6 @@ func (s *medianWindow) Set(value float64) {
 }
 
 // NewMedian is fixed last 3 samples median MovingAverage.
-func NewMedian() MovingAverage {
+func NewMedian() ewma.MovingAverage {
 	return NewThreadSafeMovingAverage(new(medianWindow))
 }

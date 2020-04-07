@@ -23,11 +23,11 @@ func (f TimeNormalizerFunc) Normalize(src time.Duration) time.Duration {
 }
 
 // EwmaETA exponential-weighted-moving-average based ETA decorator.
-// Note that it's necessary to supply bar.Incr* methods with incremental
-// work duration as second argument, in order for this decorator to
-// work correctly. This decorator is a wrapper of MovingAverageETA.
+// For this decorator to work correctly you have to measure each
+// iteration's duration and pass it to the
+// *Bar.DecoratorEwmaUpdate(time.Duration) method after each increment.
 func EwmaETA(style TimeStyle, age float64, wcc ...WC) Decorator {
-	var average MovingAverage
+	var average ewma.MovingAverage
 	if age == 0 {
 		average = ewma.NewMovingAverage()
 	} else {
@@ -46,7 +46,7 @@ func EwmaETA(style TimeStyle, age float64, wcc ...WC) Decorator {
 //
 //	`wcc` optional WC config
 //
-func MovingAverageETA(style TimeStyle, average MovingAverage, normalizer TimeNormalizer, wcc ...WC) Decorator {
+func MovingAverageETA(style TimeStyle, average ewma.MovingAverage, normalizer TimeNormalizer, wcc ...WC) Decorator {
 	d := &movingAverageETA{
 		WC:         initWC(wcc...),
 		average:    average,
@@ -72,12 +72,8 @@ func (d *movingAverageETA) Decor(s *Statistics) string {
 	return d.FormatMsg(d.producer(remaining))
 }
 
-func (d *movingAverageETA) NextAmount(n int64, wdd ...time.Duration) {
-	var workDuration time.Duration
-	for _, wd := range wdd {
-		workDuration = wd
-	}
-	durPerItem := float64(workDuration) / float64(n)
+func (d *movingAverageETA) EwmaUpdate(n int64, dur time.Duration) {
+	durPerItem := float64(dur) / float64(n)
 	if math.IsInf(durPerItem, 0) || math.IsNaN(durPerItem) {
 		return
 	}

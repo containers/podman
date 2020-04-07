@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vbauerster/mpb/v4/cwriter"
-	"github.com/vbauerster/mpb/v4/decor"
+	"github.com/vbauerster/mpb/v5/cwriter"
+	"github.com/vbauerster/mpb/v5/decor"
 )
 
 const (
@@ -111,7 +111,7 @@ func (p *Progress) AddSpinner(total int64, alignment SpinnerAlignment, options .
 // Add creates a bar which renders itself by provided filler.
 // Set total to 0, if you plan to update it later.
 // Panics if *Progress instance is done, i.e. called after *Progress.Wait().
-func (p *Progress) Add(total int64, filler Filler, options ...BarOption) *Bar {
+func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) *Bar {
 	if filler == nil {
 		filler = NewBarFiller(DefaultBarStyle, false)
 	}
@@ -166,7 +166,7 @@ func (p *Progress) setBarPriority(b *Bar, priority int) {
 	}
 }
 
-// UpdateBarPriority same as *Bar.SetPriority.
+// UpdateBarPriority same as *Bar.SetPriority(int).
 func (p *Progress) UpdateBarPriority(b *Bar, priority int) {
 	p.setBarPriority(b, priority)
 }
@@ -340,7 +340,7 @@ func (s *pState) updateSyncMatrix() {
 	}
 }
 
-func (s *pState) makeBarState(total int64, filler Filler, options ...BarOption) *bState {
+func (s *pState) makeBarState(total int64, filler BarFiller, options ...BarOption) *bState {
 	bs := &bState{
 		total:    total,
 		baseF:    extractBaseFiller(filler),
@@ -388,8 +388,11 @@ func syncWidth(matrix map[int][]chan int) {
 	}
 }
 
-func extractBaseFiller(f Filler) Filler {
-	if f, ok := f.(WrapFiller); ok {
+func extractBaseFiller(f BarFiller) BarFiller {
+	type wrapper interface {
+		Base() BarFiller
+	}
+	if f, ok := f.(wrapper); ok {
 		return extractBaseFiller(f.Base())
 	}
 	return f

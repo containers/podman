@@ -4,8 +4,8 @@ import (
 	"io"
 	"unicode/utf8"
 
-	"github.com/vbauerster/mpb/v4/decor"
-	"github.com/vbauerster/mpb/v4/internal"
+	"github.com/vbauerster/mpb/v5/decor"
+	"github.com/vbauerster/mpb/v5/internal"
 )
 
 const (
@@ -45,8 +45,8 @@ type barFiller struct {
 	flush   func(w io.Writer, bb [][]byte)
 }
 
-// NewBarFiller constucts mpb.Filler, to be used with *Progress.Add(...) *Bar method.
-func NewBarFiller(style string, reverse bool) Filler {
+// NewBarFiller constucts mpb.BarFiller, to be used with *Progress.Add(...) *Bar method.
+func NewBarFiller(style string, reverse bool) BarFiller {
 	if style == "" {
 		style = DefaultBarStyle
 	}
