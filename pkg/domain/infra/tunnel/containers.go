@@ -242,7 +242,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		}
 		// narrow the list to running only
 		for _, c := range allCtrs {
-			if c.State == define.ContainerStateRunning.String() {
+			if c.ContainerState == define.ContainerStateRunning.String() {
 				ctrs = append(ctrs, c)
 			}
 		}
@@ -276,7 +276,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		}
 		// narrow the list to exited only
 		for _, c := range allCtrs {
-			if c.State == define.ContainerStateExited.String() {
+			if c.ContainerState == define.ContainerStateExited.String() {
 				ctrs = append(ctrs, c)
 			}
 		}

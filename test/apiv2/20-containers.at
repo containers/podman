@@ -21,8 +21,8 @@ t GET libpod/containers/json?all=true 200 \
   length=1 \
   .[0].Id~[0-9a-f]\\{12\\} \
   .[0].Image=$IMAGE \
-  .[0].Command[0]="true" \
-  .[0].State~\\\(exited\\\|stopped\\\) \
+  .[0].Cmd[0]="true" \
+  .[0].ContainerState~\\\(exited\\\|stopped\\\) \
   .[0].ExitCode=0 \
   .[0].IsInfra=false
 
