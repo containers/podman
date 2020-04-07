@@ -44,8 +44,12 @@ func (c *pidHandler) Destroy(ctr *CgroupControl) error {
 
 // Stat fills a metrics structure with usage stats for the controller
 func (c *pidHandler) Stat(ctr *CgroupControl, m *Metrics) error {
-	var PIDRoot string
+	if ctr.path != "" {
+		// nothing we can do to retrieve the pids.current path
+		return nil
+	}
 
+	var PIDRoot string
 	if ctr.cgroup2 {
 		PIDRoot = filepath.Join(cgroupRoot, ctr.path)
 	} else {
