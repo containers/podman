@@ -517,13 +517,13 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: logs
 	//    required: false
 	//    type: boolean
-	//    description: Not yet supported
+	//    description: Stream all logs from the container across the connection. Happens before streaming attach (if requested). At least one of logs or stream must be set
 	//  - in: query
 	//    name: stream
 	//    required: false
 	//    type: boolean
 	//    default: true
-	//    description: If passed, must be set to true; stream=false is not yet supported
+	//    description: Attach to the container. If unset, and logs is set, only the container's logs will be sent. At least one of stream or logs must be set
 	//  - in: query
 	//    name: stdout
 	//    required: false
@@ -1194,13 +1194,13 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: logs
 	//    required: false
 	//    type: boolean
-	//    description: Not yet supported
+	//    description: Stream all logs from the container across the connection. Happens before streaming attach (if requested). At least one of logs or stream must be set
 	//  - in: query
 	//    name: stream
 	//    required: false
 	//    type: boolean
 	//    default: true
-	//    description: If passed, must be set to true; stream=false is not yet supported
+	//    description: Attach to the container. If unset, and logs is set, only the container's logs will be sent. At least one of stream or logs must be set
 	//  - in: query
 	//    name: stdout
 	//    required: false

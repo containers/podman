@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/containers/libpod/libpod"
@@ -23,7 +24,9 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		Stdin      bool   `schema:"stdin"`
 		Stdout     bool   `schema:"stdout"`
 		Stderr     bool   `schema:"stderr"`
-	}{}
+	}{
+		Stream: true,
+	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Error parsing parameters", http.StatusBadRequest, err)
 		return
@@ -61,16 +64,9 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Investigate supporting these.
-	// Logs replays container logs over the attach socket.
-	// Stream seems to break things up somehow? Not 100% clear.
-	if query.Logs {
-		utils.Error(w, "Unsupported parameter", http.StatusBadRequest, errors.Errorf("the logs parameter to attach is not presently supported"))
-		return
-	}
-	// We only support stream=true or unset
-	if _, found := r.URL.Query()["stream"]; found && query.Stream {
-		utils.Error(w, "Unsupported parameter", http.StatusBadRequest, errors.Errorf("the stream parameter to attach is not presently supported"))
+	// At least one of these must be set
+	if !query.Stream && !query.Logs {
+		utils.Error(w, "Unsupported parameter", http.StatusBadRequest, errors.Errorf("at least one of Logs or Stream must be set"))
 		return
 	}
 
@@ -86,7 +82,13 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	if !(state == define.ContainerStateCreated || state == define.ContainerStateRunning) {
+	// For Docker compatibility, we need to re-initialize containers in these states.
+	if state == define.ContainerStateConfigured || state == define.ContainerStateExited {
+		if err := ctr.Init(r.Context()); err != nil {
+			utils.InternalServerError(w, errors.Wrapf(err, "error preparing container %s for attach", ctr.ID()))
+			return
+		}
+	} else if !(state == define.ContainerStateCreated || state == define.ContainerStateRunning) {
 		utils.InternalServerError(w, errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers"))
 		return
 	}
@@ -98,20 +100,23 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusSwitchingProtocols)
-
 	connection, buffer, err := hijacker.Hijack()
 	if err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "error hijacking connection"))
 		return
 	}
 
+	// This header string sourced from Docker:
+	// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
+	// Using literally to ensure compatability with existing clients.
+	fmt.Fprintf(connection, "HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n")
+
 	logrus.Debugf("Hijack for attach of container %s successful", ctr.ID())
 
 	// Perform HTTP attach.
 	// HTTPAttach will handle everything about the connection from here on
 	// (including closing it and writing errors to it).
-	if err := ctr.HTTPAttach(connection, buffer, streams, detachKeys, nil); err != nil {
+	if err := ctr.HTTPAttach(connection, buffer, streams, detachKeys, nil, query.Stream, query.Logs); err != nil {
 		// We can't really do anything about errors anymore. HTTPAttach
 		// should be writing them to the connection.
 		logrus.Errorf("Error attaching to container %s: %v", ctr.ID(), err)
