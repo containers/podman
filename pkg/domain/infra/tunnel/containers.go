@@ -305,6 +305,11 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	return &entities.ContainerCreateReport{Id: response.ID}, nil
 }
 
+func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []string, options entities.ContainerLogsOptions) error {
+	// The endpoint is not ready yet and requires some more work.
+	return errors.New("not implemented yet")
+}
+
 func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string, options entities.AttachOptions) error {
 	return errors.New("not implemented")
 }

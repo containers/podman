@@ -261,6 +261,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	var until time.Time
 	if _, found := r.URL.Query()["until"]; found {
+		// FIXME: until != since but the logs backend does not yet support until.
 		since, err = util.ParseInputTime(query.Until)
 		if err != nil {
 			utils.BadRequest(w, "until", query.Until, err)

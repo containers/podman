@@ -172,6 +172,26 @@ type AttachOptions struct {
 	Stderr     *os.File
 }
 
+// ContainerLogsOptions describes the options to extract container logs.
+type ContainerLogsOptions struct {
+	// Show extra details provided to the logs.
+	Details bool
+	// Follow the log output.
+	Follow bool
+	// Display logs for the latest container only. Ignored on the remote client.
+	Latest bool
+	// Show container names in the output.
+	Names bool
+	// Show logs since this timestamp.
+	Since time.Time
+	// Number of lines to display at the end of the output.
+	Tail int64
+	// Show timestamps in the logs.
+	Timestamps bool
+	// Write the logs to Writer.
+	Writer io.Writer
+}
+
 // ExecOptions describes the cli values to exec into
 // a container
 type ExecOptions struct {
