@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/vbauerster/mpb/v4/decor"
+	"github.com/vbauerster/mpb/v5/decor"
 )
 
 // BarOption is a function option which changes the default behavior of a bar.
@@ -50,14 +50,9 @@ func BarWidth(width int) BarOption {
 	}
 }
 
-// BarReplaceOnComplete is deprecated. Use BarParkTo instead.
-func BarReplaceOnComplete(runningBar *Bar) BarOption {
-	return BarParkTo(runningBar)
-}
-
-// BarParkTo parks constructed bar into the runningBar. In other words,
-// constructed bar will replace runningBar after it has been completed.
-func BarParkTo(runningBar *Bar) BarOption {
+// BarQueueAfter queues this (being constructed) bar to relplace
+// runningBar after it has been completed.
+func BarQueueAfter(runningBar *Bar) BarOption {
 	if runningBar == nil {
 		return nil
 	}
@@ -66,28 +61,29 @@ func BarParkTo(runningBar *Bar) BarOption {
 	}
 }
 
-// BarRemoveOnComplete removes bar filler and decorators if any, on
-// complete event.
+// BarRemoveOnComplete removes both bar's filler and its decorators
+// on complete event.
 func BarRemoveOnComplete() BarOption {
 	return func(s *bState) {
 		s.dropOnComplete = true
 	}
 }
 
-// BarClearOnComplete clears bar filler only, on complete event.
-func BarClearOnComplete() BarOption {
-	return BarOnComplete("")
+// BarFillerClearOnComplete clears bar's filler on complete event.
+// It's shortcut for BarFillerOnComplete("").
+func BarFillerClearOnComplete() BarOption {
+	return BarFillerOnComplete("")
 }
 
-// BarOnComplete replaces bar filler with message, on complete event.
-func BarOnComplete(message string) BarOption {
+// BarFillerOnComplete replaces bar's filler with message, on complete event.
+func BarFillerOnComplete(message string) BarOption {
 	return func(s *bState) {
-		s.filler = makeBarOnCompleteFiller(s.baseF, message)
+		s.filler = makeBarFillerOnComplete(s.baseF, message)
 	}
 }
 
-func makeBarOnCompleteFiller(filler Filler, message string) Filler {
-	return FillerFunc(func(w io.Writer, width int, st *decor.Statistics) {
+func makeBarFillerOnComplete(filler BarFiller, message string) BarFiller {
+	return BarFillerFunc(func(w io.Writer, width int, st *decor.Statistics) {
 		if st.Completed {
 			io.WriteString(w, message)
 		} else {
@@ -107,7 +103,7 @@ func BarPriority(priority int) BarOption {
 
 // BarExtender is an option to extend bar to the next new line, with
 // arbitrary output.
-func BarExtender(extender Filler) BarOption {
+func BarExtender(extender BarFiller) BarOption {
 	if extender == nil {
 		return nil
 	}
@@ -116,7 +112,7 @@ func BarExtender(extender Filler) BarOption {
 	}
 }
 
-func makeExtFunc(extender Filler) extFunc {
+func makeExtFunc(extender BarFiller) extFunc {
 	buf := new(bytes.Buffer)
 	nl := []byte("\n")
 	return func(r io.Reader, tw int, st *decor.Statistics) (io.Reader, int) {
@@ -132,9 +128,9 @@ func TrimSpace() BarOption {
 	}
 }
 
-// BarStyle overrides mpb.DefaultBarStyle, for example BarStyle("╢▌▌░╟").
-// If you need to override `reverse tip` and `refill rune` set 6th and
-// 7th rune respectively, for example BarStyle("[=>-]<+").
+// BarStyle overrides mpb.DefaultBarStyle which is "[=>-]<+".
+// It's ok to pass string containing just 5 runes, for example "╢▌▌░╟",
+// if you don't need to override '<' (reverse tip) and '+' (refill rune).
 func BarStyle(style string) BarOption {
 	if style == "" {
 		return nil
@@ -175,7 +171,7 @@ func SpinnerStyle(frames []string) BarOption {
 	if len(frames) == 0 {
 		return nil
 	}
-	chk := func(filler Filler) (interface{}, bool) {
+	chk := func(filler BarFiller) (interface{}, bool) {
 		t, ok := filler.(*spinnerFiller)
 		return t, ok
 	}
@@ -189,7 +185,7 @@ func SpinnerStyle(frames []string) BarOption {
 // actual type. If you implement your own Filler, so most probably
 // you'll need this. See BarStyle or SpinnerStyle for example.
 func MakeFillerTypeSpecificBarOption(
-	typeChecker func(Filler) (interface{}, bool),
+	typeChecker func(BarFiller) (interface{}, bool),
 	cb func(interface{}),
 ) BarOption {
 	return func(s *bState) {

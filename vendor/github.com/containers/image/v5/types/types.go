@@ -444,6 +444,7 @@ type ImageInspectInfo struct {
 	DockerVersion string
 	Labels        map[string]string
 	Architecture  string
+	Variant       string
 	Os            string
 	Layers        []string
 	Env           []string

@@ -28,11 +28,11 @@ func (self *speedFormatter) Format(st fmt.State, verb rune) {
 }
 
 // EwmaSpeed exponential-weighted-moving-average based speed decorator.
-// Note that it's necessary to supply bar.Incr* methods with incremental
-// work duration as second argument, in order for this decorator to
-// work correctly. This decorator is a wrapper of MovingAverageSpeed.
+// For this decorator to work correctly you have to measure each
+// iteration's duration and pass it to the
+// *Bar.DecoratorEwmaUpdate(time.Duration) method after each increment.
 func EwmaSpeed(unit int, format string, age float64, wcc ...WC) Decorator {
-	var average MovingAverage
+	var average ewma.MovingAverage
 	if age == 0 {
 		average = ewma.NewMovingAverage()
 	} else {
@@ -59,7 +59,7 @@ func EwmaSpeed(unit int, format string, age float64, wcc ...WC) Decorator {
 //	unit=UnitKB,  format="%.1f"  output: "1.0MB/s"
 //	unit=UnitKB,  format="% .1f" output: "1.0 MB/s"
 //
-func MovingAverageSpeed(unit int, format string, average MovingAverage, wcc ...WC) Decorator {
+func MovingAverageSpeed(unit int, format string, average ewma.MovingAverage, wcc ...WC) Decorator {
 	if format == "" {
 		format = "%.0f"
 	}
@@ -89,12 +89,8 @@ func (d *movingAverageSpeed) Decor(s *Statistics) string {
 	return d.FormatMsg(d.msg)
 }
 
-func (d *movingAverageSpeed) NextAmount(n int64, wdd ...time.Duration) {
-	var workDuration time.Duration
-	for _, wd := range wdd {
-		workDuration = wd
-	}
-	durPerByte := float64(workDuration) / float64(n)
+func (d *movingAverageSpeed) EwmaUpdate(n int64, dur time.Duration) {
+	durPerByte := float64(dur) / float64(n)
 	if math.IsInf(durPerByte, 0) || math.IsNaN(durPerByte) {
 		return
 	}

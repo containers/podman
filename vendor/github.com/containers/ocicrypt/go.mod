@@ -10,7 +10,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
-	github.com/urfave/cli v1.22.1
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	google.golang.org/grpc v1.24.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1
