@@ -253,7 +253,6 @@ func executeCommandInUserNS(cmd *cobra.Command) bool {
 	case _migrateCommand,
 		_mountCommand,
 		_renumberCommand,
-		_infoCommand,
 		_searchCommand,
 		_versionCommand:
 		return false
