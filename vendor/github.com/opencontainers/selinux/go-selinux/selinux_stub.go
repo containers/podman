@@ -113,7 +113,7 @@ SetTaskLabel sets the SELinux label for the current thread, or an error.
 This requires the dyntransition permission.
 */
 func SetTaskLabel(label string) error {
-        return nil
+	return nil
 }
 
 /*
@@ -199,6 +199,18 @@ func ReleaseLabel(label string) {
 // ROFileLabel returns the specified SELinux readonly file label
 func ROFileLabel() string {
 	return ""
+}
+
+// KVMContainerLabels returns the default processLabel and mountLabel to be used
+// for kvm containers by the calling process.
+func KVMContainerLabels() (string, string) {
+	return "", ""
+}
+
+// InitContainerLabels returns the default processLabel and file labels to be
+// used for containers running an init system like systemd by the calling
+func InitContainerLabels() (string, string) {
+	return "", ""
 }
 
 /*
