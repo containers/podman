@@ -12,7 +12,7 @@ require (
 	github.com/containers/buildah v1.14.6-0.20200402210551-e9a6703edee2
 	github.com/containers/common v0.8.1
 	github.com/containers/conmon v2.0.14+incompatible
-	github.com/containers/image/v5 v5.4.2
+	github.com/containers/image/v5 v5.4.3
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.18.2
 	github.com/coreos/go-systemd/v22 v22.0.0
@@ -42,7 +42,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
 	github.com/opencontainers/runtime-tools v0.9.0
-	github.com/opencontainers/selinux v1.5.0
+	github.com/opencontainers/selinux v1.5.1
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
