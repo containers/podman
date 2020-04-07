@@ -1125,5 +1125,36 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/untag"), s.APIHandler(libpod.UntagImage)).Methods(http.MethodPost)
+
+	// swagger:operation GET /libpod/images/{name}/changes libpod libpodChangesImages
+	// ---
+	// tags:
+	//   - images
+	// summary: Report on changes to images's filesystem; adds, deletes or modifications.
+	// description: |
+	//   Returns which files in a images's filesystem have been added, deleted, or modified. The Kind of modification can be one of:
+	//
+	//   0: Modified
+	//   1: Added
+	//   2: Deleted
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or id of the container
+	// responses:
+	//   200:
+	//     description: Array of Changes
+	//     content:
+	//       application/json:
+	//       schema:
+	//         $ref: "#/responses/Changes"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/images/{name}/changes"), s.APIHandler(compat.Changes))
+
 	return nil
 }

@@ -599,9 +599,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				ExitCode: 125,
 			}
 			if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
-				//if lastError != nil {
+				// if lastError != nil {
 				//	fmt.Fprintln(os.Stderr, lastError)
-				//}
+				// }
 				report.Err = err
 				if errors.Cause(err) == define.ErrWillDeadlock {
 					report.Err = errors.Wrapf(err, "please run 'podman system renumber' to resolve deadlocks")
@@ -621,6 +621,19 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 
 func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	return ps.GetContainerLists(ic.Libpod, options)
+}
+
+// ContainerDiff provides changes to given container
+func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrId string, opts entities.DiffOptions) (*entities.DiffReport, error) {
+	if opts.Latest {
+		ctnr, err := ic.Libpod.GetLatestContainer()
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to get latest container")
+		}
+		nameOrId = ctnr.ID()
+	}
+	changes, err := ic.Libpod.GetDiff("", nameOrId)
+	return &entities.DiffReport{Changes: changes}, err
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {

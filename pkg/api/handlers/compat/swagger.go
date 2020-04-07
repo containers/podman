@@ -2,6 +2,7 @@ package compat
 
 import (
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/storage/pkg/archive"
 )
 
 // Create container
@@ -23,5 +24,14 @@ type swagCtrWaitResponse struct {
 		Error      struct {
 			Message string
 		}
+	}
+}
+
+// Object Changes
+// swagger:response Changes
+type swagChangesResponse struct {
+	// in:body
+	Body struct {
+		Changes []archive.Change
 	}
 }

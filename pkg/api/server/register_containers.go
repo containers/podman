@@ -1377,5 +1377,40 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restore"), s.APIHandler(libpod.Restore)).Methods(http.MethodPost)
+
+	// swagger:operation GET /containers/{name}/changes libpod libpodChangesContainer
+	// swagger:operation GET /libpod/containers/{name}/changes compat changesContainer
+	// ---
+	// tags:
+	//   - containers
+	//   - containers (compat)
+	// summary: Report on changes to container's filesystem; adds, deletes or modifications.
+	// description: |
+	//   Returns which files in a container's filesystem have been added, deleted, or modified. The Kind of modification can be one of:
+	//
+	//   0: Modified
+	//   1: Added
+	//   2: Deleted
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or id of the container
+	// responses:
+	//   200:
+	//     description: Array of Changes
+	//     content:
+	//       application/json:
+	//       schema:
+	//         $ref: "#/responses/Changes"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/changes"), s.APIHandler(compat.Changes))
+	r.HandleFunc("/containers/{name}/changes", s.APIHandler(compat.Changes))
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/changes"), s.APIHandler(compat.Changes))
+
 	return nil
 }

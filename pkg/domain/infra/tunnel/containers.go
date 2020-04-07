@@ -324,3 +324,8 @@ func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.C
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
 	return nil, errors.New("not implemented")
 }
+
+func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrId string, _ entities.DiffOptions) (*entities.DiffReport, error) {
+	changes, err := containers.Diff(ic.ClientCxt, nameOrId)
+	return &entities.DiffReport{Changes: changes}, err
+}
