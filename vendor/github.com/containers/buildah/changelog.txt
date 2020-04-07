@@ -1,3 +1,13 @@
+- Changelog for v1.14.7 (2020-04-07)
+  * Bump github.com/containers/image/v5 from 5.3.1 to 5.4.3
+  * make vendor: run `tidy` after `vendor`
+  * Do not skip the directory when the ignore pattern matches
+  * Bump github.com/containers/common from 0.7.0 to 0.8.1
+  * Downgrade siruspen/logrus from 1.4.2
+  * Fix errorf conventions
+  * dockerignore tests : remove symlinks, rework
+  * Bump back to v1.15.0-dev
+
 - Changelog for v1.14.6 (2020-04-02)
   * bud.bats - cleanup, refactoring
   * vendor in latest containers/storage 1.18.0 and containers/common v0.7.0

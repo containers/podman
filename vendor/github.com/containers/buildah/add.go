@@ -354,7 +354,7 @@ func (b *Builder) addHelper(excludes *fileutils.PatternMatcher, extract bool, de
 				}
 				// Skip the file if the pattern matches
 				if res.IsMatched() {
-					return nil
+					continue
 				}
 			}
 
