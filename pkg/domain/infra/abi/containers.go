@@ -622,3 +622,77 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	return ps.GetContainerLists(ic.Libpod, options)
 }
+
+func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
+	var (
+		joinPod bool
+	)
+	if err := generate.CompleteSpec(ctx, ic.Libpod, opts.Spec); err != nil {
+		return nil, err
+	}
+	ctr, err := generate.MakeContainer(ic.Libpod, opts.Spec)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ctr.PodID()) > 0 {
+		joinPod = true
+	}
+	report := entities.ContainerRunReport{Id: ctr.ID()}
+
+	if logrus.GetLevel() == logrus.DebugLevel {
+		cgroupPath, err := ctr.CGroupPath()
+		if err == nil {
+			logrus.Debugf("container %q has CgroupParent %q", ctr.ID(), cgroupPath)
+		}
+	}
+	if opts.Detach {
+		// if the container was created as part of a pod, also start its dependencies, if any.
+		if err := ctr.Start(ctx, joinPod); err != nil {
+			// This means the command did not exist
+			report.ExitCode = define.ExitCode(err)
+			return &report, err
+		}
+
+		return &report, nil
+	}
+
+	// if the container was created as part of a pod, also start its dependencies, if any.
+	if err := terminal.StartAttachCtr(ctx, ctr, opts.OutputStream, opts.ErrorStream, opts.InputStream, opts.DetachKeys, opts.SigProxy, true, joinPod); err != nil {
+		// We've manually detached from the container
+		// Do not perform cleanup, or wait for container exit code
+		// Just exit immediately
+		if errors.Cause(err) == define.ErrDetach {
+			report.ExitCode = 0
+			return &report, nil
+		}
+		if opts.Rm {
+			if deleteError := ic.Libpod.RemoveContainer(ctx, ctr, true, false); deleteError != nil {
+				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
+			}
+		}
+		if errors.Cause(err) == define.ErrWillDeadlock {
+			logrus.Debugf("Deadlock error on %q: %v", ctr.ID(), err)
+			report.ExitCode = define.ExitCode(err)
+			return &report, errors.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+		}
+		report.ExitCode = define.ExitCode(err)
+		return &report, err
+	}
+
+	if ecode, err := ctr.Wait(); err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			// Check events
+			event, err := ic.Libpod.GetLastContainerEvent(ctr.ID(), events.Exited)
+			if err != nil {
+				logrus.Errorf("Cannot get exit code: %v", err)
+				report.ExitCode = define.ExecErrorCodeNotFound
+			} else {
+				report.ExitCode = event.ContainerExitCode
+			}
+		}
+	} else {
+		report.ExitCode = int(ecode)
+	}
+	return &report, nil
+}
