@@ -9,15 +9,15 @@ import (
 )
 
 // Info returns information about the libpod environment and its stores
-func Info(ctx context.Context) (define.Info, error) {
+func Info(ctx context.Context) (*define.Info, error) {
 	info := define.Info{}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return info, err
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/info", nil)
 	if err != nil {
-		return info, err
+		return nil, err
 	}
-	return info, response.Process(&info)
+	return &info, response.Process(&info)
 }
