@@ -196,7 +196,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 				logrus.Debugf("no such image %q: %v", transports.ImageName(ref), err)
 				failures = append(failures, failure{
 					resolvedImageName: image,
-					err:               fmt.Errorf("no such image %q", transports.ImageName(ref)),
+					err:               errors.Errorf("no such image %q", transports.ImageName(ref)),
 				})
 				continue
 			}
@@ -212,7 +212,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 	}
 
 	if len(failures) != len(candidates) {
-		return nil, "", nil, fmt.Errorf("internal error: %d candidates (%#v) vs. %d failures (%#v)", len(candidates), candidates, len(failures), failures)
+		return nil, "", nil, errors.Errorf("internal error: %d candidates (%#v) vs. %d failures (%#v)", len(candidates), candidates, len(failures), failures)
 	}
 
 	registriesConfPath := sysregistriesv2.ConfigPath(systemContext)
@@ -221,7 +221,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		if searchRegistriesWereUsedButEmpty {
 			return nil, "", nil, errors.Errorf("image name %q is a short name and no search registries are defined in %s.", options.FromImage, registriesConfPath)
 		}
-		return nil, "", nil, fmt.Errorf("internal error: no pull candidates were available for %q for an unknown reason", options.FromImage)
+		return nil, "", nil, errors.Errorf("internal error: no pull candidates were available for %q for an unknown reason", options.FromImage)
 
 	case 1:
 		err := failures[0].err

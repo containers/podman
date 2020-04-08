@@ -2142,7 +2142,7 @@ func checkAndOverrideIsolationOptions(isolation Isolation, options *RunOptions) 
 		pidns := options.NamespaceOptions.Find(string(specs.PIDNamespace))
 		userns := options.NamespaceOptions.Find(string(specs.UserNamespace))
 		if (pidns == nil || pidns.Host) && (userns != nil && !userns.Host) {
-			return fmt.Errorf("not allowed to mix host PID namespace with container user namespace")
+			return errors.Errorf("not allowed to mix host PID namespace with container user namespace")
 		}
 	}
 	return nil

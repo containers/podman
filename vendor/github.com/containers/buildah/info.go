@@ -15,6 +15,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -184,7 +185,7 @@ func readUptime() (string, error) {
 	}
 	f := bytes.Fields(buf)
 	if len(f) < 1 {
-		return "", fmt.Errorf("invalid uptime")
+		return "", errors.Errorf("invalid uptime")
 	}
 	return string(f[0]), nil
 }

@@ -3,7 +3,6 @@ package imagebuildah
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -323,7 +322,7 @@ func preprocessDockerfileContents(r io.Reader, ctxDir string) (rdrCloser *io.Rea
 	pipe.Close()
 	if err = cmd.Wait(); err != nil {
 		if stderr.Len() > 0 {
-			err = fmt.Errorf("%v: %s", err, strings.TrimSpace(stderr.String()))
+			err = errors.Wrapf(err, "%v", strings.TrimSpace(stderr.String()))
 		}
 		return nil, errors.Wrapf(err, "error pre-processing Dockerfile")
 	}

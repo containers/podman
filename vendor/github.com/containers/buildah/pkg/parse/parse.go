@@ -537,10 +537,10 @@ func validateExtraHost(val string) error {
 	// allow for IPv6 addresses in extra hosts by only splitting on first ":"
 	arr := strings.SplitN(val, ":", 2)
 	if len(arr) != 2 || len(arr[0]) == 0 {
-		return fmt.Errorf("bad format for add-host: %q", val)
+		return errors.Errorf("bad format for add-host: %q", val)
 	}
 	if _, err := validateIPAddress(arr[1]); err != nil {
-		return fmt.Errorf("invalid IP address in add-host: %q", arr[1])
+		return errors.Errorf("invalid IP address in add-host: %q", arr[1])
 	}
 	return nil
 }
@@ -552,7 +552,7 @@ func validateIPAddress(val string) (string, error) {
 	if ip != nil {
 		return ip.String(), nil
 	}
-	return "", fmt.Errorf("%s is not an ip address", val)
+	return "", errors.Errorf("%s is not an ip address", val)
 }
 
 // SystemContextFromOptions returns a SystemContext populated with values
@@ -814,20 +814,20 @@ func parseIDMap(spec []string) (m [][3]uint32, err error) {
 	for _, s := range spec {
 		args := strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsDigit(r) })
 		if len(args)%3 != 0 {
-			return nil, fmt.Errorf("mapping %q is not in the form containerid:hostid:size[,...]", s)
+			return nil, errors.Errorf("mapping %q is not in the form containerid:hostid:size[,...]", s)
 		}
 		for len(args) >= 3 {
 			cid, err := strconv.ParseUint(args[0], 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing container ID %q from mapping %q as a number: %v", args[0], s, err)
+				return nil, errors.Wrapf(err, "error parsing container ID %q from mapping %q as a number", args[0], s)
 			}
 			hostid, err := strconv.ParseUint(args[1], 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing host ID %q from mapping %q as a number: %v", args[1], s, err)
+				return nil, errors.Wrapf(err, "error parsing host ID %q from mapping %q as a number", args[1], s)
 			}
 			size, err := strconv.ParseUint(args[2], 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing %q from mapping %q as a number: %v", args[2], s, err)
+				return nil, errors.Wrapf(err, "error parsing %q from mapping %q as a number", args[2], s)
 			}
 			m = append(m, [3]uint32{uint32(cid), uint32(hostid), uint32(size)})
 			args = args[3:]
@@ -960,7 +960,7 @@ func Device(device string) (string, string, string, error) {
 	switch len(arr) {
 	case 3:
 		if !isValidDeviceMode(arr[2]) {
-			return "", "", "", fmt.Errorf("invalid device mode: %s", arr[2])
+			return "", "", "", errors.Errorf("invalid device mode: %s", arr[2])
 		}
 		permissions = arr[2]
 		fallthrough
@@ -969,7 +969,7 @@ func Device(device string) (string, string, string, error) {
 			permissions = arr[1]
 		} else {
 			if len(arr[1]) == 0 || arr[1][0] != '/' {
-				return "", "", "", fmt.Errorf("invalid device mode: %s", arr[1])
+				return "", "", "", errors.Errorf("invalid device mode: %s", arr[1])
 			}
 			dst = arr[1]
 		}
@@ -981,7 +981,7 @@ func Device(device string) (string, string, string, error) {
 		}
 		fallthrough
 	default:
-		return "", "", "", fmt.Errorf("invalid device specification: %s", device)
+		return "", "", "", errors.Errorf("invalid device specification: %s", device)
 	}
 
 	if dst == "" {
