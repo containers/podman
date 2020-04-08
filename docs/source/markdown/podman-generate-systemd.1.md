@@ -18,6 +18,8 @@ Note that this command is not supported for the remote client.
 
 Generate files instead of printing to stdout.  The generated files are named {container,pod}-{ID,name}.service and will be placed in the current working directory.
 
+Note: On a system with SELinux enabled, the generated files will inherit contexts from the current working directory. Depending on the SELinux setup, changes to the generated files using `restorecon`, `chcon`, or `semanage` may be required to allow systemd to access these files. Alternatively, use the `-Z` option when running `mv` or `cp`.
+
 **--name**, **-n**
 
 Use the name of the container for the start, stop, and description in the unit file
