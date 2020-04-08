@@ -40,6 +40,7 @@ func init() {
 	})
 	//common.GetCreateFlags(createCommand)
 	flags := createCommand.Flags()
+	flags.SetInterspersed(false)
 	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
 	flags.AddFlagSet(common.GetNetFlags())
 	flags.SetNormalizeFunc(common.AliasFlags)
