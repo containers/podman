@@ -410,4 +410,106 @@ var _ = Describe("Podman containers ", func() {
 		_, err = containers.Top(bt.conn, cid, []string{"Me,Neither"})
 		Expect(err).To(BeNil())
 	})
+
+	It("podman bogus container does not exist in local storage", func() {
+		// Bogus container existence check should fail
+		containerExists, err := containers.Exists(bt.conn, "foobar")
+		Expect(err).To(BeNil())
+		Expect(containerExists).To(BeFalse())
+	})
+
+	It("podman container exists in local storage by name", func() {
+		// Container existence check by name should work
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		containerExists, err := containers.Exists(bt.conn, name)
+		Expect(err).To(BeNil())
+		Expect(containerExists).To(BeTrue())
+	})
+
+	It("podman container exists in local storage by ID", func() {
+		// Container existence check by ID should work
+		var name = "top"
+		cid, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		containerExists, err := containers.Exists(bt.conn, cid)
+		Expect(err).To(BeNil())
+		Expect(containerExists).To(BeTrue())
+	})
+
+	It("podman container exists in local storage by short ID", func() {
+		// Container existence check by short ID should work
+		var name = "top"
+		cid, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		containerExists, err := containers.Exists(bt.conn, cid[0:12])
+		Expect(err).To(BeNil())
+		Expect(containerExists).To(BeTrue())
+	})
+
+	It("podman kill bogus container", func() {
+		// Killing bogus container should return 404
+		err := containers.Kill(bt.conn, "foobar", "SIGTERM")
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusNotFound))
+	})
+
+	It("podman kill a running container by name with SIGINT", func() {
+		// Killing a running container should work
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		err = containers.Kill(bt.conn, name, "SIGINT")
+		Expect(err).To(BeNil())
+		_, err = containers.Exists(bt.conn, name)
+		Expect(err).To(BeNil())
+	})
+
+	It("podman kill a running container by ID with SIGTERM", func() {
+		// Killing a running container by ID should work
+		var name = "top"
+		cid, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		err = containers.Kill(bt.conn, cid, "SIGTERM")
+		Expect(err).To(BeNil())
+		_, err = containers.Exists(bt.conn, cid)
+		Expect(err).To(BeNil())
+	})
+
+	It("podman kill a running container by ID with SIGKILL", func() {
+		// Killing a running container by ID with TERM should work
+		var name = "top"
+		cid, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		err = containers.Kill(bt.conn, cid, "SIGKILL")
+		Expect(err).To(BeNil())
+	})
+
+	It("podman kill a running container by bogus signal", func() {
+		//Killing a running container by bogus signal should fail
+		var name = "top"
+		cid, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		err = containers.Kill(bt.conn, cid, "foobar")
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
+	})
+
+	It("podman kill latest container with SIGTERM", func() {
+		// Killing latest container should work
+		var name1 = "first"
+		var name2 = "second"
+		var latestContainers = 1
+		_, err := bt.RunTopContainer(&name1, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		_, err = bt.RunTopContainer(&name2, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		containerLatestList, err := containers.List(bt.conn, nil, nil, &latestContainers, nil, nil, nil)
+		err = containers.Kill(bt.conn, containerLatestList[0].Names[0], "SIGTERM")
+		Expect(err).To(BeNil())
+	})
+
 })
