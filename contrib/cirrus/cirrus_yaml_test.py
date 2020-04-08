@@ -36,19 +36,24 @@ class TestDependsOn(TestCaseBase):
     def test_00_dicts(self):
         """Expected dictionaries are present and non-empty"""
         self.assertIn('success_task', self.CIRRUS_YAML)
-        self.assertIn('success_task'.replace('_task', ''), self.ALL_TASK_NAMES)
+        self.assertIn('success', self.ALL_TASK_NAMES)
         self.assertIn('depends_on', self.CIRRUS_YAML['success_task'])
         self.assertGreater(len(self.CIRRUS_YAML['success_task']['depends_on']), 0)
 
-    def test_01_depends(self):
-        """Success task depends on all other tasks"""
+    def test_01_dicts(self):
+        """Expected dictionaries are present and non-empty"""
+        self.assertIn('retrospective_task', self.CIRRUS_YAML)
+        self.assertIn('retrospective', self.ALL_TASK_NAMES)
+        self.assertNotIn('depends_on', self.CIRRUS_YAML['retrospective_task'])
+
+    def test_02_depends(self):
+        """Success task depends on all other tasks except retrospective"""
         success_deps = set(self.CIRRUS_YAML['success_task']['depends_on'])
-        for task_name in self.ALL_TASK_NAMES - set(['success']):
+        for task_name in self.ALL_TASK_NAMES - set(['success', 'retrospective']):
             with self.subTest(task_name=task_name):
                 msg=('Please add "{0}" to the "depends_on" list in "success_task"'
                      "".format(task_name))
                 self.assertIn(task_name, success_deps, msg=msg)
-
 
 
 if __name__ == "__main__":

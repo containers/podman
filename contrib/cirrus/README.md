@@ -165,20 +165,13 @@ env:
   * Choose the *test_build_cache_images* task.
   * Open the *build_vm_images* script section.
 
-### `release` Task
+### `retrospective` Task
 
-Gathers up zip files uploaded by other tasks, from the local Cirrus-CI caching service.
-Depending on the execution context (a PR or a branch), this task uploads the files
-found to storage buckets at:
-
-* [https://storage.cloud.google.com/libpod-pr-releases](https://storage.cloud.google.com/libpod-pr-releases)
-* [https://storage.cloud.google.com/libpod-master-releases](https://storage.cloud.google.com/libpod-master-releases)
-
-***Note:*** Repeated builds from the same PR or branch, will clobber previous archives
-            *by design*.  This is intended so that the "latest" archive is always
-            available at a consistent URL.  The precise details regarding a particular
-            build is encoded within the zip-archive comment.
-
+This task is used to atomically execute followup operations any time a Cirrus-CI build
+finishes.  Normally it only runs after a branch or tag was pushed, however it can be
+manually triggered in order to test/verify operations or under abnormal conditions.
+Otherwise it's perfectly fine for it to simply sit in the 'paused' (un-triggered) state
+indefinitely.
 
 ## Base-images
 

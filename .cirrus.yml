@@ -52,6 +52,7 @@ env:
     BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"
     # Special image w/ nested-libvirt + tools for creating new cache and base images
     IMAGE_BUILDER_CACHE_IMAGE_NAME: "image-builder-image-1541772081"
+    GATE_IMAGE_FQIN: "quay.io/libpod/gate:${DEST_BRANCH}"
 
     ####
     #### Default to NOT operating in any special-case testing mode
@@ -106,7 +107,7 @@ gating_task:
         # Note: Image has dual purpose, see contrib/gate/README.md
         # The entrypoint.sh script ensures a prestine copy of $SRCPATH is
         # available at $GOSRC before executing make instructions.
-        image: "quay.io/libpod/gate:master"
+        image: "${GATE_IMAGE_FQIN}"
         cpu: 8
         memory: 12
 
@@ -151,9 +152,6 @@ gating_task:
 
     # Verify expected bash environment (-o pipefail)
     pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 # Ensure these container images can build
@@ -206,8 +204,6 @@ rpmbuild_task:
         - 'make -C ${CIRRUS_WORKING_DIR} -f ${CIRRUS_WORKING_DIR}/.copr/Makefile'
         - 'rpmbuild --rebuild ${CIRRUS_WORKING_DIR}/podman-*.src.rpm'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
 
 # This task runs `make vendor` followed by ./hack/tree_status.sh to check
 # whether the git tree is clean.  The reasoning for that is to make sure
@@ -239,9 +235,6 @@ vendor_task:
         - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
         - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
-
 
 # This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
 # whether the git tree is clean.
@@ -265,7 +258,7 @@ varlink_api_task:
     # Runs within Cirrus's "community cluster"
     container:
         # Note: Image has dual purpose, see contrib/gate/README.md
-        image: "quay.io/libpod/gate:master"
+        image: "${GATE_IMAGE_FQIN}"
         cpu: 4
         memory: 12
 
@@ -274,9 +267,6 @@ varlink_api_task:
     api_md_script:
         - '/usr/local/bin/entrypoint.sh varlink_api_generate |& ${TIMESTAMP}'
         - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 build_each_commit_task:
@@ -307,9 +297,6 @@ build_each_commit_task:
         - 'git fetch --depth 50 origin $DEST_BRANCH |& ${TIMESTAMP}'
         - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
 
 build_without_cgo_task:
 
@@ -338,9 +325,6 @@ build_without_cgo_task:
     build_without_cgo_script:
         - 'source $SCRIPT_BASE/lib.sh'
         - 'make build-no-cgo'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 # Update metadata on VM images referenced by this repository state
@@ -453,8 +437,8 @@ testing_task:
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
-    # FIXME
-    #integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
+    build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
+    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} system_test'
     apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} apiv2_test'
 
@@ -462,9 +446,6 @@ testing_task:
     tar_artifacts:
         path: "*.tar.gz"
         type: "application/x-tar"
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always: &standardlogs
         package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
@@ -474,6 +455,7 @@ testing_task:
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
         varlink_script: '$SCRIPT_BASE/logcollector.sh varlink'
         podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+
         html_artifacts:
             path: "*.log.html"
             type: "text/html"
@@ -554,9 +536,6 @@ special_testing_rootless_task:
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} system_test'
     apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} apiv2_test'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
     always:
         <<: *standardlogs
 
@@ -595,13 +574,13 @@ special_testing_in_podman_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
     always:
         <<: *standardlogs
 
 
+# TODO: Replace this with tasks that use actual Windows & MacOS systems
+# ref: https://cirrus-ci.org/guide/macOS/
+#      https://cirrus-ci.org/guide/windows/
 special_testing_cross_task:
 
     skip: $CI == 'true'
@@ -628,9 +607,6 @@ special_testing_cross_task:
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     # When examining a particular run, provide convenient access to release files.
     zip_artifacts:
@@ -662,9 +638,6 @@ special_testing_bindings_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
     always:
         <<: *standardlogs
 
@@ -688,9 +661,6 @@ special_testing_endpoint_task:
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -791,17 +761,16 @@ docs_task:
 
     script:
         - "$SCRIPT_BASE/build_swagger.sh |& ${TIMESTAMP}"
-        - "$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}"
+
+    yaml_artifacts:
+        path: "pkg/api/swagger.yaml"
+        type: "application/x-yaml"
 
 
-# Post message to IRC if everything passed PR testing
+# Conclusive task representing the combination of status from all required tasks.
 success_task:
 
-    # This task is a required-pass in github settings,
-    # it blocks PRs from merging if a depends_on task fails
-    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
-
-    # ignores any dependent task conditions
+    # ignores any dependent conditionals, but remains sensitive to any failures
     depends_on:
         - "gating"
         - "vendor"
@@ -824,15 +793,28 @@ success_task:
         # FIXME remove when all v2 tests pass
         - "integration_test_temporary"
 
-    env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-        SRCPATH: "$CIRRUS_WORKING_DIR"
-        EPOCH_TEST_COMMIT: "${CIRRUS_BASE_SHA}"  # repo clone missing this data
-
     container:
         # Note: Image has dual purpose, see contrib/gate/README.md
-        image: "quay.io/libpod/gate:master"
+        image: "${GATE_IMAGE_FQIN}"
         cpu: 1
         memory: 1
 
-    success_script: '/usr/local/bin/entrypoint.sh ./$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
+    # No repository code is required for no-op script
+    clone_script: mkdir -p ${CIRRUS_WORKING_DIR}
+
+    noop_script: /bin/true
+
+
+# Magic task executed manually or automatically by a Github Action workflow
+retrospective_task:
+    # Note: ***DO NOT*** manually trigger this task under normal operations.
+    #       Manual triggering is intended for human-use only as a backup.
+    #       Automatic triggering may take 1-3 minutes to occur when operating
+    #       normally.
+    trigger_type: manual
+
+    # No repository code is required for no-op script
+    clone_script: mkdir -p ${CIRRUS_WORKING_DIR}
+
+    # Just a stub for now
+    noop_script: /bin/true

@@ -21,8 +21,6 @@ then
     echo "Compiling podman-remote release archive for ${CROSS_PLATFORM}"
     if [[ "$CROSS_PLATFORM" == "windows" ]]
     then
-        # TODO: Remove next line, part of VM images next time they're built.
-        dnf install -y libmsi1 msitools pandoc
         make podman.msi
     fi
 else

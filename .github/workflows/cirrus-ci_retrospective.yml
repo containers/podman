@@ -1,0 +1,155 @@
+---
+
+# Notice when cirrus-ci has completed executing $SUCCESS_TASK_NAME after push to
+# a PR, Branch, or Tag.  Prepare and automatically trigger the Cirrus-CI task
+# named $MANUAL_TASK_NAME if it is in the "paused" state.  Wait for this task
+# to finish, then if successful, begin producing a new release for all platforms.
+
+on:
+    # Ref: https://help.github.com/en/actions/reference/events-that-trigger-workflows#check-suite-event-check_suite
+    check_suite:  # Always/only triggered from the default branch (master)
+        types:
+            - completed
+
+# Variables required by multiple jobs/steps
+env:
+    # Version number of cirrus-ci_retrospective container image to use (for reference)
+    CCI_RET_TAG: 'v1.1.3'
+    # Enable debugging of github actions itself
+    # (see https://help.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-a-debug-message)
+    ACTIONS_STEP_DEBUG: '${{ secrets.ACTIONS_STEP_DEBUG }}'
+    MANUAL_TASK_NAME: "retrospective"
+    SUCCESS_TASK_NAME: "success"
+    # Allow cevich to enable/disable failure notification
+    FAILMAILGIST: 'https://gist.githubusercontent.com/cevich/1e479c6811dc5b44508c2ba4dc295ff1'
+
+jobs:
+    # Obtain task details and validate required execution conditions
+    cirrus-ci_retrospective:
+        # Do not execute for other github applications, only works with cirrus-ci
+        if: github.event.check_suite.app.name == 'Cirrus CI'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Debug triggering event JSON
+              run: jq --indent 4 --color-output . ${{ github.event_path }}
+
+            # Ref: https://github.com/containers/automation/tree/master/cirrus-ci_retrospective
+            - name: Execute the cirrus-ci_retrospective container
+              # Can't use ${{env.CCI_RET_TAG}} in 'uses` because dumb stupid
+              uses: docker://quay.io/libpod/cirrus-ci_retrospective:v1.1.3
+              env:
+                GITHUB_TOKEN: ${{ github.token }}
+
+            - if: always()
+              name: Debug cirrus-ci_retrospective output JSON
+              run: jq --indent 4 --color-output . ./cirrus-ci_retrospective.json
+
+            # Ref: https://help.github.com/en/actions/reference/workflow-commands-for-github-actions
+            - name: Load and process resulting JSON into output parameter values
+              id: retro
+              env:
+                  # Produced by executing container image (above)
+                  ccirjson: ./cirrus-ci_retrospective.json
+              # Cirrus-CI Status (partial) Decoder Ring:
+              #     COMPLETED == Successful
+              #     ABORTED   == Task or dependency Failure
+              #     PAUSED    == Awaiting manual trigger
+              #     CANCELED  == Manually canceled task or dependency
+              #     TRIGGERED == Pre-scheduling
+              #     SCHEDULED == Queued to run
+              #     CREATED   == Waiting for full Queue
+              run: |
+                  success_status=$(jq --raw-output '.[] | select(.name == "${{env.SUCCESS_TASK_NAME}}") | .status' "$ccirjson")
+                  retro_status=$(jq --raw-output '.[] | select(.name == "${{env.MANUAL_TASK_NAME}}") | .status' "$ccirjson")
+                  retro_tid=$(jq --raw-output '.[] | select(.name == "${{env.MANUAL_TASK_NAME}}") | .id' "$ccirjson")
+                  build_sha=$(jq --raw-output '.[0].build.changeIdInRepo' "$ccirjson")
+                  build_branch=$(jq --raw-output '.[0].build.branch' "$ccirjson")
+                  build_pr=$(jq --raw-output '.[0].build.pullRequest' "$ccirjson")
+
+                  # Only trigger $MANUAL_TASK_NAME on pass/fail status of $SUCCESS_TASK_NAME
+                  if [[ -n "$retro_tid" ]] && [[ $retro_tid -gt 0 ]] && \
+                     [[ "$retro_status" == "PAUSED" ]] && [[ -n "$success_status" ]] && (
+                        [[ "$success_status" == "COMPLETED" ]] || \
+                        [[ "$success_status" == "ABORTED" ]] )
+                  then
+                      echo "::set-output name=trigger::true"
+                      echo "::set-output name=taskid::$retro_tid"
+                  else
+                      echo "::set-output name=trigger::false"
+                      echo "::set-output name=taskid::0"
+                  fi
+                  printf "::set-output name=success_status::%s\n" "$success_status"
+                  printf "::set-output name=retro_status::%s\n" "$retro_status"
+                  printf "::set-output name=build_sha::%s\n" "$build_sha"
+                  printf "::set-output name=build_branch::%s\n" "$build_branch"
+                  printf "::set-output name=build_pr::%s\n" "$build_pr"
+
+          - name: Record output values into file for future use
+            run: |
+                  mkdir -p artifacts
+                  cat <<EOF>> artifacts/ccir_outputs.sh
+                  BUILD_SHA='${{ steps.retro.outputs.build_sha }}'
+                  BUILD_BRANCH='${{ steps.retro.outputs.build_branch }}'
+                  BUILD_PR='${{ steps.retro.outputs.build_pr }}'
+                  SUCCESS_STATUS='${{ steps.retro.outputs.success_status }}'
+                  RETRO_STATUS='${{ steps.retro.outputs.retro_status }}'
+                  RETRO_TID='${{ steps.retro.outputs.taskid }}'
+                  RETRO_TRIGGERED='false'
+                  EOF
+
+            - if: steps.retro.outputs.trigger
+              name: Trigger Cirrus-CI ${{env.MANUAL_TASK_NAME}} task
+              env:
+                  # ID invented here to verify the operation
+                  UUID: ${{github.run_id}}.${{github.run_number}}.${{github.sha}}
+              run: |
+                  set +x
+                  trap "history -c" EXIT
+                  curl --silent --request POST \
+                    --url https://api.cirrus-ci.com/graphql \
+                    --header "Authorization: Bearer ${{ secrets.CIRRUS_API_TOKEN }}" \
+                    --header 'content-type: application/json' \
+                    --data '{"query":"mutation {
+                              trigger(input: {
+                                taskId: \"${{steps.retro.outputs.taskid}}\",
+                                clientMutationId: \"${{env.UUID}}\"}) {
+                                  clientMutationId
+                                  task {name}
+                                }
+                              }"
+                            }' \
+                    > ./task_trigger.json
+
+                  actual=$(jq --raw-output '.data.trigger.clientMutationId' ./task_trigger.json)
+                  test "$actual" == "$UUID"
+                  # Not every run of this workflow job will trigger the retro job
+                  sed -i -r -e 's/RETRO_TRIGGERED=.*/RETRO_TRIGGERED="true"/' artifacts/ccir_outputs.sh
+
+            - if: always()
+              name: Upload output-values artifact
+              uses: actions/upload-artifact@v2
+              with:
+                name: ccir_outputs
+                path: artifacts/ccir_outputs.sh
+
+            - if: failure()
+              id: failmail
+              run: printf "::set-output name=enabled::%s\n" $(curl --silent --location --url "$FAILMAILGIST/raw")
+
+            - if: failure() && steps.failmail.outputs.enabled
+              name: Let cevich know right away
+              uses: dawidd6/action-send-mail@v2.2.0
+              with:
+                server_address: smtp.gmail.com
+                server_port: 465
+                username: ${{secrets.RETRO_MAIL_USERNAME}}
+                password: ${{secrets.RETRO_MAIL_PASSWORD}}
+                subject: cirrus-ci_retrospective failure on ${{github.repository}}
+                to: cevich@redhat.com
+                from: ${{secrets.RETRO_MAIL_USERNAME}}
+                content_type: text/plain
+                attachments: artifacts/ccir_outputs.sh
+                body: |
+                    Workflow ${{github.workflow}} failed: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
+                    Trigger: ${{steps.retro.outputs.trigger}}
+                    Notice control: ${{env.FAILMAILGIST}}
