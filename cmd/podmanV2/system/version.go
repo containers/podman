@@ -24,7 +24,7 @@ var (
 		RunE:              version,
 		PersistentPreRunE: preRunE,
 	}
-	format string
+	versionFormat string
 )
 
 type versionStruct struct {
@@ -38,7 +38,7 @@ func init() {
 		Command: versionCommand,
 	})
 	flags := versionCommand.Flags()
-	flags.StringVarP(&format, "format", "f", "", "Change the output format to JSON or a Go template")
+	flags.StringVarP(&versionFormat, "format", "f", "", "Change the output format to JSON or a Go template")
 }
 
 func version(cmd *cobra.Command, args []string) error {
@@ -62,7 +62,7 @@ func version(cmd *cobra.Command, args []string) error {
 	v.Server = v.Client
 	//}
 
-	versionOutputFormat := format
+	versionOutputFormat := versionFormat
 	if versionOutputFormat != "" {
 		if strings.Join(strings.Fields(versionOutputFormat), "") == "{{json.}}" {
 			versionOutputFormat = formats.JSONString
