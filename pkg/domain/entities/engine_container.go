@@ -13,6 +13,7 @@ type ContainerEngine interface {
 	ContainerAttach(ctx context.Context, nameOrId string, options AttachOptions) error
 	ContainerCheckpoint(ctx context.Context, namesOrIds []string, options CheckpointOptions) ([]*CheckpointReport, error)
 	ContainerCleanup(ctx context.Context, namesOrIds []string, options ContainerCleanupOptions) ([]*ContainerCleanupReport, error)
+	ContainerPrune(ctx context.Context, options ContainerPruneOptions) (*ContainerPruneReport, error)
 	ContainerCommit(ctx context.Context, nameOrId string, options CommitOptions) (*CommitReport, error)
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
 	ContainerDiff(ctx context.Context, nameOrId string, options DiffOptions) (*DiffReport, error)

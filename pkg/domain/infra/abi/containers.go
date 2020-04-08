@@ -19,6 +19,7 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/logs"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi/terminal"
@@ -171,6 +172,22 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		reports = append(reports, &report)
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
+	filterFuncs, err := utils.GenerateFilterFuncsFromMap(ic.Libpod, options.Filters)
+	if err != nil {
+		return nil, err
+	}
+	prunedContainers, pruneErrors, err := ic.Libpod.PruneContainers(filterFuncs)
+	if err != nil {
+		return nil, err
+	}
+	report := entities.ContainerPruneReport{
+		ID:  prunedContainers,
+		Err: pruneErrors,
+	}
+	return &report, nil
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {
