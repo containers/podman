@@ -355,7 +355,7 @@ done
 
 if [ -n "$service_pid" ]; then
     kill $service_pid
-    wait -f $service_pid
+    wait $service_pid
 fi
 
 test_count=$(<$testcounter_file)
