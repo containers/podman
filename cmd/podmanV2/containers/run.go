@@ -109,13 +109,14 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	runOpts.Spec = s
 	report, err := registry.ContainerEngine().ContainerRun(registry.GetContext(), runOpts)
+	// report.ExitCode is set by ContainerRun even it it returns an error
+	registry.SetExitCode(report.ExitCode)
 	if err != nil {
 		return err
 	}
 	if cliVals.Detach {
 		fmt.Println(report.Id)
 	}
-	registry.SetExitCode(report.ExitCode)
 	if runRmi {
 		_, err := registry.ImageEngine().Delete(registry.GetContext(), []string{report.Id}, entities.ImageDeleteOptions{})
 		if err != nil {
