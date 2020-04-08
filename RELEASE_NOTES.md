@@ -1,7 +1,37 @@
 # Release Notes
 
-## 1.8.2
+## 1.9.0
+### Features
+- Experimental support has been added for `podman run --userns=auto`, which automatically allocates a unique UID and GID range for the new container's user namespace
+- The `podman play kube` command now has a `--network` flag to place the created pod in one or more CNI networks
+- The `podman commit` command now supports an `--iidfile` flag to write the ID of the committed image to a file
+- Initial support for the new `containers.conf` configuration file has been added. `containers.conf` allows for much more detailed configuration of some Podman functionality
 
+### Changes
+- There has been a major cleanup of the `podman info` command resulting in breaking changes. Many fields have been renamed to better suit usage with APIv2
+- All uses of the `--timeout` flag have been switched to prefer the alternative `--time`. The `--timeout` flag will continue to work, but man pages and `--help` will use the `--time` flag instead
+
+### Bugfixes
+- Fixed a bug where some volume mounts from the host would sometimes not properly determine the flags they should use when mounting
+- Fixed a bug where Podman was not propagating `$PATH` to Conmon and the OCI runtime, causing issues for some OCI runtimes that required it
+- Fixed a bug where rootless Podman would print error messages about missing support for systemd cgroups when run in a container with no cgroup support ([#5488](https://github.com/containers/libpod/issues/5488))
+- Fixed a bug where `podman play kube` would not properly handle container-only port mappings ([#5610](https://github.com/containers/libpod/issues/5610))
+- Fixed a bug where the `podman container prune` command was not pruning containers in the `created` and `configured` states
+- Fixed a bug where Podman was not properly removing CNI IP address allocations after a reboot ([#5433](https://github.com/containers/libpod/issues/5433))
+
+### HTTP API
+- Many Libpod API endpoints have been added, including `Changes`, `Checkpoint`, and `Restore`
+- Stability overall has greatly improved as we prepare the API for a beta release soon with Podman 2.0
+
+### Misc
+- The default infra image for pods has been upgraded to `k8s.gcr.io/pause:3.2` (from 3.1) to address a bug in the architecture metadata for non-AMD64 images
+- The `slirp4netns` networking utility in rootless Podman now uses Seccomp filtering where available for improved security
+- Updated Buildah to v1.14.8
+- Updated containers/storage to v1.18.2
+- Updated containers/image to v5.4.3
+- Updated containers/common to v0.8.1
+
+## 1.8.2
 ### Features
 - Initial support for automatically updating containers managed via Systemd unit files has been merged. This allows containers to automatically upgrade if a newer version of their image becomes available
 
