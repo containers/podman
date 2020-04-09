@@ -252,7 +252,13 @@ var _ = Describe("Podman exec", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"exec", "--preserve-fds", "1", "test1", "ls"})
+		devNull, err := os.Open("/dev/null")
+		Expect(err).To(BeNil())
+		defer devNull.Close()
+		files := []*os.File{
+			devNull,
+		}
+		session := podmanTest.PodmanExtraFiles([]string{"exec", "--preserve-fds", "1", "test1", "ls"}, files)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})

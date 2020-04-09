@@ -34,6 +34,12 @@ func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration 
 	return &PodmanSessionIntegration{podmanSession}
 }
 
+// PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
+func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
+	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, nil, extraFiles)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
 // PodmanNoCache calls podman with out adding the imagecache
 func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
 	podmanSession := p.PodmanBase(args, false, true)
