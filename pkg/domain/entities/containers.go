@@ -265,3 +265,21 @@ type ContainerRunReport struct {
 	ExitCode int
 	Id       string
 }
+
+// ContainerCleanupOptions are the CLI values for the
+// cleanup command
+type ContainerCleanupOptions struct {
+	All         bool
+	Latest      bool
+	Remove      bool
+	RemoveImage bool
+}
+
+// ContainerCleanupReport describes the response from a
+// container cleanup
+type ContainerCleanupReport struct {
+	CleanErr error
+	Id       string
+	RmErr    error
+	RmiErr   error
+}

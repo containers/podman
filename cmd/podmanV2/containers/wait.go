@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containers/libpod/cmd/podmanV2/parse"
 	"github.com/containers/libpod/cmd/podmanV2/registry"
 	"github.com/containers/libpod/cmd/podmanV2/utils"
 	"github.com/containers/libpod/libpod/define"
@@ -23,9 +22,7 @@ var (
 		Long:              waitDescription,
 		RunE:              wait,
 		PersistentPreRunE: preRunE,
-		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
-		},
+		Args:              registry.IdOrLatestArgs,
 		Example: `podman wait --latest
   podman wait --interval 5000 ctrID
   podman wait ctrID1 ctrID2`,

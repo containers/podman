@@ -757,3 +757,40 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 
 	return nil
 }
+
+func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []string, options entities.ContainerCleanupOptions) ([]*entities.ContainerCleanupReport, error) {
+	var reports []*entities.ContainerCleanupReport
+	ctrs, err := getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		var err error
+		report := entities.ContainerCleanupReport{Id: ctr.ID()}
+		if options.Remove {
+			err = ic.Libpod.RemoveContainer(ctx, ctr, false, true)
+			if err != nil {
+				report.RmErr = errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
+			}
+		} else {
+			err := ctr.Cleanup(ctx)
+			if err != nil {
+				report.CleanErr = errors.Wrapf(err, "failed to cleanup container %v", ctr.ID())
+			}
+		}
+
+		if options.RemoveImage {
+			_, imageName := ctr.Image()
+			ctrImage, err := ic.Libpod.ImageRuntime().NewFromLocal(imageName)
+			if err != nil {
+				report.RmiErr = err
+				reports = append(reports, &report)
+				continue
+			}
+			_, err = ic.Libpod.RemoveImage(ctx, ctrImage, false)
+			report.RmiErr = err
+		}
+		reports = append(reports, &report)
+	}
+	return reports, nil
+}
