@@ -244,15 +244,17 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec preserve fds sanity check", func() {
-		// TODO: add this test once crun adds the --preserve-fds flag for exec
-		if strings.Contains(podmanTest.OCIRuntime, "crun") {
-			Skip("Test only works on crun")
-		}
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"exec", "--preserve-fds", "1", "test1", "ls"})
+		devNull, err := os.Open("/dev/null")
+		Expect(err).To(BeNil())
+		defer devNull.Close()
+		files := []*os.File{
+			devNull,
+		}
+		session := podmanTest.PodmanExtraFiles([]string{"exec", "--preserve-fds", "1", "test1", "ls"}, files)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
