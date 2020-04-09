@@ -1,7 +1,6 @@
 package compat
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/schema"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -48,14 +48,27 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	}()
 	if eventsError != nil {
 		utils.InternalServerError(w, eventsError)
+		close(eventChannel)
 		return
 	}
 
+	// If client disappears we need to stop listening for events
+	go func(done <-chan struct{}) {
+		<-done
+		close(eventChannel)
+	}(r.Context().Done())
+
+	// Headers need to be written out before turning Writer() over to json encoder
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	for event := range eventChannel {
 		e := handlers.EventToApiEvent(event)
 		if err := coder.Encode(e); err != nil {

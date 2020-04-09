@@ -19,7 +19,7 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			if err != nil {
 				buf := make([]byte, 1<<20)
 				n := runtime.Stack(buf, true)
-				log.Warnf("Recovering from podman handler panic: %v, %s", err, buf[:n])
+				log.Warnf("Recovering from API handler panic: %v, %s", err, buf[:n])
 				// Try to inform client things went south... won't work if handler already started writing response body
 				utils.InternalServerError(w, fmt.Errorf("%v", err))
 			}
@@ -27,12 +27,7 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 
 		// Wrapper to hide some boiler plate
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			// Connection counting, ugh.  Needed to support the sliding window for idle checking.
-			s.ConnectionCh <- EnterHandler
-			defer func() { s.ConnectionCh <- ExitHandler }()
-
-			log.Debugf("APIHandler -- Method: %s URL: %s (conn %d/%d)",
-				r.Method, r.URL.String(), s.ActiveConnections, s.TotalConnections)
+			log.Debugf("APIHandler -- Method: %s URL: %s", r.Method, r.URL.String())
 
 			if err := r.ParseForm(); err != nil {
 				log.Infof("Failed Request: unable to parse form: %q", err)
