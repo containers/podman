@@ -244,10 +244,6 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec preserve fds sanity check", func() {
-		// TODO: add this test once crun adds the --preserve-fds flag for exec
-		if strings.Contains(podmanTest.OCIRuntime, "crun") {
-			Skip("Test only works on crun")
-		}
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
