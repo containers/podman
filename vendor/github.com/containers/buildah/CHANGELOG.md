@@ -2,6 +2,14 @@
 
 # Changelog
 
+## v1.14.8 (2020-04-09)
+    Run (make vendor)
+    Run (make -C tests/tools vendor)
+    Run (go mod tidy) before (go mod vendor) again
+    Fix (make vendor)
+    Bump validation
+    Bump back to v1.15.0-dev
+
 ## v1.14.7 (2020-04-07)
     Bump github.com/containers/image/v5 from 5.3.1 to 5.4.3
     make vendor: run `tidy` after `vendor`
