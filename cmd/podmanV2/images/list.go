@@ -130,6 +130,9 @@ func writeJSON(imageS []*entities.ImageSummary) error {
 }
 
 func writeTemplate(imageS []*entities.ImageSummary, err error) error {
+	var (
+		hdr, row string
+	)
 	type image struct {
 		entities.ImageSummary
 		Repository string `json:"repository,omitempty"`
@@ -148,10 +151,15 @@ func writeTemplate(imageS []*entities.ImageSummary, err error) error {
 			listFlag.readOnly = true
 		}
 	}
-
-	hdr, row := imageListFormat(listFlag)
+	if len(listFlag.format) < 1 {
+		hdr, row = imageListFormat(listFlag)
+	} else {
+		row = listFlag.format
+		if !strings.HasSuffix(row, "\n") {
+			row += "\n"
+		}
+	}
 	format := hdr + "{{range . }}" + row + "{{end}}"
-
 	tmpl := template.Must(template.New("list").Funcs(report.PodmanTemplateFuncs()).Parse(format))
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
