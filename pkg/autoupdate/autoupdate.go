@@ -201,18 +201,25 @@ func imageContainersMap(runtime *libpod.Runtime) (map[string][]*libpod.Container
 		if state != define.ContainerStateRunning {
 			continue
 		}
+
 		// Only update containers with the specific label/policy set.
 		labels := ctr.Labels()
-		if value, exists := labels[Label]; exists {
-			policy, err := LookupPolicy(value)
-			if err != nil {
-				errors = append(errors, err)
-				continue
-			}
-			if policy != PolicyNewImage {
-				continue
-			}
+		value, exists := labels[Label]
+		if !exists {
+			continue
 		}
+
+		policy, err := LookupPolicy(value)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+
+		// Skip non-image labels (could be explicitly disabled).
+		if policy != PolicyNewImage {
+			continue
+		}
+
 		// Now we know that `ctr` is configured for auto updates.
 		id, _ := ctr.Image()
 		imageMap[id] = append(imageMap[id], allContainers[i])
