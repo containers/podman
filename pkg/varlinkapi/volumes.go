@@ -11,7 +11,7 @@ import (
 )
 
 // VolumeCreate creates a libpod volume based on input from a varlink connection
-func (i *LibpodAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.VolumeCreateOpts) error {
+func (i *VarlinkAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.VolumeCreateOpts) error {
 	var volumeOptions []libpod.VolumeCreateOption
 
 	if len(options.VolumeName) > 0 {
@@ -38,7 +38,7 @@ func (i *LibpodAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.Vol
 }
 
 // VolumeRemove removes volumes by options.All or options.Volumes
-func (i *LibpodAPI) VolumeRemove(call iopodman.VarlinkCall, options iopodman.VolumeRemoveOpts) error {
+func (i *VarlinkAPI) VolumeRemove(call iopodman.VarlinkCall, options iopodman.VolumeRemoveOpts) error {
 	success, failed, err := shared.SharedRemoveVolumes(getContext(), i.Runtime, options.Volumes, options.All, options.Force)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -52,7 +52,7 @@ func (i *LibpodAPI) VolumeRemove(call iopodman.VarlinkCall, options iopodman.Vol
 }
 
 // GetVolumes returns all the volumes known to the remote system
-func (i *LibpodAPI) GetVolumes(call iopodman.VarlinkCall, args []string, all bool) error {
+func (i *VarlinkAPI) GetVolumes(call iopodman.VarlinkCall, args []string, all bool) error {
 	var (
 		err     error
 		reply   []*libpod.Volume
@@ -87,7 +87,7 @@ func (i *LibpodAPI) GetVolumes(call iopodman.VarlinkCall, args []string, all boo
 }
 
 // InspectVolume inspects a single volume, returning its JSON as a string.
-func (i *LibpodAPI) InspectVolume(call iopodman.VarlinkCall, name string) error {
+func (i *VarlinkAPI) InspectVolume(call iopodman.VarlinkCall, name string) error {
 	vol, err := i.Runtime.LookupVolume(name)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -104,7 +104,7 @@ func (i *LibpodAPI) InspectVolume(call iopodman.VarlinkCall, name string) error 
 }
 
 // VolumesPrune removes unused images via a varlink call
-func (i *LibpodAPI) VolumesPrune(call iopodman.VarlinkCall) error {
+func (i *VarlinkAPI) VolumesPrune(call iopodman.VarlinkCall) error {
 	var (
 		prunedErrors []string
 		prunedNames  []string

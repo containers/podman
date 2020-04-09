@@ -341,7 +341,7 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 				failures[ctr] = errors.Wrapf(err, "Failed to evict container: %q", id)
 				continue
 			}
-			ok = append(ok, string(id))
+			ok = append(ok, id)
 		}
 		return ok, failures, nil
 	}
@@ -432,7 +432,7 @@ func BatchContainerOp(ctr *Container, opts shared.PsOptions) (shared.BatchContai
 // Log one or more containers over a varlink connection
 func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *logs.LogOptions) error {
 	// GetContainersLogs
-	reply, err := iopodman.GetContainersLogs().Send(r.Conn, uint64(varlink.More), c.InputArgs, c.Follow, c.Latest, options.Since.Format(time.RFC3339Nano), int64(c.Tail), c.Timestamps)
+	reply, err := iopodman.GetContainersLogs().Send(r.Conn, uint64(varlink.More), c.InputArgs, c.Follow, c.Latest, options.Since.Format(time.RFC3339Nano), c.Tail, c.Timestamps)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get container logs")
 	}
@@ -753,15 +753,15 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 			return nil, nil, err
 		}
 		defer cancel()
-		defer restoreTerminal(oldTermState)
+		defer restoreTerminal(oldTermState) // nolint: errcheck
 
 		logrus.SetFormatter(&RawTtyFormatter{})
-		term.SetRawTerminal(os.Stdin.Fd())
+		term.SetRawTerminal(os.Stdin.Fd()) // nolint: errcheck
 	}
 
 	reply, err := iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
 	if err != nil {
-		restoreTerminal(oldTermState)
+		restoreTerminal(oldTermState) // nolint: errcheck
 		return nil, nil, err
 	}
 
@@ -769,7 +769,7 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 	_, err = reply()
 
 	if err != nil {
-		restoreTerminal(oldTermState)
+		restoreTerminal(oldTermState) // nolint: errcheck
 		return nil, nil, err
 	}
 
@@ -857,7 +857,7 @@ func (r *LocalRuntime) Restart(ctx context.Context, c *cliconfig.RestartValues) 
 	useTimeout := c.Flag("timeout").Changed || c.Flag("time").Changed
 	inputTimeout := c.Timeout
 
-	if c.Latest {
+	if c.Latest { // nolint: gocritic
 		lastCtr, err := r.GetLatestContainer()
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "unable to get latest container")
@@ -1042,10 +1042,10 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 			return ec, err
 		}
 		defer cancel()
-		defer restoreTerminal(oldTermState)
+		defer restoreTerminal(oldTermState) // nolint: errcheck
 
 		logrus.SetFormatter(&RawTtyFormatter{})
-		term.SetRawTerminal(os.Stdin.Fd())
+		term.SetRawTerminal(os.Stdin.Fd()) // nolint: errcheck
 	}
 
 	opts := iopodman.ExecOpts{
@@ -1082,7 +1082,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	return ec, err
 }
 
-func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, stdin *os.File, stdout *os.File, oldTermState *term.State, resize chan remotecommand.TerminalSize, ecChan chan int) chan error {
+func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, stdin *os.File, stdout *os.File, oldTermState *term.State, resize chan remotecommand.TerminalSize, ecChan chan int) chan error { // nolint: interfacer
 	errChan := make(chan error, 1)
 	// These are the special writers that encode input from the client.
 	varlinkStdinWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.ToStdin)
@@ -1092,7 +1092,7 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 	go func() {
 		// Read from the wire and direct to stdout or stderr
 		err := virtwriter.Reader(reader, stdout, os.Stderr, nil, nil, ecChan)
-		defer restoreTerminal(oldTermState)
+		defer restoreTerminal(oldTermState) // nolint: errcheck
 		sendGenericError(ecChan)
 		errChan <- err
 	}()
@@ -1101,13 +1101,13 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 		for termResize := range resize {
 			b, err := json.Marshal(termResize)
 			if err != nil {
-				defer restoreTerminal(oldTermState)
+				defer restoreTerminal(oldTermState) // nolint: errcheck,staticcheck
 				sendGenericError(ecChan)
 				errChan <- err
 			}
 			_, err = varlinkResizeWriter.Write(b)
 			if err != nil {
-				defer restoreTerminal(oldTermState)
+				defer restoreTerminal(oldTermState) // nolint: errcheck,staticcheck
 				sendGenericError(ecChan)
 				errChan <- err
 			}
@@ -1117,7 +1117,7 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 		// Takes stdinput and sends it over the wire after being encoded
 		go func() {
 			if _, err := io.Copy(varlinkStdinWriter, stdin); err != nil {
-				defer restoreTerminal(oldTermState)
+				defer restoreTerminal(oldTermState) // nolint: errcheck
 				sendGenericError(ecChan)
 				errChan <- err
 			}

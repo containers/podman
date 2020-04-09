@@ -24,13 +24,14 @@ type ContainerEngine interface {
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)
 	ContainerRestore(ctx context.Context, namesOrIds []string, options RestoreOptions) ([]*RestoreReport, error)
 	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*RmReport, error)
-	ContainerStart(ctx context.Context, namesOrIds []string, options ContainerStartOptions) ([]*ContainerStartReport, error)
 	ContainerRun(ctx context.Context, opts ContainerRunOptions) (*ContainerRunReport, error)
+	ContainerStart(ctx context.Context, namesOrIds []string, options ContainerStartOptions) ([]*ContainerStartReport, error)
 	ContainerStop(ctx context.Context, namesOrIds []string, options StopOptions) ([]*StopReport, error)
 	ContainerTop(ctx context.Context, options TopOptions) (*StringSliceReport, error)
 	ContainerUnpause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
 	HealthCheckRun(ctx context.Context, nameOrId string, options HealthCheckOptions) (*define.HealthCheckResults, error)
+	Info(ctx context.Context) (*define.Info, error)
 	PodCreate(ctx context.Context, opts PodCreateOptions) (*PodCreateReport, error)
 	PodExists(ctx context.Context, nameOrId string) (*BoolReport, error)
 	PodInspect(ctx context.Context, options PodInspectOptions) (*PodInspectReport, error)
@@ -43,11 +44,11 @@ type ContainerEngine interface {
 	PodStop(ctx context.Context, namesOrIds []string, options PodStopOptions) ([]*PodStopReport, error)
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
+	RestService(ctx context.Context, opts ServiceOptions) error
+	VarlinkService(ctx context.Context, opts ServiceOptions) error
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts VolumeInspectOptions) ([]*VolumeInspectReport, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)
 	VolumePrune(ctx context.Context, opts VolumePruneOptions) ([]*VolumePruneReport, error)
 	VolumeRm(ctx context.Context, namesOrIds []string, opts VolumeRmOptions) ([]*VolumeRmReport, error)
-
-	Info(ctx context.Context) (*define.Info, error)
 }

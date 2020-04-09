@@ -12,7 +12,7 @@ import (
 	"github.com/varlink/go/varlink"
 )
 
-var remoteEndpoint *Endpoint
+var remoteEndpoint *Endpoint // nolint: deadcode,unused
 
 func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
 	remoteConfigConnections, err := remoteclientconfig.ReadRemoteConfig(r.config)
@@ -26,8 +26,8 @@ func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
 		remoteEndpoint, err = newBridgeConnection(bridge, nil, r.cmd.LogLevel)
 		// if an environment variable for podman_varlink_address is defined,
 		// we used that as passed
-	} else if address := os.Getenv("PODMAN_VARLINK_ADDRESS"); address != "" {
-		logrus.Debug("creating a varlink address based on env variable: %s", address)
+	} else if address := os.Getenv("PODMAN_VARLINK_ADDRESS"); address != "" { // nolint:gocritic
+		logrus.Debugf("creating a varlink address based on env variable: %s", address)
 		remoteEndpoint, err = newSocketConnection(address)
 		//	if the user provides a remote host, we use it to configure a bridge connection
 	} else if len(r.cmd.RemoteHost) > 0 {
@@ -35,7 +35,7 @@ func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
 		if len(r.cmd.RemoteUserName) < 1 {
 			return nil, errors.New("you must provide a username when providing a remote host name")
 		}
-		rc := remoteclientconfig.RemoteConnection{r.cmd.RemoteHost, r.cmd.RemoteUserName, false, r.cmd.Port, r.cmd.IdentityFile, r.cmd.IgnoreHosts}
+		rc := remoteclientconfig.RemoteConnection{r.cmd.RemoteHost, r.cmd.RemoteUserName, false, r.cmd.Port, r.cmd.IdentityFile, r.cmd.IgnoreHosts} // nolint: govet
 		remoteEndpoint, err = newBridgeConnection("", &rc, r.cmd.LogLevel)
 		//  if the user has a config file with connections in it
 	} else if len(remoteConfigConnections.Connections) > 0 {
@@ -59,7 +59,7 @@ func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
 		logrus.Debug("creating a varlink address based default root address")
 		remoteEndpoint, err = newSocketConnection(DefaultVarlinkAddress)
 	}
-	return
+	return // nolint: nakedret
 }
 
 // Connect provides a varlink connection

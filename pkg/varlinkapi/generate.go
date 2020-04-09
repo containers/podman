@@ -10,7 +10,7 @@ import (
 )
 
 // GenerateKube ...
-func (i *LibpodAPI) GenerateKube(call iopodman.VarlinkCall, name string, service bool) error {
+func (i *VarlinkAPI) GenerateKube(call iopodman.VarlinkCall, name string, service bool) error {
 	pod, serv, err := shared.GenerateKube(name, service, i.Runtime)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())

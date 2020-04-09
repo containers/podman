@@ -16,7 +16,7 @@ import (
 )
 
 // GetVersion ...
-func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
+func (i *VarlinkAPI) GetVersion(call iopodman.VarlinkCall) error {
 	versionInfo, err := define.GetVersion()
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
 }
 
 // GetInfo returns details about the podman host and its stores
-func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
+func (i *VarlinkAPI) GetInfo(call iopodman.VarlinkCall) error {
 	versionInfo, err := define.GetVersion()
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 }
 
 // GetVersion ...
-func (i *LibpodAPI) Reset(call iopodman.VarlinkCall) error {
+func (i *VarlinkAPI) Reset(call iopodman.VarlinkCall) error {
 	if err := i.Runtime.Reset(context.TODO()); err != nil {
 		logrus.Errorf("Reset Failed: %v", err)
 		if err := call.ReplyErrorOccurred(err.Error()); err != nil {

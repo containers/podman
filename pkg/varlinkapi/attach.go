@@ -44,7 +44,7 @@ func setupStreams(call iopodman.VarlinkCall) (*bufio.Reader, *bufio.Writer, *io.
 }
 
 // Attach connects to a containers console
-func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys string, start bool) error {
+func (i *VarlinkAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys string, start bool) error {
 	var finalErr error
 	resize := make(chan remotecommand.TerminalSize)
 	errChan := make(chan error)

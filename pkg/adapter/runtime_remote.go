@@ -180,7 +180,7 @@ type Pod struct {
 type remotepod struct {
 	config     *libpod.PodConfig
 	state      *libpod.PodInspectState
-	containers []libpod.PodContainerInfo
+	containers []libpod.PodContainerInfo // nolint: structcheck
 	Runtime    *LocalRuntime
 }
 
@@ -627,7 +627,7 @@ func (r *LocalRuntime) SendFileOverVarlink(source string) (string, error) {
 		return "", err
 	}
 	logrus.Debugf("sending %s over varlink connection", source)
-	reply, err := iopodman.SendFile().Send(r.Conn, varlink.Upgrade, "", int64(fileInfo.Size()))
+	reply, err := iopodman.SendFile().Send(r.Conn, varlink.Upgrade, "", fileInfo.Size())
 	if err != nil {
 		return "", err
 	}
@@ -754,9 +754,7 @@ func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeIn
 			volumes = append(volumes, vol.Name())
 		}
 	} else {
-		for _, arg := range c.InputArgs {
-			volumes = append(volumes, arg)
-		}
+		volumes = append(volumes, c.InputArgs...)
 	}
 
 	for _, vol := range volumes {
@@ -855,7 +853,7 @@ func (r *LocalRuntime) SaveImage(ctx context.Context, c *cliconfig.SaveValues) e
 		}
 
 	}
-	if err != nil {
+	if err != nil { // nolint: govet
 		return err
 	}
 
@@ -927,7 +925,7 @@ func IsImageNotFound(err error) bool {
 	if errors.Cause(err) == image.ErrNoSuchImage {
 		return true
 	}
-	switch err.(type) {
+	switch err.(type) { // nolint: gocritic
 	case *iopodman.ImageNotFound:
 		return true
 	}
@@ -991,7 +989,7 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 			Time:   eTime,
 			Type:   eType,
 		}
-		if c.Format == formats.JSONString {
+		if c.Format == formats.JSONString { // nolint: gocritic
 			jsonStr, err := event.ToJSONString()
 			if err != nil {
 				return errors.Wrapf(err, "unable to format json")
@@ -1008,6 +1006,7 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 				return err
 			}
 		}
+
 		if _, err := w.Write([]byte("\n")); err != nil {
 			return err
 		}
@@ -1040,7 +1039,7 @@ func stringToChangeType(change string) archive.ChangeType {
 		return archive.ChangeAdd
 	case "D":
 		return archive.ChangeDelete
-	default:
+	default: // nolint: gocritic,stylecheck
 		logrus.Errorf("'%s' is unknown archive type", change)
 		fallthrough
 	case "C":

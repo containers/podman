@@ -3,7 +3,6 @@
 package varlinkapi
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/containers/libpod/libpod/events"
@@ -11,7 +10,7 @@ import (
 )
 
 // GetEvents is a remote endpoint to get events from the event log
-func (i *LibpodAPI) GetEvents(call iopodman.VarlinkCall, filter []string, since string, until string) error {
+func (i *VarlinkAPI) GetEvents(call iopodman.VarlinkCall, filter []string, since string, until string) error {
 	var (
 		fromStart   bool
 		eventsError error
@@ -43,9 +42,9 @@ func (i *LibpodAPI) GetEvents(call iopodman.VarlinkCall, filter []string, since 
 			Id:     event.ID,
 			Image:  event.Image,
 			Name:   event.Name,
-			Status: fmt.Sprintf("%s", event.Status),
+			Status: string(event.Status),
 			Time:   event.Time.Format(time.RFC3339Nano),
-			Type:   fmt.Sprintf("%s", event.Type),
+			Type:   string(event.Type),
 		})
 		if !call.Continues {
 			// For a one-shot on events, we break out here

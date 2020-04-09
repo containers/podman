@@ -221,8 +221,8 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	ociRuntime := os.Getenv("OCI_RUNTIME")
 	if ociRuntime == "" {
 		var err error
-		ociRuntime, err = exec.LookPath("runc")
-		// If we cannot find the runc binary, setting to something static as we have no way
+		ociRuntime, err = exec.LookPath("crun")
+		// If we cannot find the crun binary, setting to something static as we have no way
 		// to return an error.  The tests will fail and point out that the runc binary could
 		// not be found nicely.
 		if err != nil {

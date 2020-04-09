@@ -159,7 +159,7 @@ endif
 
 .PHONY: golangci-lint
 golangci-lint: .gopathok varlink_generate .install.golangci-lint
-	$(GOBIN)/golangci-lint run
+	hack/golangci-lint.sh run
 
 .PHONY: gofmt
 gofmt: ## Verify the source code gofmt

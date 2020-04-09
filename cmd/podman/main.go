@@ -24,8 +24,8 @@ import (
 var (
 	exitCode = define.ExecErrorCodeGeneric
 	Ctx      context.Context
-	span     opentracing.Span
-	closer   io.Closer
+	span     opentracing.Span // nolint:varcheck,deadcode,unused
+	closer   io.Closer        // nolint:varcheck,deadcode,unused
 )
 
 // Commands that the remote and local client have
