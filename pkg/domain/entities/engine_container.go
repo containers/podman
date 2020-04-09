@@ -20,6 +20,7 @@ type ContainerEngine interface {
 	ContainerKill(ctx context.Context, namesOrIds []string, options KillOptions) ([]*KillReport, error)
 	ContainerList(ctx context.Context, options ContainerListOptions) ([]ListContainer, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
+	ContainerLogs(ctx context.Context, containers []string, options ContainerLogsOptions) error
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)
 	ContainerRestore(ctx context.Context, namesOrIds []string, options RestoreOptions) ([]*RestoreReport, error)
 	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*RmReport, error)

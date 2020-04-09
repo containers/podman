@@ -4,9 +4,11 @@ package abi
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containers/buildah"
 	"github.com/containers/image/v5/manifest"
@@ -14,6 +16,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi/terminal"
@@ -708,4 +711,49 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		report.ExitCode = int(ecode)
 	}
 	return &report, nil
+}
+
+func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []string, options entities.ContainerLogsOptions) error {
+	if options.Writer == nil {
+		return errors.New("no io.Writer set for container logs")
+	}
+
+	var wg sync.WaitGroup
+
+	ctrs, err := getContainersByContext(false, options.Latest, containers, ic.Libpod)
+	if err != nil {
+		return err
+	}
+
+	logOpts := &logs.LogOptions{
+		Multi:      len(ctrs) > 1,
+		Details:    options.Details,
+		Follow:     options.Follow,
+		Since:      options.Since,
+		Tail:       options.Tail,
+		Timestamps: options.Timestamps,
+		UseName:    options.Names,
+		WaitGroup:  &wg,
+	}
+
+	chSize := len(ctrs) * int(options.Tail)
+	if chSize <= 0 {
+		chSize = 1
+	}
+	logChannel := make(chan *logs.LogLine, chSize)
+
+	if err := ic.Libpod.Log(ctrs, logOpts, logChannel); err != nil {
+		return err
+	}
+
+	go func() {
+		wg.Wait()
+		close(logChannel)
+	}()
+
+	for line := range logChannel {
+		fmt.Fprintln(options.Writer, line.String(logOpts))
+	}
+
+	return nil
 }
