@@ -30,7 +30,7 @@ func getContainersByContext(contextWithConnection context.Context, all bool, nam
 	for _, id := range namesOrIds {
 		var found bool
 		for _, con := range c {
-			if id == con.ID || strings.HasPrefix(con.ID, id) || util.StringInSlice(id, con.Names) {
+			if id == con.ID || strings.HasPrefix(con.ID, id) || util.StringInSlice(id, con.ContainerNames) {
 				cons = append(cons, con)
 				found = true
 				break

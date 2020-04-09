@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
@@ -13,12 +11,8 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podmanV2/registry"
-	"github.com/containers/libpod/cmd/podmanV2/report"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -44,9 +38,6 @@ var (
 	filters        []string
 	noTrunc        bool
 	defaultHeaders string = "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tSTATUS\tPORTS\tNAMES"
-
-//	CONTAINER ID  IMAGE                            COMMAND  CREATED     STATUS           PORTS  NAMES
-
 )
 
 func init() {
@@ -143,7 +134,6 @@ func getResponses() ([]entities.ListContainer, error) {
 }
 
 func ps(cmd *cobra.Command, args []string) error {
-	// []string to map[string][]string
 	for _, f := range filters {
 		split := strings.SplitN(f, "=", 2)
 		if len(split) == 1 {
@@ -178,8 +168,7 @@ func ps(cmd *cobra.Command, args []string) error {
 	if !listOpts.Quiet && !cmd.Flag("format").Changed {
 		format = headers + format
 	}
-	funcs := report.AppendFuncMap(psFuncMap)
-	tmpl, err := template.New("listPods").Funcs(funcs).Parse(format)
+	tmpl, err := template.New("listContainers").Parse(format)
 	if err != nil {
 		return err
 	}
@@ -217,7 +206,7 @@ func createPsOut() (string, string) {
 	var row string
 	if listOpts.Namespace {
 		headers := "CONTAINER ID\tNAMES\tPID\tCGROUPNS\tIPC\tMNT\tNET\tPIDN\tUSERNS\tUTS\n"
-		row := "{{.ID}}\t{{names .Names}}\t{{.Pid}}\t{{.Namespaces.Cgroup}}\t{{.Namespaces.IPC}}\t{{.Namespaces.MNT}}\t{{.Namespaces.NET}}\t{{.Namespaces.PIDNS}}\t{{.Namespaces.User}}\t{{.Namespaces.UTS}}\n"
+		row := "{{.ID}}\t{{.Names}}\t{{.Pid}}\t{{.Namespaces.Cgroup}}\t{{.Namespaces.IPC}}\t{{.Namespaces.MNT}}\t{{.Namespaces.NET}}\t{{.Namespaces.PIDNS}}\t{{.Namespaces.User}}\t{{.Namespaces.UTS}}\n"
 		return headers, row
 	}
 	headers := defaultHeaders
@@ -226,7 +215,7 @@ func createPsOut() (string, string) {
 	} else {
 		row += "{{slice .ID 0 12}}"
 	}
-	row += "\t{{.Image}}\t{{cmd .Command}}\t{{humanDuration .Created}}\t{{state .}}\t{{ports .Ports}}\t{{names .Names}}"
+	row += "\t{{.Image}}\t{{.Command}}\t{{.CreatedHuman}}\t{{.State}}\t{{.Ports}}\t{{.Names}}"
 
 	if listOpts.Pod {
 		headers += "\tPOD ID\tPODNAME"
@@ -240,7 +229,7 @@ func createPsOut() (string, string) {
 
 	if listOpts.Size {
 		headers += "\tSIZE"
-		row += "\t{{consize .Size}}"
+		row += "\t{{.Size}}"
 	}
 	if !strings.HasSuffix(headers, "\n") {
 		headers += "\n"
@@ -249,131 +238,4 @@ func createPsOut() (string, string) {
 		row += "\n"
 	}
 	return headers, row
-}
-
-var psFuncMap = template.FuncMap{
-	"cmd": func(conCommand []string) string {
-		return strings.Join(conCommand, " ")
-	},
-	"state": func(con entities.ListContainer) string {
-		var state string
-		switch con.State {
-		case "running":
-			t := units.HumanDuration(time.Since(time.Unix(con.StartedAt, 0)))
-			state = "Up " + t + " ago"
-		case "configured":
-			state = "Created"
-		case "exited":
-			t := units.HumanDuration(time.Since(time.Unix(con.ExitedAt, 0)))
-			state = fmt.Sprintf("Exited (%d) %s ago", con.ExitCode, t)
-		default:
-			state = con.State
-		}
-		return state
-	},
-	"ports": func(ports []ocicni.PortMapping) string {
-		if len(ports) == 0 {
-			return ""
-		}
-		return portsToString(ports)
-	},
-	"names": func(names []string) string {
-		return names[0]
-	},
-	"consize": func(csize shared.ContainerSize) string {
-		virt := units.HumanSizeWithPrecision(float64(csize.RootFsSize), 3)
-		s := units.HumanSizeWithPrecision(float64(csize.RwSize), 3)
-		return fmt.Sprintf("%s (virtual %s)", s, virt)
-	},
-}
-
-// portsToString converts the ports used to a string of the from "port1, port2"
-// and also groups a continuous list of ports into a readable format.
-func portsToString(ports []ocicni.PortMapping) string {
-	type portGroup struct {
-		first int32
-		last  int32
-	}
-	var portDisplay []string
-	if len(ports) == 0 {
-		return ""
-	}
-	//Sort the ports, so grouping continuous ports become easy.
-	sort.Slice(ports, func(i, j int) bool {
-		return comparePorts(ports[i], ports[j])
-	})
-
-	// portGroupMap is used for grouping continuous ports.
-	portGroupMap := make(map[string]*portGroup)
-	var groupKeyList []string
-
-	for _, v := range ports {
-
-		hostIP := v.HostIP
-		if hostIP == "" {
-			hostIP = "0.0.0.0"
-		}
-		// If hostPort and containerPort are not same, consider as individual port.
-		if v.ContainerPort != v.HostPort {
-			portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
-			continue
-		}
-
-		portMapKey := fmt.Sprintf("%s/%s", hostIP, v.Protocol)
-
-		portgroup, ok := portGroupMap[portMapKey]
-		if !ok {
-			portGroupMap[portMapKey] = &portGroup{first: v.ContainerPort, last: v.ContainerPort}
-			// This list is required to traverse portGroupMap.
-			groupKeyList = append(groupKeyList, portMapKey)
-			continue
-		}
-
-		if portgroup.last == (v.ContainerPort - 1) {
-			portgroup.last = v.ContainerPort
-			continue
-		}
-	}
-	// For each portMapKey, format group list and appned to output string.
-	for _, portKey := range groupKeyList {
-		group := portGroupMap[portKey]
-		portDisplay = append(portDisplay, formatGroup(portKey, group.first, group.last))
-	}
-	return strings.Join(portDisplay, ", ")
-}
-
-func comparePorts(i, j ocicni.PortMapping) bool {
-	if i.ContainerPort != j.ContainerPort {
-		return i.ContainerPort < j.ContainerPort
-	}
-
-	if i.HostIP != j.HostIP {
-		return i.HostIP < j.HostIP
-	}
-
-	if i.HostPort != j.HostPort {
-		return i.HostPort < j.HostPort
-	}
-
-	return i.Protocol < j.Protocol
-}
-
-// formatGroup returns the group as <IP:startPort:lastPort->startPort:lastPort/Proto>
-// e.g 0.0.0.0:1000-1006->1000-1006/tcp.
-func formatGroup(key string, start, last int32) string {
-	parts := strings.Split(key, "/")
-	groupType := parts[0]
-	var ip string
-	if len(parts) > 1 {
-		ip = parts[0]
-		groupType = parts[1]
-	}
-	group := strconv.Itoa(int(start))
-	if start != last {
-		group = fmt.Sprintf("%s-%d", group, last)
-	}
-	if ip != "" {
-		group = fmt.Sprintf("%s:%s->%s", ip, group, group)
-	}
-	return fmt.Sprintf("%s/%s", group, groupType)
 }
