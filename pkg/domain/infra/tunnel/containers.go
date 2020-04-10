@@ -334,3 +334,7 @@ func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrId string, _
 	changes, err := containers.Diff(ic.ClientCxt, nameOrId)
 	return &entities.DiffReport{Changes: changes}, err
 }
+
+func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []string, options entities.ContainerCleanupOptions) ([]*entities.ContainerCleanupReport, error) {
+	return nil, errors.New("not implemented")
+}

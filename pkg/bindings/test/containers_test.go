@@ -508,7 +508,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err = bt.RunTopContainer(&name2, &bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		containerLatestList, err := containers.List(bt.conn, nil, nil, &latestContainers, nil, nil, nil)
-		err = containers.Kill(bt.conn, containerLatestList[0].Names[0], "SIGTERM")
+		err = containers.Kill(bt.conn, containerLatestList[0].Names(), "SIGTERM")
 		Expect(err).To(BeNil())
 	})
 

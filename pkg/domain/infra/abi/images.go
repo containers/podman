@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -27,10 +28,11 @@ import (
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.BoolReport, error) {
-	if _, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId); err != nil {
-		return &entities.BoolReport{}, nil
+	_, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+	if err != nil && errors.Cause(err) != define.ErrNoSuchImage {
+		return nil, err
 	}
-	return &entities.BoolReport{Value: true}, nil
+	return &entities.BoolReport{Value: err == nil}, nil
 }
 
 func (ir *ImageEngine) Delete(ctx context.Context, nameOrId []string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {

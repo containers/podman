@@ -68,7 +68,7 @@ func (l ListContainer) State() string {
 		state = "Up " + t + " ago"
 	case "configured":
 		state = "Created"
-	case "exited":
+	case "exited", "stopped":
 		t := units.HumanDuration(time.Since(time.Unix(l.ExitedAt, 0)))
 		state = fmt.Sprintf("Exited (%d) %s ago", l.ExitCode, t)
 	default:
