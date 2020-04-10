@@ -271,6 +271,10 @@ type EngineConfig struct {
 	// running containers without CGroups.
 	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroupv2"`
 
+	// RuntimeSupportsKVM is a list of OCI runtimes that support
+	// KVM separation for conatainers.
+	RuntimeSupportsKVM []string `toml:"runtime_supports_kvm"`
+
 	// SetOptions contains a subset of config options. It's used to indicate if
 	// a given option has either been set by the user or by the parsed
 	// configuration file. If not, the corresponding option might be

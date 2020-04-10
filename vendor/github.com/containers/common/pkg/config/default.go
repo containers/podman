@@ -246,6 +246,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/usr/local/sbin/kata-runtime",
 			"/sbin/kata-runtime",
 			"/bin/kata-runtime",
+			"/usr/bin/kata-qemu",
+			"/usr/bin/kata-fc",
 		},
 	}
 	c.ConmonEnvVars = []string{
@@ -267,6 +269,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runc",
 	}
 	c.RuntimeSupportsNoCgroups = []string{"crun"}
+	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc"}
 	c.InitPath = DefaultInitPath
 	c.NoPivotRoot = false
 
