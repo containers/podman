@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podmanV2/parse"
@@ -54,8 +55,12 @@ func kill(cmd *cobra.Command, args []string) error {
 	)
 	// Check if the signalString provided by the user is valid
 	// Invalid signals will return err
-	if _, err = signal.ParseSignalNameOrNumber(killOptions.Signal); err != nil {
+	sig, err := signal.ParseSignalNameOrNumber(killOptions.Signal)
+	if err != nil {
 		return err
+	}
+	if sig < 1 || sig > 64 {
+		return errors.New("valid signals are 1 through 64")
 	}
 	responses, err := registry.ContainerEngine().ContainerKill(context.Background(), args, killOptions)
 	if err != nil {

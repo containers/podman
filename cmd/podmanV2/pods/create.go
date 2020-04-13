@@ -123,6 +123,21 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if !createOptions.Infra {
+		if cmd.Flag("infra-command").Changed {
+			return errors.New("cannot set infra-command without an infra container")
+		}
+		createOptions.InfraCommand = ""
+		if cmd.Flag("infra-image").Changed {
+			return errors.New("cannot set infra-image without an infra container")
+		}
+		createOptions.InfraImage = ""
+		if cmd.Flag("share").Changed {
+			return errors.New("cannot set share namespaces without an infra container")
+		}
+		createOptions.Share = nil
+	}
+
 	response, err := registry.ContainerEngine().PodCreate(context.Background(), createOptions)
 	if err != nil {
 		return err

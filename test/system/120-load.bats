@@ -10,7 +10,7 @@ load helpers
 #
 # initialize, read image ID and name
 get_iid_and_name() {
-    run_podman images --format '{{.ID}} {{.Repository}}:{{.Tag}}'
+    run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}'
     read iid img_name < <(echo "$output")
 
     archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
@@ -18,7 +18,7 @@ get_iid_and_name() {
 
 # Simple verification of image ID and name
 verify_iid_and_name() {
-    run_podman images --format '{{.ID}} {{.Repository}}:{{.Tag}}'
+    run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}'
     read new_iid new_img_name < <(echo "$output")
 
     # Verify

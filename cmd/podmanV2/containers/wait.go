@@ -70,7 +70,7 @@ func wait(cmd *cobra.Command, args []string) error {
 	}
 	for _, r := range responses {
 		if r.Error == nil {
-			fmt.Println(r.Id)
+			fmt.Println(r.ExitCode)
 		} else {
 			errs = append(errs, r.Error)
 		}
