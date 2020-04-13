@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
@@ -305,11 +306,19 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
 			}
 		}
-
+		var volOptions []VolumeCreateOption
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
-
 		// The volume does not exist, so we need to create it.
-		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
+		// Get appropriate user details.
+		if ctr.config.User == "" {
+			volOptions = []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
+		} else {
+			uid, gid, _, err := chrootuser.GetUser(ctr.state.Mountpoint, ctr.config.User)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Error retrieving container user details")
+			}
+			volOptions = []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(int(uid)), WithVolumeGID(int(gid))}
+		}
 		if isAnonymous {
 			volOptions = append(volOptions, withSetAnon())
 		}
