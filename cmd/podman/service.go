@@ -155,9 +155,7 @@ func runREST(r *libpod.Runtime, uri string, timeout time.Duration) error {
 		}
 	}()
 
-	err = server.Serve()
-	logrus.Debugf("%d/%d Active connections/Total connections\n", server.ActiveConnections, server.TotalConnections)
-	return err
+	return server.Serve()
 }
 
 func runVarlink(r *libpod.Runtime, uri string, timeout time.Duration, c *cliconfig.ServiceValues) error {

@@ -2,11 +2,14 @@ package server
 
 import (
 	"context"
+	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -20,26 +23,19 @@ import (
 )
 
 type APIServer struct {
-	http.Server                 // The  HTTP work happens here
-	*schema.Decoder             // Decoder for Query parameters to structs
-	context.Context             // Context to carry objects to handlers
-	*libpod.Runtime             // Where the real work happens
-	net.Listener                // mux for routing HTTP API calls to libpod routines
-	context.CancelFunc          // Stop APIServer
-	*time.Timer                 // Hold timer for sliding window
-	time.Duration               // Duration of client access sliding window
-	ActiveConnections  uint64   // Number of handlers holding a connection
-	TotalConnections   uint64   // Number of connections handled
-	ConnectionCh       chan int // Channel for signalling handler enter/exit
+	http.Server                     // The  HTTP work happens here
+	*schema.Decoder                 // Decoder for Query parameters to structs
+	context.Context                 // Context to carry objects to handlers
+	*libpod.Runtime                 // Where the real work happens
+	net.Listener                    // mux for routing HTTP API calls to libpod routines
+	context.CancelFunc              // Stop APIServer
+	idleTracker        *IdleTracker // Track connections to support idle shutdown
 }
 
 // Number of seconds to wait for next request, if exceeded shutdown server
 const (
 	DefaultServiceDuration   = 300 * time.Second
 	UnlimitedServiceDuration = 0 * time.Second
-	EnterHandler             = 1
-	ExitHandler              = -1
-	NOOPHandler              = 0
 )
 
 // NewServer will create and configure a new API server with all defaults
@@ -70,17 +66,20 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 	}
 
 	router := mux.NewRouter().UseEncodedPath()
+	idle := NewIdleTracker(duration)
+
 	server := APIServer{
 		Server: http.Server{
 			Handler:           router,
 			ReadHeaderTimeout: 20 * time.Second,
 			IdleTimeout:       duration,
+			ConnState:         idle.ConnState,
+			ErrorLog:          log.New(logrus.StandardLogger().Out, "", 0),
 		},
-		Decoder:      handlers.NewAPIDecoder(),
-		Runtime:      runtime,
-		Listener:     *listener,
-		Duration:     duration,
-		ConnectionCh: make(chan int),
+		Decoder:     handlers.NewAPIDecoder(),
+		idleTracker: idle,
+		Listener:    *listener,
+		Runtime:     runtime,
 	}
 
 	router.NotFoundHandler = http.HandlerFunc(
@@ -120,11 +119,11 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error { // nolint
 			path, err := route.GetPathTemplate()
 			if err != nil {
-				path = ""
+				path = "<N/A>"
 			}
 			methods, err := route.GetMethods()
 			if err != nil {
-				methods = []string{}
+				methods = []string{"<N/A>"}
 			}
 			logrus.Debugf("Methods: %s Path: %s", strings.Join(methods, ", "), path)
 			return nil
@@ -136,24 +135,20 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 
 // Serve starts responding to HTTP requests
 func (s *APIServer) Serve() error {
-	// This is initialized here as Timer is not needed until Serve'ing
-	if s.Duration > 0 {
-		s.Timer = time.AfterFunc(s.Duration, func() {
-			s.ConnectionCh <- NOOPHandler
-		})
-		go s.ReadChannelWithTimeout()
-	} else {
-		go s.ReadChannelNoTimeout()
-	}
-
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	errChan := make(chan error, 1)
 
 	go func() {
+		<-s.idleTracker.Done()
+		logrus.Debugf("API Server idle for %v", s.idleTracker.Duration)
+		_ = s.Shutdown()
+	}()
+
+	go func() {
 		err := s.Server.Serve(s.Listener)
 		if err != nil && err != http.ErrServerClosed {
-			errChan <- errors.Wrap(err, "Failed to start APIServer")
+			errChan <- errors.Wrap(err, "failed to start API server")
 			return
 		}
 		errChan <- nil
@@ -169,76 +164,86 @@ func (s *APIServer) Serve() error {
 	return nil
 }
 
-func (s *APIServer) ReadChannelWithTimeout() {
-	// stalker to count the connections.  Should the timer expire it will shutdown the service.
-	for delta := range s.ConnectionCh {
-		switch delta {
-		case EnterHandler:
-			s.Timer.Stop()
-			s.ActiveConnections += 1
-			s.TotalConnections += 1
-		case ExitHandler:
-			s.Timer.Stop()
-			s.ActiveConnections -= 1
-			if s.ActiveConnections == 0 {
-				// Server will be shutdown iff the timer expires before being reset or stopped
-				s.Timer = time.AfterFunc(s.Duration, func() {
-					if err := s.Shutdown(); err != nil {
-						logrus.Errorf("Failed to shutdown APIServer: %v", err)
-						os.Exit(1)
-					}
-				})
-			} else {
-				s.Timer.Reset(s.Duration)
-			}
-		case NOOPHandler:
-			// push the check out another duration...
-			s.Timer.Reset(s.Duration)
-		default:
-			logrus.Warnf("ConnectionCh received unsupported input %d", delta)
-		}
-	}
-}
-
-func (s *APIServer) ReadChannelNoTimeout() {
-	// stalker to count the connections.
-	for delta := range s.ConnectionCh {
-		switch delta {
-		case EnterHandler:
-			s.ActiveConnections += 1
-			s.TotalConnections += 1
-		case ExitHandler:
-			s.ActiveConnections -= 1
-		case NOOPHandler:
-		default:
-			logrus.Warnf("ConnectionCh received unsupported input %d", delta)
-		}
-	}
-}
-
 // Shutdown is a clean shutdown waiting on existing clients
 func (s *APIServer) Shutdown() error {
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		_, file, line, _ := runtime.Caller(1)
+		logrus.Debugf("APIServer.Shutdown by %s:%d, %d/%d connection(s)",
+			file, line, s.idleTracker.ActiveConnections(), s.idleTracker.TotalConnections())
+	}
+
 	// Duration == 0 flags no auto-shutdown of the server
-	if s.Duration == 0 {
+	if s.idleTracker.Duration == 0 {
 		logrus.Debug("APIServer.Shutdown ignored as Duration == 0")
 		return nil
 	}
-	logrus.Debugf("APIServer.Shutdown called %v, conn %d/%d", time.Now(), s.ActiveConnections, s.TotalConnections)
 
-	// Gracefully shutdown server
-	ctx, cancel := context.WithTimeout(context.Background(), s.Duration)
+	// Gracefully shutdown server, duration of wait same as idle window
+	ctx, cancel := context.WithTimeout(context.Background(), s.idleTracker.Duration)
 	defer cancel()
-
 	go func() {
 		err := s.Server.Shutdown(ctx)
 		if err != nil && err != context.Canceled && err != http.ErrServerClosed {
 			logrus.Errorf("Failed to cleanly shutdown APIServer: %s", err.Error())
 		}
 	}()
+	<-ctx.Done()
 	return nil
 }
 
 // Close immediately stops responding to clients and exits
 func (s *APIServer) Close() error {
 	return s.Server.Close()
+}
+
+type IdleTracker struct {
+	active   map[net.Conn]struct{}
+	total    int
+	mux      sync.Mutex
+	timer    *time.Timer
+	Duration time.Duration
+}
+
+func NewIdleTracker(idle time.Duration) *IdleTracker {
+	return &IdleTracker{
+		active:   make(map[net.Conn]struct{}),
+		Duration: idle,
+		timer:    time.NewTimer(idle),
+	}
+}
+
+func (t *IdleTracker) ConnState(conn net.Conn, state http.ConnState) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	oldActive := len(t.active)
+	logrus.Debugf("IdleTracker %p:%v %d/%d connection(s)", conn, state, t.ActiveConnections(), t.TotalConnections())
+	switch state {
+	case http.StateNew, http.StateActive, http.StateHijacked:
+		t.active[conn] = struct{}{}
+		// stop the timer if we transitioned from idle
+		if oldActive == 0 {
+			t.timer.Stop()
+		}
+		t.total += 1
+	case http.StateIdle, http.StateClosed:
+		delete(t.active, conn)
+		// Restart the timer if we've become idle
+		if oldActive > 0 && len(t.active) == 0 {
+			t.timer.Stop()
+			t.timer.Reset(t.Duration)
+		}
+	}
+}
+
+func (t *IdleTracker) ActiveConnections() int {
+	return len(t.active)
+}
+
+func (t *IdleTracker) TotalConnections() int {
+	return t.total
+}
+
+func (t *IdleTracker) Done() <-chan time.Time {
+	return t.timer.C
 }

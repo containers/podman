@@ -51,7 +51,6 @@ func (ic *ContainerEngine) RestService(_ context.Context, opts entities.ServiceO
 	}()
 
 	err = server.Serve()
-	logrus.Debugf("%d/%d Active connections/Total connections\n", server.ActiveConnections, server.TotalConnections)
 	_ = listener.Close()
 	return err
 }
