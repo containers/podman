@@ -1377,7 +1377,6 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restore"), s.APIHandler(libpod.Restore)).Methods(http.MethodPost)
-
 	// swagger:operation GET /containers/{name}/changes libpod libpodChangesContainer
 	// swagger:operation GET /libpod/containers/{name}/changes compat changesContainer
 	// ---
@@ -1411,6 +1410,29 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/changes"), s.APIHandler(compat.Changes))
 	r.HandleFunc("/containers/{name}/changes", s.APIHandler(compat.Changes))
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/changes"), s.APIHandler(compat.Changes))
-
+	// swagger:operation POST /libpod/containers/{name}/init libpod libpodInitContainer
+	// ---
+	// tags:
+	//  - containers
+	// summary: Initialize a container
+	// description: Performs all tasks necessary for initializing the container but does not start the container.
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the container
+	// produces:
+	// - application/json
+	// responses:
+	//   204:
+	//     description: no error
+	//   304:
+	//     description: container already initialized
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/init"), s.APIHandler(libpod.InitContainer)).Methods(http.MethodPost)
 	return nil
 }

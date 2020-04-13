@@ -285,3 +285,23 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusOK, entities.RestoreReport{Id: ctr.ID()})
 }
+
+func InitContainer(w http.ResponseWriter, r *http.Request) {
+	name := utils.GetName(r)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+	err = ctr.Init(r.Context())
+	if errors.Cause(err) == define.ErrCtrStateInvalid {
+		utils.Error(w, "container already initialized", http.StatusNotModified, err)
+		return
+	}
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
+}

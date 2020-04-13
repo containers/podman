@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/pkg/errors"
 )
 
 // List obtains a list of containers in local storage.  All parameters to this method are optional.
@@ -313,6 +314,24 @@ func Export(ctx context.Context, nameOrID string, w io.Writer) error {
 	if response.StatusCode/100 == 2 {
 		_, err = io.Copy(w, response.Body)
 		return err
+	}
+	return response.Process(nil)
+}
+
+// ContainerInit takes a created container and executes all of the
+// preparations to run the container except it will not start
+// or attach to the container
+func ContainerInit(ctx context.Context, nameOrID string) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/init", nil, nameOrID)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode == http.StatusNotModified {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has already been created in runtime", nameOrID)
 	}
 	return response.Process(nil)
 }
