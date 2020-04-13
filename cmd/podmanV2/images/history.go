@@ -8,10 +8,11 @@ import (
 	"text/tabwriter"
 	"text/template"
 	"time"
+	"unicode"
 
 	"github.com/containers/libpod/cmd/podmanV2/registry"
-	"github.com/containers/libpod/cmd/podmanV2/report"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/docker/go-units"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -86,10 +87,13 @@ func history(cmd *cobra.Command, args []string) error {
 		}
 		return err
 	}
-
+	var hr []historyreporter
+	for _, l := range results.Layers {
+		hr = append(hr, historyreporter{l})
+	}
 	// Defaults
 	hdr := "ID\tCREATED\tCREATED BY\tSIZE\tCOMMENT\n"
-	row := "{{slice .ID 0 12}}\t{{humanDuration .Created}}\t{{ellipsis .CreatedBy 45}}\t{{.Size}}\t{{.Comment}}\n"
+	row := "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
 
 	if len(opts.format) > 0 {
 		hdr = ""
@@ -100,9 +104,9 @@ func history(cmd *cobra.Command, args []string) error {
 	} else {
 		switch {
 		case opts.human:
-			row = "{{slice .ID 0 12}}\t{{humanDuration .Created}}\t{{ellipsis .CreatedBy 45}}\t{{humanSize .Size}}\t{{.Comment}}\n"
+			row = "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
 		case opts.noTrunc:
-			row = "{{.ID}}\t{{humanDuration .Created}}\t{{.CreatedBy}}\t{{humanSize .Size}}\t{{.Comment}}\n"
+			row = "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
 		case opts.quiet:
 			hdr = ""
 			row = "{{.ID}}\n"
@@ -110,14 +114,40 @@ func history(cmd *cobra.Command, args []string) error {
 	}
 	format := hdr + "{{range . }}" + row + "{{end}}"
 
-	tmpl := template.Must(template.New("report").Funcs(report.PodmanTemplateFuncs()).Parse(format))
+	tmpl := template.Must(template.New("report").Parse(format))
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
-
-	_, _ = w.Write(report.ReportHeader("id", "created", "created by", "size", "comment"))
-	err = tmpl.Execute(w, results.Layers)
+	err = tmpl.Execute(w, hr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "Failed to print report"))
 	}
 	w.Flush()
 	return nil
+}
+
+type historyreporter struct {
+	entities.ImageHistoryLayer
+}
+
+func (h historyreporter) Created() string {
+	return units.HumanDuration(time.Since(time.Unix(h.ImageHistoryLayer.Created, 0))) + " ago"
+}
+
+func (h historyreporter) Size() string {
+	s := units.HumanSizeWithPrecision(float64(h.ImageHistoryLayer.Size), 3)
+	i := strings.LastIndexFunc(s, unicode.IsNumber)
+	return s[:i+1] + " " + s[i+1:]
+}
+
+func (h historyreporter) CreatedBy() string {
+	if len(h.ImageHistoryLayer.CreatedBy) > 45 {
+		return h.ImageHistoryLayer.CreatedBy[:45-3] + "..."
+	}
+	return h.ImageHistoryLayer.CreatedBy
+}
+
+func (h historyreporter) ID() string {
+	if !opts.noTrunc && len(h.ImageHistoryLayer.ID) >= 12 {
+		return h.ImageHistoryLayer.ID[0:12]
+	}
+	return h.ImageHistoryLayer.ID
 }

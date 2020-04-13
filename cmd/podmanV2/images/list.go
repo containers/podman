@@ -9,10 +9,11 @@ import (
 	"text/tabwriter"
 	"text/template"
 	"time"
+	"unicode"
 
 	"github.com/containers/libpod/cmd/podmanV2/registry"
-	"github.com/containers/libpod/cmd/podmanV2/report"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/docker/go-units"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -133,16 +134,10 @@ func writeTemplate(imageS []*entities.ImageSummary, err error) error {
 	var (
 		hdr, row string
 	)
-	type image struct {
-		entities.ImageSummary
-		Repository string `json:"repository,omitempty"`
-		Tag        string `json:"tag,omitempty"`
-	}
-
-	imgs := make([]image, 0, len(imageS))
+	imgs := make([]imageReporter, 0, len(imageS))
 	for _, e := range imageS {
 		for _, tag := range e.RepoTags {
-			var h image
+			var h imageReporter
 			h.ImageSummary = *e
 			h.Repository, h.Tag = tokenRepoTag(tag)
 			imgs = append(imgs, h)
@@ -160,7 +155,7 @@ func writeTemplate(imageS []*entities.ImageSummary, err error) error {
 		}
 	}
 	format := hdr + "{{range . }}" + row + "{{end}}"
-	tmpl := template.Must(template.New("list").Funcs(report.PodmanTemplateFuncs()).Parse(format))
+	tmpl := template.Must(template.New("list").Parse(format))
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 	return tmpl.Execute(w, imgs)
@@ -208,7 +203,7 @@ func sortFunc(key string, data []*entities.ImageSummary) func(i, j int) bool {
 
 func imageListFormat(flags listFlagType) (string, string) {
 	if flags.quiet {
-		return "", "{{slice .ID 0 12}}\n"
+		return "", "{{.ID}}\n"
 	}
 
 	// Defaults
@@ -224,15 +219,15 @@ func imageListFormat(flags listFlagType) (string, string) {
 	if flags.noTrunc {
 		row += "\tsha256:{{.ID}}"
 	} else {
-		row += "\t{{slice .ID 0 12}}"
+		row += "\t{{.ID}}"
 	}
 
 	hdr += "\tCREATED\tSIZE"
-	row += "\t{{humanDuration .Created}}\t{{humanSize .Size}}"
+	row += "\t{{.Created}}\t{{.Size}}"
 
 	if flags.history {
 		hdr += "\tHISTORY"
-		row += "\t{{if .History}}{{join .History \", \"}}{{else}}<none>{{end}}"
+		row += "\t{{if .History}}{{.History}}{{else}}<none>{{end}}"
 	}
 
 	if flags.readOnly {
@@ -248,4 +243,31 @@ func imageListFormat(flags listFlagType) (string, string) {
 
 	row += "\n"
 	return hdr, row
+}
+
+type imageReporter struct {
+	Repository string `json:"repository,omitempty"`
+	Tag        string `json:"tag,omitempty"`
+	entities.ImageSummary
+}
+
+func (i imageReporter) ID() string {
+	if !listFlag.noTrunc && len(i.ImageSummary.ID) >= 12 {
+		return i.ImageSummary.ID[0:12]
+	}
+	return i.ImageSummary.ID
+}
+
+func (i imageReporter) Created() string {
+	return units.HumanDuration(time.Since(time.Unix(i.ImageSummary.Created, 0))) + " ago"
+}
+
+func (i imageReporter) Size() string {
+	s := units.HumanSizeWithPrecision(float64(i.ImageSummary.Size), 3)
+	j := strings.LastIndexFunc(s, unicode.IsNumber)
+	return s[:j+1] + " " + s[j+1:]
+}
+
+func (i imageReporter) History() string {
+	return strings.Join(i.ImageSummary.History, ", ")
 }

@@ -9,9 +9,11 @@ import (
 	"strings"
 	"text/tabwriter"
 	"text/template"
+	"time"
+
+	"github.com/docker/go-units"
 
 	"github.com/containers/libpod/cmd/podmanV2/registry"
-	"github.com/containers/libpod/cmd/podmanV2/report"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -65,6 +67,7 @@ func pods(cmd *cobra.Command, args []string) error {
 	var (
 		w   io.Writer = os.Stdout
 		row string
+		lpr []ListPodReporter
 	)
 	if cmd.Flag("filter").Changed {
 		for _, f := range strings.Split(inputFilters, ",") {
@@ -88,6 +91,10 @@ func pods(cmd *cobra.Command, args []string) error {
 		fmt.Println(string(b))
 		return nil
 	}
+
+	for _, r := range responses {
+		lpr = append(lpr, ListPodReporter{r})
+	}
 	headers, row := createPodPsOut()
 	if psInput.Quiet {
 		if noTrunc {
@@ -106,15 +113,14 @@ func pods(cmd *cobra.Command, args []string) error {
 	if !psInput.Quiet && !cmd.Flag("format").Changed {
 		format = headers + format
 	}
-	funcs := report.AppendFuncMap(podFuncMap)
-	tmpl, err := template.New("listPods").Funcs(funcs).Parse(format)
+	tmpl, err := template.New("listPods").Parse(format)
 	if err != nil {
 		return err
 	}
 	if !psInput.Quiet {
 		w = tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	}
-	if err := tmpl.Execute(w, responses); err != nil {
+	if err := tmpl.Execute(w, lpr); err != nil {
 		return err
 	}
 	if flusher, ok := w.(interface{ Flush() error }); ok {
@@ -132,20 +138,19 @@ func createPodPsOut() (string, string) {
 		row += "{{slice .Id 0 12}}"
 	}
 
-	row += "\t{{.Name}}\t{{.Status}}\t{{humanDurationFromTime .Created}}"
+	row += "\t{{.Name}}\t{{.Status}}\t{{.Created}}"
 
-	//rowFormat      string = "{{slice .Id 0 12}}\t{{.Name}}\t{{.Status}}\t{{humanDurationFromTime .Created}}"
 	if psInput.CtrIds {
 		headers += "\tIDS"
-		row += "\t{{podcids .Containers}}"
+		row += "\t{{.ContainerIds}}"
 	}
 	if psInput.CtrNames {
 		headers += "\tNAMES"
-		row += "\t{{podconnames .Containers}}"
+		row += "\t{{.ContainerNames}}"
 	}
 	if psInput.CtrStatus {
 		headers += "\tSTATUS"
-		row += "\t{{podconstatuses .Containers}}"
+		row += "\t{{.ContainerStatuses}}"
 	}
 	if psInput.Namespace {
 		headers += "\tCGROUP\tNAMESPACES"
@@ -153,7 +158,7 @@ func createPodPsOut() (string, string) {
 	}
 	if !psInput.CtrStatus && !psInput.CtrNames && !psInput.CtrIds {
 		headers += "\t# OF CONTAINERS"
-		row += "\t{{numCons .Containers}}"
+		row += "\t{{.NumberOfContainers}}"
 
 	}
 	headers += "\tINFRA ID\n"
@@ -163,4 +168,62 @@ func createPodPsOut() (string, string) {
 		row += "\t{{slice .InfraId 0 12}}\n"
 	}
 	return headers, row
+}
+
+// ListPodReporter is a struct for pod ps output
+type ListPodReporter struct {
+	*entities.ListPodsReport
+}
+
+// Created returns a human readable created time/date
+func (l ListPodReporter) Created() string {
+	return units.HumanDuration(time.Since(l.ListPodsReport.Created)) + " ago"
+}
+
+// NumberofContainers returns an int representation for
+// the number of containers belonging to the pod
+func (l ListPodReporter) NumberOfContainers() int {
+	return len(l.Containers)
+}
+
+// Added for backwards compatibility with podmanv1
+func (l ListPodReporter) InfraID() string {
+	return l.InfraId()
+}
+
+// InfraId returns the infra container id for the pod
+// depending on trunc
+func (l ListPodReporter) InfraId() string {
+	if noTrunc {
+		return l.ListPodsReport.InfraId
+	}
+	return l.ListPodsReport.InfraId[0:12]
+}
+
+func (l ListPodReporter) ContainerIds() string {
+	var ctrids []string
+	for _, c := range l.Containers {
+		id := c.Id
+		if !noTrunc {
+			id = id[0:12]
+		}
+		ctrids = append(ctrids, id)
+	}
+	return strings.Join(ctrids, ",")
+}
+
+func (l ListPodReporter) ContainerNames() string {
+	var ctrNames []string
+	for _, c := range l.Containers {
+		ctrNames = append(ctrNames, c.Names)
+	}
+	return strings.Join(ctrNames, ",")
+}
+
+func (l ListPodReporter) ContainerStatuses() string {
+	var statuses []string
+	for _, c := range l.Containers {
+		statuses = append(statuses, c.Status)
+	}
+	return strings.Join(statuses, ",")
 }
