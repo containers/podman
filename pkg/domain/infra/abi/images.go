@@ -394,8 +394,10 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "image loaded but no additional tags were created")
 	}
-	if err := newImage.TagImage(opts.Name); err != nil {
-		return nil, errors.Wrapf(err, "error adding %q to image %q", opts.Name, newImage.InputName)
+	if len(opts.Name) > 0 {
+		if err := newImage.TagImage(fmt.Sprintf("%s:%s", opts.Name, opts.Tag)); err != nil {
+			return nil, errors.Wrapf(err, "error adding %q to image %q", opts.Name, newImage.InputName)
+		}
 	}
 	return &entities.ImageLoadReport{Name: name}, nil
 }

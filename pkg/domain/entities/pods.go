@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"strings"
 	"time"
 
 	"github.com/containers/libpod/libpod"
@@ -121,7 +122,9 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 	s.Hostname = p.Hostname
 	s.Labels = p.Labels
 	s.NoInfra = !p.Infra
-	s.InfraCommand = []string{p.InfraCommand}
+	if len(p.InfraCommand) > 0 {
+		s.InfraCommand = strings.Split(p.InfraCommand, " ")
+	}
 	s.InfraImage = p.InfraImage
 	s.SharedNamespaces = p.Share
 

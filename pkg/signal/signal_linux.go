@@ -129,14 +129,15 @@ func StopCatch(sigc chan os.Signal) {
 // ParseSignalNameOrNumber translates a string to a valid syscall signal.  Input
 // can be a name or number representation i.e. "KILL" "9"
 func ParseSignalNameOrNumber(rawSignal string) (syscall.Signal, error) {
-	s, err := ParseSignal(rawSignal)
+	basename := strings.TrimPrefix(rawSignal, "-")
+	s, err := ParseSignal(basename)
 	if err == nil {
 		return s, nil
 	}
 	for k, v := range signalMap {
-		if k == strings.ToUpper(rawSignal) {
+		if k == strings.ToUpper(basename) {
 			return v, nil
 		}
 	}
-	return -1, fmt.Errorf("invalid signal: %s", rawSignal)
+	return -1, fmt.Errorf("invalid signal: %s", basename)
 }
