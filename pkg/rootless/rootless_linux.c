@@ -288,6 +288,7 @@ static void __attribute__((constructor)) init()
       char *cwd = getcwd (NULL, 0);
       char uid_fmt[16];
       char gid_fmt[16];
+      size_t len;
 
       if (cwd == NULL)
         {
@@ -295,13 +296,13 @@ static void __attribute__((constructor)) init()
           _exit (EXIT_FAILURE);
         }
 
-      if (strlen (xdg_runtime_dir) >= PATH_MAX - strlen (suffix))
+      len = snprintf (path, PATH_MAX, "%s%s", xdg_runtime_dir, suffix);
+      if (len >= PATH_MAX)
         {
           fprintf (stderr, "invalid value for XDG_RUNTIME_DIR: %s", strerror (ENAMETOOLONG));
           exit (EXIT_FAILURE);
         }
 
-      sprintf (path, "%s%s", xdg_runtime_dir, suffix);
       fd = open (path, O_RDONLY);
       if (fd < 0)
         {
