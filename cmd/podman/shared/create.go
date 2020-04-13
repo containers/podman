@@ -783,10 +783,12 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Sysctl:         sysctl,
 	}
 
+	var securityOpt []string
 	if c.Changed("security-opt") {
-		if err := secConfig.SetSecurityOpts(runtime, c.StringArray("security-opt")); err != nil {
-			return nil, err
-		}
+		securityOpt = c.StringArray("security-opt")
+	}
+	if err := secConfig.SetSecurityOpts(runtime, securityOpt); err != nil {
+		return nil, err
 	}
 
 	// SECCOMP
