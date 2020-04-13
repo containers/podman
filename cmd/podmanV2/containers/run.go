@@ -44,6 +44,11 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: runCommand,
 	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Parent:  containerCmd,
+		Command: runCommand,
+	})
 	flags := runCommand.Flags()
 	flags.SetInterspersed(false)
 	flags.AddFlagSet(common.GetCreateFlags(&cliVals))

@@ -40,6 +40,11 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: stopCommand,
 	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Parent:  containerCmd,
+		Command: stopCommand,
+	})
 	flags := stopCommand.Flags()
 	flags.BoolVarP(&stopOptions.All, "all", "a", false, "Stop all running containers")
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")

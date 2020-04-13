@@ -37,6 +37,11 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: startCommand,
 	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Parent:  containerCmd,
+		Command: startCommand,
+	})
 	flags := startCommand.Flags()
 	flags.BoolVarP(&startOptions.Attach, "attach", "a", false, "Attach container's STDOUT and STDERR")
 	flags.StringVar(&startOptions.DetachKeys, "detach-keys", common.GetDefaultDetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")

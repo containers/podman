@@ -38,6 +38,11 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: killCommand,
 	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Parent:  containerCmd,
+		Command: killCommand,
+	})
 	flags := killCommand.Flags()
 	flags.BoolVarP(&killOptions.All, "all", "a", false, "Signal all running containers")
 	flags.StringVarP(&killOptions.Signal, "signal", "s", "KILL", "Signal to send to the container")

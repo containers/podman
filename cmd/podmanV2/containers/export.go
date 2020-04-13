@@ -37,6 +37,11 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: exportCommand,
 	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Parent:  containerCmd,
+		Command: exportCommand,
+	})
 	exportCommand.SetHelpTemplate(registry.HelpTemplate())
 	exportCommand.SetUsageTemplate(registry.UsageTemplate())
 	flags := exportCommand.Flags()

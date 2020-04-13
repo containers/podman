@@ -30,6 +30,10 @@ func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: unpauseCommand,
+	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: unpauseCommand,
 		Parent:  containerCmd,
 	})
 	flags := unpauseCommand.Flags()

@@ -37,6 +37,11 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: execCommand,
 	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Parent:  containerCmd,
+		Command: execCommand,
+	})
 	flags := execCommand.Flags()
 	flags.SetInterspersed(false)
 	flags.StringVar(&execOpts.DetachKeys, "detach-keys", common.GetDefaultDetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")

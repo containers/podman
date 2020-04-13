@@ -33,6 +33,11 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: pauseCommand,
 	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Parent:  containerCmd,
+		Command: pauseCommand,
+	})
 	flags := pauseCommand.Flags()
 	flags.BoolVarP(&pauseOpts.All, "all", "a", false, "Pause all running containers")
 	pauseCommand.SetHelpTemplate(registry.HelpTemplate())

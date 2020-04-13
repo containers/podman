@@ -45,6 +45,11 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: commitCommand,
 	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Parent:  containerCmd,
+		Command: commitCommand,
+	})
 	flags := commitCommand.Flags()
 	flags.StringArrayVarP(&commitOptions.Changes, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): "+strings.Join(ChangeCmds, " | "))
 	flags.StringVarP(&commitOptions.Format, "format", "f", "oci", "`Format` of the image manifest and metadata")
