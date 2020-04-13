@@ -297,3 +297,33 @@ type ContainerInitReport struct {
 	Err error
 	Id  string
 }
+
+//ContainerMountOptions describes the input values for mounting containers
+// in the CLI
+type ContainerMountOptions struct {
+	All        bool
+	Format     string
+	Latest     bool
+	NoTruncate bool
+}
+
+// ContainerUnmountOptions are the options from the cli for unmounting
+type ContainerUnmountOptions struct {
+	All    bool
+	Force  bool
+	Latest bool
+}
+
+// ContainerMountReport describes the response from container mount
+type ContainerMountReport struct {
+	Err  error
+	Id   string
+	Name string
+	Path string
+}
+
+// ContainerUnmountReport describes the response from umounting a container
+type ContainerUnmountReport struct {
+	Err error
+	Id  string
+}

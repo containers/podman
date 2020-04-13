@@ -21,6 +21,7 @@ type ContainerEngine interface {
 	ContainerInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]*ContainerInspectReport, error)
 	ContainerKill(ctx context.Context, namesOrIds []string, options KillOptions) ([]*KillReport, error)
 	ContainerList(ctx context.Context, options ContainerListOptions) ([]ListContainer, error)
+	ContainerMount(ctx context.Context, nameOrIds []string, options ContainerMountOptions) ([]*ContainerMountReport, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
 	ContainerLogs(ctx context.Context, containers []string, options ContainerLogsOptions) error
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)
@@ -30,6 +31,7 @@ type ContainerEngine interface {
 	ContainerStart(ctx context.Context, namesOrIds []string, options ContainerStartOptions) ([]*ContainerStartReport, error)
 	ContainerStop(ctx context.Context, namesOrIds []string, options StopOptions) ([]*StopReport, error)
 	ContainerTop(ctx context.Context, options TopOptions) (*StringSliceReport, error)
+	ContainerUnmount(ctx context.Context, nameOrIds []string, options ContainerUnmountOptions) ([]*ContainerUnmountReport, error)
 	ContainerUnpause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
 	HealthCheckRun(ctx context.Context, nameOrId string, options HealthCheckOptions) (*define.HealthCheckResults, error)

@@ -354,3 +354,11 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 	}
 	return reports, nil
 }
+
+func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIds []string, options entities.ContainerMountOptions) ([]*entities.ContainerMountReport, error) {
+	return nil, errors.New("mounting containers is not supported for remote clients")
+}
+
+func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIds []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
+	return nil, errors.New("unmounting containers is not supported for remote clients")
+}
