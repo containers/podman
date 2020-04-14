@@ -1,7 +1,9 @@
 package libpod
 
 import (
+	"bufio"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -247,34 +249,12 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachS
 
 	logrus.Infof("Going to start container %s exec session %s and attach to it", c.ID(), session.ID())
 
-	// TODO: check logic here - should we set Privileged if the container is
-	// privileged?
-	var capList []string
-	if session.Config.Privileged || c.config.Privileged {
-		capList = capabilities.AllCapabilities()
-	}
-
-	user := c.config.User
-	if session.Config.User != "" {
-		user = session.Config.User
-	}
-
-	if err := c.createExecBundle(session.ID()); err != nil {
+	opts, err := prepareForExec(c, session)
+	if err != nil {
 		return err
 	}
 
-	opts := new(ExecOptions)
-	opts.Cmd = session.Config.Command
-	opts.CapAdd = capList
-	opts.Env = session.Config.Environment
-	opts.Terminal = session.Config.Terminal
-	opts.Cwd = session.Config.WorkDir
-	opts.User = user
-	opts.Streams = streams
-	opts.PreserveFDs = session.Config.PreserveFDs
-	opts.DetachKeys = session.Config.DetachKeys
-
-	pid, attachChan, err := c.ociRuntime.ExecContainer(c, session.ID(), opts)
+	pid, attachChan, err := c.ociRuntime.ExecContainer(c, session.ID(), opts, streams)
 	if err != nil {
 		return err
 	}
@@ -318,28 +298,7 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachS
 		c.lock.Lock()
 	}
 
-	// Sync the container to pick up state changes
-	if err := c.syncContainer(); err != nil {
-		if lastErr != nil {
-			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
-		}
-		return errors.Wrapf(err, "error syncing container %s state to remove exec session %s", c.ID(), session.ID())
-	}
-
-	// Update status
-	// Since we did a syncContainer, the old session has been overwritten.
-	// Grab a fresh one from the database.
-	session, ok = c.state.ExecSessions[sessionID]
-	if !ok {
-		// Exec session already removed.
-		logrus.Infof("Container %s exec session %s already removed from database", c.ID(), sessionID)
-		return nil
-	}
-	session.State = define.ExecStateStopped
-	session.ExitCode = exitCode
-	session.PID = 0
-
-	if err := c.save(); err != nil {
+	if err := writeExecExitCode(c, session.ID(), exitCode); err != nil {
 		if lastErr != nil {
 			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
 		}
@@ -358,9 +317,113 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachS
 }
 
 // ExecHTTPStartAndAttach starts and performs an HTTP attach to an exec session.
-func (c *Container) ExecHTTPStartAndAttach(sessionID string) error {
-	// Will be implemented in part 2, migrating Start.
-	return define.ErrNotImplemented
+func (c *Container) ExecHTTPStartAndAttach(sessionID string, httpCon net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) (deferredErr error) {
+	// TODO: How do we combine streams with the default streams set in the exec session?
+
+	// The flow here is somewhat strange, because we need to determine if
+	// there's a terminal ASAP (for error handling).
+	// Until we know, assume it's true (don't add standard stream headers).
+	// Add a defer to ensure our invariant (HTTP session is closed) is
+	// maintained.
+	isTerminal := true
+	defer func() {
+		hijackWriteErrorAndClose(deferredErr, c.ID(), isTerminal, httpCon, httpBuf)
+	}()
+
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	session, ok := c.state.ExecSessions[sessionID]
+	if !ok {
+		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+	}
+	// We can now finally get the real value of isTerminal.
+	isTerminal = session.Config.Terminal
+
+	// Verify that we are in a good state to continue
+	if !c.ensureState(define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "can only start exec sessions when their container is running")
+	}
+
+	if session.State != define.ExecStateCreated {
+		return errors.Wrapf(define.ErrExecSessionStateInvalid, "can only start created exec sessions, while container %s session %s state is %q", c.ID(), session.ID(), session.State.String())
+	}
+
+	logrus.Infof("Going to start container %s exec session %s and attach to it", c.ID(), session.ID())
+
+	execOpts, err := prepareForExec(c, session)
+	if err != nil {
+		return err
+	}
+
+	pid, attachChan, err := c.ociRuntime.ExecContainerHTTP(c, session.ID(), execOpts, httpCon, httpBuf, streams, cancel)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Investigate whether more of this can be made common with
+	// ExecStartAndAttach
+
+	c.newContainerEvent(events.Exec)
+	logrus.Debugf("Successfully started exec session %s in container %s", session.ID(), c.ID())
+
+	var lastErr error
+
+	session.PID = pid
+	session.State = define.ExecStateRunning
+
+	if err := c.save(); err != nil {
+		lastErr = err
+	}
+
+	// Unlock so other processes can use the container
+	if !c.batched {
+		c.lock.Unlock()
+	}
+
+	tmpErr := <-attachChan
+	if lastErr != nil {
+		logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
+	}
+	lastErr = tmpErr
+
+	exitCode, err := c.readExecExitCode(session.ID())
+	if err != nil {
+		if lastErr != nil {
+			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
+		}
+		lastErr = err
+	}
+
+	logrus.Debugf("Container %s exec session %s completed with exit code %d", c.ID(), session.ID(), exitCode)
+
+	// Lock again
+	if !c.batched {
+		c.lock.Lock()
+	}
+
+	if err := writeExecExitCode(c, session.ID(), exitCode); err != nil {
+		if lastErr != nil {
+			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
+		}
+		lastErr = err
+	}
+
+	// Clean up after ourselves
+	if err := c.cleanupExecBundle(session.ID()); err != nil {
+		if lastErr != nil {
+			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
+		}
+		lastErr = err
+	}
+
+	return lastErr
 }
 
 // ExecStop stops an exec session in the container.
@@ -813,4 +876,62 @@ func (c *Container) removeAllExecSessions() error {
 	}
 
 	return lastErr
+}
+
+// Make an ExecOptions struct to start the OCI runtime and prepare its exec
+// bundle.
+func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
+	// TODO: check logic here - should we set Privileged if the container is
+	// privileged?
+	var capList []string
+	if session.Config.Privileged || c.config.Privileged {
+		capList = capabilities.AllCapabilities()
+	}
+
+	user := c.config.User
+	if session.Config.User != "" {
+		user = session.Config.User
+	}
+
+	if err := c.createExecBundle(session.ID()); err != nil {
+		return nil, err
+	}
+
+	opts := new(ExecOptions)
+	opts.Cmd = session.Config.Command
+	opts.CapAdd = capList
+	opts.Env = session.Config.Environment
+	opts.Terminal = session.Config.Terminal
+	opts.Cwd = session.Config.WorkDir
+	opts.User = user
+	opts.PreserveFDs = session.Config.PreserveFDs
+	opts.DetachKeys = session.Config.DetachKeys
+
+	return opts, nil
+}
+
+// Write an exec session's exit code to the database
+func writeExecExitCode(c *Container, sessionID string, exitCode int) error {
+	// We can't reuse the old exec session (things may have changed from
+	// under use, the container was unlocked).
+	// So re-sync and get a fresh copy.
+	// If we can't do this, no point in continuing, any attempt to save
+	// would write garbage to the DB.
+	if err := c.syncContainer(); err != nil {
+		return errors.Wrapf(err, "error syncing container %s state to remove exec session %s", c.ID(), sessionID)
+	}
+
+	session, ok := c.state.ExecSessions[sessionID]
+	if !ok {
+		// Exec session already removed.
+		logrus.Infof("Container %s exec session %s already removed from database", c.ID(), sessionID)
+		return nil
+	}
+
+	session.State = define.ExecStateStopped
+	session.ExitCode = exitCode
+	session.PID = 0
+
+	// Finally, save our changes.
+	return c.save()
 }

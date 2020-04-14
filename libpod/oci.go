@@ -61,8 +61,7 @@ type OCIRuntime interface {
 	// the attach session to be terminated if provided via the STDIN
 	// channel. If they are not provided, the default detach keys will be
 	// used instead. Detach keys of "" will disable detaching via keyboard.
-	// The streams parameter may be passed for containers that did not
-	// create a terminal and will determine which streams to forward to the
+	// The streams parameter will determine which streams to forward to the
 	// client.
 	HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) error
 	// AttachResize resizes the terminal in use by the given container.
@@ -71,7 +70,17 @@ type OCIRuntime interface {
 	// ExecContainer executes a command in a running container.
 	// Returns an int (exit code), error channel (errors from attach), and
 	// error (errors that occurred attempting to start the exec session).
-	ExecContainer(ctr *Container, sessionID string, options *ExecOptions) (int, chan error, error)
+	// This returns once the exec session is running - not once it has
+	// completed, as one might expect. The attach session will remain
+	// running, in a goroutine that will return via the chan error in the
+	// return signature.
+	ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams) (int, chan error, error)
+	// ExecContainerHTTP executes a command in a running container and
+	// attaches its standard streams to a provided hijacked HTTP session.
+	// Maintains the same invariants as ExecContainer (returns on session
+	// start, with a goroutine running in the background to handle attach).
+	// The HTTP attach itself maintains the same invariants as HTTPAttach.
+	ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, cancel <-chan bool) (int, chan error, error)
 	// ExecAttachResize resizes the terminal of a running exec session. Only
 	// allowed with sessions that were created with a TTY.
 	ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error
