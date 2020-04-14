@@ -181,6 +181,37 @@ type ImagePushOptions struct {
 	TLSVerify types.OptionalBool
 }
 
+// ImageSearchOptions are the arguments for searching images.
+type ImageSearchOptions struct {
+	// Authfile is the path to the authentication file. Ignored for remote
+	// calls.
+	Authfile string
+	// Filters for the search results.
+	Filters []string
+	// Limit the number of results.
+	Limit int
+	// NoTrunc will not truncate the output.
+	NoTrunc bool
+	// TLSVerify to enable/disable HTTPS and certificate verification.
+	TLSVerify types.OptionalBool
+}
+
+// ImageSearchReport is the response from searching images.
+type ImageSearchReport struct {
+	// Index is the image index (e.g., "docker.io" or "quay.io")
+	Index string
+	// Name is the canoncical name of the image (e.g., "docker.io/library/alpine").
+	Name string
+	// Description of the image.
+	Description string
+	// Stars is the number of stars of the image.
+	Stars int
+	// Official indicates if it's an official image.
+	Official string
+	// Automated indicates if the image was created by an automated build.
+	Automated string
+}
+
 type ImageListOptions struct {
 	All     bool       `json:"all" schema:"all"`
 	Filter  []string   `json:"Filter,omitempty"`

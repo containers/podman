@@ -645,3 +645,56 @@ func UntagImage(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusCreated, "")
 }
+
+func SearchImages(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Term      string   `json:"term"`
+		Limit     int      `json:"limit"`
+		Filters   []string `json:"filters"`
+		TLSVerify bool     `json:"tlsVerify"`
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	options := image.SearchOptions{
+		Limit: query.Limit,
+	}
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		options.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+
+	if _, found := r.URL.Query()["filters"]; found {
+		filter, err := image.ParseSearchFilter(query.Filters)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse filters parameter for %s", r.URL.String()))
+			return
+		}
+		options.Filter = *filter
+	}
+
+	searchResults, err := image.SearchImages(query.Term, options)
+	if err != nil {
+		utils.BadRequest(w, "term", query.Term, err)
+		return
+	}
+	// Convert from image.SearchResults to entities.ImageSearchReport. We don't
+	// want to leak any low-level packages into the remote client, which
+	// requires converting.
+	reports := make([]entities.ImageSearchReport, len(searchResults))
+	for i := range searchResults {
+		reports[i].Index = searchResults[i].Index
+		reports[i].Name = searchResults[i].Name
+		reports[i].Description = searchResults[i].Index
+		reports[i].Stars = searchResults[i].Stars
+		reports[i].Official = searchResults[i].Official
+		reports[i].Automated = searchResults[i].Automated
+	}
+
+	utils.WriteResponse(w, http.StatusOK, reports)
+}
