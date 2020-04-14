@@ -27,4 +27,5 @@ func init() {
 	})
 	rmiCmd.SetHelpTemplate(registry.HelpTemplate())
 	rmiCmd.SetUsageTemplate(registry.UsageTemplate())
+	imageRemoveFlagSet(rmiCmd.Flags())
 }

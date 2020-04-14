@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -33,11 +34,13 @@ func init() {
 		Parent:  imageCmd,
 	})
 
-	flags := rmCmd.Flags()
+	imageRemoveFlagSet(rmCmd.Flags())
+}
+
+func imageRemoveFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVarP(&imageOpts.All, "all", "a", false, "Remove all images")
 	flags.BoolVarP(&imageOpts.Force, "force", "f", false, "Force Removal of the image")
 }
-
 func rm(cmd *cobra.Command, args []string) error {
 
 	if len(args) < 1 && !imageOpts.All {
@@ -46,7 +49,6 @@ func rm(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 && imageOpts.All {
 		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
 	}
-
 	report, err := registry.ImageEngine().Delete(registry.GetContext(), args, imageOpts)
 	if err != nil {
 		switch {

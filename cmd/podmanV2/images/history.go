@@ -53,7 +53,7 @@ func init() {
 
 	flags := historyCmd.Flags()
 	flags.StringVar(&opts.format, "format", "", "Change the output to JSON or a Go template")
-	flags.BoolVarP(&opts.human, "human", "H", false, "Display sizes and dates in human readable format")
+	flags.BoolVarP(&opts.human, "human", "H", true, "Display sizes and dates in human readable format")
 	flags.BoolVar(&opts.noTrunc, "no-trunc", false, "Do not truncate the output")
 	flags.BoolVar(&opts.noTrunc, "notruncate", false, "Do not truncate the output")
 	flags.BoolVarP(&opts.quiet, "quiet", "q", false, "Display the numeric IDs only")
@@ -79,7 +79,7 @@ func history(cmd *cobra.Command, args []string) error {
 			layers := make([]layer, len(results.Layers))
 			for i, l := range results.Layers {
 				layers[i].ImageHistoryLayer = l
-				layers[i].Created = time.Unix(l.Created, 0).Format(time.RFC3339)
+				layers[i].Created = l.Created.Format(time.RFC3339)
 			}
 			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			enc := json.NewEncoder(os.Stdout)
@@ -129,7 +129,10 @@ type historyreporter struct {
 }
 
 func (h historyreporter) Created() string {
-	return units.HumanDuration(time.Since(time.Unix(h.ImageHistoryLayer.Created, 0))) + " ago"
+	if opts.human {
+		return units.HumanDuration(time.Since(h.ImageHistoryLayer.Created)) + " ago"
+	}
+	return h.ImageHistoryLayer.Created.Format(time.RFC3339)
 }
 
 func (h historyreporter) Size() string {
