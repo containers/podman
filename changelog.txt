@@ -1,3 +1,19 @@
+- Changelog for v1.9.0-rc2 (2020-04-14)
+  * Update release notes for v1.9.0-RC2
+  * v2podman ps revert structure changes
+  * podmanv2 mount and umount
+  * Fix invalid container path comparison for pid cgroup
+  * v2podman add container init
+  * Need to set security options even if user does not specify options
+  * podmanv2 version format variable name change
+  * Fixes for load and other system tests
+  * Improve APIv2 support for Attach
+  * Refactor service idle support
+  * podmanv2 history and image remove templates
+  * Bump to v1.9.0-dev
+  * rootless: use snprintf
+  * podmanV2: implement search
+
 - Changelog for v1.9.0-rc1 (2020-04-13)
   * build(deps): bump github.com/containers/buildah from 1.14.7 to 1.14.8
   * Update release notes for v1.9.0-RC1
