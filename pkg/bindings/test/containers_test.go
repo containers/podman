@@ -513,4 +513,22 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 	})
 
+	It("container init on a bogus container", func() {
+		err := containers.ContainerInit(bt.conn, "doesnotexist")
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusNotFound))
+	})
+
+	It("container init", func() {
+		s := specgen.NewSpecGenerator(alpine.name)
+		ctr, err := containers.CreateWithSpec(bt.conn, s)
+		Expect(err).To(BeNil())
+		err = containers.ContainerInit(bt.conn, ctr.ID)
+		Expect(err).To(BeNil())
+		//	trying to init again should be an error
+		err = containers.ContainerInit(bt.conn, ctr.ID)
+		Expect(err).ToNot(BeNil())
+	})
+
 })

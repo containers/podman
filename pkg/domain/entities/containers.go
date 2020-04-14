@@ -283,3 +283,17 @@ type ContainerCleanupReport struct {
 	RmErr    error
 	RmiErr   error
 }
+
+// ContainerInitOptions describes input options
+// for the container init cli
+type ContainerInitOptions struct {
+	All    bool
+	Latest bool
+}
+
+// ContainerInitReport describes the results of a
+// container init
+type ContainerInitReport struct {
+	Err error
+	Id  string
+}

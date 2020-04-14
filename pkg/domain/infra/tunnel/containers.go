@@ -338,3 +338,19 @@ func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrId string, _
 func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []string, options entities.ContainerCleanupOptions) ([]*entities.ContainerCleanupReport, error) {
 	return nil, errors.New("not implemented")
 }
+
+func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
+	var reports []*entities.ContainerInitReport
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		err := containers.ContainerInit(ic.ClientCxt, ctr.ID)
+		reports = append(reports, &entities.ContainerInitReport{
+			Err: err,
+			Id:  ctr.ID,
+		})
+	}
+	return reports, nil
+}

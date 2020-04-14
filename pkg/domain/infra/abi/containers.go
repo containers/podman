@@ -794,3 +794,17 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 	}
 	return reports, nil
 }
+
+func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
+	var reports []*entities.ContainerInitReport
+	ctrs, err := getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		report := entities.ContainerInitReport{Id: ctr.ID()}
+		report.Err = ctr.Init(ctx)
+		reports = append(reports, &report)
+	}
+	return reports, nil
+}
