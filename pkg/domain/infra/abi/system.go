@@ -4,17 +4,28 @@ package abi
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
+	"strconv"
 	"strings"
+	"syscall"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	api "github.com/containers/libpod/pkg/api/server"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	iopodman "github.com/containers/libpod/pkg/varlink"
 	iopodmanAPI "github.com/containers/libpod/pkg/varlinkapi"
+	"github.com/containers/libpod/utils"
 	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"github.com/varlink/go/varlink"
 )
 
@@ -88,3 +99,146 @@ func (ic *ContainerEngine) VarlinkService(_ context.Context, opts entities.Servi
 	}
 	return nil
 }
+
+func (ic *ContainerEngine) SetupRootless(cmd *cobra.Command) error {
+	// do it only after podman has already re-execed and running with uid==0.
+	if os.Geteuid() == 0 {
+		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
+		if err != nil {
+			logrus.Warnf("Failed to detect the owner for the current cgroup: %v", err)
+		}
+		if !ownsCgroup {
+			conf, err := ic.Config(context.Background())
+			if err != nil {
+				return err
+			}
+			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
+			if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
+				if conf.Engine.CgroupManager == config.SystemdCgroupsManager {
+					logrus.Warnf("Failed to add podman to systemd sandbox cgroup: %v", err)
+				} else {
+					logrus.Debugf("Failed to add podman to systemd sandbox cgroup: %v", err)
+				}
+			}
+		}
+	}
+
+	if !executeCommandInUserNS(cmd) {
+		return nil
+	}
+
+	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+	if err != nil {
+		return errors.Wrapf(err, "could not get pause process pid file path")
+	}
+
+	became, ret, err := rootless.TryJoinPauseProcess(pausePidPath)
+	if err != nil {
+		return err
+	}
+	if became {
+		os.Exit(ret)
+	}
+
+	// if there is no pid file, try to join existing containers, and create a pause process.
+	ctrs, err := ic.Libpod.GetRunningContainers()
+	if err != nil {
+		logrus.WithError(err).Fatal("")
+	}
+
+	paths := []string{}
+	for _, ctr := range ctrs {
+		paths = append(paths, ctr.Config().ConmonPidFile)
+	}
+
+	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
+	if err := movePauseProcessToScope(); err != nil {
+		conf, err := ic.Config(context.Background())
+		if err != nil {
+			return err
+		}
+		if conf.Engine.CgroupManager == config.SystemdCgroupsManager {
+			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		} else {
+			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		}
+	}
+	if err != nil {
+		logrus.WithError(err).Fatal("")
+	}
+	if became {
+		os.Exit(ret)
+	}
+	return nil
+}
+
+// Most podman commands when run in rootless mode, need to be executed in the
+// users usernamespace.  This function is updated with a  list of commands that
+// should NOT be run within the user namespace.
+func executeCommandInUserNS(cmd *cobra.Command) bool {
+	return os.Geteuid() == 0
+	// if os.Geteuid() == 0 {
+	// 	return false
+	// }
+	// switch cmd {
+	// case _migrateCommand,
+	// 	_mountCommand,
+	// 	_renumberCommand,
+	// 	_searchCommand,
+	// 	_versionCommand:
+	// 	return false
+	// }
+	// return true
+}
+
+func movePauseProcessToScope() error {
+	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+	if err != nil {
+		return errors.Wrapf(err, "could not get pause process pid file path")
+	}
+
+	data, err := ioutil.ReadFile(pausePidPath)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read pause pid file")
+	}
+	pid, err := strconv.ParseUint(string(data), 10, 0)
+	if err != nil {
+		return errors.Wrapf(err, "cannot parse pid file %s", pausePidPath)
+	}
+
+	return utils.RunUnderSystemdScope(int(pid), "user.slice", "podman-pause.scope")
+}
+
+func setRLimits() error { // nolint:deadcode,unused
+	rlimits := new(syscall.Rlimit)
+	rlimits.Cur = 1048576
+	rlimits.Max = 1048576
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+			return errors.Wrapf(err, "error getting rlimits")
+		}
+		rlimits.Cur = rlimits.Max
+		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+			return errors.Wrapf(err, "error setting new rlimits")
+		}
+	}
+	return nil
+}
+
+func setUMask() { // nolint:deadcode,unused
+	// Be sure we can create directories with 0755 mode.
+	syscall.Umask(0022)
+}
+
+// checkInput can be used to verify any of the globalopt values
+func checkInput() error { // nolint:deadcode,unused
+	return nil
+}
+
+// func getCNIPluginsDir() string {
+// 	if rootless.IsRootless() {
+// 		return ""
+// 	}
+//
+// 	return registry.PodmanOptions.Network.CNIPluginDirs[0]
+// }

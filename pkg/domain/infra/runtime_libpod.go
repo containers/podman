@@ -1,3 +1,5 @@
+// build: ABISupport
+
 package infra
 
 import (
@@ -22,68 +24,70 @@ type engineOpts struct {
 	migrate  bool
 	noStore  bool
 	withFDS  bool
-	flags    entities.EngineOptions
+	config   entities.PodmanConfig
 }
 
 // GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
-func GetRuntimeMigrate(ctx context.Context, fs *flag.FlagSet, ef entities.EngineOptions, newRuntime string) (*libpod.Runtime, error) {
+func GetRuntimeMigrate(ctx context.Context, fs *flag.FlagSet, cfg entities.PodmanConfig, newRuntime string) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		name:     newRuntime,
 		renumber: false,
 		migrate:  true,
 		noStore:  false,
 		withFDS:  true,
-		flags:    ef,
+		config:   cfg,
 	})
 }
 
 // GetRuntimeDisableFDs gets a libpod runtime that will disable sd notify
-func GetRuntimeDisableFDs(ctx context.Context, fs *flag.FlagSet, ef entities.EngineOptions) (*libpod.Runtime, error) {
+func GetRuntimeDisableFDs(ctx context.Context, fs *flag.FlagSet, cfg entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: false,
 		migrate:  false,
 		noStore:  false,
 		withFDS:  false,
-		flags:    ef,
+		config:   cfg,
 	})
 }
 
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
-func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, ef entities.EngineOptions) (*libpod.Runtime, error) {
+func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, cfg entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: true,
 		migrate:  false,
 		noStore:  false,
 		withFDS:  true,
-		flags:    ef,
+		config:   cfg,
 	})
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
-func GetRuntime(ctx context.Context, flags *flag.FlagSet, ef entities.EngineOptions) (*libpod.Runtime, error) {
+func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, flags, &engineOpts{
 		renumber: false,
 		migrate:  false,
 		noStore:  false,
 		withFDS:  true,
-		flags:    ef,
+		config:   cfg,
 	})
 }
 
 // GetRuntimeNoStore generates a new libpod runtime configured by command line options
-func GetRuntimeNoStore(ctx context.Context, fs *flag.FlagSet, ef entities.EngineOptions) (*libpod.Runtime, error) {
+func GetRuntimeNoStore(ctx context.Context, fs *flag.FlagSet, cfg entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: false,
 		migrate:  false,
 		noStore:  true,
 		withFDS:  true,
-		flags:    ef,
+		config:   cfg,
 	})
 }
 
 func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
+	cfg := opts.config
+
 	storageSet := false
 
 	uidmapFlag := fs.Lookup("uidmap")
@@ -109,25 +113,25 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 
 	if fs.Changed("root") {
 		storageSet = true
-		storageOpts.GraphRoot = opts.flags.Root
+		storageOpts.GraphRoot = cfg.Engine.StaticDir
 	}
 	if fs.Changed("runroot") {
 		storageSet = true
-		storageOpts.RunRoot = opts.flags.Runroot
+		storageOpts.RunRoot = cfg.Runroot
 	}
 	if len(storageOpts.RunRoot) > 50 {
 		return nil, errors.New("the specified runroot is longer than 50 characters")
 	}
 	if fs.Changed("storage-driver") {
 		storageSet = true
-		storageOpts.GraphDriverName = opts.flags.StorageDriver
+		storageOpts.GraphDriverName = cfg.StorageDriver
 		// Overriding the default storage driver caused GraphDriverOptions from storage.conf to be ignored
 		storageOpts.GraphDriverOptions = []string{}
 	}
 	// This should always be checked after storage-driver is checked
-	if len(opts.flags.StorageOpts) > 0 {
+	if len(cfg.StorageOpts) > 0 {
 		storageSet = true
-		storageOpts.GraphDriverOptions = opts.flags.StorageOpts
+		storageOpts.GraphDriverOptions = cfg.StorageOpts
 	}
 	if opts.migrate {
 		options = append(options, libpod.WithMigrate())
@@ -151,30 +155,30 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?
 
-	if len(opts.flags.Namespace) > 0 {
-		options = append(options, libpod.WithNamespace(opts.flags.Namespace))
+	if len(cfg.Engine.Namespace) > 0 {
+		options = append(options, libpod.WithNamespace(cfg.Engine.Namespace))
 	}
 
 	if fs.Changed("runtime") {
-		options = append(options, libpod.WithOCIRuntime(opts.flags.Runtime))
+		options = append(options, libpod.WithOCIRuntime(cfg.RuntimePath))
 	}
 
 	if fs.Changed("conmon") {
-		options = append(options, libpod.WithConmonPath(opts.flags.ConmonPath))
+		options = append(options, libpod.WithConmonPath(cfg.ConmonPath))
 	}
 	if fs.Changed("tmpdir") {
-		options = append(options, libpod.WithTmpDir(opts.flags.TmpDir))
+		options = append(options, libpod.WithTmpDir(cfg.Engine.TmpDir))
 	}
 	if fs.Changed("network-cmd-path") {
-		options = append(options, libpod.WithNetworkCmdPath(opts.flags.NetworkCmdPath))
+		options = append(options, libpod.WithNetworkCmdPath(cfg.Engine.NetworkCmdPath))
 	}
 
 	if fs.Changed("events-backend") {
-		options = append(options, libpod.WithEventsLogger(opts.flags.EventsBackend))
+		options = append(options, libpod.WithEventsLogger(cfg.Engine.EventsLogger))
 	}
 
 	if fs.Changed("cgroup-manager") {
-		options = append(options, libpod.WithCgroupManager(opts.flags.CGroupManager))
+		options = append(options, libpod.WithCgroupManager(cfg.Engine.CgroupManager))
 	} else {
 		unified, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
@@ -189,13 +193,13 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	// TODO flag to set libpod tmp dir?
 
 	if fs.Changed("cni-config-dir") {
-		options = append(options, libpod.WithCNIConfigDir(opts.flags.CniConfigDir))
+		options = append(options, libpod.WithCNIConfigDir(cfg.Network.NetworkConfigDir))
 	}
 	if fs.Changed("default-mounts-file") {
-		options = append(options, libpod.WithDefaultMountsFile(opts.flags.DefaultMountsFile))
+		options = append(options, libpod.WithDefaultMountsFile(cfg.Containers.DefaultMountsFile))
 	}
 	if fs.Changed("hooks-dir") {
-		options = append(options, libpod.WithHooksDir(opts.flags.HooksDir...))
+		options = append(options, libpod.WithHooksDir(cfg.Engine.HooksDir...))
 	}
 
 	// TODO flag to set CNI plugins dir?

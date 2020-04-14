@@ -31,6 +31,9 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
+		Annotations: map[string]string{
+			registry.RootRequired: "true",
+		},
 	}
 )
 

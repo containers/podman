@@ -12,7 +12,7 @@ import (
 
 // ContainerEngine Image Proxy will be EOL'ed after podmanV2 is separated from libpod repo
 
-func NewLibpodImageRuntime(flags *pflag.FlagSet, opts entities.EngineOptions) (entities.ImageEngine, error) {
+func NewLibpodImageRuntime(flags *pflag.FlagSet, opts entities.PodmanConfig) (entities.ImageEngine, error) {
 	r, err := GetRuntime(context.Background(), flags, opts)
 	if err != nil {
 		return nil, err
