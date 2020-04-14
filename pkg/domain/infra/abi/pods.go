@@ -5,13 +5,13 @@ package abi
 import (
 	"context"
 
-	lpfilters "github.com/containers/libpod/libpod/filters"
-
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	lpfilters "github.com/containers/libpod/libpod/filters"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/specgen/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -246,7 +246,7 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreateOptions) (*entities.PodCreateReport, error) {
 	podSpec := specgen.NewPodSpecGenerator()
 	opts.ToPodSpecGen(podSpec)
-	pod, err := podSpec.MakePod(ic.Libpod)
+	pod, err := generate.MakePod(podSpec, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}

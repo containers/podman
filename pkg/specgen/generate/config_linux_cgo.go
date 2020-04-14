@@ -1,6 +1,6 @@
 // +build linux,cgo
 
-package specgen
+package generate
 
 import (
 	"context"
@@ -8,13 +8,14 @@ import (
 
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/seccomp"
+	"github.com/containers/libpod/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	goSeccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SpecGenerator) getSeccompConfig(configSpec *spec.Spec, img *image.Image) (*spec.LinuxSeccomp, error) {
+func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *image.Image) (*spec.LinuxSeccomp, error) {
 	var seccompConfig *spec.LinuxSeccomp
 	var err error
 	scp, err := seccomp.LookupPolicy(s.SeccompPolicy)
