@@ -5,7 +5,6 @@ package libpod
 import (
 	"bufio"
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -480,8 +479,7 @@ func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
 }
 
 // HTTPAttach performs an attach for the HTTP API.
-// This will consume, and automatically close, the hijacked HTTP session.
-// It is not necessary to close it independently.
+// The caller must handle closing the HTTP connection after this returns.
 // The cancel channel is not closed; it is up to the caller to do so after
 // this function returns.
 // If this is a container with a terminal, we will stream raw. If it is not, we
@@ -492,13 +490,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf
 		isTerminal = ctr.config.Spec.Process.Terminal
 	}
 
-	// Ensure that our contract of closing the HTTP connection is honored.
-	defer hijackWriteErrorAndClose(deferredErr, ctr.ID(), httpConn, httpBuf)
-
 	if streams != nil {
-		if isTerminal {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot specify which streams to attach as container %s has a terminal", ctr.ID())
-		}
 		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
 			return errors.Wrapf(define.ErrInvalidArg, "must specify at least one stream to attach to")
 		}
@@ -547,8 +539,16 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf
 	go func() {
 		var err error
 		if isTerminal {
+			// Hack: return immediately if attachStdout not set to
+			// emulate Docker.
+			// Basically, when terminal is set, STDERR goes nowhere.
+			// Everything does over STDOUT.
+			// Therefore, if not attaching STDOUT - we'll never copy
+			// anything from here.
 			logrus.Debugf("Performing terminal HTTP attach for container %s", ctr.ID())
-			err = httpAttachTerminalCopy(conn, httpBuf, ctr.ID())
+			if attachStdout {
+				err = httpAttachTerminalCopy(conn, httpBuf, ctr.ID())
+			}
 		} else {
 			logrus.Debugf("Performing non-terminal HTTP attach for container %s", ctr.ID())
 			err = httpAttachNonTerminalCopy(conn, httpBuf, ctr.ID(), attachStdin, attachStdout, attachStderr)
@@ -1725,13 +1725,16 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 	for {
 		numR, err := container.Read(buf)
 		if numR > 0 {
-			headerBuf := []byte{0, 0, 0, 0}
+			var headerBuf []byte
 
+			// Subtract 1 because we strip the first byte (used for
+			// multiplexing by Conmon).
+			headerLen := uint32(numR - 1)
 			// Practically speaking, we could make this buf[0] - 1,
 			// but we need to validate it anyways...
 			switch buf[0] {
 			case AttachPipeStdin:
-				headerBuf[0] = 0
+				headerBuf = makeHTTPAttachHeader(0, headerLen)
 				if !stdin {
 					continue
 				}
@@ -1739,23 +1742,16 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 				if !stdout {
 					continue
 				}
-				headerBuf[0] = 1
+				headerBuf = makeHTTPAttachHeader(1, headerLen)
 			case AttachPipeStderr:
 				if !stderr {
 					continue
 				}
-				headerBuf[0] = 2
+				headerBuf = makeHTTPAttachHeader(2, headerLen)
 			default:
 				logrus.Errorf("Received unexpected attach type %+d, discarding %d bytes", buf[0], numR)
 				continue
 			}
-
-			// Get big-endian length and append.
-			// Subtract 1 because we strip the first byte (used for
-			// multiplexing by Conmon).
-			lenBuf := []byte{0, 0, 0, 0}
-			binary.BigEndian.PutUint32(lenBuf, uint32(numR-1))
-			headerBuf = append(headerBuf, lenBuf...)
 
 			numH, err2 := http.Write(headerBuf)
 			if err2 != nil {
