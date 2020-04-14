@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,9 +22,11 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi/terminal"
 	"github.com/containers/libpod/pkg/ps"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/specgen/generate"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -804,6 +807,88 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 	for _, ctr := range ctrs {
 		report := entities.ContainerInitReport{Id: ctr.ID()}
 		report.Err = ctr.Init(ctx)
+		reports = append(reports, &report)
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIds []string, options entities.ContainerMountOptions) ([]*entities.ContainerMountReport, error) {
+	if os.Geteuid() != 0 {
+		if driver := ic.Libpod.StorageConfig().GraphDriverName; driver != "vfs" {
+			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
+			// of the mount command.
+			return nil, fmt.Errorf("cannot mount using driver %s in rootless mode", driver)
+		}
+
+		became, ret, err := rootless.BecomeRootInUserNS("")
+		if err != nil {
+			return nil, err
+		}
+		if became {
+			os.Exit(ret)
+		}
+	}
+	var reports []*entities.ContainerMountReport
+	ctrs, err := getContainersByContext(options.All, options.Latest, nameOrIds, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		report := entities.ContainerMountReport{Id: ctr.ID()}
+		report.Path, report.Err = ctr.Mount()
+		reports = append(reports, &report)
+	}
+	if len(reports) > 0 {
+		return reports, nil
+	}
+
+	// No containers were passed, so we send back what is mounted
+	ctrs, err = getContainersByContext(true, false, []string{}, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		mounted, path, err := ctr.Mounted()
+		if err != nil {
+			return nil, err
+		}
+
+		if mounted {
+			reports = append(reports, &entities.ContainerMountReport{
+				Id:   ctr.ID(),
+				Name: ctr.Name(),
+				Path: path,
+			})
+		}
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIds []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
+	var reports []*entities.ContainerUnmountReport
+	ctrs, err := getContainersByContext(options.All, options.Latest, nameOrIds, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		state, err := ctr.State()
+		if err != nil {
+			logrus.Debugf("Error umounting container %s state: %s", ctr.ID(), err.Error())
+			continue
+		}
+		if state == define.ContainerStateRunning {
+			logrus.Debugf("Error umounting container %s, is running", ctr.ID())
+			continue
+		}
+
+		report := entities.ContainerUnmountReport{Id: ctr.ID()}
+		if err := ctr.Unmount(options.Force); err != nil {
+			if options.All && errors.Cause(err) == storage.ErrLayerNotMounted {
+				logrus.Debugf("Error umounting container %s, storage.ErrLayerNotMounted", ctr.ID())
+				continue
+			}
+			report.Err = errors.Wrapf(err, "error unmounting container %s", ctr.ID())
+		}
 		reports = append(reports, &report)
 	}
 	return reports, nil
