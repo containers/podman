@@ -18,9 +18,11 @@
 - Fixed a bug where `podman play kube` would not properly handle container-only port mappings ([#5610](https://github.com/containers/libpod/issues/5610))
 - Fixed a bug where the `podman container prune` command was not pruning containers in the `created` and `configured` states
 - Fixed a bug where Podman was not properly removing CNI IP address allocations after a reboot ([#5433](https://github.com/containers/libpod/issues/5433))
+- Fixed a bug where Podman was not properly applying the default Seccomp profile when `--security-opt` was not given at the command line
 
 ### HTTP API
-- Many Libpod API endpoints have been added, including `Changes`, `Checkpoint`, and `Restore`
+- Many Libpod API endpoints have been added, including `Changes`, `Checkpoint`, `Init`, and `Restore`
+- Resolved issues where the `podman system service` command would time out and exit while there were still active connections
 - Stability overall has greatly improved as we prepare the API for a beta release soon with Podman 2.0
 
 ### Misc
