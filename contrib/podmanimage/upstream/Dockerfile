@@ -17,7 +17,7 @@ ENV GOPATH=/root/podman
 # to the container.
 # Finally remove the podman directory and a few other packages
 # that are needed for building but not running Podman
-RUN useradd build; yum -y update; yum -y reinstall shadow-utils; yum -y install --exclude container-selinux \
+RUN useradd podman; yum -y update; yum -y reinstall shadow-utils; yum -y install --exclude container-selinux \
      --enablerepo=updates-testing \
      btrfs-progs-devel \
      containernetworking-cni \
@@ -37,7 +37,7 @@ RUN useradd build; yum -y update; yum -y reinstall shadow-utils; yum -y install 
      libselinux-devel \
      make \
      pkgconfig \
-     runc \
+     crun \
      fuse-overlayfs \
      fuse3 \
      containers-common; \
@@ -59,9 +59,6 @@ RUN useradd build; yum -y update; yum -y reinstall shadow-utils; yum -y install 
      mkdir -p /etc/cni/net.d; \
      curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | tee /etc/cni/net.d/99-loopback.conf; \
      mkdir -p /usr/share/containers; \
-     cp $GOPATH/src/github.com/containers/libpod/libpod.conf /usr/share/containers; \
-     # Adjust libpod.conf to write logging to a file
-     sed -i 's/# events_logger = "journald"/events_logger = "file"/g' /usr/share/containers/libpod.conf; \
      rm -rf /root/podman/*; \
      yum -y remove git golang go-md2man make; \
      yum clean all;
@@ -70,7 +67,6 @@ RUN useradd build; yum -y update; yum -y reinstall shadow-utils; yum -y install 
 RUN sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' /etc/containers/storage.conf
 RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers; touch /var/lib/shared/overlay-images/images.lock; touch /var/lib/shared/overlay-layers/layers.lock
 
-# Set up environment variables to note that this is
-# not starting with usernamespace and default to
-# isolate the filesystem with chroot.
-ENV _BUILDAH_STARTED_IN_USERNS="" BUILDAH_ISOLATION=chroot
+ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/
+
+ENV _CONTAINERS_USERNS_CONFIGURED=""
