@@ -7,6 +7,7 @@ import (
 )
 
 type ImageEngine interface {
+	Build(ctx context.Context, containerFiles []string, opts BuildOptions) (*BuildReport, error)
 	Config(ctx context.Context) (*config.Config, error)
 	Delete(ctx context.Context, nameOrId []string, opts ImageDeleteOptions) (*ImageDeleteReport, error)
 	Diff(ctx context.Context, nameOrId string, options DiffOptions) (*DiffReport, error)

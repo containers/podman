@@ -259,3 +259,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 	return config.Default()
 }
+
+func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
+	return nil, errors.New("not implemented yet")
+}
