@@ -121,7 +121,12 @@ func (r *MissingRuntime) AttachResize(ctr *Container, newSize remotecommand.Term
 }
 
 // ExecContainer is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions) (int, chan error, error) {
+func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams) (int, chan error, error) {
+	return -1, nil, r.printError()
+}
+
+// ExecContainerHTTP is not available as the runtime is missing
+func (r *MissingRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, cancel <-chan bool) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 

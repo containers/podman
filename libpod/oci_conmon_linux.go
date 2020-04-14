@@ -637,7 +637,7 @@ func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize remotecommand.Te
 
 // ExecContainer executes a command in a running container
 // TODO: Split into Create/Start/Attach/Wait
-func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions) (int, chan error, error) {
+func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams) (int, chan error, error) {
 	if options == nil {
 		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide an ExecOptions struct to ExecContainer")
 	}
@@ -731,7 +731,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 		args = append(args, "-t")
 	}
 
-	if options.Streams != nil && options.Streams.AttachInput {
+	if streams != nil && streams.AttachInput {
 		args = append(args, "-i")
 	}
 
@@ -746,13 +746,13 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	}).Debugf("running conmon: %s", r.conmonPath)
 	execCmd := exec.Command(r.conmonPath, args...)
 
-	if options.Streams != nil {
+	if streams != nil {
 		// Don't add the InputStream to the execCmd. Instead, the data should be passed
 		// through CopyDetachable
-		if options.Streams.AttachOutput {
+		if streams.AttachOutput {
 			execCmd.Stdout = options.Streams.OutputStream
 		}
-		if options.Streams.AttachError {
+		if streams.AttachError {
 			execCmd.Stderr = options.Streams.ErrorStream
 		}
 	}
@@ -811,7 +811,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	attachChan := make(chan error)
 	go func() {
 		// attachToExec is responsible for closing pipes
-		attachChan <- c.attachToExec(options.Streams, options.DetachKeys, sessionID, parentStartPipe, parentAttachPipe)
+		attachChan <- c.attachToExec(streams, options.DetachKeys, sessionID, parentStartPipe, parentAttachPipe)
 		close(attachChan)
 	}()
 	attachToExecCalled = true
@@ -821,6 +821,71 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	}
 
 	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
+
+	return pid, attachChan, err
+}
+
+// ExecContainerHTTP executes a new command in an existing container and
+// forwards its standard streams over an attach
+func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, cancel <-chan bool) (int, chan error, error) {
+	if streams != nil {
+		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
+			return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
+		}
+	}
+
+	if options == nil {
+		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide exec options to ExecContainerHTTP")
+	}
+
+	detachString := config.DefaultDetachKeys
+	if options.DetachKeys != nil {
+		detachString = *options.DetachKeys
+	}
+	detachKeys, err := processDetachKeys(detachString)
+	if err != nil {
+		return -1, nil, err
+	}
+
+	// TODO: Should we default this to false?
+	// Or maybe make streams mandatory?
+	attachStdin := true
+	if streams != nil {
+		attachStdin = streams.Stdin
+	}
+
+	var ociLog string
+	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
+		ociLog = ctr.execOCILog(sessionID)
+	}
+
+	execCmd, pipes, err := r.startExec(ctr, sessionID, options, attachStdin, ociLog)
+	if err != nil {
+		return -1, nil, err
+	}
+
+	// Only close sync pipe. Start and attach are consumed in the attach
+	// goroutine.
+	defer func() {
+		if pipes.syncPipe != nil && !pipes.syncClosed {
+			errorhandling.CloseQuiet(pipes.syncPipe)
+			pipes.syncClosed = true
+		}
+	}()
+
+	attachChan := make(chan error)
+	go func() {
+		// attachToExec is responsible for closing pipes
+		attachChan <- attachExecHTTP(ctr, sessionID, httpBuf, streams, pipes, detachKeys, options.Terminal, cancel)
+		close(attachChan)
+	}()
+
+	// Wait for conmon to succeed, when return.
+	if err := execCmd.Wait(); err != nil {
+		return -1, nil, errors.Wrapf(err, "cannot run conmon")
+	}
+
+	pid, err := readConmonPipeData(pipes.syncPipe, ociLog)
 
 	return pid, attachChan, err
 }
@@ -1828,4 +1893,310 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 		}
 	}
 
+}
+
+// This contains pipes used by the exec API.
+type execPipes struct {
+	syncPipe     *os.File
+	syncClosed   bool
+	startPipe    *os.File
+	startClosed  bool
+	attachPipe   *os.File
+	attachClosed bool
+}
+
+func (p *execPipes) cleanup() {
+	if p.syncPipe != nil && !p.syncClosed {
+		errorhandling.CloseQuiet(p.syncPipe)
+		p.syncClosed = true
+	}
+	if p.startPipe != nil && !p.startClosed {
+		errorhandling.CloseQuiet(p.startPipe)
+		p.startClosed = true
+	}
+	if p.attachPipe != nil && !p.attachClosed {
+		errorhandling.CloseQuiet(p.attachPipe)
+		p.attachClosed = true
+	}
+}
+
+// Start an exec session's conmon parent from the given options.
+func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *ExecOptions, attachStdin bool, ociLog string) (_ *exec.Cmd, _ *execPipes, deferredErr error) {
+	pipes := new(execPipes)
+
+	if options == nil {
+		return nil, nil, errors.Wrapf(define.ErrInvalidArg, "must provide an ExecOptions struct to ExecContainer")
+	}
+	if len(options.Cmd) == 0 {
+		return nil, nil, errors.Wrapf(define.ErrInvalidArg, "must provide a command to execute")
+	}
+
+	if sessionID == "" {
+		return nil, nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
+	}
+
+	// create sync pipe to receive the pid
+	parentSyncPipe, childSyncPipe, err := newPipe()
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error creating socket pair")
+	}
+	pipes.syncPipe = parentSyncPipe
+
+	defer func() {
+		if deferredErr != nil {
+			pipes.cleanup()
+		}
+	}()
+
+	// TODOTODOTODO
+	//defer errorhandling.CloseQuiet(parentSyncPipe)
+
+	// create start pipe to set the cgroup before running
+	// attachToExec is responsible for closing parentStartPipe
+	childStartPipe, parentStartPipe, err := newPipe()
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error creating socket pair")
+	}
+	pipes.startPipe = parentStartPipe
+
+	// We want to make sure we close the parent{Start,Attach}Pipes if we fail
+	// but also don't want to close them after attach to exec is called
+	//attachToExecCalled := false
+
+	// TODOTODOTODO
+	// defer func() {
+	// 	if !attachToExecCalled {
+	// 		errorhandling.CloseQuiet(parentStartPipe)
+	// 	}
+	// }()
+
+	// create the attach pipe to allow attach socket to be created before
+	// $RUNTIME exec starts running. This is to make sure we can capture all output
+	// from the process through that socket, rather than half reading the log, half attaching to the socket
+	// attachToExec is responsible for closing parentAttachPipe
+	parentAttachPipe, childAttachPipe, err := newPipe()
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error creating socket pair")
+	}
+	pipes.attachPipe = parentAttachPipe
+
+	childrenClosed := false
+	defer func() {
+		if !childrenClosed {
+			errorhandling.CloseQuiet(childSyncPipe)
+			errorhandling.CloseQuiet(childAttachPipe)
+			errorhandling.CloseQuiet(childStartPipe)
+		}
+	}()
+
+	runtimeDir, err := util.GetRuntimeDir()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	finalEnv := make([]string, 0, len(options.Env))
+	for k, v := range options.Env {
+		finalEnv = append(finalEnv, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	processFile, err := prepareProcessExec(c, options.Cmd, finalEnv, options.Terminal, options.Cwd, options.User, sessionID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, "")
+
+	if options.PreserveFDs > 0 {
+		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
+	}
+
+	for _, capability := range options.CapAdd {
+		args = append(args, formatRuntimeOpts("--cap", capability)...)
+	}
+
+	if options.Terminal {
+		args = append(args, "-t")
+	}
+
+	if attachStdin {
+		args = append(args, "-i")
+	}
+
+	// Append container ID and command
+	args = append(args, "-e")
+	// TODO make this optional when we can detach
+	args = append(args, "--exec-attach")
+	args = append(args, "--exec-process-spec", processFile.Name())
+
+	logrus.WithFields(logrus.Fields{
+		"args": args,
+	}).Debugf("running conmon: %s", r.conmonPath)
+	// TODO: Need to pass this back so we can wait on it.
+	execCmd := exec.Command(r.conmonPath, args...)
+
+	// TODO: This is commented because it doesn't make much sense in HTTP
+	// attach, and I'm not certain it does for non-HTTP attach as well.
+	// if streams != nil {
+	// 	// Don't add the InputStream to the execCmd. Instead, the data should be passed
+	// 	// through CopyDetachable
+	// 	if streams.AttachOutput {
+	// 		execCmd.Stdout = options.Streams.OutputStream
+	// 	}
+	// 	if streams.AttachError {
+	// 		execCmd.Stderr = options.Streams.ErrorStream
+	// 	}
+	// }
+
+	conmonEnv, extraFiles, err := r.configureConmonEnv(runtimeDir)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if options.PreserveFDs > 0 {
+		for fd := 3; fd < int(3+options.PreserveFDs); fd++ {
+			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
+		}
+	}
+
+	// we don't want to step on users fds they asked to preserve
+	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
+	execCmd.Env = r.conmonEnv
+	execCmd.Env = append(execCmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", options.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", options.PreserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", options.PreserveFDs+5))
+	execCmd.Env = append(execCmd.Env, conmonEnv...)
+
+	execCmd.ExtraFiles = append(execCmd.ExtraFiles, childSyncPipe, childStartPipe, childAttachPipe)
+	execCmd.ExtraFiles = append(execCmd.ExtraFiles, extraFiles...)
+	execCmd.Dir = c.execBundlePath(sessionID)
+	execCmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+
+	err = startCommandGivenSelinux(execCmd)
+
+	// We don't need children pipes  on the parent side
+	errorhandling.CloseQuiet(childSyncPipe)
+	errorhandling.CloseQuiet(childAttachPipe)
+	errorhandling.CloseQuiet(childStartPipe)
+	childrenClosed = true
+
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "cannot start container %s", c.ID())
+	}
+	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe); err != nil {
+		return nil, nil, err
+	}
+
+	if options.PreserveFDs > 0 {
+		for fd := 3; fd < int(3+options.PreserveFDs); fd++ {
+			// These fds were passed down to the runtime.  Close them
+			// and not interfere
+			if err := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close(); err != nil {
+				logrus.Debugf("unable to close file fd-%d", fd)
+			}
+		}
+	}
+
+	return execCmd, pipes, nil
+}
+
+// Attach to a container over HTTP
+func attachExecHTTP(c *Container, sessionID string, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool) error {
+	if pipes == nil || pipes.startPipe == nil || pipes.attachPipe == nil {
+		return errors.Wrapf(define.ErrInvalidArg, "must provide a start and attach pipe to finish an exec attach")
+	}
+
+	defer func() {
+		if !pipes.startClosed {
+			errorhandling.CloseQuiet(pipes.startPipe)
+			pipes.startClosed = true
+		}
+		if !pipes.attachClosed {
+			errorhandling.CloseQuiet(pipes.attachPipe)
+			pipes.attachClosed = true
+		}
+	}()
+
+	logrus.Debugf("Attaching to container %s exec session %s", c.ID(), sessionID)
+
+	// set up the socket path, such that it is the correct length and location for exec
+	sockPath, err := c.execAttachSocketPath(sessionID)
+	if err != nil {
+		return err
+	}
+	socketPath := buildSocketPath(sockPath)
+
+	// 2: read from attachFd that the parent process has set up the console socket
+	if _, err := readConmonPipeData(pipes.attachPipe, ""); err != nil {
+		return err
+	}
+
+	// 2: then attach
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
+	if err != nil {
+		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Errorf("unable to close socket: %q", err)
+		}
+	}()
+
+	// Make a channel to pass errors back
+	errChan := make(chan error)
+
+	attachStdout := true
+	attachStderr := true
+	attachStdin := true
+	if streams != nil {
+		attachStdout = streams.Stdout
+		attachStderr = streams.Stderr
+		attachStdin = streams.Stdin
+	}
+
+	// Handle STDOUT/STDERR
+	go func() {
+		var err error
+		if isTerminal {
+			// Hack: return immediately if attachStdout not set to
+			// emulate Docker.
+			// Basically, when terminal is set, STDERR goes nowhere.
+			// Everything does over STDOUT.
+			// Therefore, if not attaching STDOUT - we'll never copy
+			// anything from here.
+			logrus.Debugf("Performing terminal HTTP attach for container %s", c.ID())
+			if attachStdout {
+				err = httpAttachTerminalCopy(conn, httpBuf, c.ID())
+			}
+		} else {
+			logrus.Debugf("Performing non-terminal HTTP attach for container %s", c.ID())
+			err = httpAttachNonTerminalCopy(conn, httpBuf, c.ID(), attachStdin, attachStdout, attachStderr)
+		}
+		errChan <- err
+		logrus.Debugf("STDOUT/ERR copy completed")
+	}()
+	// Next, STDIN. Avoid entirely if attachStdin unset.
+	if attachStdin {
+		go func() {
+			_, err := utils.CopyDetachable(conn, httpBuf, detachKeys)
+			logrus.Debugf("STDIN copy completed")
+			errChan <- err
+		}()
+	}
+
+	// 4: send start message to child
+	if err := writeConmonPipeData(pipes.startPipe); err != nil {
+		return err
+	}
+
+	if cancel != nil {
+		select {
+		case err := <-errChan:
+			return err
+		case <-cancel:
+			return nil
+		}
+	} else {
+		var connErr error = <-errChan
+		return connErr
+	}
 }
