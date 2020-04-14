@@ -228,14 +228,6 @@ type ContainerSecurityConfig struct {
 	// If SELinux is enabled and this is not specified, a label will be
 	// automatically generated if not specified.
 	// Optional.
-	SelinuxProcessLabel string `json:"selinux_process_label,omitempty"`
-	// SelinuxMountLabel is the mount label the container will use.
-	// If SELinux is enabled and this is not specified, a label will be
-	// automatically generated if not specified.
-	// Optional.
-	SelinuxMountLabel string `json:"selinux_mount_label,omitempty"`
-	// SelinuxOpts are options for configuring SELinux.
-	// Optional.
 	SelinuxOpts []string `json:"selinux_opts,omitempty"`
 	// ApparmorProfile is the name of the Apparmor profile the container
 	// will use.

@@ -68,18 +68,6 @@ func (s *SpecGenerator) Validate() error {
 	if len(s.CapAdd) > 0 && s.Privileged {
 		return exclusiveOptions("CapAdd", "privileged")
 	}
-	// selinuxprocesslabel and privileged are exclusive
-	if len(s.SelinuxProcessLabel) > 0 && s.Privileged {
-		return exclusiveOptions("SelinuxProcessLabel", "privileged")
-	}
-	// selinuxmounmtlabel and privileged are exclusive
-	if len(s.SelinuxMountLabel) > 0 && s.Privileged {
-		return exclusiveOptions("SelinuxMountLabel", "privileged")
-	}
-	// selinuxopts and privileged are exclusive
-	if len(s.SelinuxOpts) > 0 && s.Privileged {
-		return exclusiveOptions("SelinuxOpts", "privileged")
-	}
 	// apparmor and privileged are exclusive
 	if len(s.ApparmorProfile) > 0 && s.Privileged {
 		return exclusiveOptions("AppArmorProfile", "privileged")

@@ -813,3 +813,7 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) error {
 	}
 	return nil
 }
+
+func (r *Runtime) EnableLabeling() bool {
+	return r.config.Containers.EnableLabeling
+}

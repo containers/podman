@@ -113,6 +113,14 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if err := finishThrottleDevices(s); err != nil {
 		return err
 	}
+	// Unless already set via the CLI, check if we need to disable process
+	// labels or set the defaults.
+	if len(s.SelinuxOpts) == 0 {
+		if err := s.SetLabelOpts(r, s.PidNS, s.IpcNS); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
