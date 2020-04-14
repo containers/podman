@@ -3,11 +3,13 @@ package entities
 import (
 	"context"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/specgen"
 )
 
 type ContainerEngine interface {
+	Config(ctx context.Context) (*config.Config, error)
 	ContainerAttach(ctx context.Context, nameOrId string, options AttachOptions) error
 	ContainerCheckpoint(ctx context.Context, namesOrIds []string, options CheckpointOptions) ([]*CheckpointReport, error)
 	ContainerCleanup(ctx context.Context, namesOrIds []string, options ContainerCleanupOptions) ([]*ContainerCleanupReport, error)

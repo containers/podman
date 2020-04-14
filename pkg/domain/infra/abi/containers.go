@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
@@ -892,4 +893,9 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIds []str
 		reports = append(reports, &report)
 	}
 	return reports, nil
+}
+
+// GetConfig returns a copy of the configuration used by the runtime
+func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
+	return ic.Libpod.GetConfig()
 }

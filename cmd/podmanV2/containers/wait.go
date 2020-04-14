@@ -44,7 +44,7 @@ func init() {
 	flags.DurationVarP(&waitOptions.Interval, "interval", "i", time.Duration(250), "Milliseconds to wait before polling for completion")
 	flags.BoolVarP(&waitOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.StringVar(&waitCondition, "condition", "stopped", "Condition to wait on")
-	if registry.EngineOptions.EngineMode == entities.ABIMode {
+	if registry.PodmanOptions.EngineMode == entities.ABIMode {
 		// TODO: This is the same as V1.  We could skip creating the flag altogether in V2...
 		_ = flags.MarkHidden("latest")
 	}

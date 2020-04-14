@@ -2,9 +2,12 @@ package entities
 
 import (
 	"context"
+
+	"github.com/containers/common/pkg/config"
 )
 
 type ImageEngine interface {
+	Config(ctx context.Context) (*config.Config, error)
 	Delete(ctx context.Context, nameOrId []string, opts ImageDeleteOptions) (*ImageDeleteReport, error)
 	Diff(ctx context.Context, nameOrId string, options DiffOptions) (*DiffReport, error)
 	Exists(ctx context.Context, nameOrId string) (*BoolReport, error)

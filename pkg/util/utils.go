@@ -516,6 +516,8 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 }
 
 // GetGlobalOpts checks all global flags and generates the command string
+// FIXME: Port input to config.Config
+// TODO: Is there a "better" way to reverse values to flags? This seems brittle.
 func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
 	globalFlags := map[string]bool{
 		"cgroup-manager": true, "cni-config-dir": true, "conmon": true, "default-mounts-file": true,

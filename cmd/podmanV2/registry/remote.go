@@ -5,5 +5,5 @@ import (
 )
 
 func IsRemote() bool {
-	return EngineOptions.EngineMode == entities.TunnelMode
+	return PodmanOptions.EngineMode == entities.TunnelMode
 }

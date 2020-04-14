@@ -3,8 +3,6 @@ package main
 import (
 	"os"
 	"reflect"
-	"runtime"
-	"strings"
 
 	_ "github.com/containers/libpod/cmd/podmanV2/containers"
 	_ "github.com/containers/libpod/cmd/podmanV2/healthcheck"
@@ -14,36 +12,13 @@ import (
 	"github.com/containers/libpod/cmd/podmanV2/registry"
 	_ "github.com/containers/libpod/cmd/podmanV2/system"
 	_ "github.com/containers/libpod/cmd/podmanV2/volumes"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/sirupsen/logrus"
 )
 
 func init() {
-	if err := libpod.SetXdgDirs(); err != nil {
-		logrus.Errorf(err.Error())
-		os.Exit(1)
-	}
-
-	switch runtime.GOOS {
-	case "darwin":
-		fallthrough
-	case "windows":
-		registry.EngineOptions.EngineMode = entities.TunnelMode
-	case "linux":
-		registry.EngineOptions.EngineMode = entities.ABIMode
-	default:
-		logrus.Errorf("%s is not a supported OS", runtime.GOOS)
-		os.Exit(1)
-	}
-
-	// TODO: Is there a Cobra way to "peek" at os.Args?
-	for _, v := range os.Args {
-		if strings.HasPrefix(v, "--remote") {
-			registry.EngineOptions.EngineMode = entities.TunnelMode
-		}
-	}
+	// This is the bootstrap configuration, if user gives
+	// CLI flags parts of this configuration may be overwritten
+	registry.PodmanOptions = registry.NewPodmanConfig()
 }
 
 func main() {
@@ -53,7 +28,7 @@ func main() {
 		return
 	}
 	for _, c := range registry.Commands {
-		if Contains(registry.EngineOptions.EngineMode, c.Mode) {
+		if Contains(registry.PodmanOptions.EngineMode, c.Mode) {
 			parent := rootCmd
 			if c.Parent != nil {
 				parent = c.Parent

@@ -29,8 +29,9 @@ var (
 	exitCode        = ExecErrorCodeGeneric
 	imageEngine     entities.ImageEngine
 
-	Commands      []CliCommand
-	EngineOptions entities.EngineOptions
+	// Commands holds the cobra.Commands to present to the user, including
+	// parent if not a child of "root"
+	Commands []CliCommand
 )
 
 func SetExitCode(code int) {
@@ -83,8 +84,8 @@ func ImageEngine() entities.ImageEngine {
 // NewImageEngine is a wrapper for building an ImageEngine to be used for PreRunE functions
 func NewImageEngine(cmd *cobra.Command, args []string) (entities.ImageEngine, error) {
 	if imageEngine == nil {
-		EngineOptions.FlagSet = cmd.Flags()
-		engine, err := infra.NewImageEngine(EngineOptions)
+		PodmanOptions.FlagSet = cmd.Flags()
+		engine, err := infra.NewImageEngine(PodmanOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -100,8 +101,8 @@ func ContainerEngine() entities.ContainerEngine {
 // NewContainerEngine is a wrapper for building an ContainerEngine to be used for PreRunE functions
 func NewContainerEngine(cmd *cobra.Command, args []string) (entities.ContainerEngine, error) {
 	if containerEngine == nil {
-		EngineOptions.FlagSet = cmd.Flags()
-		engine, err := infra.NewContainerEngine(EngineOptions)
+		PodmanOptions.FlagSet = cmd.Flags()
+		engine, err := infra.NewContainerEngine(PodmanOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -125,24 +126,17 @@ func IdOrLatestArgs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-type podmanContextKey string
-
-var podmanFactsKey = podmanContextKey("engineOptions")
-
-func NewOptions(ctx context.Context, facts *entities.EngineOptions) context.Context {
-	return context.WithValue(ctx, podmanFactsKey, facts)
-}
-
-func Options(cmd *cobra.Command) (*entities.EngineOptions, error) {
-	if f, ok := cmd.Context().Value(podmanFactsKey).(*entities.EngineOptions); ok {
-		return f, errors.New("Command Context ")
-	}
-	return nil, nil
-}
-
 func GetContext() context.Context {
 	if cliCtx == nil {
-		cliCtx = context.TODO()
+		cliCtx = context.Background()
 	}
 	return cliCtx
+}
+
+type ContextOptionsKey string
+
+const PodmanOptionsKey ContextOptionsKey = "PodmanOptions"
+
+func GetContextWithOptions() context.Context {
+	return context.WithValue(GetContext(), PodmanOptionsKey, PodmanOptions)
 }

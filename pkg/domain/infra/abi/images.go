@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
@@ -459,4 +460,9 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 	}
 
 	return reports, nil
+}
+
+// GetConfig returns a copy of the configuration used by the runtime
+func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
+	return ir.Libpod.GetConfig()
 }

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/bindings/containers"
@@ -361,4 +362,8 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIds []strin
 
 func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIds []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
 	return nil, errors.New("unmounting containers is not supported for remote clients")
+}
+
+func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
+	return config.Default()
 }

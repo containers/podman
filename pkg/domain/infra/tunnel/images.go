@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	images "github.com/containers/libpod/pkg/bindings/images"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -253,4 +254,8 @@ func (ir *ImageEngine) Diff(ctx context.Context, nameOrId string, _ entities.Dif
 
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
 	return images.Search(ir.ClientCxt, term, opts)
+}
+
+func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
+	return config.Default()
 }
