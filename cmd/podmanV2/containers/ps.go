@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
@@ -13,6 +15,8 @@ import (
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podmanV2/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -134,6 +138,7 @@ func getResponses() ([]entities.ListContainer, error) {
 }
 
 func ps(cmd *cobra.Command, args []string) error {
+	var responses []psReporter
 	for _, f := range filters {
 		split := strings.SplitN(f, "=", 2)
 		if len(split) == 1 {
@@ -141,22 +146,27 @@ func ps(cmd *cobra.Command, args []string) error {
 		}
 		listOpts.Filters[split[0]] = append(listOpts.Filters[split[0]], split[1])
 	}
-	responses, err := getResponses()
+	listContainers, err := getResponses()
 	if err != nil {
 		return err
 	}
 	if len(listOpts.Sort) > 0 {
-		responses, err = entities.SortPsOutput(listOpts.Sort, responses)
+		listContainers, err = entities.SortPsOutput(listOpts.Sort, listContainers)
 		if err != nil {
 			return err
 		}
 	}
 	if listOpts.Format == "json" {
-		return jsonOut(responses)
+		return jsonOut(listContainers)
 	}
 	if listOpts.Quiet {
-		return quietOut(responses)
+		return quietOut(listContainers)
 	}
+
+	for _, r := range listContainers {
+		responses = append(responses, psReporter{r})
+	}
+
 	headers, row := createPsOut()
 	if cmd.Flag("format").Changed {
 		row = listOpts.Format
@@ -175,10 +185,14 @@ func ps(cmd *cobra.Command, args []string) error {
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	if listOpts.Watch > 0 {
 		for {
+			var responses []psReporter
 			tm.Clear()
 			tm.MoveCursor(1, 1)
 			tm.Flush()
-			responses, err := getResponses()
+			listContainers, err := getResponses()
+			for _, r := range listContainers {
+				responses = append(responses, psReporter{r})
+			}
 			if err != nil {
 				return err
 			}
@@ -210,21 +224,12 @@ func createPsOut() (string, string) {
 		return headers, row
 	}
 	headers := defaultHeaders
-	if noTrunc {
-		row += "{{.ID}}"
-	} else {
-		row += "{{slice .ID 0 12}}"
-	}
+	row += "{{.ID}}"
 	row += "\t{{.Image}}\t{{.Command}}\t{{.CreatedHuman}}\t{{.State}}\t{{.Ports}}\t{{.Names}}"
 
 	if listOpts.Pod {
 		headers += "\tPOD ID\tPODNAME"
-		if noTrunc {
-			row += "\t{{.Pod}}"
-		} else {
-			row += "\t{{slice .Pod 0 12}}"
-		}
-		row += "\t{{.PodName}}"
+		row += "\t{{.Pod}}\t{{.PodName}}"
 	}
 
 	if listOpts.Size {
@@ -238,4 +243,172 @@ func createPsOut() (string, string) {
 		row += "\n"
 	}
 	return headers, row
+}
+
+type psReporter struct {
+	entities.ListContainer
+}
+
+// ID returns the ID of the container
+func (l psReporter) ID() string {
+	if !noTrunc {
+		return l.ListContainer.ID[0:12]
+	}
+	return l.ListContainer.ID
+}
+
+// Pod returns the ID of the pod the container
+// belongs to and appropriately truncates the ID
+func (l psReporter) Pod() string {
+	if !noTrunc && len(l.ListContainer.Pod) > 0 {
+		return l.ListContainer.Pod[0:12]
+	}
+	return l.ListContainer.Pod
+}
+
+// State returns the container state in human duration
+func (l psReporter) State() string {
+	var state string
+	switch l.ListContainer.State {
+	case "running":
+		t := units.HumanDuration(time.Since(time.Unix(l.StartedAt, 0)))
+		state = "Up " + t + " ago"
+	case "configured":
+		state = "Created"
+	case "exited", "stopped":
+		t := units.HumanDuration(time.Since(time.Unix(l.ExitedAt, 0)))
+		state = fmt.Sprintf("Exited (%d) %s ago", l.ExitCode, t)
+	default:
+		state = l.ListContainer.State
+	}
+	return state
+}
+
+// Command returns the container command in string format
+func (l psReporter) Command() string {
+	return strings.Join(l.ListContainer.Command, " ")
+}
+
+// Size returns the rootfs and virtual sizes in human duration in
+// and output form (string) suitable for ps
+func (l psReporter) Size() string {
+	virt := units.HumanSizeWithPrecision(float64(l.ListContainer.Size.RootFsSize), 3)
+	s := units.HumanSizeWithPrecision(float64(l.ListContainer.Size.RwSize), 3)
+	return fmt.Sprintf("%s (virtual %s)", s, virt)
+}
+
+// Names returns the container name in string format
+func (l psReporter) Names() string {
+	return l.ListContainer.Names[0]
+}
+
+// Ports converts from Portmappings to the string form
+// required by ps
+func (l psReporter) Ports() string {
+	if len(l.ListContainer.Ports) < 1 {
+		return ""
+	}
+	return portsToString(l.ListContainer.Ports)
+}
+
+// CreatedAt returns the container creation time in string format.  podman
+// and docker both return a timestamped value for createdat
+func (l psReporter) CreatedAt() string {
+	return time.Unix(l.Created, 0).String()
+}
+
+// CreateHuman allows us to output the created time in human readable format
+func (l psReporter) CreatedHuman() string {
+	return units.HumanDuration(time.Since(time.Unix(l.Created, 0))) + " ago"
+}
+
+// portsToString converts the ports used to a string of the from "port1, port2"
+// and also groups a continuous list of ports into a readable format.
+func portsToString(ports []ocicni.PortMapping) string {
+	type portGroup struct {
+		first int32
+		last  int32
+	}
+	var portDisplay []string
+	if len(ports) == 0 {
+		return ""
+	}
+	//Sort the ports, so grouping continuous ports become easy.
+	sort.Slice(ports, func(i, j int) bool {
+		return comparePorts(ports[i], ports[j])
+	})
+
+	// portGroupMap is used for grouping continuous ports.
+	portGroupMap := make(map[string]*portGroup)
+	var groupKeyList []string
+
+	for _, v := range ports {
+
+		hostIP := v.HostIP
+		if hostIP == "" {
+			hostIP = "0.0.0.0"
+		}
+		// If hostPort and containerPort are not same, consider as individual port.
+		if v.ContainerPort != v.HostPort {
+			portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
+			continue
+		}
+
+		portMapKey := fmt.Sprintf("%s/%s", hostIP, v.Protocol)
+
+		portgroup, ok := portGroupMap[portMapKey]
+		if !ok {
+			portGroupMap[portMapKey] = &portGroup{first: v.ContainerPort, last: v.ContainerPort}
+			// This list is required to traverse portGroupMap.
+			groupKeyList = append(groupKeyList, portMapKey)
+			continue
+		}
+
+		if portgroup.last == (v.ContainerPort - 1) {
+			portgroup.last = v.ContainerPort
+			continue
+		}
+	}
+	// For each portMapKey, format group list and appned to output string.
+	for _, portKey := range groupKeyList {
+		group := portGroupMap[portKey]
+		portDisplay = append(portDisplay, formatGroup(portKey, group.first, group.last))
+	}
+	return strings.Join(portDisplay, ", ")
+}
+
+func comparePorts(i, j ocicni.PortMapping) bool {
+	if i.ContainerPort != j.ContainerPort {
+		return i.ContainerPort < j.ContainerPort
+	}
+
+	if i.HostIP != j.HostIP {
+		return i.HostIP < j.HostIP
+	}
+
+	if i.HostPort != j.HostPort {
+		return i.HostPort < j.HostPort
+	}
+
+	return i.Protocol < j.Protocol
+}
+
+// formatGroup returns the group as <IP:startPort:lastPort->startPort:lastPort/Proto>
+// e.g 0.0.0.0:1000-1006->1000-1006/tcp.
+func formatGroup(key string, start, last int32) string {
+	parts := strings.Split(key, "/")
+	groupType := parts[0]
+	var ip string
+	if len(parts) > 1 {
+		ip = parts[0]
+		groupType = parts[1]
+	}
+	group := strconv.Itoa(int(start))
+	if start != last {
+		group = fmt.Sprintf("%s-%d", group, last)
+	}
+	if ip != "" {
+		group = fmt.Sprintf("%s:%s->%s", ip, group, group)
+	}
+	return fmt.Sprintf("%s/%s", group, groupType)
 }
