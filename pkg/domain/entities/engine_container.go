@@ -6,6 +6,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/spf13/cobra"
 )
 
 type ContainerEngine interface {
@@ -24,9 +25,9 @@ type ContainerEngine interface {
 	ContainerInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]*ContainerInspectReport, error)
 	ContainerKill(ctx context.Context, namesOrIds []string, options KillOptions) ([]*KillReport, error)
 	ContainerList(ctx context.Context, options ContainerListOptions) ([]ListContainer, error)
+	ContainerLogs(ctx context.Context, containers []string, options ContainerLogsOptions) error
 	ContainerMount(ctx context.Context, nameOrIds []string, options ContainerMountOptions) ([]*ContainerMountReport, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
-	ContainerLogs(ctx context.Context, containers []string, options ContainerLogsOptions) error
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)
 	ContainerRestore(ctx context.Context, namesOrIds []string, options RestoreOptions) ([]*RestoreReport, error)
 	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*RmReport, error)
@@ -53,6 +54,7 @@ type ContainerEngine interface {
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
 	RestService(ctx context.Context, opts ServiceOptions) error
+	SetupRootless(ctx context.Context, cmd *cobra.Command) error
 	VarlinkService(ctx context.Context, opts ServiceOptions) error
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts VolumeInspectOptions) ([]*VolumeInspectReport, error)

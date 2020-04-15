@@ -18,11 +18,10 @@ import (
 var (
 	// podman container _inspect_
 	inspectCmd = &cobra.Command{
-		Use:     "inspect [flags] CONTAINER",
-		Short:   "Display the configuration of a container",
-		Long:    `Displays the low-level information on a container identified by name or ID.`,
-		PreRunE: preRunE,
-		RunE:    inspect,
+		Use:   "inspect [flags] CONTAINER",
+		Short: "Display the configuration of a container",
+		Long:  `Displays the low-level information on a container identified by name or ID.`,
+		RunE:  inspect,
 		Example: `podman container inspect myCtr
   podman container inspect -l --format '{{.Id}} {{.Config.Labels}}'`,
 	}

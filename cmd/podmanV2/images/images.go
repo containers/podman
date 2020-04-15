@@ -15,7 +15,6 @@ var (
 		Args:    listCmd.Args,
 		Short:   listCmd.Short,
 		Long:    listCmd.Long,
-		PreRunE: preRunE,
 		RunE:    listCmd.RunE,
 		Example: strings.Replace(listCmd.Example, "podman image list", "podman images", -1),
 	}
@@ -26,8 +25,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imagesCmd,
 	})
-	imagesCmd.SetHelpTemplate(registry.HelpTemplate())
-	imagesCmd.SetUsageTemplate(registry.UsageTemplate())
 
 	imageListFlagSet(imagesCmd.Flags())
 }

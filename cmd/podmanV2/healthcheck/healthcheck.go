@@ -9,12 +9,11 @@ import (
 var (
 	// Command: healthcheck
 	healthCmd = &cobra.Command{
-		Use:               "healthcheck",
-		Short:             "Manage Healthcheck",
-		Long:              "Manage Healthcheck",
-		TraverseChildren:  true,
-		PersistentPreRunE: preRunE,
-		RunE:              registry.SubCommandExists,
+		Use:              "healthcheck",
+		Short:            "Manage Healthcheck",
+		Long:             "Manage Healthcheck",
+		TraverseChildren: true,
+		RunE:             registry.SubCommandExists,
 	}
 )
 
@@ -23,11 +22,4 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: healthCmd,
 	})
-	healthCmd.SetHelpTemplate(registry.HelpTemplate())
-	healthCmd.SetUsageTemplate(registry.UsageTemplate())
-}
-
-func preRunE(cmd *cobra.Command, args []string) error {
-	_, err := registry.NewContainerEngine(cmd, args)
-	return err
 }

@@ -4,17 +4,9 @@ import (
 	"net"
 
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
-
-func getDefaultNetwork() string {
-	if rootless.IsRootless() {
-		return "slirp4netns"
-	}
-	return "bridge"
-}
 
 func GetNetFlags() *pflag.FlagSet {
 	netFlags := pflag.FlagSet{}
@@ -23,15 +15,15 @@ func GetNetFlags() *pflag.FlagSet {
 		"Add a custom host-to-IP mapping (host:ip) (default [])",
 	)
 	netFlags.StringSlice(
-		"dns", []string{},
+		"dns", getDefaultDNSServers(),
 		"Set custom DNS servers",
 	)
 	netFlags.StringSlice(
-		"dns-opt", []string{},
+		"dns-opt", getDefaultDNSOptions(),
 		"Set custom DNS options",
 	)
 	netFlags.StringSlice(
-		"dns-search", []string{},
+		"dns-search", getDefaultDNSSearches(),
 		"Set custom DNS search domains",
 	)
 	netFlags.String(
@@ -43,7 +35,7 @@ func GetNetFlags() *pflag.FlagSet {
 		"Container MAC address (e.g. 92:d0:c6:0a:29:33)",
 	)
 	netFlags.String(
-		"network", getDefaultNetwork(),
+		"network", getDefaultNetNS(),
 		"Connect a container to a network",
 	)
 	netFlags.StringSliceP(

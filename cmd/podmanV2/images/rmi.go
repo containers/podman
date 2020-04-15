@@ -14,7 +14,6 @@ var (
 		Args:    rmCmd.Args,
 		Short:   rmCmd.Short,
 		Long:    rmCmd.Long,
-		PreRunE: rmCmd.PreRunE,
 		RunE:    rmCmd.RunE,
 		Example: strings.Replace(rmCmd.Example, "podman image rm", "podman rmi", -1),
 	}
@@ -25,7 +24,5 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: rmiCmd,
 	})
-	rmiCmd.SetHelpTemplate(registry.HelpTemplate())
-	rmiCmd.SetUsageTemplate(registry.UsageTemplate())
 	imageRemoveFlagSet(rmiCmd.Flags())
 }

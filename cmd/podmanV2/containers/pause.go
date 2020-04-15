@@ -15,11 +15,10 @@ import (
 var (
 	pauseDescription = `Pauses one or more running containers.  The container name or ID can be used.`
 	pauseCommand     = &cobra.Command{
-		Use:               "pause [flags] CONTAINER [CONTAINER...]",
-		Short:             "Pause all the processes in one or more containers",
-		Long:              pauseDescription,
-		RunE:              pause,
-		PersistentPreRunE: preRunE,
+		Use:   "pause [flags] CONTAINER [CONTAINER...]",
+		Short: "Pause all the processes in one or more containers",
+		Long:  pauseDescription,
+		RunE:  pause,
 		Example: `podman pause mywebserver
   podman pause 860a4b23
   podman pause -a`,
@@ -35,8 +34,6 @@ func init() {
 	})
 	flags := pauseCommand.Flags()
 	flags.BoolVarP(&pauseOpts.All, "all", "a", false, "Pause all running containers")
-	pauseCommand.SetHelpTemplate(registry.HelpTemplate())
-	pauseCommand.SetUsageTemplate(registry.UsageTemplate())
 }
 
 func pause(cmd *cobra.Command, args []string) error {

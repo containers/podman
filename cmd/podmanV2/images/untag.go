@@ -24,8 +24,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: untagCommand,
 	})
-	untagCommand.SetHelpTemplate(registry.HelpTemplate())
-	untagCommand.SetUsageTemplate(registry.UsageTemplate())
 }
 
 func untag(cmd *cobra.Command, args []string) error {

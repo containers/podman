@@ -24,12 +24,11 @@ var (
 	topOptions = entities.PodTopOptions{}
 
 	topCommand = &cobra.Command{
-		Use:               "top [flags] POD [FORMAT-DESCRIPTORS|ARGS]",
-		Short:             "Display the running processes in a pod",
-		Long:              topDescription,
-		PersistentPreRunE: preRunE,
-		RunE:              top,
-		Args:              cobra.ArbitraryArgs,
+		Use:   "top [flags] POD [FORMAT-DESCRIPTORS|ARGS]",
+		Short: "Display the running processes in a pod",
+		Long:  topDescription,
+		RunE:  top,
+		Args:  cobra.ArbitraryArgs,
 		Example: `podman pod top podID
 podman pod top --latest
 podman pod top podID pid seccomp args %C
@@ -43,9 +42,6 @@ func init() {
 		Command: topCommand,
 		Parent:  podCmd,
 	})
-
-	topCommand.SetHelpTemplate(registry.HelpTemplate())
-	topCommand.SetUsageTemplate(registry.UsageTemplate())
 
 	flags := topCommand.Flags()
 	flags.SetInterspersed(false)

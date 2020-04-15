@@ -11,12 +11,11 @@ import (
 var (
 	// podman container _diff_
 	diffCmd = &cobra.Command{
-		Use:     "diff [flags] CONTAINER",
-		Args:    registry.IdOrLatestArgs,
-		Short:   "Inspect changes on container's file systems",
-		Long:    `Displays changes on a container filesystem.  The container will be compared to its parent layer.`,
-		PreRunE: preRunE,
-		RunE:    diff,
+		Use:   "diff [flags] CONTAINER",
+		Args:  registry.IdOrLatestArgs,
+		Short: "Inspect changes on container's file systems",
+		Long:  `Displays changes on a container filesystem.  The container will be compared to its parent layer.`,
+		RunE:  diff,
 		Example: `podman container diff myCtr
   podman container diff -l --format json myCtr`,
 	}

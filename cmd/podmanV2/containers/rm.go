@@ -19,11 +19,10 @@ var (
 
   Command does not remove images. Running or unusable containers will not be removed without the -f option.`
 	rmCommand = &cobra.Command{
-		Use:               "rm [flags] CONTAINER [CONTAINER...]",
-		Short:             "Remove one or more containers",
-		Long:              rmDescription,
-		RunE:              rm,
-		PersistentPreRunE: preRunE,
+		Use:   "rm [flags] CONTAINER [CONTAINER...]",
+		Short: "Remove one or more containers",
+		Long:  rmDescription,
+		RunE:  rm,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},

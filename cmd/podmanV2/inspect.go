@@ -37,23 +37,13 @@ func init() {
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	ie, err := registry.NewImageEngine(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	if found, err := ie.Exists(context.Background(), args[0]); err != nil {
+	if found, err := registry.ImageEngine().Exists(context.Background(), args[0]); err != nil {
 		return err
 	} else if found.Value {
 		return images.Inspect(cmd, args, inspectOpts)
 	}
 
-	ce, err := registry.NewContainerEngine(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	if found, err := ce.ContainerExists(context.Background(), args[0]); err != nil {
+	if found, err := registry.ContainerEngine().ContainerExists(context.Background(), args[0]); err != nil {
 		return err
 	} else if found.Value {
 		return containers.Inspect(cmd, args, inspectOpts)

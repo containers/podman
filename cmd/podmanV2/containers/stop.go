@@ -16,11 +16,10 @@ var (
 
   A timeout to forcibly stop the container can also be set but defaults to %d seconds otherwise.`, defaultContainerConfig.Engine.StopTimeout)
 	stopCommand = &cobra.Command{
-		Use:               "stop [flags] CONTAINER [CONTAINER...]",
-		Short:             "Stop one or more containers",
-		Long:              stopDescription,
-		RunE:              stop,
-		PersistentPreRunE: preRunE,
+		Use:   "stop [flags] CONTAINER [CONTAINER...]",
+		Short: "Stop one or more containers",
+		Long:  stopDescription,
+		RunE:  stop,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
@@ -63,11 +62,6 @@ func stop(cmd *cobra.Command, args []string) error {
 		stopOptions.Timeout = stopTimeout
 	}
 
-	// TODO How do we access global attributes?
-	//if c.Bool("trace") {
-	//	span, _ := opentracing.StartSpanFromContext(Ctx, "stopCmd")
-	//	defer span.Finish()
-	//}
 	responses, err := registry.ContainerEngine().ContainerStop(context.Background(), args, stopOptions)
 	if err != nil {
 		return err

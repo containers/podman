@@ -42,41 +42,6 @@ func GetExitCode() int {
 	return exitCode
 }
 
-// HelpTemplate returns the help template for podman commands
-// This uses the short and long options.
-// command should not use this.
-func HelpTemplate() string {
-	return `{{.Short}}
-
-Description:
-  {{.Long}}
-
-{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
-}
-
-// UsageTemplate returns the usage template for podman commands
-// This blocks the displaying of the global options. The main podman
-// command should not use this.
-func UsageTemplate() string {
-	return `Usage(v2):{{if (and .Runnable (not .HasAvailableSubCommands))}}
-  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
-  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
-
-Aliases:
-  {{.NameAndAliases}}{{end}}{{if .HasExample}}
-
-Examples:
-  {{.Example}}{{end}}{{if .HasAvailableSubCommands}}
-
-Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
-
-Flags:
-{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
-{{end}}
-`
-}
-
 func ImageEngine() entities.ImageEngine {
 	return imageEngine
 }
@@ -126,17 +91,26 @@ func IdOrLatestArgs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func GetContext() context.Context {
+type PodmanOptionsKey struct{}
+
+func Context() context.Context {
 	if cliCtx == nil {
-		cliCtx = context.Background()
+		cliCtx = ContextWithOptions(context.Background())
 	}
 	return cliCtx
 }
 
-type ContextOptionsKey string
+func ContextWithOptions(ctx context.Context) context.Context {
+	cliCtx = context.WithValue(ctx, PodmanOptionsKey{}, PodmanOptions)
+	return cliCtx
+}
 
-const PodmanOptionsKey ContextOptionsKey = "PodmanOptions"
-
+// GetContextWithOptions deprecated, use  NewContextWithOptions()
 func GetContextWithOptions() context.Context {
-	return context.WithValue(GetContext(), PodmanOptionsKey, PodmanOptions)
+	return ContextWithOptions(context.Background())
+}
+
+// GetContext deprecated, use  Context()
+func GetContext() context.Context {
+	return Context()
 }

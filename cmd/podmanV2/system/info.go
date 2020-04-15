@@ -22,7 +22,6 @@ var (
 		Args:    cobra.NoArgs,
 		Long:    infoDescription,
 		Short:   "Display podman system information",
-		PreRunE: preRunE,
 		RunE:    info,
 		Example: `podman info`,
 	}

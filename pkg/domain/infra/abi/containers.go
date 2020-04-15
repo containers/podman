@@ -668,9 +668,6 @@ func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrId string, o
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
-	var (
-		joinPod bool
-	)
 	if err := generate.CompleteSpec(ctx, ic.Libpod, opts.Spec); err != nil {
 		return nil, err
 	}
@@ -679,6 +676,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		return nil, err
 	}
 
+	var joinPod bool
 	if len(ctr.PodID()) > 0 {
 		joinPod = true
 	}

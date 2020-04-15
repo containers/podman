@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"reflect"
 
 	_ "github.com/containers/libpod/cmd/podmanV2/containers"
 	_ "github.com/containers/libpod/cmd/podmanV2/healthcheck"
@@ -27,36 +26,25 @@ func main() {
 		// had a specific job to do as a subprocess, and it's done.
 		return
 	}
+
 	for _, c := range registry.Commands {
-		if Contains(registry.PodmanOptions.EngineMode, c.Mode) {
-			parent := rootCmd
-			if c.Parent != nil {
-				parent = c.Parent
+		for _, m := range c.Mode {
+			if registry.PodmanOptions.EngineMode == m {
+				parent := rootCmd
+				if c.Parent != nil {
+					parent = c.Parent
+				}
+				parent.AddCommand(c.Command)
+
+				// - templates need to be set here, as PersistentPreRunE() is
+				// not called when --help is used.
+				// - rootCmd uses cobra default template not ours
+				c.Command.SetHelpTemplate(helpTemplate)
+				c.Command.SetUsageTemplate(usageTemplate)
 			}
-			parent.AddCommand(c.Command)
 		}
 	}
 
 	Execute()
 	os.Exit(0)
-}
-
-func Contains(item interface{}, slice interface{}) bool {
-	s := reflect.ValueOf(slice)
-
-	switch s.Kind() {
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
-		break
-	default:
-		return false
-	}
-
-	for i := 0; i < s.Len(); i++ {
-		if s.Index(i).Interface() == item {
-			return true
-		}
-	}
-	return false
 }

@@ -20,12 +20,11 @@ import (
 var (
 	loadDescription = "Loads an image from a locally stored archive (tar file) into container storage."
 	loadCommand     = &cobra.Command{
-		Use:               "load [flags] [NAME[:TAG]]",
-		Short:             "Load an image from container archive",
-		Long:              loadDescription,
-		RunE:              load,
-		Args:              cobra.MaximumNArgs(1),
-		PersistentPreRunE: preRunE,
+		Use:   "load [flags] [NAME[:TAG]]",
+		Short: "Load an image from container archive",
+		Long:  loadDescription,
+		RunE:  load,
+		Args:  cobra.MaximumNArgs(1),
 	}
 )
 
@@ -39,8 +38,6 @@ func init() {
 		Command: loadCommand,
 	})
 
-	loadCommand.SetHelpTemplate(registry.HelpTemplate())
-	loadCommand.SetUsageTemplate(registry.UsageTemplate())
 	flags := loadCommand.Flags()
 	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Read from specified archive file (default: stdin)")
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")

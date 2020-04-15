@@ -7,8 +7,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podmanV2/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -28,11 +26,11 @@ var (
 
 	// Command: podman pull
 	pullCmd = &cobra.Command{
-		Use:     "pull [flags] IMAGE",
-		Short:   "Pull an image from a registry",
-		Long:    pullDescription,
-		PreRunE: preRunE,
-		RunE:    imagePull,
+		Use:   "pull [flags] IMAGE",
+		Args:  cobra.ExactArgs(1),
+		Short: "Pull an image from a registry",
+		Long:  pullDescription,
+		RunE:  imagePull,
 		Example: `podman pull imageName
   podman pull fedora:latest`,
 	}
@@ -41,11 +39,10 @@ var (
 	// It's basically a clone of `pullCmd` with the exception of being a
 	// child of the images command.
 	imagesPullCmd = &cobra.Command{
-		Use:     pullCmd.Use,
-		Short:   pullCmd.Short,
-		Long:    pullCmd.Long,
-		PreRunE: pullCmd.PreRunE,
-		RunE:    pullCmd.RunE,
+		Use:   pullCmd.Use,
+		Short: pullCmd.Short,
+		Long:  pullCmd.Long,
+		RunE:  pullCmd.RunE,
 		Example: `podman image pull imageName
   podman image pull fedora:latest`,
 	}
@@ -58,9 +55,6 @@ func init() {
 		Command: pullCmd,
 	})
 
-	pullCmd.SetHelpTemplate(registry.HelpTemplate())
-	pullCmd.SetUsageTemplate(registry.UsageTemplate())
-
 	flags := pullCmd.Flags()
 	pullFlags(flags)
 
@@ -71,8 +65,6 @@ func init() {
 		Parent:  imageCmd,
 	})
 
-	imagesPullCmd.SetHelpTemplate(registry.HelpTemplate())
-	imagesPullCmd.SetUsageTemplate(registry.UsageTemplate())
 	imagesPullFlags := imagesPullCmd.Flags()
 	pullFlags(imagesPullFlags)
 }
@@ -99,20 +91,6 @@ func pullFlags(flags *pflag.FlagSet) {
 
 // imagePull is implement the command for pulling images.
 func imagePull(cmd *cobra.Command, args []string) error {
-	// Sanity check input.
-	if len(args) == 0 {
-		return errors.Errorf("an image name must be specified")
-	}
-	if len(args) > 1 {
-		return errors.Errorf("too many arguments. Requires exactly 1")
-	}
-
-	// Start tracing if requested.
-	if cmd.Flags().Changed("trace") {
-		span, _ := opentracing.StartSpanFromContext(registry.GetContext(), "pullCmd")
-		defer span.Finish()
-	}
-
 	pullOptsAPI := pullOptions.ImagePullOptions
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified

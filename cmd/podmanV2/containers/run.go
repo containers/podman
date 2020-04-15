@@ -19,11 +19,10 @@ import (
 var (
 	runDescription = "Runs a command in a new container from the given image"
 	runCommand     = &cobra.Command{
-		Use:     "run [flags] IMAGE [COMMAND [ARG...]]",
-		Short:   "Run a command in a new container",
-		Long:    runDescription,
-		PreRunE: preRunE,
-		RunE:    run,
+		Use:   "run [flags] IMAGE [COMMAND [ARG...]]",
+		Short: "Run a command in a new container",
+		Long:  runDescription,
+		RunE:  run,
 		Example: `podman run imageID ls -alF /etc
   podman run --network=host imageID dnf -y install java
   podman run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
@@ -57,13 +56,12 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	var (
-		err error
-	)
+	var err error
 	cliVals.Net, err = common.NetFlagsToNetOptions(cmd)
 	if err != nil {
 		return err
 	}
+
 	if af := cliVals.Authfile; len(af) > 0 {
 		if _, err := os.Stat(af); err != nil {
 			return errors.Wrapf(err, "error checking authfile path %s", af)
@@ -74,11 +72,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ie, err := registry.NewImageEngine(cmd, args)
-	if err != nil {
-		return err
-	}
-	br, err := ie.Exists(registry.GetContext(), args[0])
+	br, err := registry.ImageEngine().Exists(registry.GetContext(), args[0])
 	if err != nil {
 		return err
 	}
@@ -90,7 +84,7 @@ func run(cmd *cobra.Command, args []string) error {
 		if pullPolicy == config.PullImageNever {
 			return errors.New("unable to find a name and tag match for busybox in repotags: no such image")
 		}
-		_, pullErr := ie.Pull(registry.GetContext(), args[0], entities.ImagePullOptions{
+		_, pullErr := registry.ImageEngine().Pull(registry.GetContext(), args[0], entities.ImagePullOptions{
 			Authfile: cliVals.Authfile,
 			Quiet:    cliVals.Quiet,
 		})
@@ -131,6 +125,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	runOpts.Spec = s
+
 	report, err := registry.ContainerEngine().ContainerRun(registry.GetContext(), runOpts)
 	// report.ExitCode is set by ContainerRun even it it returns an error
 	if report != nil {

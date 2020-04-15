@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log/syslog"
 	"os"
 	"path"
 	"runtime/pprof"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podmanV2/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -21,6 +21,37 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// HelpTemplate is the help template for podman commands
+// This uses the short and long options.
+// command should not use this.
+const helpTemplate = `{{.Short}}
+
+Description:
+  {{.Long}}
+
+{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
+
+// UsageTemplate is the usage template for podman commands
+// This blocks the displaying of the global options. The main podman
+// command should not use this.
+const usageTemplate = `Usage(v2):{{if (and .Runnable (not .HasAvailableSubCommands))}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+  {{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+{{end}}
+`
+
 var (
 	rootCmd = &cobra.Command{
 		Use:                path.Base(os.Args[0]),
@@ -28,20 +59,20 @@ var (
 		SilenceUsage:       true,
 		SilenceErrors:      true,
 		TraverseChildren:   true,
-		PersistentPreRunE:  preRunE,
+		PersistentPreRunE:  persistentPreRunE,
 		RunE:               registry.SubCommandExists,
-		PersistentPostRunE: postRunE,
+		PersistentPostRunE: persistentPostRunE,
 		Version:            version.Version,
 	}
 
-	logLevels = entities.NewStringSet("debug", "info", "warn", "error", "fatal", "panic")
+	logLevels = []string{"debug", "info", "warn", "error", "fatal", "panic"}
 	logLevel  = "error"
 	useSyslog bool
 )
 
 func init() {
+	// Hooks are called before PersistentPreRunE()
 	cobra.OnInitialize(
-		rootlessHook,
 		loggingHook,
 		syslogHook,
 	)
@@ -63,13 +94,21 @@ func Execute() {
 	os.Exit(registry.GetExitCode())
 }
 
-func preRunE(cmd *cobra.Command, _ []string) error {
+func persistentPreRunE(cmd *cobra.Command, args []string) error {
+	// TODO: Remove trace statement in podman V2.1
+	logrus.Debugf("Called %s.PersistentPreRunE()", cmd.Name())
+
 	// Update PodmanOptions now that we "know" more
 	// TODO: pass in path overriding configuration file
 	registry.PodmanOptions = registry.NewPodmanConfig()
 
-	cmd.SetHelpTemplate(registry.HelpTemplate())
-	cmd.SetUsageTemplate(registry.UsageTemplate())
+	// Prep the engines
+	if _, err := registry.NewImageEngine(cmd, args); err != nil {
+		return err
+	}
+	if _, err := registry.NewContainerEngine(cmd, args); err != nil {
+		return err
+	}
 
 	if cmd.Flag("cpu-profile").Changed {
 		f, err := os.Create(registry.PodmanOptions.CpuProfile)
@@ -88,12 +127,28 @@ func preRunE(cmd *cobra.Command, _ []string) error {
 		registry.PodmanOptions.SpanCloser = closer
 
 		registry.PodmanOptions.Span = tracer.StartSpan("before-context")
-		registry.PodmanOptions.SpanCtx = opentracing.ContextWithSpan(context.Background(), registry.PodmanOptions.Span)
+		registry.PodmanOptions.SpanCtx = opentracing.ContextWithSpan(registry.Context(), registry.PodmanOptions.Span)
+		opentracing.StartSpanFromContext(registry.PodmanOptions.SpanCtx, cmd.Name())
+	}
+
+	// Setup Rootless environment, IFF:
+	// 1) in ABI mode
+	// 2) running as non-root
+	// 3) command doesn't require Parent Namespace
+	_, found := cmd.Annotations[registry.ParentNSRequired]
+	if !registry.IsRemote() && rootless.IsRootless() && !found {
+		err := registry.ContainerEngine().SetupRootless(registry.Context(), cmd)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func postRunE(cmd *cobra.Command, args []string) error {
+func persistentPostRunE(cmd *cobra.Command, args []string) error {
+	// TODO: Remove trace statement in podman V2.1
+	logrus.Debugf("Called %s.PersistentPostRunE()", cmd.Name())
+
 	if cmd.Flag("cpu-profile").Changed {
 		pprof.StopCPUProfile()
 	}
@@ -105,14 +160,21 @@ func postRunE(cmd *cobra.Command, args []string) error {
 }
 
 func loggingHook() {
-	if !logLevels.Contains(logLevel) {
-		logrus.Errorf("Log Level \"%s\" is not supported, choose from: %s", logLevel, logLevels.String())
+	var found bool
+	for _, l := range logLevels {
+		if l == logLevel {
+			found = true
+			break
+		}
+	}
+	if !found {
+		fmt.Fprintf(os.Stderr, "Log Level \"%s\" is not supported, choose from: %s\n", logLevel, strings.Join(logLevels, ", "))
 		os.Exit(1)
 	}
 
 	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 	logrus.SetLevel(level)
@@ -123,26 +185,18 @@ func loggingHook() {
 }
 
 func syslogHook() {
-	if useSyslog {
-		hook, err := logrusSyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
-		if err != nil {
-			logrus.WithError(err).Error("Failed to initialize syslog hook")
-		}
-		if err == nil {
-			logrus.AddHook(hook)
-		}
+	if !useSyslog {
+		return
 	}
-}
 
-func rootlessHook() {
-	if rootless.IsRootless() {
-		logrus.Error("rootless mode is currently not supported. Support will return ASAP.")
+	hook, err := logrusSyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
+	if err != nil {
+		fmt.Fprint(os.Stderr, "Failed to initialize syslog hook: "+err.Error())
+		os.Exit(1)
 	}
-	// ce, err := registry.NewContainerEngine(rootCmd, []string{})
-	// if err != nil {
-	// 	logrus.WithError(err).Fatal("failed to obtain container engine")
-	// }
-	// ce.SetupRootLess(rootCmd)
+	if err == nil {
+		logrus.AddHook(hook)
+	}
 }
 
 func rootFlags(opts entities.PodmanConfig, flags *pflag.FlagSet) {
@@ -179,7 +233,7 @@ func rootFlags(opts entities.PodmanConfig, flags *pflag.FlagSet) {
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
 	flags.BoolVar(&dummyHelp, "help", false, "Help for podman")
-	flags.StringVar(&logLevel, "log-level", logLevel, fmt.Sprintf("Log messages above specified level (%s)", logLevels.String()))
+	flags.StringVar(&logLevel, "log-level", logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(logLevels, ", ")))
 
 	// Hide these flags for both ABI and Tunneling
 	for _, f := range []string{
@@ -189,7 +243,7 @@ func rootFlags(opts entities.PodmanConfig, flags *pflag.FlagSet) {
 		"trace",
 	} {
 		if err := flags.MarkHidden(f); err != nil {
-			logrus.Warnf("unable to mark %s flag as hidden", f)
+			logrus.Warnf("unable to mark %s flag as hidden: %s", f, err.Error())
 		}
 	}
 
@@ -197,5 +251,4 @@ func rootFlags(opts entities.PodmanConfig, flags *pflag.FlagSet) {
 	if !registry.IsRemote() {
 		flags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
 	}
-
 }

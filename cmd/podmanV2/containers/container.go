@@ -13,12 +13,11 @@ import (
 var (
 	// Command: podman _container_
 	containerCmd = &cobra.Command{
-		Use:               "container",
-		Short:             "Manage containers",
-		Long:              "Manage containers",
-		TraverseChildren:  true,
-		PersistentPreRunE: preRunE,
-		RunE:              registry.SubCommandExists,
+		Use:              "container",
+		Short:            "Manage containers",
+		Long:             "Manage containers",
+		TraverseChildren: true,
+		RunE:             registry.SubCommandExists,
 	}
 
 	defaultContainerConfig = getDefaultContainerConfig()
@@ -29,13 +28,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerCmd,
 	})
-	containerCmd.SetHelpTemplate(registry.HelpTemplate())
-	containerCmd.SetUsageTemplate(registry.UsageTemplate())
-}
-
-func preRunE(cmd *cobra.Command, args []string) error {
-	_, err := registry.NewContainerEngine(cmd, args)
-	return err
 }
 
 func getDefaultContainerConfig() *config.Config {

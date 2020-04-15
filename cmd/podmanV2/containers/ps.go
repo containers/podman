@@ -24,12 +24,11 @@ import (
 var (
 	psDescription = "Prints out information about the containers"
 	psCommand     = &cobra.Command{
-		Use:     "ps",
-		Args:    checkFlags,
-		Short:   "List containers",
-		Long:    psDescription,
-		RunE:    ps,
-		PreRunE: preRunE,
+		Use:   "ps",
+		Args:  checkFlags,
+		Short: "List containers",
+		Long:  psDescription,
+		RunE:  ps,
 		Example: `podman ps -a
   podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
   podman ps --size --sort names`,

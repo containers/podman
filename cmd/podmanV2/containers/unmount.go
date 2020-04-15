@@ -23,7 +23,6 @@ var (
 		Short:   "Unmounts working container's root filesystem",
 		Long:    description,
 		RunE:    unmount,
-		PreRunE: preRunE,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},

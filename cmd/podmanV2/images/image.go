@@ -9,12 +9,11 @@ import (
 var (
 	// Command: podman _image_
 	imageCmd = &cobra.Command{
-		Use:               "image",
-		Short:             "Manage images",
-		Long:              "Manage images",
-		TraverseChildren:  true,
-		PersistentPreRunE: preRunE,
-		RunE:              registry.SubCommandExists,
+		Use:              "image",
+		Short:            "Manage images",
+		Long:             "Manage images",
+		TraverseChildren: true,
+		RunE:             registry.SubCommandExists,
 	}
 )
 
@@ -23,13 +22,4 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageCmd,
 	})
-	imageCmd.SetHelpTemplate(registry.HelpTemplate())
-	imageCmd.SetUsageTemplate(registry.UsageTemplate())
-}
-
-func preRunE(cmd *cobra.Command, args []string) error {
-	if _, err := registry.NewImageEngine(cmd, args); err != nil {
-		return err
-	}
-	return nil
 }

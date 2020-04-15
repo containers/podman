@@ -2,30 +2,15 @@ package common
 
 import (
 	"fmt"
-	"os"
 
 	buildahcli "github.com/containers/buildah/pkg/cli"
-	"github.com/containers/common/pkg/config"
-	"github.com/sirupsen/logrus"
+	"github.com/containers/libpod/cmd/podmanV2/registry"
 	"github.com/spf13/pflag"
 )
 
-const (
-	sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))"
-)
+const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))"
 
-var (
-	defaultContainerConfig = getDefaultContainerConfig()
-)
-
-func getDefaultContainerConfig() *config.Config {
-	defaultContainerConfig, err := config.Default()
-	if err != nil {
-		logrus.Error(err)
-		os.Exit(1)
-	}
-	return defaultContainerConfig
-}
+var containerConfig = registry.NewPodmanConfig()
 
 func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	createFlags := pflag.FlagSet{}
@@ -337,13 +322,13 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"override-arch", "",
 		"use `ARCH` instead of the architecture of the machine for choosing images",
 	)
-	//markFlagHidden(createFlags, "override-arch")
+	// markFlagHidden(createFlags, "override-arch")
 	createFlags.StringVar(
 		&cf.OverrideOS,
 		"override-os", "",
 		"use `OS` instead of the running OS for choosing images",
 	)
-	//markFlagHidden(createFlags, "override-os")
+	// markFlagHidden(createFlags, "override-os")
 	createFlags.StringVar(
 		&cf.PID,
 		"pid", getDefaultPidNS(),
@@ -407,7 +392,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	createFlags.StringArrayVar(
 		&cf.SecurityOpt,
 		"security-opt", getDefaultSecurityOptions(),
-		fmt.Sprintf("Security Options"),
+		"Security Options",
 	)
 	createFlags.StringVar(
 		&cf.ShmSize,
@@ -421,7 +406,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.UintVar(
 		&cf.StopTimeout,
-		"stop-timeout", defaultContainerConfig.Engine.StopTimeout,
+		"stop-timeout", containerConfig.Engine.StopTimeout,
 		"Timeout (in seconds) to stop a container. Default is 10",
 	)
 	createFlags.StringSliceVar(
@@ -513,7 +498,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	return &createFlags
 }
 
-func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
+func AliasFlags(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 	switch name {
 	case "healthcheck-command":
 		name = "health-cmd"
