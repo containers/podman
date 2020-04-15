@@ -160,7 +160,7 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	}
 
 	if fs.Changed("runtime") {
-		options = append(options, libpod.WithOCIRuntime(cfg.RuntimePath))
+		options = append(options, libpod.WithOCIRuntime(cfg.Engine.OCIRuntime))
 	}
 
 	if fs.Changed("conmon") {
