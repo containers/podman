@@ -359,25 +359,13 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
-	// Make lookup tables for runtime support
-	supportsJSON := make(map[string]bool)
-	supportsNoCgroups := make(map[string]bool)
-	for _, r := range runtime.config.Engine.RuntimeSupportsJSON {
-		supportsJSON[r] = true
-	}
-	for _, r := range runtime.config.Engine.RuntimeSupportsNoCgroups {
-		supportsNoCgroups[r] = true
-	}
-
 	// Get us at least one working OCI runtime.
 	runtime.ociRuntimes = make(map[string]OCIRuntime)
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.Engine.OCIRuntimes {
-		json := supportsJSON[name]
-		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.config, json, nocgroups)
+		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.config)
 		if err != nil {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
@@ -397,10 +385,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		if strings.HasPrefix(runtime.config.Engine.OCIRuntime, "/") {
 			name := filepath.Base(runtime.config.Engine.OCIRuntime)
 
-			json := supportsJSON[name]
-			nocgroups := supportsNoCgroups[name]
-
-			ociRuntime, err := newConmonOCIRuntime(name, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.config, json, nocgroups)
+			ociRuntime, err := newConmonOCIRuntime(name, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.config)
 			if err != nil {
 				return err
 			}

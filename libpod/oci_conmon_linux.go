@@ -60,6 +60,7 @@ type ConmonOCIRuntime struct {
 	noPivot           bool
 	reservePorts      bool
 	supportsJSON      bool
+	supportsKVM       bool
 	supportsNoCgroups bool
 	sdNotify          bool
 }
@@ -70,9 +71,23 @@ type ConmonOCIRuntime struct {
 // The first path that points to a valid executable will be used.
 // Deliberately private. Someone should not be able to construct this outside of
 // libpod.
-func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *config.Config, supportsJSON, supportsNoCgroups bool) (OCIRuntime, error) {
+func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *config.Config) (OCIRuntime, error) {
 	if name == "" {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "the OCI runtime must be provided a non-empty name")
+	}
+
+	// Make lookup tables for runtime support
+	supportsJSON := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsJSON))
+	supportsNoCgroups := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsNoCgroups))
+	supportsKVM := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsKVM))
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsJSON {
+		supportsJSON[r] = true
+	}
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsNoCgroups {
+		supportsNoCgroups[r] = true
+	}
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsKVM {
+		supportsKVM[r] = true
 	}
 
 	runtime := new(ConmonOCIRuntime)
@@ -89,8 +104,9 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.
-	runtime.supportsJSON = supportsJSON
-	runtime.supportsNoCgroups = supportsNoCgroups
+	runtime.supportsJSON = supportsJSON[name]
+	runtime.supportsNoCgroups = supportsNoCgroups[name]
+	runtime.supportsKVM = supportsKVM[name]
 
 	foundPath := false
 	for _, path := range paths {
@@ -969,6 +985,12 @@ func (r *ConmonOCIRuntime) SupportsJSONErrors() bool {
 // without cgroups (the --cgroup-manager=disabled flag).
 func (r *ConmonOCIRuntime) SupportsNoCgroups() bool {
 	return r.supportsNoCgroups
+}
+
+// SupportsKVM checks if the OCI runtime supports running containers
+// without KVM separation
+func (r *ConmonOCIRuntime) SupportsKVM() bool {
+	return r.supportsKVM
 }
 
 // AttachSocketPath is the path to a single container's attach socket.
