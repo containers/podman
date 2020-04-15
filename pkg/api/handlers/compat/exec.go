@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -104,4 +105,77 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, inspectOut)
+}
+
+// ExecStartHandler runs a given exec session.
+func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+
+	sessionID := mux.Vars(r)["id"]
+
+	// TODO: Need to support these
+	query := struct {
+		Detach bool `schema:"Detach"`
+		Tty    bool `schema:"Tty"`
+	}{
+		// override any golang type defaults
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	if _, found := r.URL.Query()["Detach"]; found {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Errorf("Detached exec is not yet supported"))
+		return
+	}
+	if _, found := r.URL.Query()["Tty"]; found {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Errorf("overriding terminal setting in ExecStart is not yet supported"))
+		return
+	}
+
+	sessionCtr, err := runtime.GetExecSessionContainer(sessionID)
+	if err != nil {
+		utils.Error(w, fmt.Sprintf("No such exec session: %s", sessionID), http.StatusNotFound, err)
+		return
+	}
+
+	logrus.Debugf("Starting exec session %s of container %s", sessionID, sessionCtr.ID())
+
+	state, err := sessionCtr.State()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	if state != define.ContainerStateRunning {
+		utils.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict, errors.Errorf("cannot exec in a container that is not running; container %s is %s", sessionCtr.ID(), state.String()))
+		return
+	}
+
+	// Hijack the connection
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		utils.InternalServerError(w, errors.Errorf("unable to hijack connection"))
+		return
+	}
+
+	connection, buffer, err := hijacker.Hijack()
+	if err != nil {
+		utils.InternalServerError(w, errors.Wrapf(err, "error hijacking connection"))
+		return
+	}
+
+	fmt.Fprintf(connection, AttachHeader)
+
+	logrus.Debugf("Hijack for attach of container %s exec session %s successful", sessionCtr.ID(), sessionID)
+
+	if err := sessionCtr.ExecHTTPStartAndAttach(sessionID, connection, buffer, nil, nil, nil); err != nil {
+		logrus.Errorf("Error attaching to container %s exec session %s: %v", sessionCtr.ID(), sessionID, err)
+	}
+
+	logrus.Debugf("Attach for container %s exec session %s completed successfully", sessionCtr.ID(), sessionID)
 }
