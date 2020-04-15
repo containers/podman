@@ -156,6 +156,32 @@ gating_task:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
+# Ensure these container images can build
+container_image_build_task:
+    alias: 'container_image_build'
+    depends_on:
+        - "gating"
+
+    # Only run for PRs, quay.io will automatically build after bramch-push
+    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
+
+    matrix:
+        - name: "build in_podman image ${FEDORA_NAME} "
+          container:
+              dockerfile: Dockerfile
+        - name: "build in_podman image ${UBUNTU_NAME}"
+          container:
+              dockerfile: Dockerfile.ubuntu
+        - name: "build gate image $DEST_BRANCH branch"
+          container:
+              dockerfile: contrib/gate/Dockerfile
+
+    container:
+        dockerfile: Dockerfile
+
+    script: make install.remote
+
+
 # This task checks to make sure that we can still build an rpm from the
 # source code using contrib/rpm/podman.spec.in
 rpmbuild_task:
@@ -389,6 +415,7 @@ testing_task:
         - "varlink_api"
         - "build_each_commit"
         - "build_without_cgo"
+        - "container_image_build"
 
     allow_failures: $CI == 'true'
 
@@ -681,6 +708,7 @@ test_build_cache_images_task:
 
     depends_on:
         - "gating"
+        - 'container_image_build'
 
     # VMs created by packer are not cleaned up by cirrus, must allow task to complete
     auto_cancellation: $CI != "true"
@@ -782,6 +810,7 @@ success_task:
         - "varlink_api"
         - "build_each_commit"
         - "build_without_cgo"
+        - "container_image_build"
         - "meta"
         - "image_prune"
         - "testing"

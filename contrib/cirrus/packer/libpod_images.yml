@@ -71,6 +71,7 @@ provisioners:
       environment_vars:
           - 'PACKER_BUILDER_NAME={{build_name}}'
           - 'GOSRC=/tmp/libpod'
+          - 'PACKER_BASE={{user `PACKER_BASE`}}'
           - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
 
 post-processors:

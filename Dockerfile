@@ -1,117 +1,26 @@
-FROM golang:1.12
+FROM registry.fedoraproject.org/fedora:latest
 
-RUN apt-get update && apt-get install -y \
-    apparmor \
-    autoconf \
-    automake \
-    bison \
-    build-essential \
-    curl \
-    e2fslibs-dev \
-    file \
-    gawk \
-    gettext \
-    go-md2man \
-    iptables \
-    pkg-config \
-    libaio-dev \
-    libcap-dev \
-    libfuse-dev \
-    libnet-dev \
-    libnl-3-dev \
-    libprotobuf-dev \
-    libprotobuf-c-dev \
-    libseccomp2 \
-    libseccomp-dev \
-    libtool \
-    libudev-dev \
-    protobuf-c-compiler \
-    protobuf-compiler \
-    libglib2.0-dev \
-    libapparmor-dev \
-    btrfs-tools \
-    libdevmapper1.02.1 \
-    libdevmapper-dev \
-    libgpgme11-dev \
-    liblzma-dev \
-    netcat \
-    socat \
-    lsof \
-    xz-utils \
-    unzip \
-    python3-yaml \
-    --no-install-recommends \
-    && apt-get clean
+# This container image is utilized by the containers CI automation system
+# for building and testing libpod inside a container environment.
+# It is assumed that the source to be tested will overwrite $GOSRC (below)
+# at runtime.
+ENV GOPATH=/var/tmp/go
+ENV GOSRC=$GOPATH/src/github.com/containers/libpod
+ENV SCRIPT_BASE=./contrib/cirrus
+ENV PACKER_BASE=$SCRIPT_BASE/packer
 
-# Install runc
-ENV RUNC_COMMIT 029124da7af7360afa781a0234d1b083550f797c
-RUN set -x \
-	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
-	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
-	&& git fetch origin --tags \
-	&& git checkout --detach -q "$RUNC_COMMIT" \
-	&& make static BUILDTAGS="seccomp selinux" \
-	&& cp runc /usr/bin/runc \
-	&& rm -rf "$GOPATH"
+# Only add minimal tooling necessary to complete setup.
+ADD /$SCRIPT_BASE $GOSRC/$SCRIPT_BASE
+ADD /hack/install_catatonit.sh $GOSRC/hack/
+ADD /cni/*.conflist $GOSRC/cni/
+ADD /test/*.json $GOSRC/test/
+ADD /test/*.conf $GOSRC/test/
+WORKDIR $GOSRC
 
-# Install conmon
-ENV CONMON_COMMIT 65fe0226d85b69fc9e527e376795c9791199153d
-RUN set -x \
-	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
-	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
-	&& git fetch origin --tags \
-	&& git checkout --detach -q "$CONMON_COMMIT" \
-	&& make \
-	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
-	&& rm -rf "$GOPATH"
+# Re-use repositories and package setup as in VMs under CI
+RUN bash $PACKER_BASE/fedora_packaging.sh && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
 
-# Install CNI plugins
-ENV CNI_COMMIT 485be65581341430f9106a194a98f0f2412245fb
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" GOCACHE="$(mktemp -d)" \
-       && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
-       && cd "$GOPATH/src/github.com/containernetworking/plugins" \
-       && git checkout --detach -q "$CNI_COMMIT" \
-       && ./build_linux.sh \
-       && mkdir -p /usr/libexec/cni \
-       && cp bin/* /usr/libexec/cni \
-       && rm -rf "$GOPATH"
-
-# Install ginkgo
-RUN set -x \
-       && export GOPATH=/go \
-       && go get -u github.com/onsi/ginkgo/ginkgo \
-       && install -D -m 755 "$GOPATH"/bin/ginkgo /usr/bin/
-
-# Install gomega
-RUN set -x \
-       && export GOPATH=/go \
-       && go get github.com/onsi/gomega/...
-
-# Install latest stable criu version
-RUN set -x \
-      && cd /tmp \
-      && git clone https://github.com/checkpoint-restore/criu.git \
-      && cd criu \
-      && make \
-      && install -D -m 755  criu/criu /usr/sbin/ \
-      && rm -rf /tmp/criu
-
-# Install cni config
-#RUN make install.cni
-RUN mkdir -p /etc/cni/net.d/
-COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
-
-# Make sure we have some policy for pulling images
-RUN mkdir -p /etc/containers && curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
-
-COPY test/policy.json /etc/containers/policy.json
-COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
-
-ADD . /go/src/github.com/containers/libpod
-
-RUN set -x && cd /go/src/github.com/containers/libpod
-
-WORKDIR /go/src/github.com/containers/libpod
+# Mirror steps taken under CI
+RUN bash -c 'source $GOSRC/$SCRIPT_BASE/lib.sh && install_test_configs'
