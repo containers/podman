@@ -71,7 +71,7 @@ func preRunE(cmd *cobra.Command, _ []string) error {
 	cmd.SetHelpTemplate(registry.HelpTemplate())
 	cmd.SetUsageTemplate(registry.UsageTemplate())
 
-	if cmd.Flag("cpu_profile").Changed {
+	if cmd.Flag("cpu-profile").Changed {
 		f, err := os.Create(registry.PodmanOptions.CpuProfile)
 		if err != nil {
 			return errors.Wrapf(err, "unable to create cpu profiling file %s",
