@@ -36,6 +36,7 @@ type ContainerEngine interface {
 	ContainerUnmount(ctx context.Context, nameOrIds []string, options ContainerUnmountOptions) ([]*ContainerUnmountReport, error)
 	ContainerUnpause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
+	Events(ctx context.Context, opts EventsOptions) error
 	HealthCheckRun(ctx context.Context, nameOrId string, options HealthCheckOptions) (*define.HealthCheckResults, error)
 	Info(ctx context.Context) (*define.Info, error)
 	PodCreate(ctx context.Context, opts PodCreateOptions) (*PodCreateReport, error)

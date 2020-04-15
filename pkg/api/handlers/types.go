@@ -180,6 +180,31 @@ type ExecCreateResponse struct {
 	docker.IDResponse
 }
 
+func (e *Event) ToLibpodEvent() *events.Event {
+	exitCode, err := strconv.Atoi(e.Actor.Attributes["containerExitCode"])
+	if err != nil {
+		return nil
+	}
+	status, err := events.StringToStatus(e.Action)
+	if err != nil {
+		return nil
+	}
+	t, err := events.StringToType(e.Type)
+	if err != nil {
+		return nil
+	}
+	lp := events.Event{
+		ContainerExitCode: exitCode,
+		ID:                e.Actor.ID,
+		Image:             e.Actor.Attributes["image"],
+		Name:              e.Actor.Attributes["name"],
+		Status:            status,
+		Time:              time.Unix(e.Time, e.TimeNano),
+		Type:              t,
+	}
+	return &lp
+}
+
 func EventToApiEvent(e *events.Event) *Event {
 	return &Event{dockerEvents.Message{
 		Type:   e.Type.String(),
