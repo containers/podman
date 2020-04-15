@@ -922,6 +922,12 @@ func writeExecExitCode(c *Container, sessionID string, exitCode int) error {
 	// If we can't do this, no point in continuing, any attempt to save
 	// would write garbage to the DB.
 	if err := c.syncContainer(); err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrRemoved {
+			// Container's entirely removed. We can't save status,
+			// but the container's entirely removed, so we don't
+			// need to. Exit without error.
+			return nil
+		}
 		return errors.Wrapf(err, "error syncing container %s state to remove exec session %s", c.ID(), sessionID)
 	}
 
