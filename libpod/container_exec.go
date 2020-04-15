@@ -158,9 +158,6 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 	if len(config.Command) == 0 {
 		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty command to start an exec session")
 	}
-	if config.Terminal && (config.AttachStdin || config.AttachStdout || config.AttachStderr) {
-		return "", errors.Wrapf(define.ErrInvalidArg, "cannot specify streams to attach to when exec session has a pseudoterminal")
-	}
 
 	// Verify that we are in a good state to continue
 	if !c.ensureState(define.ContainerStateRunning) {
@@ -360,6 +357,13 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, httpCon net.Conn, h
 	execOpts, err := prepareForExec(c, session)
 	if err != nil {
 		return err
+	}
+
+	if streams == nil {
+		streams = new(HTTPAttachStreams)
+		streams.Stdin = session.Config.AttachStdin
+		streams.Stdout = session.Config.AttachStdout
+		streams.Stderr = session.Config.AttachStderr
 	}
 
 	pid, attachChan, err := c.ociRuntime.ExecContainerHTTP(c, session.ID(), execOpts, httpCon, httpBuf, streams, cancel)
