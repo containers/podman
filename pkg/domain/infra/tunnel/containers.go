@@ -146,6 +146,10 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	return reports, nil
 }
 
+func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
+	return containers.Prune(ic.ClientCxt, options.Filters)
+}
+
 func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, error) {
 	var (
 		reports []*entities.ContainerInspectReport

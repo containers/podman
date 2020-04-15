@@ -2,6 +2,7 @@ package entities
 
 import (
 	"io"
+	"net/url"
 	"os"
 	"time"
 
@@ -260,7 +261,7 @@ type ContainerRunOptions struct {
 }
 
 // ContainerRunReport describes the results of running
-//a container
+// a container
 type ContainerRunReport struct {
 	ExitCode int
 	Id       string
@@ -326,4 +327,17 @@ type ContainerMountReport struct {
 type ContainerUnmountReport struct {
 	Err error
 	Id  string
+}
+
+// ContainerPruneOptions describes the options needed
+// to prune a container from the CLI
+type ContainerPruneOptions struct {
+	Filters url.Values `json:"filters" schema:"filters"`
+}
+
+// ContainerPruneReport describes the results after pruning the
+// stopped containers.
+type ContainerPruneReport struct {
+	ID  map[string]int64
+	Err map[string]error
 }

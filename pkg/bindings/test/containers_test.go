@@ -531,4 +531,69 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).ToNot(BeNil())
 	})
 
+	It("podman prune stoped containers", func() {
+		// Start and stop a container to enter in exited state.
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		err = containers.Stop(bt.conn, name, nil)
+		Expect(err).To(BeNil())
+
+		// Prune container should return no errors and one pruned container ID.
+		pruneResponse, err := containers.Prune(bt.conn, nil)
+		Expect(err).To(BeNil())
+		Expect(len(pruneResponse.Err)).To(Equal(0))
+		Expect(len(pruneResponse.ID)).To(Equal(1))
+	})
+
+	It("podman prune stoped containers with filters", func() {
+		// Start and stop a container to enter in exited state.
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		err = containers.Stop(bt.conn, name, nil)
+		Expect(err).To(BeNil())
+
+		// Invalid filter keys should return error.
+		filtersIncorrect := map[string][]string{
+			"status": {"dummy"},
+		}
+		pruneResponse, err := containers.Prune(bt.conn, filtersIncorrect)
+		Expect(err).ToNot(BeNil())
+
+		// Mismatched filter params no container should be pruned.
+		filtersIncorrect = map[string][]string{
+			"name": {"r"},
+		}
+		pruneResponse, err = containers.Prune(bt.conn, filtersIncorrect)
+		Expect(err).To(BeNil())
+		Expect(len(pruneResponse.Err)).To(Equal(0))
+		Expect(len(pruneResponse.ID)).To(Equal(0))
+
+		// Valid filter params container should be pruned now.
+		filters := map[string][]string{
+			"name": {"top"},
+		}
+		pruneResponse, err = containers.Prune(bt.conn, filters)
+		Expect(err).To(BeNil())
+		Expect(len(pruneResponse.Err)).To(Equal(0))
+		Expect(len(pruneResponse.ID)).To(Equal(1))
+	})
+
+	It("podman prune running containers", func() {
+		// Start the container.
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+
+		// Check if the container is running.
+		data, err := containers.Inspect(bt.conn, name, nil)
+		Expect(err).To(BeNil())
+		Expect(data.State.Status).To(Equal("running"))
+
+		// Prune. Should return no error no prune response ID.
+		pruneResponse, err := containers.Prune(bt.conn, nil)
+		Expect(err).To(BeNil())
+		Expect(len(pruneResponse.ID)).To(Equal(0))
+	})
 })

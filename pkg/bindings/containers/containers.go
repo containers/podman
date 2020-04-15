@@ -60,10 +60,8 @@ func List(ctx context.Context, filters map[string][]string, all *bool, last *int
 // used for more granular selection of containers.  The main error returned indicates if there were runtime
 // errors like finding containers.  Errors specific to the removal of a container are in the PruneContainerResponse
 // structure.
-func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
-	var (
-		pruneResponse []string
-	)
+func Prune(ctx context.Context, filters map[string][]string) (*entities.ContainerPruneReport, error) {
+	var reports *entities.ContainerPruneReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -78,9 +76,9 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/prune", params)
 	if err != nil {
-		return pruneResponse, err
+		return nil, err
 	}
-	return pruneResponse, response.Process(pruneResponse)
+	return reports, response.Process(&reports)
 }
 
 // Remove removes a container from local storage.  The force bool designates

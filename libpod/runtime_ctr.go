@@ -887,8 +887,9 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int
 			continue
 		}
 		err = r.RemoveContainer(context.Background(), ctr, false, false)
-		pruneErrors[ctr.ID()] = err
 		if err != nil {
+			pruneErrors[ctr.ID()] = err
+		} else {
 			prunedContainers[ctr.ID()] = size
 		}
 	}

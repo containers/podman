@@ -19,12 +19,12 @@ var (
 	pruneContainersDescription = `
 	podman container prune
 
-	Removes all exited containers
+	Removes all stopped | exited containers
 `
 	_pruneContainersCommand = &cobra.Command{
 		Use:   "prune",
 		Args:  noSubArgs,
-		Short: "Remove all stopped containers",
+		Short: "Remove all stopped | exited containers",
 		Long:  pruneContainersDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pruneContainersCommand.InputArgs = args

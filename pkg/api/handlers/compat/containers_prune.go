@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -40,14 +40,11 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 
 	// Libpod response differs
 	if utils.IsLibpodRequest(r) {
-		var response []handlers.LibpodContainersPruneReport
-		for ctrID, size := range prunedContainers {
-			response = append(response, handlers.LibpodContainersPruneReport{ID: ctrID, SpaceReclaimed: size})
+		report := &entities.ContainerPruneReport{
+			Err: pruneErrors,
+			ID:  prunedContainers,
 		}
-		for ctrID, err := range pruneErrors {
-			response = append(response, handlers.LibpodContainersPruneReport{ID: ctrID, PruneError: err.Error()})
-		}
-		utils.WriteResponse(w, http.StatusOK, response)
+		utils.WriteResponse(w, http.StatusOK, report)
 		return
 	}
 	for ctrID, size := range prunedContainers {
