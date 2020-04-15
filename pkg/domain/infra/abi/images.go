@@ -46,7 +46,9 @@ func (ir *ImageEngine) Delete(ctx context.Context, nameOrId []string, opts entit
 		if err != nil {
 			return &report, errors.Wrapf(err, "unable to query local images")
 		}
-
+		if len(targets) == 0 {
+			return &report, nil
+		}
 		if len(targets) > 0 && len(targets) == len(previousTargets) {
 			return &report, errors.New("unable to delete all images; re-run the rmi command again.")
 		}
@@ -143,7 +145,7 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrId string, opts entiti
 func ToDomainHistoryLayer(layer *libpodImage.History) entities.ImageHistoryLayer {
 	l := entities.ImageHistoryLayer{}
 	l.ID = layer.ID
-	l.Created = layer.Created.Unix()
+	l.Created = *layer.Created
 	l.CreatedBy = layer.CreatedBy
 	copy(l.Tags, layer.Tags)
 	l.Size = layer.Size

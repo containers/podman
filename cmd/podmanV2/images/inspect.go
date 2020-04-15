@@ -67,7 +67,6 @@ func inspect(cmd *cobra.Command, args []string) error {
 			}
 			return nil
 		}
-
 		row := inspectFormat(inspectOpts.Format)
 		format := "{{range . }}" + row + "{{end}}"
 		tmpl, err := template.New("inspect").Parse(format)
@@ -77,7 +76,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 
 		w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 		defer func() { _ = w.Flush() }()
-		err = tmpl.Execute(w, results)
+		err = tmpl.Execute(w, results.Images)
 		if err != nil {
 			return err
 		}

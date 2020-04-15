@@ -2,6 +2,7 @@ package entities
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -99,12 +100,12 @@ type ImageDeleteReport struct {
 type ImageHistoryOptions struct{}
 
 type ImageHistoryLayer struct {
-	ID        string   `json:"Id"`
-	Created   int64    `json:",omitempty"`
-	CreatedBy string   `json:",omitempty"`
-	Tags      []string `json:",omitempty"`
-	Size      int64    `json:",omitempty"`
-	Comment   string   `json:",omitempty"`
+	ID        string    `json:"id"`
+	Created   time.Time `json:"created,omitempty"`
+	CreatedBy string    `json:",omitempty"`
+	Tags      []string  `json:"tags,omitempty"`
+	Size      int64     `json:"size"`
+	Comment   string    `json:"comment,omitempty"`
 }
 
 type ImageHistoryReport struct {
