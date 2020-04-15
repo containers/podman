@@ -1,31 +1,31 @@
-package specgen
+package generate
 
 import (
 	"context"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/sirupsen/logrus"
 )
 
-func (p *PodSpecGenerator) MakePod(rt *libpod.Runtime) (*libpod.Pod, error) {
-	if err := p.validate(); err != nil {
+func MakePod(p *specgen.PodSpecGenerator, rt *libpod.Runtime) (*libpod.Pod, error) {
+	if err := p.Validate(); err != nil {
 		return nil, err
 	}
-	options, err := p.createPodOptions()
+	options, err := createPodOptions(p)
 	if err != nil {
 		return nil, err
 	}
 	return rt.NewPod(context.Background(), options...)
 }
 
-func (p *PodSpecGenerator) createPodOptions() ([]libpod.PodCreateOption, error) {
+func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, error) {
 	var (
 		options []libpod.PodCreateOption
 	)
 	if !p.NoInfra {
 		options = append(options, libpod.WithInfraContainer())
-		nsOptions, err := shared.GetNamespaceOptions(p.SharedNamespaces)
+		nsOptions, err := GetNamespaceOptions(p.SharedNamespaces)
 		if err != nil {
 			return nil, err
 		}
@@ -62,9 +62,9 @@ func (p *PodSpecGenerator) createPodOptions() ([]libpod.PodCreateOption, error) 
 		options = append(options, libpod.WithPodUseImageResolvConf())
 	}
 	switch p.NetNS.NSMode {
-	case Bridge:
+	case specgen.Bridge:
 		logrus.Debugf("Pod using default network mode")
-	case Host:
+	case specgen.Host:
 		logrus.Debugf("Pod will use host networking")
 		options = append(options, libpod.WithPodHostNetwork())
 	default:

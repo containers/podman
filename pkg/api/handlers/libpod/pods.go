@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/specgen/generate"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -27,7 +28,7 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Failed to decode specgen", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
 		return
 	}
-	pod, err := psg.MakePod(runtime)
+	pod, err := generate.MakePod(&psg, runtime)
 	if err != nil {
 		http_code := http.StatusInternalServerError
 		if errors.Cause(err) == define.ErrPodExists {

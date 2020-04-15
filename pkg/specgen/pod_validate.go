@@ -15,7 +15,8 @@ func exclusivePodOptions(opt1, opt2 string) error {
 	return errors.Wrapf(ErrInvalidPodSpecConfig, "%s and %s are mutually exclusive pod options", opt1, opt2)
 }
 
-func (p *PodSpecGenerator) validate() error {
+// Validate verifies the input is valid
+func (p *PodSpecGenerator) Validate() error {
 	// PodBasicConfig
 	if p.NoInfra {
 		if len(p.InfraCommand) > 0 {

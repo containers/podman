@@ -1,4 +1,4 @@
-package specgen
+package generate
 
 //nolint
 
@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/libpod"
-
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -38,7 +38,7 @@ var (
 // TODO: Named volume options -  should we default to rprivate? It bakes into a
 // bind mount under the hood...
 // TODO: handle options parsing/processing via containers/storage/pkg/mount
-func (s *SpecGenerator) parseVolumes(mounts, volMounts, tmpMounts []string) error { //nolint
+func parseVolumes(s *specgen.SpecGenerator, mounts, volMounts, tmpMounts []string) error { //nolint
 
 	// TODO this needs to come from the image and erquires a runtime
 

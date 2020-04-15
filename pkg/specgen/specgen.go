@@ -4,8 +4,6 @@ import (
 	"net"
 	"syscall"
 
-	"github.com/containers/libpod/libpod"
-
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
@@ -174,7 +172,7 @@ type ContainerStorageConfig struct {
 	// These will supersede Image Volumes and VolumesFrom volumes where
 	// there are conflicts.
 	// Optional.
-	Volumes []*libpod.ContainerNamedVolume `json:"volumes,omitempty"`
+	Volumes []*Volumes `json:"volumes,omitempty"`
 	// Devices are devices that will be added to the container.
 	// Optional.
 	Devices []spec.LinuxDevice `json:"devices,omitempty"`
@@ -401,6 +399,13 @@ type SpecGenerator struct {
 	ContainerNetworkConfig
 	ContainerResourceConfig
 	ContainerHealthCheckConfig
+}
+
+// Volumes is a temporary struct to hold input from the User
+type Volumes struct {
+	Name    string
+	Dest    string
+	Options []string
 }
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs

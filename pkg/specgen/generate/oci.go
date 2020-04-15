@@ -1,4 +1,4 @@
-package specgen
+package generate
 
 import (
 	"strings"
@@ -7,11 +7,12 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/libpod/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
-func (s *SpecGenerator) ToOCISpec(rt *libpod.Runtime, newImage *image.Image) (*spec.Spec, error) {
+func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.Image) (*spec.Spec, error) {
 	var (
 		inUserNS bool
 	)
@@ -183,32 +184,32 @@ func (s *SpecGenerator) ToOCISpec(rt *libpod.Runtime, newImage *image.Image) (*s
 
 	// NAMESPACES
 
-	if err := s.pidConfigureGenerator(&g); err != nil {
+	if err := pidConfigureGenerator(s, &g); err != nil {
 		return nil, err
 	}
 
-	if err := s.userConfigureGenerator(&g); err != nil {
+	if err := userConfigureGenerator(s, &g); err != nil {
 		return nil, err
 	}
 
-	if err := s.networkConfigureGenerator(&g); err != nil {
+	if err := networkConfigureGenerator(s, &g); err != nil {
 		return nil, err
 	}
 
-	if err := s.utsConfigureGenerator(&g, rt); err != nil {
+	if err := utsConfigureGenerator(s, &g, rt); err != nil {
 		return nil, err
 	}
 
-	if err := s.ipcConfigureGenerator(&g); err != nil {
+	if err := ipcConfigureGenerator(s, &g); err != nil {
 		return nil, err
 	}
 
-	if err := s.cgroupConfigureGenerator(&g); err != nil {
+	if err := cgroupConfigureGenerator(s, &g); err != nil {
 		return nil, err
 	}
 	configSpec := g.Config
 
-	if err := s.securityConfigureGenerator(&g, newImage); err != nil {
+	if err := securityConfigureGenerator(s, &g, newImage); err != nil {
 		return nil, err
 	}
 

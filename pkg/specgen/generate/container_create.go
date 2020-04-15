@@ -40,7 +40,7 @@ func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Contai
 
 	options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image, s.RawImageName))
 
-	runtimeSpec, err := s.ToOCISpec(rt, newImage)
+	runtimeSpec, err := SpecGenToOCI(s, rt, newImage)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,15 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator) ([]lib
 	options = append(options, libpod.WithUserVolumes(destinations))
 
 	if len(s.Volumes) != 0 {
-		options = append(options, libpod.WithNamedVolumes(s.Volumes))
+		var volumes []*libpod.ContainerNamedVolume
+		for _, v := range s.Volumes {
+			volumes = append(volumes, &libpod.ContainerNamedVolume{
+				Name:    v.Name,
+				Dest:    v.Dest,
+				Options: v.Options,
+			})
+		}
+		options = append(options, libpod.WithNamedVolumes(volumes))
 	}
 
 	if len(s.Command) != 0 {
@@ -115,7 +123,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator) ([]lib
 	options = append(options, libpod.WithPrivileged(s.Privileged))
 
 	// Get namespace related options
-	namespaceOptions, err := s.GenerateNamespaceContainerOpts(rt)
+	namespaceOptions, err := GenerateNamespaceContainerOpts(s, rt)
 	if err != nil {
 		return nil, err
 	}
