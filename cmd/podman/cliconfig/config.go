@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -245,19 +246,14 @@ type LoadValues struct {
 
 type LoginValues struct {
 	PodmanCommand
-	Password      string
-	StdinPassword bool
-	Username      string
-	Authfile      string
-	CertDir       string
-	GetLogin      bool
-	TlsVerify     bool
+	auth.LoginOptions
+	GetLogin  bool
+	TlsVerify bool
 }
 
 type LogoutValues struct {
 	PodmanCommand
-	Authfile string
-	All      bool
+	auth.LogoutOptions
 }
 
 type LogsValues struct {

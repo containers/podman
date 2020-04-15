@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 
-	buildahcli "github.com/containers/buildah/pkg/cli"
-	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/pkg/docker/config"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/pkg/registries"
@@ -25,6 +24,8 @@ var (
 			logoutCommand.InputArgs = args
 			logoutCommand.GlobalFlags = MainGlobalOpts
 			logoutCommand.Remote = remoteclient
+			logoutCommand.Stdin = os.Stdin
+			logoutCommand.Stdout = os.Stdout
 			return logoutCmd(&logoutCommand)
 		},
 		Example: `podman logout quay.io
@@ -41,8 +42,7 @@ func init() {
 	logoutCommand.SetHelpTemplate(HelpTemplate())
 	logoutCommand.SetUsageTemplate(UsageTemplate())
 	flags := logoutCommand.Flags()
-	flags.BoolVarP(&logoutCommand.All, "all", "a", false, "Remove the cached credentials for all registries in the auth file")
-	flags.StringVar(&logoutCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.AddFlagSet(auth.GetLogoutFlags(&logoutCommand.LogoutOptions))
 	markFlagHiddenForRemoteClient("authfile", flags)
 }
 
@@ -64,41 +64,12 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 		logrus.Debugf("registry not specified, default to the first registry %q from registries.conf", server)
 	}
 	if len(args) == 1 {
-		server = scrubServer(args[0])
+		server = args[0]
 	}
 
-	sc, err := shared.GetSystemContext(c.Authfile)
+	sc, err := shared.GetSystemContext(c.AuthFile)
 	if err != nil {
 		return err
 	}
-
-	if c.All {
-		if err := config.RemoveAllAuthentication(sc); err != nil {
-			return err
-		}
-		fmt.Println("Removed login credentials for all registries")
-		return nil
-	}
-
-	err = config.RemoveAuthentication(sc, server)
-	switch errors.Cause(err) {
-	case nil:
-		fmt.Printf("Removed login credentials for %s\n", server)
-		return nil
-	case config.ErrNotLoggedIn:
-		// username of user logged in to server (if one exists)
-		authConfig, err := config.GetCredentials(sc, server)
-		if err != nil {
-			return errors.Wrapf(err, "error reading auth file")
-		}
-		islogin := docker.CheckAuth(getContext(), sc, authConfig.Username, authConfig.Password, server)
-		if authConfig.IdentityToken != "" && authConfig.Username != "" && authConfig.Password != "" && islogin == nil {
-			fmt.Printf("Not logged into %s with podman. Existing credentials were established via docker login. Please use docker logout instead.\n", server)
-			return nil
-		}
-		fmt.Printf("Not logged into %s\n", server)
-		return nil
-	default:
-		return errors.Wrapf(err, "error logging out of %q", server)
-	}
+	return auth.Logout(sc, &c.LogoutOptions, server)
 }

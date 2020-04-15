@@ -549,14 +549,6 @@ func getFormat(c *cliconfig.PodmanCommand) (string, error) {
 	return "", errors.Errorf("unrecognized image type %q", format)
 }
 
-// scrubServer removes 'http://' or 'https://' from the front of the
-// server/registry string if either is there.  This will be mostly used
-// for user input from 'podman login' and 'podman logout'.
-func scrubServer(server string) string {
-	server = strings.TrimPrefix(server, "https://")
-	return strings.TrimPrefix(server, "http://")
-}
-
 // HelpTemplate returns the help template for podman commands
 // This uses the short and long options.
 // command should not use this.
