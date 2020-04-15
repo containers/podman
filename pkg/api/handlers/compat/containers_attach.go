@@ -13,6 +13,12 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
+// AttachHeader is the literal header sent for upgraded/hijacked connections for
+// attach, sourced from Docker at:
+// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
+// Using literally to ensure compatibility with existing clients.
+const AttachHeader = "HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n"
+
 func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
@@ -106,10 +112,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// This header string sourced from Docker:
-	// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
-	// Using literally to ensure compatibility with existing clients.
-	fmt.Fprintf(connection, "HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n")
+	fmt.Fprintf(connection, AttachHeader)
 
 	logrus.Debugf("Hijack for attach of container %s successful", ctr.ID())
 
