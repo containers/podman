@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/shared"
+	createconfig "github.com/containers/libpod/pkg/spec"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
-	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -66,24 +67,6 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 		return 0, err
 	}
 	return con.WaitForConditionWithInterval(interval, condition)
-}
-
-// GenerateFilterFuncsFromMap is used to generate un-executed functions that can be used to filter
-// containers.  It is specifically designed for the RESTFUL API input.
-func GenerateFilterFuncsFromMap(r *libpod.Runtime, filters map[string][]string) ([]libpod.ContainerFilter, error) {
-	var (
-		filterFuncs []libpod.ContainerFilter
-	)
-	for k, v := range filters {
-		for _, val := range v {
-			f, err := shared.GenerateContainerFilterFuncs(k, val, r)
-			if err != nil {
-				return filterFuncs, err
-			}
-			filterFuncs = append(filterFuncs, f)
-		}
-	}
-	return filterFuncs, nil
 }
 
 func CreateContainer(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runtime, cc *createconfig.CreateConfig) {

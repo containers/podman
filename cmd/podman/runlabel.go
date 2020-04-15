@@ -13,11 +13,11 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -157,7 +157,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		return errors.Errorf("%s does not have a label of %s", runlabelImage, label)
 	}
 
-	globalOpts := util.GetGlobalOpts(c)
+	globalOpts := GetGlobalOpts(c)
 	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.Name, opts, extraArgs, globalOpts)
 	if err != nil {
 		return err
@@ -192,4 +192,33 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 	}
 
 	return utils.ExecCmdWithStdStreams(stdIn, stdOut, stdErr, env, cmd[0], cmd[1:]...)
+}
+
+// GetGlobalOpts checks all global flags and generates the command string
+func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
+	globalFlags := map[string]bool{
+		"cgroup-manager": true, "cni-config-dir": true, "conmon": true, "default-mounts-file": true,
+		"hooks-dir": true, "namespace": true, "root": true, "runroot": true,
+		"runtime": true, "storage-driver": true, "storage-opt": true, "syslog": true,
+		"trace": true, "network-cmd-path": true, "config": true, "cpu-profile": true,
+		"log-level": true, "tmpdir": true}
+	const stringSliceType string = "stringSlice"
+
+	var optsCommand []string
+	c.PodmanCommand.Command.Flags().VisitAll(func(f *pflag.Flag) {
+		if !f.Changed {
+			return
+		}
+		if _, exist := globalFlags[f.Name]; exist {
+			if f.Value.Type() == stringSliceType {
+				flagValue := strings.TrimSuffix(strings.TrimPrefix(f.Value.String(), "["), "]")
+				for _, value := range strings.Split(flagValue, ",") {
+					optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, value))
+				}
+			} else {
+				optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, f.Value.String()))
+			}
+		}
+	})
+	return strings.Join(optsCommand, " ")
 }

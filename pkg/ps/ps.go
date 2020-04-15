@@ -1,16 +1,19 @@
 package ps
 
 import (
+	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	lpfilters "github.com/containers/libpod/libpod/filters"
 	"github.com/containers/libpod/pkg/domain/entities"
+	psdefine "github.com/containers/libpod/pkg/ps/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -80,7 +83,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		exitCode                                int32
 		exited                                  bool
 		pid                                     int
-		size                                    *shared.ContainerSize
+		size                                    *psdefine.ContainerSize
 		startedTime                             time.Time
 		exitedTime                              time.Time
 		cgroup, ipc, mnt, net, pidns, user, uts string
@@ -116,16 +119,16 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 				return errors.Wrapf(err, "unable to obtain container pid")
 			}
 			ctrPID := strconv.Itoa(pid)
-			cgroup, _ = shared.GetNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "cgroup"))
-			ipc, _ = shared.GetNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "ipc"))
-			mnt, _ = shared.GetNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "mnt"))
-			net, _ = shared.GetNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "net"))
-			pidns, _ = shared.GetNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "pid"))
-			user, _ = shared.GetNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "user"))
-			uts, _ = shared.GetNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "uts"))
+			cgroup, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "cgroup"))
+			ipc, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "ipc"))
+			mnt, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "mnt"))
+			net, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "net"))
+			pidns, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "pid"))
+			user, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "user"))
+			uts, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "uts"))
 		}
 		if opts.Size {
-			size = new(shared.ContainerSize)
+			size = new(psdefine.ContainerSize)
 
 			rootFsSize, err := c.RootFsSize()
 			if err != nil {
@@ -186,4 +189,19 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		}
 	}
 	return ps, nil
+}
+
+func getNamespaceInfo(path string) (string, error) {
+	val, err := os.Readlink(path)
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting info from %q", path)
+	}
+	return getStrFromSquareBrackets(val), nil
+}
+
+// getStrFromSquareBrackets gets the string inside [] from a string.
+func getStrFromSquareBrackets(cmd string) string {
+	reg := regexp.MustCompile(`.*\[|\].*`)
+	arr := strings.Split(reg.ReplaceAllLiteralString(cmd, ""), ",")
+	return strings.Join(arr, ",")
 }

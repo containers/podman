@@ -6,7 +6,6 @@ import (
 
 	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
@@ -214,22 +213,22 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.HealthInterval,
-		"health-interval", cliconfig.DefaultHealthCheckInterval,
+		"health-interval", DefaultHealthCheckInterval,
 		"set an interval for the healthchecks (a value of disable results in no automatic timer setup)",
 	)
 	createFlags.UintVar(
 		&cf.HealthRetries,
-		"health-retries", cliconfig.DefaultHealthCheckRetries,
+		"health-retries", DefaultHealthCheckRetries,
 		"the number of retries allowed before a healthcheck is considered to be unhealthy",
 	)
 	createFlags.StringVar(
 		&cf.HealthStartPeriod,
-		"health-start-period", cliconfig.DefaultHealthCheckStartPeriod,
+		"health-start-period", DefaultHealthCheckStartPeriod,
 		"the initialization time needed for a container to bootstrap",
 	)
 	createFlags.StringVar(
 		&cf.HealthTimeout,
-		"health-timeout", cliconfig.DefaultHealthCheckTimeout,
+		"health-timeout", DefaultHealthCheckTimeout,
 		"the maximum time allowed to complete the healthcheck before an interval is considered failed",
 	)
 	createFlags.StringVarP(
@@ -244,7 +243,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.ImageVolume,
-		"image-volume", cliconfig.DefaultImageVolume,
+		"image-volume", DefaultImageVolume,
 		`Tells podman how to handle the builtin image volumes ("bind"|"tmpfs"|"ignore")`,
 	)
 	createFlags.BoolVar(

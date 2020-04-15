@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/filters"
+	"github.com/containers/libpod/pkg/domain/infra/abi/parse"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -46,7 +46,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(input.Label))
 	}
 	if len(input.Options) > 0 {
-		parsedOptions, err := shared.ParseVolumeOptions(input.Options)
+		parsedOptions, err := parse.ParseVolumeOptions(input.Options)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return

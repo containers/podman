@@ -1,20 +1,19 @@
 package utils
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	lpfilters "github.com/containers/libpod/libpod/filters"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/gorilla/schema"
 )
 
 func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport, error) {
 	var (
-		lps    []*entities.ListPodsReport
-		pods   []*libpod.Pod
-		podErr error
+		lps     []*entities.ListPodsReport
+		pods    []*libpod.Pod
+		filters []libpod.PodFilter
 	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
@@ -28,28 +27,24 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		return nil, err
 	}
-	var filters = []string{}
 	if _, found := r.URL.Query()["digests"]; found && query.Digests {
 		UnSupportedParameter("digests")
 	}
 
-	if len(query.Filters) > 0 {
-		for k, v := range query.Filters {
-			for _, val := range v {
-				filters = append(filters, fmt.Sprintf("%s=%s", k, val))
+	for k, v := range query.Filters {
+		for _, filter := range v {
+			f, err := lpfilters.GeneratePodFilterFunc(k, filter)
+			if err != nil {
+				return nil, err
 			}
+			filters = append(filters, f)
 		}
-		filterFuncs, err := shared.GenerateFilterFunction(runtime, filters)
-		if err != nil {
-			return nil, err
-		}
-		pods, podErr = shared.FilterAllPodsWithFilterFunc(runtime, filterFuncs...)
-	} else {
-		pods, podErr = runtime.GetAllPods()
 	}
-	if podErr != nil {
-		return nil, podErr
+	pods, err := runtime.Pods(filters...)
+	if err != nil {
+		return nil, err
 	}
+
 	for _, pod := range pods {
 		status, err := pod.GetPodStatus()
 		if err != nil {

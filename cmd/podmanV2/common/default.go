@@ -12,6 +12,19 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
+var (
+	// DefaultHealthCheckInterval default value
+	DefaultHealthCheckInterval = "30s"
+	// DefaultHealthCheckRetries default value
+	DefaultHealthCheckRetries uint = 3
+	// DefaultHealthCheckStartPeriod default value
+	DefaultHealthCheckStartPeriod = "0s"
+	// DefaultHealthCheckTimeout default value
+	DefaultHealthCheckTimeout = "30s"
+	// DefaultImageVolume default value
+	DefaultImageVolume = "bind"
+)
+
 // TODO these options are directly embedded into many of the CLI cobra values, as such
 // this approach will not work in a remote client. so we will need to likely do something like a
 // supported and unsupported approach here and backload these options into the specgen
