@@ -50,7 +50,7 @@ fi
 # Defaults when not running under CI
 export CI="${CI:-false}"
 CIRRUS_CI="${CIRRUS_CI:-false}"
-DEST_BRANCH="${DEST_BRANCH:-master}"
+DEST_BRANCH="${DEST_BRANCH:-v1.9}"
 CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
 CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-unknown$(date +%s)}  # difficult to reliably discover
@@ -71,7 +71,7 @@ export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUI
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:$DEST_BRANCH"
 # Image for uploading releases
-UPLDREL_IMAGE="quay.io/libpod/upldrel:master"
+UPLDREL_IMAGE="quay.io/libpod/upldrel:v1.9"
 
 # Avoid getting stuck waiting for user input
 export DEBIAN_FRONTEND="noninteractive"
