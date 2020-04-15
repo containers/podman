@@ -1,32 +1,26 @@
 package specgen
 
-// ToCreateOptions convert the SecurityConfig to a slice of container create
-// options.
-/*
-func (c *SecurityConfig) ToCreateOptions() ([]libpod.CtrCreateOption, error) {
-	options := make([]libpod.CtrCreateOption, 0)
-	options = append(options, libpod.WithSecLabels(c.LabelOpts))
-	options = append(options, libpod.WithPrivileged(c.Privileged))
-	return options, nil
-}
-*/
+import (
+	"github.com/containers/libpod/libpod"
+	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/pkg/errors"
+)
 
 // SetLabelOpts sets the label options of the SecurityConfig according to the
 // input.
-/*
-func (c *SecurityConfig) SetLabelOpts(runtime *libpod.Runtime, pidConfig *PidConfig, ipcConfig *IpcConfig) error {
-	if c.Privileged {
-		c.LabelOpts = label.DisableSecOpt()
+func (s *SpecGenerator) SetLabelOpts(runtime *libpod.Runtime, pidConfig Namespace, ipcConfig Namespace) error {
+	if !runtime.EnableLabeling() || s.Privileged {
+		s.SelinuxOpts = label.DisableSecOpt()
 		return nil
 	}
 
 	var labelOpts []string
-	if pidConfig.PidMode.IsHost() {
+	if pidConfig.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
-	} else if pidConfig.PidMode.IsContainer() {
-		ctr, err := runtime.LookupContainer(pidConfig.PidMode.Container())
+	} else if pidConfig.IsContainer() {
+		ctr, err := runtime.LookupContainer(pidConfig.Value)
 		if err != nil {
-			return errors.Wrapf(err, "container %q not found", pidConfig.PidMode.Container())
+			return errors.Wrapf(err, "container %q not found", pidConfig.Value)
 		}
 		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
 		if err != nil {
@@ -35,12 +29,12 @@ func (c *SecurityConfig) SetLabelOpts(runtime *libpod.Runtime, pidConfig *PidCon
 		labelOpts = append(labelOpts, secopts...)
 	}
 
-	if ipcConfig.IpcMode.IsHost() {
+	if ipcConfig.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
-	} else if ipcConfig.IpcMode.IsContainer() {
-		ctr, err := runtime.LookupContainer(ipcConfig.IpcMode.Container())
+	} else if ipcConfig.IsContainer() {
+		ctr, err := runtime.LookupContainer(ipcConfig.Value)
 		if err != nil {
-			return errors.Wrapf(err, "container %q not found", ipcConfig.IpcMode.Container())
+			return errors.Wrapf(err, "container %q not found", ipcConfig.Value)
 		}
 		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
 		if err != nil {
@@ -49,13 +43,7 @@ func (c *SecurityConfig) SetLabelOpts(runtime *libpod.Runtime, pidConfig *PidCon
 		labelOpts = append(labelOpts, secopts...)
 	}
 
-	c.LabelOpts = append(c.LabelOpts, labelOpts...)
-	return nil
-}
-*/
-
-// SetSecurityOpts the the security options (labels, apparmor, seccomp, etc.).
-func SetSecurityOpts(securityOpts []string) error {
+	s.SelinuxOpts = append(s.SelinuxOpts, labelOpts...)
 	return nil
 }
 
