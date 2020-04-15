@@ -1,3 +1,10 @@
+- Changelog for v1.9.0 (2020-04-15)
+  * podmanV2: fix nil deref
+  * v2specgen prune libpod
+  * More system test fixes on regressions
+  * Add support for the global flags and config files
+  * Bump to v1.9.0-dev
+
 - Changelog for v1.9.0-rc2 (2020-04-14)
   * Update release notes for v1.9.0-RC2
   * v2podman ps revert structure changes
