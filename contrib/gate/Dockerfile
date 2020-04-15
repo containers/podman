@@ -21,6 +21,7 @@ RUN dnf -y install \
       procps-ng \
       python \
       python3-dateutil \
+      python3-pip \
       python3-psutil \
       python3-pytoml \
       python3-pyyaml \
