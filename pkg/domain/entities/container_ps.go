@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/ps/define"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
@@ -48,7 +48,7 @@ type ListContainer struct {
 	// Port mappings
 	Ports []ocicni.PortMapping
 	// Size of the container rootfs.  Requires the size boolean to be true
-	Size *shared.ContainerSize
+	Size *define.ContainerSize
 	// Time when container started
 	StartedAt int64
 	// State of container

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	lpfilters "github.com/containers/libpod/libpod/filters"
+
 	"github.com/containers/buildah"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
@@ -19,7 +21,6 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/logs"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi/terminal"
@@ -175,9 +176,15 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
-	filterFuncs, err := utils.GenerateFilterFuncsFromMap(ic.Libpod, options.Filters)
-	if err != nil {
-		return nil, err
+	var filterFuncs []libpod.ContainerFilter
+	for k, v := range options.Filters {
+		for _, val := range v {
+			generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, val, ic.Libpod)
+			if err != nil {
+				return nil, err
+			}
+			filterFuncs = append(filterFuncs, generatedFunc)
+		}
 	}
 	prunedContainers, pruneErrors, err := ic.Libpod.PruneContainers(filterFuncs)
 	if err != nil {
