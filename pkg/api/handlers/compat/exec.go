@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // ExecCreateHandler creates an exec session for a given container.
@@ -105,6 +106,45 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, inspectOut)
+}
+
+// ExecResizeHandler resizes a given exec session's TTY.
+func ExecResizeHandler(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+
+	sessionID := mux.Vars(r)["id"]
+
+	query := struct {
+		Height uint16 `schema:"h"`
+		Width  uint16 `schema:"w"`
+	}{
+		// override any golang type defaults
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	sessionCtr, err := runtime.GetExecSessionContainer(sessionID)
+	if err != nil {
+		utils.Error(w, fmt.Sprintf("No such exec session: %s", sessionID), http.StatusNotFound, err)
+		return
+	}
+
+	newSize := remotecommand.TerminalSize{
+		Width:  query.Width,
+		Height: query.Height,
+	}
+
+	if err := sessionCtr.ExecResize(sessionID, newSize); err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	// This is a 201 some reason, not a 204.
+	utils.WriteResponse(w, http.StatusCreated, "")
 }
 
 // ExecStartHandler runs a given exec session.
