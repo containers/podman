@@ -82,7 +82,7 @@ func init() {
 
 func Execute() {
 	if err := rootCmd.ExecuteContext(registry.GetContextWithOptions()); err != nil {
-		logrus.Error(err)
+		fmt.Fprintln(os.Stderr, "Error:", err.Error())
 	} else if registry.GetExitCode() == registry.ExecErrorCodeGeneric {
 		// The exitCode modified from registry.ExecErrorCodeGeneric,
 		// indicates an application
