@@ -3,6 +3,7 @@ package libpod
 import (
 	"os"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -22,7 +23,7 @@ func (r *Runtime) Log(containers []*Container, options *logs.LogOptions, logChan
 func (c *Container) ReadLog(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	// TODO Skip sending logs until journald logs can be read
 	// TODO make this not a magic string
-	if c.LogDriver() == JournaldLogging {
+	if c.LogDriver() == define.JournaldLogging {
 		return c.readFromJournal(options, logChannel)
 	}
 	return c.readFromLogFile(options, logChannel)

@@ -6,8 +6,8 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
-	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 )
@@ -73,7 +73,7 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 	}
 	gid5Available := true
 	if isRootless {
-		nGids, err := createconfig.GetAvailableGids()
+		nGids, err := GetAvailableGids()
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 		g.RemoveMount("/proc")
 		procMount := spec.Mount{
 			Destination: "/proc",
-			Type:        createconfig.TypeBind,
+			Type:        TypeBind,
 			Source:      "/proc",
 			Options:     []string{"rbind", "nosuid", "noexec", "nodev"},
 		}
@@ -152,12 +152,12 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 		// If privileged, we need to add all the host devices to the
 		// spec.  We do not add the user provided ones because we are
 		// already adding them all.
-		if err := createconfig.AddPrivilegedDevices(&g); err != nil {
+		if err := addPrivilegedDevices(&g); err != nil {
 			return nil, err
 		}
 	} else {
 		for _, device := range s.Devices {
-			if err := createconfig.DevicesFromPath(&g, device.Path); err != nil {
+			if err := DevicesFromPath(&g, device.Path); err != nil {
 				return nil, err
 			}
 		}
@@ -170,7 +170,7 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 		g.SetProcessApparmorProfile(s.ApparmorProfile)
 	}
 
-	createconfig.BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), &g)
+	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), &g)
 
 	for name, val := range s.Env {
 		g.AddProcessEnv(name, val)
@@ -214,9 +214,9 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 	}
 
 	// BIND MOUNTS
-	configSpec.Mounts = createconfig.SupercedeUserMounts(s.Mounts, configSpec.Mounts)
+	configSpec.Mounts = SupercedeUserMounts(s.Mounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
-	if err := createconfig.InitFSMounts(configSpec.Mounts); err != nil {
+	if err := InitFSMounts(configSpec.Mounts); err != nil {
 		return nil, err
 	}
 
@@ -256,4 +256,16 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 	//}
 
 	return configSpec, nil
+}
+
+func GetAvailableGids() (int64, error) {
+	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
+	if err != nil {
+		return 0, err
+	}
+	count := int64(0)
+	for _, r := range idMap {
+		count += r.Count
+	}
+	return count, nil
 }

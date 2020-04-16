@@ -1427,9 +1427,9 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 
 	var logDriver string
 	switch ctr.LogDriver() {
-	case JournaldLogging:
-		logDriver = JournaldLogging
-	case JSONLogging:
+	case define.JournaldLogging:
+		logDriver = define.JournaldLogging
+	case define.JSONLogging:
 		fallthrough
 	default: //nolint-stylecheck
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
@@ -1439,8 +1439,8 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		// to get here, either a user would specify `--log-driver ""`, or this came from another place in libpod
 		// since the former case is obscure, and the latter case isn't an error, let's silently fallthrough
 		fallthrough
-	case KubernetesLogging:
-		logDriver = fmt.Sprintf("%s:%s", KubernetesLogging, logPath)
+	case define.KubernetesLogging:
+		logDriver = fmt.Sprintf("%s:%s", define.KubernetesLogging, logPath)
 	}
 
 	args = append(args, "-l", logDriver)

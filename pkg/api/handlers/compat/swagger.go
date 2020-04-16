@@ -1,7 +1,7 @@
 package compat
 
 import (
-	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/storage/pkg/archive"
 )
 
@@ -10,7 +10,7 @@ import (
 type swagCtrCreateResponse struct {
 	// in:body
 	Body struct {
-		utils.ContainerCreateResponse
+		entities.ContainerCreateResponse
 	}
 }
 

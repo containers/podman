@@ -4,7 +4,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/ps/define"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
@@ -71,18 +70,6 @@ type ListContainerNamespaces struct {
 	UTS string `json:"Uts,omitempty"`
 	// User namespace
 	User string `json:"User,omitempty"`
-}
-
-// SortContainers helps us set-up ability to sort by createTime
-type SortContainers []*libpod.Container
-
-func (a SortContainers) Len() int      { return len(a) }
-func (a SortContainers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-
-type SortCreateTime struct{ SortContainers }
-
-func (a SortCreateTime) Less(i, j int) bool {
-	return a.SortContainers[i].CreatedTime().Before(a.SortContainers[j].CreatedTime())
 }
 
 type SortListContainers []ListContainer

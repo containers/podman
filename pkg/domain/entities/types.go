@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"net"
 
 	"github.com/containers/libpod/libpod/events"
@@ -71,4 +72,35 @@ type EventsOptions struct {
 	Stream    bool
 	Since     string
 	Until     string
+}
+
+// ContainerCreateResponse is the response struct for creating a container
+type ContainerCreateResponse struct {
+	// ID of the container created
+	ID string `json:"Id"`
+	// Warnings during container creation
+	Warnings []string `json:"Warnings"`
+}
+
+type ErrorModel struct {
+	// API root cause formatted for automated parsing
+	// example: API root cause
+	Because string `json:"cause"`
+	// human error message, formatted for a human to read
+	// example: human error message
+	Message string `json:"message"`
+	// http response code
+	ResponseCode int `json:"response"`
+}
+
+func (e ErrorModel) Error() string {
+	return e.Message
+}
+
+func (e ErrorModel) Cause() error {
+	return errors.New(e.Because)
+}
+
+func (e ErrorModel) Code() int {
+	return e.ResponseCode
 }

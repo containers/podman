@@ -11,8 +11,8 @@ t GET  libpod/pods/foo/exists      204
 t GET  libpod/pods/$pod_id/exists  204
 t GET  libpod/pods/notfoo/exists   404
 t GET  libpod/pods/foo/json        200 \
-  .Config.name=foo  \
-  .Config.id=$pod_id \
+  .Name=foo  \
+  .Id=$pod_id \
   .Containers\|length=1
 t GET  libpod/pods/json            200 \
   .[0].Name=foo \

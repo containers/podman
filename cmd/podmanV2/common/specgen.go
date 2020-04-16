@@ -11,7 +11,7 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podmanV2/parse"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	ann "github.com/containers/libpod/pkg/annotations"
 	envLib "github.com/containers/libpod/pkg/env"
 	ns "github.com/containers/libpod/pkg/namespaces"
@@ -324,7 +324,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if s.LogConfiguration == nil {
 		s.LogConfiguration = &specgen.LogConfig{}
 	}
-	s.LogConfiguration.Driver = libpod.KubernetesLogging
+	s.LogConfiguration.Driver = define.KubernetesLogging
 	if ld := c.LogDriver; len(ld) > 0 {
 		s.LogConfiguration.Driver = ld
 	}

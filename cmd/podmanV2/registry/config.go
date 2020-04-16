@@ -1,13 +1,17 @@
 package registry
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +25,7 @@ var (
 
 // NewPodmanConfig creates a PodmanConfig from the environment
 func NewPodmanConfig() entities.PodmanConfig {
-	if err := libpod.SetXdgDirs(); err != nil {
+	if err := setXdgDirs(); err != nil {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
 	}
@@ -56,4 +60,46 @@ func NewPodmanConfig() entities.PodmanConfig {
 		os.Exit(1)
 	}
 	return entities.PodmanConfig{Config: cfg, EngineMode: mode}
+}
+
+// SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
+// containers/image uses XDG_RUNTIME_DIR to locate the auth file, XDG_CONFIG_HOME is
+// use for the libpod.conf configuration file.
+func setXdgDirs() error {
+	if !rootless.IsRootless() {
+		return nil
+	}
+
+	// Setup XDG_RUNTIME_DIR
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+
+	if runtimeDir == "" {
+		var err error
+		runtimeDir, err = util.GetRuntimeDir()
+		if err != nil {
+			return err
+		}
+	}
+	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
+		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+	}
+
+	if rootless.IsRootless() && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
+		sessionAddr := filepath.Join(runtimeDir, "bus")
+		if _, err := os.Stat(sessionAddr); err == nil {
+			os.Setenv("DBUS_SESSION_BUS_ADDRESS", fmt.Sprintf("unix:path=%s", sessionAddr))
+		}
+	}
+
+	// Setup XDG_CONFIG_HOME
+	if cfgHomeDir := os.Getenv("XDG_CONFIG_HOME"); cfgHomeDir == "" {
+		cfgHomeDir, err := util.GetRootlessConfigHomeDir()
+		if err != nil {
+			return err
+		}
+		if err := os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
+			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
+		}
+	}
+	return nil
 }

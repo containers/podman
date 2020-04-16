@@ -351,5 +351,5 @@ func (ic *ContainerEngine) PodInspect(ctx context.Context, options entities.PodI
 	if err != nil {
 		return nil, err
 	}
-	return &entities.PodInspectReport{PodInspect: inspect}, nil
+	return &entities.PodInspectReport{InspectPodData: inspect}, nil
 }

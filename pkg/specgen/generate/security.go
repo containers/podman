@@ -1,14 +1,15 @@
-package specgen
+package generate
 
 import (
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 )
 
 // SetLabelOpts sets the label options of the SecurityConfig according to the
 // input.
-func (s *SpecGenerator) SetLabelOpts(runtime *libpod.Runtime, pidConfig Namespace, ipcConfig Namespace) error {
+func SetLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig specgen.Namespace, ipcConfig specgen.Namespace) error {
 	if !runtime.EnableLabeling() || s.Privileged {
 		s.SelinuxOpts = label.DisableSecOpt()
 		return nil
