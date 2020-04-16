@@ -32,10 +32,6 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
-	var (
-	//filterFuncs []libpod.ContainerFilter
-	//pss []entities.ListContainer
-	)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		All       bool                `schema:"all"`
@@ -54,10 +50,10 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	opts := entities.ContainerListOptions{
 		All:       query.All,
+		Filters:   query.Filters,
 		Last:      query.Last,
 		Size:      query.Size,
 		Sort:      "",
