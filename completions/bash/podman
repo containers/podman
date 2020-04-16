@@ -1733,6 +1733,83 @@ _podman_logs() {
     esac
 }
 
+_podman_manifest() {
+     local boolean_options="
+     --help
+     -h
+     "
+     subcommands="
+     add
+     create
+     inspect
+     "
+     __podman_subcommands "$subcommands" && return
+
+     case "$cur" in
+    -*)
+        COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+        ;;
+    *)
+        COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+        ;;
+     esac
+}
+
+_podman_manifest_add() {
+	 local options_with_args="
+     --annotation
+     --arch
+     --features
+     --os-version
+     --variant
+     "
+
+     local boolean_options="
+     --all
+     --help
+     -h
+     "
+
+     _complete_ "$options_with_args" "$boolean_options"
+     case "$cur" in
+         -*)
+             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+             ;;
+         *)
+             __podman_complete_images --id
+             ;;
+     esac
+}
+
+_podman_manifest_create() {
+    local boolean_options="
+    --all
+    --help
+    -h
+    "
+
+    _complete_ "$boolean_options"
+}
+
+_podman_manifest_inspect() {
+  local options_with_args="
+  "
+
+  local boolean_options="
+  "
+
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+			__podman_complete_images --id
+
+            ;;
+    esac
+}
+
 _podman_pull() {
     local options_with_args="
     --authfile
@@ -3356,6 +3433,7 @@ _podman_podman() {
     login
     logout
     logs
+    manifest
     mount
     pause
     pod

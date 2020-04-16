@@ -733,6 +733,11 @@ func (r *Runtime) StorageConfig() storage.StoreOptions {
 	return r.storageConfig
 }
 
+// GetStore returns the runtime stores
+func (r *Runtime) GetStore() storage.Store {
+	return r.store
+}
+
 // DBConfig is a set of Libpod runtime configuration settings that are saved in
 // a State when it is first created, and can subsequently be retrieved.
 type DBConfig struct {
