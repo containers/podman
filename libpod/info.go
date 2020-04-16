@@ -26,6 +26,11 @@ import (
 // Info returns the store and host information
 func (r *Runtime) info() (*define.Info, error) {
 	info := define.Info{}
+	versionInfo, err := define.GetVersion()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting version info")
+	}
+	info.Version = versionInfo
 	// get host information
 	hostInfo, err := r.hostInfo()
 	if err != nil {
