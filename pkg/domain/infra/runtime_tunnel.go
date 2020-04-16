@@ -11,7 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/infra/tunnel"
 )
 
-func NewContainerEngine(facts entities.PodmanConfig) (entities.ContainerEngine, error) {
+func NewContainerEngine(facts *entities.PodmanConfig) (entities.ContainerEngine, error) {
 	switch facts.EngineMode {
 	case entities.ABIMode:
 		return nil, fmt.Errorf("direct runtime not supported")
@@ -23,7 +23,7 @@ func NewContainerEngine(facts entities.PodmanConfig) (entities.ContainerEngine, 
 }
 
 // NewImageEngine factory provides a libpod runtime for image-related operations
-func NewImageEngine(facts entities.PodmanConfig) (entities.ImageEngine, error) {
+func NewImageEngine(facts *entities.PodmanConfig) (entities.ImageEngine, error) {
 	switch facts.EngineMode {
 	case entities.ABIMode:
 		return nil, fmt.Errorf("direct image runtime not supported")

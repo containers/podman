@@ -14,12 +14,6 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 )
 
-func init() {
-	// This is the bootstrap configuration, if user gives
-	// CLI flags parts of this configuration may be overwritten
-	registry.PodmanOptions = registry.NewPodmanConfig()
-}
-
 func main() {
 	if reexec.Init() {
 		// We were invoked with a different argv[0] indicating that we
@@ -27,9 +21,10 @@ func main() {
 		return
 	}
 
+	cfg := registry.PodmanConfig()
 	for _, c := range registry.Commands {
 		for _, m := range c.Mode {
-			if registry.PodmanOptions.EngineMode == m {
+			if cfg.EngineMode == m {
 				parent := rootCmd
 				if c.Parent != nil {
 					parent = c.Parent

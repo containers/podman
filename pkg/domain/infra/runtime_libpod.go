@@ -24,11 +24,11 @@ type engineOpts struct {
 	migrate  bool
 	noStore  bool
 	withFDS  bool
-	config   entities.PodmanConfig
+	config   *entities.PodmanConfig
 }
 
 // GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
-func GetRuntimeMigrate(ctx context.Context, fs *flag.FlagSet, cfg entities.PodmanConfig, newRuntime string) (*libpod.Runtime, error) {
+func GetRuntimeMigrate(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig, newRuntime string) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		name:     newRuntime,
 		renumber: false,
@@ -40,7 +40,7 @@ func GetRuntimeMigrate(ctx context.Context, fs *flag.FlagSet, cfg entities.Podma
 }
 
 // GetRuntimeDisableFDs gets a libpod runtime that will disable sd notify
-func GetRuntimeDisableFDs(ctx context.Context, fs *flag.FlagSet, cfg entities.PodmanConfig) (*libpod.Runtime, error) {
+func GetRuntimeDisableFDs(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: false,
 		migrate:  false,
@@ -51,7 +51,7 @@ func GetRuntimeDisableFDs(ctx context.Context, fs *flag.FlagSet, cfg entities.Po
 }
 
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
-func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, cfg entities.PodmanConfig) (*libpod.Runtime, error) {
+func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: true,
 		migrate:  false,
@@ -62,7 +62,7 @@ func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, cfg entities.Podm
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
-func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg entities.PodmanConfig) (*libpod.Runtime, error) {
+func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, flags, &engineOpts{
 		renumber: false,
 		migrate:  false,
@@ -73,7 +73,7 @@ func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg entities.PodmanCon
 }
 
 // GetRuntimeNoStore generates a new libpod runtime configured by command line options
-func GetRuntimeNoStore(ctx context.Context, fs *flag.FlagSet, cfg entities.PodmanConfig) (*libpod.Runtime, error) {
+func GetRuntimeNoStore(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: false,
 		migrate:  false,
@@ -160,7 +160,7 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	}
 
 	if fs.Changed("runtime") {
-		options = append(options, libpod.WithOCIRuntime(cfg.Engine.OCIRuntime))
+		options = append(options, libpod.WithOCIRuntime(cfg.RuntimePath))
 	}
 
 	if fs.Changed("conmon") {

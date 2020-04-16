@@ -77,7 +77,7 @@ func init() {
 		syslogHook,
 	)
 
-	rootFlags(registry.PodmanOptions, rootCmd.PersistentFlags())
+	rootFlags(registry.PodmanConfig(), rootCmd.PersistentFlags())
 }
 
 func Execute() {
@@ -98,9 +98,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPreRunE()", cmd.Name())
 
-	// Update PodmanOptions now that we "know" more
-	// TODO: pass in path overriding configuration file
-	registry.PodmanOptions = registry.NewPodmanConfig()
+	cfg := registry.PodmanConfig()
 
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
@@ -111,10 +109,10 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flag("cpu-profile").Changed {
-		f, err := os.Create(registry.PodmanOptions.CpuProfile)
+		f, err := os.Create(cfg.CpuProfile)
 		if err != nil {
 			return errors.Wrapf(err, "unable to create cpu profiling file %s",
-				registry.PodmanOptions.CpuProfile)
+				cfg.CpuProfile)
 		}
 		if err := pprof.StartCPUProfile(f); err != nil {
 			return err
@@ -124,11 +122,11 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	if cmd.Flag("trace").Changed {
 		tracer, closer := tracing.Init("podman")
 		opentracing.SetGlobalTracer(tracer)
-		registry.PodmanOptions.SpanCloser = closer
+		cfg.SpanCloser = closer
 
-		registry.PodmanOptions.Span = tracer.StartSpan("before-context")
-		registry.PodmanOptions.SpanCtx = opentracing.ContextWithSpan(registry.Context(), registry.PodmanOptions.Span)
-		opentracing.StartSpanFromContext(registry.PodmanOptions.SpanCtx, cmd.Name())
+		cfg.Span = tracer.StartSpan("before-context")
+		cfg.SpanCtx = opentracing.ContextWithSpan(registry.Context(), cfg.Span)
+		opentracing.StartSpanFromContext(cfg.SpanCtx, cmd.Name())
 	}
 
 	// Setup Rootless environment, IFF:
@@ -149,12 +147,13 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPostRunE()", cmd.Name())
 
+	cfg := registry.PodmanConfig()
 	if cmd.Flag("cpu-profile").Changed {
 		pprof.StopCPUProfile()
 	}
 	if cmd.Flag("trace").Changed {
-		registry.PodmanOptions.Span.Finish()
-		registry.PodmanOptions.SpanCloser.Close()
+		cfg.Span.Finish()
+		cfg.SpanCloser.Close()
 	}
 	return nil
 }
@@ -199,7 +198,7 @@ func syslogHook() {
 	}
 }
 
-func rootFlags(opts entities.PodmanConfig, flags *pflag.FlagSet) {
+func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	// V2 flags
 	flags.StringVarP(&opts.Uri, "remote", "r", "", "URL to access Podman service")
 	flags.StringSliceVar(&opts.Identities, "identity", []string{}, "path to SSH identity file")

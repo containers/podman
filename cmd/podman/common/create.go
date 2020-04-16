@@ -10,7 +10,7 @@ import (
 
 const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))"
 
-var containerConfig = registry.NewPodmanConfig()
+var containerConfig = registry.PodmanConfig()
 
 func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	createFlags := pflag.FlagSet{}
