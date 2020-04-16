@@ -20,7 +20,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
@@ -779,7 +778,7 @@ func (i *VarlinkAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman
 	stdOut := os.Stdout
 	stdIn := os.Stdin
 
-	runLabel, imageName, err := shared.GetRunlabel(input.Label, input.Image, ctx, i.Runtime, input.Pull, "", dockerRegistryOptions, input.Authfile, "", nil)
+	runLabel, imageName, err := GetRunlabel(input.Label, input.Image, ctx, i.Runtime, input.Pull, "", dockerRegistryOptions, input.Authfile, "", nil)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -787,7 +786,7 @@ func (i *VarlinkAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman
 		return call.ReplyErrorOccurred(fmt.Sprintf("%s does not contain the label %s", input.Image, input.Label))
 	}
 
-	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, input.Name, input.Opts, input.ExtraArgs, "")
+	cmd, env, err := GenerateRunlabelCommand(runLabel, imageName, input.Name, input.Opts, input.ExtraArgs, "")
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

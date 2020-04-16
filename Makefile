@@ -182,14 +182,14 @@ ifeq (,$(findstring systemd,$(BUILDTAGS)))
 	@echo "Podman is being compiled without the systemd build tag. Install libsystemd on \
 		Ubuntu or systemd-devel on rpm based distro for journald support."
 endif
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/podman
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "ABISupport $(BUILDTAGS)" -o $@ $(PROJECT)/cmd/podman
 
 .PHONY: podman
 podman: bin/podman
 
 .PHONY: bin/podman-remote
 bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o $@ $(PROJECT)/cmd/podman
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "!ABISupport $(BUILDTAGS) remoteclient" -o $@ $(PROJECT)/cmd/podman
 
 .PHONY: podman-remote
 podman-remote: bin/podman-remote

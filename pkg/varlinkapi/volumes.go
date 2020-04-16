@@ -3,10 +3,11 @@
 package varlinkapi
 
 import (
+	"context"
 	"encoding/json"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/domain/infra/abi/parse"
 	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
@@ -24,7 +25,7 @@ func (i *VarlinkAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.Vo
 		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(options.Labels))
 	}
 	if len(options.Options) > 0 {
-		parsedOptions, err := shared.ParseVolumeOptions(options.Options)
+		parsedOptions, err := parse.ParseVolumeOptions(options.Options)
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
@@ -39,7 +40,7 @@ func (i *VarlinkAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.Vo
 
 // VolumeRemove removes volumes by options.All or options.Volumes
 func (i *VarlinkAPI) VolumeRemove(call iopodman.VarlinkCall, options iopodman.VolumeRemoveOpts) error {
-	success, failed, err := shared.SharedRemoveVolumes(getContext(), i.Runtime, options.Volumes, options.All, options.Force)
+	success, failed, err := SharedRemoveVolumes(getContext(), i.Runtime, options.Volumes, options.All, options.Force)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -121,4 +122,44 @@ func (i *VarlinkAPI) VolumesPrune(call iopodman.VarlinkCall) error {
 		}
 	}
 	return call.ReplyVolumesPrune(prunedNames, prunedErrors)
+}
+
+// Remove given set of volumes
+func SharedRemoveVolumes(ctx context.Context, runtime *libpod.Runtime, vols []string, all, force bool) ([]string, map[string]error, error) {
+	var (
+		toRemove []*libpod.Volume
+		success  []string
+		failed   map[string]error
+	)
+
+	failed = make(map[string]error)
+
+	if all {
+		vols, err := runtime.Volumes()
+		if err != nil {
+			return nil, nil, err
+		}
+		toRemove = vols
+	} else {
+		for _, v := range vols {
+			vol, err := runtime.LookupVolume(v)
+			if err != nil {
+				failed[v] = err
+				continue
+			}
+			toRemove = append(toRemove, vol)
+		}
+	}
+
+	// We could parallelize this, but I haven't heard anyone complain about
+	// performance here yet, so hold off.
+	for _, vol := range toRemove {
+		if err := runtime.RemoveVolume(ctx, vol, force); err != nil {
+			failed[vol.Name()] = err
+			continue
+		}
+		success = append(success, vol.Name())
+	}
+
+	return success, failed, nil
 }

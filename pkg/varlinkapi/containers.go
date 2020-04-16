@@ -14,11 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
-	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	iopodman "github.com/containers/libpod/pkg/varlink"
@@ -39,12 +37,12 @@ func (i *VarlinkAPI) ListContainers(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	opts := shared.PsOptions{
+	opts := PsOptions{
 		Namespace: true,
 		Size:      true,
 	}
 	for _, ctr := range containers {
-		batchInfo, err := shared.BatchContainerOp(ctr, opts)
+		batchInfo, err := BatchContainerOp(ctr, opts)
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
@@ -58,13 +56,13 @@ func (i *VarlinkAPI) Ps(call iopodman.VarlinkCall, opts iopodman.PsOpts) error {
 	var (
 		containers []iopodman.PsContainer
 	)
-	maxWorkers := shared.Parallelize("ps")
+	maxWorkers := Parallelize("ps")
 	psOpts := makePsOpts(opts)
 	filters := []string{}
 	if opts.Filters != nil {
 		filters = *opts.Filters
 	}
-	psContainerOutputs, err := shared.GetPsContainerOutput(i.Runtime, psOpts, filters, maxWorkers)
+	psContainerOutputs, err := GetPsContainerOutput(i.Runtime, psOpts, filters, maxWorkers)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -111,22 +109,22 @@ func (i *VarlinkAPI) GetContainer(call iopodman.VarlinkCall, id string) error {
 	if err != nil {
 		return call.ReplyContainerNotFound(id, err.Error())
 	}
-	opts := shared.PsOptions{
+	opts := PsOptions{
 		Namespace: true,
 		Size:      true,
 	}
-	batchInfo, err := shared.BatchContainerOp(ctr, opts)
+	batchInfo, err := BatchContainerOp(ctr, opts)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyGetContainer(makeListContainer(ctr.ID(), batchInfo))
 }
 
-// GetContainersByContext returns a slice of container ids based on all, latest, or a list
+// getContainersByContext returns a slice of container ids based on all, latest, or a list
 func (i *VarlinkAPI) GetContainersByContext(call iopodman.VarlinkCall, all, latest bool, input []string) error {
 	var ids []string
 
-	ctrs, err := shortcuts.GetContainersByContext(all, latest, input, i.Runtime)
+	ctrs, err := getContainersByContext(all, latest, input, i.Runtime)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			return call.ReplyContainerNotFound("", err.Error())
@@ -160,9 +158,9 @@ func (i *VarlinkAPI) GetContainersByStatus(call iopodman.VarlinkCall, statuses [
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	opts := shared.PsOptions{Size: true, Namespace: true}
+	opts := PsOptions{Size: true, Namespace: true}
 	for _, ctr := range filteredContainers {
-		batchInfo, err := shared.BatchContainerOp(ctr, opts)
+		batchInfo, err := BatchContainerOp(ctr, opts)
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
@@ -752,7 +750,7 @@ func (i *VarlinkAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string
 		tailLen = 0
 	}
 	logChannel := make(chan *logs.LogLine, tailLen*len(names)+1)
-	containers, err := shortcuts.GetContainersByContext(false, latest, names, i.Runtime)
+	containers, err := getContainersByContext(false, latest, names, i.Runtime)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

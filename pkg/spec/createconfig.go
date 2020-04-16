@@ -1,6 +1,7 @@
 package createconfig
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"strings"
@@ -396,4 +397,21 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 // host devices to the spec
 func AddPrivilegedDevices(g *generate.Generator) error {
 	return addPrivilegedDevices(g)
+}
+
+func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *CreateConfig, ctx context.Context, pod *libpod.Pod) (*libpod.Container, error) {
+	runtimeSpec, options, err := createConfig.MakeContainerConfig(r, pod)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the CreateCommand explicitly.  Some (future) consumers of libpod
+	// might not want to set it.
+	options = append(options, libpod.WithCreateCommand())
+
+	ctr, err := r.NewContainer(ctx, runtimeSpec, options...)
+	if err != nil {
+		return nil, err
+	}
+	return ctr, nil
 }

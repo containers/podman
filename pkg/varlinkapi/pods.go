@@ -5,11 +5,14 @@ package varlinkapi
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"syscall"
 
-	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/go-connections/nat"
+	"github.com/pkg/errors"
+
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
@@ -18,7 +21,7 @@ func (i *VarlinkAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCre
 	var options []libpod.PodCreateOption
 	if create.Infra {
 		options = append(options, libpod.WithInfraContainer())
-		nsOptions, err := shared.GetNamespaceOptions(create.Share)
+		nsOptions, err := GetNamespaceOptions(create.Share)
 		if err != nil {
 			return err
 		}
@@ -44,7 +47,7 @@ func (i *VarlinkAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCre
 		if !create.Infra {
 			return call.ReplyErrorOccurred("you must have an infra container to publish port bindings to the host")
 		}
-		portBindings, err := shared.CreatePortBindings(create.Publish)
+		portBindings, err := CreatePortBindings(create.Publish)
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
@@ -70,7 +73,7 @@ func (i *VarlinkAPI) ListPods(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	opts := shared.PsOptions{}
+	opts := PsOptions{}
 	for _, pod := range pods {
 		listPod, err := makeListPod(pod, opts)
 		if err != nil {
@@ -87,7 +90,7 @@ func (i *VarlinkAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
 	}
-	opts := shared.PsOptions{}
+	opts := PsOptions{}
 
 	listPod, err := makeListPod(pod, opts)
 	if err != nil {
@@ -100,7 +103,7 @@ func (i *VarlinkAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 // GetPodsByStatus returns a slice of pods filtered by a libpod status
 func (i *VarlinkAPI) GetPodsByStatus(call iopodman.VarlinkCall, statuses []string) error {
 	filterFuncs := func(p *libpod.Pod) bool {
-		state, _ := shared.GetPodStatus(p)
+		state, _ := p.GetPodStatus()
 		for _, status := range statuses {
 			if state == status {
 				return true
@@ -290,11 +293,11 @@ func (i *VarlinkAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
 	return call.ReplyGetPodStats(pod.ID(), containersStats)
 }
 
-// GetPodsByContext returns a slice of pod ids based on all, latest, or a list
+// getPodsByContext returns a slice of pod ids based on all, latest, or a list
 func (i *VarlinkAPI) GetPodsByContext(call iopodman.VarlinkCall, all, latest bool, input []string) error {
 	var podids []string
 
-	pods, err := shortcuts.GetPodsByContext(all, latest, input, i.Runtime)
+	pods, err := getPodsByContext(all, latest, input, i.Runtime)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -337,7 +340,7 @@ func (i *VarlinkAPI) TopPod(call iopodman.VarlinkCall, name string, latest bool,
 		return call.ReplyPodNotFound(name, err.Error())
 	}
 
-	podStatus, err := shared.GetPodStatus(pod)
+	podStatus, err := pod.GetPodStatus()
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get status for pod %s", pod.ID()))
 	}
@@ -349,4 +352,37 @@ func (i *VarlinkAPI) TopPod(call iopodman.VarlinkCall, name string, latest bool,
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyTopPod(reply)
+}
+
+// CreatePortBindings iterates ports mappings and exposed ports into a format CNI understands
+func CreatePortBindings(ports []string) ([]ocicni.PortMapping, error) {
+	var portBindings []ocicni.PortMapping
+	// The conversion from []string to natBindings is temporary while mheon reworks the port
+	// deduplication code.  Eventually that step will not be required.
+	_, natBindings, err := nat.ParsePortSpecs(ports)
+	if err != nil {
+		return nil, err
+	}
+	for containerPb, hostPb := range natBindings {
+		var pm ocicni.PortMapping
+		pm.ContainerPort = int32(containerPb.Int())
+		for _, i := range hostPb {
+			var hostPort int
+			var err error
+			pm.HostIP = i.HostIP
+			if i.HostPort == "" {
+				hostPort = containerPb.Int()
+			} else {
+				hostPort, err = strconv.Atoi(i.HostPort)
+				if err != nil {
+					return nil, errors.Wrapf(err, "unable to convert host port to integer")
+				}
+			}
+
+			pm.HostPort = int32(hostPort)
+			pm.Protocol = containerPb.Proto()
+			portBindings = append(portBindings, pm)
+		}
+	}
+	return portBindings, nil
 }
