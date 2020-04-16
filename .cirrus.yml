@@ -134,11 +134,14 @@ gating_task:
     # not break.  It also verifies all sub-commands have man pages.
     build_script:
         - '/usr/local/bin/entrypoint.sh podman |& ${TIMESTAMP}'
-        - 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
+        # FIXME
+        #- 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
         # N/B: need 'clean' so some committed files are re-generated.
-        - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh clean podman xref_helpmsgs_manpages BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh local-cross |& ${TIMESTAMP}'
+        # FIXME
+        #- '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
+        #- '/usr/local/bin/entrypoint.sh clean podman xref_helpmsgs_manpages BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
+        # FIXME
+        #- '/usr/local/bin/entrypoint.sh local-cross |& ${TIMESTAMP}'
 
     # Verify some aspects of ci/related scripts
     ci_script:
@@ -157,6 +160,7 @@ gating_task:
 # source code using contrib/rpm/podman.spec.in
 rpmbuild_task:
 
+    skip: $CI == 'true'
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*' &&
@@ -217,6 +221,7 @@ vendor_task:
 # whether the git tree is clean.
 varlink_api_task:
 
+    skip: $CI == 'true'
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
@@ -281,6 +286,8 @@ build_each_commit_task:
 
 
 build_without_cgo_task:
+
+    skip: $CI == 'true'
 
     depends_on:
         - "gating"
@@ -374,6 +381,8 @@ image_prune_task:
 
 # This task does the unit and integration testing for every platform
 testing_task:
+
+    skip: $CI == 'true'
     alias: "testing"
     depends_on:
         - "gating"
@@ -391,23 +400,26 @@ testing_task:
         - name: "test ${FEDORA_NAME}"
           gce_instance:
               image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-        - name: "test ${PRIOR_FEDORA_NAME}"
-          gce_instance:
-              image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        # FIXME
+        #- name: "test ${PRIOR_FEDORA_NAME}"
+        #  gce_instance:
+        #      image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
         # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
         # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-        - name: "test ${PRIOR_UBUNTU_NAME}"
-          gce_instance:
-              image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
+        # FIXME
+        #- name: "test ${PRIOR_UBUNTU_NAME}"
+        #  gce_instance:
+        #      image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
 
     env:
         ADD_SECOND_PARTITION: 'true'
         matrix:
-            - name: remote
-              env:
-                  TEST_REMOTE_CLIENT: 'true'
+            # FIXME
+            #- name: remote
+            #  env:
+            #      TEST_REMOTE_CLIENT: 'true'
             - name: local
               env:
                   TEST_REMOTE_CLIENT: 'false'
@@ -443,6 +455,7 @@ testing_task:
 # This task executes tests under unique environments/conditions
 special_testing_rootless_task:
 
+    skip: $CI == 'true'
     depends_on:
         - "gating"
         - "varlink_api"
@@ -481,6 +494,8 @@ special_testing_rootless_task:
 
 
 special_testing_in_podman_task:
+
+    skip: $CI == 'true'
     alias: "special_testing_in_podman"
     depends_on:
         - "gating"
@@ -524,6 +539,8 @@ special_testing_in_podman_task:
 
 
 special_testing_cross_task:
+
+    skip: $CI == 'true'
     alias: "special_testing_cross"
     depends_on:
         - "gating"
@@ -563,6 +580,7 @@ special_testing_cross_task:
 
 special_testing_bindings_task:
 
+    skip: $CI == 'true'
     depends_on:
         - "gating"
         - "varlink_api"
@@ -589,6 +607,7 @@ special_testing_bindings_task:
 
 special_testing_endpoint_task:
 
+    skip: $CI == 'true'
     depends_on:
         - "gating"
         - "varlink_api"

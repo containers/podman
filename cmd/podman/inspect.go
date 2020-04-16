@@ -2,193 +2,51 @@ package main
 
 import (
 	"context"
-	"strings"
+	"fmt"
 
-	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/pkg/adapter"
-	"github.com/containers/libpod/pkg/util"
-	"github.com/pkg/errors"
+	"github.com/containers/libpod/cmd/podman/common"
+	"github.com/containers/libpod/cmd/podman/containers"
+	"github.com/containers/libpod/cmd/podman/images"
+	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
-const (
-	inspectTypeContainer = "container"
-	inspectTypeImage     = "image"
-	inspectAll           = "all"
-)
+// Inspect is one of the outlier commands in that it operates on images/containers/...
 
 var (
-	inspectCommand cliconfig.InspectValues
+	inspectOpts *entities.InspectOptions
 
-	inspectDescription = `This displays the low-level information on containers and images identified by name or ID.
-
-  If given a name that matches both a container and an image, this command inspects the container.  By default, this will render all results in a JSON array.`
-	_inspectCommand = cobra.Command{
-		Use:   "inspect [flags] CONTAINER | IMAGE",
-		Short: "Display the configuration of a container or image",
-		Long:  inspectDescription,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			inspectCommand.InputArgs = args
-			inspectCommand.GlobalFlags = MainGlobalOpts
-			inspectCommand.Remote = remoteclient
-			return inspectCmd(&inspectCommand)
-		},
-		Example: `podman inspect alpine
-  podman inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine
-  podman inspect --format "image: {{.ImageName}} driver: {{.Driver}}" myctr`,
+	// Command: podman _inspect_ Object_ID
+	inspectCmd = &cobra.Command{
+		Use:              "inspect [flags] {CONTAINER_ID | IMAGE_ID}",
+		Args:             cobra.ExactArgs(1),
+		Short:            "Display the configuration of object denoted by ID",
+		Long:             "Displays the low-level information on an object identified by name or ID",
+		TraverseChildren: true,
+		RunE:             inspect,
 	}
 )
 
-func inspectInit(command *cliconfig.InspectValues) {
-	command.SetHelpTemplate(HelpTemplate())
-	command.SetUsageTemplate(UsageTemplate())
-	flags := command.Flags()
-	flags.StringVarP(&command.Format, "format", "f", "", "Change the output format to a Go template")
-
-	// -t flag applicable only to 'podman inspect', not 'image/container inspect'
-	ambiguous := strings.Contains(command.Use, "|")
-	if ambiguous {
-		flags.StringVarP(&command.TypeObject, "type", "t", inspectAll, "Return JSON for specified type, (image or container)")
-	}
-
-	if strings.Contains(command.Use, "CONTAINER") {
-		containers_only := " (containers only)"
-		if !ambiguous {
-			containers_only = ""
-			command.TypeObject = inspectTypeContainer
-		}
-		flags.BoolVarP(&command.Latest, "latest", "l", false, "Act on the latest container podman is aware of"+containers_only)
-		flags.BoolVarP(&command.Size, "size", "s", false, "Display total file size"+containers_only)
-		markFlagHiddenForRemoteClient("latest", flags)
-	} else {
-		command.TypeObject = inspectTypeImage
-	}
-}
 func init() {
-	inspectCommand.Command = &_inspectCommand
-	inspectInit(&inspectCommand)
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: inspectCmd,
+	})
+	inspectOpts = common.AddInspectFlagSet(inspectCmd)
 }
 
-func inspectCmd(c *cliconfig.InspectValues) error {
-	args := c.InputArgs
-	inspectType := c.TypeObject
-	latestContainer := c.Latest
-	if len(args) == 0 && !latestContainer {
-		return errors.Errorf("container or image name must be specified: podman inspect [options [...]] name")
+func inspect(cmd *cobra.Command, args []string) error {
+	if found, err := registry.ImageEngine().Exists(context.Background(), args[0]); err != nil {
+		return err
+	} else if found.Value {
+		return images.Inspect(cmd, args, inspectOpts)
 	}
 
-	if len(args) > 0 && latestContainer {
-		return errors.Errorf("you cannot provide additional arguments with --latest")
+	if found, err := registry.ContainerEngine().ContainerExists(context.Background(), args[0]); err != nil {
+		return err
+	} else if found.Value {
+		return containers.Inspect(cmd, args, inspectOpts)
 	}
-
-	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
-	if err != nil {
-		return errors.Wrapf(err, "error creating libpod runtime")
-	}
-	defer runtime.DeferredShutdown(false)
-
-	if !util.StringInSlice(inspectType, []string{inspectTypeContainer, inspectTypeImage, inspectAll}) {
-		return errors.Errorf("the only recognized types are %q, %q, and %q", inspectTypeContainer, inspectTypeImage, inspectAll)
-	}
-
-	outputFormat := c.Format
-	if strings.Contains(outputFormat, "{{.Id}}") {
-		outputFormat = strings.Replace(outputFormat, "{{.Id}}", formats.IDString, -1)
-	}
-	// These fields were renamed, so we need to provide backward compat for
-	// the old names.
-	if strings.Contains(outputFormat, ".Src") {
-		outputFormat = strings.Replace(outputFormat, ".Src", ".Source", -1)
-	}
-	if strings.Contains(outputFormat, ".Dst") {
-		outputFormat = strings.Replace(outputFormat, ".Dst", ".Destination", -1)
-	}
-	if strings.Contains(outputFormat, ".ImageID") {
-		outputFormat = strings.Replace(outputFormat, ".ImageID", ".Image", -1)
-	}
-	if latestContainer {
-		lc, err := runtime.GetLatestContainer()
-		if err != nil {
-			return err
-		}
-		args = append(args, lc.ID())
-		inspectType = inspectTypeContainer
-	}
-
-	inspectedObjects, iterateErr := iterateInput(getContext(), c.Size, args, runtime, inspectType)
-	if iterateErr != nil {
-		return iterateErr
-	}
-
-	var out formats.Writer
-	if outputFormat != "" && outputFormat != formats.JSONString {
-		//template
-		out = formats.StdoutTemplateArray{Output: inspectedObjects, Template: outputFormat}
-	} else {
-		// default is json output
-		out = formats.JSONStructArray{Output: inspectedObjects}
-	}
-
-	return out.Out()
-}
-
-// func iterateInput iterates the images|containers the user has requested and returns the inspect data and error
-func iterateInput(ctx context.Context, size bool, args []string, runtime *adapter.LocalRuntime, inspectType string) ([]interface{}, error) {
-	var (
-		data           interface{}
-		inspectedItems []interface{}
-		inspectError   error
-	)
-
-	for _, input := range args {
-		switch inspectType {
-		case inspectTypeContainer:
-			ctr, err := runtime.LookupContainer(input)
-			if err != nil {
-				inspectError = errors.Wrapf(err, "error looking up container %q", input)
-				break
-			}
-			data, err = ctr.Inspect(size)
-			if err != nil {
-				inspectError = errors.Wrapf(err, "error inspecting container %s", ctr.ID())
-				break
-			}
-		case inspectTypeImage:
-			image, err := runtime.NewImageFromLocal(input)
-			if err != nil {
-				inspectError = errors.Wrapf(err, "error getting image %q", input)
-				break
-			}
-			data, err = image.Inspect(ctx)
-			if err != nil {
-				inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID())
-				break
-			}
-		case inspectAll:
-			ctr, err := runtime.LookupContainer(input)
-			if err != nil {
-				image, err := runtime.NewImageFromLocal(input)
-				if err != nil {
-					inspectError = errors.Wrapf(err, "error getting image %q", input)
-					break
-				}
-				data, err = image.Inspect(ctx)
-				if err != nil {
-					inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID())
-					break
-				}
-			} else {
-				data, err = ctr.Inspect(size)
-				if err != nil {
-					inspectError = errors.Wrapf(err, "error inspecting container %s", ctr.ID())
-					break
-				}
-			}
-		}
-		if inspectError == nil {
-			inspectedItems = append(inspectedItems, data)
-		}
-	}
-	return inspectedItems, inspectError
+	return fmt.Errorf("%s not found on system", args[0])
 }

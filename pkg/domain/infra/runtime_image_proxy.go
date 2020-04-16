@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// ContainerEngine Image Proxy will be EOL'ed after podmanV2 is separated from libpod repo
+// ContainerEngine Image Proxy will be EOL'ed after podman is separated from libpod repo
 
 func NewLibpodImageRuntime(flags *pflag.FlagSet, opts entities.PodmanConfig) (entities.ImageEngine, error) {
 	r, err := GetRuntime(context.Background(), flags, opts)

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/channelwriter"
@@ -22,12 +21,12 @@ func getContext() context.Context {
 	return context.TODO()
 }
 
-func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct) iopodman.Container {
+func makeListContainer(containerID string, batchInfo BatchContainerStruct) iopodman.Container {
 	var (
 		mounts []iopodman.ContainerMount
 		ports  []iopodman.ContainerPortMappings
 	)
-	ns := shared.GetNamespaces(batchInfo.Pid)
+	ns := GetNamespaces(batchInfo.Pid)
 
 	for _, mount := range batchInfo.ConConfig.Spec.Mounts {
 		m := iopodman.ContainerMount{
@@ -85,7 +84,7 @@ func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct
 	return lc
 }
 
-func makeListPodContainers(containerID string, batchInfo shared.BatchContainerStruct) iopodman.ListPodContainerInfo {
+func makeListPodContainers(containerID string, batchInfo BatchContainerStruct) iopodman.ListPodContainerInfo {
 	lc := iopodman.ListPodContainerInfo{
 		Id:     containerID,
 		Status: batchInfo.ConState.String(),
@@ -94,10 +93,10 @@ func makeListPodContainers(containerID string, batchInfo shared.BatchContainerSt
 	return lc
 }
 
-func makeListPod(pod *libpod.Pod, batchInfo shared.PsOptions) (iopodman.ListPodData, error) {
+func makeListPod(pod *libpod.Pod, batchInfo PsOptions) (iopodman.ListPodData, error) {
 	var listPodsContainers []iopodman.ListPodContainerInfo
 	var errPodData = iopodman.ListPodData{}
-	status, err := shared.GetPodStatus(pod)
+	status, err := pod.GetPodStatus()
 	if err != nil {
 		return errPodData, err
 	}
@@ -106,7 +105,7 @@ func makeListPod(pod *libpod.Pod, batchInfo shared.PsOptions) (iopodman.ListPodD
 		return errPodData, err
 	}
 	for _, ctr := range containers {
-		batchInfo, err := shared.BatchContainerOp(ctr, batchInfo)
+		batchInfo, err := BatchContainerOp(ctr, batchInfo)
 		if err != nil {
 			return errPodData, err
 		}
@@ -179,13 +178,13 @@ func derefString(in *string) string {
 	return *in
 }
 
-func makePsOpts(inOpts iopodman.PsOpts) shared.PsOptions {
+func makePsOpts(inOpts iopodman.PsOpts) PsOptions {
 	last := 0
 	if inOpts.Last != nil {
 		lastT := *inOpts.Last
 		last = int(lastT)
 	}
-	return shared.PsOptions{
+	return PsOptions{
 		All:       inOpts.All,
 		Last:      last,
 		Latest:    derefBool(inOpts.Latest),

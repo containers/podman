@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -63,7 +62,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 
 func CreateContainer(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runtime, cc *createconfig.CreateConfig) {
 	var pod *libpod.Pod
-	ctr, err := shared.CreateContainerFromCreateConfig(runtime, cc, ctx, pod)
+	ctr, err := createconfig.CreateContainerFromCreateConfig(runtime, cc, ctx, pod)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
 		return
