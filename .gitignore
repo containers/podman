@@ -30,4 +30,4 @@ podman*.tar.gz
 contrib/spec/podman.spec
 *.rpm
 *.coverprofile
-/cmd/podmanV2/podmanV2
+/cmd/podmanV2/podmanV2*
