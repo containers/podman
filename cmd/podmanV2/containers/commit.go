@@ -17,12 +17,11 @@ var (
 	commitDescription = `Create an image from a container's changes. Optionally tag the image created, set the author with the --author flag, set the commit message with the --message flag, and make changes to the instructions with the --change flag.`
 
 	commitCommand = &cobra.Command{
-		Use:     "commit [flags] CONTAINER [IMAGE]",
-		Short:   "Create new image based on the changed container",
-		Long:    commitDescription,
-		RunE:    commit,
-		PreRunE: preRunE,
-		Args:    cobra.MinimumNArgs(1),
+		Use:   "commit [flags] CONTAINER [IMAGE]",
+		Short: "Create new image based on the changed container",
+		Long:  commitDescription,
+		RunE:  commit,
+		Args:  cobra.MinimumNArgs(1),
 		Example: `podman commit -q --message "committing container to image" reverent_golick image-committed
   podman commit -q --author "firstName lastName" reverent_golick image-committed
   podman commit -q --pause=false containerID image-committed

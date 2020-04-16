@@ -17,12 +17,11 @@ var (
 		" and saves it on the local machine."
 
 	exportCommand = &cobra.Command{
-		Use:               "export [flags] CONTAINER",
-		Short:             "Export container's filesystem contents as a tar archive",
-		Long:              exportDescription,
-		PersistentPreRunE: preRunE,
-		RunE:              export,
-		Args:              cobra.ExactArgs(1),
+		Use:   "export [flags] CONTAINER",
+		Short: "Export container's filesystem contents as a tar archive",
+		Long:  exportDescription,
+		RunE:  export,
+		Args:  cobra.ExactArgs(1),
 		Example: `podman export ctrID > myCtr.tar
   podman export --output="myCtr.tar" ctrID`,
 	}
@@ -37,8 +36,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: exportCommand,
 	})
-	exportCommand.SetHelpTemplate(registry.HelpTemplate())
-	exportCommand.SetUsageTemplate(registry.UsageTemplate())
 	flags := exportCommand.Flags()
 	flags.StringVarP(&exportOpts.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")
 }

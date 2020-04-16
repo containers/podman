@@ -18,11 +18,10 @@ var (
   Note remote tar balls can be specified, via web address.
   Optionally tag the image. You can specify the instructions using the --change option.`
 	importCommand = &cobra.Command{
-		Use:               "import [flags] PATH [REFERENCE]",
-		Short:             "Import a tarball to create a filesystem image",
-		Long:              importDescription,
-		RunE:              importCon,
-		PersistentPreRunE: preRunE,
+		Use:   "import [flags] PATH [REFERENCE]",
+		Short: "Import a tarball to create a filesystem image",
+		Long:  importDescription,
+		RunE:  importCon,
 		Example: `podman import http://example.com/ctr.tar url-image
   cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
   cat ctr.tar | podman import -`,
@@ -39,8 +38,6 @@ func init() {
 		Command: importCommand,
 	})
 
-	importCommand.SetHelpTemplate(registry.HelpTemplate())
-	importCommand.SetUsageTemplate(registry.UsageTemplate())
 	flags := importCommand.Flags()
 	flags.StringArrayVarP(&importOpts.Changes, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
 	flags.StringVarP(&importOpts.Message, "message", "m", "", "Set commit message for imported image")

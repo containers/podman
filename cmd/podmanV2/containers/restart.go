@@ -19,11 +19,10 @@ var (
   A timeout before forcibly stopping can be set, but defaults to %d seconds.`, defaultContainerConfig.Engine.StopTimeout)
 
 	restartCommand = &cobra.Command{
-		Use:               "restart [flags] CONTAINER [CONTAINER...]",
-		Short:             "Restart one or more containers",
-		Long:              restartDescription,
-		RunE:              restart,
-		PersistentPreRunE: preRunE,
+		Use:   "restart [flags] CONTAINER [CONTAINER...]",
+		Short: "Restart one or more containers",
+		Long:  restartDescription,
+		RunE:  restart,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},

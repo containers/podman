@@ -22,11 +22,10 @@ var (
 	saveDescription = `Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
 
 	saveCommand = &cobra.Command{
-		Use:               "save [flags] IMAGE",
-		Short:             "Save image to an archive",
-		Long:              saveDescription,
-		PersistentPreRunE: preRunE,
-		RunE:              save,
+		Use:   "save [flags] IMAGE",
+		Short: "Save image to an archive",
+		Long:  saveDescription,
+		RunE:  save,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return errors.Errorf("need at least 1 argument")

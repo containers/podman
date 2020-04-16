@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/opencontainers/selinux/go-selinux"
 )
@@ -31,13 +32,13 @@ var (
 // once we are "on" the host system.
 func getDefaultSecurityOptions() []string {
 	securityOpts := []string{}
-	if defaultContainerConfig.Containers.SeccompProfile != "" && defaultContainerConfig.Containers.SeccompProfile != parse.SeccompDefaultPath {
-		securityOpts = append(securityOpts, fmt.Sprintf("seccomp=%s", defaultContainerConfig.Containers.SeccompProfile))
+	if containerConfig.Containers.SeccompProfile != "" && containerConfig.Containers.SeccompProfile != parse.SeccompDefaultPath {
+		securityOpts = append(securityOpts, fmt.Sprintf("seccomp=%s", containerConfig.Containers.SeccompProfile))
 	}
-	if apparmor.IsEnabled() && defaultContainerConfig.Containers.ApparmorProfile != "" {
-		securityOpts = append(securityOpts, fmt.Sprintf("apparmor=%s", defaultContainerConfig.Containers.ApparmorProfile))
+	if apparmor.IsEnabled() && containerConfig.Containers.ApparmorProfile != "" {
+		securityOpts = append(securityOpts, fmt.Sprintf("apparmor=%s", containerConfig.Containers.ApparmorProfile))
 	}
-	if selinux.GetEnabled() && !defaultContainerConfig.Containers.EnableLabeling {
+	if selinux.GetEnabled() && !containerConfig.Containers.EnableLabeling {
 		securityOpts = append(securityOpts, fmt.Sprintf("label=%s", selinux.DisableSecOpt()[0]))
 	}
 	return securityOpts
@@ -45,66 +46,66 @@ func getDefaultSecurityOptions() []string {
 
 // getDefaultSysctls
 func getDefaultSysctls() []string {
-	return defaultContainerConfig.Containers.DefaultSysctls
+	return containerConfig.Containers.DefaultSysctls
 }
 
 func getDefaultVolumes() []string {
-	return defaultContainerConfig.Containers.Volumes
+	return containerConfig.Containers.Volumes
 }
 
 func getDefaultDevices() []string {
-	return defaultContainerConfig.Containers.Devices
+	return containerConfig.Containers.Devices
 }
 
 func getDefaultDNSServers() []string { //nolint
-	return defaultContainerConfig.Containers.DNSServers
+	return containerConfig.Containers.DNSServers
 }
 
 func getDefaultDNSSearches() []string { //nolint
-	return defaultContainerConfig.Containers.DNSSearches
+	return containerConfig.Containers.DNSSearches
 }
 
 func getDefaultDNSOptions() []string { //nolint
-	return defaultContainerConfig.Containers.DNSOptions
+	return containerConfig.Containers.DNSOptions
 }
 
 func getDefaultEnv() []string {
-	return defaultContainerConfig.Containers.Env
+	return containerConfig.Containers.Env
 }
 
 func getDefaultInitPath() string {
-	return defaultContainerConfig.Containers.InitPath
+	return containerConfig.Containers.InitPath
 }
 
 func getDefaultIPCNS() string {
-	return defaultContainerConfig.Containers.IPCNS
+	return containerConfig.Containers.IPCNS
 }
 
 func getDefaultPidNS() string {
-	return defaultContainerConfig.Containers.PidNS
+	return containerConfig.Containers.PidNS
 }
 
 func getDefaultNetNS() string { //nolint
-	if defaultContainerConfig.Containers.NetNS == "private" && rootless.IsRootless() {
-		return "slirp4netns"
+	if containerConfig.Containers.NetNS == string(specgen.Private) && rootless.IsRootless() {
+		return string(specgen.Slirp)
 	}
-	return defaultContainerConfig.Containers.NetNS
+	return containerConfig.Containers.NetNS
 }
 
 func getDefaultCgroupNS() string {
-	return defaultContainerConfig.Containers.CgroupNS
+	return containerConfig.Containers.CgroupNS
 }
 
 func getDefaultUTSNS() string {
-	return defaultContainerConfig.Containers.UTSNS
+	return containerConfig.Containers.UTSNS
 }
 
 func getDefaultShmSize() string {
-	return defaultContainerConfig.Containers.ShmSize
+	return containerConfig.Containers.ShmSize
 }
 
 func getDefaultUlimits() []string {
-	return defaultContainerConfig.Containers.DefaultUlimits
+	return containerConfig.Containers.DefaultUlimits
 }
 
 func getDefaultUserNS() string {
@@ -112,14 +113,14 @@ func getDefaultUserNS() string {
 	if userns != "" {
 		return userns
 	}
-	return defaultContainerConfig.Containers.UserNS
+	return containerConfig.Containers.UserNS
 }
 
 func getDefaultPidsLimit() int64 {
 	if rootless.IsRootless() {
 		cgroup2, _ := cgroups.IsCgroup2UnifiedMode()
 		if cgroup2 {
-			return defaultContainerConfig.Containers.PidsLimit
+			return containerConfig.Containers.PidsLimit
 		}
 	}
 	return sysinfo.GetDefaultPidsLimit()
@@ -130,5 +131,5 @@ func getDefaultPidsDescription() string {
 }
 
 func GetDefaultDetachKeys() string {
-	return defaultContainerConfig.Engine.DetachKeys
+	return containerConfig.Engine.DetachKeys
 }

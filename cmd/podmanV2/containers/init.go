@@ -14,11 +14,10 @@ var (
 	initDescription = `Initialize one or more containers, creating the OCI spec and mounts for inspection. Container names or IDs can be used.`
 
 	initCommand = &cobra.Command{
-		Use:     "init [flags] CONTAINER [CONTAINER...]",
-		Short:   "Initialize one or more containers",
-		Long:    initDescription,
-		PreRunE: preRunE,
-		RunE:    initContainer,
+		Use:   "init [flags] CONTAINER [CONTAINER...]",
+		Short: "Initialize one or more containers",
+		Long:  initDescription,
+		RunE:  initContainer,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},

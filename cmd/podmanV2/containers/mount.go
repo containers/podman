@@ -23,16 +23,15 @@ var (
 `
 
 	mountCommand = &cobra.Command{
-		Use:     "mount [flags] [CONTAINER]",
-		Short:   "Mount a working container's root filesystem",
-		Long:    mountDescription,
-		PreRunE: preRunE,
-		RunE:    mount,
+		Use:   "mount [flags] [CONTAINER]",
+		Short: "Mount a working container's root filesystem",
+		Long:  mountDescription,
+		RunE:  mount,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
 		Annotations: map[string]string{
-			registry.RootRequired: "true",
+			registry.ParentNSRequired: "",
 		},
 	}
 )

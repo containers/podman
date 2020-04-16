@@ -9,12 +9,11 @@ import (
 var (
 	// Command: podman _volume_
 	volumeCmd = &cobra.Command{
-		Use:               "volume",
-		Short:             "Manage volumes",
-		Long:              "Volumes are created in and can be shared between containers",
-		TraverseChildren:  true,
-		PersistentPreRunE: preRunE,
-		RunE:              registry.SubCommandExists,
+		Use:              "volume",
+		Short:            "Manage volumes",
+		Long:             "Volumes are created in and can be shared between containers",
+		TraverseChildren: true,
+		RunE:             registry.SubCommandExists,
 	}
 )
 
@@ -23,11 +22,4 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: volumeCmd,
 	})
-	volumeCmd.SetHelpTemplate(registry.HelpTemplate())
-	volumeCmd.SetUsageTemplate(registry.UsageTemplate())
-}
-
-func preRunE(cmd *cobra.Command, args []string) error {
-	_, err := registry.NewContainerEngine(cmd, args)
-	return err
 }

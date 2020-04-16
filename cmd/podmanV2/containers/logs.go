@@ -26,11 +26,10 @@ var (
   This does not guarantee execution order when combined with podman run (i.e., your run may not have generated any logs at the time you execute podman logs).
 `
 	logsCommand = &cobra.Command{
-		Use:     "logs [flags] CONTAINER [CONTAINER...]",
-		Short:   "Fetch the logs of one or more container",
-		Long:    logsDescription,
-		RunE:    logs,
-		PreRunE: preRunE,
+		Use:   "logs [flags] CONTAINER [CONTAINER...]",
+		Short: "Fetch the logs of one or more container",
+		Long:  logsDescription,
+		RunE:  logs,
 		Example: `podman logs ctrID
   podman logs --names ctrID1 ctrID2
   podman logs --tail 2 mywebserver
@@ -39,11 +38,10 @@ var (
 	}
 
 	containerLogsCommand = &cobra.Command{
-		Use:     logsCommand.Use,
-		Short:   logsCommand.Short,
-		Long:    logsCommand.Long,
-		PreRunE: logsCommand.PreRunE,
-		RunE:    logsCommand.RunE,
+		Use:   logsCommand.Use,
+		Short: logsCommand.Short,
+		Long:  logsCommand.Long,
+		RunE:  logsCommand.RunE,
 		Example: `podman container logs ctrID
 		podman container logs --names ctrID1 ctrID2
 		podman container logs --tail 2 mywebserver
@@ -58,9 +56,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: logsCommand,
 	})
-
-	logsCommand.SetHelpTemplate(registry.HelpTemplate())
-	logsCommand.SetUsageTemplate(registry.UsageTemplate())
 
 	flags := logsCommand.Flags()
 	logsFlags(flags)

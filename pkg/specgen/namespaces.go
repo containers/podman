@@ -28,9 +28,9 @@ const (
 	// Bridge indicates that a CNI network stack
 	// should be used
 	Bridge NamespaceMode = "bridge"
-	// Slirp indicates that a slirp4ns network stack should
+	// Slirp indicates that a slirp4netns network stack should
 	// be used
-	Slirp NamespaceMode = "slirp4ns"
+	Slirp NamespaceMode = "slirp4netns"
 )
 
 // Namespace describes the namespace

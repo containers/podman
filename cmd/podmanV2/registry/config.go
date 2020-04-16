@@ -12,11 +12,10 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 const (
-	RootRequired = "RootRequired"
+	ParentNSRequired = "ParentNSRequired"
 )
 
 var (
@@ -26,7 +25,7 @@ var (
 // NewPodmanConfig creates a PodmanConfig from the environment
 func NewPodmanConfig() entities.PodmanConfig {
 	if err := setXdgDirs(); err != nil {
-		logrus.Errorf(err.Error())
+		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
@@ -39,7 +38,7 @@ func NewPodmanConfig() entities.PodmanConfig {
 	case "linux":
 		mode = entities.ABIMode
 	default:
-		logrus.Errorf("%s is not a supported OS", runtime.GOOS)
+		fmt.Fprintf(os.Stderr, "%s is not a supported OS", runtime.GOOS)
 		os.Exit(1)
 	}
 
@@ -47,18 +46,23 @@ func NewPodmanConfig() entities.PodmanConfig {
 	for _, v := range os.Args {
 		// Prefix checking works because of how default EngineMode's
 		// have been defined.
-		if strings.HasPrefix(v, "--remote=") {
+		if strings.HasPrefix(v, "--remote") {
 			mode = entities.TunnelMode
 		}
 	}
 
-	// FIXME: for rootless, where to get the path
-	// TODO:
+	// FIXME: for rootless, add flag to get the path to override configuration
 	cfg, err := config.NewConfig("")
 	if err != nil {
-		logrus.Error("Failed to obtain podman configuration")
+		fmt.Fprint(os.Stderr, "Failed to obtain podman configuration: "+err.Error())
 		os.Exit(1)
 	}
+
+	cfg.Network.NetworkConfigDir = cfg.Network.CNIPluginDirs[0]
+	if rootless.IsRootless() {
+		cfg.Network.NetworkConfigDir = ""
+	}
+
 	return entities.PodmanConfig{Config: cfg, EngineMode: mode}
 }
 
@@ -71,34 +75,31 @@ func setXdgDirs() error {
 	}
 
 	// Setup XDG_RUNTIME_DIR
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-
-	if runtimeDir == "" {
-		var err error
-		runtimeDir, err = util.GetRuntimeDir()
+	if _, found := os.LookupEnv("XDG_RUNTIME_DIR"); !found {
+		dir, err := util.GetRuntimeDir()
 		if err != nil {
 			return err
 		}
-	}
-	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
-		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+		if err := os.Setenv("XDG_RUNTIME_DIR", dir); err != nil {
+			return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR="+dir)
+		}
 	}
 
-	if rootless.IsRootless() && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
-		sessionAddr := filepath.Join(runtimeDir, "bus")
+	if _, found := os.LookupEnv("DBUS_SESSION_BUS_ADDRESS"); !found {
+		sessionAddr := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "bus")
 		if _, err := os.Stat(sessionAddr); err == nil {
-			os.Setenv("DBUS_SESSION_BUS_ADDRESS", fmt.Sprintf("unix:path=%s", sessionAddr))
+			os.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path="+sessionAddr)
 		}
 	}
 
 	// Setup XDG_CONFIG_HOME
-	if cfgHomeDir := os.Getenv("XDG_CONFIG_HOME"); cfgHomeDir == "" {
+	if _, found := os.LookupEnv("XDG_CONFIG_HOME"); !found {
 		cfgHomeDir, err := util.GetRootlessConfigHomeDir()
 		if err != nil {
 			return err
 		}
 		if err := os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
-			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
+			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME="+cfgHomeDir)
 		}
 	}
 	return nil

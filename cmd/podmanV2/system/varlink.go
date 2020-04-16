@@ -14,12 +14,11 @@ var (
   Tools speaking varlink protocol can remotely manage pods, containers and images.
 `
 	varlinkCmd = &cobra.Command{
-		Use:     "varlink [flags] [URI]",
-		Args:    cobra.MinimumNArgs(1),
-		Short:   "Run varlink interface",
-		Long:    varlinkDescription,
-		PreRunE: preRunE,
-		RunE:    varlinkE,
+		Use:   "varlink [flags] [URI]",
+		Args:  cobra.MinimumNArgs(1),
+		Short: "Run varlink interface",
+		Long:  varlinkDescription,
+		RunE:  varlinkE,
 		Example: `podman varlink unix:/run/podman/io.podman
   podman varlink --timeout 5000 unix:/run/podman/io.podman`,
 	}
@@ -33,9 +32,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: varlinkCmd,
 	})
-	varlinkCmd.SetHelpTemplate(registry.HelpTemplate())
-	varlinkCmd.SetUsageTemplate(registry.UsageTemplate())
-
 	flags := varlinkCmd.Flags()
 	flags.Int64VarP(&varlinkArgs.Timeout, "time", "t", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")
 	flags.Int64Var(&varlinkArgs.Timeout, "timeout", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")

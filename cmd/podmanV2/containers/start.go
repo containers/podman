@@ -16,12 +16,11 @@ import (
 var (
 	startDescription = `Starts one or more containers.  The container name or ID can be used.`
 	startCommand     = &cobra.Command{
-		Use:     "start [flags] CONTAINER [CONTAINER...]",
-		Short:   "Start one or more containers",
-		Long:    startDescription,
-		RunE:    start,
-		PreRunE: preRunE,
-		Args:    cobra.MinimumNArgs(1),
+		Use:   "start [flags] CONTAINER [CONTAINER...]",
+		Short: "Start one or more containers",
+		Long:  startDescription,
+		RunE:  start,
+		Args:  cobra.MinimumNArgs(1),
 		Example: `podman start --latest
   podman start 860a4b231279 5421ab43b45
   podman start --interactive --attach imageID`,

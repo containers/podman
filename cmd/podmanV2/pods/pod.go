@@ -9,12 +9,11 @@ import (
 var (
 	// Command: podman _pod_
 	podCmd = &cobra.Command{
-		Use:               "pod",
-		Short:             "Manage pods",
-		Long:              "Manage pods",
-		TraverseChildren:  true,
-		PersistentPreRunE: preRunE,
-		RunE:              registry.SubCommandExists,
+		Use:              "pod",
+		Short:            "Manage pods",
+		Long:             "Manage pods",
+		TraverseChildren: true,
+		RunE:             registry.SubCommandExists,
 	}
 )
 
@@ -23,11 +22,4 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: podCmd,
 	})
-	podCmd.SetHelpTemplate(registry.HelpTemplate())
-	podCmd.SetUsageTemplate(registry.UsageTemplate())
-}
-
-func preRunE(cmd *cobra.Command, args []string) error {
-	_, err := registry.NewContainerEngine(cmd, args)
-	return err
 }

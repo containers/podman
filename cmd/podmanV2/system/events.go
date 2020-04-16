@@ -17,12 +17,11 @@ import (
 var (
 	eventsDescription = "Monitor podman events"
 	eventsCommand     = &cobra.Command{
-		Use:               "events",
-		Args:              cobra.NoArgs,
-		Short:             "Show podman events",
-		Long:              eventsDescription,
-		PersistentPreRunE: preRunE,
-		RunE:              eventsCmd,
+		Use:   "events",
+		Args:  cobra.NoArgs,
+		Short: "Show podman events",
+		Long:  eventsDescription,
+		RunE:  eventsCmd,
 		Example: `podman events
   podman events --filter event=create
   podman events --since 1h30s`,

@@ -9,12 +9,11 @@ import (
 var (
 	// Command: podman _network_
 	cmd = &cobra.Command{
-		Use:               "network",
-		Short:             "Manage networks",
-		Long:              "Manage networks",
-		TraverseChildren:  true,
-		PersistentPreRunE: preRunE,
-		RunE:              registry.SubCommandExists,
+		Use:              "network",
+		Short:            "Manage networks",
+		Long:             "Manage networks",
+		TraverseChildren: true,
+		RunE:             registry.SubCommandExists,
 	}
 )
 
@@ -23,11 +22,4 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: cmd,
 	})
-	cmd.SetHelpTemplate(registry.HelpTemplate())
-	cmd.SetUsageTemplate(registry.UsageTemplate())
-}
-
-func preRunE(cmd *cobra.Command, args []string) error {
-	_, err := registry.NewContainerEngine(cmd, args)
-	return err
 }

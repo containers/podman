@@ -17,12 +17,11 @@ var (
 
   The container ID is then printed to stdout. You can then start it at any time with the podman start <container_id> command. The container will be created with the initial state 'created'.`
 	createCommand = &cobra.Command{
-		Use:               "create [flags] IMAGE [COMMAND [ARG...]]",
-		Short:             "Create but do not start a container",
-		Long:              createDescription,
-		RunE:              create,
-		PersistentPreRunE: preRunE,
-		Args:              cobra.MinimumNArgs(1),
+		Use:   "create [flags] IMAGE [COMMAND [ARG...]]",
+		Short: "Create but do not start a container",
+		Long:  createDescription,
+		RunE:  create,
+		Args:  cobra.MinimumNArgs(1),
 		Example: `podman create alpine ls
   podman create --annotation HELLO=WORLD alpine ls
   podman create -t -i --name myctr alpine ls`,

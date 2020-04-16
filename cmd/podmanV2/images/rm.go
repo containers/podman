@@ -14,11 +14,10 @@ import (
 var (
 	rmDescription = "Removes one or more previously pulled or locally created images."
 	rmCmd         = &cobra.Command{
-		Use:     "rm [flags] IMAGE [IMAGE...]",
-		Short:   "Removes one or more images from local storage",
-		Long:    rmDescription,
-		PreRunE: preRunE,
-		RunE:    rm,
+		Use:   "rm [flags] IMAGE [IMAGE...]",
+		Short: "Removes one or more images from local storage",
+		Long:  rmDescription,
+		RunE:  rm,
 		Example: `podman image rm imageID
   podman image rm --force alpine
   podman image rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,

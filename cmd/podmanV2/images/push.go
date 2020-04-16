@@ -25,11 +25,10 @@ var (
 
 	// Command: podman push
 	pushCmd = &cobra.Command{
-		Use:     "push [flags] SOURCE DESTINATION",
-		Short:   "Push an image to a specified destination",
-		Long:    pushDescription,
-		PreRunE: preRunE,
-		RunE:    imagePush,
+		Use:   "push [flags] SOURCE DESTINATION",
+		Short: "Push an image to a specified destination",
+		Long:  pushDescription,
+		RunE:  imagePush,
 		Example: `podman push imageID docker://registry.example.com/repository:tag
 		podman push imageID oci-archive:/path/to/layout:image:tag`,
 	}
@@ -38,11 +37,10 @@ var (
 	// It's basically a clone of `pushCmd` with the exception of being a
 	// child of the images command.
 	imagePushCmd = &cobra.Command{
-		Use:     pushCmd.Use,
-		Short:   pushCmd.Short,
-		Long:    pushCmd.Long,
-		PreRunE: pushCmd.PreRunE,
-		RunE:    pushCmd.RunE,
+		Use:   pushCmd.Use,
+		Short: pushCmd.Short,
+		Long:  pushCmd.Long,
+		RunE:  pushCmd.RunE,
 		Example: `podman image push imageID docker://registry.example.com/repository:tag
 		podman image push imageID oci-archive:/path/to/layout:image:tag`,
 	}
@@ -55,9 +53,6 @@ func init() {
 		Command: pushCmd,
 	})
 
-	pushCmd.SetHelpTemplate(registry.HelpTemplate())
-	pushCmd.SetUsageTemplate(registry.UsageTemplate())
-
 	flags := pushCmd.Flags()
 	pushFlags(flags)
 
@@ -68,8 +63,6 @@ func init() {
 		Parent:  imageCmd,
 	})
 
-	imagePushCmd.SetHelpTemplate(registry.HelpTemplate())
-	imagePushCmd.SetUsageTemplate(registry.UsageTemplate())
 	pushFlags(imagePushCmd.Flags())
 }
 

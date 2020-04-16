@@ -18,11 +18,13 @@ import (
 
 var (
 	versionCommand = &cobra.Command{
-		Use:               "version",
-		Args:              cobra.NoArgs,
-		Short:             "Display the Podman Version Information",
-		RunE:              version,
-		PersistentPreRunE: preRunE,
+		Use:   "version",
+		Args:  cobra.NoArgs,
+		Short: "Display the Podman Version Information",
+		RunE:  version,
+		Annotations: map[string]string{
+			registry.ParentNSRequired: "",
+		},
 	}
 	versionFormat string
 )

@@ -32,12 +32,14 @@ var (
 
 	// Command: podman search
 	searchCmd = &cobra.Command{
-		Use:     "search [flags] TERM",
-		Short:   "Search registry for image",
-		Long:    searchDescription,
-		PreRunE: preRunE,
-		RunE:    imageSearch,
-		Args:    cobra.ExactArgs(1),
+		Use:   "search [flags] TERM",
+		Short: "Search registry for image",
+		Long:  searchDescription,
+		RunE:  imageSearch,
+		Args:  cobra.ExactArgs(1),
+		Annotations: map[string]string{
+			registry.ParentNSRequired: "",
+		},
 		Example: `podman search --filter=is-official --limit 3 alpine
   podman search registry.fedoraproject.org/  # only works with v2 registries
   podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
@@ -45,12 +47,11 @@ var (
 
 	// Command: podman image search
 	imageSearchCmd = &cobra.Command{
-		Use:     searchCmd.Use,
-		Short:   searchCmd.Short,
-		Long:    searchCmd.Long,
-		PreRunE: searchCmd.PreRunE,
-		RunE:    searchCmd.RunE,
-		Args:    searchCmd.Args,
+		Use:   searchCmd.Use,
+		Short: searchCmd.Short,
+		Long:  searchCmd.Long,
+		RunE:  searchCmd.RunE,
+		Args:  searchCmd.Args,
 		Example: `podman image search --filter=is-official --limit 3 alpine
 		podman image search registry.fedoraproject.org/  # only works with v2 registries
 		podman image search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
@@ -64,8 +65,6 @@ func init() {
 		Command: searchCmd,
 	})
 
-	searchCmd.SetHelpTemplate(registry.HelpTemplate())
-	searchCmd.SetUsageTemplate(registry.UsageTemplate())
 	flags := searchCmd.Flags()
 	searchFlags(flags)
 

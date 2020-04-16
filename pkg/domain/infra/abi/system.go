@@ -100,7 +100,7 @@ func (ic *ContainerEngine) VarlinkService(_ context.Context, opts entities.Servi
 	return nil
 }
 
-func (ic *ContainerEngine) SetupRootless(cmd *cobra.Command) error {
+func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {
 	// do it only after podman has already re-execed and running with uid==0.
 	if os.Geteuid() == 0 {
 		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
@@ -123,10 +123,6 @@ func (ic *ContainerEngine) SetupRootless(cmd *cobra.Command) error {
 		}
 	}
 
-	if !executeCommandInUserNS(cmd) {
-		return nil
-	}
-
 	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
 	if err != nil {
 		return errors.Wrapf(err, "could not get pause process pid file path")
@@ -143,7 +139,8 @@ func (ic *ContainerEngine) SetupRootless(cmd *cobra.Command) error {
 	// if there is no pid file, try to join existing containers, and create a pause process.
 	ctrs, err := ic.Libpod.GetRunningContainers()
 	if err != nil {
-		logrus.WithError(err).Fatal("")
+		logrus.Error(err.Error())
+		os.Exit(1)
 	}
 
 	paths := []string{}
@@ -164,31 +161,13 @@ func (ic *ContainerEngine) SetupRootless(cmd *cobra.Command) error {
 		}
 	}
 	if err != nil {
-		logrus.WithError(err).Fatal("")
+		logrus.Error(err)
+		os.Exit(1)
 	}
 	if became {
 		os.Exit(ret)
 	}
 	return nil
-}
-
-// Most podman commands when run in rootless mode, need to be executed in the
-// users usernamespace.  This function is updated with a  list of commands that
-// should NOT be run within the user namespace.
-func executeCommandInUserNS(cmd *cobra.Command) bool {
-	return os.Geteuid() == 0
-	// if os.Geteuid() == 0 {
-	// 	return false
-	// }
-	// switch cmd {
-	// case _migrateCommand,
-	// 	_mountCommand,
-	// 	_renumberCommand,
-	// 	_searchCommand,
-	// 	_versionCommand:
-	// 	return false
-	// }
-	// return true
 }
 
 func movePauseProcessToScope() error {
@@ -234,11 +213,3 @@ func setUMask() { // nolint:deadcode,unused
 func checkInput() error { // nolint:deadcode,unused
 	return nil
 }
-
-// func getCNIPluginsDir() string {
-// 	if rootless.IsRootless() {
-// 		return ""
-// 	}
-//
-// 	return registry.PodmanOptions.Network.CNIPluginDirs[0]
-// }

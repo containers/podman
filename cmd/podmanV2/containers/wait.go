@@ -17,12 +17,11 @@ var (
 	waitDescription = `Block until one or more containers stop and then print their exit codes.
 `
 	waitCommand = &cobra.Command{
-		Use:               "wait [flags] CONTAINER [CONTAINER...]",
-		Short:             "Block on one or more containers",
-		Long:              waitDescription,
-		RunE:              wait,
-		PersistentPreRunE: preRunE,
-		Args:              registry.IdOrLatestArgs,
+		Use:   "wait [flags] CONTAINER [CONTAINER...]",
+		Short: "Block on one or more containers",
+		Long:  waitDescription,
+		RunE:  wait,
+		Args:  registry.IdOrLatestArgs,
 		Example: `podman wait --latest
   podman wait --interval 5000 ctrID
   podman wait ctrID1 ctrID2`,

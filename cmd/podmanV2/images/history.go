@@ -25,13 +25,12 @@ var (
 
 	// podman _history_
 	historyCmd = &cobra.Command{
-		Use:               "history [flags] IMAGE",
-		Short:             "Show history of a specified image",
-		Long:              long,
-		Example:           "podman history quay.io/fedora/fedora",
-		Args:              cobra.ExactArgs(1),
-		PersistentPreRunE: preRunE,
-		RunE:              history,
+		Use:     "history [flags] IMAGE",
+		Short:   "Show history of a specified image",
+		Long:    long,
+		Example: "podman history quay.io/fedora/fedora",
+		Args:    cobra.ExactArgs(1),
+		RunE:    history,
 	}
 
 	opts = struct {
@@ -47,9 +46,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: historyCmd,
 	})
-
-	historyCmd.SetHelpTemplate(registry.HelpTemplate())
-	historyCmd.SetUsageTemplate(registry.UsageTemplate())
 
 	flags := historyCmd.Flags()
 	flags.StringVar(&opts.format, "format", "", "Change the output to JSON or a Go template")

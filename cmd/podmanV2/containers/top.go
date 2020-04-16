@@ -26,12 +26,11 @@ var (
 	topOptions = entities.TopOptions{}
 
 	topCommand = &cobra.Command{
-		Use:               "top [flags] CONTAINER [FORMAT-DESCRIPTORS|ARGS]",
-		Short:             "Display the running processes of a container",
-		Long:              topDescription,
-		PersistentPreRunE: preRunE,
-		RunE:              top,
-		Args:              cobra.ArbitraryArgs,
+		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTORS|ARGS]",
+		Short: "Display the running processes of a container",
+		Long:  topDescription,
+		RunE:  top,
+		Args:  cobra.ArbitraryArgs,
 		Example: `podman top ctrID
 podman top --latest
 podman top ctrID pid seccomp args %C
@@ -44,9 +43,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: topCommand,
 	})
-
-	topCommand.SetHelpTemplate(registry.HelpTemplate())
-	topCommand.SetUsageTemplate(registry.UsageTemplate())
 
 	flags := topCommand.Flags()
 	flags.SetInterspersed(false)

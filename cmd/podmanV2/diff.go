@@ -35,9 +35,6 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: diffCmd,
 	})
-	diffCmd.SetHelpTemplate(registry.HelpTemplate())
-	diffCmd.SetUsageTemplate(registry.UsageTemplate())
-
 	flags := diffCmd.Flags()
 	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
 	_ = flags.MarkHidden("archive")
@@ -49,23 +46,13 @@ func init() {
 }
 
 func diff(cmd *cobra.Command, args []string) error {
-	ie, err := registry.NewImageEngine(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	if found, err := ie.Exists(registry.GetContext(), args[0]); err != nil {
+	if found, err := registry.ImageEngine().Exists(registry.GetContext(), args[0]); err != nil {
 		return err
 	} else if found.Value {
 		return images.Diff(cmd, args, diffOpts)
 	}
 
-	ce, err := registry.NewContainerEngine(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	if found, err := ce.ContainerExists(registry.GetContext(), args[0]); err != nil {
+	if found, err := registry.ContainerEngine().ContainerExists(registry.GetContext(), args[0]); err != nil {
 		return err
 	} else if found.Value {
 		return containers.Diff(cmd, args, diffOpts)
