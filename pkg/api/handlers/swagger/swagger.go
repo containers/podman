@@ -1,9 +1,10 @@
-package handlers
+package swagger
 
 import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/docker/docker/api/types"
@@ -14,7 +15,7 @@ import (
 type swagHistory struct {
 	// in:body
 	Body struct {
-		HistoryResponse
+		handlers.HistoryResponse
 	}
 }
 
@@ -23,7 +24,7 @@ type swagHistory struct {
 type swagImageInspect struct {
 	// in:body
 	Body struct {
-		ImageInspect
+		handlers.ImageInspect
 	}
 }
 
@@ -45,7 +46,7 @@ type swagLibpodImagesImportResponse struct {
 // swagger:response DocsLibpodImagesPullResponse
 type swagLibpodImagesPullResponse struct {
 	// in:body
-	Body LibpodImagesPullReport
+	Body handlers.LibpodImagesPullReport
 }
 
 // Delete response
@@ -77,14 +78,14 @@ type swagLibpodInspectImageResponse struct {
 // swagger:response DocsContainerPruneReport
 type swagContainerPruneReport struct {
 	// in: body
-	Body []ContainersPruneReport
+	Body []handlers.ContainersPruneReport
 }
 
 // Prune containers
 // swagger:response DocsLibpodPruneResponse
 type swagLibpodContainerPruneReport struct {
 	// in: body
-	Body []LibpodContainersPruneReport
+	Body []handlers.LibpodContainersPruneReport
 }
 
 // Inspect container
@@ -101,7 +102,7 @@ type swagContainerInspectResponse struct {
 type swagContainerTopResponse struct {
 	// in:body
 	Body struct {
-		ContainerTopOKBody
+		handlers.ContainerTopOKBody
 	}
 }
 
@@ -110,7 +111,7 @@ type swagContainerTopResponse struct {
 type swagPodTopResponse struct {
 	// in:body
 	Body struct {
-		PodTopOKBody
+		handlers.PodTopOKBody
 	}
 }
 
@@ -153,6 +154,6 @@ type swagInspectVolumeResponse struct {
 type swagImageTreeResponse struct {
 	// in:body
 	Body struct {
-		ImageTreeResponse
+		handlers.ImageTreeResponse
 	}
 }

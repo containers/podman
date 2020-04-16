@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/containers/libpod/pkg/domain/entities"
+
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -13,5 +15,5 @@ func UnsupportedHandler(w http.ResponseWriter, r *http.Request) {
 	log.Infof("Request Failed: %s", msg)
 
 	utils.WriteJSON(w, http.StatusInternalServerError,
-		utils.ErrorModel{Message: msg})
+		entities.ErrorModel{Message: msg})
 }

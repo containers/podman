@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,7 +21,7 @@ var (
 func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Infof("Request Failed(%s): %s", http.StatusText(code), err.Error())
-	em := ErrorModel{
+	em := entities.ErrorModel{
 		Because:      (errors.Cause(err)).Error(),
 		Message:      err.Error(),
 		ResponseCode: code,
@@ -71,29 +72,6 @@ func InternalServerError(w http.ResponseWriter, err error) {
 func BadRequest(w http.ResponseWriter, key string, value string, err error) {
 	e := errors.Wrapf(err, "Failed to parse query parameter '%s': %q", key, value)
 	Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, e)
-}
-
-type ErrorModel struct {
-	// API root cause formatted for automated parsing
-	// example: API root cause
-	Because string `json:"cause"`
-	// human error message, formatted for a human to read
-	// example: human error message
-	Message string `json:"message"`
-	// http response code
-	ResponseCode int `json:"response"`
-}
-
-func (e ErrorModel) Error() string {
-	return e.Message
-}
-
-func (e ErrorModel) Cause() error {
-	return errors.New(e.Because)
-}
-
-func (e ErrorModel) Code() int {
-	return e.ResponseCode
 }
 
 // UnsupportedParameter logs a given param by its string name as not supported.

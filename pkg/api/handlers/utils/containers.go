@@ -6,21 +6,13 @@ import (
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/shared"
-	createconfig "github.com/containers/libpod/pkg/spec"
-
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/domain/entities"
+	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
-
-// ContainerCreateResponse is the response struct for creating a container
-type ContainerCreateResponse struct {
-	// ID of the container created
-	ID string `json:"Id"`
-	// Warnings during container creation
-	Warnings []string `json:"Warnings"`
-}
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 	var (
@@ -77,7 +69,7 @@ func CreateContainer(ctx context.Context, w http.ResponseWriter, runtime *libpod
 		return
 	}
 
-	response := ContainerCreateResponse{
+	response := entities.ContainerCreateResponse{
 		ID:       ctr.ID(),
 		Warnings: []string{}}
 

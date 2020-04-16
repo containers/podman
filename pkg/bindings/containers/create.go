@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
 	jsoniter "github.com/json-iterator/go"
 )
 
-func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator) (utils.ContainerCreateResponse, error) {
-	var ccr utils.ContainerCreateResponse
+func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator) (entities.ContainerCreateResponse, error) {
+	var ccr entities.ContainerCreateResponse
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return ccr, err

@@ -57,3 +57,12 @@ type AttachStreams struct {
 	// If false, stdout will not be attached
 	AttachInput bool
 }
+
+// JournaldLogging is the string conmon expects to specify journald logging
+const JournaldLogging = "journald"
+
+// KubernetesLogging is the string conmon expects when specifying to use the kubernetes logging format
+const KubernetesLogging = "k8s-file"
+
+// JSONLogging is the string conmon expects when specifying to use the json logging format
+const JSONLogging = "json-file"

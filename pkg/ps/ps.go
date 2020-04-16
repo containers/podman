@@ -55,7 +55,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 	}
 	if options.Last > 0 {
 		// Sort the containers we got
-		sort.Sort(entities.SortCreateTime{SortContainers: cons})
+		sort.Sort(SortCreateTime{SortContainers: cons})
 		// we should perform the lopping before we start getting
 		// the expensive information on containers
 		if options.Last < len(cons) {
@@ -204,4 +204,16 @@ func getStrFromSquareBrackets(cmd string) string {
 	reg := regexp.MustCompile(`.*\[|\].*`)
 	arr := strings.Split(reg.ReplaceAllLiteralString(cmd, ""), ",")
 	return strings.Join(arr, ",")
+}
+
+// SortContainers helps us set-up ability to sort by createTime
+type SortContainers []*libpod.Container
+
+func (a SortContainers) Len() int      { return len(a) }
+func (a SortContainers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+type SortCreateTime struct{ SortContainers }
+
+func (a SortCreateTime) Less(i, j int) bool {
+	return a.SortContainers[i].CreatedTime().Before(a.SortContainers[j].CreatedTime())
 }

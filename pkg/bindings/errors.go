@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 
@@ -13,7 +13,7 @@ var (
 )
 
 func handleError(data []byte) error {
-	e := utils.ErrorModel{}
+	e := entities.ErrorModel{}
 	if err := json.Unmarshal(data, &e); err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (a APIResponse) Process(unmarshalInto interface{}) error {
 }
 
 func CheckResponseCode(inError error) (int, error) {
-	e, ok := inError.(utils.ErrorModel)
+	e, ok := inError.(entities.ErrorModel)
 	if !ok {
 		return -1, errors.New("error is not type ErrorModel")
 	}

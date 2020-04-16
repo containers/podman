@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/containers/libpod/pkg/domain/entities"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/specgen"
@@ -29,6 +31,6 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	response := utils.ContainerCreateResponse{ID: ctr.ID()}
+	response := entities.ContainerCreateResponse{ID: ctr.ID()}
 	utils.WriteJSON(w, http.StatusCreated, response)
 }

@@ -431,9 +431,9 @@ func containerStatusFromContainers(allCtrs []*Container) (map[string]define.Cont
 }
 
 // Inspect returns a PodInspect struct to describe the pod
-func (p *Pod) Inspect() (*PodInspect, error) {
+func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	var (
-		podContainers []PodContainerInfo
+		ctrs []define.InspectPodContainerInfo
 	)
 
 	p.lock.Lock()
@@ -443,14 +443,6 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	}
 
 	containers, err := p.runtime.state.PodContainers(p)
-	if err != nil {
-		return &PodInspect{}, err
-	}
-	ctrStatuses, err := containerStatusFromContainers(containers)
-	if err != nil {
-		return nil, err
-	}
-	status, err := CreatePodStatusResults(ctrStatuses)
 	if err != nil {
 		return nil, err
 	}
@@ -462,26 +454,29 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 		if err == nil {
 			containerStatus = containerState.String()
 		}
-		pc := PodContainerInfo{
+		ctrs = append(ctrs, define.InspectPodContainerInfo{
 			ID:    c.ID(),
+			Name:  c.Name(),
 			State: containerStatus,
-		}
-		podContainers = append(podContainers, pc)
+		})
 	}
-	infraContainerID := p.state.InfraContainerID
+	inspectData := define.InspectPodData{
+		ID:               p.ID(),
+		Name:             p.Name(),
+		Namespace:        p.Namespace(),
+		Created:          p.CreatedTime(),
+		Hostname:         "",
+		Labels:           p.Labels(),
+		CreateCgroup:     false,
+		CgroupParent:     p.CgroupParent(),
+		CgroupPath:       p.state.CgroupPath,
+		CreateInfra:      false,
+		InfraContainerID: p.state.InfraContainerID,
+		InfraConfig:      nil,
+		SharedNamespaces: nil,
+		NumContainers:    uint(len(containers)),
+		Containers:       ctrs,
+	}
 
-	config := new(PodConfig)
-	if err := JSONDeepCopy(p.config, config); err != nil {
-		return nil, err
-	}
-	inspectData := PodInspect{
-		Config: config,
-		State: &PodInspectState{
-			CgroupPath:       p.state.CgroupPath,
-			InfraContainerID: infraContainerID,
-			Status:           status,
-		},
-		Containers: podContainers,
-	}
 	return &inspectData, nil
 }

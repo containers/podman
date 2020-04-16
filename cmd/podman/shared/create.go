@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/autoupdate"
@@ -715,7 +716,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	// both
 	memorySwappiness := c.Int64("memory-swappiness")
 
-	logDriver := libpod.KubernetesLogging
+	logDriver := define.KubernetesLogging
 	if c.Changed("log-driver") {
 		logDriver = c.String("log-driver")
 	}

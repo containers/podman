@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/specgen"
 )
 
@@ -177,5 +177,5 @@ type PodInspectOptions struct {
 }
 
 type PodInspectReport struct {
-	*libpod.PodInspect
+	*define.InspectPodData
 }

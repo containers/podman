@@ -34,15 +34,6 @@ const SystemdDefaultCgroupParent = "machine.slice"
 // manager in libpod when running as rootless
 const SystemdDefaultRootlessCgroupParent = "user.slice"
 
-// JournaldLogging is the string conmon expects to specify journald logging
-const JournaldLogging = "journald"
-
-// KubernetesLogging is the string conmon expects when specifying to use the kubernetes logging format
-const KubernetesLogging = "k8s-file"
-
-// JSONLogging is the string conmon expects when specifying to use the json logging format
-const JSONLogging = "json-file"
-
 // DefaultWaitInterval is the default interval between container status checks
 // while waiting.
 const DefaultWaitInterval = 250 * time.Millisecond
