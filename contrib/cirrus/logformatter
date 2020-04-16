@@ -220,8 +220,8 @@ END_HTML
             $cirrus_task = $1;
         }
 
-        # BATS handling
-        if ($line =~ /^1\.\.\d+$/) {
+        # BATS handling (used also for apiv2 tests, which emit TAP output)
+        if ($line =~ /^1\.\.\d+$/ || $line =~ m!/test-apiv2!) {
             $looks_like_bats = 1;
         }
         if ($looks_like_bats) {
@@ -234,6 +234,10 @@ END_HTML
             elsif ($line =~ /^#\s/)            { $css = 'log'     }
 
             if ($css) {
+                # Make it linkable, e.g. foo.html#t--00001
+                if ($line =~ /^(not\s+)?ok\s+(\d+)/) {
+                    $line = sprintf("<a name='t--%05d'>%s</a>", $2, $line);
+                }
                 $line = "<span class='bats-$css'>$line</span>";
             }
 
