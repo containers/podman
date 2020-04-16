@@ -24,7 +24,7 @@
 | [podman-export(1)](https://podman.readthedocs.io/en/latest/markdown/podman-export.1.html)                             | Export container's filesystem contents as a tar archive                    |
 | [podman-generate(1)](https://podman.readthedocs.io/en/latest/generate.html)                                           | Generate structured output based on Podman containers and pods             |
 | [podman-generate-kube(1)](https://podman.readthedocs.io/en/latest/markdown/podman-generate-kube.1.html)               | Generate Kubernetes YAML based on a pod or container                       |
-| [podman-generate-systemd(1)](https://podman.readthedocs.io/en/latest/markdown/podman-generate-systemd.1.html)         | Generate systemd unit file(s) for a container. Not supported for the remote client  |
+| [podman-generate-systemd(1)](https://podman.readthedocs.io/en/latest/markdown/podman-generate-systemd.1.html)         | Generate systemd unit file(s) for a container or pod. Not supported for the remote client  |
 | [podman-history(1)](https://podman.readthedocs.io/en/latest/markdown/podman-history.1.html)                           | Shows the history of an image                                              |
 | [podman-image(1)](https://podman.readthedocs.io/en/latest/image.html)                                                 | Manage Images                                                              |
 | [podman-image-exists(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-exists.1.html)                 | Check if an image exists in local storage                                  |
