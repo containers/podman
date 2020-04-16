@@ -103,6 +103,9 @@ type OCIRuntime interface {
 	// SupportsNoCgroups is whether the runtime supports running containers
 	// without cgroups.
 	SupportsNoCgroups() bool
+	// SupportsKVM os whether the OCI runtime supports running containers
+	// without KVM separation
+	SupportsKVM() bool
 
 	// AttachSocketPath is the path to the socket to attach to a given
 	// container.

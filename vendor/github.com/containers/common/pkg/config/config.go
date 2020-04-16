@@ -87,6 +87,9 @@ type ContainersConfig struct {
 	// Default way to create a cgroup namespace for the container
 	CgroupNS string `toml:"cgroupns"`
 
+	// Default cgroup configuration
+	Cgroups string `toml:"cgroups"`
+
 	// Capabilities to add to all containers.
 	DefaultCapabilities []string `toml:"default_capabilities"`
 

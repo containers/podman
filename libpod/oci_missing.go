@@ -168,6 +168,12 @@ func (r *MissingRuntime) SupportsNoCgroups() bool {
 	return false
 }
 
+// SupportsKVM checks if the OCI runtime supports running containers
+// without KVM separation
+func (r *MissingRuntime) SupportsKVM() bool {
+	return false
+}
+
 // AttachSocketPath does not work as there is no runtime to attach to.
 // (Theoretically we could follow ExitFilePath but there is no guarantee the
 // container is running and thus has an attach socket...)

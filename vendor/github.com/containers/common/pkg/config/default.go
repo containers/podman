@@ -148,6 +148,7 @@ func DefaultConfig() (*Config, error) {
 			Annotations:         []string{},
 			ApparmorProfile:     DefaultApparmorProfile,
 			CgroupNS:            "private",
+			Cgroups:             "enabled",
 			DefaultCapabilities: DefaultCapabilities,
 			DefaultSysctls:      []string{},
 			DefaultUlimits:      getDefaultProcessLimits(),
@@ -437,6 +438,11 @@ func (c *Config) PidNS() string {
 // CgroupNS returns the default Cgroup Namespace configuration to run containers with
 func (c *Config) CgroupNS() string {
 	return c.Containers.CgroupNS
+}
+
+// Cgroups returns whether to containers with cgroup confinement
+func (c *Config) Cgroups() string {
+	return c.Containers.Cgroups
 }
 
 // UTSNS returns the default UTS Namespace configuration to run containers with

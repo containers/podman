@@ -17,7 +17,7 @@ type ConmonOCIRuntime struct {
 }
 
 // newConmonOCIRuntime is not supported on this OS.
-func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *config.Config, supportsJSON, supportsNoCgroups bool) (OCIRuntime, error) {
+func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *config.Config) (OCIRuntime, error) {
 	return nil, define.ErrNotImplemented
 }
 

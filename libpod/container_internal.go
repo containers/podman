@@ -19,6 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
@@ -430,7 +431,22 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	c.config.IDMappings.UIDMap = containerInfo.UIDMap
 	c.config.IDMappings.GIDMap = containerInfo.GIDMap
-	c.config.ProcessLabel = containerInfo.ProcessLabel
+
+	processLabel := containerInfo.ProcessLabel
+	switch {
+	case c.ociRuntime.SupportsKVM():
+		processLabel, err = util.SELinuxKVMLabel(processLabel)
+		if err != nil {
+			return err
+		}
+	case c.config.Systemd:
+		processLabel, err = util.SELinuxInitLabel(processLabel)
+		if err != nil {
+			return err
+		}
+	}
+
+	c.config.ProcessLabel = processLabel
 	c.config.MountLabel = containerInfo.MountLabel
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir

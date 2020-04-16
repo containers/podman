@@ -564,6 +564,11 @@ func (c *Container) MountLabel() string {
 	return c.config.MountLabel
 }
 
+// Systemd returns whether the container will be running in systemd mode
+func (c *Container) Systemd() bool {
+	return c.config.Systemd
+}
+
 // User returns the user who the container is run as
 func (c *Container) User() string {
 	return c.config.User

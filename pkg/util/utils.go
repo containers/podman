@@ -21,6 +21,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -632,4 +633,39 @@ func ValidateSysctls(strSlice []string) (map[string]string, error) {
 		}
 	}
 	return sysctl, nil
+}
+
+// SELinuxKVMLabel returns labels for running kvm isolated containers
+func SELinuxKVMLabel(cLabel string) (string, error) {
+	if cLabel == "" {
+		// selinux is disabled
+		return "", nil
+	}
+	processLabel, _ := selinux.KVMContainerLabels()
+	selinux.ReleaseLabel(processLabel)
+	return swapSELinuxLabel(cLabel, processLabel)
+}
+
+// SELinuxInitLabel returns labels for running systemd based containers
+func SELinuxInitLabel(cLabel string) (string, error) {
+	if cLabel == "" {
+		// selinux is disabled
+		return "", nil
+	}
+	processLabel, _ := selinux.InitContainerLabels()
+	selinux.ReleaseLabel(processLabel)
+	return swapSELinuxLabel(cLabel, processLabel)
+}
+
+func swapSELinuxLabel(cLabel, processLabel string) (string, error) {
+	dcon, err := selinux.NewContext(cLabel)
+	if err != nil {
+		return "", err
+	}
+	scon, err := selinux.NewContext(processLabel)
+	if err != nil {
+		return "", err
+	}
+	dcon["type"] = scon["type"]
+	return dcon.Get(), nil
 }
