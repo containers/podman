@@ -14,7 +14,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/docker/go-units"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -127,7 +126,6 @@ func writeJSON(imageS []*entities.ImageSummary) error {
 		imgs = append(imgs, h)
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	enc := json.NewEncoder(os.Stdout)
 	return enc.Encode(imgs)
 }

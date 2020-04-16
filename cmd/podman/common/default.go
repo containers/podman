@@ -1,5 +1,9 @@
 package common
 
+import (
+	"github.com/containers/libpod/cmd/podman/registry"
+)
+
 var (
 	// DefaultHealthCheckInterval default value
 	DefaultHealthCheckInterval = "30s"
@@ -11,4 +15,6 @@ var (
 	DefaultHealthCheckTimeout = "30s"
 	// DefaultImageVolume default value
 	DefaultImageVolume = "bind"
+	// Pull in configured json library
+	json = registry.JsonLibrary()
 )

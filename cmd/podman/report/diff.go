@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/storage/pkg/archive"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
 
@@ -31,7 +30,7 @@ func ChangesToJSON(diffs *entities.DiffReport) error {
 		}
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	// Pull in configured json library
 	enc := json.NewEncoder(os.Stdout)
 	return enc.Encode(body)
 }
