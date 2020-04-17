@@ -52,11 +52,13 @@ a.codelink:hover   { background: #000; color: #999; }
 a.timing           { text-decoration: none; }
 
 /* BATS styles */
-.bats-ok        { color: #393; }
-.bats-notok     { color: #F00; font-weight: bold; }
-.bats-skip      { color: #F90; }
+.bats-passed    { color: #393; }
+.bats-failed    { color: #F00; font-weight: bold; }
+.bats-skipped   { color: #F90; }
 .bats-log       { color: #900; }
 .bats-log-esm   { color: #b00; font-weight: bold; }
+
+.bats-summary   { font-size: 150%; }
 
 /* error titles: display next to timestamp, not on separate line */
 h2 { display: inline; }
@@ -169,7 +171,7 @@ window.addEventListener("load", scrollToBottom, false);
 </script>
 </head>
 <body>
-<pre>
+<pre> <!-- begin processed output -->
 END_HTML
 
     # State variables
@@ -181,6 +183,7 @@ END_HTML
     my $after_divider = 0;        # Count of lines after seeing '-----'
     my $current_output;           # for removing duplication
     my $looks_like_bats;          # binary flag: for detecting BATS results
+    my %bats_count;               # For summary line: count of pass/fail/skip
 
     # Main loop: read input, one line at a time, and write out reformatted
   LINE:
@@ -221,15 +224,16 @@ END_HTML
         }
 
         # BATS handling (used also for apiv2 tests, which emit TAP output)
-        if ($line =~ /^1\.\.\d+$/ || $line =~ m!/test-apiv2!) {
+        if ($line =~ /^1\.\.(\d+)$/ || $line =~ m!/test-apiv2!) {
             $looks_like_bats = 1;
+            $bats_count{expected_total} = $1;
         }
         if ($looks_like_bats) {
             my $css;
 
-            if    ($line =~ /^ok\s.*\s# skip/) { $css = 'skip'    }
-            elsif ($line =~ /^ok\s/)           { $css = 'ok'      }
-            elsif ($line =~ /^not\s+ok\s/)     { $css = 'notok'   }
+            if    ($line =~ /^ok\s.*\s# skip/) { $css = 'skipped' }
+            elsif ($line =~ /^ok\s/)           { $css = 'passed'  }
+            elsif ($line =~ /^not\s+ok\s/)     { $css = 'failed'  }
             elsif ($line =~ /^#\s#\|\s/)       { $css = 'log-esm' }
             elsif ($line =~ /^#\s/)            { $css = 'log'     }
 
@@ -239,6 +243,8 @@ END_HTML
                     $line = sprintf("<a name='t--%05d'>%s</a>", $2, $line);
                 }
                 $line = "<span class='bats-$css'>$line</span>";
+
+                $bats_count{$css}++;
             }
 
             print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
@@ -354,7 +360,30 @@ END_HTML
     my $have_formatted_log;     # Set on success
 
     if ($out_fh) {
-        print { $out_fh } "</pre>\n";
+        # Summary line for BATS tests
+        if (keys %bats_count) {
+            print { $out_fh } "<hr/><span class='bats-summary'>Summary:";
+            my $total = 0;
+            my $comma = '';
+            for my $class (qw(passed failed skipped)) {
+                if (my $n = $bats_count{$class}) {
+                    printf { $out_fh } "%s <span class='bats-%s'>%d %s</span>",
+                        $comma, $class, $n, ucfirst($class);
+                    $total += $n;
+                    $comma = ',';
+                }
+            }
+
+            printf { $out_fh } ". Total tests: $total";
+            if (my $expected_total = $bats_count{expected_total}) {
+                if ($total != $expected_total) {
+                    print { $out_fh } " <span class='bats-failed'>(WARNING: expected $expected_total)</span>";
+                }
+            }
+            print { $out_fh } "</span>\n";
+        }
+
+        print { $out_fh } "</pre>  <!-- end processed output -->\n";
 
         # Did we find a cirrus task? Link back.
         if ($cirrus_task) {
