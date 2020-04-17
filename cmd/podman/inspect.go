@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/containers"
 	"github.com/containers/libpod/cmd/podman/images"
@@ -37,12 +38,14 @@ func init() {
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	if found, err := registry.ImageEngine().Exists(context.Background(), args[0]); err != nil {
-		return err
-	} else if found.Value {
-		return images.Inspect(cmd, args, inspectOpts)
+	// First check if the input is even valid for an image
+	if _, err := reference.Parse(args[0]); err == nil {
+		if found, err := registry.ImageEngine().Exists(context.Background(), args[0]); err != nil {
+			return err
+		} else if found.Value {
+			return images.Inspect(cmd, args, inspectOpts)
+		}
 	}
-
 	if found, err := registry.ContainerEngine().ContainerExists(context.Background(), args[0]); err != nil {
 		return err
 	} else if found.Value {

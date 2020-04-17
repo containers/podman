@@ -736,6 +736,16 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	} else {
 		report.ExitCode = int(ecode)
 	}
+	if opts.Rm {
+		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true); err != nil {
+			if errors.Cause(err) == define.ErrNoSuchCtr ||
+				errors.Cause(err) == define.ErrCtrRemoved {
+				logrus.Warnf("Container %s does not exist: %v", ctr.ID(), err)
+			} else {
+				logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
+			}
+		}
+	}
 	return &report, nil
 }
 

@@ -50,10 +50,10 @@ func (i *Image) Id() string {
 }
 
 type ImageSummary struct {
-	ID          string            `json:"Id"`
+	ID          string
 	ParentId    string            `json:",omitempty"`
 	RepoTags    []string          `json:",omitempty"`
-	Created     int64             `json:",omitempty"`
+	Created     time.Time         `json:",omitempty"`
 	Size        int64             `json:",omitempty"`
 	SharedSize  int               `json:",omitempty"`
 	VirtualSize int64             `json:",omitempty"`
