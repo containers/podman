@@ -82,19 +82,24 @@ func (i *ImageSummary) IsDangling() bool {
 	return i.Dangling
 }
 
-type ImageDeleteOptions struct {
-	All   bool
+// ImageRemoveOptions can be used to alter image removal.
+type ImageRemoveOptions struct {
+	// All will remove all images.
+	All bool
+	// Foce will force image removal including containers using the images.
 	Force bool
 }
 
-// ImageDeleteResponse is the response for removing one or more image(s) from storage
-// and containers what was untagged vs actually removed
-type ImageDeleteReport struct {
-	Untagged      []string `json:",omitempty"`
-	Deleted       []string `json:",omitempty"`
-	Errors        []error
-	ImageNotFound error
-	ImageInUse    error
+// ImageRemoveResponse is the response for removing one or more image(s) from storage
+// and containers what was untagged vs actually removed.
+type ImageRemoveReport struct {
+	// Deleted images.
+	Deleted []string `json:",omitempty"`
+	// Untagged images. Can be longer than Deleted.
+	Untagged []string `json:",omitempty"`
+	// ExitCode describes the exit codes as described in the `podman rmi`
+	// man page.
+	ExitCode int
 }
 
 type ImageHistoryOptions struct{}

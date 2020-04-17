@@ -822,6 +822,38 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/import"), s.APIHandler(libpod.ImagesImport)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/images/remove libpod libpodImagesRemove
+	// ---
+	// tags:
+	//  - images
+	// summary: Remove one or more images from the storage.
+	// description: Remove one or more images from the storage.
+	// parameters:
+	//   - in: query
+	//     name: images
+	//     description: Images IDs or names to remove.
+	//     type: array
+	//     items:
+	//        type: string
+	//   - in: query
+	//     name: all
+	//     description: Remove all images.
+	//     type: boolean
+	//     default: true
+	//   - in: query
+	//     name: force
+	//     description: Force image removal (including containers using the images).
+	//     type: boolean
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/responses/DocsLibpodImagesRemoveResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/images/remove"), s.APIHandler(libpod.ImagesRemove)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/images/pull libpod libpodImagesPull
 	// ---
 	// tags:

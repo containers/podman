@@ -1,20 +1,15 @@
-// +build ABISupport
-
 package abi
 
 import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
-	api "github.com/containers/libpod/pkg/api/server"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/rootless"
@@ -31,42 +26,6 @@ import (
 
 func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 	return ic.Libpod.Info()
-}
-
-func (ic *ContainerEngine) RestService(_ context.Context, opts entities.ServiceOptions) error {
-	var (
-		listener *net.Listener
-		err      error
-	)
-
-	if opts.URI != "" {
-		fields := strings.Split(opts.URI, ":")
-		if len(fields) == 1 {
-			return errors.Errorf("%s is an invalid socket destination", opts.URI)
-		}
-		address := strings.Join(fields[1:], ":")
-		l, err := net.Listen(fields[0], address)
-		if err != nil {
-			return errors.Wrapf(err, "unable to create socket %s", opts.URI)
-		}
-		listener = &l
-	}
-
-	server, err := api.NewServerWithSettings(ic.Libpod, opts.Timeout, listener)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := server.Shutdown(); err != nil {
-			logrus.Warnf("Error when stopping API service: %s", err)
-		}
-	}()
-
-	err = server.Serve()
-	if listener != nil {
-		_ = (*listener).Close()
-	}
-	return err
 }
 
 func (ic *ContainerEngine) VarlinkService(_ context.Context, opts entities.ServiceOptions) error {

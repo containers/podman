@@ -28,6 +28,7 @@ linters:
     - misspell
     - prealloc
     - unparam
+    - nakedret
 linters-settings:
   errcheck:
     check-blank: false

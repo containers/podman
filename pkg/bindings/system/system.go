@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -16,7 +16,7 @@ import (
 // Events allows you to monitor libdpod related events like container creation and
 // removal.  The events are then passed to the eventChan provided. The optional cancelChan
 // can be used to cancel the read of events and close down the HTTP connection.
-func Events(ctx context.Context, eventChan chan (handlers.Event), cancelChan chan bool, since, until *string, filters map[string][]string) error {
+func Events(ctx context.Context, eventChan chan (entities.Event), cancelChan chan bool, since, until *string, filters map[string][]string) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func Events(ctx context.Context, eventChan chan (handlers.Event), cancelChan cha
 	}
 	dec := json.NewDecoder(response.Body)
 	for {
-		e := handlers.Event{}
+		e := entities.Event{}
 		if err := dec.Decode(&e); err != nil {
 			if err == io.EOF {
 				break

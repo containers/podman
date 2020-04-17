@@ -6,8 +6,8 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/gorilla/schema"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -70,7 +70,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	coder.SetEscapeHTML(true)
 
 	for event := range eventChannel {
-		e := handlers.EventToApiEvent(event)
+		e := entities.ConvertToEntitiesEvent(*event)
 		if err := coder.Encode(e); err != nil {
 			logrus.Errorf("unable to write json: %q", err)
 		}

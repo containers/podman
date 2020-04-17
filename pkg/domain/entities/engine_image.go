@@ -9,7 +9,6 @@ import (
 type ImageEngine interface {
 	Build(ctx context.Context, containerFiles []string, opts BuildOptions) (*BuildReport, error)
 	Config(ctx context.Context) (*config.Config, error)
-	Delete(ctx context.Context, nameOrId []string, opts ImageDeleteOptions) (*ImageDeleteReport, error)
 	Diff(ctx context.Context, nameOrId string, options DiffOptions) (*DiffReport, error)
 	Exists(ctx context.Context, nameOrId string) (*BoolReport, error)
 	History(ctx context.Context, nameOrId string, opts ImageHistoryOptions) (*ImageHistoryReport, error)
@@ -20,6 +19,7 @@ type ImageEngine interface {
 	Prune(ctx context.Context, opts ImagePruneOptions) (*ImagePruneReport, error)
 	Pull(ctx context.Context, rawImage string, opts ImagePullOptions) (*ImagePullReport, error)
 	Push(ctx context.Context, source string, destination string, opts ImagePushOptions) error
+	Remove(ctx context.Context, images []string, opts ImageRemoveOptions) (*ImageRemoveReport, error)
 	Save(ctx context.Context, nameOrId string, tags []string, options ImageSaveOptions) error
 	Search(ctx context.Context, term string, opts ImageSearchOptions) ([]ImageSearchReport, error)
 	Tag(ctx context.Context, nameOrId string, tags []string, options ImageTagOptions) error

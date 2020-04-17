@@ -90,7 +90,8 @@ func service(cmd *cobra.Command, args []string) error {
 
 	logrus.Warn("This function is EXPERIMENTAL")
 	fmt.Fprintf(os.Stderr, "This function is EXPERIMENTAL.\n")
-	return registry.ContainerEngine().RestService(registry.GetContext(), opts)
+
+	return restService(opts, cmd.Flags(), registry.PodmanConfig())
 }
 
 func resolveApiURI(_url []string) (string, error) {

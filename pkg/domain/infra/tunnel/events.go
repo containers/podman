@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings/system"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -21,10 +20,10 @@ func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptio
 			filters[split[0]] = append(filters[split[0]], strings.Join(split[1:], "="))
 		}
 	}
-	binChan := make(chan handlers.Event)
+	binChan := make(chan entities.Event)
 	go func() {
 		for e := range binChan {
-			opts.EventChan <- e.ToLibpodEvent()
+			opts.EventChan <- entities.ConvertToLibpodEvent(e)
 		}
 	}()
 	return system.Events(ic.ClientCxt, binChan, nil, &opts.Since, &opts.Until, filters)

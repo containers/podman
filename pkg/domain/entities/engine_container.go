@@ -54,7 +54,6 @@ type ContainerEngine interface {
 	PodStop(ctx context.Context, namesOrIds []string, options PodStopOptions) ([]*PodStopReport, error)
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
-	RestService(ctx context.Context, opts ServiceOptions) error
 	SetupRootless(ctx context.Context, cmd *cobra.Command) error
 	VarlinkService(ctx context.Context, opts ServiceOptions) error
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)

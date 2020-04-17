@@ -22,6 +22,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/domain/infra/abi"
 	"github.com/containers/libpod/pkg/util"
 	utils2 "github.com/containers/libpod/utils"
 	"github.com/gorilla/schema"
@@ -697,4 +698,31 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, reports)
+}
+
+// ImagesRemove is the endpoint for image removal.
+func ImagesRemove(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		All    bool     `schema:"all"`
+		Force  bool     `schema:"force"`
+		Images []string `schema:"images"`
+	}{
+		All:   false,
+		Force: false,
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	opts := entities.ImageRemoveOptions{All: query.All, Force: query.Force}
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	rmReport, rmError := imageEngine.Remove(r.Context(), query.Images, opts)
+	report := handlers.LibpodImagesRemoveReport{ImageRemoveReport: *rmReport, Error: rmError.Error()}
+	utils.WriteResponse(w, http.StatusOK, report)
 }

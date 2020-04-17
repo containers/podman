@@ -4,16 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/libpod/libpod/events"
 	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
-	dockerEvents "github.com/docker/docker/api/types/events"
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
@@ -37,6 +34,14 @@ type LibpodImagesLoadReport struct {
 
 type LibpodImagesPullReport struct {
 	ID string `json:"id"`
+}
+
+// LibpodImagesRemoveReport is the return type for image removal via the rest
+// api.
+type LibpodImagesRemoveReport struct {
+	entities.ImageRemoveReport
+	// Image removal requires is to return data and an error.
+	Error string
 }
 
 type ContainersPruneReport struct {
@@ -143,10 +148,6 @@ type PodCreateConfig struct {
 	Share        string   `json:"share"`
 }
 
-type Event struct {
-	dockerEvents.Message
-}
-
 type HistoryResponse struct {
 	ID        string   `json:"Id"`
 	Created   int64    `json:"Created"`
@@ -171,49 +172,6 @@ type ExecCreateConfig struct {
 
 type ExecCreateResponse struct {
 	docker.IDResponse
-}
-
-func (e *Event) ToLibpodEvent() *events.Event {
-	exitCode, err := strconv.Atoi(e.Actor.Attributes["containerExitCode"])
-	if err != nil {
-		return nil
-	}
-	status, err := events.StringToStatus(e.Action)
-	if err != nil {
-		return nil
-	}
-	t, err := events.StringToType(e.Type)
-	if err != nil {
-		return nil
-	}
-	lp := events.Event{
-		ContainerExitCode: exitCode,
-		ID:                e.Actor.ID,
-		Image:             e.Actor.Attributes["image"],
-		Name:              e.Actor.Attributes["name"],
-		Status:            status,
-		Time:              time.Unix(e.Time, e.TimeNano),
-		Type:              t,
-	}
-	return &lp
-}
-
-func EventToApiEvent(e *events.Event) *Event {
-	return &Event{dockerEvents.Message{
-		Type:   e.Type.String(),
-		Action: e.Status.String(),
-		Actor: dockerEvents.Actor{
-			ID: e.ID,
-			Attributes: map[string]string{
-				"image":             e.Image,
-				"name":              e.Name,
-				"containerExitCode": strconv.Itoa(e.ContainerExitCode),
-			},
-		},
-		Scope:    "local",
-		Time:     e.Time.Unix(),
-		TimeNano: e.Time.UnixNano(),
-	}}
 }
 
 func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {

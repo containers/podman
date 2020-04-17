@@ -19,25 +19,8 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.Boo
 	return &entities.BoolReport{Value: found}, err
 }
 
-func (ir *ImageEngine) Delete(ctx context.Context, nameOrId []string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {
-	report := entities.ImageDeleteReport{}
-
-	for _, id := range nameOrId {
-		results, err := images.Remove(ir.ClientCxt, id, &opts.Force)
-		if err != nil {
-			return nil, err
-		}
-		for _, e := range results {
-			if a, ok := e["Deleted"]; ok {
-				report.Deleted = append(report.Deleted, a)
-			}
-
-			if a, ok := e["Untagged"]; ok {
-				report.Untagged = append(report.Untagged, a)
-			}
-		}
-	}
-	return &report, nil
+func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts entities.ImageRemoveOptions) (*entities.ImageRemoveReport, error) {
+	return images.Remove(ir.ClientCxt, imagesArg, opts)
 }
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
