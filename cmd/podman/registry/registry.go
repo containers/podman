@@ -49,8 +49,8 @@ func ImageEngine() entities.ImageEngine {
 // NewImageEngine is a wrapper for building an ImageEngine to be used for PreRunE functions
 func NewImageEngine(cmd *cobra.Command, args []string) (entities.ImageEngine, error) {
 	if imageEngine == nil {
-		PodmanOptions.FlagSet = cmd.Flags()
-		engine, err := infra.NewImageEngine(PodmanOptions)
+		podmanOptions.FlagSet = cmd.Flags()
+		engine, err := infra.NewImageEngine(&podmanOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -66,8 +66,8 @@ func ContainerEngine() entities.ContainerEngine {
 // NewContainerEngine is a wrapper for building an ContainerEngine to be used for PreRunE functions
 func NewContainerEngine(cmd *cobra.Command, args []string) (entities.ContainerEngine, error) {
 	if containerEngine == nil {
-		PodmanOptions.FlagSet = cmd.Flags()
-		engine, err := infra.NewContainerEngine(PodmanOptions)
+		podmanOptions.FlagSet = cmd.Flags()
+		engine, err := infra.NewContainerEngine(&podmanOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +101,7 @@ func Context() context.Context {
 }
 
 func ContextWithOptions(ctx context.Context) context.Context {
-	cliCtx = context.WithValue(ctx, PodmanOptionsKey{}, PodmanOptions)
+	cliCtx = context.WithValue(ctx, PodmanOptionsKey{}, podmanOptions)
 	return cliCtx
 }
 

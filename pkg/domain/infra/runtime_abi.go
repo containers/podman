@@ -12,7 +12,7 @@ import (
 )
 
 // NewContainerEngine factory provides a libpod runtime for container-related operations
-func NewContainerEngine(facts entities.PodmanConfig) (entities.ContainerEngine, error) {
+func NewContainerEngine(facts *entities.PodmanConfig) (entities.ContainerEngine, error) {
 	switch facts.EngineMode {
 	case entities.ABIMode:
 		r, err := NewLibpodRuntime(facts.FlagSet, facts)
@@ -25,7 +25,7 @@ func NewContainerEngine(facts entities.PodmanConfig) (entities.ContainerEngine, 
 }
 
 // NewContainerEngine factory provides a libpod runtime for image-related operations
-func NewImageEngine(facts entities.PodmanConfig) (entities.ImageEngine, error) {
+func NewImageEngine(facts *entities.PodmanConfig) (entities.ImageEngine, error) {
 	switch facts.EngineMode {
 	case entities.ABIMode:
 		r, err := NewLibpodImageRuntime(facts.FlagSet, facts)

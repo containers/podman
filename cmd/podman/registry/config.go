@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -19,11 +20,18 @@ const (
 )
 
 var (
-	PodmanOptions entities.PodmanConfig
+	podmanOptions entities.PodmanConfig
+	podmanSync    sync.Once
 )
 
-// NewPodmanConfig creates a PodmanConfig from the environment
-func NewPodmanConfig() entities.PodmanConfig {
+// PodmanConfig returns an entities.PodmanConfig built up from
+// environment and CLI
+func PodmanConfig() *entities.PodmanConfig {
+	podmanSync.Do(newPodmanConfig)
+	return &podmanOptions
+}
+
+func newPodmanConfig() {
 	if err := setXdgDirs(); err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
@@ -63,7 +71,7 @@ func NewPodmanConfig() entities.PodmanConfig {
 		cfg.Network.NetworkConfigDir = ""
 	}
 
-	return entities.PodmanConfig{Config: cfg, EngineMode: mode}
+	podmanOptions = entities.PodmanConfig{Config: cfg, EngineMode: mode}
 }
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
