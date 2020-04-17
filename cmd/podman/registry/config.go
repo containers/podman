@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/containers/common/pkg/config"
@@ -37,28 +35,6 @@ func newPodmanConfig() {
 		os.Exit(1)
 	}
 
-	var mode entities.EngineMode
-	switch runtime.GOOS {
-	case "darwin":
-		fallthrough
-	case "windows":
-		mode = entities.TunnelMode
-	case "linux":
-		mode = entities.ABIMode
-	default:
-		fmt.Fprintf(os.Stderr, "%s is not a supported OS", runtime.GOOS)
-		os.Exit(1)
-	}
-
-	// cobra.Execute() may not be called yet, so we peek at os.Args.
-	for _, v := range os.Args {
-		// Prefix checking works because of how default EngineMode's
-		// have been defined.
-		if strings.HasPrefix(v, "--remote") {
-			mode = entities.TunnelMode
-		}
-	}
-
 	// FIXME: for rootless, add flag to get the path to override configuration
 	cfg, err := config.NewConfig("")
 	if err != nil {
@@ -71,7 +47,7 @@ func newPodmanConfig() {
 		cfg.Network.NetworkConfigDir = ""
 	}
 
-	podmanOptions = entities.PodmanConfig{Config: cfg, EngineMode: mode}
+	podmanOptions = entities.PodmanConfig{Config: cfg, EngineMode: _engineMode}
 }
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
