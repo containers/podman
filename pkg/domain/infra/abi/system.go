@@ -35,7 +35,7 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 
 func (ic *ContainerEngine) RestService(_ context.Context, opts entities.ServiceOptions) error {
 	var (
-		listener net.Listener
+		listener *net.Listener
 		err      error
 	)
 
@@ -45,13 +45,14 @@ func (ic *ContainerEngine) RestService(_ context.Context, opts entities.ServiceO
 			return errors.Errorf("%s is an invalid socket destination", opts.URI)
 		}
 		address := strings.Join(fields[1:], ":")
-		listener, err = net.Listen(fields[0], address)
+		l, err := net.Listen(fields[0], address)
 		if err != nil {
 			return errors.Wrapf(err, "unable to create socket %s", opts.URI)
 		}
+		listener = &l
 	}
 
-	server, err := api.NewServerWithSettings(ic.Libpod, opts.Timeout, &listener)
+	server, err := api.NewServerWithSettings(ic.Libpod, opts.Timeout, listener)
 	if err != nil {
 		return err
 	}
@@ -62,7 +63,9 @@ func (ic *ContainerEngine) RestService(_ context.Context, opts entities.ServiceO
 	}()
 
 	err = server.Serve()
-	_ = listener.Close()
+	if listener != nil {
+		_ = (*listener).Close()
+	}
 	return err
 }
 

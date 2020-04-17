@@ -3,38 +3,33 @@ package systemd
 import (
 	"os"
 	"strconv"
-	"strings"
 )
 
 // SocketActivated determine if podman is running under the socket activation protocol
+// Criteria is based on the expectations of "github.com/coreos/go-systemd/v22/activation"
 func SocketActivated() bool {
-	pid, pid_found := os.LookupEnv("LISTEN_PID")
-	fds, fds_found := os.LookupEnv("LISTEN_FDS")
-	fdnames, fdnames_found := os.LookupEnv("LISTEN_FDNAMES")
-
-	if !(pid_found && fds_found && fdnames_found) {
+	pid, found := os.LookupEnv("LISTEN_PID")
+	if !found {
 		return false
 	}
-
 	p, err := strconv.Atoi(pid)
 	if err != nil || p != os.Getpid() {
 		return false
 	}
 
+	fds, found := os.LookupEnv("LISTEN_FDS")
+	if !found {
+		return false
+	}
 	nfds, err := strconv.Atoi(fds)
-	if err != nil || nfds < 1 {
+	if err != nil || nfds == 0 {
 		return false
 	}
 
-	// First available file descriptor is always 3.
-	if nfds > 1 {
-		names := strings.Split(fdnames, ":")
-		for _, n := range names {
-			if strings.Contains(n, "podman") {
-				return true
-			}
-		}
+	// "github.com/coreos/go-systemd/v22/activation" will use and validate this variable's
+	// value. We're just providing a fast fail
+	if _, found = os.LookupEnv("LISTEN_FDNAMES"); !found {
+		return false
 	}
-
 	return true
 }
