@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
@@ -103,4 +104,15 @@ func (e ErrorModel) Cause() error {
 
 func (e ErrorModel) Code() int {
 	return e.ResponseCode
+}
+
+// BuildOptions describe the options for building container images.
+type BuildOptions struct {
+	imagebuildah.BuildOptions
+}
+
+// BuildReport is the image-build report.
+type BuildReport struct {
+	// ID of the image.
+	ID string
 }
