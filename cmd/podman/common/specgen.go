@@ -34,6 +34,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		return nil
 	}
 
+	s.User = c.User
 	inputCommand := args[1:]
 	if len(c.HealthCmd) > 0 {
 		s.HealthConfig, err = makeHealthCheckFromCli(c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod)
