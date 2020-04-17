@@ -32,10 +32,10 @@ import (
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -845,6 +845,26 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 // Dangling returns a bool if the image is "dangling"
 func (i *Image) Dangling() bool {
 	return len(i.Names()) == 0
+}
+
+// Intermediate returns true if the image is cache or intermediate image.
+// Cache image has parent and child.
+func (i *Image) Intermediate(ctx context.Context) (bool, error) {
+	parent, err := i.IsParent(ctx)
+	if err != nil {
+		return false, err
+	}
+	if !parent {
+		return false, nil
+	}
+	img, err := i.GetParent(ctx)
+	if err != nil {
+		return false, err
+	}
+	if img != nil {
+		return true, nil
+	}
+	return false, nil
 }
 
 // Labels returns the image's labels

@@ -57,7 +57,7 @@ func generatePruneFilterFuncs(filter, filterValue string) (ImageFilter, error) {
 }
 
 // GetPruneImages returns a slice of images that have no names/unused
-func (ir *Runtime) GetPruneImages(all bool, filterFuncs []ImageFilter) ([]*Image, error) {
+func (ir *Runtime) GetPruneImages(ctx context.Context, all bool, filterFuncs []ImageFilter) ([]*Image, error) {
 	var (
 		pruneImages []*Image
 	)
@@ -74,10 +74,6 @@ func (ir *Runtime) GetPruneImages(all bool, filterFuncs []ImageFilter) ([]*Image
 			}
 		}
 
-		if len(i.Names()) == 0 {
-			pruneImages = append(pruneImages, i)
-			continue
-		}
 		if all {
 			containers, err := i.Containers()
 			if err != nil {
@@ -85,7 +81,21 @@ func (ir *Runtime) GetPruneImages(all bool, filterFuncs []ImageFilter) ([]*Image
 			}
 			if len(containers) < 1 {
 				pruneImages = append(pruneImages, i)
+				continue
 			}
+		}
+
+		//skip the cache or intermediate images
+		intermediate, err := i.Intermediate(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if intermediate {
+			continue
+		}
+
+		if i.Dangling() {
+			pruneImages = append(pruneImages, i)
 		}
 	}
 	return pruneImages, nil
@@ -111,7 +121,7 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 
-	pruneImages, err := ir.GetPruneImages(all, filterFuncs)
+	pruneImages, err := ir.GetPruneImages(ctx, all, filterFuncs)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get images to prune")
 	}
