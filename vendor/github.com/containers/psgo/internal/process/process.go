@@ -192,7 +192,7 @@ func (p *Process) ElapsedTime() (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	return (time.Now()).Sub(startTime), nil
+	return time.Since(startTime), nil
 }
 
 // StarTime returns the time.Time when process p was started.
