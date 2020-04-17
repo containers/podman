@@ -136,6 +136,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	if cliVals.Detach {
 		fmt.Println(report.Id)
+		return nil
 	}
 	if runRmi {
 		_, err := registry.ImageEngine().Delete(registry.GetContext(), []string{args[0]}, entities.ImageDeleteOptions{})

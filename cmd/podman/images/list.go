@@ -112,14 +112,16 @@ func images(cmd *cobra.Command, args []string) error {
 func writeJSON(imageS []*entities.ImageSummary) error {
 	type image struct {
 		entities.ImageSummary
-		Created string
+		Created   string
+		CreatedAt string
 	}
 
 	imgs := make([]image, 0, len(imageS))
 	for _, e := range imageS {
 		var h image
 		h.ImageSummary = *e
-		h.Created = time.Unix(e.Created, 0).Format(time.RFC3339)
+		h.Created = units.HumanDuration(time.Since(e.Created)) + " ago"
+		h.CreatedAt = e.Created.Format(time.RFC3339Nano)
 		h.RepoTags = nil
 
 		imgs = append(imgs, h)
@@ -196,7 +198,7 @@ func sortFunc(key string, data []*entities.ImageSummary) func(i, j int) bool {
 	default:
 		// case "created":
 		return func(i, j int) bool {
-			return data[i].Created >= data[j].Created
+			return data[i].Created.After(data[j].Created)
 		}
 	}
 }
@@ -255,11 +257,11 @@ func (i imageReporter) ID() string {
 	if !listFlag.noTrunc && len(i.ImageSummary.ID) >= 12 {
 		return i.ImageSummary.ID[0:12]
 	}
-	return i.ImageSummary.ID
+	return "sha256:" + i.ImageSummary.ID
 }
 
 func (i imageReporter) Created() string {
-	return units.HumanDuration(time.Since(time.Unix(i.ImageSummary.Created, 0))) + " ago"
+	return units.HumanDuration(time.Since(i.ImageSummary.Created)) + " ago"
 }
 
 func (i imageReporter) Size() string {
