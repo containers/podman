@@ -9,7 +9,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/specgen"
@@ -50,8 +49,8 @@ func init() {
 	flags.AddFlagSet(common.GetNetFlags())
 	flags.StringVar(&createOptions.CGroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
 	flags.BoolVar(&createOptions.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
-	flags.StringVar(&createOptions.InfraImage, "infra-image", define.DefaultInfraImage, "The image of the infra container to associate with the pod")
-	flags.StringVar(&createOptions.InfraCommand, "infra-command", define.DefaultInfraCommand, "The command to run on the infra container when the pod is started")
+	flags.StringVar(&createOptions.InfraImage, "infra-image", containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
+	flags.StringVar(&createOptions.InfraCommand, "infra-command", containerConfig.Engine.InfraCommand, "The command to run on the infra container when the pod is started")
 	flags.StringSliceVar(&labelFile, "label-file", []string{}, "Read in a line delimited file of labels")
 	flags.StringSliceVarP(&labels, "label", "l", []string{}, "Set metadata on pod (default [])")
 	flags.StringVarP(&createOptions.Name, "name", "n", "", "Assign a name to the pod")

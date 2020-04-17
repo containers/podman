@@ -51,12 +51,12 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.CGroupsNS,
-		"cgroupns", getDefaultCgroupNS(),
+		"cgroupns", containerConfig.CgroupNS(),
 		"cgroup namespace to use",
 	)
 	createFlags.StringVar(
 		&cf.CGroups,
-		"cgroups", "enabled",
+		"cgroups", containerConfig.Cgroups(),
 		`control container cgroup configuration ("enabled"|"disabled"|"no-conmon")`,
 	)
 	createFlags.StringVar(
@@ -121,12 +121,12 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.DetachKeys,
-		"detach-keys", GetDefaultDetachKeys(),
+		"detach-keys", containerConfig.DetachKeys(),
 		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-cf`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
 	)
 	createFlags.StringSliceVar(
 		&cf.Device,
-		"device", getDefaultDevices(),
+		"device", containerConfig.Devices(),
 		fmt.Sprintf("Add a host device to the container"),
 	)
 	createFlags.StringSliceVar(
@@ -161,7 +161,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringArrayVarP(
 		&cf.env,
-		"env", "e", getDefaultEnv(),
+		"env", "e", containerConfig.Env(),
 		"Set environment variables in container",
 	)
 	createFlags.BoolVar(
@@ -238,7 +238,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.InitPath,
-		"init-path", getDefaultInitPath(),
+		"init-path", containerConfig.InitPath(),
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
 		fmt.Sprintf("Path to the container-init binary"),
 	)
@@ -249,7 +249,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.IPC,
-		"ipc", getDefaultIPCNS(),
+		"ipc", containerConfig.IPCNS(),
 		"IPC namespace to use",
 	)
 	createFlags.StringVar(
@@ -331,13 +331,13 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	// markFlagHidden(createFlags, "override-os")
 	createFlags.StringVar(
 		&cf.PID,
-		"pid", getDefaultPidNS(),
+		"pid", containerConfig.PidNS(),
 		"PID namespace to use",
 	)
 	createFlags.Int64Var(
 		&cf.PIDsLimit,
-		"pids-limit", getDefaultPidsLimit(),
-		getDefaultPidsDescription(),
+		"pids-limit", containerConfig.PidsLimit(),
+		"Tune container pids limit (set 0 for unlimited, -1 for server defaults)",
 	)
 	createFlags.StringVar(
 		&cf.Pod,
@@ -391,12 +391,12 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringArrayVar(
 		&cf.SecurityOpt,
-		"security-opt", getDefaultSecurityOptions(),
+		"security-opt", containerConfig.SecurityOptions(),
 		"Security Options",
 	)
 	createFlags.StringVar(
 		&cf.ShmSize,
-		"shm-size", getDefaultShmSize(),
+		"shm-size", containerConfig.ShmSize(),
 		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
 	createFlags.StringVar(
@@ -427,7 +427,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 
 	createFlags.StringSliceVar(
 		&cf.Sysctl,
-		"sysctl", getDefaultSysctls(),
+		"sysctl", containerConfig.Sysctls(),
 		"Sysctl options",
 	)
 	createFlags.StringVar(
@@ -452,7 +452,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringSliceVar(
 		&cf.Ulimit,
-		"ulimit", getDefaultUlimits(),
+		"ulimit", containerConfig.Ulimits(),
 		"Ulimit options",
 	)
 	createFlags.StringVarP(
@@ -462,12 +462,12 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.UserNS,
-		"userns", getDefaultUserNS(),
+		"userns", containerConfig.Containers.UserNS,
 		"User namespace to use",
 	)
 	createFlags.StringVar(
 		&cf.UTS,
-		"uts", getDefaultUTSNS(),
+		"uts", containerConfig.Containers.UTSNS,
 		"UTS namespace to use",
 	)
 	createFlags.StringArrayVar(
@@ -477,7 +477,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringArrayVarP(
 		&cf.Volume,
-		"volume", "v", getDefaultVolumes(),
+		"volume", "v", containerConfig.Volumes(),
 		"Bind mount a volume into the container",
 	)
 	createFlags.StringSliceVar(

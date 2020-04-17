@@ -1,14 +1,16 @@
 package specgen
 
 import (
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 )
 
 var (
 	// ErrInvalidPodSpecConfig describes an error given when the podspecgenerator is invalid
 	ErrInvalidPodSpecConfig error = errors.New("invalid pod spec")
+	// containerConfig has the default configurations defined in containers.conf
+	containerConfig = util.DefaultContainerConfig()
 )
 
 func exclusivePodOptions(opt1, opt2 string) error {
@@ -96,10 +98,10 @@ func (p *PodSpecGenerator) Validate() error {
 		}
 	}
 	if len(p.InfraImage) < 1 {
-		p.InfraImage = define.DefaultInfraImage
+		p.InfraImage = containerConfig.Engine.InfraImage
 	}
 	if len(p.InfraCommand) < 1 {
-		p.InfraCommand = []string{define.DefaultInfraCommand}
+		p.InfraCommand = []string{containerConfig.Engine.InfraCommand}
 	}
 	return nil
 }

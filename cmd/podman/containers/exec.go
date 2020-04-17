@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"os"
 
-	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	envLib "github.com/containers/libpod/pkg/env"
@@ -38,7 +37,7 @@ func init() {
 	})
 	flags := execCommand.Flags()
 	flags.SetInterspersed(false)
-	flags.StringVar(&execOpts.DetachKeys, "detach-keys", common.GetDefaultDetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
+	flags.StringVar(&execOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
 	flags.StringArrayVarP(&envInput, "env", "e", []string{}, "Set environment variables")
 	flags.StringSliceVar(&envFile, "env-file", []string{}, "Read in a file of environment variables")
 	flags.BoolVarP(&execOpts.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")

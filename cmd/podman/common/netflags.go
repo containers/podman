@@ -15,15 +15,15 @@ func GetNetFlags() *pflag.FlagSet {
 		"Add a custom host-to-IP mapping (host:ip) (default [])",
 	)
 	netFlags.StringSlice(
-		"dns", getDefaultDNSServers(),
+		"dns", containerConfig.DNSServers(),
 		"Set custom DNS servers",
 	)
 	netFlags.StringSlice(
-		"dns-opt", getDefaultDNSOptions(),
+		"dns-opt", containerConfig.DNSOptions(),
 		"Set custom DNS options",
 	)
 	netFlags.StringSlice(
-		"dns-search", getDefaultDNSSearches(),
+		"dns-search", containerConfig.DNSSearches(),
 		"Set custom DNS search domains",
 	)
 	netFlags.String(
@@ -35,7 +35,7 @@ func GetNetFlags() *pflag.FlagSet {
 		"Container MAC address (e.g. 92:d0:c6:0a:29:33)",
 	)
 	netFlags.String(
-		"network", getDefaultNetNS(),
+		"network", containerConfig.NetNS(),
 		"Connect a container to a network",
 	)
 	netFlags.StringSliceP(

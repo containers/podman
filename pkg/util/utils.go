@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -26,6 +27,17 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 )
+
+var containerConfig *config.Config
+
+func init() {
+	var err error
+	containerConfig, err = config.Default()
+	if err != nil {
+		logrus.Error(err)
+		os.Exit(1)
+	}
+}
 
 // Helper function to determine the username/password passed
 // in the creds string.  It could be either or both.
@@ -668,4 +680,8 @@ func swapSELinuxLabel(cLabel, processLabel string) (string, error) {
 	}
 	dcon["type"] = scon["type"]
 	return dcon.Get(), nil
+}
+
+func DefaultContainerConfig() *config.Config {
+	return containerConfig
 }

@@ -6,10 +6,6 @@ import (
 )
 
 var (
-	// DefaultInfraImage to use for infra container
-	DefaultInfraImage = "k8s.gcr.io/pause:3.2"
-	// DefaultInfraCommand to be run in an infra container
-	DefaultInfraCommand = "/pause"
 	// DefaultSHMLockPath is the default path for SHM locks
 	DefaultSHMLockPath = "/libpod_lock"
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks

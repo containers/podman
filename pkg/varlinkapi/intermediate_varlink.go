@@ -331,7 +331,7 @@ func intFromVarlink(v *int64, flagName string, defaultValue *int) CRInt {
 // structure.
 func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	// FIXME this will need to be fixed!!!!! With containers conf
-	//defaultContainerConfig := cliconfig.GetDefaultConfig()
+	//containerConfig := cliconfig.GetDefaultConfig()
 	// TODO | WARN
 	// We do not get a default network over varlink. Unlike the other default values for some cli
 	// elements, it seems it gets set to the default anyway.

@@ -1,12 +1,9 @@
 package containers
 
 import (
-	"os"
-
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/sirupsen/logrus"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +17,7 @@ var (
 		RunE:             registry.SubCommandExists,
 	}
 
-	defaultContainerConfig = getDefaultContainerConfig()
+	containerConfig = util.DefaultContainerConfig()
 )
 
 func init() {
@@ -28,13 +25,4 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerCmd,
 	})
-}
-
-func getDefaultContainerConfig() *config.Config {
-	defaultContainerConfig, err := config.Default()
-	if err != nil {
-		logrus.Error(err)
-		os.Exit(1)
-	}
-	return defaultContainerConfig
 }

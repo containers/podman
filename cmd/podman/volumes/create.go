@@ -40,7 +40,7 @@ func init() {
 		Parent:  volumeCmd,
 	})
 	flags := createCommand.Flags()
-	flags.StringVar(&createOpts.Driver, "driver", "", "Specify volume driver name (default local)")
+	flags.StringVar(&createOpts.Driver, "driver", "local", "Specify volume driver name")
 	flags.StringSliceVarP(&opts.Label, "label", "l", []string{}, "Set metadata for a volume (default [])")
 	flags.StringArrayVarP(&opts.Opts, "opt", "o", []string{}, "Set driver specific options (default [])")
 }

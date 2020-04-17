@@ -46,12 +46,12 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
 		return
 	}
-	defaultContainerConfig, err := runtime.GetConfig()
+	containerConfig, err := runtime.GetConfig()
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "GetConfig()"))
 		return
 	}
-	cc, err := makeCreateConfig(defaultContainerConfig, input, newImage)
+	cc, err := makeCreateConfig(containerConfig, input, newImage)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "makeCreatConfig()"))
 		return
@@ -60,7 +60,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	utils.CreateContainer(r.Context(), w, runtime, &cc)
 }
 
-func makeCreateConfig(defaultContainerConfig *config.Config, input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
+func makeCreateConfig(containerConfig *config.Config, input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
 	var (
 		err     error
 		init    bool
@@ -81,7 +81,7 @@ func makeCreateConfig(defaultContainerConfig *config.Config, input handlers.Crea
 		workDir = input.WorkingDir
 	}
 
-	stopTimeout := defaultContainerConfig.Engine.StopTimeout
+	stopTimeout := containerConfig.Engine.StopTimeout
 	if input.StopTimeout != nil {
 		stopTimeout = uint(*input.StopTimeout)
 	}
