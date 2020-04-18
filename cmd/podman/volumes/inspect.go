@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/registry"
@@ -61,7 +62,11 @@ func inspect(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println(string(jsonOut))
 	default:
-		tmpl, err := template.New("volumeInspect").Parse(inspectFormat)
+		if !strings.HasSuffix(inspectFormat, "\n") {
+			inspectFormat += "\n"
+		}
+		format := "{{range . }}" + inspectFormat + "{{end}}"
+		tmpl, err := template.New("volumeInspect").Parse(format)
 		if err != nil {
 			return err
 		}

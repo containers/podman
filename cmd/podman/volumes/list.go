@@ -68,6 +68,9 @@ func list(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if len(responses) < 1 {
+		return nil
+	}
 	// "\t" from the command line is not being recognized as a tab
 	// replacing the string "\t" to a tab character if the user passes in "\t"
 	cliOpts.Format = strings.Replace(cliOpts.Format, `\t`, "\t", -1)
