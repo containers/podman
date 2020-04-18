@@ -134,7 +134,7 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 	s.StaticMAC = p.Net.StaticMAC
 	s.PortMappings = p.Net.PublishPorts
 	s.CNINetworks = p.Net.CNINetworks
-	if p.Net.DNSHost {
+	if p.Net.UseImageResolvConf {
 		s.NoManageResolvConf = true
 	}
 	s.DNSServer = p.Net.DNSServers

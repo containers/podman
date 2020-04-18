@@ -32,17 +32,17 @@ type VolumeDeleteReport struct{ Report }
 // NetOptions reflect the shared network options between
 // pods and containers
 type NetOptions struct {
-	AddHosts     []string
-	CNINetworks  []string
-	DNSHost      bool
-	DNSOptions   []string
-	DNSSearch    []string
-	DNSServers   []net.IP
-	Network      specgen.Namespace
-	NoHosts      bool
-	PublishPorts []ocicni.PortMapping
-	StaticIP     *net.IP
-	StaticMAC    *net.HardwareAddr
+	AddHosts           []string
+	CNINetworks        []string
+	UseImageResolvConf bool
+	DNSOptions         []string
+	DNSSearch          []string
+	DNSServers         []net.IP
+	Network            specgen.Namespace
+	NoHosts            bool
+	PublishPorts       []ocicni.PortMapping
+	StaticIP           *net.IP
+	StaticMAC          *net.HardwareAddr
 }
 
 // All CLI inspect commands and inspect sub-commands use the same options

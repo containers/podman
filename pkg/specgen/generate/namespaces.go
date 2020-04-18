@@ -147,20 +147,19 @@ func GenerateNamespaceContainerOpts(s *specgen.SpecGenerator, rt *libpod.Runtime
 	if len(s.DNSSearch) > 0 {
 		options = append(options, libpod.WithDNSSearch(s.DNSSearch))
 	}
-	if len(s.DNSServer) > 0 {
-		// TODO I'm not sure how we are going to handle this given the input
-		if len(s.DNSServer) == 1 { //&& strings.ToLower(s.DNSServer[0].) == "none" {
-			options = append(options, libpod.WithUseImageResolvConf())
-		} else {
-			var dnsServers []string
-			for _, d := range s.DNSServer {
-				dnsServers = append(dnsServers, d.String())
-			}
-			options = append(options, libpod.WithDNS(dnsServers))
+
+	if s.UseImageResolvConf {
+		options = append(options, libpod.WithUseImageResolvConf())
+	} else {
+		var dnsServers []string
+		for _, d := range s.DNSServers {
+			dnsServers = append(dnsServers, d.String())
 		}
+		options = append(options, libpod.WithDNS(dnsServers))
 	}
-	if len(s.DNSOption) > 0 {
-		options = append(options, libpod.WithDNSOption(s.DNSOption))
+
+	if len(s.DNSOptions) > 0 {
+		options = append(options, libpod.WithDNSOption(s.DNSOptions))
 	}
 	if s.StaticIP != nil {
 		options = append(options, libpod.WithStaticIP(*s.StaticIP))
