@@ -867,22 +867,77 @@ func (i *Image) Intermediate(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
+// User returns the image's user
+func (i *Image) User(ctx context.Context) (string, error) {
+	imgInspect, err := i.inspect(ctx, false)
+	if err != nil {
+		return "", err
+	}
+	return imgInspect.Config.User, nil
+}
+
+// StopSignal returns the image's StopSignal
+func (i *Image) StopSignal(ctx context.Context) (string, error) {
+	imgInspect, err := i.inspect(ctx, false)
+	if err != nil {
+		return "", err
+	}
+	return imgInspect.Config.StopSignal, nil
+}
+
+// WorkingDir returns the image's WorkingDir
+func (i *Image) WorkingDir(ctx context.Context) (string, error) {
+	imgInspect, err := i.inspect(ctx, false)
+	if err != nil {
+		return "", err
+	}
+	return imgInspect.Config.WorkingDir, nil
+}
+
+// Cmd returns the image's cmd
+func (i *Image) Cmd(ctx context.Context) ([]string, error) {
+	imgInspect, err := i.inspect(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	return imgInspect.Config.Cmd, nil
+}
+
+// Entrypoint returns the image's entrypoint
+func (i *Image) Entrypoint(ctx context.Context) ([]string, error) {
+	imgInspect, err := i.inspect(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	return imgInspect.Config.Entrypoint, nil
+}
+
+// Env returns the image's env
+func (i *Image) Env(ctx context.Context) ([]string, error) {
+	imgInspect, err := i.imageInspectInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return imgInspect.Env, nil
+}
+
 // Labels returns the image's labels
 func (i *Image) Labels(ctx context.Context) (map[string]string, error) {
 	imgInspect, err := i.imageInspectInfo(ctx)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	return imgInspect.Labels, nil
 }
 
 // GetLabel Returns a case-insensitive match of a given label
 func (i *Image) GetLabel(ctx context.Context, label string) (string, error) {
-	imageLabels, err := i.Labels(ctx)
+	labels, err := i.Labels(ctx)
 	if err != nil {
 		return "", err
 	}
-	for k, v := range imageLabels {
+
+	for k, v := range labels {
 		if strings.ToLower(k) == strings.ToLower(label) {
 			return v, nil
 		}

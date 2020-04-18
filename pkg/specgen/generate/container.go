@@ -20,17 +20,27 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	// Image stop signal
-	if s.StopSignal == nil && newImage.Config != nil {
-		sig, err := signal.ParseSignalNameOrNumber(newImage.Config.StopSignal)
+	if s.StopSignal == nil {
+		stopSignal, err := newImage.StopSignal(ctx)
+		if err != nil {
+			return err
+		}
+		sig, err := signal.ParseSignalNameOrNumber(stopSignal)
 		if err != nil {
 			return err
 		}
 		s.StopSignal = &sig
 	}
+
 	// Image envs from the image if they don't exist
 	// already
-	if newImage.Config != nil && len(newImage.Config.Env) > 0 {
-		envs, err := envLib.ParseSlice(newImage.Config.Env)
+	env, err := newImage.Env(ctx)
+	if err != nil {
+		return err
+	}
+
+	if len(env) > 0 {
+		envs, err := envLib.ParseSlice(env)
 		if err != nil {
 			return err
 		}
@@ -41,12 +51,15 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
+	labels, err := newImage.Labels(ctx)
+	if err != nil {
+		return err
+	}
+
 	// labels from the image that dont exist already
-	if config := newImage.Config; config != nil {
-		for k, v := range config.Labels {
-			if _, exists := s.Labels[k]; !exists {
-				s.Labels[k] = v
-			}
+	for k, v := range labels {
+		if _, exists := s.Labels[k]; !exists {
+			s.Labels[k] = v
 		}
 	}
 
@@ -75,20 +88,30 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	// entrypoint
-	if config := newImage.Config; config != nil {
-		if len(s.Entrypoint) < 1 && len(config.Entrypoint) > 0 {
-			s.Entrypoint = config.Entrypoint
-		}
-		if len(s.Command) < 1 && len(config.Cmd) > 0 {
-			s.Command = config.Cmd
-		}
-		if len(s.Command) < 1 && len(s.Entrypoint) < 1 {
-			return errors.Errorf("No command provided or as CMD or ENTRYPOINT in this image")
-		}
-		// workdir
-		if len(s.WorkDir) < 1 && len(config.WorkingDir) > 1 {
-			s.WorkDir = config.WorkingDir
-		}
+	entrypoint, err := newImage.Entrypoint(ctx)
+	if err != nil {
+		return err
+	}
+	if len(s.Entrypoint) < 1 && len(entrypoint) > 0 {
+		s.Entrypoint = entrypoint
+	}
+	command, err := newImage.Cmd(ctx)
+	if err != nil {
+		return err
+	}
+	if len(s.Command) < 1 && len(command) > 0 {
+		s.Command = command
+	}
+	if len(s.Command) < 1 && len(s.Entrypoint) < 1 {
+		return errors.Errorf("No command provided or as CMD or ENTRYPOINT in this image")
+	}
+	// workdir
+	workingDir, err := newImage.WorkingDir(ctx)
+	if err != nil {
+		return err
+	}
+	if len(s.WorkDir) < 1 && len(workingDir) > 1 {
+		s.WorkDir = workingDir
 	}
 
 	if len(s.SeccompProfilePath) < 1 {
@@ -99,15 +122,17 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		s.SeccompProfilePath = p
 	}
 
-	if user := s.User; len(user) == 0 {
-		switch {
+	if len(s.User) == 0 {
+		s.User, err = newImage.User(ctx)
+		if err != nil {
+			return err
+		}
+
 		// TODO This should be enabled when namespaces actually work
 		//case usernsMode.IsKeepID():
 		//	user = fmt.Sprintf("%d:%d", rootless.GetRootlessUID(), rootless.GetRootlessGID())
-		case newImage.Config == nil || (newImage.Config != nil && len(newImage.Config.User) == 0):
+		if len(s.User) == 0 {
 			s.User = "0"
-		default:
-			s.User = newImage.Config.User
 		}
 	}
 	if err := finishThrottleDevices(s); err != nil {
