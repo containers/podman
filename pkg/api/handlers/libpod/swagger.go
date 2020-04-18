@@ -70,6 +70,13 @@ type swagStartPodResponse struct {
 	Body entities.PodStartReport
 }
 
+// Prune pod
+// swagger:response PodPruneReport
+type swagPrunePodResponse struct {
+	// in:body
+	Body entities.PodPruneReport
+}
+
 // Rm pod
 // swagger:response PodRmReport
 type swagRmPodResponse struct {

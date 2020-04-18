@@ -98,17 +98,19 @@ func Pause(ctx context.Context, nameOrID string) (*entities.PodPauseReport, erro
 	return &report, response.Process(&report)
 }
 
-// Prune removes all non-running pods in local storage.
-func Prune(ctx context.Context) error {
+// Prune by default removes all non-running pods in local storage.
+// And with force set true removes all pods.
+func Prune(ctx context.Context) ([]*entities.PodPruneReport, error) {
+	var reports []*entities.PodPruneReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/prune", nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return response.Process(nil)
+	return reports, response.Process(&reports)
 }
 
 // List returns all pods in local storage.  The optional filters parameter can

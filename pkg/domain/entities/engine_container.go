@@ -49,6 +49,7 @@ type ContainerEngine interface {
 	PodPs(ctx context.Context, options PodPSOptions) ([]*ListPodsReport, error)
 	PodRestart(ctx context.Context, namesOrIds []string, options PodRestartOptions) ([]*PodRestartReport, error)
 	PodRm(ctx context.Context, namesOrIds []string, options PodRmOptions) ([]*PodRmReport, error)
+	PodPrune(ctx context.Context, options PodPruneOptions) ([]*PodPruneReport, error)
 	PodStart(ctx context.Context, namesOrIds []string, options PodStartOptions) ([]*PodStartReport, error)
 	PodStop(ctx context.Context, namesOrIds []string, options PodStopOptions) ([]*PodStopReport, error)
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)

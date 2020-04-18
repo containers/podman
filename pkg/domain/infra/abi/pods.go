@@ -243,6 +243,23 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 	return reports, nil
 }
 
+func (ic *ContainerEngine) PodPrune(ctx context.Context, options entities.PodPruneOptions) ([]*entities.PodPruneReport, error) {
+	var (
+		reports []*entities.PodPruneReport
+	)
+	response, err := ic.Libpod.PrunePods(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range response {
+		reports = append(reports, &entities.PodPruneReport{
+			Err: v,
+			Id:  k,
+		})
+	}
+	return reports, nil
+}
+
 func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreateOptions) (*entities.PodCreateReport, error) {
 	podSpec := specgen.NewPodSpecGenerator()
 	opts.ToPodSpecGen(podSpec)
