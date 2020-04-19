@@ -1777,6 +1777,7 @@ func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid
 				// Do nothing
 			default:
 				logrus.Errorf("Received unexpected attach type %+d, discarding %d bytes", buf[0], numR)
+				logrus.Debugf("String is %s", string(buf[1:numR]))
 				continue
 			}
 
@@ -2153,7 +2154,22 @@ func attachExecHTTP(c *Container, sessionID string, httpBuf *bufio.ReadWriter, s
 		attachStdin = streams.Stdin
 	}
 
-	// Handle STDOUT/STDERR
+	// Next, STDIN. Avoid entirely if attachStdin unset.
+	if attachStdin {
+		go func() {
+			logrus.Debugf("Beginning STDIN copy")
+			_, err := utils.CopyDetachable(conn, httpBuf, detachKeys)
+			logrus.Debugf("STDIN copy completed")
+			errChan <- err
+		}()
+	}
+
+	// 4: send start message to child
+	if err := writeConmonPipeData(pipes.startPipe); err != nil {
+		return err
+	}
+
+	// Handle STDOUT/STDERR *after* start message is sent
 	go func() {
 		var err error
 		if isTerminal {
@@ -2174,19 +2190,6 @@ func attachExecHTTP(c *Container, sessionID string, httpBuf *bufio.ReadWriter, s
 		errChan <- err
 		logrus.Debugf("STDOUT/ERR copy completed")
 	}()
-	// Next, STDIN. Avoid entirely if attachStdin unset.
-	if attachStdin {
-		go func() {
-			_, err := utils.CopyDetachable(conn, httpBuf, detachKeys)
-			logrus.Debugf("STDIN copy completed")
-			errChan <- err
-		}()
-	}
-
-	// 4: send start message to child
-	if err := writeConmonPipeData(pipes.startPipe); err != nil {
-		return err
-	}
 
 	if cancel != nil {
 		select {
