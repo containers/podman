@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/libpod/define"
@@ -72,26 +71,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	br, err := registry.ImageEngine().Exists(registry.GetContext(), args[0])
-	if err != nil {
+	if err := pullImage(args[0]); err != nil {
 		return err
 	}
-	pullPolicy, err := config.ValidatePullPolicy(cliVals.Pull)
-	if err != nil {
-		return err
-	}
-	if !br.Value || pullPolicy == config.PullImageAlways {
-		if pullPolicy == config.PullImageNever {
-			return errors.New("unable to find a name and tag match for busybox in repotags: no such image")
-		}
-		_, pullErr := registry.ImageEngine().Pull(registry.GetContext(), args[0], entities.ImagePullOptions{
-			Authfile: cliVals.Authfile,
-			Quiet:    cliVals.Quiet,
-		})
-		if pullErr != nil {
-			return pullErr
-		}
-	}
+
 	// If -i is not set, clear stdin
 	if !cliVals.Interactive {
 		runOpts.InputStream = nil
