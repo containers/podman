@@ -51,7 +51,7 @@ func NewServerWithSettings(runtime *libpod.Runtime, duration time.Duration, list
 func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Listener) (*APIServer, error) {
 	// If listener not provided try socket activation protocol
 	if listener == nil {
-		if _, found := os.LookupEnv("LISTEN_FDS"); !found {
+		if _, found := os.LookupEnv("LISTEN_PID"); !found {
 			return nil, errors.Errorf("Cannot create API Server, no listener provided and socket activation protocol is not active.")
 		}
 
@@ -125,7 +125,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 			if err != nil {
 				methods = []string{"<N/A>"}
 			}
-			logrus.Debugf("Methods: %s Path: %s", strings.Join(methods, ", "), path)
+			logrus.Debugf("Methods: %6s Path: %s", strings.Join(methods, ", "), path)
 			return nil
 		})
 	}
@@ -179,6 +179,7 @@ func (s *APIServer) Shutdown() error {
 	}
 
 	// Gracefully shutdown server, duration of wait same as idle window
+	// TODO: Should we really wait the idle window for shutdown?
 	ctx, cancel := context.WithTimeout(context.Background(), s.idleTracker.Duration)
 	defer cancel()
 	go func() {

@@ -57,7 +57,7 @@ func service(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("using API endpoint: \"%s\"", apiURI)
+	logrus.Infof("using API endpoint: '%s'", apiURI)
 
 	opts := entities.ServiceOptions{
 		URI:     apiURI,
@@ -75,7 +75,6 @@ func service(cmd *cobra.Command, args []string) error {
 }
 
 func resolveApiURI(_url []string) (string, error) {
-
 	// When determining _*THE*_ listening endpoint --
 	// 1) User input wins always
 	// 2) systemd socket activation
@@ -83,14 +82,15 @@ func resolveApiURI(_url []string) (string, error) {
 	// 4) if varlink -- adapter.DefaultVarlinkAddress
 	// 5) lastly adapter.DefaultAPIAddress
 
-	if _url == nil {
+	if len(_url) == 0 {
 		if v, found := os.LookupEnv("PODMAN_SOCKET"); found {
+			logrus.Debugf("PODMAN_SOCKET='%s' used to determine API endpoint", v)
 			_url = []string{v}
 		}
 	}
 
 	switch {
-	case len(_url) > 0:
+	case len(_url) > 0 && _url[0] != "":
 		return _url[0], nil
 	case systemd.SocketActivated():
 		logrus.Info("using systemd socket activation to determine API endpoint")

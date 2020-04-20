@@ -126,7 +126,7 @@ func tcpClient(_url *url.URL) (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("tcp", _url.Path)
+				return net.Dial("tcp", _url.Host)
 			},
 			DisableCompression: true,
 		},
