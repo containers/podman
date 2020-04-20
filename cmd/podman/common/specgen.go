@@ -268,6 +268,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 
 	var command []string
 
+	s.Entrypoint = entrypoint
+
 	// Build the command
 	// If we have an entry point, it goes first
 	if len(entrypoint) > 0 {
