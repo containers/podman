@@ -217,28 +217,7 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 	}
 
 	// NAMESPACES
-
-	if err := pidConfigureGenerator(s, &g); err != nil {
-		return nil, err
-	}
-
-	if err := userConfigureGenerator(s, &g); err != nil {
-		return nil, err
-	}
-
-	if err := networkConfigureGenerator(s, &g); err != nil {
-		return nil, err
-	}
-
-	if err := utsConfigureGenerator(s, &g, rt); err != nil {
-		return nil, err
-	}
-
-	if err := ipcConfigureGenerator(s, &g); err != nil {
-		return nil, err
-	}
-
-	if err := cgroupConfigureGenerator(s, &g); err != nil {
+	if err := specConfigureNamespaces(s, &g, rt); err != nil {
 		return nil, err
 	}
 	configSpec := g.Config

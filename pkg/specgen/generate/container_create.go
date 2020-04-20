@@ -23,7 +23,61 @@ func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Contai
 		return nil, err
 	}
 
-	options, err := createContainerOptions(rt, s)
+	// If joining a pod, retrieve the pod for use.
+	var pod *libpod.Pod
+	if s.Pod != "" {
+		foundPod, err := rt.LookupPod(s.Pod)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving pod %s", s.Pod)
+		}
+		pod = foundPod
+	}
+
+	// Set defaults for unset namespaces
+	if s.PidNS.IsDefault() {
+		defaultNS, err := GetDefaultNamespaceMode("pid", rtc, pod)
+		if err != nil {
+			return nil, err
+		}
+		s.PidNS = defaultNS
+	}
+	if s.IpcNS.IsDefault() {
+		defaultNS, err := GetDefaultNamespaceMode("ipc", rtc, pod)
+		if err != nil {
+			return nil, err
+		}
+		s.IpcNS = defaultNS
+	}
+	if s.UtsNS.IsDefault() {
+		defaultNS, err := GetDefaultNamespaceMode("uts", rtc, pod)
+		if err != nil {
+			return nil, err
+		}
+		s.UtsNS = defaultNS
+	}
+	if s.UserNS.IsDefault() {
+		defaultNS, err := GetDefaultNamespaceMode("user", rtc, pod)
+		if err != nil {
+			return nil, err
+		}
+		s.UserNS = defaultNS
+	}
+	if s.NetNS.IsDefault() {
+		defaultNS, err := GetDefaultNamespaceMode("net", rtc, pod)
+		if err != nil {
+			return nil, err
+		}
+		s.NetNS = defaultNS
+	}
+	if s.CgroupNS.IsDefault() {
+		defaultNS, err := GetDefaultNamespaceMode("cgroup", rtc, pod)
+		if err != nil {
+			return nil, err
+		}
+		s.CgroupNS = defaultNS
+	}
+
+	options, err := createContainerOptions(rt, s, pod)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +101,7 @@ func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Contai
 	return rt.NewContainer(context.Background(), runtimeSpec, options...)
 }
 
-func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -123,7 +177,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator) ([]lib
 	options = append(options, libpod.WithPrivileged(s.Privileged))
 
 	// Get namespace related options
-	namespaceOptions, err := GenerateNamespaceContainerOpts(s, rt)
+	namespaceOptions, err := GenerateNamespaceOptions(s, rt, pod)
 	if err != nil {
 		return nil, err
 	}

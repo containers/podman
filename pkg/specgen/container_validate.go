@@ -86,9 +86,6 @@ func (s *SpecGenerator) Validate() error {
 	//
 	// ContainerNetworkConfig
 	//
-	if !s.NetNS.IsPrivate() && s.ConfigureNetNS {
-		return errors.New("can only configure network namespace when creating a network a network namespace")
-	}
 	// useimageresolveconf conflicts with dnsserver, dnssearch, dnsoption
 	if s.UseImageResolvConf {
 		if len(s.DNSServers) > 0 {
