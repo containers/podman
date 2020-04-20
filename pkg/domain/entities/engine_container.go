@@ -16,6 +16,7 @@ type ContainerEngine interface {
 	ContainerCleanup(ctx context.Context, namesOrIds []string, options ContainerCleanupOptions) ([]*ContainerCleanupReport, error)
 	ContainerPrune(ctx context.Context, options ContainerPruneOptions) (*ContainerPruneReport, error)
 	ContainerCommit(ctx context.Context, nameOrId string, options CommitOptions) (*CommitReport, error)
+	ContainerCp(ctx context.Context, source, dest string, options ContainerCpOptions) (*ContainerCpReport, error)
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
 	ContainerDiff(ctx context.Context, nameOrId string, options DiffOptions) (*DiffReport, error)
 	ContainerExec(ctx context.Context, nameOrId string, options ExecOptions) (int, error)
