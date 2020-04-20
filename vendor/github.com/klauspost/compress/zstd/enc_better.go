@@ -104,10 +104,7 @@ func (e *betterFastEncoder) Encode(blk *blockEnc, src []byte) {
 	sLimit := int32(len(src)) - inputMargin
 	// stepSize is the number of bytes to skip on every main loop iteration.
 	// It should be >= 1.
-	stepSize := int32(e.o.targetLength)
-	if stepSize == 0 {
-		stepSize++
-	}
+	const stepSize = 1
 
 	const kSearchStrength = 9
 

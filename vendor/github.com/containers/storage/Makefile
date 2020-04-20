@@ -33,12 +33,10 @@ AUTOTAGS := $(shell ./hack/btrfs_tag.sh) $(shell ./hack/libdm_tag.sh)
 BUILDFLAGS := -tags "$(AUTOTAGS) $(TAGS)" $(FLAGS)
 GO ?= go
 
-GO_BUILD=$(GO) build
-GO_TEST=$(GO) test
 # Go module support: set `-mod=vendor` to use the vendored sources
 ifeq ($(shell $(GO) help mod >/dev/null 2>&1 && echo true), true)
-	GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
-	GO_TEST=GO111MODULE=on $(GO) test -mod=vendor
+	GO:=GO111MODULE=on $(GO)
+	MOD_VENDOR=-mod=vendor
 endif
 
 RUNINVM := vagrant/runinvm.sh
@@ -52,7 +50,7 @@ clean: ## remove all built files
 sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.go pkg/*/*.go pkg/*/*/*.go) layers_ffjson.go images_ffjson.go containers_ffjson.go pkg/archive/archive_ffjson.go
 
 containers-storage: $(sources) ## build using gc on the host
-	$(GO_BUILD) -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
+	$(GO) build $(MOD_VENDOR) -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
 
 layers_ffjson.go: $(FFJSON) layers.go
 	$(RM) $@
@@ -73,15 +71,15 @@ pkg/archive/archive_ffjson.go: $(FFJSON) pkg/archive/archive.go
 binary local-binary: containers-storage
 
 local-gccgo: ## build using gccgo on the host
-	GCCGO=$(PWD)/hack/gccgo-wrapper.sh $(GO_BUILD) -compiler gccgo $(BUILDFLAGS) -o containers-storage.gccgo ./cmd/containers-storage
+	GCCGO=$(PWD)/hack/gccgo-wrapper.sh $(GO) build $(MOD_VENDOR) -compiler gccgo $(BUILDFLAGS) -o containers-storage.gccgo ./cmd/containers-storage
 
 local-cross: ## cross build the binaries for arm, darwin, and\nfreebsd
 	@for target in linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64 linux/ppc64le darwin/amd64 windows/amd64 ; do \
 		os=`echo $${target} | cut -f1 -d/` ; \
 		arch=`echo $${target} | cut -f2 -d/` ; \
 		suffix=$${os}.$${arch} ; \
-		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO_BUILD) -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage ; \
-		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO_BUILD) -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage || exit 1 ; \
+		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(MOD_VENDOR) -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage ; \
+		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(MOD_VENDOR) -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage || exit 1 ; \
 	done
 
 cross: ## cross build the binaries for arm, darwin, and\nfreebsd using VMs
@@ -97,7 +95,7 @@ test: local-binary ## build the binaries and run the tests using VMs
 	$(RUNINVM) make local-binary local-cross local-test-unit local-test-integration
 
 local-test-unit: local-binary ## run the unit tests on the host (requires\nsuperuser privileges)
-	@$(GO_TEST) $(BUILDFLAGS) $(shell $(GO) list ./... | grep -v ^$(PACKAGE)/vendor)
+	@$(GO) test $(MOD_VENDOR) $(BUILDFLAGS) $(shell $(GO) list ./... | grep -v ^$(PACKAGE)/vendor)
 
 test-unit: local-binary ## run the unit tests using VMs
 	$(RUNINVM) make local-$@
@@ -136,7 +134,6 @@ vendor-in-container:
 	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src golang make vendor
 
 vendor:
-	export GO111MODULE=on \
-		$(GO) mod tidy && \
-		$(GO) mod vendor && \
-		$(GO) mod verify
+	$(GO) mod tidy
+	$(GO) mod vendor
+	$(GO) mod verify
