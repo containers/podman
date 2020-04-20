@@ -476,3 +476,15 @@ func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts 
 	}
 	return &entities.BuildReport{ID: id}, nil
 }
+
+func (ir *ImageEngine) Tree(ctx context.Context, nameOrId string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
+	img, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+	if err != nil {
+		return nil, err
+	}
+	results, err := img.GenerateTree(opts.WhatRequires)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.ImageTreeReport{Tree: results}, nil
+}

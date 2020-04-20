@@ -263,3 +263,7 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
 	return nil, errors.New("not implemented yet")
 }
+
+func (ir *ImageEngine) Tree(ctx context.Context, nameOrId string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
+	return nil, errors.New("not implemented yet")
+}
