@@ -64,6 +64,16 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	// annotations
+
+	// Add annotations from the image
+	annotations, err := newImage.Annotations(ctx)
+	if err != nil {
+		return err
+	}
+	for k, v := range annotations {
+		annotations[k] = v
+	}
+
 	// in the event this container is in a pod, and the pod has an infra container
 	// we will want to configure it as a type "container" instead defaulting to
 	// the behavior of a "sandbox" container
@@ -72,20 +82,17 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	//   VM, which is the default behavior
 	// - "container" denotes the container should join the VM of the SandboxID
 	//   (the infra container)
-	s.Annotations = make(map[string]string)
+
 	if len(s.Pod) > 0 {
-		s.Annotations[ann.SandboxID] = s.Pod
-		s.Annotations[ann.ContainerType] = ann.ContainerTypeContainer
+		annotations[ann.SandboxID] = s.Pod
+		annotations[ann.ContainerType] = ann.ContainerTypeContainer
 	}
-	//
-	// Next, add annotations from the image
-	annotations, err := newImage.Annotations(ctx)
-	if err != nil {
-		return err
-	}
-	for k, v := range annotations {
+
+	// now pass in the values from client
+	for k, v := range s.Annotations {
 		annotations[k] = v
 	}
+	s.Annotations = annotations
 
 	// entrypoint
 	entrypoint, err := newImage.Entrypoint(ctx)
