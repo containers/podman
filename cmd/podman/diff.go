@@ -46,10 +46,9 @@ func init() {
 }
 
 func diff(cmd *cobra.Command, args []string) error {
-	if found, err := registry.ImageEngine().Exists(registry.GetContext(), args[0]); err != nil {
-		return err
-	} else if found.Value {
-		return images.Diff(cmd, args, diffOpts)
+	// Latest implies looking for a container
+	if diffOpts.Latest {
+		return containers.Diff(cmd, args, diffOpts)
 	}
 
 	if found, err := registry.ContainerEngine().ContainerExists(registry.GetContext(), args[0]); err != nil {
@@ -57,5 +56,12 @@ func diff(cmd *cobra.Command, args []string) error {
 	} else if found.Value {
 		return containers.Diff(cmd, args, diffOpts)
 	}
+
+	if found, err := registry.ImageEngine().Exists(registry.GetContext(), args[0]); err != nil {
+		return err
+	} else if found.Value {
+		return images.Diff(cmd, args, diffOpts)
+	}
+
 	return fmt.Errorf("%s not found on system", args[0])
 }

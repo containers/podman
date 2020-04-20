@@ -11,8 +11,8 @@ import (
 var (
 	// podman container _inspect_
 	diffCmd = &cobra.Command{
-		Use:   "diff [flags] CONTAINER",
-		Args:  registry.IdOrLatestArgs,
+		Use:   "diff [flags] IMAGE",
+		Args:  cobra.ExactArgs(1),
 		Short: "Inspect changes on image's file systems",
 		Long:  `Displays changes on a image's filesystem.  The image will be compared to its parent layer.`,
 		RunE:  diff,
@@ -32,16 +32,16 @@ func init() {
 	diffOpts = &entities.DiffOptions{}
 	flags := diffCmd.Flags()
 	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
-	_ = flags.MarkHidden("archive")
+	_ = flags.MarkDeprecated("archive", "Provided for backwards compatibility, has no impact on output.")
 	flags.StringVar(&diffOpts.Format, "format", "", "Change the output format")
 }
 
 func diff(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 && !diffOpts.Latest {
-		return errors.New("image must be specified: podman image diff [options [...]] ID-NAME")
+	if diffOpts.Latest {
+		return errors.New("image diff does not support --latest")
 	}
 
-	results, err := registry.ImageEngine().Diff(registry.GetContext(), args[0], entities.DiffOptions{})
+	results, err := registry.ImageEngine().Diff(registry.GetContext(), args[0], *diffOpts)
 	if err != nil {
 		return err
 	}

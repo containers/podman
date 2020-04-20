@@ -45,7 +45,11 @@ func diff(cmd *cobra.Command, args []string) error {
 		return errors.New("container must be specified: podman container diff [options [...]] ID-NAME")
 	}
 
-	results, err := registry.ContainerEngine().ContainerDiff(registry.GetContext(), args[0], entities.DiffOptions{})
+	var id string
+	if len(args) > 0 {
+		id = args[0]
+	}
+	results, err := registry.ContainerEngine().ContainerDiff(registry.GetContext(), id, *diffOpts)
 	if err != nil {
 		return err
 	}
