@@ -929,3 +929,31 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIds []str
 func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 	return ic.Libpod.GetConfig()
 }
+
+func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrId string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
+	var reports []*entities.ContainerPortReport
+	ctrs, err := getContainersByContext(options.All, false, []string{nameOrId}, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	for _, con := range ctrs {
+		state, err := con.State()
+		if err != nil {
+			return nil, err
+		}
+		if state != define.ContainerStateRunning {
+			continue
+		}
+		portmappings, err := con.PortMappings()
+		if err != nil {
+			return nil, err
+		}
+		if len(portmappings) > 0 {
+			reports = append(reports, &entities.ContainerPortReport{
+				Id:    con.ID(),
+				Ports: portmappings,
+			})
+		}
+	}
+	return reports, nil
+}

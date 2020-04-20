@@ -371,3 +371,7 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIds []str
 func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 	return config.Default()
 }
+
+func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrId string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
+	return nil, errors.New("not implemented")
+}
