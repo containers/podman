@@ -3,6 +3,7 @@ package containers
 import (
 	"fmt"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -61,6 +62,11 @@ func create(cmd *cobra.Command, args []string) error {
 	if err := createInit(cmd); err != nil {
 		return err
 	}
+
+	if err := pullImage(args[0]); err != nil {
+		return err
+	}
+
 	//TODO rootfs still
 	s := specgen.NewSpecGenerator(rawImageInput)
 	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
@@ -98,5 +104,29 @@ func createInit(c *cobra.Command) error {
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
 	// the hostname (see https://github.com/containers/libpod/issues/1367).
 
+	return nil
+}
+
+func pullImage(imageName string) error {
+	br, err := registry.ImageEngine().Exists(registry.GetContext(), imageName)
+	if err != nil {
+		return err
+	}
+	pullPolicy, err := config.ValidatePullPolicy(cliVals.Pull)
+	if err != nil {
+		return err
+	}
+	if !br.Value || pullPolicy == config.PullImageAlways {
+		if pullPolicy == config.PullImageNever {
+			return errors.New("unable to find a name and tag match for busybox in repotags: no such image")
+		}
+		_, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
+			Authfile: cliVals.Authfile,
+			Quiet:    cliVals.Quiet,
+		})
+		if pullErr != nil {
+			return pullErr
+		}
+	}
 	return nil
 }
