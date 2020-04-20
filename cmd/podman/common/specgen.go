@@ -424,6 +424,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		}
 	}
 
+	s.SeccompPolicy = c.SeccompPolicy
 	// TODO any idea why this was done
 	// storage.go from spec/
 	// grab it

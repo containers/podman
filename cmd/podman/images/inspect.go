@@ -20,11 +20,13 @@ import (
 var (
 	// Command: podman image _inspect_
 	inspectCmd = &cobra.Command{
-		Use:     "inspect [flags] IMAGE",
-		Short:   "Display the configuration of an image",
-		Long:    `Displays the low-level information on an image identified by name or ID.`,
-		RunE:    inspect,
-		Example: `podman image inspect alpine`,
+		Use:   "inspect [flags] IMAGE",
+		Short: "Display the configuration of an image",
+		Long:  `Displays the low-level information on an image identified by name or ID.`,
+		RunE:  inspect,
+		Example: `podman inspect alpine
+  podman inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine
+  podman inspect --format "image: {{.ImageName}} driver: {{.Driver}}" myctr`,
 	}
 	inspectOpts *entities.InspectOptions
 )
@@ -39,14 +41,14 @@ func init() {
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	latestContainer := inspectOpts.Latest
-
-	if len(args) == 0 && !latestContainer {
-		return errors.Errorf("container or image name must be specified: podman inspect [options [...]] name")
+	if inspectOpts.Size {
+		return fmt.Errorf("--size can only be used for containers")
 	}
-
-	if len(args) > 0 && latestContainer {
-		return errors.Errorf("you cannot provide additional arguments with --latest")
+	if inspectOpts.Latest {
+		return fmt.Errorf("--latest can only be used for containers")
+	}
+	if len(args) == 0 {
+		return errors.Errorf("image name must be specified: podman image inspect [options [...]] name")
 	}
 
 	results, err := registry.ImageEngine().Inspect(context.Background(), args, *inspectOpts)

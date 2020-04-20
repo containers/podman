@@ -3,9 +3,7 @@ package generate
 import (
 	"os"
 
-	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -321,66 +319,6 @@ func userConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator) err
 			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
 	}
-	return nil
-}
-
-func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator, newImage *image.Image) error {
-	// HANDLE CAPABILITIES
-	// NOTE: Must happen before SECCOMP
-	if s.Privileged {
-		g.SetupPrivileged(true)
-	}
-
-	useNotRoot := func(user string) bool {
-		if user == "" || user == "root" || user == "0" {
-			return false
-		}
-		return true
-	}
-	configSpec := g.Config
-	var err error
-	var caplist []string
-	bounding := configSpec.Process.Capabilities.Bounding
-	if useNotRoot(s.User) {
-		configSpec.Process.Capabilities.Bounding = caplist
-	}
-	caplist, err = capabilities.MergeCapabilities(configSpec.Process.Capabilities.Bounding, s.CapAdd, s.CapDrop)
-	if err != nil {
-		return err
-	}
-
-	configSpec.Process.Capabilities.Bounding = caplist
-	configSpec.Process.Capabilities.Permitted = caplist
-	configSpec.Process.Capabilities.Inheritable = caplist
-	configSpec.Process.Capabilities.Effective = caplist
-	configSpec.Process.Capabilities.Ambient = caplist
-	if useNotRoot(s.User) {
-		caplist, err = capabilities.MergeCapabilities(bounding, s.CapAdd, s.CapDrop)
-		if err != nil {
-			return err
-		}
-	}
-	configSpec.Process.Capabilities.Bounding = caplist
-
-	// HANDLE SECCOMP
-	if s.SeccompProfilePath != "unconfined" {
-		seccompConfig, err := getSeccompConfig(s, configSpec, newImage)
-		if err != nil {
-			return err
-		}
-		configSpec.Linux.Seccomp = seccompConfig
-	}
-
-	// Clear default Seccomp profile from Generator for privileged containers
-	if s.SeccompProfilePath == "unconfined" || s.Privileged {
-		configSpec.Linux.Seccomp = nil
-	}
-
-	g.SetRootReadonly(s.ReadOnlyFilesystem)
-	for sysctlKey, sysctlVal := range s.Sysctl {
-		g.AddLinuxSysctl(sysctlKey, sysctlVal)
-	}
-
 	return nil
 }
 

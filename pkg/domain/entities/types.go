@@ -50,6 +50,7 @@ type InspectOptions struct {
 	Format string `json:",omitempty"`
 	Latest bool   `json:",omitempty"`
 	Size   bool   `json:",omitempty"`
+	Type   string `json:",omitempty"`
 }
 
 // All API and CLI diff commands and diff sub-commands use the same options

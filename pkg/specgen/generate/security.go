@@ -1,15 +1,22 @@
 package generate
 
 import (
+	"strings"
+
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/util"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
-// SetLabelOpts sets the label options of the SecurityConfig according to the
+// setLabelOpts sets the label options of the SecurityConfig according to the
 // input.
-func SetLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig specgen.Namespace, ipcConfig specgen.Namespace) error {
+func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig specgen.Namespace, ipcConfig specgen.Namespace) error {
 	if !runtime.EnableLabeling() || s.Privileged {
 		s.SelinuxOpts = label.DisableSecOpt()
 		return nil
@@ -48,12 +55,10 @@ func SetLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 	return nil
 }
 
-// ConfigureGenerator configures the generator according to the input.
-/*
-func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserConfig) error {
+func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator, newImage *image.Image) error {
 	// HANDLE CAPABILITIES
 	// NOTE: Must happen before SECCOMP
-	if c.Privileged {
+	if s.Privileged {
 		g.SetupPrivileged(true)
 	}
 
@@ -63,56 +68,66 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 		}
 		return true
 	}
-
 	configSpec := g.Config
 	var err error
-	var defaultCaplist []string
+	var caplist []string
 	bounding := configSpec.Process.Capabilities.Bounding
-	if useNotRoot(user.User) {
-		configSpec.Process.Capabilities.Bounding = defaultCaplist
+	if useNotRoot(s.User) {
+		configSpec.Process.Capabilities.Bounding = caplist
 	}
-	defaultCaplist, err = capabilities.MergeCapabilities(configSpec.Process.Capabilities.Bounding, c.CapAdd, c.CapDrop)
+	caplist, err = capabilities.MergeCapabilities(configSpec.Process.Capabilities.Bounding, s.CapAdd, s.CapDrop)
 	if err != nil {
 		return err
 	}
+	privCapsRequired := []string{}
 
-	privCapRequired := []string{}
+	// If the container image specifies an label with a
+	// capabilities.ContainerImageLabel then split the comma separated list
+	// of capabilities and record them.  This list indicates the only
+	// capabilities, required to run the container.
+	var capsRequiredRequested []string
+	for key, val := range s.Labels {
+		if util.StringInSlice(key, capabilities.ContainerImageLabels) {
+			capsRequiredRequested = strings.Split(val, ",")
+		}
+	}
+	if !s.Privileged && len(capsRequiredRequested) > 0 {
 
-	if !c.Privileged && len(c.CapRequired) > 0 {
-		// Pass CapRequired in CapAdd field to normalize capabilities names
-		capRequired, err := capabilities.MergeCapabilities(nil, c.CapRequired, nil)
+		// Pass capRequiredRequested in CapAdd field to normalize capabilities names
+		capsRequired, err := capabilities.MergeCapabilities(nil, capsRequiredRequested, nil)
 		if err != nil {
-			logrus.Errorf("capabilities requested by user or image are not valid: %q", strings.Join(c.CapRequired, ","))
+			logrus.Errorf("capabilities requested by user or image are not valid: %q", strings.Join(capsRequired, ","))
 		} else {
-			// Verify all capRequiered are in the defaultCapList
-			for _, cap := range capRequired {
-				if !util.StringInSlice(cap, defaultCaplist) {
-					privCapRequired = append(privCapRequired, cap)
+			// Verify all capRequiered are in the capList
+			for _, cap := range capsRequired {
+				if !util.StringInSlice(cap, caplist) {
+					privCapsRequired = append(privCapsRequired, cap)
 				}
 			}
 		}
-		if len(privCapRequired) == 0 {
-			defaultCaplist = capRequired
+		if len(privCapsRequired) == 0 {
+			caplist = capsRequired
 		} else {
-			logrus.Errorf("capabilities requested by user or image are not allowed by default: %q", strings.Join(privCapRequired, ","))
+			logrus.Errorf("capabilities requested by user or image are not allowed by default: %q", strings.Join(privCapsRequired, ","))
 		}
 	}
-	configSpec.Process.Capabilities.Bounding = defaultCaplist
-	configSpec.Process.Capabilities.Permitted = defaultCaplist
-	configSpec.Process.Capabilities.Inheritable = defaultCaplist
-	configSpec.Process.Capabilities.Effective = defaultCaplist
-	configSpec.Process.Capabilities.Ambient = defaultCaplist
-	if useNotRoot(user.User) {
-		defaultCaplist, err = capabilities.MergeCapabilities(bounding, c.CapAdd, c.CapDrop)
+
+	configSpec.Process.Capabilities.Bounding = caplist
+	configSpec.Process.Capabilities.Permitted = caplist
+	configSpec.Process.Capabilities.Inheritable = caplist
+	configSpec.Process.Capabilities.Effective = caplist
+	configSpec.Process.Capabilities.Ambient = caplist
+	if useNotRoot(s.User) {
+		caplist, err = capabilities.MergeCapabilities(bounding, s.CapAdd, s.CapDrop)
 		if err != nil {
 			return err
 		}
 	}
-	configSpec.Process.Capabilities.Bounding = defaultCaplist
+	configSpec.Process.Capabilities.Bounding = caplist
 
 	// HANDLE SECCOMP
-	if c.SeccompProfilePath != "unconfined" {
-		seccompConfig, err := getSeccompConfig(c, configSpec)
+	if s.SeccompProfilePath != "unconfined" {
+		seccompConfig, err := getSeccompConfig(s, configSpec, newImage)
 		if err != nil {
 			return err
 		}
@@ -120,35 +135,14 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 	}
 
 	// Clear default Seccomp profile from Generator for privileged containers
-	if c.SeccompProfilePath == "unconfined" || c.Privileged {
+	if s.SeccompProfilePath == "unconfined" || s.Privileged {
 		configSpec.Linux.Seccomp = nil
 	}
 
-	for _, opt := range c.SecurityOpts {
-		// Split on both : and =
-		splitOpt := strings.Split(opt, "=")
-		if len(splitOpt) == 1 {
-			splitOpt = strings.Split(opt, ":")
-		}
-		if len(splitOpt) < 2 {
-			continue
-		}
-		switch splitOpt[0] {
-		case "label":
-			configSpec.Annotations[libpod.InspectAnnotationLabel] = splitOpt[1]
-		case "seccomp":
-			configSpec.Annotations[libpod.InspectAnnotationSeccomp] = splitOpt[1]
-		case "apparmor":
-			configSpec.Annotations[libpod.InspectAnnotationApparmor] = splitOpt[1]
-		}
-	}
-
-	g.SetRootReadonly(c.ReadOnlyRootfs)
-	for sysctlKey, sysctlVal := range c.Sysctl {
+	g.SetRootReadonly(s.ReadOnlyFilesystem)
+	for sysctlKey, sysctlVal := range s.Sysctl {
 		g.AddLinuxSysctl(sysctlKey, sysctlVal)
 	}
 
 	return nil
 }
-
-*/
