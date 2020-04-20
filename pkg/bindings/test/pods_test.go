@@ -174,8 +174,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 		response, err := pods.Inspect(bt.conn, newpod)
 		Expect(err).To(BeNil())
-		// FIXME sujil please fix this
-		//Expect(response.Status).To(Equal(define.PodStatePaused))
+		Expect(response.State).To(Equal(define.PodStatePaused))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStatePaused))
@@ -186,8 +185,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 		response, err = pods.Inspect(bt.conn, newpod)
 		Expect(err).To(BeNil())
-		// FIXME sujil please fix this
-		//Expect(response.State.Status).To(Equal(define.PodStateRunning))
+		Expect(response.State).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateRunning))
@@ -219,8 +217,7 @@ var _ = Describe("Podman pods", func() {
 
 		response, err := pods.Inspect(bt.conn, newpod)
 		Expect(err).To(BeNil())
-		// FIXME sujil please fix this
-		//Expect(response.State.Status).To(Equal(define.PodStateRunning))
+		Expect(response.State).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateRunning))
@@ -234,8 +231,7 @@ var _ = Describe("Podman pods", func() {
 		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		response, _ = pods.Inspect(bt.conn, newpod)
-		// FIXME sujil please fix this
-		//Expect(response.State.Status).To(Equal(define.PodStateExited))
+		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateStopped))
@@ -248,8 +244,7 @@ var _ = Describe("Podman pods", func() {
 		_, err = pods.Restart(bt.conn, newpod)
 		Expect(err).To(BeNil())
 		response, _ = pods.Inspect(bt.conn, newpod)
-		// FIXME sujil please fix this
-		//Expect(response.State.Status).To(Equal(define.PodStateRunning))
+		Expect(response.State).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateRunning))
@@ -277,15 +272,15 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 		response, err := pods.Inspect(bt.conn, newpod)
 		Expect(err).To(BeNil())
-		// FIXME sujil please fix this
-		//Expect(response.State.Status).To(Equal(define.PodStateExited))
+		Expect(response.State).To(Equal(define.PodStateExited))
 		pruneResponse, err = pods.Prune(bt.conn)
 		Expect(err).To(BeNil())
 		// Validate status and record pod id of pod to be pruned
-		//Expect(response.State.Status).To(Equal(define.PodStateExited))
-		//podID := response.Config.ID
+		Expect(response.State).To(Equal(define.PodStateExited))
+		podID := response.ID
 		// Check if right pod was pruned
 		Expect(len(pruneResponse)).To(Equal(1))
+		Expect(pruneResponse[0].Id).To(Equal(podID))
 		// One pod is pruned hence only one pod should be active.
 		podSummary, err = pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
@@ -301,8 +296,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 		response, err = pods.Inspect(bt.conn, newpod)
 		Expect(err).To(BeNil())
-		// FIXME sujil please fix this
-		//Expect(response.State.Status).To(Equal(define.PodStateExited))
+		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateStopped))
@@ -311,8 +305,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 		response, err = pods.Inspect(bt.conn, newpod2)
 		Expect(err).To(BeNil())
-		// FIXME sujil please fix this
-		//Expect(response.State.Status).To(Equal(define.PodStateExited))
+		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateStopped))
