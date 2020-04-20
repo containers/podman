@@ -74,7 +74,7 @@ func GetImage(ctx context.Context, nameOrID string, size *bool) (*entities.Image
 	return &inspectedData, response.Process(&inspectedData)
 }
 
-func ImageTree(ctx context.Context, nameOrId string) error {
+func Tree(ctx context.Context, nameOrId string) error {
 	return bindings.ErrNotImplemented
 }
 

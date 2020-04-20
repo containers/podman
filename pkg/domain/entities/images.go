@@ -273,3 +273,13 @@ type ImageSaveOptions struct {
 	Output   string
 	Quiet    bool
 }
+
+// ImageTreeOptions provides options for ImageEngine.Tree()
+type ImageTreeOptions struct {
+	WhatRequires bool // Show all child images and layers of the specified image
+}
+
+// ImageTreeReport provides results from ImageEngine.Tree()
+type ImageTreeReport struct {
+	Tree string // TODO: Refactor move presentation work out of server
+}
