@@ -18,6 +18,8 @@ type InspectPodData struct {
 	Namespace string `json:"Namespace,omitempty"`
 	// Created is the time when the pod was created.
 	Created time.Time
+	// State represents the current state of the pod.
+	State string `json:"State"`
 	// Hostname is the hostname that the pod will set.
 	Hostname string
 	// Labels is a set of key-value labels that have been applied to the

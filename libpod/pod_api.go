@@ -446,6 +446,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	if err != nil {
 		return nil, err
 	}
+	ctrStatuses := make(map[string]define.ContainerStatus, len(containers))
 	for _, c := range containers {
 		containerStatus := "unknown"
 		// Ignoring possible errors here because we don't want this to be
@@ -459,12 +460,18 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			Name:  c.Name(),
 			State: containerStatus,
 		})
+		ctrStatuses[c.ID()] = c.state.State
+	}
+	podState, err := CreatePodStatusResults(ctrStatuses)
+	if err != nil {
+		return nil, err
 	}
 	inspectData := define.InspectPodData{
 		ID:               p.ID(),
 		Name:             p.Name(),
 		Namespace:        p.Namespace(),
 		Created:          p.CreatedTime(),
+		State:            podState,
 		Hostname:         "",
 		Labels:           p.Labels(),
 		CreateCgroup:     false,
