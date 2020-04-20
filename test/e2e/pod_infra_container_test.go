@@ -20,6 +20,7 @@ var _ = Describe("Podman pod create", func() {
 
 	BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
+		Skip(v2fail)
 		if err != nil {
 			os.Exit(1)
 		}
