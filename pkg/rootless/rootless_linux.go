@@ -31,7 +31,7 @@ extern uid_t rootless_uid();
 extern uid_t rootless_gid();
 extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path, char *file_to_read, int fd);
 extern int reexec_in_user_namespace_wait(int pid, int options);
-extern int reexec_userns_join(int userns, int mountns, char *pause_pid_file_path);
+extern int reexec_userns_join(int pid, char *pause_pid_file_path);
 */
 import "C"
 
@@ -124,91 +124,6 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 	return nil
 }
 
-func readUserNs(path string) (string, error) {
-	b := make([]byte, 256)
-	_, err := unix.Readlink(path, b)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
-func readUserNsFd(fd uintptr) (string, error) {
-	return readUserNs(fmt.Sprintf("/proc/self/fd/%d", fd))
-}
-
-func getParentUserNs(fd uintptr) (uintptr, error) {
-	const nsGetParent = 0xb702
-	ret, _, errno := unix.Syscall(unix.SYS_IOCTL, fd, uintptr(nsGetParent), 0)
-	if errno != 0 {
-		return 0, errno
-	}
-	return (uintptr)(unsafe.Pointer(ret)), nil
-}
-
-// getUserNSFirstChild returns an open FD for the first direct child user namespace that created the process
-// Each container creates a new user namespace where the runtime runs.  The current process in the container
-// might have created new user namespaces that are child of the initial namespace we created.
-// This function finds the initial namespace created for the container that is a child of the current namespace.
-//
-//                                     current ns
-//                                       /     \
-//                           TARGET ->  a   [other containers]
-//                                     /
-//                                    b
-//                                   /
-//        NS READ USING THE PID ->  c
-func getUserNSFirstChild(fd uintptr) (*os.File, error) {
-	currentNS, err := readUserNs("/proc/self/ns/user")
-	if err != nil {
-		return nil, err
-	}
-
-	ns, err := readUserNsFd(fd)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read user namespace")
-	}
-	if ns == currentNS {
-		return nil, errors.New("process running in the same user namespace")
-	}
-
-	for {
-		nextFd, err := getParentUserNs(fd)
-		if err != nil {
-			if err == unix.ENOTTY {
-				return os.NewFile(fd, "userns child"), nil
-			}
-			return nil, errors.Wrapf(err, "cannot get parent user namespace")
-		}
-
-		ns, err = readUserNsFd(nextFd)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot read user namespace")
-		}
-
-		if ns == currentNS {
-			if err := unix.Close(int(nextFd)); err != nil {
-				return nil, err
-			}
-
-			// Drop O_CLOEXEC for the fd.
-			_, _, errno := unix.Syscall(unix.SYS_FCNTL, fd, unix.F_SETFD, 0)
-			if errno != 0 {
-				if err := unix.Close(int(fd)); err != nil {
-					logrus.Errorf("failed to close file descriptor %d", fd)
-				}
-				return nil, errno
-			}
-
-			return os.NewFile(fd, "userns child"), nil
-		}
-		if err := unix.Close(int(fd)); err != nil {
-			return nil, err
-		}
-		fd = nextFd
-	}
-}
-
 // joinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.
@@ -220,31 +135,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	cPausePid := C.CString(pausePid)
 	defer C.free(unsafe.Pointer(cPausePid))
 
-	userNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/user", pid))
-	if err != nil {
-		return false, -1, err
-	}
-	defer func() {
-		if err := userNS.Close(); err != nil {
-			logrus.Errorf("unable to close namespace: %q", err)
-		}
-	}()
-
-	mountNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/mnt", pid))
-	if err != nil {
-		return false, -1, err
-	}
-	defer func() {
-		if err := mountNS.Close(); err != nil {
-			logrus.Errorf("unable to close namespace: %q", err)
-		}
-	}()
-
-	fd, err := getUserNSFirstChild(userNS.Fd())
-	if err != nil {
-		return false, -1, err
-	}
-	pidC := C.reexec_userns_join(C.int(fd.Fd()), C.int(mountNS.Fd()), cPausePid)
+	pidC := C.reexec_userns_join(C.int(pid), cPausePid)
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
