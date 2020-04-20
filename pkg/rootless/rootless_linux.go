@@ -31,7 +31,7 @@ extern uid_t rootless_uid();
 extern uid_t rootless_gid();
 extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path, char *file_to_read, int fd);
 extern int reexec_in_user_namespace_wait(int pid, int options);
-extern int reexec_userns_join(int userns, int mountns, char *pause_pid_file_path);
+extern int reexec_userns_join(int pid, char *pause_pid_file_path);
 */
 import "C"
 
@@ -135,27 +135,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	cPausePid := C.CString(pausePid)
 	defer C.free(unsafe.Pointer(cPausePid))
 
-	userNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/user", pid))
-	if err != nil {
-		return false, -1, err
-	}
-	defer func() {
-		if err := userNS.Close(); err != nil {
-			logrus.Errorf("unable to close namespace: %q", err)
-		}
-	}()
-
-	mountNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/mnt", pid))
-	if err != nil {
-		return false, -1, err
-	}
-	defer func() {
-		if err := mountNS.Close(); err != nil {
-			logrus.Errorf("unable to close namespace: %q", err)
-		}
-	}()
-
-	pidC := C.reexec_userns_join(C.int(userNS.Fd()), C.int(mountNS.Fd()), cPausePid)
+	pidC := C.reexec_userns_join(C.int(pid), cPausePid)
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
