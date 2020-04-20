@@ -2,8 +2,10 @@ package system
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/registry"
@@ -58,6 +60,23 @@ func service(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	logrus.Infof("using API endpoint: '%s'", apiURI)
+
+	// Clean up any old existing unix domain socket
+	if len(apiURI) > 0 {
+		uri, err := url.Parse(apiURI)
+		if err != nil {
+			return err
+		}
+
+		// socket activation uses a unix:// socket in the shipped unit files but apiURI is coded as "" at this layer.
+		if "unix" == uri.Scheme && !registry.IsRemote() {
+			if err := syscall.Unlink(uri.Path); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			mask := syscall.Umask(0177)
+			defer syscall.Umask(mask)
+		}
+	}
 
 	opts := entities.ServiceOptions{
 		URI:     apiURI,
