@@ -117,7 +117,6 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 			Id:  results,
 			Err: nil,
 		},
-		Size: 0,
 	}
 	return &report, nil
 }

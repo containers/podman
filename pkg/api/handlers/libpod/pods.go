@@ -230,14 +230,22 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodPrune(w http.ResponseWriter, r *http.Request) {
+	reports, err := PodPruneHelper(w, r)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, reports)
+}
+
+func PodPruneHelper(w http.ResponseWriter, r *http.Request) ([]*entities.PodPruneReport, error) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		reports []*entities.PodPruneReport
 	)
 	responses, err := runtime.PrunePods(r.Context())
 	if err != nil {
-		utils.InternalServerError(w, err)
-		return
+		return nil, err
 	}
 	for k, v := range responses {
 		reports = append(reports, &entities.PodPruneReport{
@@ -245,7 +253,7 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 			Id:  k,
 		})
 	}
-	utils.WriteResponse(w, http.StatusOK, reports)
+	return reports, nil
 }
 
 func PodPause(w http.ResponseWriter, r *http.Request) {

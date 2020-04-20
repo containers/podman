@@ -6,9 +6,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -58,4 +60,27 @@ func Events(ctx context.Context, eventChan chan (handlers.Event), cancelChan cha
 		eventChan <- e
 	}
 	return nil
+}
+
+// Prune removes all unused system data.
+func Prune(ctx context.Context, all, volumes *bool) (*entities.SystemPruneReport, error) {
+	var (
+		report entities.SystemPruneReport
+	)
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	if all != nil {
+		params.Set("All", strconv.FormatBool(*all))
+	}
+	if volumes != nil {
+		params.Set("Volumes", strconv.FormatBool(*volumes))
+	}
+	response, err := conn.DoRequest(nil, http.MethodPost, "/system/prune", params)
+	if err != nil {
+		return nil, err
+	}
+	return &report, response.Process(&report)
 }
