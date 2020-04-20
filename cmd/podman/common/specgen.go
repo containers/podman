@@ -47,6 +47,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if err != nil {
 		return err
 	}
+	if s.ResourceLimits == nil {
+		s.ResourceLimits = &specs.LinuxResources{}
+	}
+	if s.ResourceLimits.Memory == nil {
+		s.ResourceLimits.Memory = &specs.LinuxMemory{}
+	}
 	if m := c.Memory; len(m) > 0 {
 		ml, err := units.RAMInBytes(m)
 		if err != nil {
@@ -80,6 +86,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			return errors.Wrapf(err, "invalid value for kernel-memory")
 		}
 		s.ResourceLimits.Memory.Kernel = &mk
+	}
+	if s.ResourceLimits.BlockIO == nil {
+		s.ResourceLimits.BlockIO = &specs.LinuxBlockIO{}
 	}
 	if b := c.BlkIOWeight; len(b) > 0 {
 		u, err := strconv.ParseUint(b, 10, 16)
@@ -313,14 +322,16 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			s.StopSignal = &stopSignal
 		}
 	}
-	swappiness := uint64(c.MemorySwappiness)
 	if s.ResourceLimits == nil {
 		s.ResourceLimits = &specs.LinuxResources{}
 	}
 	if s.ResourceLimits.Memory == nil {
 		s.ResourceLimits.Memory = &specs.LinuxMemory{}
 	}
-	s.ResourceLimits.Memory.Swappiness = &swappiness
+	if c.MemorySwappiness >= 0 {
+		swappiness := uint64(c.MemorySwappiness)
+		s.ResourceLimits.Memory.Swappiness = &swappiness
+	}
 
 	if s.LogConfiguration == nil {
 		s.LogConfiguration = &specgen.LogConfig{}
@@ -332,7 +343,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if s.ResourceLimits.Pids == nil {
 		s.ResourceLimits.Pids = &specs.LinuxPids{}
 	}
-	s.ResourceLimits.Pids.Limit = c.PIDsLimit
+	if c.PIDsLimit > 0 {
+		s.ResourceLimits.Pids.Limit = c.PIDsLimit
+	}
 	if c.CGroups == "disabled" && c.PIDsLimit > 0 {
 		s.ResourceLimits.Pids.Limit = -1
 	}
@@ -507,18 +520,28 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if s.ResourceLimits.CPU == nil {
 		s.ResourceLimits.CPU = &specs.LinuxCPU{}
 	}
-	s.ResourceLimits.CPU.Shares = &c.CPUShares
-	s.ResourceLimits.CPU.Period = &c.CPUPeriod
+	if c.CPUShares > 0 {
+		s.ResourceLimits.CPU.Shares = &c.CPUShares
+	}
+	if c.CPUPeriod > 0 {
+		s.ResourceLimits.CPU.Period = &c.CPUPeriod
+	}
 
-	// TODO research these
-	//s.ResourceLimits.CPU.Cpus = c.CPUS
-	//s.ResourceLimits.CPU.Cpus = c.CPUSetCPUs
-
-	//s.ResourceLimits.CPU. = c.CPUSetCPUs
-	s.ResourceLimits.CPU.Mems = c.CPUSetMems
-	s.ResourceLimits.CPU.Quota = &c.CPUQuota
-	s.ResourceLimits.CPU.RealtimePeriod = &c.CPURTPeriod
-	s.ResourceLimits.CPU.RealtimeRuntime = &c.CPURTRuntime
+	if c.CPUSetCPUs != "" {
+		s.ResourceLimits.CPU.Cpus = c.CPUSetCPUs
+	}
+	if c.CPUSetMems != "" {
+		s.ResourceLimits.CPU.Mems = c.CPUSetMems
+	}
+	if c.CPUQuota > 0 {
+		s.ResourceLimits.CPU.Quota = &c.CPUQuota
+	}
+	if c.CPURTPeriod > 0 {
+		s.ResourceLimits.CPU.RealtimePeriod = &c.CPURTPeriod
+	}
+	if c.CPURTRuntime > 0 {
+		s.ResourceLimits.CPU.RealtimeRuntime = &c.CPURTRuntime
+	}
 	s.OOMScoreAdj = &c.OOMScoreAdj
 	s.RestartPolicy = c.Restart
 	s.Remove = c.Rm
