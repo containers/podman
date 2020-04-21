@@ -12,6 +12,42 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
+func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
+	var (
+		kernelMax  uint64 = 1048576
+		isRootless        = rootless.IsRootless()
+		nofileSet         = false
+		nprocSet          = false
+	)
+
+	if s.Rlimits == nil {
+		g.Config.Process.Rlimits = nil
+		return nil
+	}
+
+	for _, u := range s.Rlimits {
+		name := "RLIMIT_" + strings.ToUpper(u.Type)
+		if name == "RLIMIT_NOFILE" {
+			nofileSet = true
+		} else if name == "RLIMIT_NPROC" {
+			nprocSet = true
+		}
+		g.AddProcessRlimits(name, u.Hard, u.Soft)
+	}
+
+	// If not explicitly overridden by the user, default number of open
+	// files and number of processes to the maximum they can be set to
+	// (without overriding a sysctl)
+	if !nofileSet && !isRootless {
+		g.AddProcessRlimits("RLIMIT_NOFILE", kernelMax, kernelMax)
+	}
+	if !nprocSet && !isRootless {
+		g.AddProcessRlimits("RLIMIT_NPROC", kernelMax, kernelMax)
+	}
+
+	return nil
+}
+
 func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.Image) (*spec.Spec, error) {
 	var (
 		inUserNS bool
@@ -176,11 +212,9 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 		g.AddProcessEnv(name, val)
 	}
 
-	// TODO rlimits and ulimits needs further refinement by someone more
-	// familiar with the code.
-	//if err := addRlimits(config, &g); err != nil {
-	//	return nil, err
-	//}
+	if err := addRlimits(s, &g); err != nil {
+		return nil, err
+	}
 
 	// NAMESPACES
 
