@@ -1,6 +1,6 @@
 ![PODMAN logo](../../logo/podman-logo-source.svg)
 
-A standard container image for lint-checking and validating changes to the libpod
-repository.  The
-[contributors guide contains the documentation for usage.](https://github.com/containers/libpod/blob/master/CONTRIBUTING.md#go-format-and-lint).  Note that this container image is also utilized
-in automation, see the file [.cirrus.yml](.cirrus.yml)
+The "gate" image is a standard container image for lint-checking and validating
+changes to the libpod repository.  It must be built from the repository root as
+[described in the contibutors guide](https://github.com/containers/libpod/blob/master/CONTRIBUTING.md#go-format-and-lint).
+The image is also used in [CI/CD automation](../../.cirrus.yml).
