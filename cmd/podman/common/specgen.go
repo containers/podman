@@ -561,14 +561,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	//s.Mounts = c.Mount
 	s.VolumesFrom = c.VolumesFrom
 
-	// TODO any idea why this was done
-	//devices := rtc.Containers.Devices
-	// TODO conflict on populate?
-	//
-	//if c.Changed("device") {
-	//	devices = append(devices, c.StringSlice("device")...)
-	//}
-
+	for _, dev := range c.Devices {
+		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
+	}
 	// TODO things i cannot find in spec
 	// we dont think these are in the spec
 	// init - initbinary

@@ -125,7 +125,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-cf`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
 	)
 	createFlags.StringSliceVar(
-		&cf.Device,
+		&cf.Devices,
 		"device", containerConfig.Devices(),
 		fmt.Sprintf("Add a host device to the container"),
 	)

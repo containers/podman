@@ -25,7 +25,7 @@ type ContainerCLIOpts struct {
 	CPUSetMems        string
 	Detach            bool
 	DetachKeys        string
-	Device            []string
+	Devices           []string
 	DeviceCGroupRule  []string
 	DeviceReadBPs     []string
 	DeviceReadIOPs    []string
