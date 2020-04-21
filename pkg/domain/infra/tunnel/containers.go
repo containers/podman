@@ -375,3 +375,7 @@ func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrId string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
 	return nil, errors.New("not implemented")
 }
+
+func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string, options entities.ContainerCpOptions) (*entities.ContainerCpReport, error) {
+	return nil, errors.New("not implemented")
+}

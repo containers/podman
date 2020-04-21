@@ -356,3 +356,13 @@ type ContainerPortReport struct {
 	Id    string
 	Ports []ocicni.PortMapping
 }
+
+// ContainerCpOptions describes input options for cp
+type ContainerCpOptions struct {
+	Pause   bool
+	Extract bool
+}
+
+// ContainerCpReport describes the output from a cp operation
+type ContainerCpReport struct {
+}
