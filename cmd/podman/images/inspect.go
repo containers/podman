@@ -84,10 +84,14 @@ func inspect(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	var lastErr error
 	for id, e := range results.Errors {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", id, e.Error())
+		if lastErr != nil {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", id, lastErr.Error())
+		}
+		lastErr = e
 	}
-	return nil
+	return lastErr
 }
 
 func inspectFormat(row string) string {
