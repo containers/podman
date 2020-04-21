@@ -1,38 +1,4 @@
 FROM fedora:31
-RUN dnf -y install \
-      btrfs-progs-devel \
-      bzip2 \
-      container-selinux \
-      containernetworking-cni \
-      device-mapper-devel \
-      findutils \
-      git \
-      glib2-devel \
-      glibc-static \
-      golang \
-      gpgme-devel \
-      iptables \
-      libassuan-devel \
-      libseccomp-devel \
-      libselinux-devel \
-      lsof \
-      make \
-      nmap-ncat \
-      procps-ng \
-      python \
-      python3-dateutil \
-      python3-pip \
-      python3-psutil \
-      python3-pytoml \
-      python3-pyyaml \
-      python3-varlink \
-      rsync \
-      slirp4netns \
-      unzip \
-      which \
-      xz \
-      zip \
-      && dnf clean all
 
 ENV GOPATH="/var/tmp/go" \
     GOBIN="/var/tmp/go/bin" \
@@ -42,6 +8,11 @@ ENV GOPATH="/var/tmp/go" \
 
 # Only needed for installing build-time dependencies, then will be removed
 COPY / $GOSRC
+
+# Install packages from dependencies.txt, ignoring commented lines
+RUN dnf -y install \
+   $(grep "^[^#]" $GOSRC/contrib/dependencies.txt) \
+   && dnf clean all
 
 # Install dependencies
 RUN set -x && \
