@@ -13,6 +13,7 @@ import (
 )
 
 func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) error {
+	var appendEntryPoint bool
 
 	newImage, err := r.ImageRuntime().NewFromLocal(s.Image)
 	if err != nil {
@@ -100,6 +101,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		return err
 	}
 	if len(s.Entrypoint) < 1 && len(entrypoint) > 0 {
+		appendEntryPoint = true
 		s.Entrypoint = entrypoint
 	}
 	command, err := newImage.Cmd(ctx)
@@ -107,7 +109,10 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		return err
 	}
 	if len(s.Command) < 1 && len(command) > 0 {
-		s.Command = command
+		if appendEntryPoint {
+			s.Command = entrypoint
+		}
+		s.Command = append(s.Command, command...)
 	}
 	if len(s.Command) < 1 && len(s.Entrypoint) < 1 {
 		return errors.Errorf("No command provided or as CMD or ENTRYPOINT in this image")
