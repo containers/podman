@@ -5,11 +5,11 @@ import (
 
 	"github.com/containers/common/pkg/capabilities"
 	cconfig "github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"

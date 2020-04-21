@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/libpod/define"
@@ -38,7 +37,7 @@ func init() {
 	})
 	flags := startCommand.Flags()
 	flags.BoolVarP(&startOptions.Attach, "attach", "a", false, "Attach container's STDOUT and STDERR")
-	flags.StringVar(&startOptions.DetachKeys, "detach-keys", common.GetDefaultDetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+	flags.StringVar(&startOptions.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	flags.BoolVarP(&startOptions.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&startOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&startOptions.SigProxy, "sig-proxy", false, "Proxy received signals to the process (default true if attaching, false otherwise)")

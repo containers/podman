@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/libpod"
@@ -28,7 +29,6 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/seccomp"
 	cc "github.com/containers/libpod/pkg/spec"
-	"github.com/containers/libpod/pkg/sysinfo"
 	systemdGen "github.com/containers/libpod/pkg/systemd/generate"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-connections/nat"

@@ -3,6 +3,7 @@ package pods
 import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +16,7 @@ var (
 		TraverseChildren: true,
 		RunE:             registry.SubCommandExists,
 	}
+	containerConfig = util.DefaultContainerConfig()
 )
 
 func init() {

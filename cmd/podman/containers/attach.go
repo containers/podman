@@ -3,7 +3,6 @@ package containers
 import (
 	"os"
 
-	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -39,7 +38,7 @@ func init() {
 		Command: attachCommand,
 	})
 	flags := attachCommand.Flags()
-	flags.StringVar(&attachOpts.DetachKeys, "detach-keys", common.GetDefaultDetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+	flags.StringVar(&attachOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	flags.BoolVar(&attachOpts.NoStdin, "no-stdin", false, "Do not attach STDIN. The default is false")
 	flags.BoolVar(&attachOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 	flags.BoolVarP(&attachOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")

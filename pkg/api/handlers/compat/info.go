@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/sysinfo"
 	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/google/uuid"

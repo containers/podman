@@ -47,11 +47,10 @@ func init() {
 	flags.BoolVarP(&stopOptions.All, "all", "a", false, "Stop all running pods")
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
 	flags.BoolVarP(&stopOptions.Latest, "latest", "l", false, "Stop the latest pod podman is aware of")
-	flags.UintVarP(&timeout, "time", "t", 0, "Seconds to wait for pod stop before killing the container")
+	flags.UintVarP(&timeout, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for pod stop before killing the container")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("ignore")
-
 	}
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
