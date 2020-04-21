@@ -123,7 +123,7 @@ func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string)
 		pids.Limit = c.PIDsLimit
 		hasLimits = true
 	}
-	if c.CGroups == "disabled" && c.PIDsLimit > 0 {
+	if c.CGroupsMode == "disabled" && c.PIDsLimit > 0 {
 		s.ResourceLimits.Pids.Limit = -1
 	}
 	if !hasLimits {
@@ -472,12 +472,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if ld := c.LogDriver; len(ld) > 0 {
 		s.LogConfiguration.Driver = ld
 	}
+	s.CgroupParent = c.CGroupParent
+	s.CgroupsMode = c.CGroupsMode
 	// TODO WTF
 	//cgroup := &cc.CgroupConfig{
-	//	Cgroups:      c.String("cgroups"),
 	//	Cgroupns:     c.String("cgroupns"),
-	//	CgroupParent: c.String("cgroup-parent"),
-	//	CgroupMode:   cgroupMode,
 	//}
 	//
 	//userns := &cc.UserConfig{
@@ -494,6 +493,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	//	Hostname: c.String("hostname"),
 	//}
 
+	s.Hostname = c.Hostname
 	sysctl := map[string]string{}
 	if ctl := c.Sysctl; len(ctl) > 0 {
 		sysctl, err = util.ValidateSysctls(ctl)
@@ -561,14 +561,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	//s.Mounts = c.Mount
 	s.VolumesFrom = c.VolumesFrom
 
-	// TODO any idea why this was done
-	//devices := rtc.Containers.Devices
-	// TODO conflict on populate?
-	//
-	//if c.Changed("device") {
-	//	devices = append(devices, c.StringSlice("device")...)
-	//}
-
+	for _, dev := range c.Devices {
+		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
+	}
 	// TODO things i cannot find in spec
 	// we dont think these are in the spec
 	// init - initbinary

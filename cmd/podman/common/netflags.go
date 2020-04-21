@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/containers/libpod/cmd/podman/parse"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/pkg/errors"
@@ -148,6 +149,9 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 		staticIP := net.ParseIP(ip)
 		if staticIP == nil {
 			return nil, errors.Errorf("%s is not an ip address", ip)
+		}
+		if staticIP.To4() == nil {
+			return nil, errors.Wrapf(define.ErrInvalidArg, "%s is not an IPv4 address", ip)
 		}
 		opts.StaticIP = &staticIP
 	}

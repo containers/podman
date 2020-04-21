@@ -11,7 +11,7 @@ type ContainerCLIOpts struct {
 	CapAdd            []string
 	CapDrop           []string
 	CGroupsNS         string
-	CGroups           string
+	CGroupsMode       string
 	CGroupParent      string
 	CIDFile           string
 	ConmonPIDFile     string
@@ -25,7 +25,7 @@ type ContainerCLIOpts struct {
 	CPUSetMems        string
 	Detach            bool
 	DetachKeys        string
-	Device            []string
+	Devices           []string
 	DeviceCGroupRule  []string
 	DeviceReadBPs     []string
 	DeviceReadIOPs    []string
