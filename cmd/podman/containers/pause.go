@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -24,8 +25,22 @@ var (
   podman pause -a`,
 	}
 
+	containerPauseCommand = &cobra.Command{
+		Use:   pauseCommand.Use,
+		Short: pauseCommand.Short,
+		Long:  pauseCommand.Long,
+		RunE:  pauseCommand.RunE,
+		Example: `podman container pause mywebserver
+  podman container pause 860a4b23
+  podman container pause -a`,
+	}
+
 	pauseOpts = entities.PauseUnPauseOptions{}
 )
+
+func pauseFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&pauseOpts.All, "all", "a", false, "Pause all running containers")
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -33,7 +48,15 @@ func init() {
 		Command: pauseCommand,
 	})
 	flags := pauseCommand.Flags()
-	flags.BoolVarP(&pauseOpts.All, "all", "a", false, "Pause all running containers")
+	pauseFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerPauseCommand,
+		Parent:  containerCmd,
+	})
+	containerPauseFlags := containerPauseCommand.Flags()
+	pauseFlags(containerPauseFlags)
 }
 
 func pause(cmd *cobra.Command, args []string) error {

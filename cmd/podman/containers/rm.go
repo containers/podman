@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -31,18 +32,24 @@ var (
   podman rm --force --all
   podman rm -f c684f0d469f2`,
 	}
+
+	containerRmCommand = &cobra.Command{
+		Use:   rmCommand.Use,
+		Short: rmCommand.Use,
+		Long:  rmCommand.Long,
+		RunE:  rmCommand.RunE,
+		Example: `podman container rm imageID
+  podman container rm mywebserver myflaskserver 860a4b23
+  podman container rm --force --all
+  podman container rm -f c684f0d469f2`,
+	}
 )
 
 var (
 	rmOptions = entities.RmOptions{}
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: rmCommand,
-	})
-	flags := rmCommand.Flags()
+func rmFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all containers")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running or unusable container.  The default is false")
@@ -56,7 +63,24 @@ func init() {
 		_ = flags.MarkHidden("cidfile")
 		_ = flags.MarkHidden("storage")
 	}
+}
 
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: rmCommand,
+	})
+	flags := rmCommand.Flags()
+	rmFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerRmCommand,
+		Parent:  containerCmd,
+	})
+
+	containerRmFlags := containerRmCommand.Flags()
+	rmFlags(containerRmFlags)
 }
 
 func rm(cmd *cobra.Command, args []string) error {

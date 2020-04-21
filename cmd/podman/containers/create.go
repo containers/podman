@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -27,11 +28,28 @@ var (
   podman create --annotation HELLO=WORLD alpine ls
   podman create -t -i --name myctr alpine ls`,
 	}
+
+	containerCreateCommand = &cobra.Command{
+		Use:   createCommand.Use,
+		Short: createCommand.Short,
+		Long:  createCommand.Long,
+		RunE:  createCommand.RunE,
+		Example: `podman container create alpine ls
+  podman container create --annotation HELLO=WORLD alpine ls
+  podman container create -t -i --name myctr alpine ls`,
+	}
 )
 
 var (
 	cliVals common.ContainerCLIOpts
 )
+
+func createFlags(flags *pflag.FlagSet) {
+	flags.SetInterspersed(false)
+	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
+	flags.AddFlagSet(common.GetNetFlags())
+	flags.SetNormalizeFunc(common.AliasFlags)
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -40,10 +58,16 @@ func init() {
 	})
 	//common.GetCreateFlags(createCommand)
 	flags := createCommand.Flags()
-	flags.SetInterspersed(false)
-	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
-	flags.AddFlagSet(common.GetNetFlags())
-	flags.SetNormalizeFunc(common.AliasFlags)
+	createFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerCreateCommand,
+		Parent:  containerCmd,
+	})
+
+	containerCreateFlags := containerCreateCommand.Flags()
+	createFlags(containerCreateFlags)
 }
 
 func create(cmd *cobra.Command, args []string) error {

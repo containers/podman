@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -30,11 +31,27 @@ var (
   podman umount ctrID1 ctrID2 ctrID3
   podman umount --all`,
 	}
+
+	containerUnmountCommand = &cobra.Command{
+		Use:   umountCommand.Use,
+		Short: umountCommand.Short,
+		Long:  umountCommand.Long,
+		RunE:  umountCommand.RunE,
+		Example: `podman container umount ctrID
+  podman container umount ctrID1 ctrID2 ctrID3
+  podman container umount --all`,
+	}
 )
 
 var (
 	unmountOpts entities.ContainerUnmountOptions
 )
+
+func umountFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&unmountOpts.All, "all", "a", false, "Umount all of the currently mounted containers")
+	flags.BoolVarP(&unmountOpts.Force, "force", "f", false, "Force the complete umount all of the currently mounted containers")
+	flags.BoolVarP(&unmountOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -42,9 +59,16 @@ func init() {
 		Command: umountCommand,
 	})
 	flags := umountCommand.Flags()
-	flags.BoolVarP(&unmountOpts.All, "all", "a", false, "Umount all of the currently mounted containers")
-	flags.BoolVarP(&unmountOpts.Force, "force", "f", false, "Force the complete umount all of the currently mounted containers")
-	flags.BoolVarP(&unmountOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	umountFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerUnmountCommand,
+		Parent:  containerCmd,
+	})
+
+	containerUmountFlags := containerUnmountCommand.Flags()
+	umountFlags(containerUmountFlags)
 }
 
 func unmount(cmd *cobra.Command, args []string) error {

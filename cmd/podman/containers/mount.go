@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -34,11 +35,25 @@ var (
 			registry.ParentNSRequired: "",
 		},
 	}
+
+	containerMountCommmand = &cobra.Command{
+		Use:   mountCommand.Use,
+		Short: mountCommand.Short,
+		Long:  mountCommand.Long,
+		RunE:  mountCommand.RunE,
+	}
 )
 
 var (
 	mountOpts entities.ContainerMountOptions
 )
+
+func mountFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&mountOpts.All, "all", "a", false, "Mount all containers")
+	flags.StringVar(&mountOpts.Format, "format", "", "Change the output format to Go template")
+	flags.BoolVarP(&mountOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVar(&mountOpts.NoTruncate, "notruncate", false, "Do not truncate output")
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -46,10 +61,15 @@ func init() {
 		Command: mountCommand,
 	})
 	flags := mountCommand.Flags()
-	flags.BoolVarP(&mountOpts.All, "all", "a", false, "Mount all containers")
-	flags.StringVar(&mountOpts.Format, "format", "", "Change the output format to Go template")
-	flags.BoolVarP(&mountOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.BoolVar(&mountOpts.NoTruncate, "notruncate", false, "Do not truncate output")
+	mountFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerMountCommmand,
+		Parent:  containerCmd,
+	})
+	containerMountFlags := containerMountCommmand.Flags()
+	mountFlags(containerMountFlags)
 }
 
 func mount(cmd *cobra.Command, args []string) error {

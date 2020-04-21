@@ -9,6 +9,7 @@ import (
 	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -23,6 +24,16 @@ var (
   podman exec -it -w /tmp myCtr pwd
   podman exec --user root ctrID ls`,
 	}
+
+	containerExecCommand = &cobra.Command{
+		Use:   execCommand.Use,
+		Short: execCommand.Short,
+		Long:  execCommand.Long,
+		RunE:  execCommand.RunE,
+		Example: `podman container exec -it ctrID ls
+  podman container exec -it -w /tmp myCtr pwd
+  podman container exec --user root ctrID ls`,
+	}
 )
 
 var (
@@ -30,12 +41,7 @@ var (
 	execOpts          entities.ExecOptions
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: execCommand,
-	})
-	flags := execCommand.Flags()
+func execFlags(flags *pflag.FlagSet) {
 	flags.SetInterspersed(false)
 	flags.StringVar(&execOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
 	flags.StringArrayVarP(&envInput, "env", "e", []string{}, "Set environment variables")
@@ -51,8 +57,26 @@ func init() {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("preserve-fds")
 	}
-
 }
+
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: execCommand,
+	})
+	flags := execCommand.Flags()
+	execFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerExecCommand,
+		Parent:  containerCommitCommand,
+	})
+
+	containerExecFlags := containerExecCommand.Flags()
+	execFlags(containerExecFlags)
+}
+
 func exec(cmd *cobra.Command, args []string) error {
 	var nameOrId string
 	execOpts.Cmd = args

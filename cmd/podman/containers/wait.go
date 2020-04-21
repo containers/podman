@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -26,6 +27,16 @@ var (
   podman wait --interval 5000 ctrID
   podman wait ctrID1 ctrID2`,
 	}
+
+	containerWaitCommand = &cobra.Command{
+		Use:   waitCommand.Use,
+		Short: waitCommand.Short,
+		Long:  waitCommand.Long,
+		RunE:  waitCommand.RunE,
+		Example: `podman container wait --latest
+  podman container wait --interval 5000 ctrID
+  podman container wait ctrID1 ctrID2`,
+	}
 )
 
 var (
@@ -33,13 +44,7 @@ var (
 	waitCondition string
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: waitCommand,
-	})
-
-	flags := waitCommand.Flags()
+func waitFlags(flags *pflag.FlagSet) {
 	flags.DurationVarP(&waitOptions.Interval, "interval", "i", time.Duration(250), "Milliseconds to wait before polling for completion")
 	flags.BoolVarP(&waitOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.StringVar(&waitCondition, "condition", "stopped", "Condition to wait on")
@@ -47,6 +52,24 @@ func init() {
 		// TODO: This is the same as V1.  We could skip creating the flag altogether in V2...
 		_ = flags.MarkHidden("latest")
 	}
+}
+
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: waitCommand,
+	})
+	flags := waitCommand.Flags()
+	waitFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerWaitCommand,
+		Parent:  containerCmd,
+	})
+
+	containerWaitFlags := containerWaitCommand.Flags()
+	waitFlags(containerWaitFlags)
 }
 
 func wait(cmd *cobra.Command, args []string) error {

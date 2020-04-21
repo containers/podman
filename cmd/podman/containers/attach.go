@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -26,6 +27,16 @@ var (
   podman attach 1234
   podman attach --no-stdin foobar`,
 	}
+
+	containerAttachCommand = &cobra.Command{
+		Use:   attachCommand.Use,
+		Short: attachCommand.Short,
+		Long:  attachCommand.Long,
+		RunE:  attachCommand.RunE,
+		Example: `podman container attach ctrID
+	podman container attach 1234
+	podman container attach --no-stdin foobar`,
+	}
 )
 
 var (
@@ -38,6 +49,18 @@ func init() {
 		Command: attachCommand,
 	})
 	flags := attachCommand.Flags()
+	attachFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerAttachCommand,
+		Parent:  containerCmd,
+	})
+	containerAttachFlags := containerAttachCommand.Flags()
+	attachFlags(containerAttachFlags)
+}
+
+func attachFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&attachOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	flags.BoolVar(&attachOpts.NoStdin, "no-stdin", false, "Do not attach STDIN. The default is false")
 	flags.BoolVar(&attachOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
@@ -45,6 +68,23 @@ func init() {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 	}
+}
+
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: attachCommand,
+	})
+	flags := attachCommand.Flags()
+	attachFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerAttachCommand,
+		Parent:  containerCmd,
+	})
+	containerAttachFlags := containerAttachCommand.Flags()
+	attachFlags(containerAttachFlags)
 }
 
 func attach(cmd *cobra.Command, args []string) error {

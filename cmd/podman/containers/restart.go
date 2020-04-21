@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -30,6 +31,16 @@ var (
   podman restart --latest
   podman restart ctrID1 ctrID2`,
 	}
+
+	containerRestartCommand = &cobra.Command{
+		Use:   restartCommand.Use,
+		Short: restartCommand.Short,
+		Long:  restartCommand.Long,
+		RunE:  restartCommand.RunE,
+		Example: `podman container restart ctrID
+  podman container restart --latest
+  podman container restart ctrID1 ctrID2`,
+	}
 )
 
 var (
@@ -37,12 +48,7 @@ var (
 	restartTimeout uint
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: restartCommand,
-	})
-	flags := restartCommand.Flags()
+func restartFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&restartOptions.All, "all", "a", false, "Restart all non-running containers")
 	flags.BoolVarP(&restartOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restartOptions.Running, "running", false, "Restart only running containers when --all is used")
@@ -51,6 +57,24 @@ func init() {
 		_ = flags.MarkHidden("latest")
 	}
 	flags.SetNormalizeFunc(utils.AliasFlags)
+}
+
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: restartCommand,
+	})
+	flags := restartCommand.Flags()
+	restartFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerRestartCommand,
+		Parent:  containerCmd,
+	})
+
+	containerRestartFlags := containerRestartCommand.Flags()
+	restartFlags(containerRestartFlags)
 }
 
 func restart(cmd *cobra.Command, args []string) error {

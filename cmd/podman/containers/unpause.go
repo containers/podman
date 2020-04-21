@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -23,16 +24,37 @@ var (
   podman unpause --all`,
 	}
 	unPauseOptions = entities.PauseUnPauseOptions{}
+
+	containerUnpauseCommand = &cobra.Command{
+		Use:   unpauseCommand.Use,
+		Short: unpauseCommand.Short,
+		Long:  unpauseCommand.Long,
+		RunE:  unpauseCommand.RunE,
+		Example: `podman container unpause ctrID
+  podman container unpause --all`,
+	}
 )
+
+func unpauseFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&unPauseOptions.All, "all", "a", false, "Pause all running containers")
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: unpauseCommand,
-		Parent:  containerCmd,
 	})
 	flags := unpauseCommand.Flags()
-	flags.BoolVarP(&unPauseOptions.All, "all", "a", false, "Pause all running containers")
+	unpauseFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: unpauseCommand,
+		Parent:  containerCmd,
+	})
+
+	unpauseCommandFlags := containerUnpauseCommand.Flags()
+	unpauseFlags(unpauseCommandFlags)
 }
 
 func unpause(cmd *cobra.Command, args []string) error {

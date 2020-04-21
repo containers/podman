@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -25,11 +26,24 @@ var (
 		Example: `podman export ctrID > myCtr.tar
   podman export --output="myCtr.tar" ctrID`,
 	}
+
+	containerExportCommand = &cobra.Command{
+		Use:   exportCommand.Use,
+		Short: exportCommand.Short,
+		Long:  exportCommand.Long,
+		RunE:  exportCommand.RunE,
+		Example: `podman container export ctrID > myCtr.tar
+  podman container export --output="myCtr.tar" ctrID`,
+	}
 )
 
 var (
 	exportOpts entities.ContainerExportOptions
 )
+
+func exportFlags(flags *pflag.FlagSet) {
+	flags.StringVarP(&exportOpts.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -37,7 +51,16 @@ func init() {
 		Command: exportCommand,
 	})
 	flags := exportCommand.Flags()
-	flags.StringVarP(&exportOpts.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")
+	exportFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerExportCommand,
+		Parent:  containerCmd,
+	})
+
+	containerExportFlags := containerExportCommand.Flags()
+	exportFlags(containerExportFlags)
 }
 
 func export(cmd *cobra.Command, args []string) error {
