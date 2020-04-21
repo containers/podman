@@ -1,6 +1,8 @@
 package specgen
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
@@ -95,4 +97,17 @@ func (n *Namespace) validate() error {
 		}
 	}
 	return nil
+}
+
+func NewNamespace(path string) Namespace {
+	var value string
+	split := strings.SplitN(path, ":", 2)
+	if len(split) > 1 {
+		value = split[1]
+	}
+	return Namespace{
+		NSMode: NamespaceMode(split[0]),
+		Value:  value,
+	}
+
 }

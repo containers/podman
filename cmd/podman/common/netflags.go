@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -159,9 +160,7 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 			return nil, err
 		}
 
-		return nil, errors.Errorf("network %s is not yet supported", network)
-		// TODO How do I convert a string network to a Specgen.Namespace?
-		//		opts.Network = specgen.Namespace{NSMode: network}
+		opts.Network = specgen.NewNamespace(network)
 	}
 
 	return &opts, err

@@ -222,60 +222,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	s.PortMappings = ep
 	s.Pod = c.Pod
+	s.NetNS = c.Net.Network
+	s.CgroupNS = specgen.NewNamespace(c.CGroupsNS)
+	s.UserNS = specgen.NewNamespace(c.UserNS)
+	s.PidNS = specgen.NewNamespace(c.PID)
+	s.UserNS = specgen.NewNamespace(c.UserNS)
+	s.IpcNS = specgen.NewNamespace(c.IPC)
+	s.UtsNS = specgen.NewNamespace(c.UTS)
 
-	//s.CgroupNS = specgen.Namespace{
-	//	NSMode: ,
-	//	Value:  "",
-	//}
-
-	//s.UserNS = specgen.Namespace{}
-
-	// Kernel Namespaces
-	// TODO Fix handling of namespace from pod
-	// Instead of integrating here, should be done in libpod
-	// However, that also involves setting up security opts
-	// when the pod's namespace is integrated
-	//namespaces = map[string]string{
-	//	"cgroup": c.CGroupsNS,
-	//	"pid":    c.PID,
-	//	//"net":    c.Net.Network.Value,   // TODO need help here
-	//	"ipc":  c.IPC,
-	//	"user": c.User,
-	//	"uts":  c.UTS,
-	//}
-	//
-	//if len(c.PID) > 0 {
-	//	split := strings.SplitN(c.PID, ":", 2)
-	//	// need a way to do thsi
-	//	specgen.Namespace{
-	//		NSMode: split[0],
-	//	}
-	//	//Value:  split1 if len allows
-	//}
-	// TODO this is going to have be done after things like pod creation are done because
-	// pod creation changes these values.
-	//pidMode := ns.PidMode(namespaces["pid"])
-	//usernsMode := ns.UsernsMode(namespaces["user"])
-	//utsMode := ns.UTSMode(namespaces["uts"])
-	//cgroupMode := ns.CgroupMode(namespaces["cgroup"])
-	//ipcMode := ns.IpcMode(namespaces["ipc"])
-	//// Make sure if network is set to container namespace, port binding is not also being asked for
-	//netMode := ns.NetworkMode(namespaces["net"])
-	//if netMode.IsContainer() {
-	//	if len(portBindings) > 0 {
-	//		return nil, errors.Errorf("cannot set port bindings on an existing container network namespace")
-	//	}
-	//}
-
-	// TODO Remove when done with namespaces for realz
-	// Setting a default for IPC to get this working
-	s.IpcNS = specgen.Namespace{
-		NSMode: specgen.Private,
-		Value:  "",
-	}
-
-	// TODO this is going to have to be done the libpod/server end of things
-	// USER
 	//user := c.String("user")
 	//if user == "" {
 	//	switch {
@@ -484,17 +438,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	//userns := &cc.UserConfig{
 	//	GroupAdd:   c.StringSlice("group-add"),
 	//	IDMappings: idmappings,
-	//	UsernsMode: usernsMode,
 	//	User:       user,
 	//}
 	//
-	//uts := &cc.UtsConfig{
-	//	UtsMode:  utsMode,
-	//	NoHosts:  c.Bool("no-hosts"),
-	//	HostAdd:  c.StringSlice("add-host"),
-	//	Hostname: c.String("hostname"),
-	//}
-
 	sysctl := map[string]string{}
 	if ctl := c.Sysctl; len(ctl) > 0 {
 		sysctl, err = util.ValidateSysctls(ctl)
