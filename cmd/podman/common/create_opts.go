@@ -11,7 +11,7 @@ type ContainerCLIOpts struct {
 	CapAdd            []string
 	CapDrop           []string
 	CGroupsNS         string
-	CGroups           string
+	CGroupsMode       string
 	CGroupParent      string
 	CIDFile           string
 	ConmonPIDFile     string

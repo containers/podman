@@ -124,7 +124,7 @@ func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string)
 		pids.Limit = c.PIDsLimit
 		hasLimits = true
 	}
-	if c.CGroups == "disabled" && c.PIDsLimit > 0 {
+	if c.CGroupsMode == "disabled" && c.PIDsLimit > 0 {
 		s.ResourceLimits.Pids.Limit = -1
 	}
 	if !hasLimits {
@@ -473,12 +473,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if ld := c.LogDriver; len(ld) > 0 {
 		s.LogConfiguration.Driver = ld
 	}
+	s.CgroupParent = c.CGroupParent
+	s.CgroupsMode = c.CGroupsMode
 	// TODO WTF
 	//cgroup := &cc.CgroupConfig{
-	//	Cgroups:      c.String("cgroups"),
 	//	Cgroupns:     c.String("cgroupns"),
-	//	CgroupParent: c.String("cgroup-parent"),
-	//	CgroupMode:   cgroupMode,
 	//}
 	//
 	//userns := &cc.UserConfig{
