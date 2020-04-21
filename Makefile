@@ -474,7 +474,7 @@ install: .gopathok install.bin install.remote install.man install.cni install.sy
 install.remote: podman-remote
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman-remote $(DESTDIR)$(BINDIR)/podman-remote
-	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman-remote
+	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote bin/podman-remote
 
 .PHONY: install.bin
 install.bin: podman
