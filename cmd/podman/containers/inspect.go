@@ -11,7 +11,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/registry"
 
 	"github.com/containers/libpod/pkg/domain/entities"
-	json "github.com/json-iterator/go"
 	"github.com/spf13/cobra"
 )
 

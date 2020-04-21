@@ -1,7 +1,6 @@
 package containers
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"

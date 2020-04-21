@@ -13,7 +13,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/docker/go-units"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -77,7 +76,6 @@ func history(cmd *cobra.Command, args []string) error {
 				layers[i].ImageHistoryLayer = l
 				layers[i].Created = l.Created.Format(time.RFC3339)
 			}
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			enc := json.NewEncoder(os.Stdout)
 			err = enc.Encode(layers)
 		}

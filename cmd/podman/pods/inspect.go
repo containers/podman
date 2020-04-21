@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +54,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	b, err := jsoniter.MarshalIndent(responses, "", "  ")
+	b, err := json.MarshalIndent(responses, "", "  ")
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package pods
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -11,10 +10,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/docker/go-units"
-
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

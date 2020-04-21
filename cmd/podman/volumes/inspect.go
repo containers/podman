@@ -1,7 +1,6 @@
 package volumes
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"os"
