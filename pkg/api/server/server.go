@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	goRuntime "runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -30,6 +31,7 @@ type APIServer struct {
 	net.Listener                    // mux for routing HTTP API calls to libpod routines
 	context.CancelFunc              // Stop APIServer
 	idleTracker        *IdleTracker // Track connections to support idle shutdown
+	pprof              *http.Server // Sidecar http server for providing performance data
 }
 
 // Number of seconds to wait for next request, if exceeded shutdown server
@@ -145,6 +147,20 @@ func (s *APIServer) Serve() error {
 		_ = s.Shutdown()
 	}()
 
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		go func() {
+			pprofMux := mux.NewRouter()
+			pprofMux.PathPrefix("/debug/pprof").Handler(http.DefaultServeMux)
+			goRuntime.SetMutexProfileFraction(1)
+			goRuntime.SetBlockProfileRate(1)
+			s.pprof = &http.Server{Addr: "localhost:8888", Handler: pprofMux}
+			err := s.pprof.ListenAndServe()
+			if err != nil && err != http.ErrServerClosed {
+				logrus.Warn("Profiler Service failed: " + err.Error())
+			}
+		}()
+	}
+
 	go func() {
 		err := s.Server.Serve(s.Listener)
 		if err != nil && err != http.ErrServerClosed {
@@ -166,26 +182,29 @@ func (s *APIServer) Serve() error {
 
 // Shutdown is a clean shutdown waiting on existing clients
 func (s *APIServer) Shutdown() error {
+	if s.idleTracker.Duration == UnlimitedServiceDuration {
+		logrus.Debug("APIServer.Shutdown ignored as Duration is UnlimitedService.")
+		return nil
+	}
+
+	// Gracefully shutdown server(s), duration of wait same as idle window
+	// TODO: Should we really wait the idle window for shutdown?
+	ctx, cancel := context.WithTimeout(context.Background(), s.idleTracker.Duration)
+	defer cancel()
+
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		_, file, line, _ := runtime.Caller(1)
 		logrus.Debugf("APIServer.Shutdown by %s:%d, %d/%d connection(s)",
 			file, line, s.idleTracker.ActiveConnections(), s.idleTracker.TotalConnections())
+		if err := s.pprof.Shutdown(ctx); err != nil {
+			logrus.Warn("Failed to cleanly shutdown pprof Server: " + err.Error())
+		}
 	}
 
-	// Duration == 0 flags no auto-shutdown of the server
-	if s.idleTracker.Duration == 0 {
-		logrus.Debug("APIServer.Shutdown ignored as Duration == 0")
-		return nil
-	}
-
-	// Gracefully shutdown server, duration of wait same as idle window
-	// TODO: Should we really wait the idle window for shutdown?
-	ctx, cancel := context.WithTimeout(context.Background(), s.idleTracker.Duration)
-	defer cancel()
 	go func() {
 		err := s.Server.Shutdown(ctx)
 		if err != nil && err != context.Canceled && err != http.ErrServerClosed {
-			logrus.Errorf("Failed to cleanly shutdown APIServer: %s", err.Error())
+			logrus.Error("Failed to cleanly shutdown APIServer: " + err.Error())
 		}
 	}()
 	<-ctx.Done()
