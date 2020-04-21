@@ -66,7 +66,7 @@ func init() {
 		Parent:  containerCmd,
 	})
 
-	containerStartFlags := containerRunCommand.Flags()
+	containerStartFlags := containerStartCommand.Flags()
 	startFlags(containerStartFlags)
 }
 

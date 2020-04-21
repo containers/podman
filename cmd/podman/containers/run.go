@@ -34,8 +34,8 @@ var (
 		Long:  runCommand.Long,
 		RunE:  runCommand.RunE,
 		Example: `podman container run imageID ls -alF /etc
-  podman container run --network=host imageID dnf -y install java
-  podman container run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
+	podman container run --network=host imageID dnf -y install java
+	podman container run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
 	}
 )
 
