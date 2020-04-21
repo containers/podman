@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -24,18 +25,23 @@ var (
   podman start 860a4b231279 5421ab43b45
   podman start --interactive --attach imageID`,
 	}
+
+	containerStartCommand = &cobra.Command{
+		Use:   startCommand.Use,
+		Short: startCommand.Short,
+		Long:  startCommand.Long,
+		RunE:  startCommand.RunE,
+		Example: `podman container start --latest
+  podman container start 860a4b231279 5421ab43b45
+  podman container start --interactive --attach imageID`,
+	}
 )
 
 var (
 	startOptions entities.ContainerStartOptions
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: startCommand,
-	})
-	flags := startCommand.Flags()
+func startFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&startOptions.Attach, "attach", "a", false, "Attach container's STDOUT and STDERR")
 	flags.StringVar(&startOptions.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	flags.BoolVarP(&startOptions.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
@@ -45,7 +51,23 @@ func init() {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("sig-proxy")
 	}
+}
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: startCommand,
+	})
+	flags := startCommand.Flags()
+	startFlags(flags)
 
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerStartCommand,
+		Parent:  containerCmd,
+	})
+
+	containerStartFlags := containerRunCommand.Flags()
+	startFlags(containerStartFlags)
 }
 
 func start(cmd *cobra.Command, args []string) error {

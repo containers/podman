@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -26,6 +27,16 @@ var (
   podman run --network=host imageID dnf -y install java
   podman run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
 	}
+
+	containerRunCommand = &cobra.Command{
+		Use:   runCommand.Use,
+		Short: runCommand.Short,
+		Long:  runCommand.Long,
+		RunE:  runCommand.RunE,
+		Example: `podman container run imageID ls -alF /etc
+  podman container run --network=host imageID dnf -y install java
+  podman container run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
+	}
 )
 
 var (
@@ -37,12 +48,7 @@ var (
 	runRmi bool
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: runCommand,
-	})
-	flags := runCommand.Flags()
+func runFlags(flags *pflag.FlagSet) {
 	flags.SetInterspersed(false)
 	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
 	flags.AddFlagSet(common.GetNetFlags())
@@ -52,6 +58,23 @@ func init() {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
 	}
+}
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: runCommand,
+	})
+	flags := runCommand.Flags()
+	runFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerRunCommand,
+		Parent:  containerCmd,
+	})
+
+	containerRunFlags := containerRunCommand.Flags()
+	runFlags(containerRunFlags)
 }
 
 func run(cmd *cobra.Command, args []string) error {

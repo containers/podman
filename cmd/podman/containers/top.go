@@ -12,6 +12,7 @@ import (
 	"github.com/containers/psgo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -36,23 +37,44 @@ podman top --latest
 podman top ctrID pid seccomp args %C
 podman top ctrID -eo user,pid,comm`,
 	}
+
+	containerTopCommand = &cobra.Command{
+		Use:   topCommand.Use,
+		Short: topCommand.Short,
+		Long:  topCommand.Long,
+		RunE:  topCommand.RunE,
+		Example: `podman container top ctrID
+podman container top --latest
+podman container top ctrID pid seccomp args %C
+podman container top ctrID -eo user,pid,comm`,
+	}
 )
+
+func topFlags(flags *pflag.FlagSet) {
+	flags.SetInterspersed(false)
+	flags.BoolVar(&topOptions.ListDescriptors, "list-descriptors", false, "")
+	flags.BoolVarP(&topOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	_ = flags.MarkHidden("list-descriptors") // meant only for bash completion
+	if registry.IsRemote() {
+		_ = flags.MarkHidden("latest")
+	}
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: topCommand,
 	})
-
 	flags := topCommand.Flags()
-	flags.SetInterspersed(false)
-	flags.BoolVar(&topOptions.ListDescriptors, "list-descriptors", false, "")
-	flags.BoolVarP(&topOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	topFlags(flags)
 
-	_ = flags.MarkHidden("list-descriptors") // meant only for bash completion
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerTopCommand,
+		Parent:  containerCmd,
+	})
+	containerTopFlags := containerTopCommand.Flags()
+	topFlags(containerTopFlags)
 }
 
 func top(cmd *cobra.Command, args []string) error {

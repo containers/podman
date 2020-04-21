@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -27,11 +28,30 @@ var (
   podman kill 860a4b23
   podman kill --signal TERM ctrID`,
 	}
+
+	containerKillCommand = &cobra.Command{
+		Use:   killCommand.Use,
+		Short: killCommand.Short,
+		Long:  killCommand.Long,
+		RunE:  killCommand.RunE,
+		Example: `podman container kill mywebserver
+  podman container kill 860a4b23
+  podman container kill --signal TERM ctrID`,
+	}
 )
 
 var (
 	killOptions = entities.KillOptions{}
 )
+
+func killFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&killOptions.All, "all", "a", false, "Signal all running containers")
+	flags.StringVarP(&killOptions.Signal, "signal", "s", "KILL", "Signal to send to the container")
+	flags.BoolVarP(&killOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	if registry.IsRemote() {
+		_ = flags.MarkHidden("latest")
+	}
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -39,12 +59,16 @@ func init() {
 		Command: killCommand,
 	})
 	flags := killCommand.Flags()
-	flags.BoolVarP(&killOptions.All, "all", "a", false, "Signal all running containers")
-	flags.StringVarP(&killOptions.Signal, "signal", "s", "KILL", "Signal to send to the container")
-	flags.BoolVarP(&killOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	killFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerKillCommand,
+		Parent:  containerCmd,
+	})
+
+	containerKillFlags := containerKillCommand.Flags()
+	killFlags(containerKillFlags)
 }
 
 func kill(cmd *cobra.Command, args []string) error {

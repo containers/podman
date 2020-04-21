@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -28,6 +29,17 @@ var (
   podman commit containerID`,
 	}
 
+	containerCommitCommand = &cobra.Command{
+		Use:   commitCommand.Use,
+		Short: commitCommand.Short,
+		Long:  commitCommand.Long,
+		RunE:  commitCommand.RunE,
+		Example: `podman container commit -q --message "committing container to image" reverent_golick image-committed
+  podman container commit -q --author "firstName lastName" reverent_golick image-committed
+  podman container commit -q --pause=false containerID image-committed
+  podman container commit containerID`,
+	}
+
 	// ChangeCmds is the list of valid Changes commands to passed to the Commit call
 	ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
 )
@@ -39,12 +51,7 @@ var (
 	iidFile string
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: commitCommand,
-	})
-	flags := commitCommand.Flags()
+func commitFlags(flags *pflag.FlagSet) {
 	flags.StringArrayVarP(&commitOptions.Changes, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): "+strings.Join(ChangeCmds, " | "))
 	flags.StringVarP(&commitOptions.Format, "format", "f", "oci", "`Format` of the image manifest and metadata")
 	flags.StringVarP(&iidFile, "iidfile", "", "", "`file` to write the image ID to")
@@ -53,8 +60,25 @@ func init() {
 	flags.BoolVarP(&commitOptions.Pause, "pause", "p", false, "Pause container during commit")
 	flags.BoolVarP(&commitOptions.Quiet, "quiet", "q", false, "Suppress output")
 	flags.BoolVar(&commitOptions.IncludeVolumes, "include-volumes", false, "Include container volumes as image volumes")
-
 }
+
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: commitCommand,
+	})
+	flags := commitCommand.Flags()
+	commitFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerAttachCommand,
+		Parent:  containerCmd,
+	})
+	containerCommitFlags := containerCommitCommand.Flags()
+	commitFlags(containerCommitFlags)
+}
+
 func commit(cmd *cobra.Command, args []string) error {
 	container := args[0]
 	if len(args) > 1 {

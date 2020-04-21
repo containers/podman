@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -27,6 +28,16 @@ var (
   podman stop --latest
   podman stop --time 2 mywebserver 6e534f14da9d`,
 	}
+
+	containerStopCommand = &cobra.Command{
+		Use:   stopCommand.Use,
+		Short: stopCommand.Short,
+		Long:  stopCommand.Long,
+		RunE:  stopCommand.RunE,
+		Example: `podman container stop ctrID
+  podman container stop --latest
+  podman container stop --time 2 mywebserver 6e534f14da9d`,
+	}
 )
 
 var (
@@ -34,12 +45,7 @@ var (
 	stopTimeout uint
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: stopCommand,
-	})
-	flags := stopCommand.Flags()
+func stopFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&stopOptions.All, "all", "a", false, "Stop all running containers")
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 	flags.StringArrayVarP(&stopOptions.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
@@ -52,6 +58,24 @@ func init() {
 		_ = flags.MarkHidden("ignore")
 	}
 	flags.SetNormalizeFunc(utils.AliasFlags)
+}
+
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: stopCommand,
+	})
+	flags := stopCommand.Flags()
+	stopFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: containerStopCommand,
+		Parent:  containerCmd,
+	})
+
+	containerStopFlags := containerStopCommand.Flags()
+	stopFlags(containerStopFlags)
 }
 
 func stop(cmd *cobra.Command, args []string) error {
