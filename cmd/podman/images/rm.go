@@ -2,7 +2,6 @@ package images
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -23,7 +22,7 @@ var (
   podman image rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
 	}
 
-	imageOpts = entities.ImageDeleteOptions{}
+	imageOpts = entities.ImageRemoveOptions{}
 )
 
 func init() {
@@ -40,32 +39,25 @@ func imageRemoveFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVarP(&imageOpts.All, "all", "a", false, "Remove all images")
 	flags.BoolVarP(&imageOpts.Force, "force", "f", false, "Force Removal of the image")
 }
-func rm(cmd *cobra.Command, args []string) error {
 
+func rm(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 && !imageOpts.All {
 		return errors.Errorf("image name or ID must be specified")
 	}
 	if len(args) > 0 && imageOpts.All {
 		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
 	}
-	report, err := registry.ImageEngine().Delete(registry.GetContext(), args, imageOpts)
-	if err != nil {
-		switch {
-		case report != nil && report.ImageNotFound != nil:
-			fmt.Fprintln(os.Stderr, err.Error())
-			registry.SetExitCode(2)
-		case report != nil && report.ImageInUse != nil:
-			fmt.Fprintln(os.Stderr, err.Error())
-		default:
-			return err
+
+	report, err := registry.ImageEngine().Remove(registry.GetContext(), args, imageOpts)
+	if report != nil {
+		for _, u := range report.Untagged {
+			fmt.Println("Untagged: " + u)
 		}
+		for _, d := range report.Deleted {
+			fmt.Println("Deleted: " + d)
+		}
+		registry.SetExitCode(report.ExitCode)
 	}
 
-	for _, u := range report.Untagged {
-		fmt.Println("Untagged: " + u)
-	}
-	for _, d := range report.Deleted {
-		fmt.Println("Deleted: " + d)
-	}
-	return nil
+	return err
 }

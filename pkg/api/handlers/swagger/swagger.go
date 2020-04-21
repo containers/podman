@@ -49,6 +49,13 @@ type swagLibpodImagesPullResponse struct {
 	Body handlers.LibpodImagesPullReport
 }
 
+// Remove response
+// swagger:response DocsLibpodImagesRemoveResponse
+type swagLibpodImagesRemoveResponse struct {
+	// in:body
+	Body handlers.LibpodImagesRemoveReport
+}
+
 // Delete response
 // swagger:response DocsImageDeleteResponse
 type swagImageDeleteResponse struct {

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/types"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -27,7 +27,7 @@ var (
 	basePath = &url.URL{
 		Scheme: "http",
 		Host:   "d",
-		Path:   "/v" + handlers.MinimalApiVersion + "/libpod",
+		Path:   "/v" + types.MinimalAPIVersion + "/libpod",
 	}
 )
 

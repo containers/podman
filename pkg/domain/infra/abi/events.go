@@ -1,5 +1,3 @@
-//+build ABISupport
-
 package abi
 
 import (
