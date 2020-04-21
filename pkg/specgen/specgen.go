@@ -5,7 +5,6 @@ import (
 	"syscall"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -283,25 +282,20 @@ type ContainerNetworkConfig struct {
 	// namespace.
 	// Mandatory.
 	NetNS Namespace `json:"netns,omitempty"`
-	// ConfigureNetNS is whether Libpod will configure the container's
-	// network namespace to send and receive traffic.
-	// Only available is NetNS is private - conflicts with other NetNS
-	// modes.
-	ConfigureNetNS bool `json:"configure_netns,omitempty"`
 	// StaticIP is the a IPv4 address of the container.
-	// Only available if ConfigureNetNS is true.
+	// Only available if NetNS is set to Bridge.
 	// Optional.
 	StaticIP *net.IP `json:"static_ip,omitempty"`
 	// StaticIPv6 is a static IPv6 address to set in the container.
-	// Only available if ConfigureNetNS is true.
+	// Only available if NetNS is set to Bridge.
 	// Optional.
 	StaticIPv6 *net.IP `json:"static_ipv6,omitempty"`
 	// StaticMAC is a static MAC address to set in the container.
-	// Only available if ConfigureNetNS is true.
+	// Only available if NetNS is set to bridge.
 	// Optional.
 	StaticMAC *net.HardwareAddr `json:"static_mac,omitempty"`
 	// PortBindings is a set of ports to map into the container.
-	// Only available if ConfigureNetNS is true.
+	// Only available if NetNS is set to bridge or slirp.
 	// Optional.
 	PortMappings []ocicni.PortMapping `json:"portmappings,omitempty"`
 	// PublishImagePorts will publish ports specified in the image to random
@@ -312,7 +306,7 @@ type ContainerNetworkConfig struct {
 	// If this list is empty, the default CNI network will be joined
 	// instead. If at least one entry is present, we will not join the
 	// default network (unless it is part of this list).
-	// Only available if ConfigureNetNS is true.
+	// Only available if NetNS is set to bridge.
 	// Optional.
 	CNINetworks []string `json:"cni_networks,omitempty"`
 	// UseImageResolvConf indicates that resolv.conf should not be managed
@@ -402,18 +396,9 @@ type Volumes struct {
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
 func NewSpecGenerator(image string) *SpecGenerator {
-	networkConfig := ContainerNetworkConfig{
-		NetNS: Namespace{
-			NSMode: Bridge,
-		},
-	}
 	csc := ContainerStorageConfig{Image: image}
-	if rootless.IsRootless() {
-		networkConfig.NetNS.NSMode = Slirp
-	}
 	return &SpecGenerator{
 		ContainerStorageConfig: csc,
-		ContainerNetworkConfig: networkConfig,
 	}
 }
 

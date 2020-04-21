@@ -1,6 +1,8 @@
 package specgen
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
@@ -39,6 +41,12 @@ type Namespace struct {
 	Value  string        `json:"string,omitempty"`
 }
 
+// IsDefault returns whether the namespace is set to the default setting (which
+// also includes the empty string).
+func (n *Namespace) IsDefault() bool {
+	return n.NSMode == Default || n.NSMode == ""
+}
+
 // IsHost returns a bool if the namespace is host based
 func (n *Namespace) IsHost() bool {
 	return n.NSMode == Host
@@ -69,11 +77,24 @@ func validateNetNS(n *Namespace) error {
 		return nil
 	}
 	switch n.NSMode {
-	case Host, Path, FromContainer, FromPod, Private, NoNetwork, Bridge, Slirp:
+	case "", Default, Host, Path, FromContainer, FromPod, Private, NoNetwork, Bridge, Slirp:
 		break
 	default:
 		return errors.Errorf("invalid network %q", n.NSMode)
 	}
+
+	// Path and From Container MUST have a string value set
+	if n.NSMode == Path || n.NSMode == FromContainer {
+		if len(n.Value) < 1 {
+			return errors.Errorf("namespace mode %s requires a value", n.NSMode)
+		}
+	} else {
+		// All others must NOT set a string value
+		if len(n.Value) > 0 {
+			return errors.Errorf("namespace value %s cannot be provided with namespace mode %s", n.Value, n.NSMode)
+		}
+	}
+
 	return nil
 }
 
@@ -83,6 +104,15 @@ func (n *Namespace) validate() error {
 	if n == nil {
 		return nil
 	}
+	switch n.NSMode {
+	case "", Default, Host, Path, FromContainer, FromPod, Private:
+		// Valid, do nothing
+	case NoNetwork, Bridge, Slirp:
+		return errors.Errorf("cannot use network modes with non-network namespace")
+	default:
+		return errors.Errorf("invalid namespace type %s specified", n.NSMode)
+	}
+
 	// Path and From Container MUST have a string value set
 	if n.NSMode == Path || n.NSMode == FromContainer {
 		if len(n.Value) < 1 {
@@ -95,4 +125,74 @@ func (n *Namespace) validate() error {
 		}
 	}
 	return nil
+}
+
+// ParseNamespace parses a namespace in string form.
+// This is not intended for the network namespace, which has a separate
+// function.
+func ParseNamespace(ns string) (Namespace, error) {
+	toReturn := Namespace{}
+	switch {
+	case ns == "host":
+		toReturn.NSMode = Host
+	case ns == "private":
+		toReturn.NSMode = Private
+	case strings.HasPrefix(ns, "ns:"):
+		split := strings.SplitN(ns, ":", 2)
+		if len(split) != 2 {
+			return toReturn, errors.Errorf("must provide a path to a namespace when specifying ns:")
+		}
+		toReturn.NSMode = Path
+		toReturn.Value = split[1]
+	case strings.HasPrefix(ns, "container:"):
+		split := strings.SplitN(ns, ":", 2)
+		if len(split) != 2 {
+			return toReturn, errors.Errorf("must provide name or ID or a container when specifying container:")
+		}
+		toReturn.NSMode = FromContainer
+		toReturn.Value = split[1]
+	default:
+		return toReturn, errors.Errorf("unrecognized namespace mode %s passed", ns)
+	}
+
+	return toReturn, nil
+}
+
+// ParseNetworkNamespace parses a network namespace specification in string
+// form.
+// Returns a namespace and (optionally) a list of CNI networks to join.
+func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
+	toReturn := Namespace{}
+	var cniNetworks []string
+	switch {
+	case ns == "bridge":
+		toReturn.NSMode = Bridge
+	case ns == "none":
+		toReturn.NSMode = NoNetwork
+	case ns == "host":
+		toReturn.NSMode = Host
+	case ns == "private":
+		toReturn.NSMode = Private
+	case strings.HasPrefix(ns, "ns:"):
+		split := strings.SplitN(ns, ":", 2)
+		if len(split) != 2 {
+			return toReturn, nil, errors.Errorf("must provide a path to a namespace when specifying ns:")
+		}
+		toReturn.NSMode = Path
+		toReturn.Value = split[1]
+	case strings.HasPrefix(ns, "container:"):
+		split := strings.SplitN(ns, ":", 2)
+		if len(split) != 2 {
+			return toReturn, nil, errors.Errorf("must provide name or ID or a container when specifying container:")
+		}
+		toReturn.NSMode = FromContainer
+		toReturn.Value = split[1]
+	default:
+		// Assume we have been given a list of CNI networks.
+		// Which only works in bridge mode, so set that.
+		cniNetworks = strings.Split(ns, ",")
+		toReturn.NSMode = Bridge
+	}
+
+	return toReturn, cniNetworks, nil
 }
