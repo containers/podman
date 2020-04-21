@@ -303,6 +303,10 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string
 	if err != nil {
 		return err
 	}
+	// If only one arg is provided, all names are to be untagged
+	if len(tags) == 0 {
+		tags = newImage.Names()
+	}
 	for _, tag := range tags {
 		if err := newImage.UntagImage(tag); err != nil {
 			return err
