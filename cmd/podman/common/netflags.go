@@ -2,9 +2,11 @@ package common
 
 import (
 	"net"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -49,6 +51,34 @@ func GetNetFlags() *pflag.FlagSet {
 		"Do not create /etc/hosts within the container, instead use the version from the image",
 	)
 	return &netFlags
+}
+
+func parseNetwork(netInput string) (specgen.Namespace, []string, error) {
+	n := specgen.Namespace{}
+	var networks []string
+	switch netInput {
+	case "bridge":
+		n.NSMode = specgen.Bridge
+	case "host":
+		n.NSMode = specgen.Host
+	case "slip4netns":
+		n.NSMode = specgen.Slirp
+	default:
+		if strings.HasPrefix(netInput, "container:") { //nolint
+			split := strings.Split(netInput, ":")
+			if len(split) != 2 {
+				return n, nil, errors.Errorf("invalid network parameter: %q", netInput)
+			}
+			n.NSMode = specgen.FromContainer
+			n.Value = split[1]
+		} else if strings.HasPrefix(netInput, "ns:") {
+			return n, nil, errors.New("the ns: network option is not supported for pods")
+		} else {
+			n.NSMode = specgen.Bridge
+			networks = strings.Split(netInput, ",")
+		}
+	}
+	return n, networks, nil
 }
 
 func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
@@ -158,10 +188,10 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return nil, errors.Errorf("network %s is not yet supported", network)
-		// TODO How do I convert a string network to a Specgen.Namespace?
-		//		opts.Network = specgen.Namespace{NSMode: network}
+		opts.Network, opts.CNINetworks, err = parseNetwork(network)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &opts, err

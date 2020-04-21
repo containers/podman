@@ -107,6 +107,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.PortMappings = ep
 	s.Pod = c.Pod
 
+	if c.Net != nil {
+		s.NetNS = c.Net.Network
+	}
+
 	//s.CgroupNS = specgen.Namespace{
 	//	NSMode: ,
 	//	Value:  "",
