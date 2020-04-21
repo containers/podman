@@ -91,13 +91,13 @@ func (s *SpecGenerator) Validate() error {
 	}
 	// useimageresolveconf conflicts with dnsserver, dnssearch, dnsoption
 	if s.UseImageResolvConf {
-		if len(s.DNSServer) > 0 {
+		if len(s.DNSServers) > 0 {
 			return exclusiveOptions("UseImageResolvConf", "DNSServer")
 		}
 		if len(s.DNSSearch) > 0 {
 			return exclusiveOptions("UseImageResolvConf", "DNSSearch")
 		}
-		if len(s.DNSOption) > 0 {
+		if len(s.DNSOptions) > 0 {
 			return exclusiveOptions("UseImageResolvConf", "DNSOption")
 		}
 	}

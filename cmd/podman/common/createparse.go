@@ -1,7 +1,6 @@
 package common
 
 import (
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -17,27 +16,7 @@ func (c *ContainerCLIOpts) validate() error {
 	if _, err := util.ValidatePullType(c.Pull); err != nil {
 		return err
 	}
-	// Verify the additional hosts are in correct format
-	for _, host := range c.Net.AddHosts {
-		if _, err := parse.ValidateExtraHost(host); err != nil {
-			return err
-		}
-	}
 
-	if dnsSearches := c.Net.DNSSearch; len(dnsSearches) > 0 {
-		// Validate domains are good
-		for _, dom := range dnsSearches {
-			if dom == "." {
-				if len(dnsSearches) > 1 {
-					return errors.Errorf("cannot pass additional search domains when also specifying '.'")
-				}
-				continue
-			}
-			if _, err := parse.ValidateDomain(dom); err != nil {
-				return err
-			}
-		}
-	}
 	var imageVolType = map[string]string{
 		"bind":   "",
 		"tmpfs":  "",

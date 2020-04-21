@@ -292,9 +292,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	s.ShmSize = &shmSize
 	s.HostAdd = c.Net.AddHosts
-	s.DNSServer = c.Net.DNSServers
+	s.UseImageResolvConf = c.Net.UseImageResolvConf
+	s.DNSServers = c.Net.DNSServers
 	s.DNSSearch = c.Net.DNSSearch
-	s.DNSOption = c.Net.DNSOptions
+	s.DNSOptions = c.Net.DNSOptions
+	s.StaticIP = c.Net.StaticIP
+	s.StaticMAC = c.Net.StaticMAC
 
 	// deferred, must be added on libpod side
 	//var ImageVolumes map[string]struct{}

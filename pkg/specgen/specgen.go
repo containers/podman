@@ -319,24 +319,24 @@ type ContainerNetworkConfig struct {
 	// by Podman, but instead sourced from the image.
 	// Conflicts with DNSServer, DNSSearch, DNSOption.
 	UseImageResolvConf bool `json:"use_image_resolve_conf,omitempty"`
-	// DNSServer is a set of DNS servers that will be used in the
+	// DNSServers is a set of DNS servers that will be used in the
 	// container's resolv.conf, replacing the host's DNS Servers which are
 	// used by default.
 	// Conflicts with UseImageResolvConf.
 	// Optional.
-	DNSServer []net.IP `json:"dns_server,omitempty"`
+	DNSServers []net.IP `json:"dns_server,omitempty"`
 	// DNSSearch is a set of DNS search domains that will be used in the
 	// container's resolv.conf, replacing the host's DNS search domains
 	// which are used by default.
 	// Conflicts with UseImageResolvConf.
 	// Optional.
 	DNSSearch []string `json:"dns_search,omitempty"`
-	// DNSOption is a set of DNS options that will be used in the
+	// DNSOptions is a set of DNS options that will be used in the
 	// container's resolv.conf, replacing the host's DNS options which are
 	// used by default.
 	// Conflicts with UseImageResolvConf.
 	// Optional.
-	DNSOption []string `json:"dns_option,omitempty"`
+	DNSOptions []string `json:"dns_option,omitempty"`
 	// UseImageHosts indicates that /etc/hosts should not be managed by
 	// Podman, and instead sourced from the image.
 	// Conflicts with HostAdd.
