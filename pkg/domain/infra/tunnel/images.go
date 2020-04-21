@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/libpod/pkg/bindings"
 	images "github.com/containers/libpod/pkg/bindings/images"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/utils"
@@ -109,6 +110,15 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, 
 }
 
 func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string, options entities.ImageUntagOptions) error {
+	// Remove all tags if none are provided
+	if len(tags) == 0 {
+		newImage, err := images.GetImage(ir.ClientCxt, nameOrId, &bindings.PFalse)
+		if err != nil {
+			return err
+		}
+		tags = newImage.NamesHistory
+	}
+
 	for _, newTag := range tags {
 		var (
 			tag, repo string
