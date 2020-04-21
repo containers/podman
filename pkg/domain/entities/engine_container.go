@@ -28,6 +28,7 @@ type ContainerEngine interface {
 	ContainerLogs(ctx context.Context, containers []string, options ContainerLogsOptions) error
 	ContainerMount(ctx context.Context, nameOrIds []string, options ContainerMountOptions) ([]*ContainerMountReport, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
+	ContainerPort(ctx context.Context, nameOrId string, options ContainerPortOptions) ([]*ContainerPortReport, error)
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)
 	ContainerRestore(ctx context.Context, namesOrIds []string, options RestoreOptions) ([]*RestoreReport, error)
 	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*RmReport, error)

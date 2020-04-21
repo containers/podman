@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 type WaitOptions struct {
@@ -340,4 +341,18 @@ type ContainerPruneOptions struct {
 type ContainerPruneReport struct {
 	ID  map[string]int64
 	Err map[string]error
+}
+
+// ContainerPortOptions describes the options to obtain
+// port information on containers
+type ContainerPortOptions struct {
+	All    bool
+	Latest bool
+}
+
+// ContainerPortReport describes the output needed for
+// the CLI to output ports
+type ContainerPortReport struct {
+	Id    string
+	Ports []ocicni.PortMapping
 }
