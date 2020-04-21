@@ -23,6 +23,173 @@ import (
 	"github.com/pkg/errors"
 )
 
+func getCPULimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxCPU, error) {
+	cpu := &specs.LinuxCPU{}
+	hasLimits := false
+
+	if c.CPUShares > 0 {
+		cpu.Shares = &c.CPUShares
+		hasLimits = true
+	}
+	if c.CPUPeriod > 0 {
+		cpu.Period = &c.CPUPeriod
+		hasLimits = true
+	}
+	if c.CPUSetCPUs != "" {
+		cpu.Cpus = c.CPUSetCPUs
+		hasLimits = true
+	}
+	if c.CPUSetMems != "" {
+		cpu.Mems = c.CPUSetMems
+		hasLimits = true
+	}
+	if c.CPUQuota > 0 {
+		cpu.Quota = &c.CPUQuota
+		hasLimits = true
+	}
+	if c.CPURTPeriod > 0 {
+		cpu.RealtimePeriod = &c.CPURTPeriod
+		hasLimits = true
+	}
+	if c.CPURTRuntime > 0 {
+		cpu.RealtimeRuntime = &c.CPURTRuntime
+		hasLimits = true
+	}
+
+	if !hasLimits {
+		return nil, nil
+	}
+	return cpu, nil
+}
+
+func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxBlockIO, error) {
+	var err error
+	io := &specs.LinuxBlockIO{}
+	hasLimits := false
+	if b := c.BlkIOWeight; len(b) > 0 {
+		u, err := strconv.ParseUint(b, 10, 16)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid value for blkio-weight")
+		}
+		nu := uint16(u)
+		io.Weight = &nu
+		hasLimits = true
+	}
+
+	if len(c.BlkIOWeightDevice) > 0 {
+		if err := parseWeightDevices(c.BlkIOWeightDevice, s); err != nil {
+			return nil, err
+		}
+		hasLimits = true
+	}
+
+	if bps := c.DeviceReadBPs; len(bps) > 0 {
+		if s.ThrottleReadBpsDevice, err = parseThrottleBPSDevices(bps); err != nil {
+			return nil, err
+		}
+		hasLimits = true
+	}
+
+	if bps := c.DeviceWriteBPs; len(bps) > 0 {
+		if s.ThrottleWriteBpsDevice, err = parseThrottleBPSDevices(bps); err != nil {
+			return nil, err
+		}
+		hasLimits = true
+	}
+
+	if iops := c.DeviceReadIOPs; len(iops) > 0 {
+		if s.ThrottleReadIOPSDevice, err = parseThrottleIOPsDevices(iops); err != nil {
+			return nil, err
+		}
+		hasLimits = true
+	}
+
+	if iops := c.DeviceWriteIOPs; len(iops) > 0 {
+		if s.ThrottleWriteIOPSDevice, err = parseThrottleIOPsDevices(iops); err != nil {
+			return nil, err
+		}
+		hasLimits = true
+	}
+
+	if !hasLimits {
+		return nil, nil
+	}
+	return io, nil
+}
+
+func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxPids, error) {
+	pids := &specs.LinuxPids{}
+	hasLimits := false
+	if c.PIDsLimit > 0 {
+		pids.Limit = c.PIDsLimit
+		hasLimits = true
+	}
+	if c.CGroups == "disabled" && c.PIDsLimit > 0 {
+		s.ResourceLimits.Pids.Limit = -1
+	}
+	if !hasLimits {
+		return nil, nil
+	}
+	return pids, nil
+}
+
+func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxMemory, error) {
+	var err error
+	memory := &specs.LinuxMemory{}
+	hasLimits := false
+	if m := c.Memory; len(m) > 0 {
+		ml, err := units.RAMInBytes(m)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid value for memory")
+		}
+		memory.Limit = &ml
+		hasLimits = true
+	}
+	if m := c.MemoryReservation; len(m) > 0 {
+		mr, err := units.RAMInBytes(m)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid value for memory")
+		}
+		memory.Reservation = &mr
+		hasLimits = true
+	}
+	if m := c.MemorySwap; len(m) > 0 {
+		var ms int64
+		if m == "-1" {
+			ms = int64(-1)
+			s.ResourceLimits.Memory.Swap = &ms
+		} else {
+			ms, err = units.RAMInBytes(m)
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid value for memory")
+			}
+		}
+		memory.Swap = &ms
+		hasLimits = true
+	}
+	if m := c.KernelMemory; len(m) > 0 {
+		mk, err := units.RAMInBytes(m)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid value for kernel-memory")
+		}
+		memory.Kernel = &mk
+		hasLimits = true
+	}
+	if c.MemorySwappiness >= 0 {
+		swappiness := uint64(c.MemorySwappiness)
+		memory.Swappiness = &swappiness
+		hasLimits = true
+	}
+	if c.OOMKillDisable {
+		memory.DisableOOMKiller = &c.OOMKillDisable
+		hasLimits = true
+	}
+	if !hasLimits {
+		return nil, nil
+	}
+	return memory, nil
+}
+
 func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) error {
 	var (
 		err error
@@ -46,57 +213,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.IDMappings, err = util.ParseIDMapping(ns.UsernsMode(c.UserNS), c.UIDMap, c.GIDMap, c.SubUIDName, c.SubGIDName)
 	if err != nil {
 		return err
-	}
-	if s.ResourceLimits == nil {
-		s.ResourceLimits = &specs.LinuxResources{}
-	}
-	if s.ResourceLimits.Memory == nil {
-		s.ResourceLimits.Memory = &specs.LinuxMemory{}
-	}
-	if m := c.Memory; len(m) > 0 {
-		ml, err := units.RAMInBytes(m)
-		if err != nil {
-			return errors.Wrapf(err, "invalid value for memory")
-		}
-		s.ResourceLimits.Memory.Limit = &ml
-	}
-	if m := c.MemoryReservation; len(m) > 0 {
-		mr, err := units.RAMInBytes(m)
-		if err != nil {
-			return errors.Wrapf(err, "invalid value for memory")
-		}
-		s.ResourceLimits.Memory.Reservation = &mr
-	}
-	if m := c.MemorySwap; len(m) > 0 {
-		var ms int64
-		if m == "-1" {
-			ms = int64(-1)
-			s.ResourceLimits.Memory.Swap = &ms
-		} else {
-			ms, err = units.RAMInBytes(m)
-			if err != nil {
-				return errors.Wrapf(err, "invalid value for memory")
-			}
-		}
-		s.ResourceLimits.Memory.Swap = &ms
-	}
-	if m := c.KernelMemory; len(m) > 0 {
-		mk, err := units.RAMInBytes(m)
-		if err != nil {
-			return errors.Wrapf(err, "invalid value for kernel-memory")
-		}
-		s.ResourceLimits.Memory.Kernel = &mk
-	}
-	if s.ResourceLimits.BlockIO == nil {
-		s.ResourceLimits.BlockIO = &specs.LinuxBlockIO{}
-	}
-	if b := c.BlkIOWeight; len(b) > 0 {
-		u, err := strconv.ParseUint(b, 10, 16)
-		if err != nil {
-			return errors.Wrapf(err, "invalid value for blkio-weight")
-		}
-		nu := uint16(u)
-		s.ResourceLimits.BlockIO.Weight = &nu
 	}
 
 	s.Terminal = c.TTY
@@ -330,12 +446,24 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if s.ResourceLimits == nil {
 		s.ResourceLimits = &specs.LinuxResources{}
 	}
-	if s.ResourceLimits.Memory == nil {
-		s.ResourceLimits.Memory = &specs.LinuxMemory{}
+	s.ResourceLimits.Memory, err = getMemoryLimits(s, c, args)
+	if err != nil {
+		return err
 	}
-	if c.MemorySwappiness >= 0 {
-		swappiness := uint64(c.MemorySwappiness)
-		s.ResourceLimits.Memory.Swappiness = &swappiness
+	s.ResourceLimits.BlockIO, err = getIOLimits(s, c, args)
+	if err != nil {
+		return err
+	}
+	s.ResourceLimits.Pids, err = getPidsLimits(s, c, args)
+	if err != nil {
+		return err
+	}
+	s.ResourceLimits.CPU, err = getCPULimits(s, c, args)
+	if err != nil {
+		return err
+	}
+	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil {
+		s.ResourceLimits = nil
 	}
 
 	if s.LogConfiguration == nil {
@@ -344,15 +472,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.LogConfiguration.Driver = define.KubernetesLogging
 	if ld := c.LogDriver; len(ld) > 0 {
 		s.LogConfiguration.Driver = ld
-	}
-	if s.ResourceLimits.Pids == nil {
-		s.ResourceLimits.Pids = &specs.LinuxPids{}
-	}
-	if c.PIDsLimit > 0 {
-		s.ResourceLimits.Pids.Limit = c.PIDsLimit
-	}
-	if c.CGroups == "disabled" && c.PIDsLimit > 0 {
-		s.ResourceLimits.Pids.Limit = -1
 	}
 	// TODO WTF
 	//cgroup := &cc.CgroupConfig{
@@ -459,32 +578,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	// quiet
 	//DeviceCgroupRules: c.StringSlice("device-cgroup-rule"),
 
-	if bps := c.DeviceReadBPs; len(bps) > 0 {
-		if s.ThrottleReadBpsDevice, err = parseThrottleBPSDevices(bps); err != nil {
-			return err
-		}
-	}
-
-	if bps := c.DeviceWriteBPs; len(bps) > 0 {
-		if s.ThrottleWriteBpsDevice, err = parseThrottleBPSDevices(bps); err != nil {
-			return err
-		}
-	}
-
-	if iops := c.DeviceReadIOPs; len(iops) > 0 {
-		if s.ThrottleReadIOPSDevice, err = parseThrottleIOPsDevices(iops); err != nil {
-			return err
-		}
-	}
-
-	if iops := c.DeviceWriteIOPs; len(iops) > 0 {
-		if s.ThrottleWriteIOPSDevice, err = parseThrottleIOPsDevices(iops); err != nil {
-			return err
-		}
-	}
-
-	s.ResourceLimits.Memory.DisableOOMKiller = &c.OOMKillDisable
-
 	// Rlimits/Ulimits
 	for _, u := range c.Ulimit {
 		if u == "host" {
@@ -519,35 +612,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.LogConfiguration.Options = logOpts
 	s.Name = c.Name
 
-	if err := parseWeightDevices(c.BlkIOWeightDevice, s); err != nil {
-		return err
-	}
-
-	if s.ResourceLimits.CPU == nil {
-		s.ResourceLimits.CPU = &specs.LinuxCPU{}
-	}
-	if c.CPUShares > 0 {
-		s.ResourceLimits.CPU.Shares = &c.CPUShares
-	}
-	if c.CPUPeriod > 0 {
-		s.ResourceLimits.CPU.Period = &c.CPUPeriod
-	}
-
-	if c.CPUSetCPUs != "" {
-		s.ResourceLimits.CPU.Cpus = c.CPUSetCPUs
-	}
-	if c.CPUSetMems != "" {
-		s.ResourceLimits.CPU.Mems = c.CPUSetMems
-	}
-	if c.CPUQuota > 0 {
-		s.ResourceLimits.CPU.Quota = &c.CPUQuota
-	}
-	if c.CPURTPeriod > 0 {
-		s.ResourceLimits.CPU.RealtimePeriod = &c.CPURTPeriod
-	}
-	if c.CPURTRuntime > 0 {
-		s.ResourceLimits.CPU.RealtimeRuntime = &c.CPURTRuntime
-	}
 	s.OOMScoreAdj = &c.OOMScoreAdj
 	s.RestartPolicy = c.Restart
 	s.Remove = c.Rm
