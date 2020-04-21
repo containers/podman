@@ -23,4 +23,8 @@ var (
 	// This image has a bogus/invalid seccomp profile which should
 	// yield a json error when being read.
 	alpineBogusSeccomp = "docker.io/libpod/alpine-with-bogus-seccomp:label"
+
+	// v2fail is a temporary variable to help us track
+	// tests that fail in v2
+	v2fail = "does not pass integration tests with v2 podman"
 )

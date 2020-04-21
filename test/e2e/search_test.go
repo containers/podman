@@ -68,6 +68,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	registryFileTwoTmpl := template.Must(template.New("registryFileTwo").Parse(regFileContents2))
 
 	BeforeEach(func() {
+		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

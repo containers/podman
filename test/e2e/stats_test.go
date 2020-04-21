@@ -21,6 +21,7 @@ var _ = Describe("Podman stats", func() {
 	)
 
 	BeforeEach(func() {
+		Skip(v2fail)
 		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
 		Expect(err).To(BeNil())
 

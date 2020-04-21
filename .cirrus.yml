@@ -459,8 +459,6 @@ testing_task:
 # testing matrix.
 integration_test_temporary_task:
 
-    allow_failures: $CI == 'true'
-
     depends_on:
         - "gating"
         - "varlink_api"
