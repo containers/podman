@@ -311,7 +311,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		//	NetworkDisabled: false,
 		//	MacAddress:      "",
 		//	OnBuild:         nil,
-		//	Labels:          nil,
+		Labels: info.Labels,
 		//	StopSignal:      "",
 		//	StopTimeout:     nil,
 		//	Shell:           nil,
