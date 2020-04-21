@@ -43,23 +43,6 @@ var (
 	attachOpts entities.AttachOptions
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: attachCommand,
-	})
-	flags := attachCommand.Flags()
-	attachFlags(flags)
-
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: containerAttachCommand,
-		Parent:  containerCmd,
-	})
-	containerAttachFlags := containerAttachCommand.Flags()
-	attachFlags(containerAttachFlags)
-}
-
 func attachFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&attachOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	flags.BoolVar(&attachOpts.NoStdin, "no-stdin", false, "Do not attach STDIN. The default is false")
