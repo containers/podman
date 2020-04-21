@@ -494,6 +494,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	//	Hostname: c.String("hostname"),
 	//}
 
+	s.Hostname = c.Hostname
 	sysctl := map[string]string{}
 	if ctl := c.Sysctl; len(ctl) > 0 {
 		sysctl, err = util.ValidateSysctls(ctl)
