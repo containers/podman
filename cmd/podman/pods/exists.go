@@ -2,7 +2,6 @@ package pods
 
 import (
 	"context"
-	"os"
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -37,7 +36,7 @@ func exists(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if !response.Value {
-		os.Exit(1)
+		registry.SetExitCode(1)
 	}
 	return nil
 }

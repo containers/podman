@@ -69,10 +69,24 @@ func create(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
-	if !createOptions.Infra && cmd.Flag("share").Changed && share != "none" && share != "" {
-		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
+	if !createOptions.Infra {
+		if cmd.Flag("infra-command").Changed {
+			return errors.New("cannot set infra-command without an infra container")
+		}
+		createOptions.InfraCommand = ""
+		if cmd.Flag("infra-image").Changed {
+			return errors.New("cannot set infra-image without an infra container")
+		}
+		createOptions.InfraImage = ""
+
+		if cmd.Flag("share").Changed && share != "none" && share != "" {
+			return fmt.Errorf("cannot set share(%s) namespaces without an infra container", cmd.Flag("share").Value)
+		}
+		createOptions.Share = nil
+	} else {
+		createOptions.Share = strings.Split(share, ",")
 	}
-	createOptions.Share = strings.Split(share, ",")
+
 	if cmd.Flag("pod-id-file").Changed {
 		podIdFile, err = util.OpenExclusiveFile(podIDFile)
 		if err != nil && os.IsExist(err) {
@@ -120,21 +134,6 @@ func create(cmd *cobra.Command, args []string) error {
 		if !createOptions.Infra {
 			return errors.Errorf("you must have an infra container to publish port bindings to the host")
 		}
-	}
-
-	if !createOptions.Infra {
-		if cmd.Flag("infra-command").Changed {
-			return errors.New("cannot set infra-command without an infra container")
-		}
-		createOptions.InfraCommand = ""
-		if cmd.Flag("infra-image").Changed {
-			return errors.New("cannot set infra-image without an infra container")
-		}
-		createOptions.InfraImage = ""
-		if cmd.Flag("share").Changed {
-			return errors.New("cannot set share namespaces without an infra container")
-		}
-		createOptions.Share = nil
 	}
 
 	response, err := registry.ContainerEngine().PodCreate(context.Background(), createOptions)
