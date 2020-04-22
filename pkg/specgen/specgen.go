@@ -171,7 +171,7 @@ type ContainerStorageConfig struct {
 	// These will supersede Image Volumes and VolumesFrom volumes where
 	// there are conflicts.
 	// Optional.
-	Volumes []*Volumes `json:"volumes,omitempty"`
+	Volumes []*NamedVolume `json:"volumes,omitempty"`
 	// Devices are devices that will be added to the container.
 	// Optional.
 	Devices []spec.LinuxDevice `json:"devices,omitempty"`
@@ -387,10 +387,17 @@ type SpecGenerator struct {
 	ContainerHealthCheckConfig
 }
 
-// Volumes is a temporary struct to hold input from the User
-type Volumes struct {
-	Name    string
-	Dest    string
+// NamedVolume holds information about a named volume that will be mounted into
+// the container.
+type NamedVolume struct {
+	// Name is the name of the named volume to be mounted. May be empty.
+	// If empty, a new named volume with a pseudorandomly generated name
+	// will be mounted at the given destination.
+	Name string
+	// Destination to mount the named volume within the container. Must be
+	// an absolute path. Path will be created if it does not exist.
+	Dest string
+	// Options are options that the named volume will be mounted with.
 	Options []string
 }
 
