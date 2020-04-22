@@ -957,3 +957,10 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrId string, o
 	}
 	return reports, nil
 }
+
+// Shutdown Libpod engine
+func (ic *ContainerEngine) Shutdown(_ context.Context) {
+	shutdownSync.Do(func() {
+		_ = ic.Libpod.Shutdown(false)
+	})
+}

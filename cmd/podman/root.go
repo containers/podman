@@ -155,6 +155,9 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 		cfg.Span.Finish()
 		cfg.SpanCloser.Close()
 	}
+
+	registry.ImageEngine().Shutdown(registry.Context())
+	registry.ContainerEngine().Shutdown(registry.Context())
 	return nil
 }
 

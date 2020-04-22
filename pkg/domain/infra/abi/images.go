@@ -553,3 +553,10 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 
 	return
 }
+
+// Shutdown Libpod engine
+func (ir *ImageEngine) Shutdown(_ context.Context) {
+	shutdownSync.Do(func() {
+		_ = ir.Libpod.Shutdown(false)
+	})
+}
