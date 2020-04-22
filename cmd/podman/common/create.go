@@ -394,8 +394,9 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"security-opt", containerConfig.SecurityOptions(),
 		"Security Options",
 	)
+	shmSize := ""
 	createFlags.StringVar(
-		&cf.ShmSize,
+		&shmSize,
 		"shm-size", containerConfig.ShmSize(),
 		"Size of /dev/shm "+sizeWithUnitFormat,
 	)

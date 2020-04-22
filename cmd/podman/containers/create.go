@@ -131,6 +131,10 @@ func createInit(c *cobra.Command) error {
 		logrus.Warn("setting security options with --privileged has no effect")
 	}
 
+	if c.Flag("shm-size").Changed {
+		cliVals.ShmSize = c.Flag("shm-size").Value.String()
+	}
+
 	if (c.Flag("dns").Changed || c.Flag("dns-opt").Changed || c.Flag("dns-search").Changed) && (cliVals.Net.Network.NSMode == specgen.NoNetwork || cliVals.Net.Network.IsContainer()) {
 		return errors.Errorf("conflicting options: dns and the network mode.")
 	}

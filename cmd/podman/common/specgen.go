@@ -403,11 +403,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 
 	// SHM Size
-	shmSize, err := units.FromHumanSize(c.ShmSize)
-	if err != nil {
-		return errors.Wrapf(err, "unable to translate --shm-size")
+	if c.ShmSize != "" {
+		shmSize, err := units.FromHumanSize(c.ShmSize)
+		if err != nil {
+			return errors.Wrapf(err, "unable to translate --shm-size")
+		}
+		s.ShmSize = &shmSize
 	}
-	s.ShmSize = &shmSize
 	s.HostAdd = c.Net.AddHosts
 	s.UseImageResolvConf = c.Net.UseImageResolvConf
 	s.DNSServers = c.Net.DNSServers
