@@ -17,7 +17,6 @@ var _ = Describe("Podman version", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -43,6 +42,7 @@ var _ = Describe("Podman version", func() {
 	})
 
 	It("podman -v", func() {
+		Skip(v2fail)
 		session := podmanTest.Podman([]string{"-v"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
