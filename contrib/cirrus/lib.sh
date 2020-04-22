@@ -34,7 +34,6 @@ PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 # Important filepaths
 SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
 AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
-BUILDAH_PACKAGES_FILEPATH="./contrib/cirrus/packages.sh"  # in buildah repo.
 
 # Log remote-client system test varlink output here
 export VARLINK_LOG=/var/tmp/varlink.log
@@ -60,13 +59,13 @@ PACKER_VER="1.4.2"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-31,fedora-30}"
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-32,fedora-31}"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
 export UBUNTU_BASE_IMAGE="ubuntu-1910-eoan-v20200211"
 export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20200218"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1578586410"
-export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1578586410"
+export FEDORA_BASE_IMAGE="fedora-cloud-base-32-n-0-1586202964"
+export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1586202964"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:$DEST_BRANCH"
@@ -389,8 +388,7 @@ install_test_configs() {
     install -v -D -m 644 ./test/registries.conf /etc/containers/
 }
 
-# Remove all files (except conmon, for now) provided by the distro version of podman.
-# Except conmon, for now as it's expected to eventually be  packaged separately.
+# Remove all files provided by the distro version of podman.
 # All VM cache-images used for testing include the distro podman because (1) it's
 # required for podman-in-podman testing and (2) it somewhat simplifies the task
 # of pulling in necessary prerequisites packages as the set can change over time.
@@ -447,26 +445,6 @@ $PRIOR_FEDORA_BASE_IMAGE
 
 systemd_banish() {
     $GOSRC/$PACKER_BASE/systemd_banish.sh
-}
-
-install_buildah_packages() {
-    git clone https://github.com/containers/buildah.git /tmp/buildah
-    if [[ -r "$BUILDAH_PACKAGES_FILEPATH" ]]; then
-        source "$BUILDAH_PACKAGES_FILEPATH"
-        req_env_var UBUNTU_BUILDAH_PACKAGES FEDORA_BUILDAH_PACKAGES OS_RELEASE_ID
-        case "$OS_RELEASE_ID" in
-            fedora)
-                $BIGTO ooe.sh sudo dnf install -y ${FEDORA_BUILDAH_PACKAGES[@]}
-                ;;
-            ubuntu)
-                $LILTO $SUDOAPTGET update
-                $BIGTO $SUDOAPTGET install ${UBUNTU_BUILDAH_PACKAGES[@]}
-                ;;
-            *) bad_os_id_ver ;;
-        esac
-    else
-        warn "Could not find $BUILDAH_PACKAGES_FILEPATH in buildah repository root."
-    fi
 }
 
 _finalize() {

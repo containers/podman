@@ -12,6 +12,13 @@ req_env_var SCRIPT_BASE PACKER_BUILDER_NAME GOSRC FEDORA_BASE_IMAGE OS_RELEASE_I
 
 install_ooe
 
+if [[ $OS_RELEASE_VER -le 31 ]]; then
+    warn "Switching io scheduler to 'deadline' to avoid RHBZ 1767539"
+    warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
+    echo "mq-deadline" | sudo tee /sys/block/sda/queue/scheduler > /dev/null
+    sudo cat /sys/block/sda/queue/scheduler
+fi
+
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
@@ -34,6 +41,7 @@ INSTALL_PACKAGES=(\
     bats
     bridge-utils
     btrfs-progs-devel
+    buildah
     bzip2
     conmon
     container-selinux
@@ -81,13 +89,11 @@ INSTALL_PACKAGES=(\
     protobuf-c
     protobuf-c-devel
     protobuf-devel
-    protobuf-python
     python
     python3-dateutil
     python3-psutil
     python3-pytoml
     rsync
-    runc
     selinux-policy-devel
     skopeo
     skopeo-containers
@@ -99,6 +105,7 @@ INSTALL_PACKAGES=(\
     xz
     zip
 )
+
 case "$OS_RELEASE_VER" in
     30)
         INSTALL_PACKAGES+=(\
@@ -113,14 +120,16 @@ case "$OS_RELEASE_VER" in
         INSTALL_PACKAGES+=(crun)
         REMOVE_PACKAGES+=(runc)
         ;;
+    32)
+        INSTALL_PACKAGES+=(crun)
+        REMOVE_PACKAGES+=(runc)
+        ;;
     *)
         bad_os_id_ver ;;
 esac
 
 echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
 $BIGTO ooe.sh sudo dnf install -y ${INSTALL_PACKAGES[@]}
-
-install_buildah_packages
 
 [[ "${#REMOVE_PACKAGES[@]}" -eq "0" ]] || \
     $LILTO ooe.sh sudo dnf erase -y ${REMOVE_PACKAGES[@]}

@@ -52,6 +52,7 @@ INSTALL_PACKAGES=(\
     bash-completion
     bison
     build-essential
+    buildah
     bzip2
     conmon
     containernetworking-plugins
@@ -145,20 +146,12 @@ else
         /tmp/$(basename $BATS_URL)
         btrfs-tools
     )
-
-    echo "Forced Ubuntu 18 kernel to enable cgroup swap accounting."
-    SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
-    ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
-    ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
-    ooe.sh sudo update-grub
 fi
 
 echo "Installing general testing and system dependencies"
 # Necessary to update cache of newly added repos
 $LILTO $SUDOAPTGET update
 $BIGTO $SUDOAPTGET install ${INSTALL_PACKAGES[@]}
-
-install_buildah_packages
 
 echo "Installing cataonit and libseccomp.sudo"
 ooe.sh sudo /tmp/libpod/hack/install_catatonit.sh
@@ -173,6 +166,12 @@ then
     echo "Linking $CRIO_RUNC_PATH to /usr/bin/runc for ease of testing."
     sudo ln -f "$CRIO_RUNC_PATH" "/usr/bin/runc"
 fi
+
+echo "Making Ubuntu kernel to enable cgroup swap accounting as it is not the default."
+SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
+ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
+ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
+ooe.sh sudo update-grub
 
 ubuntu_finalize
 

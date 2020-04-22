@@ -47,10 +47,12 @@ case "${OS_RELEASE_ID}" in
             bash "$SCRIPT_BASE/add_second_partition.sh"
         fi
 
-        warn "Switching io scheduler to 'deadline' to avoid RHBZ 1767539"
-        warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
-        echo "mq-deadline" > /sys/block/sda/queue/scheduler
-        cat /sys/block/sda/queue/scheduler
+        if [[ $OS_RELEASE_VER -le 31 ]]; then
+            warn "Switching io scheduler to 'deadline' to avoid RHBZ 1767539"
+            warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
+            echo "mq-deadline" > /sys/block/sda/queue/scheduler
+            cat /sys/block/sda/queue/scheduler
+        fi
 
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
             bash "$SCRIPT_BASE/add_second_partition.sh"
