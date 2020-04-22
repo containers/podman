@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -89,6 +90,15 @@ func run(cmd *cobra.Command, args []string) error {
 			return errors.Wrapf(err, "error checking authfile path %s", af)
 		}
 	}
+	cidFile, err := openCidFile(cliVals.CIDFile)
+	if err != nil {
+		return err
+	}
+
+	if cidFile != nil {
+		defer errorhandling.CloseQuiet(cidFile)
+		defer errorhandling.SyncQuiet(cidFile)
+	}
 	runOpts.Rm = cliVals.Rm
 	if err := createInit(cmd); err != nil {
 		return err
@@ -140,6 +150,13 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if cidFile != nil {
+		_, err = cidFile.WriteString(report.Id)
+		if err != nil {
+			logrus.Error(err)
+		}
+	}
+
 	if cliVals.Detach {
 		fmt.Println(report.Id)
 		return nil
