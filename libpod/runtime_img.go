@@ -71,7 +71,8 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		// to and untag it.
 		repoName, err := img.MatchRepoTag(img.InputName)
 		if hasChildren && errors.Cause(err) == image.ErrRepoTagNotFound {
-			return nil, errors.Errorf("unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
+			return nil, errors.Wrapf(define.ErrImageInUse,
+				"unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
 		}
 		if err != nil {
 			return nil, err
@@ -84,7 +85,8 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 	} else if len(img.Names()) > 1 && img.InputIsID() && !force {
 		// If the user requests to delete an image by ID and the image has multiple
 		// reponames and no force is applied, we error out.
-		return nil, fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
+		return nil, errors.Wrapf(define.ErrImageInUse,
+			"unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
 	}
 	err = img.Remove(ctx, force)
 	if err != nil && errors.Cause(err) == storage.ErrImageUsedByContainer {

@@ -466,7 +466,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 	}()
 
 	// deleteImage is an anonymous function to conveniently delete an image
-	// withouth having to pass all local data around.
+	// without having to pass all local data around.
 	deleteImage := func(img *image.Image) error {
 		results, err := ir.Libpod.RemoveImage(ctx, img, opts.Force)
 		switch errors.Cause(err) {
@@ -476,6 +476,9 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 			inUseErrors = true // Important for exit codes in Podman.
 			return errors.New(
 				fmt.Sprintf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID()))
+		case define.ErrImageInUse:
+			inUseErrors = true
+			return err
 		default:
 			otherErrors = true // Important for exit codes in Podman.
 			return err
