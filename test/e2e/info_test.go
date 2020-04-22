@@ -16,7 +16,6 @@ var _ = Describe("Podman Info", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -38,22 +37,17 @@ var _ = Describe("Podman Info", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 	})
-	It("podman system info json output", func() {
-		session := podmanTest.Podman([]string{"system", "info", "--format=json"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
 
-	})
-	It("podman info --format JSON GO template", func() {
-		session := podmanTest.Podman([]string{"info", "--format", "{{ json .}}"})
+	It("podman info --format GO template", func() {
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Store.GraphRoot}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
 	})
 
 	It("podman info --format GO template", func() {
-		session := podmanTest.Podman([]string{"info", "--format", "{{ .Store.GraphRoot }}"})
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Registries}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("registry"))
 	})
 })
