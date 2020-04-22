@@ -19,7 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
@@ -435,12 +435,12 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	processLabel := containerInfo.ProcessLabel
 	switch {
 	case c.ociRuntime.SupportsKVM():
-		processLabel, err = util.SELinuxKVMLabel(processLabel)
+		processLabel, err = selinux.SELinuxKVMLabel(processLabel)
 		if err != nil {
 			return err
 		}
 	case c.config.Systemd:
-		processLabel, err = util.SELinuxInitLabel(processLabel)
+		processLabel, err = selinux.SELinuxInitLabel(processLabel)
 		if err != nil {
 			return err
 		}
