@@ -14,6 +14,9 @@ var (
 	ErrLinkNotSupport = errors.New("Link is not supported")
 )
 
+// TODO: document the exported functions in this file and make them more
+// generic (e.g., not tied to one ctr/pod).
+
 // Error formats an API response to an error
 //
 // apiMessage and code must match the container API, and are sent to client

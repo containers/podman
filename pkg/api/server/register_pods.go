@@ -286,9 +286,36 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   200:
 	//     $ref: "#/responses/DocsPodTopResponse"
 	//   404:
-	//     $ref: "#/responses/NoSuchContainer"
+	//     $ref: "#/responses/NoSuchPod"
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/top"), s.APIHandler(libpod.PodTop)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/pods/stats pods statsPod
+	// ---
+	// tags:
+	//  - pods
+	// summary: Get stats for one or more pods
+	// description: Display a live stream of resource usage statistics for the containers in one or more pods
+	// parameters:
+	//  - in: query
+	//    name: all
+	//    description: Provide statistics for all running pods.
+	//    type: boolean
+	//  - in: query
+	//    name: namesOrIDs
+	//    description: Names or IDs of pods.
+	//    type: array
+	//    items:
+	//      type: string
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/responses/DocsPodTopResponse"
+	//   404:
+	//     $ref: "#/responses/NoSuchPod"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.Handle(VersionedPath("/libpod/pods/stats"), s.APIHandler(libpod.PodStats)).Methods(http.MethodGet)
 	return nil
 }

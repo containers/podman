@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/domain/infra/abi"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/specgen/generate"
 	"github.com/containers/libpod/pkg/util"
@@ -418,4 +419,45 @@ func PodExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
+}
+
+func PodStats(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+
+	query := struct {
+		NamesOrIDs []string `schema:"namesOrIDs"`
+		All        bool     `schema:"all"`
+	}{
+		// default would go here
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	// Validate input.
+	options := entities.PodStatsOptions{All: query.All}
+	if err := entities.ValidatePodStatsOptions(query.NamesOrIDs, &options); err != nil {
+		utils.InternalServerError(w, err)
+	}
+
+	// Collect the stats and send them over the wire.
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	reports, err := containerEngine.PodStats(r.Context(), query.NamesOrIDs, options)
+
+	// Error checks as documented in swagger.
+	switch errors.Cause(err) {
+	case define.ErrNoSuchPod:
+		utils.Error(w, "one or more pods not found", http.StatusNotFound, err)
+		return
+	case nil:
+		// Nothing to do.
+	default:
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	utils.WriteResponse(w, http.StatusOK, reports)
 }

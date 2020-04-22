@@ -211,3 +211,7 @@ func (ic *ContainerEngine) PodInspect(ctx context.Context, options entities.PodI
 	}
 	return pods.Inspect(ic.ClientCxt, options.NameOrID)
 }
+
+func (ic *ContainerEngine) PodStats(ctx context.Context, namesOrIds []string, options entities.PodStatsOptions) ([]*entities.PodStatsReport, error) {
+	return pods.Stats(ic.ClientCxt, namesOrIds, options)
+}

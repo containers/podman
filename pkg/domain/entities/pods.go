@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -187,4 +188,51 @@ type PodInspectOptions struct {
 
 type PodInspectReport struct {
 	*define.InspectPodData
+}
+
+// PodStatsOptions are options for the pod stats command.
+type PodStatsOptions struct {
+	// All - provide stats for all running pods.
+	All bool
+	// Latest - provide stats for the latest pod.
+	Latest bool
+}
+
+// PodStatsReport includes pod-resource statistics data.
+type PodStatsReport struct {
+	CPU      string
+	MemUsage string
+	Mem      string
+	NetIO    string
+	BlockIO  string
+	PIDS     string
+	Pod      string
+	CID      string
+	Name     string
+}
+
+// ValidatePodStatsOptions validates the specified slice and options. Allows
+// for sharing code in the front- and the back-end.
+func ValidatePodStatsOptions(args []string, options *PodStatsOptions) error {
+	num := 0
+	if len(args) > 0 {
+		num++
+	}
+	if options.All {
+		num++
+	}
+	if options.Latest {
+		num++
+	}
+	switch num {
+	case 0:
+		// Podman v1 compat: if nothing's specified get all running
+		// pods.
+		options.All = true
+		return nil
+	case 1:
+		return nil
+	default:
+		return errors.New("--all, --latest and arguments cannot be used together")
+	}
 }
