@@ -1,8 +1,6 @@
 package images
 
 import (
-	"os"
-
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -34,7 +32,7 @@ func exists(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if !found.Value {
-		os.Exit(1)
+		registry.SetExitCode(1)
 	}
 	return nil
 }
