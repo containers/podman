@@ -1,6 +1,8 @@
 package images
 
 import (
+	"os"
+
 	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
@@ -112,6 +114,12 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
 		pushOptsAPI.TLSVerify = types.NewOptionalBool(pushOptions.TLSVerifyCLI)
+	}
+
+	if pushOptsAPI.Authfile != "" {
+		if _, err := os.Stat(pushOptsAPI.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", pushOptsAPI.Authfile)
+		}
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering

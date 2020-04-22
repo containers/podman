@@ -2,11 +2,13 @@ package images
 
 import (
 	"fmt"
+	"os"
 
 	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -98,6 +100,11 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
 		pullOptsAPI.TLSVerify = types.NewOptionalBool(pullOptions.TLSVerifyCLI)
+	}
+	if pullOptsAPI.Authfile != "" {
+		if _, err := os.Stat(pullOptsAPI.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", pullOptsAPI.Authfile)
+		}
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from
