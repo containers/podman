@@ -173,7 +173,7 @@ func DefaultConfig() (*Config, error) {
 			SeccompProfile: SeccompDefaultPath,
 			ShmSize:        DefaultShmSize,
 			UTSNS:          "private",
-			UserNS:         "private",
+			UserNS:         "host",
 			UserNSSize:     DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
