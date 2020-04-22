@@ -129,7 +129,7 @@ func (s *SpecGenerator) Validate() error {
 	if err := s.CgroupNS.validate(); err != nil {
 		return err
 	}
-	if err := s.UserNS.validate(); err != nil {
+	if err := validateUserNS(&s.UserNS); err != nil {
 		return err
 	}
 

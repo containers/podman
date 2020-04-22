@@ -49,8 +49,9 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"cap-drop", []string{},
 		"Drop capabilities from the container",
 	)
+	cgroupNS := ""
 	createFlags.StringVar(
-		&cf.CGroupsNS,
+		&cgroupNS,
 		"cgroupns", containerConfig.CgroupNS(),
 		"cgroup namespace to use",
 	)
@@ -247,8 +248,9 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"interactive", "i", false,
 		"Keep STDIN open even if not attached",
 	)
+	ipcNS := ""
 	createFlags.StringVar(
-		&cf.IPC,
+		&ipcNS,
 		"ipc", containerConfig.IPCNS(),
 		"IPC namespace to use",
 	)
@@ -329,8 +331,9 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"use `OS` instead of the running OS for choosing images",
 	)
 	// markFlagHidden(createFlags, "override-os")
+	pid := ""
 	createFlags.StringVar(
-		&cf.PID,
+		&pid,
 		"pid", containerConfig.PidNS(),
 		"PID namespace to use",
 	)
@@ -461,13 +464,15 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"user", "u", "",
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
+	userNS := ""
 	createFlags.StringVar(
-		&cf.UserNS,
+		&userNS,
 		"userns", containerConfig.Containers.UserNS,
 		"User namespace to use",
 	)
+	utsNS := ""
 	createFlags.StringVar(
-		&cf.UTS,
+		&utsNS,
 		"uts", containerConfig.Containers.UTSNS,
 		"UTS namespace to use",
 	)
