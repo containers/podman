@@ -95,11 +95,9 @@ func rm(cmd *cobra.Command, args []string) error {
 	}
 	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), args, rmOptions)
 	if err != nil {
-		// TODO exitcode is a global main variable to track exit codes.
-		// we need this enabled
-		//if len(c.InputArgs) < 2 {
-		//	exitCode = setExitCode(err)
-		//}
+		if len(args) < 2 {
+			setExitCode(err)
+		}
 		return err
 	}
 	for _, r := range responses {
@@ -108,10 +106,21 @@ func rm(cmd *cobra.Command, args []string) error {
 			if errors.Cause(err) == define.ErrWillDeadlock {
 				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
 			}
+			setExitCode(r.Err)
 			errs = append(errs, r.Err)
 		} else {
 			fmt.Println(r.Id)
 		}
 	}
 	return errs.PrintErrors()
+}
+
+func setExitCode(err error) {
+	cause := errors.Cause(err)
+	switch cause {
+	case define.ErrNoSuchCtr:
+		registry.SetExitCode(1)
+	case define.ErrCtrStateInvalid:
+		registry.SetExitCode(2)
+	}
 }
