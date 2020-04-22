@@ -2,12 +2,15 @@ package containers
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -79,6 +82,16 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	cidFile, err := openCidFile(cliVals.CIDFile)
+	if err != nil {
+		return err
+	}
+
+	if cidFile != nil {
+		defer errorhandling.CloseQuiet(cidFile)
+		defer errorhandling.SyncQuiet(cidFile)
+	}
+
 	if rfs := cliVals.RootFS; !rfs {
 		rawImageInput = args[0]
 	}
@@ -101,6 +114,14 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	if cidFile != nil {
+		_, err = cidFile.WriteString(report.Id)
+		if err != nil {
+			logrus.Error(err)
+		}
+	}
+
 	fmt.Println(report.Id)
 	return nil
 }
@@ -153,4 +174,18 @@ func pullImage(imageName string) error {
 		}
 	}
 	return nil
+}
+
+func openCidFile(cidfile string) (*os.File, error) {
+	if cidfile == "" {
+		return nil, nil
+	}
+	cidFile, err := util.OpenExclusiveFile(cidfile)
+	if err != nil && os.IsExist(err) {
+		return nil, errors.Errorf("container id file exists. Ensure another container is not using it or delete %s", cidfile)
+	}
+	if err != nil {
+		return nil, errors.Errorf("error opening cidfile %s", cidfile)
+	}
+	return cidFile, nil
 }
