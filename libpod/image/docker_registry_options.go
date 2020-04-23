@@ -3,10 +3,9 @@ package image
 import (
 	"fmt"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
-
-	"github.com/containers/buildah/pkg/parse"
 	podmanVersion "github.com/containers/libpod/version"
 )
 
