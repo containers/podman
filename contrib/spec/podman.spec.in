@@ -377,12 +377,6 @@ Man pages for the %{name} commands
 # untar conmon
 tar zxf %{SOURCE1}
 
-sed -i 's/install.remote: podman-remote/install.remote:/' Makefile
-sed -i 's/install.bin: podman/install.bin:/' Makefile
-%if %{with doc}
-sed -i 's/install.man: docs/install.man:/' Makefile
-%endif
-
 %build
 mkdir _build
 pushd _build
@@ -417,22 +411,15 @@ popd
 %install
 install -dp %{buildroot}%{_unitdir}
 install -dp %{buildroot}%{_usr}/lib/systemd/user
+PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
+        install.bin-nobuild \
+        install.remote-nobuild \
 %if %{with doc}
-PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
-        install.bin \
-        install.remote \
-        install.man \
-        install.cni \
-        install.systemd \
-        install.completions
-%else
-PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
-        install.bin \
-        install.remote \
-        install.cni \
-        install.systemd \
-        install.completions
+        install.man-nobuild \
 %endif
+        install.cni \
+        install.systemd \
+        install.completions
 
 mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 

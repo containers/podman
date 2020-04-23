@@ -470,24 +470,34 @@ changelog: ## Generate changelog
 .PHONY: install
 install: .gopathok install.bin install.remote install.man install.cni install.systemd  ## Install binaries to system locations
 
-.PHONY: install.remote
-install.remote: podman-remote
+.PHONY: install.remote-nobuild
+install.remote-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman-remote $(DESTDIR)$(BINDIR)/podman-remote
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote bin/podman-remote
 
-.PHONY: install.bin
-install.bin: podman
+.PHONY: install.remote
+install.remote: podman-remote install.remote-nobuild
+
+.PHONY: install.bin-nobuild
+install.bin-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
 
-install.man: docs
+.PHONY: install.bin
+install.bin: podman install.bin-nobuild
+
+.PHONY: install.man-nobuild
+install.man-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/source/markdown/links/*1 -t $(DESTDIR)$(MANDIR)/man1
+
+.PHONY: install.man
+install.man: docs install.man-nobuild
 
 .PHONY: install.config
 install.config:
