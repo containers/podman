@@ -708,7 +708,6 @@ type UntagValues struct {
 func GetDefaultConfig() *config.Config {
 	var err error
 	conf, err := config.NewConfig("")
-	conf.CheckCgroupsAndAdjustConfig()
 	if err != nil {
 		logrus.Errorf("Error loading container config %v\n", err)
 		os.Exit(1)

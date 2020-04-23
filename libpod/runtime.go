@@ -131,8 +131,9 @@ func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime
 	if err != nil {
 		return nil, err
 	}
+	runtime, err = newRuntimeFromConfig(ctx, conf, options...)
 	conf.CheckCgroupsAndAdjustConfig()
-	return newRuntimeFromConfig(ctx, conf, options...)
+	return runtime, err
 }
 
 // NewRuntimeFromConfig creates a new container runtime using the given
