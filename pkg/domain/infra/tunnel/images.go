@@ -260,3 +260,7 @@ func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts 
 func (ir *ImageEngine) Tree(ctx context.Context, nameOrId string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
 	return nil, errors.New("not implemented yet")
 }
+
+// Shutdown Libpod engine
+func (ir *ImageEngine) Shutdown(_ context.Context) {
+}

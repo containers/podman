@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/cgroups"
@@ -16,6 +17,14 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
+)
+
+var (
+	// runtimeSync only guards the non-specialized runtime
+	runtimeSync sync.Once
+	// The default GetRuntime() always returns the same object and error
+	runtimeLib *libpod.Runtime
+	runtimeErr error
 )
 
 type engineOpts struct {
@@ -63,13 +72,16 @@ func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, cfg *entities.Pod
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
-	return getRuntime(ctx, flags, &engineOpts{
-		renumber: false,
-		migrate:  false,
-		noStore:  false,
-		withFDS:  true,
-		config:   cfg,
+	runtimeSync.Do(func() {
+		runtimeLib, runtimeErr = getRuntime(ctx, flags, &engineOpts{
+			renumber: false,
+			migrate:  false,
+			noStore:  false,
+			withFDS:  true,
+			config:   cfg,
+		})
 	})
+	return runtimeLib, runtimeErr
 }
 
 // GetRuntimeNoStore generates a new libpod runtime configured by command line options

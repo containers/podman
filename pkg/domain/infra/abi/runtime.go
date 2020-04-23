@@ -1,6 +1,8 @@
 package abi
 
 import (
+	"sync"
+
 	"github.com/containers/libpod/libpod"
 )
 
@@ -13,3 +15,5 @@ type ImageEngine struct {
 type ContainerEngine struct {
 	Libpod *libpod.Runtime
 }
+
+var shutdownSync sync.Once

@@ -14,7 +14,6 @@ type ContainerEngine interface {
 	ContainerAttach(ctx context.Context, nameOrId string, options AttachOptions) error
 	ContainerCheckpoint(ctx context.Context, namesOrIds []string, options CheckpointOptions) ([]*CheckpointReport, error)
 	ContainerCleanup(ctx context.Context, namesOrIds []string, options ContainerCleanupOptions) ([]*ContainerCleanupReport, error)
-	ContainerPrune(ctx context.Context, options ContainerPruneOptions) (*ContainerPruneReport, error)
 	ContainerCommit(ctx context.Context, nameOrId string, options CommitOptions) (*CommitReport, error)
 	ContainerCp(ctx context.Context, source, dest string, options ContainerCpOptions) (*ContainerCpReport, error)
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
@@ -30,6 +29,7 @@ type ContainerEngine interface {
 	ContainerMount(ctx context.Context, nameOrIds []string, options ContainerMountOptions) ([]*ContainerMountReport, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
 	ContainerPort(ctx context.Context, nameOrId string, options ContainerPortOptions) ([]*ContainerPortReport, error)
+	ContainerPrune(ctx context.Context, options ContainerPruneOptions) (*ContainerPruneReport, error)
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)
 	ContainerRestore(ctx context.Context, namesOrIds []string, options RestoreOptions) ([]*RestoreReport, error)
 	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*RmReport, error)
@@ -48,15 +48,16 @@ type ContainerEngine interface {
 	PodInspect(ctx context.Context, options PodInspectOptions) (*PodInspectReport, error)
 	PodKill(ctx context.Context, namesOrIds []string, options PodKillOptions) ([]*PodKillReport, error)
 	PodPause(ctx context.Context, namesOrIds []string, options PodPauseOptions) ([]*PodPauseReport, error)
+	PodPrune(ctx context.Context, options PodPruneOptions) ([]*PodPruneReport, error)
 	PodPs(ctx context.Context, options PodPSOptions) ([]*ListPodsReport, error)
 	PodRestart(ctx context.Context, namesOrIds []string, options PodRestartOptions) ([]*PodRestartReport, error)
 	PodRm(ctx context.Context, namesOrIds []string, options PodRmOptions) ([]*PodRmReport, error)
-	PodPrune(ctx context.Context, options PodPruneOptions) ([]*PodPruneReport, error)
 	PodStart(ctx context.Context, namesOrIds []string, options PodStartOptions) ([]*PodStartReport, error)
 	PodStop(ctx context.Context, namesOrIds []string, options PodStopOptions) ([]*PodStopReport, error)
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
 	SetupRootless(ctx context.Context, cmd *cobra.Command) error
+	Shutdown(ctx context.Context)
 	VarlinkService(ctx context.Context, opts ServiceOptions) error
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts VolumeInspectOptions) ([]*VolumeInspectReport, error)

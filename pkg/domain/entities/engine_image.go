@@ -22,6 +22,7 @@ type ImageEngine interface {
 	Remove(ctx context.Context, images []string, opts ImageRemoveOptions) (*ImageRemoveReport, error)
 	Save(ctx context.Context, nameOrId string, tags []string, options ImageSaveOptions) error
 	Search(ctx context.Context, term string, opts ImageSearchOptions) ([]ImageSearchReport, error)
+	Shutdown(ctx context.Context)
 	Tag(ctx context.Context, nameOrId string, tags []string, options ImageTagOptions) error
 	Tree(ctx context.Context, nameOrId string, options ImageTreeOptions) (*ImageTreeReport, error)
 	Untag(ctx context.Context, nameOrId string, tags []string, options ImageUntagOptions) error
