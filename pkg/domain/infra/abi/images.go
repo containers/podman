@@ -101,7 +101,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	if imageRef.Transport().Name() == dockerarchive.Transport.Name() {
 		newImage, err := ir.Libpod.ImageRuntime().LoadFromArchiveReference(ctx, imageRef, options.SignaturePolicy, writer)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error pulling image %q", rawImage)
+			return nil, err
 		}
 		return &entities.ImagePullReport{Images: []string{newImage[0].ID()}}, nil
 	}
@@ -125,7 +125,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	if !options.AllTags {
 		newImage, err := ir.Libpod.ImageRuntime().New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error pulling image %q", rawImage)
+			return nil, err
 		}
 		return &entities.ImagePullReport{Images: []string{newImage.ID()}}, nil
 	}
@@ -166,7 +166,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	}
 
 	if len(tags) != len(foundIDs) {
-		return nil, errors.Errorf("error pulling image %q", rawImage)
+		return nil, err
 	}
 	return &entities.ImagePullReport{Images: foundIDs}, nil
 }

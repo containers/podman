@@ -443,7 +443,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 			nil,
 			util.PullImageAlways)
 		if err != nil {
-			utils.InternalServerError(w, errors.Wrapf(err, "error pulling image %q", query.Reference))
+			utils.InternalServerError(w, err)
 			return
 		}
 		res = append(res, handlers.LibpodImagesPullReport{ID: newImage.ID()})

@@ -334,11 +334,11 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we don't need to yap about registries.
 		if !goal.usedSearchRegistries {
 			if pullErrors != nil && len(pullErrors.Errors) > 0 { // this should always be true
-				return nil, errors.Wrap(pullErrors.Errors[0], "unable to pull image")
+				return nil, pullErrors.Errors[0]
 			}
 			return nil, errors.Errorf("unable to pull image, or you do not have pull access")
 		}
-		return nil, pullErrors
+		return nil, errors.Cause(pullErrors)
 	}
 	if len(images) > 0 {
 		ir.newImageEvent(events.Pull, images[0])
