@@ -435,12 +435,12 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	processLabel := containerInfo.ProcessLabel
 	switch {
 	case c.ociRuntime.SupportsKVM():
-		processLabel, err = selinux.SELinuxKVMLabel(processLabel)
+		processLabel, err = selinux.KVMLabel(processLabel)
 		if err != nil {
 			return err
 		}
 	case c.config.Systemd:
-		processLabel, err = selinux.SELinuxInitLabel(processLabel)
+		processLabel, err = selinux.InitLabel(processLabel)
 		if err != nil {
 			return err
 		}
