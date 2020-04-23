@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/version"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman version", func() {
@@ -35,54 +36,49 @@ var _ = Describe("Podman version", func() {
 	It("podman version", func() {
 		session := podmanTest.Podman([]string{"version"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
-		ok, _ := session.GrepString(version.Version)
-		Expect(ok).To(BeTrue())
+		Expect(session).Should(Exit(0))
+		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version))
 	})
 
 	It("podman -v", func() {
-		Skip(v2fail)
 		session := podmanTest.Podman([]string{"-v"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		ok, _ := session.GrepString(version.Version)
-		Expect(ok).To(BeTrue())
+		Expect(session).Should(Exit(0))
+		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version))
 	})
 
 	It("podman --version", func() {
 		session := podmanTest.Podman([]string{"--version"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		ok, _ := session.GrepString(version.Version)
-		Expect(ok).To(BeTrue())
+		Expect(session).Should(Exit(0))
+		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version))
 	})
 
 	It("podman version --format json", func() {
 		session := podmanTest.Podman([]string{"version", "--format", "json"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 	})
 
 	It("podman version --format json", func() {
 		session := podmanTest.Podman([]string{"version", "--format", "{{ json .}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 	})
 
 	It("podman version --format GO template", func() {
 		session := podmanTest.Podman([]string{"version", "--format", "{{ .Client.Version }}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"version", "--format", "{{ .Server.Version }}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"version", "--format", "{{ .Version }}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 	})
 })
