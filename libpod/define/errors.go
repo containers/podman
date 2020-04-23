@@ -141,4 +141,7 @@ var (
 	// ErrConmonOutdated indicates the version of conmon found (whether via the configuration or $PATH)
 	// is out of date for the current podman version
 	ErrConmonOutdated = errors.New("outdated conmon version")
+
+	// ErrImageInUse indicates the requested operation failed because the image was in use
+	ErrImageInUse = errors.New("image is being used")
 )
