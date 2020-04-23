@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -21,9 +20,10 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
+	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
+	. "github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
 )
 
@@ -314,7 +314,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 // image and returns json
 func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	var i []inspect.ImageData
-	err := json.Unmarshal(s.Out.Contents(), &i)
+	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
 }
@@ -324,7 +324,7 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 	cmd := []string{"inspect", name}
 	session := p.Podman(cmd)
 	session.WaitWithDefaultTimeout()
-	Expect(session.ExitCode()).To(Equal(0))
+	Expect(session).Should(Exit(0))
 	return session.InspectContainerToJSON()
 }
 
@@ -419,7 +419,7 @@ func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegrat
 	podmanOptions := p.MakeOptions(args, false, false)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	session, err := Start(command, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run podman command: %s", strings.Join(podmanOptions, " ")))
 	}
@@ -494,7 +494,7 @@ func (p *PodmanTestIntegration) PullImage(image string) error {
 // container and returns json
 func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectContainerData {
 	var i []define.InspectContainerData
-	err := json.Unmarshal(s.Out.Contents(), &i)
+	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
 }
@@ -502,7 +502,7 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 // InspectPodToJSON takes the sessions output from a pod inspect and returns json
 func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 	var i define.InspectPodData
-	err := json.Unmarshal(s.Out.Contents(), &i)
+	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
 }

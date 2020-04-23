@@ -99,14 +99,29 @@ func images(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	imageS := summaries
-	sort.Slice(imageS, sortFunc(listFlag.sort, imageS))
-
-	if cmd.Flag("format").Changed && listFlag.format == "json" {
-		return writeJSON(imageS)
-	} else {
-		return writeTemplate(imageS, err)
+	switch {
+	case listFlag.quiet:
+		return writeId(summaries)
+	case cmd.Flag("format").Changed && listFlag.format == "json":
+		return writeJSON(summaries)
+	default:
+		return writeTemplate(summaries)
 	}
+}
+
+func writeId(imageS []*entities.ImageSummary) error {
+	var ids = map[string]struct{}{}
+	for _, e := range imageS {
+		i := "sha256:" + e.ID
+		if !listFlag.noTrunc {
+			i = fmt.Sprintf("%12.12s", e.ID)
+		}
+		ids[i] = struct{}{}
+	}
+	for k := range ids {
+		fmt.Fprint(os.Stdout, k+"\n")
+	}
+	return nil
 }
 
 func writeJSON(imageS []*entities.ImageSummary) error {
@@ -131,7 +146,7 @@ func writeJSON(imageS []*entities.ImageSummary) error {
 	return enc.Encode(imgs)
 }
 
-func writeTemplate(imageS []*entities.ImageSummary, err error) error {
+func writeTemplate(imageS []*entities.ImageSummary) error {
 	var (
 		hdr, row string
 	)
@@ -143,10 +158,11 @@ func writeTemplate(imageS []*entities.ImageSummary, err error) error {
 			h.Repository, h.Tag = tokenRepoTag(tag)
 			imgs = append(imgs, h)
 		}
-		if e.IsReadOnly() {
-			listFlag.readOnly = true
-		}
+		listFlag.readOnly = e.IsReadOnly()
 	}
+
+	sort.Slice(imgs, sortFunc(listFlag.sort, imgs))
+
 	if len(listFlag.format) < 1 {
 		hdr, row = imageListFormat(listFlag)
 	} else {
@@ -176,37 +192,33 @@ func tokenRepoTag(tag string) (string, string) {
 	}
 }
 
-func sortFunc(key string, data []*entities.ImageSummary) func(i, j int) bool {
+func sortFunc(key string, data []imageReporter) func(i, j int) bool {
 	switch key {
 	case "id":
 		return func(i, j int) bool {
-			return data[i].ID < data[j].ID
+			return data[i].ID() < data[j].ID()
 		}
 	case "repository":
 		return func(i, j int) bool {
-			return data[i].RepoTags[0] < data[j].RepoTags[0]
+			return data[i].Repository < data[j].Repository
 		}
 	case "size":
 		return func(i, j int) bool {
-			return data[i].Size < data[j].Size
+			return data[i].size() < data[j].size()
 		}
 	case "tag":
 		return func(i, j int) bool {
-			return data[i].RepoTags[0] < data[j].RepoTags[0]
+			return data[i].Tag < data[j].Tag
 		}
 	default:
 		// case "created":
 		return func(i, j int) bool {
-			return data[i].Created.After(data[j].Created)
+			return data[i].created().After(data[j].created())
 		}
 	}
 }
 
 func imageListFormat(flags listFlagType) (string, string) {
-	if flags.quiet {
-		return "", "{{.ID}}\n"
-	}
-
 	// Defaults
 	hdr := "REPOSITORY\tTAG"
 	row := "{{.Repository}}\t{{if .Tag}}{{.Tag}}{{else}}<none>{{end}}"
@@ -263,6 +275,10 @@ func (i imageReporter) Created() string {
 	return units.HumanDuration(time.Since(i.ImageSummary.Created)) + " ago"
 }
 
+func (i imageReporter) created() time.Time {
+	return i.ImageSummary.Created
+}
+
 func (i imageReporter) Size() string {
 	s := units.HumanSizeWithPrecision(float64(i.ImageSummary.Size), 3)
 	j := strings.LastIndexFunc(s, unicode.IsNumber)
@@ -271,4 +287,20 @@ func (i imageReporter) Size() string {
 
 func (i imageReporter) History() string {
 	return strings.Join(i.ImageSummary.History, ", ")
+}
+
+func (i imageReporter) CreatedAt() string {
+	return i.ImageSummary.Created.String()
+}
+
+func (i imageReporter) CreatedSince() string {
+	return i.Created()
+}
+
+func (i imageReporter) CreatedTime() string {
+	return i.CreatedAt()
+}
+
+func (i imageReporter) size() int64 {
+	return i.ImageSummary.Size
 }

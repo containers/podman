@@ -469,6 +469,8 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 		switch errors.Cause(err) {
 		case nil:
 			break
+		case define.ErrNoSuchImage:
+			inUseErrors = true // ExitCode is expected
 		case storage.ErrImageUsedByContainer:
 			inUseErrors = true // Important for exit codes in Podman.
 			return errors.New(
@@ -540,7 +542,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 			noSuchImageErrors = true // Important for exit codes in Podman.
 			fallthrough
 		default:
-			deleteError = multierror.Append(deleteError, err)
+			deleteError = multierror.Append(deleteError, errors.Wrapf(err, "failed to remove image '%s'", id))
 			continue
 		}
 

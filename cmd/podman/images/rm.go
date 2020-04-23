@@ -54,7 +54,10 @@ func rm(cmd *cobra.Command, args []string) error {
 			fmt.Println("Untagged: " + u)
 		}
 		for _, d := range report.Deleted {
-			fmt.Println("Deleted: " + d)
+			// Make sure an image was deleted (and not just untagged); else print it
+			if len(d) > 0 {
+				fmt.Println("Deleted: " + d)
+			}
 		}
 		registry.SetExitCode(report.ExitCode)
 	}

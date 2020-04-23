@@ -96,7 +96,7 @@ func Execute() {
 
 func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
-	logrus.Debugf("Called %s.PersistentPreRunE()", cmd.Name())
+	logrus.Debugf("Called %s.PersistentPreRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
 	cfg := registry.PodmanConfig()
 
@@ -145,7 +145,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 func persistentPostRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
-	logrus.Debugf("Called %s.PersistentPostRunE()", cmd.Name())
+	logrus.Debugf("Called %s.PersistentPostRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
 	cfg := registry.PodmanConfig()
 	if cmd.Flag("cpu-profile").Changed {

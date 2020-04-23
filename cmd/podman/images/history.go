@@ -89,22 +89,20 @@ func history(cmd *cobra.Command, args []string) error {
 	hdr := "ID\tCREATED\tCREATED BY\tSIZE\tCOMMENT\n"
 	row := "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
 
-	if len(opts.format) > 0 {
+	switch {
+	case len(opts.format) > 0:
 		hdr = ""
 		row = opts.format
 		if !strings.HasSuffix(opts.format, "\n") {
 			row += "\n"
 		}
-	} else {
-		switch {
-		case opts.human:
-			row = "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
-		case opts.noTrunc:
-			row = "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
-		case opts.quiet:
-			hdr = ""
-			row = "{{.ID}}\n"
-		}
+	case opts.quiet:
+		hdr = ""
+		row = "{{.ID}}\n"
+	case opts.human:
+		row = "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
+	case opts.noTrunc:
+		row = "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
 	}
 	format := hdr + "{{range . }}" + row + "{{end}}"
 
