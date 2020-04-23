@@ -25,4 +25,7 @@ type ImageEngine interface {
 	Tag(ctx context.Context, nameOrId string, tags []string, options ImageTagOptions) error
 	Tree(ctx context.Context, nameOrId string, options ImageTreeOptions) (*ImageTreeReport, error)
 	Untag(ctx context.Context, nameOrId string, tags []string, options ImageUntagOptions) error
+	ManifestCreate(ctx context.Context, names, images []string, opts ManifestCreateOptions) (string, error)
+	ManifestInspect(ctx context.Context, name string) ([]byte, error)
+	ManifestAdd(ctx context.Context, opts ManifestAddOptions) (string, error)
 }
