@@ -126,6 +126,9 @@ func before(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	defaultContainerConfig.Engine.CgroupManager = MainGlobalOpts.CGroupManager
+	defaultContainerConfig.CheckCgroupsAndAdjustConfig()
+
 	if err := setupRootless(cmd, args); err != nil {
 		return err
 	}
