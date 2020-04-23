@@ -2,6 +2,8 @@ package integration
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -113,5 +115,91 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(`"architecture": "bar"`))
+	})
+
+	It("podman manifest remove", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "--all", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(imageListARM64InstanceDigest))
+		session = podmanTest.Podman([]string{"manifest", "remove", "foo", imageListARM64InstanceDigest})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(imageListAMD64InstanceDigest))
+		Expect(session.OutputToString()).To(ContainSubstring(imageListARMInstanceDigest))
+		Expect(session.OutputToString()).To(ContainSubstring(imageListPPC64LEInstanceDigest))
+		Expect(session.OutputToString()).To(ContainSubstring(imageListS390XInstanceDigest))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(imageListARM64InstanceDigest)))
+	})
+
+	It("podman manifest remove not-found", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "remove", "foo", "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman manifest push", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "--all", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		dest := filepath.Join(podmanTest.TempDir, "pushed")
+		err := os.MkdirAll(dest, os.ModePerm)
+		Expect(err).To(BeNil())
+		defer func() {
+			os.RemoveAll(dest)
+		}()
+		session = podmanTest.Podman([]string{"manifest", "push", "--all", "foo", "dir:" + dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		files, err := filepath.Glob(dest + string(os.PathSeparator) + "*")
+		Expect(err).To(BeNil())
+		check := SystemExec("sha256sum", files)
+		check.WaitWithDefaultTimeout()
+		Expect(check.ExitCode()).To(Equal(0))
+		prefix := "sha256:"
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListAMD64InstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARMInstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListPPC64LEInstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)))
+	})
+
+	It("podman manifest push purge", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		dest := filepath.Join(podmanTest.TempDir, "pushed")
+		err := os.MkdirAll(dest, os.ModePerm)
+		Expect(err).To(BeNil())
+		defer func() {
+			os.RemoveAll(dest)
+		}()
+		session = podmanTest.Podman([]string{"manifest", "push", "--purge", "foo", "dir:" + dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
 })

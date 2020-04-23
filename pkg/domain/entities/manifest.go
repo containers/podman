@@ -24,3 +24,8 @@ type ManifestAnnotateOptions struct {
 	OSVersion  string   `json:"os_version" schema:"os_version"`
 	Variant    string   `json:"variant" schema:"variant"`
 }
+
+type ManifestPushOptions struct {
+	Purge, Quiet, All, TlsVerify, RemoveSignatures       bool
+	Authfile, CertDir, Creds, DigestFile, Format, SignBy string
+}
