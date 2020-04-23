@@ -141,13 +141,18 @@ func DefaultConfig() (*Config, error) {
 		netns = "slirp4netns"
 	}
 
+	cgroupNS := "host"
+	if cgroup2, _ := cgroupv2.Enabled(); cgroup2 {
+		cgroupNS = "private"
+	}
+
 	return &Config{
 		Containers: ContainersConfig{
 			Devices:             []string{},
 			Volumes:             []string{},
 			Annotations:         []string{},
 			ApparmorProfile:     DefaultApparmorProfile,
-			CgroupNS:            "private",
+			CgroupNS:            cgroupNS,
 			DefaultCapabilities: DefaultCapabilities,
 			DefaultSysctls:      []string{},
 			DefaultUlimits:      getDefaultProcessLimits(),
@@ -172,7 +177,7 @@ func DefaultConfig() (*Config, error) {
 			SeccompProfile: SeccompDefaultPath,
 			ShmSize:        DefaultShmSize,
 			UTSNS:          "private",
-			UserNS:         "private",
+			UserNS:         "host",
 			UserNSSize:     DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
@@ -246,6 +251,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/usr/local/sbin/kata-runtime",
 			"/sbin/kata-runtime",
 			"/bin/kata-runtime",
+			"/usr/bin/kata-qemu",
+			"/usr/bin/kata-fc",
 		},
 	}
 	c.ConmonEnvVars = []string{
