@@ -6,6 +6,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 
+	"github.com/containers/buildah/pkg/parse"
 	podmanVersion "github.com/containers/libpod/version"
 )
 
@@ -41,6 +42,7 @@ func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, add
 		DockerArchiveAdditionalTags: additionalDockerArchiveTags,
 		OSChoice:                    o.OSChoice,
 		ArchitectureChoice:          o.ArchitectureChoice,
+		BigFilesTemporaryDir:        parse.GetTempDir(),
 	}
 	if parent != nil {
 		sc.SignaturePolicyPath = parent.SignaturePolicyPath
