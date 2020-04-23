@@ -33,6 +33,11 @@ const (
 	// Slirp indicates that a slirp4netns network stack should
 	// be used
 	Slirp NamespaceMode = "slirp4netns"
+	// KeepId indicates a user namespace to keep the owner uid inside
+	// of the namespace itself
+	KeepID NamespaceMode = "keep-id"
+	// KeepId indicates to automatically create a user namespace
+	Auto NamespaceMode = "auto"
 )
 
 // Namespace describes the namespace
@@ -70,6 +75,16 @@ func (n *Namespace) IsPod() bool {
 // IsPrivate indicates the namespace is private
 func (n *Namespace) IsPrivate() bool {
 	return n.NSMode == Private
+}
+func validateUserNS(n *Namespace) error {
+	if n == nil {
+		return nil
+	}
+	switch n.NSMode {
+	case Auto, KeepID:
+		return nil
+	}
+	return n.validate()
 }
 
 func validateNetNS(n *Namespace) error {
@@ -156,6 +171,30 @@ func ParseNamespace(ns string) (Namespace, error) {
 	}
 
 	return toReturn, nil
+}
+
+// ParseUserNamespace parses a user namespace specification in string
+// form.
+func ParseUserNamespace(ns string) (Namespace, error) {
+	toReturn := Namespace{}
+	switch {
+	case ns == "auto":
+		toReturn.NSMode = Auto
+		return toReturn, nil
+	case strings.HasPrefix(ns, "auto:"):
+		split := strings.SplitN(ns, ":", 2)
+		if len(split) != 2 {
+			return toReturn, errors.Errorf("invalid setting for auto: mode")
+		}
+		toReturn.NSMode = KeepID
+		toReturn.Value = split[1]
+		return toReturn, nil
+	case ns == "keep-id":
+		toReturn.NSMode = KeepID
+		toReturn.NSMode = FromContainer
+		return toReturn, nil
+	}
+	return ParseNamespace(ns)
 }
 
 // ParseNetworkNamespace parses a network namespace specification in string

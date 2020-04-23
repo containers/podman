@@ -54,7 +54,7 @@ func (s *SpecGenerator) Validate() error {
 	}
 	// shmsize conflicts with IPC namespace
 	if s.ContainerStorageConfig.ShmSize != nil && !s.ContainerStorageConfig.IpcNS.IsPrivate() {
-		return errors.New("cannot set shmsize when creating an IPC namespace")
+		return errors.New("cannot set shmsize when running in the host IPC Namespace")
 	}
 
 	//
@@ -129,7 +129,7 @@ func (s *SpecGenerator) Validate() error {
 	if err := s.CgroupNS.validate(); err != nil {
 		return err
 	}
-	if err := s.UserNS.validate(); err != nil {
+	if err := validateUserNS(&s.UserNS); err != nil {
 		return err
 	}
 

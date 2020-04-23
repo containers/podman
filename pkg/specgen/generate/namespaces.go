@@ -58,8 +58,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 		case "uts":
 			return specgen.ParseNamespace(cfg.Containers.UTSNS)
 		case "user":
-			// TODO: This may not work for --userns=auto
-			return specgen.ParseNamespace(cfg.Containers.UserNS)
+			return specgen.ParseUserNamespace(cfg.Containers.UserNS)
 		case "net":
 			ns, _, err := specgen.ParseNetworkNamespace(cfg.Containers.NetNS)
 			return ns, err

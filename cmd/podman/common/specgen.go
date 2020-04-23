@@ -222,55 +222,28 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.PortMappings = ep
 	s.Pod = c.Pod
 
-	//s.CgroupNS = specgen.Namespace{
-	//	NSMode: ,
-	//	Value:  "",
-	//}
-
-	//s.UserNS = specgen.Namespace{}
-
-	// Kernel Namespaces
-	// TODO Fix handling of namespace from pod
-	// Instead of integrating here, should be done in libpod
-	// However, that also involves setting up security opts
-	// when the pod's namespace is integrated
-	//namespaces = map[string]string{
-	//	"cgroup": c.CGroupsNS,
-	//	"pid":    c.PID,
-	//	//"net":    c.Net.Network.Value,   // TODO need help here
-	//	"ipc":  c.IPC,
-	//	"user": c.User,
-	//	"uts":  c.UTS,
-	//}
-	//
-	//if len(c.PID) > 0 {
-	//	split := strings.SplitN(c.PID, ":", 2)
-	//	// need a way to do thsi
-	//	specgen.Namespace{
-	//		NSMode: split[0],
-	//	}
-	//	//Value:  split1 if len allows
-	//}
-	// TODO this is going to have be done after things like pod creation are done because
-	// pod creation changes these values.
-	//pidMode := ns.PidMode(namespaces["pid"])
-	//usernsMode := ns.UsernsMode(namespaces["user"])
-	//utsMode := ns.UTSMode(namespaces["uts"])
-	//cgroupMode := ns.CgroupMode(namespaces["cgroup"])
-	//ipcMode := ns.IpcMode(namespaces["ipc"])
-	//// Make sure if network is set to container namespace, port binding is not also being asked for
-	//netMode := ns.NetworkMode(namespaces["net"])
-	//if netMode.IsContainer() {
-	//	if len(portBindings) > 0 {
-	//		return nil, errors.Errorf("cannot set port bindings on an existing container network namespace")
-	//	}
-	//}
-
-	// TODO Remove when done with namespaces for realz
-	// Setting a default for IPC to get this working
-	s.IpcNS = specgen.Namespace{
-		NSMode: specgen.Private,
-		Value:  "",
+	for k, v := range map[string]*specgen.Namespace{
+		c.IPC:       &s.IpcNS,
+		c.PID:       &s.PidNS,
+		c.UTS:       &s.UtsNS,
+		c.CGroupsNS: &s.CgroupNS,
+	} {
+		if k != "" {
+			*v, err = specgen.ParseNamespace(k)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	// userns must be treated differently
+	if c.UserNS != "" {
+		s.UserNS, err = specgen.ParseUserNamespace(c.UserNS)
+		if err != nil {
+			return err
+		}
+	}
+	if c.Net != nil {
+		s.NetNS = c.Net.Network
 	}
 
 	// TODO this is going to have to be done the libpod/server end of things
@@ -403,11 +376,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 
 	// SHM Size
-	shmSize, err := units.FromHumanSize(c.ShmSize)
-	if err != nil {
-		return errors.Wrapf(err, "unable to translate --shm-size")
+	if c.ShmSize != "" {
+		shmSize, err := units.FromHumanSize(c.ShmSize)
+		if err != nil {
+			return errors.Wrapf(err, "unable to translate --shm-size")
+		}
+		s.ShmSize = &shmSize
 	}
-	s.ShmSize = &shmSize
 	s.HostAdd = c.Net.AddHosts
 	s.UseImageResolvConf = c.Net.UseImageResolvConf
 	s.DNSServers = c.Net.DNSServers

@@ -131,6 +131,10 @@ func createInit(c *cobra.Command) error {
 		logrus.Warn("setting security options with --privileged has no effect")
 	}
 
+	if c.Flag("shm-size").Changed {
+		cliVals.ShmSize = c.Flag("shm-size").Value.String()
+	}
+
 	if (c.Flag("dns").Changed || c.Flag("dns-opt").Changed || c.Flag("dns-search").Changed) && (cliVals.Net.Network.NSMode == specgen.NoNetwork || cliVals.Net.Network.IsContainer()) {
 		return errors.Errorf("conflicting options: dns and the network mode.")
 	}
@@ -144,6 +148,21 @@ func createInit(c *cobra.Command) error {
 
 	if c.Flag("no-hosts").Changed && c.Flag("add-host").Changed {
 		return errors.Errorf("--no-hosts and --add-host cannot be set together")
+	}
+	if c.Flag("userns").Changed {
+		cliVals.UserNS = c.Flag("userns").Value.String()
+	}
+	if c.Flag("ipc").Changed {
+		cliVals.IPC = c.Flag("ipc").Value.String()
+	}
+	if c.Flag("uts").Changed {
+		cliVals.UTS = c.Flag("uts").Value.String()
+	}
+	if c.Flag("pid").Changed {
+		cliVals.PID = c.Flag("pid").Value.String()
+	}
+	if c.Flag("cgroupns").Changed {
+		cliVals.CGroupsNS = c.Flag("cgroupns").Value.String()
 	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
