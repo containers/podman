@@ -15,9 +15,6 @@ import (
 
 // MakeContainer creates a container based on the SpecGenerator
 func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Container, error) {
-	if err := s.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid config provided")
-	}
 	rtc, err := rt.GetConfig()
 	if err != nil {
 		return nil, err
@@ -93,6 +90,10 @@ func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Contai
 	}
 
 	options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image, s.RawImageName))
+
+	if err := s.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid config provided")
+	}
 
 	runtimeSpec, err := SpecGenToOCI(s, rt, newImage)
 	if err != nil {
