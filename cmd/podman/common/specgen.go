@@ -449,6 +449,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	s.CgroupParent = c.CGroupParent
 	s.CgroupsMode = c.CGroupsMode
+	s.Groups = c.GroupAdd
 	// TODO WTF
 	//cgroup := &cc.CgroupConfig{
 	//	Cgroupns:     c.String("cgroupns"),

@@ -566,7 +566,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with group-add", func() {
-		Skip(v2fail)
 		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--group-add=audio", "--group-add=nogroup", "--group-add=777", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
