@@ -26,7 +26,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 	nsType = strings.ToLower(nsType)
 
 	// If the pod is not nil - check shared namespaces
-	if pod != nil {
+	if pod != nil && pod.HasInfraContainer() {
 		podMode := false
 		switch {
 		case nsType == "pid" && pod.SharesPID():
