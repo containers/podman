@@ -209,9 +209,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		}
 	}
 
-	s.IDMappings, err = util.ParseIDMapping(ns.UsernsMode(c.UserNS), c.UIDMap, c.GIDMap, c.SubUIDName, c.SubGIDName)
+	userNS := ns.UsernsMode(c.UserNS)
+	s.IDMappings, err = util.ParseIDMapping(userNS, c.UIDMap, c.GIDMap, c.SubUIDName, c.SubGIDName)
 	if err != nil {
 		return err
+	}
+	// If some mappings are specified, assume a private user namespace
+	if userNS.IsDefaultValue() && (!s.IDMappings.HostUIDMapping || !s.IDMappings.HostGIDMapping) {
+		s.UserNS.NSMode = specgen.Private
 	}
 
 	s.Terminal = c.TTY

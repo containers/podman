@@ -31,7 +31,7 @@ func (n CgroupMode) IsHost() bool {
 
 // IsDefaultValue indicates whether the cgroup namespace has the default value.
 func (n CgroupMode) IsDefaultValue() bool {
-	return n == ""
+	return n == "" || n == defaultType
 }
 
 // IsNS indicates a cgroup namespace passed in by path (ns:<path>)
@@ -100,6 +100,11 @@ func (n UsernsMode) IsKeepID() bool {
 func (n UsernsMode) IsAuto() bool {
 	parts := strings.Split(string(n), ":")
 	return parts[0] == "auto"
+}
+
+// IsDefaultValue indicates whether the user namespace has the default value.
+func (n UsernsMode) IsDefaultValue() bool {
+	return n == "" || n == defaultType
 }
 
 // GetAutoOptions returns a AutoUserNsOptions with the settings to setup automatically
