@@ -877,7 +877,6 @@ USER mail`
 	})
 
 	It("podman run --http-proxy test", func() {
-		Skip(v2fail)
 		os.Setenv("http_proxy", "1.2.3.4")
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
