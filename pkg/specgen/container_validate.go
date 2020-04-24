@@ -34,7 +34,7 @@ func (s *SpecGenerator) Validate() error {
 	}
 	// Cannot set hostname and utsns
 	if len(s.ContainerBasicConfig.Hostname) > 0 && !s.ContainerBasicConfig.UtsNS.IsPrivate() {
-		return errors.Wrap(ErrInvalidSpecConfig, "cannot set hostname when creating an UTS namespace")
+		return errors.Wrap(ErrInvalidSpecConfig, "cannot set hostname when running in the host UTS namespace")
 	}
 	// systemd values must be true, false, or always
 	if len(s.ContainerBasicConfig.Systemd) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerBasicConfig.Systemd), SystemDValues) {
