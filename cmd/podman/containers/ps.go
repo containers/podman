@@ -18,6 +18,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -47,7 +48,10 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: psCommand,
 	})
-	flags := psCommand.Flags()
+	listFlagSet(psCommand.Flags())
+}
+
+func listFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVarP(&listOpts.All, "all", "a", false, "Show all the containers, default is only running containers")
 	flags.StringSliceVarP(&filters, "filter", "f", []string{}, "Filter output based on conditions given")
 	flags.StringVar(&listOpts.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
@@ -165,14 +169,14 @@ func ps(cmd *cobra.Command, args []string) error {
 		responses = append(responses, psReporter{r})
 	}
 
-	headers, row := createPsOut()
+	headers, format := createPsOut()
 	if cmd.Flag("format").Changed {
-		row = listOpts.Format
-		if !strings.HasPrefix(row, "\n") {
-			row += "\n"
+		format = listOpts.Format
+		if !strings.HasPrefix(format, "\n") {
+			format += "\n"
 		}
 	}
-	format := "{{range . }}" + row + "{{end}}"
+	format = "{{range . }}" + format + "{{end}}"
 	if !listOpts.Quiet && !cmd.Flag("format").Changed {
 		format = headers + format
 	}
@@ -245,6 +249,14 @@ func createPsOut() (string, string) {
 
 type psReporter struct {
 	entities.ListContainer
+}
+
+// ImageID returns the ID of the container
+func (l psReporter) ImageID() string {
+	if !noTrunc {
+		return l.ListContainer.ImageID[0:12]
+	}
+	return l.ListContainer.ImageID
 }
 
 // ID returns the ID of the container

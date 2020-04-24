@@ -14,7 +14,7 @@ var (
 		Args:    cobra.NoArgs,
 		Short:   "List containers",
 		Long:    "Prints out information about the containers",
-		RunE:    containers,
+		RunE:    ps,
 		Example: `podman container list -a
   podman container list -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
   podman container list --size --sort names`,
@@ -27,8 +27,5 @@ func init() {
 		Command: listCmd,
 		Parent:  containerCmd,
 	})
-}
-
-func containers(cmd *cobra.Command, args []string) error {
-	return nil
+	listFlagSet(listCmd.Flags())
 }

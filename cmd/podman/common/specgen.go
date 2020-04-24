@@ -227,11 +227,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 
 	s.Terminal = c.TTY
-	ep, err := ExposedPorts(c.Expose, c.Net.PublishPorts, c.PublishAll, nil)
-	if err != nil {
+
+	if err := verifyExpose(c.Expose); err != nil {
 		return err
 	}
-	s.PortMappings = ep
+	// We are not handling the Expose flag yet.
+	// s.PortsExpose = c.Expose
+	s.PortMappings = c.Net.PublishPorts
+	s.PublishImagePorts = c.PublishAll
 	s.Pod = c.Pod
 
 	for k, v := range map[string]*specgen.Namespace{

@@ -25,6 +25,8 @@ type ListContainer struct {
 	ID string `json:"Id"`
 	// Container image
 	Image string
+	// Container image ID
+	ImageID string
 	// If this container is a Pod infra container
 	IsInfra bool
 	// Labels for container
