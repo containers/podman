@@ -602,7 +602,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		if len(split) < 2 {
 			return errors.Errorf("invalid log option %q", o)
 		}
-		logOpts[split[0]] = split[1]
+		switch {
+		case split[0] == "driver":
+			s.LogConfiguration.Driver = split[1]
+		case split[0] == "path":
+			s.LogConfiguration.Path = split[1]
+		default:
+			logOpts[split[0]] = split[1]
+		}
 	}
 	s.LogConfiguration.Options = logOpts
 	s.Name = c.Name

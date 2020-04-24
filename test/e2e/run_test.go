@@ -469,7 +469,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run log-opt", func() {
-		Skip(v2fail)
 		log := filepath.Join(podmanTest.TempDir, "/container.log")
 		session := podmanTest.Podman([]string{"run", "--rm", "--log-opt", fmt.Sprintf("path=%s", log), ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
