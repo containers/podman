@@ -24,6 +24,9 @@ func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *imag
 	}
 
 	if scp == seccomp.PolicyImage {
+		if img == nil {
+			return nil, errors.New("cannot read seccomp profile without a valid image")
+		}
 		labels, err := img.Labels(context.Background())
 		if err != nil {
 			return nil, err

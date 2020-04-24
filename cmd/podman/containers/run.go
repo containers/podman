@@ -104,8 +104,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := pullImage(args[0]); err != nil {
-		return err
+	if !cliVals.RootFS {
+		if err := pullImage(args[0]); err != nil {
+			return err
+		}
 	}
 
 	// If -i is not set, clear stdin
@@ -136,7 +138,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	runOpts.Detach = cliVals.Detach
 	runOpts.DetachKeys = cliVals.DetachKeys
-	s := specgen.NewSpecGenerator(args[0])
+	s := specgen.NewSpecGenerator(args[0], cliVals.RootFS)
 	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -15,9 +16,6 @@ import (
 
 // MakeContainer creates a container based on the SpecGenerator
 func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Container, error) {
-	if err := s.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid config provided")
-	}
 	rtc, err := rt.GetConfig()
 	if err != nil {
 		return nil, err
@@ -87,12 +85,19 @@ func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Contai
 		return nil, err
 	}
 	options = append(options, createExitCommandOption(s, rt.StorageConfig(), rtc, podmanPath))
-	newImage, err := rt.ImageRuntime().NewFromLocal(s.Image)
-	if err != nil {
-		return nil, err
+	var newImage *image.Image
+	if s.Rootfs != "" {
+		options = append(options, libpod.WithRootFS(s.Rootfs))
+	} else {
+		newImage, err = rt.ImageRuntime().NewFromLocal(s.Image)
+		if err != nil {
+			return nil, err
+		}
+		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image, s.RawImageName))
 	}
-
-	options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image, s.RawImageName))
+	if err := s.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid config provided")
+	}
 
 	runtimeSpec, err := SpecGenToOCI(s, rt, newImage)
 	if err != nil {

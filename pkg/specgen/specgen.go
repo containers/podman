@@ -402,8 +402,13 @@ type NamedVolume struct {
 }
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
-func NewSpecGenerator(image string) *SpecGenerator {
-	csc := ContainerStorageConfig{Image: image}
+func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
+	csc := ContainerStorageConfig{}
+	if rootfs {
+		csc.Rootfs = arg
+	} else {
+		csc.Image = arg
+	}
 	return &SpecGenerator{
 		ContainerStorageConfig: csc,
 	}

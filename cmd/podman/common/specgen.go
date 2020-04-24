@@ -119,12 +119,12 @@ func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (
 func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxPids, error) {
 	pids := &specs.LinuxPids{}
 	hasLimits := false
+	if c.CGroupsMode == "disabled" && c.PIDsLimit > 0 {
+		return nil, nil
+	}
 	if c.PIDsLimit > 0 {
 		pids.Limit = c.PIDsLimit
 		hasLimits = true
-	}
-	if c.CGroupsMode == "disabled" && c.PIDsLimit > 0 {
-		s.ResourceLimits.Pids.Limit = -1
 	}
 	if !hasLimits {
 		return nil, nil
@@ -288,7 +288,23 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 
 	if c.EnvHost {
 		env = envLib.Join(env, osEnv)
+	} else if c.HTTPProxy {
+		for _, envSpec := range []string{
+			"http_proxy",
+			"HTTP_PROXY",
+			"https_proxy",
+			"HTTPS_PROXY",
+			"ftp_proxy",
+			"FTP_PROXY",
+			"no_proxy",
+			"NO_PROXY",
+		} {
+			if v, ok := osEnv[envSpec]; ok {
+				env[envSpec] = v
+			}
+		}
 	}
+
 	// env-file overrides any previous variables
 	for _, f := range c.EnvFile {
 		fileEnv, err := envLib.ParseFile(f)
@@ -449,6 +465,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	s.CgroupParent = c.CGroupParent
 	s.CgroupsMode = c.CGroupsMode
+	s.Groups = c.GroupAdd
 	// TODO WTF
 	//cgroup := &cc.CgroupConfig{
 	//	Cgroupns:     c.String("cgroupns"),
@@ -585,7 +602,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		if len(split) < 2 {
 			return errors.Errorf("invalid log option %q", o)
 		}
-		logOpts[split[0]] = split[1]
+		switch {
+		case split[0] == "driver":
+			s.LogConfiguration.Driver = split[1]
+		case split[0] == "path":
+			s.LogConfiguration.Path = split[1]
+		default:
+			logOpts[split[0]] = split[1]
+		}
 	}
 	s.LogConfiguration.Options = logOpts
 	s.Name = c.Name
