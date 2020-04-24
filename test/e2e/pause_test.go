@@ -2,7 +2,9 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/libpod/pkg/cgroups"
@@ -32,7 +34,13 @@ var _ = Describe("Podman pause", func() {
 		Expect(err).To(BeNil())
 
 		if cgroupsv2 {
-			_, err := os.Stat("/sys/fs/cgroup/cgroup.freeze")
+			b, err := ioutil.ReadFile("/proc/self/cgroup")
+			if err != nil {
+				Skip("cannot read self cgroup")
+			}
+
+			path := filepath.Join("/sys/fs/cgroup", strings.TrimSuffix(strings.Replace(string(b), "0::", "", 1), "\n"), "cgroup.freeze")
+			_, err = os.Stat(path)
 			if err != nil {
 				Skip("freezer controller not available on the current kernel")
 			}
