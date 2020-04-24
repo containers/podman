@@ -15,7 +15,11 @@ import (
 func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) error {
 	var appendEntryPoint bool
 
-	// TODO add support for raw rootfs
+	// If a rootfs is used, then there is no image data
+	if s.ContainerStorageConfig.Rootfs != "" {
+		return nil
+	}
+
 	newImage, err := r.ImageRuntime().NewFromLocal(s.Image)
 	if err != nil {
 		return err

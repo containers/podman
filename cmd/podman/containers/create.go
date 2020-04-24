@@ -75,8 +75,7 @@ func init() {
 
 func create(cmd *cobra.Command, args []string) error {
 	var (
-		err           error
-		rawImageInput string
+		err error
 	)
 	cliVals.Net, err = common.NetFlagsToNetOptions(cmd)
 	if err != nil {
@@ -92,20 +91,16 @@ func create(cmd *cobra.Command, args []string) error {
 		defer errorhandling.SyncQuiet(cidFile)
 	}
 
-	if rfs := cliVals.RootFS; !rfs {
-		rawImageInput = args[0]
-	}
-
 	if err := createInit(cmd); err != nil {
 		return err
 	}
 
-	if err := pullImage(args[0]); err != nil {
-		return err
+	if !cliVals.RootFS {
+		if err := pullImage(args[0]); err != nil {
+			return err
+		}
 	}
-
-	//TODO rootfs still
-	s := specgen.NewSpecGenerator(rawImageInput)
+	s := specgen.NewSpecGenerator(args[0], cliVals.RootFS)
 	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}
