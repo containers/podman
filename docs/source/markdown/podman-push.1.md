@@ -14,8 +14,8 @@ Push is mainly used to push images to registries, however **podman push**
 can be used to save images to tarballs and directories using the following
 transports: **dir:**, **docker-archive:**, **docker-daemon:** and **oci-archive:**.
 
-## imageID
-Image stored in local container/storage
+## Image storage
+Images are pushed from those stored in local image storage.
 
 ## DESTINATION
 
