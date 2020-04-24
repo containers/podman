@@ -76,6 +76,17 @@ func (n *Namespace) IsPod() bool {
 func (n *Namespace) IsPrivate() bool {
 	return n.NSMode == Private
 }
+
+// IsAuto indicates the namespace is auto
+func (n *Namespace) IsAuto() bool {
+	return n.NSMode == Auto
+}
+
+// IsKeepID indicates the namespace is KeepID
+func (n *Namespace) IsKeepID() bool {
+	return n.NSMode == KeepID
+}
+
 func validateUserNS(n *Namespace) error {
 	if n == nil {
 		return nil
@@ -186,12 +197,11 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 		if len(split) != 2 {
 			return toReturn, errors.Errorf("invalid setting for auto: mode")
 		}
-		toReturn.NSMode = KeepID
+		toReturn.NSMode = Auto
 		toReturn.Value = split[1]
 		return toReturn, nil
 	case ns == "keep-id":
 		toReturn.NSMode = KeepID
-		toReturn.NSMode = FromContainer
 		return toReturn, nil
 	}
 	return ParseNamespace(ns)

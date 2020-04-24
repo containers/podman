@@ -246,20 +246,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		s.NetNS = c.Net.Network
 	}
 
-	// TODO this is going to have to be done the libpod/server end of things
-	// USER
-	//user := c.String("user")
-	//if user == "" {
-	//	switch {
-	//	case usernsMode.IsKeepID():
-	//		user = fmt.Sprintf("%d:%d", rootless.GetRootlessUID(), rootless.GetRootlessGID())
-	//	case data == nil:
-	//		user = "0"
-	//	default:
-	//		user = data.Config.User
-	//	}
-	//}
-
 	// STOP SIGNAL
 	signalString := "TERM"
 	if sig := c.StopSignal; len(sig) > 0 {

@@ -22,7 +22,6 @@ var _ = Describe("Podman UserNS support", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		if os.Getenv("SKIP_USERNS") != "" {
 			Skip("Skip userns tests.")
 		}
@@ -219,6 +218,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman --userns=container:CTR", func() {
+		Skip(v2fail)
 		ctrName := "userns-ctr"
 		session := podmanTest.Podman([]string{"run", "-d", "--uidmap=0:0:1", "--uidmap=1:1:4998", "--name", ctrName, "alpine", "top"})
 		session.WaitWithDefaultTimeout()
