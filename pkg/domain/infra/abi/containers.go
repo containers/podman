@@ -837,7 +837,13 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 	}
 	for _, ctr := range ctrs {
 		report := entities.ContainerInitReport{Id: ctr.ID()}
-		report.Err = ctr.Init(ctx)
+		err := ctr.Init(ctx)
+
+		// If we're initializing all containers, ignore invalid state errors
+		if options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+			err = nil
+		}
+		report.Err = err
 		reports = append(reports, &report)
 	}
 	return reports, nil
