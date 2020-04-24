@@ -38,6 +38,13 @@ retrieved from the image's configuration information.
 Specify the features list which the list or index records as requirements for
 the image.  This option is rarely used.
 
+**--os**
+
+Override the OS which the list or index records as a requirement for the image.
+If *imagename* refers to a manifest list or image index, the OS information
+will be retrieved from it.  Otherwise, it will be retrieved from the image's
+configuration information.
+
 **--os-version**
 
 Specify the OS version which the list or index records as a requirement for the

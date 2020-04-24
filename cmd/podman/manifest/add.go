@@ -34,6 +34,7 @@ func init() {
 	flags.StringSliceVar(&manifestAddOpts.Annotation, "annotation", nil, "set an `annotation` for the specified image")
 	flags.StringVar(&manifestAddOpts.Arch, "arch", "", "override the `architecture` of the specified image")
 	flags.StringSliceVar(&manifestAddOpts.Features, "features", nil, "override the `features` of the specified image")
+	flags.StringVar(&manifestAddOpts.OS, "os", "", "override the `OS` of the specified image")
 	flags.StringVar(&manifestAddOpts.OSVersion, "os-version", "", "override the OS `version` of the specified image")
 	flags.StringVar(&manifestAddOpts.Variant, "variant", "", "override the `Variant` of the specified image")
 }

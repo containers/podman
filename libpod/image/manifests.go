@@ -19,6 +19,7 @@ type ManifestAddOpts struct {
 	Arch       string            `json:"arch"`
 	Features   []string          `json:"features"`
 	Images     []string          `json:"images"`
+	OS         string            `json:"os"`
 	OSVersion  string            `json:"os_version"`
 	Variant    string            `json:"variant"`
 }
@@ -85,6 +86,11 @@ func addManifestToList(ref types.ImageReference, list manifests.List, systemCont
 	d, err := list.Add(context.Background(), &systemContext, ref, opts.All)
 	if err != nil {
 		return nil, err
+	}
+	if opts.OS != "" {
+		if err := list.SetOS(d, opts.OS); err != nil {
+			return nil, err
+		}
 	}
 	if len(opts.OSVersion) > 0 {
 		if err := list.SetOSVersion(d, opts.OSVersion); err != nil {

@@ -85,4 +85,17 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(imageListPPC64LEInstanceDigest))
 		Expect(session.OutputToString()).To(ContainSubstring(imageListS390XInstanceDigest))
 	})
+
+	It("podman manifest add --os", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "--os", "bar", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(`"os": "bar"`))
+	})
 })
