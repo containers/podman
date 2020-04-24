@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -175,6 +176,13 @@ func GenerateNamespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod 
 
 	// User
 	switch s.UserNS.NSMode {
+	case specgen.KeepID:
+		if rootless.IsRootless() {
+			s.User = ""
+		} else {
+			// keep-id as root doesn't need a user namespace
+			s.UserNS.NSMode = specgen.Host
+		}
 	case specgen.FromPod:
 		if pod == nil || infraCtr == nil {
 			return nil, errNoInfra
@@ -378,6 +386,18 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 		if err := g.RemoveLinuxNamespace(string(spec.UserNamespace)); err != nil {
 			return err
 		}
+	case specgen.KeepID:
+		var (
+			err      error
+			uid, gid int
+		)
+		s.IDMappings, uid, gid, err = util.GetKeepIDMapping()
+		if err != nil {
+			return err
+		}
+		g.SetProcessUID(uint32(uid))
+		g.SetProcessGID(uint32(gid))
+		fallthrough
 	case specgen.Private:
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
 			return err

@@ -22,7 +22,6 @@ var _ = Describe("Podman UserNS support", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		if os.Getenv("SKIP_USERNS") != "" {
 			Skip("Skip userns tests.")
 		}
