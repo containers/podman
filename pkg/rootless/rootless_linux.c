@@ -535,8 +535,36 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
     }
 }
 
+static void
+join_namespace_or_die (int pid_to_join, const char *ns_file)
+{
+  char ns_path[PATH_MAX];
+  int ret;
+  int fd;
+
+  ret = snprintf (ns_path, PATH_MAX, "/proc/%d/ns/%s", pid_to_join, ns_file);
+  if (ret == PATH_MAX)
+    {
+      fprintf (stderr, "internal error: namespace path too long\n");
+      _exit (EXIT_FAILURE);
+    }
+
+  fd = open (ns_path, O_CLOEXEC | O_RDONLY);
+  if (fd < 0)
+    {
+      fprintf (stderr, "cannot open: %s\n", ns_path);
+      _exit (EXIT_FAILURE);
+    }
+  if (setns (fd, 0) < 0)
+    {
+      fprintf (stderr, "cannot set namespace to %s: %s\n", ns_path, strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  close (fd);
+}
+
 int
-reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
+reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
 {
   char uid[16];
   char gid[16];
@@ -606,19 +634,8 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  if (setns (userns, 0) < 0)
-    {
-      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
-      _exit (EXIT_FAILURE);
-    }
-  close (userns);
-
-  if (mountns >= 0 && setns (mountns, 0) < 0)
-    {
-      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
-      _exit (EXIT_FAILURE);
-    }
-  close (mountns);
+  join_namespace_or_die (pid_to_join, "user");
+  join_namespace_or_die (pid_to_join, "mnt");
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {
