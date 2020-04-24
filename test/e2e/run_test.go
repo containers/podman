@@ -937,7 +937,6 @@ USER mail`
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
-		Skip(v2fail)
 		SkipIfRemote()
 		SkipIfRootless()
 		// Only works on crun

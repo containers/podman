@@ -119,12 +119,12 @@ func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (
 func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxPids, error) {
 	pids := &specs.LinuxPids{}
 	hasLimits := false
+	if c.CGroupsMode == "disabled" && c.PIDsLimit > 0 {
+		return nil, nil
+	}
 	if c.PIDsLimit > 0 {
 		pids.Limit = c.PIDsLimit
 		hasLimits = true
-	}
-	if c.CGroupsMode == "disabled" && c.PIDsLimit > 0 {
-		s.ResourceLimits.Pids.Limit = -1
 	}
 	if !hasLimits {
 		return nil, nil
