@@ -115,11 +115,15 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 		t := int(*options.Timeout)
 		timeout = &t
 	}
+
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
 	for _, c := range ctrs {
+		if options.Running && c.State != define.ContainerStateRunning.String() {
+			continue
+		}
 		reports = append(reports, &entities.RestartReport{
 			Id:  c.ID,
 			Err: containers.Restart(ic.ClientCxt, c.ID, timeout),
