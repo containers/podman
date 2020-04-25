@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"text/template"
@@ -32,7 +33,7 @@ var (
 
 var (
 	defaultHeaders string = "POD ID\tNAME\tSTATUS\tCREATED"
-	inputFilters   string
+	inputFilters   []string
 	noTrunc        bool
 	psInput        entities.PodPSOptions
 )
@@ -48,7 +49,7 @@ func init() {
 	flags.BoolVar(&psInput.CtrIds, "ctr-ids", false, "Display the container UUIDs. If no-trunc is not set they will be truncated")
 	flags.BoolVar(&psInput.CtrStatus, "ctr-status", false, "Display the container status")
 	// TODO should we make this a [] ?
-	flags.StringVarP(&inputFilters, "filter", "f", "", "Filter output based on conditions given")
+	flags.StringSliceVarP(&inputFilters, "filter", "f", []string{}, "Filter output based on conditions given")
 	flags.StringVar(&psInput.Format, "format", "", "Pretty-print pods to JSON or using a Go template")
 	flags.BoolVarP(&psInput.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
 	flags.BoolVar(&psInput.Namespace, "namespace", false, "Display namespace information of the pod")
@@ -67,8 +68,13 @@ func pods(cmd *cobra.Command, args []string) error {
 		row string
 		lpr []ListPodReporter
 	)
+
+	if psInput.Quiet && len(psInput.Format) > 0 {
+		return errors.New("quiet and format cannot be used together")
+	}
 	if cmd.Flag("filter").Changed {
-		for _, f := range strings.Split(inputFilters, ",") {
+		psInput.Filters = make(map[string][]string)
+		for _, f := range inputFilters {
 			split := strings.Split(f, "=")
 			if len(split) < 2 {
 				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
@@ -78,6 +84,10 @@ func pods(cmd *cobra.Command, args []string) error {
 	}
 	responses, err := registry.ContainerEngine().PodPs(context.Background(), psInput)
 	if err != nil {
+		return err
+	}
+
+	if err := sortPodPsOutput(psInput.Sort, responses); err != nil {
 		return err
 	}
 
@@ -95,11 +105,7 @@ func pods(cmd *cobra.Command, args []string) error {
 	}
 	headers, row := createPodPsOut()
 	if psInput.Quiet {
-		if noTrunc {
-			row = "{{.Id}}\n"
-		} else {
-			row = "{{slice .Id 0 12}}\n"
-		}
+		row = "{{.Id}}\n"
 	}
 	if cmd.Flag("format").Changed {
 		row = psInput.Format
@@ -130,11 +136,7 @@ func pods(cmd *cobra.Command, args []string) error {
 func createPodPsOut() (string, string) {
 	var row string
 	headers := defaultHeaders
-	if noTrunc {
-		row += "{{.Id}}"
-	} else {
-		row += "{{slice .Id 0 12}}"
-	}
+	row += "{{.Id}}"
 
 	row += "\t{{.Name}}\t{{.Status}}\t{{.Created}}"
 
@@ -160,11 +162,7 @@ func createPodPsOut() (string, string) {
 
 	}
 	headers += "\tINFRA ID\n"
-	if noTrunc {
-		row += "\t{{.InfraId}}\n"
-	} else {
-		row += "\t{{slice .InfraId 0 12}}\n"
-	}
+	row += "\t{{.InfraId}}\n"
 	return headers, row
 }
 
@@ -184,6 +182,19 @@ func (l ListPodReporter) NumberOfContainers() int {
 	return len(l.Containers)
 }
 
+// ID is a wrapper to Id for compat, typos
+func (l ListPodReporter) ID() string {
+	return l.Id()
+}
+
+// Id returns the Pod id
+func (l ListPodReporter) Id() string {
+	if noTrunc {
+		return l.ListPodsReport.Id
+	}
+	return l.ListPodsReport.Id[0:12]
+}
+
 // Added for backwards compatibility with podmanv1
 func (l ListPodReporter) InfraID() string {
 	return l.InfraId()
@@ -192,6 +203,9 @@ func (l ListPodReporter) InfraID() string {
 // InfraId returns the infra container id for the pod
 // depending on trunc
 func (l ListPodReporter) InfraId() string {
+	if len(l.ListPodsReport.InfraId) == 0 {
+		return ""
+	}
 	if noTrunc {
 		return l.ListPodsReport.InfraId
 	}
@@ -224,4 +238,53 @@ func (l ListPodReporter) ContainerStatuses() string {
 		statuses = append(statuses, c.Status)
 	}
 	return strings.Join(statuses, ",")
+}
+
+func sortPodPsOutput(sortBy string, lprs []*entities.ListPodsReport) error {
+	switch sortBy {
+	case "created":
+		sort.Sort(podPsSortedCreated{lprs})
+	case "id":
+		sort.Sort(podPsSortedId{lprs})
+	case "name":
+		sort.Sort(podPsSortedName{lprs})
+	case "number":
+		sort.Sort(podPsSortedNumber{lprs})
+	case "status":
+		sort.Sort(podPsSortedStatus{lprs})
+	default:
+		return errors.Errorf("invalid option for --sort, options are: id, names, or number")
+	}
+	return nil
+}
+
+type lprSort []*entities.ListPodsReport
+
+func (a lprSort) Len() int      { return len(a) }
+func (a lprSort) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+type podPsSortedCreated struct{ lprSort }
+
+func (a podPsSortedCreated) Less(i, j int) bool {
+	return a.lprSort[i].Created.After(a.lprSort[j].Created)
+}
+
+type podPsSortedId struct{ lprSort }
+
+func (a podPsSortedId) Less(i, j int) bool { return a.lprSort[i].Id < a.lprSort[j].Id }
+
+type podPsSortedNumber struct{ lprSort }
+
+func (a podPsSortedNumber) Less(i, j int) bool {
+	return len(a.lprSort[i].Containers) < len(a.lprSort[j].Containers)
+}
+
+type podPsSortedName struct{ lprSort }
+
+func (a podPsSortedName) Less(i, j int) bool { return a.lprSort[i].Name < a.lprSort[j].Name }
+
+type podPsSortedStatus struct{ lprSort }
+
+func (a podPsSortedStatus) Less(i, j int) bool {
+	return a.lprSort[i].Status < a.lprSort[j].Status
 }

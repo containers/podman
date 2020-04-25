@@ -18,7 +18,6 @@ var _ = Describe("Podman ps", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -96,6 +95,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.OutputToString()).To(ContainSubstring(podid2))
 		Expect(result.OutputToString()).To(Not(ContainSubstring(podid1)))
 	})
+
 	It("podman pod ps id filter flag", func() {
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
@@ -143,7 +143,7 @@ var _ = Describe("Podman ps", func() {
 		_, ec, _ = podmanTest.RunLsContainerInPod("test2", podid)
 		Expect(ec).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "ps", "--format={{.ContainerInfo}}", "--ctr-names"})
+		session = podmanTest.Podman([]string{"pod", "ps", "--format={{.ContainerNames}}", "--ctr-names"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("test1"))
@@ -227,5 +227,19 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid1)))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
+	})
+
+	It("pod no infra should ps", func() {
+		session := podmanTest.Podman([]string{"pod", "create", "--infra=false"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		ps := podmanTest.Podman([]string{"pod", "ps"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps.ExitCode()).To(Equal(0))
+
+		infra := podmanTest.Podman([]string{"pod", "ps", "--format", "{{.InfraId}}"})
+		infra.WaitWithDefaultTimeout()
+		Expect(len(infra.OutputToString())).To(BeZero())
 	})
 })
