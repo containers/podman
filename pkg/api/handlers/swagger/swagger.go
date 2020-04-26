@@ -143,7 +143,7 @@ type swagListPodsResponse struct {
 type swagInspectPodResponse struct {
 	// in:body
 	Body struct {
-		libpod.PodInspect
+		define.InspectPodData
 	}
 }
 

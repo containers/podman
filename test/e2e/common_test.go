@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/rootless"
@@ -501,8 +500,8 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 }
 
 // InspectPodToJSON takes the sessions output from a pod inspect and returns json
-func (s *PodmanSessionIntegration) InspectPodToJSON() libpod.PodInspect {
-	var i libpod.PodInspect
+func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
+	var i define.InspectPodData
 	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
