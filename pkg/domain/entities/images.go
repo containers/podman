@@ -256,7 +256,7 @@ type ImageLoadOptions struct {
 }
 
 type ImageLoadReport struct {
-	Name string
+	Names []string
 }
 
 type ImageImportOptions struct {

@@ -283,7 +283,7 @@ func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.ImageLoadReport{Name: loadedImage})
+	utils.WriteResponse(w, http.StatusOK, entities.ImageLoadReport{Names: split})
 }
 
 func ImagesImport(w http.ResponseWriter, r *http.Request) {
