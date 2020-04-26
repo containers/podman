@@ -41,10 +41,10 @@ func init() {
 	})
 
 	flags := rmCommand.Flags()
-	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Restart all running pods")
+	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all running pods")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
-	flags.BoolVarP(&rmOptions.Latest, "latest", "l", false, "Restart the latest pod podman is aware of")
+	flags.BoolVarP(&rmOptions.Latest, "latest", "l", false, "Remove the latest pod podman is aware of")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("ignore")
