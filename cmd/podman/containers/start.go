@@ -20,7 +20,6 @@ var (
 		Short: "Start one or more containers",
 		Long:  startDescription,
 		RunE:  start,
-		Args:  cobra.MinimumNArgs(1),
 		Example: `podman start --latest
   podman start 860a4b231279 5421ab43b45
   podman start --interactive --attach imageID`,
@@ -72,6 +71,9 @@ func init() {
 
 func start(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
+	if len(args) == 0 && !startOptions.Latest {
+		return errors.New("start requires at least one argument")
+	}
 	if len(args) > 1 && startOptions.Attach {
 		return errors.Errorf("you cannot start and attach multiple containers at once")
 	}
