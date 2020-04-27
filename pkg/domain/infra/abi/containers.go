@@ -492,7 +492,7 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	if err := generate.CompleteSpec(ctx, ic.Libpod, s); err != nil {
 		return nil, err
 	}
-	ctr, err := generate.MakeContainer(ic.Libpod, s)
+	ctr, err := generate.MakeContainer(ctx, ic.Libpod, s)
 	if err != nil {
 		return nil, err
 	}
@@ -680,7 +680,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	if err := generate.CompleteSpec(ctx, ic.Libpod, opts.Spec); err != nil {
 		return nil, err
 	}
-	ctr, err := generate.MakeContainer(ic.Libpod, opts.Spec)
+	ctr, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec)
 	if err != nil {
 		return nil, err
 	}

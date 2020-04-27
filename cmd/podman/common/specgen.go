@@ -409,13 +409,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.StaticMAC = c.Net.StaticMAC
 	s.UseImageHosts = c.Net.NoHosts
 
-	// deferred, must be added on libpod side
-	//var ImageVolumes map[string]struct{}
-	//if data != nil && c.String("image-volume") != "ignore" {
-	//	ImageVolumes = data.Config.Volumes
-	//}
-
 	s.ImageVolumeMode = c.ImageVolume
+	if s.ImageVolumeMode == "bind" {
+		s.ImageVolumeMode = "anonymous"
+	}
+
 	systemd := c.SystemdD == "always"
 	if !systemd && command != nil {
 		x, err := strconv.ParseBool(c.SystemdD)

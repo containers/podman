@@ -14,7 +14,7 @@ var (
 	// SystemDValues describes the only values that SystemD can be
 	SystemDValues = []string{"true", "false", "always"}
 	// ImageVolumeModeValues describes the only values that ImageVolumeMode can be
-	ImageVolumeModeValues = []string{"ignore", "tmpfs", "bind"}
+	ImageVolumeModeValues = []string{"ignore", "tmpfs", "anonymous"}
 )
 
 func exclusiveOptions(opt1, opt2 string) error {

@@ -15,7 +15,7 @@ import (
 )
 
 // MakeContainer creates a container based on the SpecGenerator
-func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Container, error) {
+func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Container, error) {
 	rtc, err := rt.GetConfig()
 	if err != nil {
 		return nil, err
@@ -75,16 +75,8 @@ func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Contai
 		s.CgroupNS = defaultNS
 	}
 
-	options, err := createContainerOptions(rt, s, pod)
-	if err != nil {
-		return nil, err
-	}
+	options := []libpod.CtrCreateOption{}
 
-	podmanPath, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-	options = append(options, createExitCommandOption(s, rt.StorageConfig(), rtc, podmanPath))
 	var newImage *image.Image
 	if s.Rootfs != "" {
 		options = append(options, libpod.WithRootFS(s.Rootfs))
@@ -99,14 +91,31 @@ func MakeContainer(rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Contai
 		return nil, errors.Wrap(err, "invalid config provided")
 	}
 
-	runtimeSpec, err := SpecGenToOCI(s, rt, newImage)
+	finalMounts, finalVolumes, err := finalizeMounts(ctx, s, rt, rtc, newImage)
 	if err != nil {
 		return nil, err
 	}
-	return rt.NewContainer(context.Background(), runtimeSpec, options...)
+
+	opts, err := createContainerOptions(rt, s, pod, finalVolumes)
+	if err != nil {
+		return nil, err
+	}
+	options = append(options, opts...)
+
+	podmanPath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	options = append(options, createExitCommandOption(s, rt.StorageConfig(), rtc, podmanPath))
+
+	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts)
+	if err != nil {
+		return nil, err
+	}
+	return rt.NewContainer(ctx, runtimeSpec, options...)
 }
 
-func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -133,21 +142,21 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	for _, mount := range s.Mounts {
 		destinations = append(destinations, mount.Destination)
 	}
-	for _, volume := range s.Volumes {
+	for _, volume := range volumes {
 		destinations = append(destinations, volume.Dest)
 	}
 	options = append(options, libpod.WithUserVolumes(destinations))
 
-	if len(s.Volumes) != 0 {
-		var volumes []*libpod.ContainerNamedVolume
-		for _, v := range s.Volumes {
-			volumes = append(volumes, &libpod.ContainerNamedVolume{
+	if len(volumes) != 0 {
+		var vols []*libpod.ContainerNamedVolume
+		for _, v := range volumes {
+			vols = append(vols, &libpod.ContainerNamedVolume{
 				Name:    v.Name,
 				Dest:    v.Dest,
 				Options: v.Options,
 			})
 		}
-		options = append(options, libpod.WithNamedVolumes(volumes))
+		options = append(options, libpod.WithNamedVolumes(vols))
 	}
 
 	if len(s.Command) != 0 {

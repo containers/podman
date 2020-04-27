@@ -154,14 +154,23 @@ type ContainerStorageConfig struct {
 	// ImageVolumeMode indicates how image volumes will be created.
 	// Supported modes are "ignore" (do not create), "tmpfs" (create as
 	// tmpfs), and "anonymous" (create as anonymous volumes).
-	// The default is anonymous.
+	// The default if unset is anonymous.
 	// Optional.
 	ImageVolumeMode string `json:"image_volume_mode,omitempty"`
-	// VolumesFrom is a list of containers whose volumes will be added to
-	// this container. Supported mount options may be added after the
-	// container name with a : and include "ro" and "rw".
-	// Optional.
+	// VolumesFrom is a set of containers whose volumes will be added to
+	// this container. The name or ID of the container must be provided, and
+	// may optionally be followed by a : and then one or more
+	// comma-separated options. Valid options are 'ro', 'rw', and 'z'.
+	// Options will be used for all volumes sourced from the container.
 	VolumesFrom []string `json:"volumes_from,omitempty"`
+	// Init specifies that an init binary will be mounted into the
+	// container, and will be used as PID1.
+	Init bool `json:"init,omitempty"`
+	// InitPath specifies the path to the init binary that will be added if
+	// Init is specified above. If not specified, the default set in the
+	// Libpod config will be used. Ignored if Init above is not set.
+	// Optional.
+	InitPath string `json:"init_path,omitempty"`
 	// Mounts are mounts that will be added to the container.
 	// These will supersede Image Volumes and VolumesFrom volumes where
 	// there are conflicts.
