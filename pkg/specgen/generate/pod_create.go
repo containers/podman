@@ -46,6 +46,13 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 	if len(p.HostAdd) > 0 {
 		options = append(options, libpod.WithPodHosts(p.HostAdd))
 	}
+	if len(p.DNSServer) > 0 {
+		var dnsServers []string
+		for _, d := range p.DNSServer {
+			dnsServers = append(dnsServers, d.String())
+		}
+		options = append(options, libpod.WithPodDNS(dnsServers))
+	}
 	if len(p.DNSOption) > 0 {
 		options = append(options, libpod.WithPodDNSOption(p.DNSOption))
 	}
