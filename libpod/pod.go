@@ -76,27 +76,6 @@ type podState struct {
 	InfraContainerID string
 }
 
-// PodInspect represents the data we want to display for
-// podman pod inspect
-type PodInspect struct {
-	Config     *PodConfig
-	State      *PodInspectState
-	Containers []PodContainerInfo
-}
-
-// PodInspectState contains inspect data on the pod's state
-type PodInspectState struct {
-	CgroupPath       string `json:"cgroupPath"`
-	InfraContainerID string `json:"infraContainerID"`
-	Status           string `json:"status"`
-}
-
-// PodContainerInfo keeps information on a container in a pod
-type PodContainerInfo struct {
-	ID    string `json:"id"`
-	State string `json:"state"`
-}
-
 // InfraContainerConfig is the configuration for the pod's infra container
 type InfraContainerConfig struct {
 	HasInfraContainer  bool                 `json:"makeInfraContainer"`

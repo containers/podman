@@ -54,8 +54,7 @@ var _ = Describe("Podman pod inspect", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
-		// FIXME sujil, disabled for now
-		//podData := inspect.InspectPodToJSON()
-		//Expect(podData.Config.ID).To(Equal(podid))
+		podData := inspect.InspectPodToJSON()
+		Expect(podData.ID).To(Equal(podid))
 	})
 })
