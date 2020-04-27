@@ -228,7 +228,7 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 		reports []*entities.PodRmReport
 	)
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
-	if err != nil {
+	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		return nil, err
 	}
 	for _, p := range pods {
