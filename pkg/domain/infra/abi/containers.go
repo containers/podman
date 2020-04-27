@@ -217,12 +217,23 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 }
 func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []string, options entities.RestartOptions) ([]*entities.RestartReport, error) {
 	var (
+		ctrs    []*libpod.Container
+		err     error
 		reports []*entities.RestartReport
 	)
-	ctrs, err := getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
-	if err != nil {
-		return nil, err
+
+	if options.Running {
+		ctrs, err = ic.Libpod.GetRunningContainers()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		ctrs, err = getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	for _, con := range ctrs {
 		timeout := con.StopTimeout()
 		if options.Timeout != nil {
