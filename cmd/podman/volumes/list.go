@@ -2,6 +2,7 @@ package volumes
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"io"
 	"os"
@@ -57,6 +58,9 @@ func list(cmd *cobra.Command, args []string) error {
 	if cliOpts.Quiet && cmd.Flag("format").Changed {
 		return errors.New("quiet and format flags cannot be used together")
 	}
+	if len(cliOpts.Filter) > 0 {
+		lsOpts.Filter = make(map[string][]string)
+	}
 	for _, f := range cliOpts.Filter {
 		filterSplit := strings.Split(f, "=")
 		if len(filterSplit) < 2 {
@@ -68,6 +72,10 @@ func list(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if cliOpts.Format == "json" {
+		return outputJSON(responses)
+	}
+
 	if len(responses) < 1 {
 		return nil
 	}
@@ -97,5 +105,14 @@ func list(cmd *cobra.Command, args []string) error {
 	if flusher, ok := w.(interface{ Flush() error }); ok {
 		return flusher.Flush()
 	}
+	return nil
+}
+
+func outputJSON(vols []*entities.VolumeListReport) error {
+	b, err := json.MarshalIndent(vols, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(b))
 	return nil
 }

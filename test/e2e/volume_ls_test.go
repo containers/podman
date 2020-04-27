@@ -16,7 +16,6 @@ var _ = Describe("Podman volume ls", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -56,6 +55,7 @@ var _ = Describe("Podman volume ls", func() {
 	})
 
 	It("podman ls volume with Go template", func() {
+		Skip(v2fail)
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

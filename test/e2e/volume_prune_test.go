@@ -18,7 +18,6 @@ var _ = Describe("Podman volume prune", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -66,6 +65,7 @@ var _ = Describe("Podman volume prune", func() {
 	})
 
 	It("podman system prune --volume", func() {
+		Skip(v2fail)
 		session := podmanTest.Podman([]string{"volume", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
