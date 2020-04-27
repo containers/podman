@@ -4,9 +4,13 @@
 podman\-pull - Pull an image from a registry
 
 ## SYNOPSIS
-**podman pull** [*options*] *name*[:*tag*|@*digest*]
+**podman pull** [*options*] *source*
 
-**podman image pull** [*options*] *name*[:*tag*|@*digest*]
+**podman image pull** [*options*] *source*
+
+**podman pull** [*options*] [*transport*]*name*[:*tag*|@*digest*]
+
+**podman image pull** [*options*] [*transport*]*name*[:*tag*|@*digest*]
 
 ## DESCRIPTION
 Copies an image from a registry onto the local machine. **podman pull** pulls an
@@ -17,12 +21,12 @@ print the full image ID.  **podman pull** can also pull an image
 using its digest **podman pull** *image*@*digest*. **podman pull** can be used to pull
 images from archives and local storage using different transports.
 
-## imageID
-Image stored in local container/storage
+## Image storage
+Images are stored in local image storage.
 
 ## SOURCE
 
- The SOURCE is a location to get container images
+ The SOURCE is the location from which the container images are pulled.
  The Image "SOURCE" uses a "transport":"details" format.
 
  Multiple transports are supported:
