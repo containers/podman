@@ -360,7 +360,7 @@ var _ = Describe("Podman containers ", func() {
 
 	It("logging", func() {
 		stdoutChan := make(chan string, 10)
-		s := specgen.NewSpecGenerator(alpine.name)
+		s := specgen.NewSpecGenerator(alpine.name, false)
 		s.Terminal = true
 		s.Command = []string{"date", "-R"}
 		r, err := containers.CreateWithSpec(bt.conn, s)
@@ -521,7 +521,7 @@ var _ = Describe("Podman containers ", func() {
 	})
 
 	It("container init", func() {
-		s := specgen.NewSpecGenerator(alpine.name)
+		s := specgen.NewSpecGenerator(alpine.name, false)
 		ctr, err := containers.CreateWithSpec(bt.conn, s)
 		Expect(err).To(BeNil())
 		err = containers.ContainerInit(bt.conn, ctr.ID)
