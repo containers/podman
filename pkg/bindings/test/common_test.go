@@ -3,13 +3,13 @@ package test_bindings
 import (
 	"context"
 	"fmt"
-	"github.com/containers/libpod/libpod/define"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
 	. "github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/specgen"
@@ -189,7 +189,7 @@ func (b *bindingTest) restoreImageFromCache(i testImage) {
 // Run a container within or without a pod
 // and add or append the alpine image to it
 func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, podName *string) (string, error) {
-	s := specgen.NewSpecGenerator(alpine.name)
+	s := specgen.NewSpecGenerator(alpine.name, false)
 	s.Terminal = false
 	s.Command = []string{"top"}
 	if containerName != nil {
