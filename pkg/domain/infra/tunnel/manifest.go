@@ -41,6 +41,7 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 		Arch:      opts.Arch,
 		Features:  opts.Features,
 		Images:    opts.Images,
+		OS:        opts.OS,
 		OSVersion: opts.OSVersion,
 		Variant:   opts.Variant,
 	}

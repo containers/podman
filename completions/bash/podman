@@ -1760,6 +1760,7 @@ _podman_manifest_add() {
      --annotation
      --arch
      --features
+     --os
      --os-version
      --variant
      "
