@@ -4,6 +4,7 @@ import (
 	"os"
 
 	_ "github.com/containers/libpod/cmd/podman/containers"
+	_ "github.com/containers/libpod/cmd/podman/generate"
 	_ "github.com/containers/libpod/cmd/podman/healthcheck"
 	_ "github.com/containers/libpod/cmd/podman/images"
 	_ "github.com/containers/libpod/cmd/podman/manifest"
