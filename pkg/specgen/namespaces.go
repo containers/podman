@@ -159,6 +159,8 @@ func (n *Namespace) validate() error {
 func ParseNamespace(ns string) (Namespace, error) {
 	toReturn := Namespace{}
 	switch {
+	case ns == "pod":
+		toReturn.NSMode = FromPod
 	case ns == "host":
 		toReturn.NSMode = Host
 	case ns == "private":
@@ -214,6 +216,8 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 	toReturn := Namespace{}
 	var cniNetworks []string
 	switch {
+	case ns == "pod":
+		toReturn.NSMode = FromPod
 	case ns == "bridge":
 		toReturn.NSMode = Bridge
 	case ns == "none":
