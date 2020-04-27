@@ -180,6 +180,7 @@ func (ic *ContainerEngine) PodRestart(ctx context.Context, namesOrIds []string, 
 		errs, err := p.Restart(ctx)
 		if err != nil {
 			report.Errs = []error{err}
+			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
@@ -207,6 +208,7 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 		errs, err := p.Start(ctx)
 		if err != nil {
 			report.Errs = []error{err}
+			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
