@@ -29,7 +29,6 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tmpdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
