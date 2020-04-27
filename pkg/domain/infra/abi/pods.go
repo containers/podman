@@ -236,6 +236,7 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 		err := ic.Libpod.RemovePod(ctx, p, true, options.Force)
 		if err != nil {
 			report.Err = err
+			reports = append(reports, &report)
 			continue
 		}
 		reports = append(reports, &report)
