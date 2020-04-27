@@ -3,6 +3,7 @@ package generate
 import (
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
@@ -48,7 +49,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 	return nil
 }
 
-func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.Image) (*spec.Spec, error) {
+func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount) (*spec.Spec, error) {
 	var (
 		inUserNS bool
 	)
@@ -173,7 +174,17 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 		g.AddMount(cgroupMnt)
 	}
 	g.SetProcessCwd(s.WorkDir)
-	g.SetProcessArgs(s.Command)
+	if s.Init {
+		initPath := s.InitPath
+		if initPath == "" && rtc != nil {
+			initPath = rtc.Engine.InitPath
+		}
+		cmd := []string{initPath, "--"}
+		cmd = append(cmd, s.Command...)
+		g.SetProcessArgs(cmd)
+	} else {
+		g.SetProcessArgs(s.Command)
+	}
 	g.SetProcessTerminal(s.Terminal)
 
 	for key, val := range s.Annotations {
@@ -227,7 +238,7 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, newImage *image.
 	}
 
 	// BIND MOUNTS
-	configSpec.Mounts = SupercedeUserMounts(s.Mounts, configSpec.Mounts)
+	configSpec.Mounts = SupercedeUserMounts(mounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
 	if err := InitFSMounts(configSpec.Mounts); err != nil {
 		return nil, err
