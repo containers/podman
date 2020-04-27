@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"context"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/pkg/errors"
 )
 
 func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
@@ -49,7 +51,51 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 	return nil
 }
 
-func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount) (*spec.Spec, error) {
+// Produce the final command for the container.
+func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image, rtc *config.Config) ([]string, error) {
+	finalCommand := []string{}
+
+	entrypoint := s.Entrypoint
+	if len(entrypoint) == 0 && img != nil {
+		newEntry, err := img.Entrypoint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		entrypoint = newEntry
+	}
+
+	finalCommand = append(finalCommand, entrypoint...)
+
+	command := s.Command
+	if len(command) == 0 && img != nil {
+		newCmd, err := img.Cmd(ctx)
+		if err != nil {
+			return nil, err
+		}
+		command = newCmd
+	}
+
+	finalCommand = append(finalCommand, command...)
+
+	if len(finalCommand) == 0 {
+		return nil, errors.Errorf("no command or entrypoint provided, and no CMD or ENTRYPOINT from image")
+	}
+
+	if s.Init {
+		initPath := s.InitPath
+		if initPath == "" && rtc != nil {
+			initPath = rtc.Engine.InitPath
+		}
+		if initPath == "" {
+			return nil, errors.Errorf("no path to init binary found but container requested an init")
+		}
+		finalCommand = append([]string{initPath, "--"}, finalCommand...)
+	}
+
+	return finalCommand, nil
+}
+
+func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount) (*spec.Spec, error) {
 	var (
 		inUserNS bool
 	)
@@ -174,17 +220,13 @@ func SpecGenToOCI(s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Conf
 		g.AddMount(cgroupMnt)
 	}
 	g.SetProcessCwd(s.WorkDir)
-	if s.Init {
-		initPath := s.InitPath
-		if initPath == "" && rtc != nil {
-			initPath = rtc.Engine.InitPath
-		}
-		cmd := []string{initPath, "--"}
-		cmd = append(cmd, s.Command...)
-		g.SetProcessArgs(cmd)
-	} else {
-		g.SetProcessArgs(s.Command)
+
+	finalCmd, err := makeCommand(ctx, s, newImage, rtc)
+	if err != nil {
+		return nil, err
 	}
+	g.SetProcessArgs(finalCmd)
+
 	g.SetProcessTerminal(s.Terminal)
 
 	for key, val := range s.Annotations {

@@ -108,7 +108,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, createExitCommandOption(s, rt.StorageConfig(), rtc, podmanPath))
 
-	runtimeSpec, err := SpecGenToOCI(s, rt, rtc, newImage, finalMounts)
+	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts)
 	if err != nil {
 		return nil, err
 	}

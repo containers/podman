@@ -8,13 +8,10 @@ import (
 	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/specgen"
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
 func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) error {
-	var appendEntryPoint bool
-
 	// If a rootfs is used, then there is no image data
 	if s.ContainerStorageConfig.Rootfs != "" {
 		return nil
@@ -107,28 +104,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 	s.Annotations = annotations
 
-	// entrypoint
-	entrypoint, err := newImage.Entrypoint(ctx)
-	if err != nil {
-		return err
-	}
-	if len(s.Entrypoint) < 1 && len(entrypoint) > 0 {
-		appendEntryPoint = true
-		s.Entrypoint = entrypoint
-	}
-	command, err := newImage.Cmd(ctx)
-	if err != nil {
-		return err
-	}
-	if len(s.Command) < 1 && len(command) > 0 {
-		if appendEntryPoint {
-			s.Command = entrypoint
-		}
-		s.Command = append(s.Command, command...)
-	}
-	if len(s.Command) < 1 && len(s.Entrypoint) < 1 {
-		return errors.Errorf("No command provided or as CMD or ENTRYPOINT in this image")
-	}
 	// workdir
 	workingDir, err := newImage.WorkingDir(ctx)
 	if err != nil {
