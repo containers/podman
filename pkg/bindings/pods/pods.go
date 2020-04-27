@@ -2,6 +2,7 @@ package pods
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -189,11 +190,6 @@ func Start(ctx context.Context, nameOrID string) (*entities.PodStartReport, erro
 	return &report, response.Process(&report)
 }
 
-func Stats() error {
-	// TODO
-	return bindings.ErrNotImplemented
-}
-
 // Stop stops all containers in a Pod. The optional timeout parameter can be
 // used to override the timeout before the container is killed.
 func Stop(ctx context.Context, nameOrID string, timeout *int) (*entities.PodStopReport, error) {
@@ -263,4 +259,27 @@ func Unpause(ctx context.Context, nameOrID string) (*entities.PodUnpauseReport, 
 		return nil, err
 	}
 	return &report, response.Process(&report)
+}
+
+// Stats display resource-usage statistics of one or more pods.
+func Stats(ctx context.Context, namesOrIDs []string, options entities.PodStatsOptions) ([]*entities.PodStatsReport, error) {
+	if options.Latest {
+		return nil, errors.New("latest is not supported")
+	}
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	for _, i := range namesOrIDs {
+		params.Add("namesOrIDs", i)
+	}
+	params.Set("all", strconv.FormatBool(options.All))
+
+	var reports []*entities.PodStatsReport
+	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/stats", params)
+	if err != nil {
+		return nil, err
+	}
+	return reports, response.Process(&reports)
 }

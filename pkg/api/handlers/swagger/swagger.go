@@ -122,6 +122,13 @@ type swagPodTopResponse struct {
 	}
 }
 
+// List processes in pod
+// swagger:response DocsPodStatsResponse
+type swagPodStatsResponse struct {
+	// in:body
+	Body []*entities.PodStatsReport
+}
+
 // Inspect container
 // swagger:response LibpodInspectContainerResponse
 type swagLibpodInspectContainerResponse struct {
