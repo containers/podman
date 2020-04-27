@@ -25,6 +25,13 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		return err
 	}
 
+	if s.HealthConfig == nil {
+		s.HealthConfig, err = newImage.GetHealthCheck(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Image stop signal
 	if s.StopSignal == nil {
 		stopSignal, err := newImage.StopSignal(ctx)
