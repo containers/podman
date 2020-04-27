@@ -20,7 +20,6 @@ var _ = Describe("Podman pod create", func() {
 
 	BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
-		Skip(v2fail)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -95,12 +94,17 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		check := podmanTest.Podman([]string{"ps", "-a", "--no-trunc", "--ns", "--format", "{{.IPC}} {{.NET}}"})
+		check := podmanTest.Podman([]string{"ps", "-a", "--no-trunc", "--ns", "--format", "{{.Namespaces.IPC}} {{.Namespaces.NET}}"})
 		check.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(check.OutputToStringArray())).To(Equal(2))
 		Expect(check.OutputToStringArray()[0]).To(Equal(check.OutputToStringArray()[1]))
 
+		check = podmanTest.Podman([]string{"ps", "-a", "--no-trunc", "--ns", "--format", "{{.IPC}} {{.NET}}"})
+		check.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(check.OutputToStringArray())).To(Equal(2))
+		Expect(check.OutputToStringArray()[0]).To(Equal(check.OutputToStringArray()[1]))
 	})
 
 	It("podman pod correctly sets up NetNS", func() {
@@ -236,10 +240,16 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		check := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{.PIDNS}}"})
+		check := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{.Namespaces.PIDNS}}"})
 		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(0))
 		outputArray := check.OutputToStringArray()
+		Expect(len(outputArray)).To(Equal(2))
+
+		check = podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{.PIDNS}}"})
+		check.WaitWithDefaultTimeout()
+		Expect(check.ExitCode()).To(Equal(0))
+		outputArray = check.OutputToStringArray()
 		Expect(len(outputArray)).To(Equal(2))
 
 		PID1 := outputArray[0]
