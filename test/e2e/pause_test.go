@@ -2,7 +2,10 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/containers/libpod/pkg/cgroups"
 	. "github.com/containers/libpod/test/utils"
@@ -17,8 +20,8 @@ var _ = Describe("Podman pause", func() {
 		podmanTest *PodmanTestIntegration
 	)
 
-	pausedState := "Paused"
-	createdState := "Created"
+	pausedState := "paused"
+	createdState := "created"
 
 	BeforeEach(func() {
 		SkipIfRootless()
@@ -31,7 +34,13 @@ var _ = Describe("Podman pause", func() {
 		Expect(err).To(BeNil())
 
 		if cgroupsv2 {
-			_, err := os.Stat("/sys/fs/cgroup/cgroup.freeze")
+			b, err := ioutil.ReadFile("/proc/self/cgroup")
+			if err != nil {
+				Skip("cannot read self cgroup")
+			}
+
+			path := filepath.Join("/sys/fs/cgroup", strings.TrimSuffix(strings.Replace(string(b), "0::", "", 1), "\n"), "cgroup.freeze")
+			_, err = os.Stat(path)
 			if err != nil {
 				Skip("freezer controller not available on the current kernel")
 			}
@@ -72,7 +81,7 @@ var _ = Describe("Podman pause", func() {
 
 		Expect(result).To(ExitWithError())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(createdState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(createdState))
 	})
 
 	It("podman pause a running container by id", func() {
@@ -85,7 +94,7 @@ var _ = Describe("Podman pause", func() {
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
 		result = podmanTest.Podman([]string{"unpause", cid})
 		result.WaitWithDefaultTimeout()
@@ -102,7 +111,7 @@ var _ = Describe("Podman pause", func() {
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
 		result = podmanTest.Podman([]string{"container", "unpause", cid})
 		result.WaitWithDefaultTimeout()
@@ -133,14 +142,14 @@ var _ = Describe("Podman pause", func() {
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
 		result = podmanTest.Podman([]string{"rm", cid})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(2))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
 	})
 
@@ -155,7 +164,7 @@ var _ = Describe("Podman pause", func() {
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
 		result = podmanTest.Podman([]string{"rm", "--force", cid})
 		result.WaitWithDefaultTimeout()
@@ -175,14 +184,14 @@ var _ = Describe("Podman pause", func() {
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
 		result = podmanTest.Podman([]string{"stop", cid})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(125))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
 		result = podmanTest.Podman([]string{"unpause", cid})
 		result.WaitWithDefaultTimeout()
@@ -211,7 +220,7 @@ var _ = Describe("Podman pause", func() {
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(Equal(pausedState))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(Equal(pausedState))
 
 		result = podmanTest.Podman([]string{"unpause", "test1"})
 		result.WaitWithDefaultTimeout()
