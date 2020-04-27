@@ -256,7 +256,7 @@ func (c *Container) updateHealthCheckLog(hcl HealthCheckLog, inStartPeriod bool)
 
 // HealthCheckLogPath returns the path for where the health check log is
 func (c *Container) healthCheckLogPath() string {
-	return filepath.Join(filepath.Dir(c.LogPath()), "healthcheck.log")
+	return filepath.Join(filepath.Dir(c.state.RunDir), "healthcheck.log")
 }
 
 // GetHealthCheckLog returns HealthCheck results by reading the container's
