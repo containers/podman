@@ -116,4 +116,16 @@ var _ = Describe("Podman save", func() {
 		Expect(save).To(ExitWithError())
 	})
 
+	It("podman save image with digest reference", func() {
+		// pull a digest reference
+		session := podmanTest.PodmanNoCache([]string{"pull", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// save a digest reference should exit without error.
+		outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
+		save := podmanTest.PodmanNoCache([]string{"save", "-o", outfile, ALPINELISTDIGEST})
+		save.WaitWithDefaultTimeout()
+		Expect(save.ExitCode()).To(Equal(0))
+	})
 })
