@@ -623,10 +623,15 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 
 	// first try to parse option value as JSON array of strings...
 	cmd := []string{}
-	err := json.Unmarshal([]byte(inCmd), &cmd)
-	if err != nil {
-		// ...otherwise pass it to "/bin/sh -c" inside the container
-		cmd = []string{"CMD-SHELL", inCmd}
+
+	if inCmd == "none" {
+		cmd = []string{"NONE"}
+	} else {
+		err := json.Unmarshal([]byte(inCmd), &cmd)
+		if err != nil {
+			// ...otherwise pass it to "/bin/sh -c" inside the container
+			cmd = []string{"CMD-SHELL", inCmd}
+		}
 	}
 	hc := manifest.Schema2HealthConfig{
 		Test: cmd,
