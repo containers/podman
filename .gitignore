@@ -30,3 +30,4 @@ podman*.tar.gz
 contrib/spec/podman.spec
 *.rpm
 *.coverprofile
+pkg/api/swagger.yaml
