@@ -19,7 +19,6 @@ var _ = Describe("Podman pod create", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -50,7 +49,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		check := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{.IPC}} {{.UTS}} {{.NET}}"})
+		check := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{.Namespaces.IPC}} {{.Namespaces.UTS}} {{.Namespaces.NET}}"})
 		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(0))
 		outputArray := check.OutputToStringArray()
@@ -77,7 +76,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		check := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{.PIDNS}}"})
+		check := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{.Namespaces.PIDNS}}"})
 		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(0))
 		outputArray := check.OutputToStringArray()

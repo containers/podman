@@ -159,3 +159,31 @@ func SortPsOutput(sortBy string, psOutput SortListContainers) (SortListContainer
 	}
 	return psOutput, nil
 }
+
+func (l ListContainer) CGROUPNS() string {
+	return l.Namespaces.Cgroup
+}
+
+func (l ListContainer) IPC() string {
+	return l.Namespaces.IPC
+}
+
+func (l ListContainer) MNT() string {
+	return l.Namespaces.MNT
+}
+
+func (l ListContainer) NET() string {
+	return l.Namespaces.NET
+}
+
+func (l ListContainer) PIDNS() string {
+	return l.Namespaces.PIDNS
+}
+
+func (l ListContainer) USERNS() string {
+	return l.Namespaces.User
+}
+
+func (l ListContainer) UTS() string {
+	return l.Namespaces.UTS
+}

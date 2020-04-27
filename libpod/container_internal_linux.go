@@ -385,6 +385,16 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
 		}
 	}
+
+	for _, i := range c.config.Spec.Linux.Namespaces {
+		if i.Type == spec.UTSNamespace {
+			hostname := c.Hostname()
+			g.SetHostname(hostname)
+			g.AddProcessEnv("HOSTNAME", hostname)
+			break
+		}
+	}
+
 	if c.config.UTSNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, UTSNS, c.config.UTSNsCtr, spec.UTSNamespace); err != nil {
 			return nil, err
@@ -416,15 +426,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	if _, exists := g.Config.Annotations[annotations.ContainerManager]; !exists {
 		g.AddAnnotation(annotations.ContainerManager, annotations.ContainerManagerLibpod)
-	}
-
-	for _, i := range c.config.Spec.Linux.Namespaces {
-		if i.Type == spec.UTSNamespace {
-			hostname := c.Hostname()
-			g.SetHostname(hostname)
-			g.AddProcessEnv("HOSTNAME", hostname)
-			break
-		}
 	}
 
 	// Only add container environment variable if not already present
@@ -581,6 +582,12 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	nsCtr, err := c.runtime.state.Container(ctr)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving dependency %s of container %s from state", ctr, c.ID())
+	}
+
+	if specNS == spec.UTSNamespace {
+		hostname := nsCtr.Hostname()
+		g.SetHostname(hostname)
+		g.AddProcessEnv("HOSTNAME", hostname)
 	}
 
 	// TODO need unlocked version of this for use in pods
