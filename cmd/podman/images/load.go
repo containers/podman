@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/cmd/podman/parse"
@@ -89,6 +90,6 @@ func load(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Loaded image: " + response.Name)
+	fmt.Println("Loaded image(s): " + strings.Join(response.Names, ","))
 	return nil
 }

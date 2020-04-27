@@ -326,16 +326,19 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 	if err != nil {
 		return nil, err
 	}
-	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		return nil, errors.Wrap(err, "image loaded but no additional tags were created")
-	}
-	if len(opts.Name) > 0 {
-		if err := newImage.TagImage(fmt.Sprintf("%s:%s", opts.Name, opts.Tag)); err != nil {
-			return nil, errors.Wrapf(err, "error adding %q to image %q", opts.Name, newImage.InputName)
+	names := strings.Split(name, ",")
+	if len(names) <= 1 {
+		newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(name)
+		if err != nil {
+			return nil, errors.Wrap(err, "image loaded but no additional tags were created")
+		}
+		if len(opts.Name) > 0 {
+			if err := newImage.TagImage(fmt.Sprintf("%s:%s", opts.Name, opts.Tag)); err != nil {
+				return nil, errors.Wrapf(err, "error adding %q to image %q", opts.Name, newImage.InputName)
+			}
 		}
 	}
-	return &entities.ImageLoadReport{Name: name}, nil
+	return &entities.ImageLoadReport{Names: names}, nil
 }
 
 func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
