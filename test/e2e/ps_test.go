@@ -21,7 +21,6 @@ var _ = Describe("Podman ps", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -168,6 +167,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps namespace flag with go template format", func() {
+		Skip(v2fail)
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 

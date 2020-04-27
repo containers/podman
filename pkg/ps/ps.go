@@ -158,6 +158,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		ExitedAt:  exitedTime.Unix(),
 		ID:        conConfig.ID,
 		Image:     conConfig.RootfsImageName,
+		ImageID:   conConfig.RootfsImageID,
 		IsInfra:   conConfig.IsInfra,
 		Labels:    conConfig.Labels,
 		Mounts:    ctr.UserVolumes(),
