@@ -145,7 +145,7 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 		reports []*entities.PodStopReport
 	)
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
-	if err != nil {
+	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		return nil, err
 	}
 	for _, p := range pods {
