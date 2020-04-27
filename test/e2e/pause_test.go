@@ -21,7 +21,6 @@ var _ = Describe("Podman pause", func() {
 	createdState := "Created"
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
