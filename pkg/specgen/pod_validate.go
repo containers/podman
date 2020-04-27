@@ -62,7 +62,7 @@ func (p *PodSpecGenerator) Validate() error {
 			return exclusivePodOptions("NoInfra", "NoManageResolvConf")
 		}
 	}
-	if p.NetNS.NSMode != Bridge {
+	if p.NetNS.NSMode != "" && p.NetNS.NSMode != Bridge && p.NetNS.NSMode != Default {
 		if len(p.PortMappings) > 0 {
 			return errors.New("PortMappings can only be used with Bridge mode networking")
 		}
