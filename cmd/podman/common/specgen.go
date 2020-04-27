@@ -203,9 +203,16 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.User = c.User
 	inputCommand := args[1:]
 	if len(c.HealthCmd) > 0 {
+		if c.NoHealthCheck {
+			return errors.New("Cannot specify both --no-healthcheck and --health-cmd")
+		}
 		s.HealthConfig, err = makeHealthCheckFromCli(c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod)
 		if err != nil {
 			return err
+		}
+	} else if c.NoHealthCheck {
+		s.HealthConfig = &manifest.Schema2HealthConfig{
+			Test: []string{"NONE"},
 		}
 	}
 
