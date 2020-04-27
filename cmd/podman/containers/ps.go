@@ -223,7 +223,7 @@ func createPsOut() (string, string) {
 	}
 	headers := defaultHeaders
 	row += "{{.ID}}"
-	row += "\t{{.Image}}\t{{.Command}}\t{{.CreatedHuman}}\t{{.State}}\t{{.Ports}}\t{{.Names}}"
+	row += "\t{{.Image}}\t{{.Command}}\t{{.CreatedHuman}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}"
 
 	if listOpts.Pod {
 		headers += "\tPOD ID\tPODNAME"
@@ -280,6 +280,11 @@ func (l psReporter) State() string {
 		state = l.ListContainer.State
 	}
 	return state
+}
+
+// Status is a synonym for State()
+func (l psReporter) Status() string {
+	return l.State()
 }
 
 // Command returns the container command in string format
