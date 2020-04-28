@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -11,7 +12,7 @@ var (
 	listCmd = &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Args:    cobra.NoArgs,
+		Args:    common.NoArgs,
 		Short:   "List containers",
 		Long:    "Prints out information about the containers",
 		RunE:    ps,

@@ -34,7 +34,7 @@ Description:
 // UsageTemplate is the usage template for podman commands
 // This blocks the displaying of the global options. The main podman
 // command should not use this.
-const usageTemplate = `Usage(v2):{{if (and .Runnable (not .HasAvailableSubCommands))}}
+const usageTemplate = `Usage:{{if (and .Runnable (not .HasAvailableSubCommands))}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
 

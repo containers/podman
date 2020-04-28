@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -28,6 +29,7 @@ var (
 		Short:   "list pods",
 		Long:    psDescription,
 		RunE:    pods,
+		Args:    common.NoArgs,
 	}
 )
 

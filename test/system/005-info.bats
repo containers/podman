@@ -8,19 +8,19 @@ load helpers
     run_podman info
 
     expected_keys="
-buildahversion: *[0-9.]\\\+
+buildahVersion: *[0-9.]\\\+
 conmon:\\\s\\\+package:
 distribution:
-ociruntime:\\\s\\\+name:
+ociRuntime:\\\s\\\+name:
 os:
 rootless:
 registries:
 store:
-graphdrivername:
-graphroot:
-graphstatus:
-imagestore:\\\s\\\+number: 1
-runroot:
+graphDriverName:
+graphRoot:
+graphStatus:
+imageStore:\\\s\\\+number: 1
+runRoot:
 "
     while read expect; do
         is "$output" ".*$expect" "output includes '$expect'"

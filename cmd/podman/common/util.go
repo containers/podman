@@ -1,7 +1,10 @@
 package common
 
 import (
+	"fmt"
 	"strconv"
+
+	"github.com/spf13/cobra"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
@@ -40,4 +43,12 @@ func createPortBindings(ports []string) ([]ocicni.PortMapping, error) {
 		}
 	}
 	return portBindings, nil
+}
+
+// NoArgs returns an error if any args are included.
+func NoArgs(cmd *cobra.Command, args []string) error {
+	if len(args) > 0 {
+		return fmt.Errorf("`%s` takes no arguments", cmd.CommandPath())
+	}
+	return nil
 }

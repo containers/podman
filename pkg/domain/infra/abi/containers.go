@@ -949,7 +949,7 @@ func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 
 func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrId string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
 	var reports []*entities.ContainerPortReport
-	ctrs, err := getContainersByContext(options.All, false, []string{nameOrId}, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, []string{nameOrId}, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}

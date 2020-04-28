@@ -12,7 +12,7 @@ import (
 
 var (
 	inspectCmd = &cobra.Command{
-		Use:     "inspect IMAGE",
+		Use:     "inspect [flags] IMAGE",
 		Short:   "Display the contents of a manifest list or image index",
 		Long:    "Display the contents of a manifest list or image index.",
 		RunE:    inspect,

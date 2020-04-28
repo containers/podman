@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -18,7 +19,7 @@ var (
 	eventsDescription = "Monitor podman events"
 	eventsCommand     = &cobra.Command{
 		Use:   "events",
-		Args:  cobra.NoArgs,
+		Args:  common.NoArgs,
 		Short: "Show podman events",
 		Long:  eventsDescription,
 		RunE:  eventsCmd,

@@ -109,7 +109,7 @@ func port(cmd *cobra.Command, args []string) error {
 				fmt.Printf("%d/%s -> %s:%d\n", v.ContainerPort, v.Protocol, hostIP, v.HostPort)
 				continue
 			}
-			if v == userPort {
+			if v.ContainerPort == userPort.ContainerPort {
 				fmt.Printf("%s:%d\n", hostIP, v.HostPort)
 				found = true
 				break

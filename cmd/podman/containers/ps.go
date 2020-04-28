@@ -12,6 +12,7 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -25,7 +26,7 @@ var (
 	psDescription = "Prints out information about the containers"
 	psCommand     = &cobra.Command{
 		Use:   "ps",
-		Args:  checkFlags,
+		Args:  common.NoArgs,
 		Short: "List containers",
 		Long:  psDescription,
 		RunE:  ps,
@@ -141,6 +142,9 @@ func getResponses() ([]entities.ListContainer, error) {
 
 func ps(cmd *cobra.Command, args []string) error {
 	var responses []psReporter
+	if err := checkFlags(cmd, args); err != nil {
+		return err
+	}
 	for _, f := range filters {
 		split := strings.SplitN(f, "=", 2)
 		if len(split) == 1 {

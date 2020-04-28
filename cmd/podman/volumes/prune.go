@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -21,7 +22,7 @@ var (
   Note all data will be destroyed.`
 	pruneCommand = &cobra.Command{
 		Use:   "prune",
-		Args:  cobra.NoArgs,
+		Args:  common.NoArgs,
 		Short: "Remove all unused volumes",
 		Long:  volumePruneDescription,
 		RunE:  prune,
