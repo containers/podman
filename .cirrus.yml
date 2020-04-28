@@ -390,8 +390,6 @@ testing_task:
         - "build_each_commit"
         - "build_without_cgo"
 
-    allow_failures: $CI == 'true'
-
     # Only test build cache-images, if that's what's requested
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&

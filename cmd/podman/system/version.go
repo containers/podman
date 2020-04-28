@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -19,7 +20,7 @@ import (
 var (
 	versionCommand = &cobra.Command{
 		Use:   "version",
-		Args:  cobra.NoArgs,
+		Args:  common.NoArgs,
 		Short: "Display the Podman Version Information",
 		RunE:  version,
 		Annotations: map[string]string{

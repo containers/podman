@@ -13,7 +13,7 @@ import (
 var (
 	manifestAddOpts = entities.ManifestAddOptions{}
 	addCmd          = &cobra.Command{
-		Use:   "add",
+		Use:   "add [flags] LIST LIST",
 		Short: "Add images to a manifest list or image index",
 		Long:  "Adds an image to a manifest list or image index.",
 		RunE:  add,

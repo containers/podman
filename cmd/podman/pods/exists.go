@@ -19,6 +19,7 @@ var (
 		Args:  cobra.ExactArgs(1),
 		Example: `podman pod exists podID
   podman pod exists mypod || podman pod create --name mypod`,
+		DisableFlagsInUseLine: true,
 	}
 )
 

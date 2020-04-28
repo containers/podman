@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ and the output format can be changed to JSON or a user specified Go template.`
 	lsCommand = &cobra.Command{
 		Use:     "ls",
 		Aliases: []string{"list"},
-		Args:    cobra.NoArgs,
+		Args:    common.NoArgs,
 		Short:   "List volumes",
 		Long:    volumeLsDescription,
 		RunE:    list,

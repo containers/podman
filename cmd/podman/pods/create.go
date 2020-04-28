@@ -24,7 +24,7 @@ var (
 
 	createCommand = &cobra.Command{
 		Use:   "create",
-		Args:  cobra.NoArgs,
+		Args:  common.NoArgs,
 		Short: "Create a new empty pod",
 		Long:  podCreateDescription,
 		RunE:  create,

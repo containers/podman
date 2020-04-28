@@ -17,8 +17,9 @@ var (
 		Long:  containerExistsDescription,
 		Example: `podman container exists containerID
   podman container exists myctr || podman run --name myctr [etc...]`,
-		RunE: exists,
-		Args: cobra.ExactArgs(1),
+		RunE:                  exists,
+		Args:                  cobra.ExactArgs(1),
+		DisableFlagsInUseLine: true,
 	}
 )
 
