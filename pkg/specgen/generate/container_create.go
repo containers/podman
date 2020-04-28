@@ -130,7 +130,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithName(s.Name))
 	}
 	if pod != nil {
-		logrus.Debugf("adding container to pod %s", pod.Name)
+		logrus.Debugf("adding container to pod %s", pod.Name())
 		options = append(options, rt.WithPod(pod))
 	}
 	destinations := []string{}
@@ -155,11 +155,12 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithNamedVolumes(vols))
 	}
 
-	if len(s.Command) != 0 {
+	if s.Command != nil {
 		options = append(options, libpod.WithCommand(s.Command))
 	}
-
-	options = append(options, libpod.WithEntrypoint(s.Entrypoint))
+	if s.Entrypoint != nil {
+		options = append(options, libpod.WithEntrypoint(s.Entrypoint))
+	}
 	if s.StopSignal != nil {
 		options = append(options, libpod.WithStopSignal(*s.StopSignal))
 	}

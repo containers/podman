@@ -153,9 +153,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"device-write-iops", []string{},
 		"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
 	)
-	createFlags.StringVar(
-		&cf.Entrypoint,
-		"entrypoint", "",
+	createFlags.String("entrypoint", "",
 		"Overwrite the default ENTRYPOINT of the image",
 	)
 	createFlags.StringArrayVarP(

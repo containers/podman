@@ -165,6 +165,10 @@ func createInit(c *cobra.Command) error {
 	if c.Flag("cgroupns").Changed {
 		cliVals.CGroupsNS = c.Flag("cgroupns").Value.String()
 	}
+	if c.Flag("entrypoint").Changed {
+		val := c.Flag("entrypoint").Value.String()
+		cliVals.Entrypoint = &val
+	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
 	// the hostname (see https://github.com/containers/libpod/issues/1367).
