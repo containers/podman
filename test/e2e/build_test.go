@@ -22,7 +22,6 @@ var _ = Describe("Podman build", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -178,6 +177,7 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman Test PATH in built image", func() {
+		Skip(v2fail) // Run error - we don't set data from the image (i.e., PATH) yet
 		path := "/tmp:/bin:/usr/bin:/usr/sbin"
 		session := podmanTest.PodmanNoCache([]string{
 			"build", "-f", "build/basicalpine/Containerfile.path", "-t", "test-path",
