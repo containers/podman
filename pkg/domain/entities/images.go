@@ -238,13 +238,9 @@ type ImagePruneReport struct {
 type ImageTagOptions struct{}
 type ImageUntagOptions struct{}
 
-type ImageData struct {
-	*inspect.ImageData
-}
-
+// ImageInspectReport is the data when inspecting an image.
 type ImageInspectReport struct {
-	Images []*ImageData
-	Errors map[string]error
+	*inspect.ImageData
 }
 
 type ImageLoadOptions struct {
