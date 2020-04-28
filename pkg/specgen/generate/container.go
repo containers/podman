@@ -126,13 +126,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		if err != nil {
 			return err
 		}
-
-		// TODO This should be enabled when namespaces actually work
-		//case usernsMode.IsKeepID():
-		//	user = fmt.Sprintf("%d:%d", rootless.GetRootlessUID(), rootless.GetRootlessGID())
-		if len(s.User) == 0 {
-			s.User = "0"
-		}
 	}
 	if err := finishThrottleDevices(s); err != nil {
 		return err
