@@ -1,3 +1,15 @@
+- Changelog for v1.9.1 (2020-04-28):
+  * Update release notes for v1.9.1
+  * separate healthcheck and container log paths
+  * Update vendor to containers/common v0.8.2
+  * rootless: move join namespace inside child process
+  * rootless: skip looking up parent user ns
+  * Don't check configuration until user input is applied
+  * Move selinux labeling support from pkg/util to pkg/selinux
+  * Cirrus: Necessary changes for v1.9 branch automation
+  * Cirrus: Fix gate container build failure
+  * logformat: handle apiv2 results, add anchor links
+
 - Changelog for v1.9.0 (2020-04-15)
   * podmanV2: fix nil deref
   * v2specgen prune libpod
