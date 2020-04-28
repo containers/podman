@@ -180,8 +180,10 @@ func pullImage(imageName string) error {
 			return errors.New("unable to find a name and tag match for busybox in repotags: no such image")
 		}
 		_, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
-			Authfile: cliVals.Authfile,
-			Quiet:    cliVals.Quiet,
+			Authfile:     cliVals.Authfile,
+			Quiet:        cliVals.Quiet,
+			OverrideArch: cliVals.OverrideArch,
+			OverrideOS:   cliVals.OverrideOS,
 		})
 		if pullErr != nil {
 			return pullErr
