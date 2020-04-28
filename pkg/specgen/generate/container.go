@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
 	ann "github.com/containers/libpod/pkg/annotations"
 	envLib "github.com/containers/libpod/pkg/env"
@@ -22,7 +23,12 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		return err
 	}
 
-	if s.HealthConfig == nil {
+	_, mediaType, err := newImage.Manifest(ctx)
+	if err != nil {
+		return err
+	}
+
+	if s.HealthConfig == nil && mediaType == manifest.DockerV2Schema2MediaType {
 		s.HealthConfig, err = newImage.GetHealthCheck(ctx)
 		if err != nil {
 			return err
