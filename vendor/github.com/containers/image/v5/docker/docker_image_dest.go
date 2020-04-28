@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
+	"github.com/containers/image/v5/internal/uploadreader"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	"github.com/containers/image/v5/types"
@@ -162,19 +163,30 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 
 	digester := digest.Canonical.Digester()
 	sizeCounter := &sizeCounter{}
-	tee := io.TeeReader(stream, io.MultiWriter(digester.Hash(), sizeCounter))
-	res, err = d.c.makeRequestToResolvedURL(ctx, "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, v2Auth, nil)
+	uploadLocation, err = func() (*url.URL, error) { // A scope for defer
+		uploadReader := uploadreader.NewUploadReader(io.TeeReader(stream, io.MultiWriter(digester.Hash(), sizeCounter)))
+		// This error text should never be user-visible, we terminate only after makeRequestToResolvedURL
+		// returns, so there isn’t a way for the error text to be provided to any of our callers.
+		defer uploadReader.Terminate(errors.New("Reading data from an already terminated upload"))
+		res, err = d.c.makeRequestToResolvedURL(ctx, "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, uploadReader, inputInfo.Size, v2Auth, nil)
+		if err != nil {
+			logrus.Debugf("Error uploading layer chunked %v", err)
+			return nil, err
+		}
+		defer res.Body.Close()
+		if !successStatus(res.StatusCode) {
+			return nil, errors.Wrapf(client.HandleErrorResponse(res), "Error uploading layer chunked")
+		}
+		uploadLocation, err := res.Location()
+		if err != nil {
+			return nil, errors.Wrap(err, "Error determining upload URL")
+		}
+		return uploadLocation, nil
+	}()
 	if err != nil {
-		logrus.Debugf("Error uploading layer chunked, response %#v", res)
 		return types.BlobInfo{}, err
 	}
-	defer res.Body.Close()
 	computedDigest := digester.Digest()
-
-	uploadLocation, err = res.Location()
-	if err != nil {
-		return types.BlobInfo{}, errors.Wrap(err, "Error determining upload URL")
-	}
 
 	// FIXME: DELETE uploadLocation on failure (does not really work in docker/distribution servers, which incorrectly require the "delete" action in the token's scope)
 

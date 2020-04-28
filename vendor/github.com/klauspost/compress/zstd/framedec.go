@@ -16,16 +16,11 @@ import (
 )
 
 type frameDec struct {
-	o         decoderOptions
-	crc       hash.Hash64
-	frameDone sync.WaitGroup
-	offset    int64
+	o      decoderOptions
+	crc    hash.Hash64
+	offset int64
 
-	WindowSize       uint64
-	DictionaryID     uint32
-	FrameContentSize uint64
-	HasCheckSum      bool
-	SingleSegment    bool
+	WindowSize uint64
 
 	// maxWindowSize is the maximum windows size to support.
 	// should never be bigger than max-int.
@@ -42,9 +37,16 @@ type frameDec struct {
 	// Byte buffer that can be reused for small input blocks.
 	bBuf byteBuf
 
+	FrameContentSize uint64
+	frameDone        sync.WaitGroup
+
+	DictionaryID  uint32
+	HasCheckSum   bool
+	SingleSegment bool
+
 	// asyncRunning indicates whether the async routine processes input on 'decoding'.
-	asyncRunning   bool
 	asyncRunningMu sync.Mutex
+	asyncRunning   bool
 }
 
 const (
@@ -231,7 +233,11 @@ func (d *frameDec) reset(br byteBuffer) error {
 		return ErrWindowSizeTooSmall
 	}
 	d.history.windowSize = int(d.WindowSize)
-	d.history.maxSize = d.history.windowSize + maxBlockSize
+	if d.o.lowMem && d.history.windowSize < maxBlockSize {
+		d.history.maxSize = d.history.windowSize * 2
+	} else {
+		d.history.maxSize = d.history.windowSize + maxBlockSize
+	}
 	// history contains input - maybe we do something
 	d.rawInput = br
 	return nil
@@ -318,8 +324,8 @@ func (d *frameDec) checkCRC() error {
 
 func (d *frameDec) initAsync() {
 	if !d.o.lowMem && !d.SingleSegment {
-		// set max extra size history to 20MB.
-		d.history.maxSize = d.history.windowSize + maxBlockSize*10
+		// set max extra size history to 10MB.
+		d.history.maxSize = d.history.windowSize + maxBlockSize*5
 	}
 	// re-alloc if more than one extra block size.
 	if d.o.lowMem && cap(d.history.b) > d.history.maxSize+maxBlockSize {

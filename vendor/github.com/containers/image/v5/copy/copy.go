@@ -798,7 +798,6 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 
 	// copyGroup is used to determine if all layers are copied
 	copyGroup := sync.WaitGroup{}
-	copyGroup.Add(numLayers)
 
 	// copySemaphore is used to limit the number of parallel downloads to
 	// avoid malicious images causing troubles and to be nice to servers.
@@ -850,18 +849,22 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 
 	if err := func() error { // A scope for defer
 		progressPool, progressCleanup := ic.c.newProgressPool(ctx)
-		defer progressCleanup()
+		defer func() {
+			// Wait for all layers to be copied. progressCleanup() must not be called while any of the copyLayerHelpers interact with the progressPool.
+			copyGroup.Wait()
+			progressCleanup()
+		}()
 
 		for i, srcLayer := range srcInfos {
 			err = copySemaphore.Acquire(ctx, 1)
 			if err != nil {
 				return errors.Wrapf(err, "Can't acquire semaphore")
 			}
+			copyGroup.Add(1)
 			go copyLayerHelper(i, srcLayer, encLayerBitmap[i], progressPool)
 		}
 
-		// Wait for all layers to be copied
-		copyGroup.Wait()
+		// A call to copyGroup.Wait() is done at this point by the defer above.
 		return nil
 	}(); err != nil {
 		return err

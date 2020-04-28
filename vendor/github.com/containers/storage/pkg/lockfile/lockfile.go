@@ -13,6 +13,9 @@ import (
 // by the lock.
 type Locker interface {
 	// Acquire a writer lock.
+	// The default unix implementation panics if:
+	// - opening the lockfile failed
+	// - tried to lock a read-only lock-file
 	Lock()
 
 	// Acquire a writer lock recursively, allowing for recursive acquisitions
@@ -20,6 +23,9 @@ type Locker interface {
 	RecursiveLock()
 
 	// Unlock the lock.
+	// The default unix implementation panics if:
+	// - unlocking an unlocked lock
+	// - if the lock counter is corrupted
 	Unlock()
 
 	// Acquire a reader lock.

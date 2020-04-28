@@ -14,7 +14,7 @@ require (
 	github.com/containers/conmon v2.0.14+incompatible
 	github.com/containers/image/v5 v5.4.3
 	github.com/containers/psgo v1.5.0
-	github.com/containers/storage v1.18.2
+	github.com/containers/storage v1.19.0
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 	github.com/cyphar/filepath-securejoin v0.2.2
@@ -57,12 +57,14 @@ require (
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
 	github.com/vishvananda/netlink v1.1.0
 	go.etcd.io/bbolt v1.3.4
-	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
+	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775
+	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.17.4
 	k8s.io/apimachinery v0.17.4
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20200430190816-e1aa81198c10
