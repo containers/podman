@@ -376,6 +376,10 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 
+	usernsType := c.String("userns")
+	if !c.IsSet("userns") && !idmappings.HostUIDMapping {
+		usernsType = "private"
+	}
 	// Kernel Namespaces
 	// TODO Fix handling of namespace from pod
 	// Instead of integrating here, should be done in libpod
@@ -386,7 +390,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		"pid":    c.String("pid"),
 		"net":    c.String("network"),
 		"ipc":    c.String("ipc"),
-		"user":   c.String("userns"),
+		"user":   usernsType,
 		"uts":    c.String("uts"),
 	}
 
