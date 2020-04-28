@@ -1,8 +1,10 @@
 package containers
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/common"
@@ -105,6 +107,10 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if _, err := createPodIfNecessary(s); err != nil {
+		return err
+	}
+
 	report, err := registry.ContainerEngine().ContainerCreate(registry.GetContext(), s)
 	if err != nil {
 		return err
@@ -204,4 +210,26 @@ func openCidFile(cidfile string) (*os.File, error) {
 		return nil, errors.Errorf("error opening cidfile %s", cidfile)
 	}
 	return cidFile, nil
+}
+
+// createPodIfNecessary automatically creates a pod when requested.  if the pod name
+// has the form new:ID, the pod ID is created and the name in the spec generator is replaced
+// with ID.
+func createPodIfNecessary(s *specgen.SpecGenerator) (*entities.PodCreateReport, error) {
+	if !strings.HasPrefix(s.Pod, "new:") {
+		return nil, nil
+	}
+	podName := strings.Replace(s.Pod, "new:", "", 1)
+	if len(podName) < 1 {
+		return nil, errors.Errorf("new pod name must be at least one character")
+	}
+	createOptions := entities.PodCreateOptions{
+		Name:  podName,
+		Infra: true,
+		Net: &entities.NetOptions{
+			PublishPorts: s.PortMappings,
+		},
+	}
+	s.Pod = podName
+	return registry.ContainerEngine().PodCreate(context.Background(), createOptions)
 }
