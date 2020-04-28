@@ -38,19 +38,22 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 			filterFuncs = append(filterFuncs, generatedFunc)
 		}
 	}
-	prunedContainers, pruneErrors, err := runtime.PruneContainers(filterFuncs)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
 
 	// Libpod response differs
 	if utils.IsLibpodRequest(r) {
-		report := &entities.ContainerPruneReport{
-			Err: pruneErrors,
-			ID:  prunedContainers,
+		report, err := PruneContainersHelper(w, r, filterFuncs)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
 		}
+
 		utils.WriteResponse(w, http.StatusOK, report)
+		return
+	}
+
+	prunedContainers, pruneErrors, err := runtime.PruneContainers(filterFuncs)
+	if err != nil {
+		utils.InternalServerError(w, err)
 		return
 	}
 	for ctrID, size := range prunedContainers {
@@ -64,4 +67,20 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 		SpaceReclaimed:    uint64(space),
 	}
 	utils.WriteResponse(w, http.StatusOK, report)
+}
+
+func PruneContainersHelper(w http.ResponseWriter, r *http.Request, filterFuncs []libpod.ContainerFilter) (
+	*entities.ContainerPruneReport, error) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	prunedContainers, pruneErrors, err := runtime.PruneContainers(filterFuncs)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return nil, err
+	}
+
+	report := &entities.ContainerPruneReport{
+		Err: pruneErrors,
+		ID:  prunedContainers,
+	}
+	return report, nil
 }
