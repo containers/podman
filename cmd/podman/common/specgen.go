@@ -466,24 +466,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.CgroupParent = c.CGroupParent
 	s.CgroupsMode = c.CGroupsMode
 	s.Groups = c.GroupAdd
-	// TODO WTF
-	//cgroup := &cc.CgroupConfig{
-	//	Cgroupns:     c.String("cgroupns"),
-	//}
-	//
-	//userns := &cc.UserConfig{
-	//	GroupAdd:   c.StringSlice("group-add"),
-	//	IDMappings: idmappings,
-	//	UsernsMode: usernsMode,
-	//	User:       user,
-	//}
-	//
-	//uts := &cc.UtsConfig{
-	//	UtsMode:  utsMode,
-	//	NoHosts:  c.Bool("no-hosts"),
-	//	HostAdd:  c.StringSlice("add-host"),
-	//	Hostname: c.String("hostname"),
-	//}
 
 	s.Hostname = c.Hostname
 	sysctl := map[string]string{}
