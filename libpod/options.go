@@ -1400,8 +1400,13 @@ func WithVolumeDriver(driver string) VolumeCreateOption {
 		if volume.valid {
 			return define.ErrVolumeFinalized
 		}
+		// only local driver is possible rn
+		if driver != define.VolumeDriverLocal {
+			return define.ErrNotImplemented
 
-		return define.ErrNotImplemented
+		}
+		volume.config.Driver = define.VolumeDriverLocal
+		return nil
 	}
 }
 
