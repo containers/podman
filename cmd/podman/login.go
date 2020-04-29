@@ -19,7 +19,7 @@ type loginOptionsWrapper struct {
 var (
 	loginOptions = loginOptionsWrapper{}
 	loginCommand = &cobra.Command{
-		Use:   "login [flags] REGISTRY",
+		Use:   "login [flags] [REGISTRY]",
 		Short: "Login to a container registry",
 		Long:  "Login to a container registry on a specified server.",
 		RunE:  login,
