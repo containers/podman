@@ -10,6 +10,8 @@ SERVICE_NAME="podman_test_$(random_string)"
 UNIT_DIR="$HOME/.config/systemd/user"
 UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"
 
+# FIXME: the must run as root (because of CI). It's also broken...
+
 function setup() {
     skip_if_not_systemd
     skip_if_remote
