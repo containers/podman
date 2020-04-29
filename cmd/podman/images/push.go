@@ -108,22 +108,21 @@ func imagePush(cmd *cobra.Command, args []string) error {
 		return errors.New("push requires at least one image name, or optionally a second to specify a different destination")
 	}
 
-	pushOptsAPI := pushOptions.ImagePushOptions
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified
 	// which is important to implement a sane way of dealing with defaults of
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
-		pushOptsAPI.TLSVerify = types.NewOptionalBool(pushOptions.TLSVerifyCLI)
+		pushOptions.TLSVerify = types.NewOptionalBool(pushOptions.TLSVerifyCLI)
 	}
 
-	if pushOptsAPI.Authfile != "" {
-		if _, err := os.Stat(pushOptsAPI.Authfile); err != nil {
-			return errors.Wrapf(err, "error getting authfile %s", pushOptsAPI.Authfile)
+	if pushOptions.Authfile != "" {
+		if _, err := os.Stat(pushOptions.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", pushOptions.Authfile)
 		}
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering
 	// logic across (too) many parts of the code.
-	return registry.ImageEngine().Push(registry.GetContext(), source, destination, pushOptsAPI)
+	return registry.ImageEngine().Push(registry.GetContext(), source, destination, pushOptions.ImagePushOptions)
 }
