@@ -102,25 +102,27 @@ func parent() error {
 		return err
 	}
 
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, unix.SIGPIPE)
-	defer func() {
-		// dummy signal to terminate the goroutine
-		sigC <- unix.SIGKILL
-	}()
+	exitC := make(chan os.Signal, 1)
+	defer close(exitC)
+
 	go func() {
+		sigC := make(chan os.Signal, 1)
+		signal.Notify(sigC, unix.SIGPIPE)
 		defer func() {
 			signal.Stop(sigC)
 			close(sigC)
 		}()
 
-		s := <-sigC
-		if s == unix.SIGPIPE {
-			if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
-				unix.Dup2(int(f.Fd()), 1) // nolint:errcheck
-				unix.Dup2(int(f.Fd()), 2) // nolint:errcheck
-				f.Close()
+		select {
+		case s := <-sigC:
+			if s == unix.SIGPIPE {
+				if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
+					unix.Dup2(int(f.Fd()), 1) // nolint:errcheck
+					unix.Dup2(int(f.Fd()), 2) // nolint:errcheck
+					f.Close()
+				}
 			}
+		case <-exitC:
 		}
 	}()
 
