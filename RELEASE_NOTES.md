@@ -1,5 +1,14 @@
 # Release Notes
 
+## 1.9.1
+### Bugfixes
+- Fixed a bug where healthchecks could become nonfunctional if container log paths were manually set with `--log-path` and multiple container logs were placed in the same directory ([#5915](https://github.com/containers/libpod/issues/5915))
+- Fixed a bug where rootless Podman could, when using an older `libpod.conf`, print numerous warning messages about an invalid CGroup manager config
+- Fixed a bug where rootless Podman would sometimes fail to close the rootless user namespace when joining it ([#5873](https://github.com/containers/libpod/issues/5873))
+
+### Misc
+- Updated containers/common to v0.8.2
+
 ## 1.9.0
 ### Features
 - Experimental support has been added for `podman run --userns=auto`, which automatically allocates a unique UID and GID range for the new container's user namespace
