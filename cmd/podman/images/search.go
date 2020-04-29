@@ -1,6 +1,7 @@
 package images
 
 import (
+	"os"
 	"reflect"
 	"strings"
 
@@ -47,14 +48,15 @@ var (
 
 	// Command: podman image search
 	imageSearchCmd = &cobra.Command{
-		Use:   searchCmd.Use,
-		Short: searchCmd.Short,
-		Long:  searchCmd.Long,
-		RunE:  searchCmd.RunE,
-		Args:  searchCmd.Args,
+		Use:         searchCmd.Use,
+		Short:       searchCmd.Short,
+		Long:        searchCmd.Long,
+		RunE:        searchCmd.RunE,
+		Args:        searchCmd.Args,
+		Annotations: searchCmd.Annotations,
 		Example: `podman image search --filter=is-official --limit 3 alpine
-		podman image search registry.fedoraproject.org/  # only works with v2 registries
-		podman image search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
+  podman image search registry.fedoraproject.org/  # only works with v2 registries
+  podman image search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
 	}
 )
 
@@ -103,16 +105,21 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("search requires exactly one argument")
 	}
 
-	sarchOptsAPI := searchOptions.ImageSearchOptions
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified
 	// which is important to implement a sane way of dealing with defaults of
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
-		sarchOptsAPI.TLSVerify = types.NewOptionalBool(pullOptions.TLSVerifyCLI)
+		searchOptions.SkipTLSVerify = types.NewOptionalBool(!searchOptions.TLSVerifyCLI)
 	}
 
-	searchReport, err := registry.ImageEngine().Search(registry.GetContext(), searchTerm, sarchOptsAPI)
+	if searchOptions.Authfile != "" {
+		if _, err := os.Stat(searchOptions.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", searchOptions.Authfile)
+		}
+	}
+
+	searchReport, err := registry.ImageEngine().Search(registry.GetContext(), searchTerm, searchOptions.ImageSearchOptions)
 	if err != nil {
 		return err
 	}
