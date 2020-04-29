@@ -216,6 +216,8 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 	toReturn := Namespace{}
 	var cniNetworks []string
 	switch {
+	case ns == "slirp4netns":
+		toReturn.NSMode = Slirp
 	case ns == "pod":
 		toReturn.NSMode = FromPod
 	case ns == "bridge":
