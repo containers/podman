@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -22,7 +23,7 @@ var (
 		Short: "Block on one or more containers",
 		Long:  waitDescription,
 		RunE:  wait,
-		Args:  registry.IdOrLatestArgs,
+		Args:  validate.IdOrLatestArgs,
 		Example: `podman wait --latest
   podman wait --interval 5000 ctrID
   podman wait ctrID1 ctrID2`,

@@ -2,6 +2,7 @@ package volumes
 
 import (
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,7 @@ var (
 		Short:            "Manage volumes",
 		Long:             "Volumes are created in and can be shared between containers",
 		TraverseChildren: true,
-		RunE:             registry.SubCommandExists,
+		RunE:             validate.SubCommandExists,
 	}
 )
 

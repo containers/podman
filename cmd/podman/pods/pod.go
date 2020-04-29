@@ -2,6 +2,7 @@ package pods
 
 import (
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/spf13/cobra"
@@ -17,7 +18,7 @@ var (
 		Short:            "Manage pods",
 		Long:             "Manage pods",
 		TraverseChildren: true,
-		RunE:             registry.SubCommandExists,
+		RunE:             validate.SubCommandExists,
 	}
 	containerConfig = util.DefaultContainerConfig()
 )

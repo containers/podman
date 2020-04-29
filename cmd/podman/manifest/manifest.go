@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +14,7 @@ var (
 		Short:            "Manipulate manifest lists and image indexes",
 		Long:             manifestDescription,
 		TraverseChildren: true,
-		RunE:             registry.SubCommandExists,
+		RunE:             validate.SubCommandExists,
 		Example: `podman manifest create localhost/list
   podman manifest inspect localhost/list`,
 	}

@@ -2,7 +2,7 @@ package utils
 
 import "github.com/spf13/pflag"
 
-// AliasFlags is a function to handle backwards compatability with old flags
+// AliasFlags is a function to handle backwards compatibility with old flags
 func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 	switch name {
 	case "healthcheck-command":

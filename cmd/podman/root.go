@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/tracing"
@@ -60,7 +61,7 @@ var (
 		SilenceErrors:      true,
 		TraverseChildren:   true,
 		PersistentPreRunE:  persistentPreRunE,
-		RunE:               registry.SubCommandExists,
+		RunE:               validate.SubCommandExists,
 		PersistentPostRunE: persistentPostRunE,
 		Version:            version.Version,
 	}
