@@ -29,4 +29,5 @@ type ImageEngine interface {
 	ManifestCreate(ctx context.Context, names, images []string, opts ManifestCreateOptions) (string, error)
 	ManifestInspect(ctx context.Context, name string) ([]byte, error)
 	ManifestAdd(ctx context.Context, opts ManifestAddOptions) (string, error)
+	ManifestAnnotate(ctx context.Context, names []string, opts ManifestAnnotateOptions) (string, error)
 }

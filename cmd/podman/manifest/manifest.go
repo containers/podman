@@ -15,8 +15,10 @@ var (
 		Long:             manifestDescription,
 		TraverseChildren: true,
 		RunE:             validate.SubCommandExists,
-		Example: `podman manifest create localhost/list
-  podman manifest inspect localhost/list`,
+		Example: `podman manifest add mylist:v1.11 image:v1.11-amd64
+  podman manifest create localhost/list
+  podman manifest inspect localhost/list
+  podman manifest annotate --annotation left=right mylist:v1.11 image:v1.11-amd64`,
 	}
 )
 

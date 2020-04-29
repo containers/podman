@@ -124,3 +124,24 @@ func Push(ctx context.Context, name string, destination *string, all *bool) (str
 	}
 	return idr.ID, response.Process(&idr)
 }
+
+// Annotate updates the image configuration of a given manifest list
+func Annotate(ctx context.Context, name, digest string, options image.ManifestAnnotateOpts) (string, error) {
+	var idr handlers.IDResponse
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	params := url.Values{}
+	params.Set("digest", digest)
+	optionsString, err := jsoniter.MarshalToString(options)
+	if err != nil {
+		return "", err
+	}
+	stringReader := strings.NewReader(optionsString)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/manifests/%s/annotate", params, name)
+	if err != nil {
+		return "", err
+	}
+	return idr.ID, response.Process(&idr)
+}

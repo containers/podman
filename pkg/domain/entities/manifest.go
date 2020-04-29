@@ -14,3 +14,13 @@ type ManifestAddOptions struct {
 	OSVersion  string   `json:"os_version" schema:"os_version"`
 	Variant    string   `json:"variant" schema:"variant"`
 }
+
+type ManifestAnnotateOptions struct {
+	Annotation []string `json:"annotation"`
+	Arch       string   `json:"arch" schema:"arch"`
+	Features   []string `json:"features" schema:"features"`
+	OS         string   `json:"os" schema:"os"`
+	OSFeatures []string `json:"os_features" schema:"os_features"`
+	OSVersion  string   `json:"os_version" schema:"os_version"`
+	Variant    string   `json:"variant" schema:"variant"`
+}

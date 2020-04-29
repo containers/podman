@@ -1782,6 +1782,33 @@ _podman_manifest_add() {
      esac
 }
 
+_podman_manifest_annotate() {
+	 local options_with_args="
+     --annotation
+     --arch
+     --features
+     --os
+     --os-features
+     --os-version
+     --variant
+     "
+
+     local boolean_options="
+     --help
+     -h
+     "
+
+     _complete_ "$options_with_args" "$boolean_options"
+     case "$cur" in
+         -*)
+             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+             ;;
+         *)
+             __podman_complete_images --id
+             ;;
+     esac
+}
+
 _podman_manifest_create() {
     local boolean_options="
     --all
