@@ -69,7 +69,7 @@ export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-32,fedora-31}"
 export UBUNTU_BASE_IMAGE="ubuntu-1910-eoan-v20200211"
 export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20200218"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export FEDORA_BASE_IMAGE="fedora-cloud-base-32-n-0-1586202964"
+export FEDORA_BASE_IMAGE="FIXME"
 export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1586202964"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
