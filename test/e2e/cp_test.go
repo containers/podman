@@ -22,7 +22,6 @@ var _ = Describe("Podman cp", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -96,7 +95,7 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp dir to dir", func() {
-		testDirPath := filepath.Join(podmanTest.RunRoot, "TestDir")
+		testDirPath := filepath.Join(podmanTest.RunRoot, "TestDir1")
 
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "/foodir"})
 		session.WaitWithDefaultTimeout()
@@ -105,6 +104,7 @@ var _ = Describe("Podman cp", func() {
 
 		err := os.Mkdir(testDirPath, 0755)
 		Expect(err).To(BeNil())
+		defer os.RemoveAll(testDirPath)
 
 		session = podmanTest.Podman([]string{"cp", testDirPath, name + ":/foodir"})
 		session.WaitWithDefaultTimeout()
@@ -138,8 +138,6 @@ var _ = Describe("Podman cp", func() {
 		res, err := cmd.Output()
 		Expect(err).To(BeNil())
 		Expect(len(res)).To(Equal(0))
-
-		os.RemoveAll(testDirPath)
 	})
 
 	It("podman cp stdin/stdout", func() {
@@ -148,9 +146,10 @@ var _ = Describe("Podman cp", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		name := session.OutputToString()
 
-		testDirPath := filepath.Join(podmanTest.RunRoot, "TestDir")
+		testDirPath := filepath.Join(podmanTest.RunRoot, "TestDir2")
 		err := os.Mkdir(testDirPath, 0755)
 		Expect(err).To(BeNil())
+		defer os.RemoveAll(testDirPath)
 		cmd := exec.Command("tar", "-zcvf", "file.tar.gz", testDirPath)
 		_, err = cmd.Output()
 		Expect(err).To(BeNil())
@@ -169,7 +168,6 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		os.RemoveAll(testDirPath)
 		os.Remove("file.tar.gz")
 	})
 
@@ -185,9 +183,10 @@ var _ = Describe("Podman cp", func() {
 
 		path, err := os.Getwd()
 		Expect(err).To(BeNil())
-		testDirPath := filepath.Join(path, "TestDir")
+		testDirPath := filepath.Join(path, "TestDir3")
 		err = os.Mkdir(testDirPath, 0777)
 		Expect(err).To(BeNil())
+		defer os.RemoveAll(testDirPath)
 		cmd := exec.Command("tar", "-cvf", "file.tar", testDirPath)
 		_, err = cmd.Output()
 		Expect(err).To(BeNil())
@@ -202,7 +201,6 @@ var _ = Describe("Podman cp", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("file.tar"))
 
 		os.Remove("file.tar")
-		os.RemoveAll(testDirPath)
 	})
 
 	It("podman cp symlink", func() {
