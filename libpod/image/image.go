@@ -1412,14 +1412,14 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 		}
 		manifestType = manifest.DockerV2Schema2MediaType
 	case "docker-archive", "":
-		dst := output
 		destImageName := imageNameForSaveDestination(i, source)
-		if destImageName != "" {
-			dst = fmt.Sprintf("%s:%s", dst, destImageName)
-		}
-		destRef, err = dockerarchive.ParseReference(dst) // FIXME? Add dockerarchive.NewReference
+		ref, err := dockerArchiveDstReference(destImageName)
 		if err != nil {
-			return errors.Wrapf(err, "error getting Docker archive ImageReference for %q", dst)
+			return err
+		}
+		destRef, err = dockerarchive.NewReference(output, ref)
+		if err != nil {
+			return errors.Wrapf(err, "error getting Docker archive ImageReference for %s:%v", output, ref)
 		}
 	default:
 		return errors.Errorf("unknown format option %q", format)
@@ -1437,6 +1437,23 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 	}
 	i.newImageEvent(events.Save)
 	return nil
+}
+
+// dockerArchiveDestReference returns a NamedTagged reference for a tagged image and nil for untagged image.
+func dockerArchiveDstReference(normalizedInput string) (reference.NamedTagged, error) {
+	if normalizedInput == "" {
+		return nil, nil
+	}
+	ref, err := reference.ParseNormalizedNamed(normalizedInput)
+	if err != nil {
+		return nil, errors.Wrapf(err, "docker-archive parsing reference %s", normalizedInput)
+	}
+	ref = reference.TagNameOnly(ref)
+	namedTagged, isTagged := ref.(reference.NamedTagged)
+	if !isTagged {
+		namedTagged = nil
+	}
+	return namedTagged, nil
 }
 
 // GetConfigBlob returns a schema2image.  If the image is not a schema2, then
