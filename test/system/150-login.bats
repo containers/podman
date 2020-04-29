@@ -199,8 +199,6 @@ EOF
     #   https://github.com/containers/skopeo/issues/651
     #
 
-    skip "Not working for v2 yet"
-
     run_podman pull busybox
 
     # Preserve its ID for later comparison against push/pulled image
