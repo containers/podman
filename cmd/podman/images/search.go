@@ -103,16 +103,15 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("search requires exactly one argument")
 	}
 
-	sarchOptsAPI := searchOptions.ImageSearchOptions
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified
 	// which is important to implement a sane way of dealing with defaults of
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
-		sarchOptsAPI.TLSVerify = types.NewOptionalBool(pullOptions.TLSVerifyCLI)
+		searchOptions.SkipTLSVerify = types.NewOptionalBool(!pullOptions.TLSVerifyCLI)
 	}
 
-	searchReport, err := registry.ImageEngine().Search(registry.GetContext(), searchTerm, sarchOptsAPI)
+	searchReport, err := registry.ImageEngine().Search(registry.GetContext(), searchTerm, searchOptions.ImageSearchOptions)
 	if err != nil {
 		return err
 	}

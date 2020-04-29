@@ -273,9 +273,10 @@ func Pull(ctx context.Context, rawImage string, options entities.ImagePullOption
 	params.Set("credentials", options.Credentials)
 	params.Set("overrideArch", options.OverrideArch)
 	params.Set("overrideOS", options.OverrideOS)
-	if options.TLSVerify != types.OptionalBoolUndefined {
-		val := bool(options.TLSVerify == types.OptionalBoolTrue)
-		params.Set("tlsVerify", strconv.FormatBool(val))
+	if options.SkipTLSVerify != types.OptionalBoolUndefined {
+		// Note: we have to verify if skipped is false.
+		verifyTLS := bool(options.SkipTLSVerify == types.OptionalBoolFalse)
+		params.Set("tlsVerify", strconv.FormatBool(verifyTLS))
 	}
 	params.Set("allTags", strconv.FormatBool(options.AllTags))
 
@@ -334,9 +335,10 @@ func Search(ctx context.Context, term string, opts entities.ImageSearchOptions) 
 		params.Set("filters", f)
 	}
 
-	if opts.TLSVerify != types.OptionalBoolUndefined {
-		val := bool(opts.TLSVerify == types.OptionalBoolTrue)
-		params.Set("tlsVerify", strconv.FormatBool(val))
+	if opts.SkipTLSVerify != types.OptionalBoolUndefined {
+		// Note: we have to verify if skipped is false.
+		verifyTLS := bool(opts.SkipTLSVerify == types.OptionalBoolFalse)
+		params.Set("tlsVerify", strconv.FormatBool(verifyTLS))
 	}
 
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/search", params)

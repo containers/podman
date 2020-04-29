@@ -118,7 +118,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 		DockerCertPath:              options.CertDir,
 		OSChoice:                    options.OverrideOS,
 		ArchitectureChoice:          options.OverrideArch,
-		DockerInsecureSkipTLSVerify: options.TLSVerify,
+		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
 	}
 
 	if !options.AllTags {
@@ -370,7 +370,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 		Filter:                *filter,
 		Limit:                 opts.Limit,
 		NoTrunc:               opts.NoTrunc,
-		InsecureSkipTLSVerify: opts.TLSVerify,
+		InsecureSkipTLSVerify: opts.SkipTLSVerify,
 	}
 
 	searchResults, err := image.SearchImages(term, searchOpts)

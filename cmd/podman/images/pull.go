@@ -93,23 +93,22 @@ func pullFlags(flags *pflag.FlagSet) {
 
 // imagePull is implement the command for pulling images.
 func imagePull(cmd *cobra.Command, args []string) error {
-	pullOptsAPI := pullOptions.ImagePullOptions
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified
 	// which is important to implement a sane way of dealing with defaults of
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
-		pullOptsAPI.TLSVerify = types.NewOptionalBool(pullOptions.TLSVerifyCLI)
+		pullOptions.SkipTLSVerify = types.NewOptionalBool(!pullOptions.TLSVerifyCLI)
 	}
-	if pullOptsAPI.Authfile != "" {
-		if _, err := os.Stat(pullOptsAPI.Authfile); err != nil {
-			return errors.Wrapf(err, "error getting authfile %s", pullOptsAPI.Authfile)
+	if pullOptions.Authfile != "" {
+		if _, err := os.Stat(pullOptions.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", pullOptions.Authfile)
 		}
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from
 	// scattering logic across (too) many parts of the code.
-	pullReport, err := registry.ImageEngine().Pull(registry.GetContext(), args[0], pullOptsAPI)
+	pullReport, err := registry.ImageEngine().Pull(registry.GetContext(), args[0], pullOptions.ImagePullOptions)
 	if err != nil {
 		return err
 	}
