@@ -535,32 +535,30 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
     }
 }
 
-static void
-join_namespace_or_die (int pid_to_join, const char *ns_file)
+static int
+open_namespace (int pid_to_join, const char *ns_file)
 {
   char ns_path[PATH_MAX];
   int ret;
-  int fd;
 
   ret = snprintf (ns_path, PATH_MAX, "/proc/%d/ns/%s", pid_to_join, ns_file);
   if (ret == PATH_MAX)
     {
       fprintf (stderr, "internal error: namespace path too long\n");
-      _exit (EXIT_FAILURE);
+      return -1;
     }
 
-  fd = open (ns_path, O_CLOEXEC | O_RDONLY);
-  if (fd < 0)
+  return open (ns_path, O_CLOEXEC | O_RDONLY);
+}
+
+static void
+join_namespace_or_die (const char *name, int ns_fd)
+{
+  if (setns (ns_fd, 0) < 0)
     {
-      fprintf (stderr, "cannot open: %s\n", ns_path);
+      fprintf (stderr, "cannot set %s namespace\n", name);
       _exit (EXIT_FAILURE);
     }
-  if (setns (fd, 0) < 0)
-    {
-      fprintf (stderr, "cannot set namespace to %s: %s\n", ns_path, strerror (errno));
-      _exit (EXIT_FAILURE);
-    }
-  close (fd);
 }
 
 int
@@ -570,6 +568,8 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
   char gid[16];
   char **argv;
   int pid;
+  int mnt_ns = -1;
+  int user_ns = -1;
   char *cwd = getcwd (NULL, 0);
   sigset_t sigset, oldsigset;
 
@@ -589,14 +589,28 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
+  user_ns = open_namespace (pid_to_join, "user");
+  if (user_ns < 0)
+    return user_ns;
+  mnt_ns = open_namespace (pid_to_join, "mnt");
+  if (mnt_ns < 0)
+    {
+      close (user_ns);
+      return mnt_ns;
+    }
+
   pid = fork ();
   if (pid < 0)
     fprintf (stderr, "cannot fork: %s\n", strerror (errno));
 
   if (pid)
     {
-      /* We passed down these fds, close them.  */
       int f;
+
+      /* We passed down these fds, close them.  */
+      close (user_ns);
+      close (mnt_ns);
+
       for (f = 3; f < open_files_max_fd; f++)
         if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
           close (f);
@@ -634,8 +648,10 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  join_namespace_or_die (pid_to_join, "user");
-  join_namespace_or_die (pid_to_join, "mnt");
+  join_namespace_or_die ("user", user_ns);
+  join_namespace_or_die ("mnt", mnt_ns);
+  close (user_ns);
+  close (mnt_ns);
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {
