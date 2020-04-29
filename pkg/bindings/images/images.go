@@ -311,8 +311,9 @@ func Push(ctx context.Context, source string, destination string, options entiti
 	params.Set("credentials", options.Credentials)
 	params.Set("destination", destination)
 	if options.SkipTLSVerify != types.OptionalBoolUndefined {
-		val := bool(options.SkipTLSVerify == types.OptionalBoolTrue)
-		params.Set("tlsVerify", strconv.FormatBool(!val))
+		// Note: we have to verify if skipped is false.
+		verifyTLS := bool(options.SkipTLSVerify == types.OptionalBoolFalse)
+		params.Set("tlsVerify", strconv.FormatBool(verifyTLS))
 	}
 
 	path := fmt.Sprintf("/images/%s/push", source)
