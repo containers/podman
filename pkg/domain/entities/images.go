@@ -218,6 +218,7 @@ type ImageSearchReport struct {
 	Automated string
 }
 
+// Image List Options
 type ImageListOptions struct {
 	All     bool       `json:"all" schema:"all"`
 	Filter  []string   `json:"Filter,omitempty"`

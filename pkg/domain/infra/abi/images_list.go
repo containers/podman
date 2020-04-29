@@ -25,8 +25,8 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		return nil, err
 	}
 
-	summaries := make([]*entities.ImageSummary, len(images))
-	for i, img := range images {
+	var summaries []*entities.ImageSummary
+	for _, img := range images {
 		var repoTags []string
 		if opts.All {
 			pairs, err := libpodImage.ReposToMap(img.Names())
@@ -41,6 +41,9 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 			}
 		} else {
 			repoTags, _ = img.RepoTags()
+			if len(repoTags) == 0 {
+				continue
+			}
 		}
 
 		digests := make([]string, len(img.Digests()))
@@ -72,7 +75,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		sz, _ := img.Size(context.TODO())
 		e.Size = int64(*sz)
 
-		summaries[i] = &e
+		summaries = append(summaries, &e)
 	}
 	return summaries, nil
 }
