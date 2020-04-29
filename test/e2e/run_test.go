@@ -634,7 +634,6 @@ USER mail`
 	})
 
 	It("podman run --volumes-from flag with built-in volumes", func() {
-		Skip(v2fail)
 		session := podmanTest.Podman([]string{"create", redis, "sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -729,7 +728,6 @@ USER mail`
 	})
 
 	It("podman run --pod automatically", func() {
-		Skip(v2fail)
 		session := podmanTest.Podman([]string{"run", "--pod", "new:foobar", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
