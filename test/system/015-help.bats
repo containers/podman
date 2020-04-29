@@ -55,11 +55,24 @@ function check_help() {
 
         # If usage has required arguments, try running without them
         if expr "$usage" : '.*\[flags\] [A-Z]' >/dev/null; then
-            if [ "$cmd" != "stats"]; then
-                dprint "podman $@ $cmd (without required args)"
-                run_podman 125 "$@" $cmd
-                is "$output" "Error:"
+            # Exceptions: these commands don't work rootless
+            if is_rootless; then
+                # "pause is not supported for rootless containers"
+                if [ "$cmd" = "pause" -o "$cmd" = "unpause" ]; then
+                    continue
+                fi
+                # "network rm" too
+                if [ "$@" = "network" -a "$cmd" = "rm" ]; then
+                    continue
+                fi
             fi
+
+            # The </dev/null protects us from 'podman login' which will
+            # try to read username/password from stdin.
+            dprint "podman $@ $cmd (without required args)"
+            run_podman 125 "$@" $cmd </dev/null
+            is "$output" "Error:.* \(require\|specif\|must\|provide\|need\|choose\)" \
+               "'podman $@ $cmd' without required arg"
         fi
 
         count=$(expr $count + 1)
