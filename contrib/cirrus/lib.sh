@@ -6,6 +6,11 @@
 # Global details persist here
 source /etc/environment  # not always loaded under all circumstances
 
+# Automation environment doesn't automatically load for Ubuntu 18
+if [[ -r '/usr/share/automation/environment' ]]; then
+    source '/usr/share/automation/environment'
+fi
+
 # Under some contexts these values are not set, make sure they are.
 export USER="$(whoami)"
 export HOME="$(getent passwd $USER | cut -d : -f 6)"
@@ -72,10 +77,15 @@ IN_PODMAN_IMAGE="quay.io/libpod/in_podman:$DEST_BRANCH"
 # Image for uploading releases
 UPLDREL_IMAGE="quay.io/libpod/upldrel:master"
 
+# This is needed under some environments/contexts
+SUDO=''
+[[ "$UID" -eq 0 ]] || \
+    SUDO='sudo -E'
+
 # Avoid getting stuck waiting for user input
 export DEBIAN_FRONTEND="noninteractive"
-SUDOAPTGET="ooe.sh sudo -E apt-get -qq --yes"
-SUDOAPTADD="ooe.sh sudo -E add-apt-repository --yes"
+SUDOAPTGET="$SUDO apt-get -qq --yes"
+SUDOAPTADD="$SUDO add-apt-repository --yes"
 # Regex that finds enabled periodic apt configuration items
 PERIODIC_APT_RE='^(APT::Periodic::.+")1"\;'
 # Short-cuts for retrying/timeout calls
@@ -108,6 +118,9 @@ OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
 OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 # Type of filesystem used for cgroups
 CG_FS_TYPE="$(stat -f -c %T /sys/fs/cgroup)"
+
+# When building images, the version of automation tooling to install
+INSTALL_AUTOMATION_VERSION=1.1.3
 
 # Installed into cache-images, supports overrides
 # by user-data in case of breakage or for debugging.
@@ -354,25 +367,18 @@ setup_rootless() {
         die 11 "Timeout exceeded waiting for localhost ssh capability"
 }
 
-# Helper/wrapper script to only show stderr/stdout on non-zero exit
-install_ooe() {
-    req_env_var SCRIPT_BASE
-    echo "Installing script to mask stdout/stderr unless non-zero exit."
-    sudo install -D -m 755 "$GOSRC/$SCRIPT_BASE/ooe.sh" /usr/local/bin/ooe.sh
-}
-
 # Grab a newer version of git from software collections
 # https://www.softwarecollections.org/en/
 # and use it with a wrapper
 install_scl_git() {
     echo "Installing SoftwareCollections updated 'git' version."
-    ooe.sh sudo yum -y install rh-git29
-    cat << "EOF" | sudo tee /usr/bin/git
+    ooe.sh $SUDO yum -y install rh-git29
+    cat << "EOF" | $SUDO tee /usr/bin/git
 #!/bin/bash
 
 scl enable rh-git29 -- git $@
 EOF
-    sudo chmod 755 /usr/bin/git
+    $SUDO chmod 755 /usr/bin/git
 }
 
 install_test_configs() {
@@ -414,9 +420,9 @@ remove_packaged_podman_files() {
 
     if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
     then
-        LISTING_CMD="sudo -E dpkg-query -L podman"
+        LISTING_CMD="$SUDO dpkg-query -L podman"
     else
-        LISTING_CMD='sudo rpm -ql podman'
+        LISTING_CMD='$SUDO rpm -ql podman'
     fi
 
     # yum/dnf/dpkg may list system directories, only remove files
@@ -424,7 +430,7 @@ remove_packaged_podman_files() {
     do
         # Sub-directories may contain unrelated/valuable stuff
         if [[ -d "$fullpath" ]]; then continue; fi
-        ooe.sh sudo rm -vf "$fullpath"
+        ooe.sh $SUDO rm -vf "$fullpath"
     done
 
     # Be super extra sure and careful vs performant and completely safe
@@ -447,43 +453,60 @@ systemd_banish() {
     $GOSRC/$PACKER_BASE/systemd_banish.sh
 }
 
+# This can be removed when the kernel bug fix is included in Fedora
+workaround_bfq_bug() {
+    if [[ "$OS_RELEASE_ID" == "fedora" ]] && [[ $OS_RELEASE_VER -le 32 ]]; then
+        warn "Switching io scheduler to 'deadline' to avoid RHBZ 1767539"
+        warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
+        echo "mq-deadline" | sudo tee /sys/block/sda/queue/scheduler > /dev/null
+        echo -n "IO Scheduler set to: "
+        $SUDO cat /sys/block/sda/queue/scheduler
+    fi
+}
+
+# Warning: DO NOT USE.
+# This is called by other functions as the very last step during the VM Image build
+# process.  It's purpose is to "reset" the image, so all the first-boot operations
+# happen at test runtime (like generating new ssh host keys, resizing partitions, etc.)
 _finalize() {
     set +e  # Don't fail at the very end
     if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
     then
         echo "Installing custom cloud-init defaults"
-        sudo cp -v "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* /etc/cloud/cloud.cfg.d/
+        $SUDO cp -v "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* /etc/cloud/cloud.cfg.d/
     else
         echo "Could not find any files in $CUSTOM_CLOUD_CONFIG_DEFAULTS"
     fi
     echo "Re-initializing so next boot does 'first-boot' setup again."
     cd /
-    sudo rm -rf /var/lib/cloud/instanc*
-    sudo rm -rf /root/.ssh/*
-    sudo rm -rf /etc/ssh/*key*
-    sudo rm -rf /etc/ssh/moduli
-    sudo rm -rf /home/*
-    sudo rm -rf /tmp/*
-    sudo rm -rf /tmp/.??*
-    sudo sync
-    sudo fstrim -av
+    $SUDO rm -rf /var/lib/cloud/instanc*
+    $SUDO rm -rf /root/.ssh/*
+    $SUDO rm -rf /etc/ssh/*key*
+    $SUDO rm -rf /etc/ssh/moduli
+    $SUDO rm -rf /home/*
+    $SUDO rm -rf /tmp/*
+    $SUDO rm -rf /tmp/.??*
+    $SUDO sync
+    $SUDO fstrim -av
 }
 
+# Called during VM Image setup, not intended for general use.
 rh_finalize() {
     set +e  # Don't fail at the very end
     echo "Resetting to fresh-state for usage as cloud-image."
     PKG=$(type -P dnf || type -P yum || echo "")
-    sudo $PKG clean all
-    sudo rm -rf /var/cache/{yum,dnf}
-    sudo rm -f /etc/udev/rules.d/*-persistent-*.rules
-    sudo touch /.unconfigured  # force firstboot to run
+    $SUDO $PKG clean all
+    $SUDO rm -rf /var/cache/{yum,dnf}
+    $SUDO rm -f /etc/udev/rules.d/*-persistent-*.rules
+    $SUDO touch /.unconfigured  # force firstboot to run
     _finalize
 }
 
+# Called during VM Image setup, not intended for general use.
 ubuntu_finalize() {
     set +e  # Don't fail at the very end
     echo "Resetting to fresh-state for usage as cloud-image."
     $LILTO $SUDOAPTGET autoremove
-    sudo rm -rf /var/cache/apt
+    $SUDO rm -rf /var/cache/apt
     _finalize
 }
