@@ -170,29 +170,24 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	return &entities.ImagePullReport{Images: foundIDs}, nil
 }
 
-func (ir *ImageEngine) Inspect(ctx context.Context, names []string, opts entities.InspectOptions) (*entities.ImageInspectReport, error) {
-	report := entities.ImageInspectReport{
-		Errors: make(map[string]error),
-	}
-
-	for _, id := range names {
-		img, err := ir.Libpod.ImageRuntime().NewFromLocal(id)
+func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, error) {
+	reports := []*entities.ImageInspectReport{}
+	for _, i := range namesOrIDs {
+		img, err := ir.Libpod.ImageRuntime().NewFromLocal(i)
 		if err != nil {
-			report.Errors[id] = err
-			continue
+			return nil, err
 		}
-
-		results, err := img.Inspect(ctx)
+		result, err := img.Inspect(ctx)
 		if err != nil {
-			report.Errors[id] = err
-			continue
+			return nil, err
 		}
-
-		cookedResults := entities.ImageData{}
-		_ = domainUtils.DeepCopy(&cookedResults, results)
-		report.Images = append(report.Images, &cookedResults)
+		report := entities.ImageInspectReport{}
+		if err := domainUtils.DeepCopy(&report, result); err != nil {
+			return nil, err
+		}
+		reports = append(reports, &report)
 	}
-	return &report, nil
+	return reports, nil
 }
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {

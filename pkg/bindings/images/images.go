@@ -57,7 +57,7 @@ func List(ctx context.Context, all *bool, filters map[string][]string) ([]*entit
 
 // Get performs an image inspect.  To have the on-disk size of the image calculated, you can
 // use the optional size parameter.
-func GetImage(ctx context.Context, nameOrID string, size *bool) (*entities.ImageData, error) {
+func GetImage(ctx context.Context, nameOrID string, size *bool) (*entities.ImageInspectReport, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func GetImage(ctx context.Context, nameOrID string, size *bool) (*entities.Image
 	if size != nil {
 		params.Set("size", strconv.FormatBool(*size))
 	}
-	inspectedData := entities.ImageData{}
+	inspectedData := entities.ImageInspectReport{}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/json", params, nameOrID)
 	if err != nil {
 		return &inspectedData, err

@@ -143,16 +143,16 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string
 	return nil
 }
 
-func (ir *ImageEngine) Inspect(_ context.Context, names []string, opts entities.InspectOptions) (*entities.ImageInspectReport, error) {
-	report := entities.ImageInspectReport{}
-	for _, id := range names {
-		r, err := images.GetImage(ir.ClientCxt, id, &opts.Size)
+func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, error) {
+	reports := []*entities.ImageInspectReport{}
+	for _, i := range namesOrIDs {
+		r, err := images.GetImage(ir.ClientCxt, i, &opts.Size)
 		if err != nil {
-			report.Errors[id] = err
+			return nil, err
 		}
-		report.Images = append(report.Images, r)
+		reports = append(reports, r)
 	}
-	return &report, nil
+	return reports, nil
 }
 
 func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {

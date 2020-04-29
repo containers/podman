@@ -47,10 +47,14 @@ type NetOptions struct {
 
 // All CLI inspect commands and inspect sub-commands use the same options
 type InspectOptions struct {
+	// Format - change the output to JSON or a Go template.
 	Format string `json:",omitempty"`
-	Latest bool   `json:",omitempty"`
-	Size   bool   `json:",omitempty"`
-	Type   string `json:",omitempty"`
+	// Latest - inspect the latest container Podman is aware of.
+	Latest bool `json:",omitempty"`
+	// Size (containers only) - display total file size.
+	Size bool `json:",omitempty"`
+	// Type -- return JSON for specified type.
+	Type string `json:",omitempty"`
 }
 
 // All API and CLI diff commands and diff sub-commands use the same options
