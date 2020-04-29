@@ -98,6 +98,7 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	case 1:
 		source = args[0]
+		destination = args[0]
 	case 2:
 		source = args[0]
 		destination = args[1]
