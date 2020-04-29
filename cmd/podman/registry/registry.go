@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra"
@@ -86,7 +87,7 @@ func SubCommandExists(cmd *cobra.Command, args []string) error {
 // IdOrLatestArgs used to validate a nameOrId was provided or the "--latest" flag
 func IdOrLatestArgs(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 || (len(args) == 0 && !cmd.Flag("latest").Changed) {
-		return errors.New(`command requires a name, id  or the "--latest" flag`)
+		return fmt.Errorf("%s requires a name, id or the '--latest' flag", cmd.Name())
 	}
 	return nil
 }

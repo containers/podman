@@ -78,6 +78,10 @@ func init() {
 	)
 
 	rootFlags(registry.PodmanConfig(), rootCmd.PersistentFlags())
+
+	// "version" is a local flag to avoid collisions with sub-commands that use "-v"
+	var dummyVersion bool
+	rootCmd.Flags().BoolVarP(&dummyVersion, "version", "v", false, "Version of Podman")
 }
 
 func Execute() {
@@ -205,11 +209,6 @@ func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	// V2 flags
 	flags.StringVarP(&opts.Uri, "remote", "r", "", "URL to access Podman service")
 	flags.StringSliceVar(&opts.Identities, "identity", []string{}, "path to SSH identity file")
-
-	// Override default --help information of `--version` global flag
-	// TODO: restore -v option for version without breaking -v for volumes
-	var dummyVersion bool
-	flags.BoolVar(&dummyVersion, "version", false, "Version of Podman")
 
 	cfg := opts.Config
 	flags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, opts.CGroupUsage)
