@@ -310,9 +310,10 @@ func Push(ctx context.Context, source string, destination string, options entiti
 	params := url.Values{}
 	params.Set("credentials", options.Credentials)
 	params.Set("destination", destination)
-	if options.TLSVerify != types.OptionalBoolUndefined {
-		val := bool(options.TLSVerify == types.OptionalBoolTrue)
-		params.Set("tlsVerify", strconv.FormatBool(val))
+	if options.SkipTLSVerify != types.OptionalBoolUndefined {
+		// Note: we have to verify if skipped is false.
+		verifyTLS := bool(options.SkipTLSVerify == types.OptionalBoolFalse)
+		params.Set("tlsVerify", strconv.FormatBool(verifyTLS))
 	}
 
 	path := fmt.Sprintf("/images/%s/push", source)

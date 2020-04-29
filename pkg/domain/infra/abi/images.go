@@ -221,7 +221,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds:         registryCreds,
 		DockerCertPath:              options.CertDir,
-		DockerInsecureSkipTLSVerify: options.TLSVerify,
+		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
 	}
 
 	signOptions := image.SigningOptions{
