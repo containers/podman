@@ -183,8 +183,8 @@ type ImagePushOptions struct {
 	// SignBy adds a signature at the destination using the specified key.
 	// Ignored for remote calls.
 	SignBy string
-	// TLSVerify to enable/disable HTTPS and certificate verification.
-	TLSVerify types.OptionalBool
+	// SkipTLSVerify to skip HTTPS and certificate verification.
+	SkipTLSVerify types.OptionalBool
 }
 
 // ImageSearchOptions are the arguments for searching images.

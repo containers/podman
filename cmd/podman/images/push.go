@@ -113,7 +113,7 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	// which is important to implement a sane way of dealing with defaults of
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
-		pushOptions.TLSVerify = types.NewOptionalBool(pushOptions.TLSVerifyCLI)
+		pushOptions.SkipTLSVerify = types.NewOptionalBool(!pushOptions.TLSVerifyCLI)
 	}
 
 	if pushOptions.Authfile != "" {
