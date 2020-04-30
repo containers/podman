@@ -34,7 +34,6 @@ var _ = Describe("Podman network", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -159,6 +158,7 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman inspect container single CNI network", func() {
+		Skip(v2fail)
 		SkipIfRootless()
 		netName := "testNetSingleCNI"
 		network := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.50.0/24", netName})
@@ -190,6 +190,7 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman inspect container two CNI networks", func() {
+		Skip(v2fail)
 		SkipIfRootless()
 		netName1 := "testNetTwoCNI1"
 		network1 := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.51.0/25", netName1})

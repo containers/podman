@@ -1,4 +1,4 @@
-package images
+package network
 
 import (
 	"github.com/containers/libpod/cmd/podman/registry"
@@ -9,7 +9,7 @@ import (
 
 var (
 	// Command: podman _network_
-	cmd = &cobra.Command{
+	networkCmd = &cobra.Command{
 		Use:              "network",
 		Short:            "Manage networks",
 		Long:             "Manage networks",
@@ -18,12 +18,9 @@ var (
 	}
 )
 
-// TODO add the following to main.go to get networks back onto the
-// command list.
-// _ "github.com/containers/libpod/cmd/podman/networks"
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: cmd,
+		Command: networkCmd,
 	})
 }

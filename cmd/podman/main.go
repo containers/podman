@@ -9,6 +9,7 @@ import (
 	_ "github.com/containers/libpod/cmd/podman/healthcheck"
 	_ "github.com/containers/libpod/cmd/podman/images"
 	_ "github.com/containers/libpod/cmd/podman/manifest"
+	_ "github.com/containers/libpod/cmd/podman/networks"
 	_ "github.com/containers/libpod/cmd/podman/pods"
 	"github.com/containers/libpod/cmd/podman/registry"
 	_ "github.com/containers/libpod/cmd/podman/system"
