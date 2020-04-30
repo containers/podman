@@ -165,20 +165,34 @@ env:
   * Choose the *test_build_cache_images* task.
   * Open the *build_vm_images* script section.
 
-### `release` Task
+### `docs` Task
 
-Gathers up zip files uploaded by other tasks, from the local Cirrus-CI caching service.
-Depending on the execution context (a PR or a branch), this task uploads the files
-found to storage buckets at:
+Builds swagger API documentation YAML and uploads to google storage for both
+PR's (for testing the process) and after a merge into any branch.  For PR's
+the YAML is uploaded into a [dedicated short-pruning cycle
+bucket.](https://storage.googleapis.com/libpod-pr-releases/)  For branches,
+a [separate bucket is
+used.](https://storage.googleapis.com/libpod-master-releases)
+In both cases the filename includes the source
+PR number or branch name.
 
-* [https://storage.cloud.google.com/libpod-pr-releases](https://storage.cloud.google.com/libpod-pr-releases)
-* [https://storage.cloud.google.com/libpod-master-releases](https://storage.cloud.google.com/libpod-master-releases)
+***Note***: [The online documentation](http://docs.podman.io/en/latest/_static/api.html)
+is presented through javascript on the client-side.  This requires CORS to be properly
+configured on the bucket, for the `http://docs.podman.io` origin.  Please see
+[Configuring CORS on a bucket](https://cloud.google.com/storage/docs/configuring-cors#configure-cors-bucket)
+for details.  This may be performed by anybody with admin access to the google storage bucket,
+using the following JSON:
 
-***Note:*** Repeated builds from the same PR or branch, will clobber previous archives
-            *by design*.  This is intended so that the "latest" archive is always
-            available at a consistent URL.  The precise details regarding a particular
-            build is encoded within the zip-archive comment.
-
+```JSON
+[
+    {
+      "origin": ["http://docs.podman.io"],
+      "responseHeader": ["Content-Type"],
+      "method": ["GET"],
+      "maxAgeSeconds": 600
+    }
+]
+```
 
 ## Base-images
 

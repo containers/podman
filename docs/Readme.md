@@ -26,3 +26,14 @@ link on that page.
 | ------------------------------------ | --------------------------- |
 | docs/remote-docs.sh | Read the docs/source/markdown files and format for each platform |
 | docs/links-to-html.lua | pandoc filter to do aliases for html files |
+
+## API Reference
+
+The [latest online documentation](http://docs.podman.io/en/latest/_static/api.html) is
+automatically generated from committed upstream sources.  There is a short-duration
+cache involved, in case old content or an error is returned, try clearing your browser
+cache or returning to the site after 10-30 minutes.
+
+***Maintainers Note***: Please refer to [the Cirrus-CI tasks
+documentation](../contrib/cirrus/README.md#docs-task) for
+important operational details.
