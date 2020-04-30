@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -20,7 +20,7 @@ import (
 var (
 	versionCommand = &cobra.Command{
 		Use:   "version",
-		Args:  common.NoArgs,
+		Args:  validate.NoArgs,
 		Short: "Display the Podman Version Information",
 		RunE:  version,
 		Annotations: map[string]string{
@@ -56,14 +56,14 @@ func version(cmd *cobra.Command, args []string) error {
 	// TODO we need to discuss how to implement
 	// this more. current endpoints dont have a
 	// version endpoint.  maybe we use info?
-	//if remote {
+	// if remote {
 	//	v.Server, err = getRemoteVersion(c)
 	//	if err != nil {
 	//		return err
 	//	}
-	//} else {
+	// } else {
 	v.Server = v.Client
-	//}
+	// }
 
 	versionOutputFormat := versionFormat
 	if versionOutputFormat != "" {

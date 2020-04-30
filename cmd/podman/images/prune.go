@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -19,7 +19,7 @@ var (
   If an image is not being used by a container, it will be removed from the system.`
 	pruneCmd = &cobra.Command{
 		Use:     "prune",
-		Args:    common.NoArgs,
+		Args:    validate.NoArgs,
 		Short:   "Remove unused images",
 		Long:    pruneDescription,
 		RunE:    prune,

@@ -1,4 +1,4 @@
-//nolint
+// nolint
 // most of these validate and parse functions have been taken from projectatomic/docker
 // and modified for cri-o
 package parse
@@ -41,7 +41,7 @@ func TestValidateExtraHost(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		//2001:0db8:85a3:0000:0000:8a2e:0370:7334
+		// 2001:0db8:85a3:0000:0000:8a2e:0370:7334
 		{name: "good-ipv4", args: args{val: "foobar:192.168.1.1"}, want: "foobar:192.168.1.1", wantErr: false},
 		{name: "bad-ipv4", args: args{val: "foobar:999.999.999.99"}, want: "", wantErr: true},
 		{name: "bad-ipv4", args: args{val: "foobar:999.999.999"}, want: "", wantErr: true},

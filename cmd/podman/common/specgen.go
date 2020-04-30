@@ -192,7 +192,7 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []strin
 func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) error {
 	var (
 		err error
-		//namespaces map[string]string
+		// namespaces map[string]string
 	)
 
 	// validate flags as needed
@@ -485,7 +485,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	// TODO
 	// ouitside of specgen and oci though
 	// defaults to true, check spec/storage
-	//s.readon = c.ReadOnlyTmpFS
+	// s.readon = c.ReadOnlyTmpFS
 	//  TODO convert to map?
 	// check if key=value and convert
 	sysmap := make(map[string]string)
@@ -528,7 +528,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 
 	// Only add read-only tmpfs mounts in case that we are read-only and the
 	// read-only tmpfs flag has been set.
-	mounts, volumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS, (c.ReadOnlyTmpFS && c.ReadOnly))
+	mounts, volumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS, c.ReadOnlyTmpFS && c.ReadOnly)
 	if err != nil {
 		return err
 	}
@@ -536,12 +536,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Volumes = volumes
 
 	// TODO any idea why this was done
-	//devices := rtc.Containers.Devices
+	// devices := rtc.Containers.Devices
 	// TODO conflict on populate?
 	//
-	//if c.Changed("device") {
+	// if c.Changed("device") {
 	//	devices = append(devices, c.StringSlice("device")...)
-	//}
+	// }
 
 	for _, dev := range c.Devices {
 		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
@@ -553,7 +553,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	// initpath
 	s.Stdin = c.Interactive
 	// quiet
-	//DeviceCgroupRules: c.StringSlice("device-cgroup-rule"),
+	// DeviceCgroupRules: c.StringSlice("device-cgroup-rule"),
 
 	// Rlimits/Ulimits
 	for _, u := range c.Ulimit {
@@ -573,10 +573,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		s.Rlimits = append(s.Rlimits, rl)
 	}
 
-	//Tmpfs:         c.StringArray("tmpfs"),
+	// Tmpfs:         c.StringArray("tmpfs"),
 
 	// TODO how to handle this?
-	//Syslog:        c.Bool("syslog"),
+	// Syslog:        c.Bool("syslog"),
 
 	logOpts := make(map[string]string)
 	for _, o := range c.LogOptions {
@@ -602,7 +602,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.StopTimeout = &c.StopTimeout
 
 	// TODO where should we do this?
-	//func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, error) {
+	// func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, error) {
 	return nil
 }
 

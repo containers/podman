@@ -12,8 +12,8 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
@@ -26,7 +26,7 @@ var (
 	psDescription = "Prints out information about the containers"
 	psCommand     = &cobra.Command{
 		Use:   "ps",
-		Args:  common.NoArgs,
+		Args:  validate.NoArgs,
 		Short: "List containers",
 		Long:  psDescription,
 		RunE:  ps,
@@ -41,7 +41,7 @@ var (
 	}
 	filters        []string
 	noTrunc        bool
-	defaultHeaders string = "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tSTATUS\tPORTS\tNAMES"
+	defaultHeaders = "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tSTATUS\tPORTS\tNAMES"
 )
 
 func init() {
@@ -64,9 +64,12 @@ func listFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVarP(&listOpts.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
 	flags.BoolVarP(&listOpts.Quiet, "quiet", "q", false, "Print the numeric IDs of the containers only")
 	flags.BoolVarP(&listOpts.Size, "size", "s", false, "Display the total file sizes")
-	flags.StringVar(&listOpts.Sort, "sort", "created", "Sort output by command, created, id, image, names, runningfor, size, or status")
 	flags.BoolVar(&listOpts.Sync, "sync", false, "Sync container state with OCI runtime")
 	flags.UintVarP(&listOpts.Watch, "watch", "w", 0, "Watch the ps output on an interval in seconds")
+
+	created := validate.ChoiceValue(&listOpts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
+	flags.Var(created, "sort", "Sort output by: "+created.Choices())
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 	}
@@ -175,7 +178,7 @@ func ps(cmd *cobra.Command, args []string) error {
 
 	headers, format := createPsOut()
 	if cmd.Flag("format").Changed {
-		format = listOpts.Format
+		format = strings.TrimPrefix(listOpts.Format, "table ")
 		if !strings.HasPrefix(format, "\n") {
 			format += "\n"
 		}
@@ -352,7 +355,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 	if len(ports) == 0 {
 		return ""
 	}
-	//Sort the ports, so grouping continuous ports become easy.
+	// Sort the ports, so grouping continuous ports become easy.
 	sort.Slice(ports, func(i, j int) bool {
 		return comparePorts(ports[i], ports[j])
 	})

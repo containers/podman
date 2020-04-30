@@ -6,6 +6,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/containers"
 	"github.com/containers/libpod/cmd/podman/images"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +18,7 @@ var (
 	diffDescription = `Displays changes on a container or image's filesystem.  The container or image will be compared to its parent layer.`
 	diffCmd         = &cobra.Command{
 		Use:              "diff [flags] {CONTAINER_ID | IMAGE_ID}",
-		Args:             registry.IdOrLatestArgs,
+		Args:             validate.IdOrLatestArgs,
 		Short:            "Display the changes of object's file system",
 		Long:             diffDescription,
 		TraverseChildren: true,

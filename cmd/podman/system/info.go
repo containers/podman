@@ -5,8 +5,8 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
@@ -19,7 +19,7 @@ var (
 `
 	infoCommand = &cobra.Command{
 		Use:     "info",
-		Args:    common.NoArgs,
+		Args:    validate.NoArgs,
 		Long:    infoDescription,
 		Short:   "Display podman system information",
 		RunE:    info,

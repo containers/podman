@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/specgen"
@@ -24,7 +25,7 @@ var (
 
 	createCommand = &cobra.Command{
 		Use:   "create",
-		Args:  common.NoArgs,
+		Args:  validate.NoArgs,
 		Short: "Create a new empty pod",
 		Long:  podCreateDescription,
 		RunE:  create,
@@ -116,7 +117,7 @@ func create(cmd *cobra.Command, args []string) error {
 	case "slip4netns":
 		n.NSMode = specgen.Slirp
 	default:
-		if strings.HasPrefix(netInput, "container:") { //nolint
+		if strings.HasPrefix(netInput, "container:") { // nolint
 			split := strings.Split(netInput, ":")
 			if len(split) != 2 {
 				return errors.Errorf("invalid network paramater: %q", netInput)

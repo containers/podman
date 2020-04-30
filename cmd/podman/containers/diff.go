@@ -3,6 +3,7 @@ package containers
 import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/report"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -12,7 +13,7 @@ var (
 	// podman container _diff_
 	diffCmd = &cobra.Command{
 		Use:   "diff [flags] CONTAINER",
-		Args:  registry.IdOrLatestArgs,
+		Args:  validate.IdOrLatestArgs,
 		Short: "Inspect changes on container's file systems",
 		Long:  `Displays changes on a container filesystem.  The container will be compared to its parent layer.`,
 		RunE:  diff,

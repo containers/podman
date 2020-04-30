@@ -1,4 +1,4 @@
-//nolint
+// nolint
 // most of these validate and parse functions have been taken from projectatomic/docker
 // and modified for cri-o
 package parse
@@ -46,7 +46,7 @@ var (
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.
 // ExtraHost is in the form of name:ip where the ip has to be a valid ip (ipv4 or ipv6).
 // for add-host flag
-func ValidateExtraHost(val string) (string, error) { //nolint
+func ValidateExtraHost(val string) (string, error) { // nolint
 	// allow for IPv6 addresses in extra hosts by only splitting on first ":"
 	arr := strings.SplitN(val, ":", 2)
 	if len(arr) != 2 || len(arr[0]) == 0 {

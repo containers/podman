@@ -2,6 +2,7 @@ package pods
 
 import (
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/spf13/cobra"
@@ -14,7 +15,7 @@ var (
 		Short:            "Generate structured data based on containers and pods.",
 		Long:             "Generate structured data (e.g., Kubernetes yaml or systemd units) based on containers and pods.",
 		TraverseChildren: true,
-		RunE:             registry.SubCommandExists,
+		RunE:             validate.SubCommandExists,
 	}
 	containerConfig = util.DefaultContainerConfig()
 )

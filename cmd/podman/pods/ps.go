@@ -11,8 +11,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -29,12 +29,12 @@ var (
 		Short:   "list pods",
 		Long:    psDescription,
 		RunE:    pods,
-		Args:    common.NoArgs,
+		Args:    validate.NoArgs,
 	}
 )
 
 var (
-	defaultHeaders string = "POD ID\tNAME\tSTATUS\tCREATED"
+	defaultHeaders = "POD ID\tNAME\tSTATUS\tCREATED"
 	inputFilters   []string
 	noTrunc        bool
 	psInput        entities.PodPSOptions
