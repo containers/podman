@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -17,12 +18,7 @@ var (
 		Short: "Attach to a running container",
 		Long:  attachDescription,
 		RunE:  attach,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 1 || (len(args) == 0 && !cmd.Flag("latest").Changed) {
-				return errors.Errorf("attach requires the name or id of one running container or the latest flag")
-			}
-			return nil
-		},
+		Args:  validate.IdOrLatestArgs,
 		Example: `podman attach ctrID
   podman attach 1234
   podman attach --no-stdin foobar`,
@@ -33,6 +29,7 @@ var (
 		Short: attachCommand.Short,
 		Long:  attachCommand.Long,
 		RunE:  attachCommand.RunE,
+		Args:  validate.IdOrLatestArgs,
 		Example: `podman container attach ctrID
 	podman container attach 1234
 	podman container attach --no-stdin foobar`,

@@ -45,6 +45,7 @@ var (
 		Short: pullCmd.Short,
 		Long:  pullCmd.Long,
 		RunE:  pullCmd.RunE,
+		Args:  cobra.ExactArgs(1),
 		Example: `podman image pull imageName
   podman image pull fedora:latest`,
 	}

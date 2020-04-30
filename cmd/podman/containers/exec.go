@@ -16,20 +16,22 @@ var (
 	execDescription = `Execute the specified command inside a running container.
 `
 	execCommand = &cobra.Command{
-		Use:   "exec [flags] CONTAINER [COMMAND [ARG...]]",
-		Short: "Run a process in a running container",
-		Long:  execDescription,
-		RunE:  exec,
+		Use:                   "exec [flags] CONTAINER [COMMAND [ARG...]]",
+		Short:                 "Run a process in a running container",
+		Long:                  execDescription,
+		RunE:                  exec,
+		DisableFlagsInUseLine: true,
 		Example: `podman exec -it ctrID ls
   podman exec -it -w /tmp myCtr pwd
   podman exec --user root ctrID ls`,
 	}
 
 	containerExecCommand = &cobra.Command{
-		Use:   execCommand.Use,
-		Short: execCommand.Short,
-		Long:  execCommand.Long,
-		RunE:  execCommand.RunE,
+		Use:                   execCommand.Use,
+		Short:                 execCommand.Short,
+		Long:                  execCommand.Long,
+		RunE:                  execCommand.RunE,
+		DisableFlagsInUseLine: true,
 		Example: `podman container exec -it ctrID ls
   podman container exec -it -w /tmp myCtr pwd
   podman container exec --user root ctrID ls`,
@@ -79,6 +81,10 @@ func init() {
 
 func exec(cmd *cobra.Command, args []string) error {
 	var nameOrId string
+
+	if len(args) == 0 && !execOpts.Latest {
+		return errors.New("exec requires the name or ID of a container or the --latest flag")
+	}
 	execOpts.Cmd = args
 	if !execOpts.Latest {
 		execOpts.Cmd = args[1:]

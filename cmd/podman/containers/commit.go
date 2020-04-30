@@ -30,6 +30,7 @@ var (
 	}
 
 	containerCommitCommand = &cobra.Command{
+		Args:  cobra.MinimumNArgs(1),
 		Use:   commitCommand.Use,
 		Short: commitCommand.Short,
 		Long:  commitCommand.Long,

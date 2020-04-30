@@ -38,6 +38,9 @@ var (
 		Short: rmCommand.Use,
 		Long:  rmCommand.Long,
 		RunE:  rmCommand.RunE,
+		Args: func(cmd *cobra.Command, args []string) error {
+			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
+		},
 		Example: `podman container rm imageID
   podman container rm mywebserver myflaskserver 860a4b23
   podman container rm --force --all

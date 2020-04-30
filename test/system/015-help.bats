@@ -71,7 +71,7 @@ function check_help() {
             # try to read username/password from stdin.
             dprint "podman $@ $cmd (without required args)"
             run_podman 125 "$@" $cmd </dev/null
-            is "$output" "Error:.* \(require\|specif\|must\|provide\|need\|choose\)" \
+            is "$output" "Error:.* \(require\|specif\|must\|provide\|need\|choose\|accepts\)" \
                "'podman $@ $cmd' without required arg"
         fi
 

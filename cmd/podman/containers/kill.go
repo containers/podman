@@ -30,6 +30,9 @@ var (
 	}
 
 	containerKillCommand = &cobra.Command{
+		Args: func(cmd *cobra.Command, args []string) error {
+			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+		},
 		Use:   killCommand.Use,
 		Short: killCommand.Short,
 		Long:  killCommand.Long,

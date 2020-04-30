@@ -20,6 +20,7 @@ import (
 var (
 	runDescription = "Runs a command in a new container from the given image"
 	runCommand     = &cobra.Command{
+		Args:  cobra.MinimumNArgs(1),
 		Use:   "run [flags] IMAGE [COMMAND [ARG...]]",
 		Short: "Run a command in a new container",
 		Long:  runDescription,
@@ -30,6 +31,7 @@ var (
 	}
 
 	containerRunCommand = &cobra.Command{
+		Args:  cobra.MinimumNArgs(1),
 		Use:   runCommand.Use,
 		Short: runCommand.Short,
 		Long:  runCommand.Long,
