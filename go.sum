@@ -76,8 +76,8 @@ github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDpl
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.2 h1:Q0/IPs8ohfbXNxEfyJ2pFVmvJu5BhqJUAmc6ES9NKbo=
 github.com/containers/ocicrypt v1.0.2/go.mod h1:nsOhbP19flrX6rE7ieGFvBlr7modwmNjsqWarIUce4M=
-github.com/containers/psgo v1.4.0 h1:D8B4fZCCZhYgc8hDyMPCiShOinmOB1TP1qe46sSC19k=
-github.com/containers/psgo v1.4.0/go.mod h1:ENXXLQ5E1At4K0EUsGogXBJi/C28gwqkONWeLPI9fJ8=
+github.com/containers/psgo v1.5.0 h1:uofUREsrm0Ls5K4tkEIFPqWSHKyg3Bvoqo/Q2eDmj8g=
+github.com/containers/psgo v1.5.0/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzPUWfawVU=
 github.com/containers/storage v1.18.2 h1:4cgFbrrgr9nR9xCeOmfpyxk1MtXYZGr7XGPJfAVkGmc=
 github.com/containers/storage v1.18.2/go.mod h1:WTBMf+a9ZZ/LbmEVeLHH2TX4CikWbO1Bt+/m58ZHVPg=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=

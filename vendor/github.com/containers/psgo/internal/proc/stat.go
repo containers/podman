@@ -15,6 +15,7 @@
 package proc
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -112,20 +113,30 @@ type Stat struct {
 }
 
 // readStat is used for mocking in unit tests.
-var readStat = func(path string) ([]string, error) {
-	data, err := ioutil.ReadFile(path)
+var readStat = func(path string) (string, error) {
+	rawData, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return strings.Fields(string(data)), nil
+	return string(rawData), nil
 }
 
 // ParseStat parses the /proc/$pid/stat file and returns a Stat.
 func ParseStat(pid string) (*Stat, error) {
-	fields, err := readStat(fmt.Sprintf("/proc/%s/stat", pid))
+	data, err := readStat(fmt.Sprintf("/proc/%s/stat", pid))
 	if err != nil {
 		return nil, err
 	}
+
+	firstParen := strings.IndexByte(data, '(')
+	lastParen := strings.LastIndexByte(data, ')')
+	if firstParen == -1 || lastParen == -1 {
+		return nil, errors.New("invalid format in stat")
+	}
+	pidstr := data[0 : firstParen-1]
+	comm := data[firstParen+1 : lastParen]
+	rest := strings.Fields(data[lastParen+1:])
+	fields := append([]string{pidstr, comm}, rest...)
 
 	fieldAt := func(i int) string {
 		return fields[i-1]

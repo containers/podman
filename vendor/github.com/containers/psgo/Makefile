@@ -16,6 +16,8 @@ ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
 	GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
 endif
 
+GOBIN ?= $(GO)/bin
+
 all: validate build
 
 .PHONY: build
@@ -34,12 +36,7 @@ vendor:
 
 .PHONY: validate
 validate: .install.lint
-	@which gofmt >/dev/null 2>/dev/null || (echo "ERROR: gofmt not found." && false)
-	test -z "$$(gofmt -s -l . | grep -vE 'vendor/' | tee /dev/stderr)"
-	@which golangci-lint >/dev/null 2>/dev/null|| (echo "ERROR: golangci-lint not found." && false)
-	test -z "$$(golangci-lint run)"
-	@go doc cmd/vet >/dev/null 2>/dev/null|| (echo "ERROR: go vet not found." && false)
-	test -z "$$($(GO) vet $$($(GO) list $(PROJECT)/...) 2>&1 | tee /dev/stderr)"
+	$(GOBIN)/golangci-lint run
 
 .PHONY: test
 test: test-unit test-integration
@@ -59,8 +56,7 @@ install:
 
 .PHONY: .install.lint
 .install.lint:
-	# Workaround for https://github.com/golangci/golangci-lint/issues/523
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	VERSION=1.24.0 GOBIN=$(GOBIN) sh ./hack/install_golangci.sh
 
 .PHONY: uninstall
 uninstall:

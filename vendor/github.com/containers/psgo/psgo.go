@@ -306,6 +306,11 @@ var (
 			procFn: processHGROUP,
 		},
 		{
+			normal: "rss",
+			header: "RSS",
+			procFn: processRSS,
+		},
+		{
 			normal: "state",
 			header: "STATE",
 			procFn: processState,
@@ -663,12 +668,7 @@ func processARGS(p *process.Process, ctx *psContext) (string, error) {
 
 // processCOMM returns the command name (i.e., executable name) of process p.
 func processCOMM(p *process.Process, ctx *psContext) (string, error) {
-	// ps (1) returns "[$name]" if command/args are empty
-	if p.CmdLine[0] == "" {
-		return processName(p, ctx)
-	}
-	spl := strings.Split(p.CmdLine[0], "/")
-	return spl[len(spl)-1], nil
+	return p.Stat.Comm, nil
 }
 
 // processNICE returns the nice value of process p.
@@ -865,6 +865,16 @@ func processHGROUP(p *process.Process, ctx *psContext) (string, error) {
 		return hp.Hgroup, nil
 	}
 	return "?", nil
+}
+
+// processRSS returns the resident set size of process p in KiB (1024-byte
+// units).
+func processRSS(p *process.Process, ctx *psContext) (string, error) {
+	if p.Status.VMRSS == "" {
+		// probably a kernel thread
+		return "0", nil
+	}
+	return p.Status.VMRSS, nil
 }
 
 // processState returns the process state of process p.
