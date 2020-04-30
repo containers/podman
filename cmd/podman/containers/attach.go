@@ -71,11 +71,18 @@ func init() {
 }
 
 func attach(cmd *cobra.Command, args []string) error {
+	if len(args) > 1 || (len(args) == 0 && !attachOpts.Latest) {
+		return errors.Errorf("attach requires the name or id of one running container or the latest flag")
+	}
+	var name string
+	if len(args) > 0 {
+		name = args[0]
+	}
 	attachOpts.Stdin = os.Stdin
 	if attachOpts.NoStdin {
 		attachOpts.Stdin = nil
 	}
 	attachOpts.Stdout = os.Stdout
 	attachOpts.Stderr = os.Stderr
-	return registry.ContainerEngine().ContainerAttach(registry.GetContext(), args[0], attachOpts)
+	return registry.ContainerEngine().ContainerAttach(registry.GetContext(), name, attachOpts)
 }
