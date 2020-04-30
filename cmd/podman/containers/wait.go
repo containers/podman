@@ -34,6 +34,7 @@ var (
 		Short: waitCommand.Short,
 		Long:  waitCommand.Long,
 		RunE:  waitCommand.RunE,
+		Args:  validate.IdOrLatestArgs,
 		Example: `podman container wait --latest
   podman container wait --interval 5000 ctrID
   podman container wait ctrID1 ctrID2`,

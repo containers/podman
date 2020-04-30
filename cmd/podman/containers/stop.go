@@ -34,6 +34,9 @@ var (
 		Short: stopCommand.Short,
 		Long:  stopCommand.Long,
 		RunE:  stopCommand.RunE,
+		Args: func(cmd *cobra.Command, args []string) error {
+			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
+		},
 		Example: `podman container stop ctrID
   podman container stop --latest
   podman container stop --time 2 mywebserver 6e534f14da9d`,

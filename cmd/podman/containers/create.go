@@ -33,6 +33,7 @@ var (
 	}
 
 	containerCreateCommand = &cobra.Command{
+		Args:  cobra.MinimumNArgs(1),
 		Use:   createCommand.Use,
 		Short: createCommand.Short,
 		Long:  createCommand.Long,

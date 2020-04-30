@@ -40,6 +40,9 @@ var (
 		Short: umountCommand.Short,
 		Long:  umountCommand.Long,
 		RunE:  umountCommand.RunE,
+		Args: func(cmd *cobra.Command, args []string) error {
+			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+		},
 		Example: `podman container umount ctrID
   podman container umount ctrID1 ctrID2 ctrID3
   podman container umount --all`,
