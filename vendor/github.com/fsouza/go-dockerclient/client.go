@@ -87,32 +87,29 @@ func NewAPIVersion(input string) (APIVersion, error) {
 }
 
 func (version APIVersion) String() string {
-	var str string
+	parts := make([]string, len(version))
 	for i, val := range version {
-		str += strconv.Itoa(val)
-		if i < len(version)-1 {
-			str += "."
-		}
+		parts[i] = strconv.Itoa(val)
 	}
-	return str
+	return strings.Join(parts, ".")
 }
 
-// LessThan is a function for comparing APIVersion structs
+// LessThan is a function for comparing APIVersion structs.
 func (version APIVersion) LessThan(other APIVersion) bool {
 	return version.compare(other) < 0
 }
 
-// LessThanOrEqualTo is a function for comparing APIVersion structs
+// LessThanOrEqualTo is a function for comparing APIVersion structs.
 func (version APIVersion) LessThanOrEqualTo(other APIVersion) bool {
 	return version.compare(other) <= 0
 }
 
-// GreaterThan is a function for comparing APIVersion structs
+// GreaterThan is a function for comparing APIVersion structs.
 func (version APIVersion) GreaterThan(other APIVersion) bool {
 	return version.compare(other) > 0
 }
 
-// GreaterThanOrEqualTo is a function for comparing APIVersion structs
+// GreaterThanOrEqualTo is a function for comparing APIVersion structs.
 func (version APIVersion) GreaterThanOrEqualTo(other APIVersion) bool {
 	return version.compare(other) >= 0
 }
@@ -512,7 +509,6 @@ type streamOptions struct {
 	context           context.Context
 }
 
-// if error in context, return that instead of generic http error
 func chooseError(ctx context.Context, err error) error {
 	select {
 	case <-ctx.Done():

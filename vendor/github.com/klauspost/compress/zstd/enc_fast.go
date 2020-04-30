@@ -25,7 +25,6 @@ type tableEntry struct {
 }
 
 type fastBase struct {
-	o encParams
 	// cur is the offset at the start of hist
 	cur int32
 	// maximum offset. Should be at least 2x block size.
@@ -117,11 +116,7 @@ func (e *fastEncoder) Encode(blk *blockEnc, src []byte) {
 	sLimit := int32(len(src)) - inputMargin
 	// stepSize is the number of bytes to skip on every main loop iteration.
 	// It should be >= 2.
-	stepSize := int32(e.o.targetLength)
-	if stepSize == 0 {
-		stepSize++
-	}
-	stepSize++
+	const stepSize = 2
 
 	// TEMPLATE
 	const hashLog = tableBits

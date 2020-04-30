@@ -7,7 +7,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/util"
@@ -49,51 +48,26 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 		}
 	}
 
-	// If we have containers.conf and are not using cgroupns, use that.
-	if cfg != nil && nsType != "cgroup" {
-		switch nsType {
-		case "pid":
-			return specgen.ParseNamespace(cfg.Containers.PidNS)
-		case "ipc":
-			return specgen.ParseNamespace(cfg.Containers.IPCNS)
-		case "uts":
-			return specgen.ParseNamespace(cfg.Containers.UTSNS)
-		case "user":
-			return specgen.ParseUserNamespace(cfg.Containers.UserNS)
-		case "net":
-			ns, _, err := specgen.ParseNetworkNamespace(cfg.Containers.NetNS)
-			return ns, err
-		}
+	if cfg == nil {
+		cfg = &config.Config{}
 	}
-
 	switch nsType {
-	case "pid", "ipc", "uts":
-		// PID, IPC, UTS both default to private, do nothing
+	case "pid":
+		return specgen.ParseNamespace(cfg.Containers.PidNS)
+	case "ipc":
+		return specgen.ParseNamespace(cfg.Containers.IPCNS)
+	case "uts":
+		return specgen.ParseNamespace(cfg.Containers.UTSNS)
 	case "user":
-		// User namespace always defaults to host
-		toReturn.NSMode = specgen.Host
-	case "net":
-		// Net defaults to Slirp on rootless, Bridge otherwise.
-		if rootless.IsRootless() {
-			toReturn.NSMode = specgen.Slirp
-		} else {
-			toReturn.NSMode = specgen.Bridge
-		}
+		return specgen.ParseUserNamespace(cfg.Containers.UserNS)
 	case "cgroup":
-		// Cgroup is host for v1, private for v2.
-		// We can't trust c/common for this, as it only assumes private.
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return toReturn, err
-		}
-		if !cgroupsv2 {
-			toReturn.NSMode = specgen.Host
-		}
-	default:
-		return toReturn, errors.Wrapf(define.ErrInvalidArg, "invalid namespace type %s passed", nsType)
+		return specgen.ParseCgroupNamespace(cfg.Containers.CgroupNS)
+	case "net":
+		ns, _, err := specgen.ParseNetworkNamespace(cfg.Containers.NetNS)
+		return ns, err
 	}
 
-	return toReturn, nil
+	return toReturn, errors.Wrapf(define.ErrInvalidArg, "invalid namespace type %q passed", nsType)
 }
 
 // GenerateNamespaceOptions generates container creation options for all

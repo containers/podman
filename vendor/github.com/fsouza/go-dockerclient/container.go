@@ -341,7 +341,7 @@ type HostMount struct {
 	ReadOnly      bool           `json:"ReadOnly,omitempty" yaml:"ReadOnly,omitempty" toml:"ReadOnly,omitempty"`
 	BindOptions   *BindOptions   `json:"BindOptions,omitempty" yaml:"BindOptions,omitempty" toml:"BindOptions,omitempty"`
 	VolumeOptions *VolumeOptions `json:"VolumeOptions,omitempty" yaml:"VolumeOptions,omitempty" toml:"VolumeOptions,omitempty"`
-	TempfsOptions *TempfsOptions `json:"TempfsOptions,omitempty" yaml:"TempfsOptions,omitempty" toml:"TempfsOptions,omitempty"`
+	TempfsOptions *TempfsOptions `json:"TmpfsOptions,omitempty" yaml:"TmpfsOptions,omitempty" toml:"TmpfsOptions,omitempty"`
 }
 
 // BindOptions contains optional configuration for the bind type
@@ -730,7 +730,7 @@ type Device struct {
 	CgroupPermissions string `json:"CgroupPermissions,omitempty" yaml:"CgroupPermissions,omitempty" toml:"CgroupPermissions,omitempty"`
 }
 
-// A list of requests for devices to be sent to device drivers
+// DeviceRequest represents a request for device that's sent to device drivers.
 type DeviceRequest struct {
 	Driver       string            `json:"Driver,omitempty" yaml:"Driver,omitempty" toml:"Driver,omitempty"`
 	Count        int               `json:"Count,omitempty" yaml:"Count,omitempty" toml:"Count,omitempty"`

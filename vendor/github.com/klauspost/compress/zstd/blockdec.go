@@ -75,21 +75,25 @@ type blockDec struct {
 
 	// Window size of the block.
 	WindowSize uint64
-	Type       blockType
-	RLESize    uint32
+
+	history     chan *history
+	input       chan struct{}
+	result      chan decodeOutput
+	sequenceBuf []seq
+	err         error
+	decWG       sync.WaitGroup
+
+	// Block is RLE, this is the size.
+	RLESize uint32
+	tmp     [4]byte
+
+	Type blockType
 
 	// Is this the last block of a frame?
 	Last bool
 
 	// Use less memory
-	lowMem      bool
-	history     chan *history
-	input       chan struct{}
-	result      chan decodeOutput
-	sequenceBuf []seq
-	tmp         [4]byte
-	err         error
-	decWG       sync.WaitGroup
+	lowMem bool
 }
 
 func (b *blockDec) String() string {

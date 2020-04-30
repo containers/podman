@@ -3,7 +3,7 @@ package common
 import (
 	"fmt"
 
-	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/spf13/pflag"
 )
@@ -26,7 +26,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.Authfile,
-		"authfile", buildahcli.GetDefaultAuthFile(),
+		"authfile", auth.GetDefaultAuthFile(),
 		"Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override",
 	)
 	createFlags.StringVar(

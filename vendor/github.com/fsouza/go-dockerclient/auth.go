@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -56,8 +55,21 @@ func (c AuthConfigurations) isEmpty() bool {
 	return len(c.Configs) == 0
 }
 
-func (c AuthConfigurations) headerKey() string {
+func (AuthConfigurations) headerKey() string {
 	return "X-Registry-Config"
+}
+
+// merge updates the configuration. If a key is defined in both maps, the one
+// in c.Configs takes precedence.
+func (c *AuthConfigurations) merge(other AuthConfigurations) {
+	for k, v := range other.Configs {
+		if c.Configs == nil {
+			c.Configs = make(map[string]AuthConfiguration)
+		}
+		if _, ok := c.Configs[k]; !ok {
+			c.Configs[k] = v
+		}
+	}
 }
 
 // AuthConfigurations119 is used to serialize a set of AuthConfigurations
@@ -92,36 +104,65 @@ func NewAuthConfigurationsFromFile(path string) (*AuthConfigurations, error) {
 }
 
 func cfgPaths(dockerConfigEnv string, homeEnv string) []string {
-	var paths []string
 	if dockerConfigEnv != "" {
-		paths = append(paths, path.Join(dockerConfigEnv, "plaintext-passwords.json"))
-		paths = append(paths, path.Join(dockerConfigEnv, "config.json"))
+		return []string{
+			path.Join(dockerConfigEnv, "plaintext-passwords.json"),
+			path.Join(dockerConfigEnv, "config.json"),
+		}
 	}
 	if homeEnv != "" {
-		paths = append(paths, path.Join(homeEnv, ".docker", "plaintext-passwords.json"))
-		paths = append(paths, path.Join(homeEnv, ".docker", "config.json"))
-		paths = append(paths, path.Join(homeEnv, ".dockercfg"))
+		return []string{
+			path.Join(homeEnv, ".docker", "plaintext-passwords.json"),
+			path.Join(homeEnv, ".docker", "config.json"),
+			path.Join(homeEnv, ".dockercfg"),
+		}
 	}
-	return paths
+	return nil
 }
 
-// NewAuthConfigurationsFromDockerCfg returns AuthConfigurations from
-// system config files. The following files are checked in the order listed:
-// - $DOCKER_CONFIG/config.json if DOCKER_CONFIG set in the environment,
+// NewAuthConfigurationsFromDockerCfg returns AuthConfigurations from system
+// config files. The following files are checked in the order listed:
+//
+// If the environment variable DOCKER_CONFIG is set to a non-empty string:
+//
+// - $DOCKER_CONFIG/plaintext-passwords.json
+// - $DOCKER_CONFIG/config.json
+//
+// Otherwise, it looks for files in the $HOME directory and the legacy
+// location:
+//
+// - $HOME/.docker/plaintext-passwords.json
 // - $HOME/.docker/config.json
 // - $HOME/.dockercfg
 func NewAuthConfigurationsFromDockerCfg() (*AuthConfigurations, error) {
-	err := fmt.Errorf("no docker configuration found")
-	var auths *AuthConfigurations
-
 	pathsToTry := cfgPaths(os.Getenv("DOCKER_CONFIG"), os.Getenv("HOME"))
+	if len(pathsToTry) < 1 {
+		return nil, errors.New("no docker configuration found")
+	}
+	return newAuthConfigurationsFromDockerCfg(pathsToTry)
+}
+
+func newAuthConfigurationsFromDockerCfg(pathsToTry []string) (*AuthConfigurations, error) {
+	var result *AuthConfigurations
+	var auths *AuthConfigurations
+	var err error
 	for _, path := range pathsToTry {
 		auths, err = NewAuthConfigurationsFromFile(path)
-		if err == nil {
-			return auths, nil
+		if err != nil {
+			continue
+		}
+
+		if result == nil {
+			result = auths
+		} else {
+			result.merge(*auths)
 		}
 	}
-	return auths, err
+
+	if result != nil {
+		return result, nil
+	}
+	return result, err
 }
 
 // NewAuthConfigurations returns AuthConfigurations from a JSON encoded string in the

@@ -39,17 +39,18 @@ type encoder interface {
 }
 
 type encoderState struct {
-	w             io.Writer
-	filling       []byte
-	current       []byte
-	previous      []byte
-	encoder       encoder
-	writing       *blockEnc
-	err           error
-	writeErr      error
-	nWritten      int64
-	headerWritten bool
-	eofWritten    bool
+	w                io.Writer
+	filling          []byte
+	current          []byte
+	previous         []byte
+	encoder          encoder
+	writing          *blockEnc
+	err              error
+	writeErr         error
+	nWritten         int64
+	headerWritten    bool
+	eofWritten       bool
+	fullFrameWritten bool
 
 	// This waitgroup indicates an encode is running.
 	wg sync.WaitGroup
@@ -114,6 +115,7 @@ func (e *Encoder) Reset(w io.Writer) {
 	s.encoder.Reset()
 	s.headerWritten = false
 	s.eofWritten = false
+	s.fullFrameWritten = false
 	s.w = w
 	s.err = nil
 	s.nWritten = 0
@@ -172,6 +174,22 @@ func (e *Encoder) nextBlock(final bool) error {
 		return fmt.Errorf("block > maxStoreBlockSize")
 	}
 	if !s.headerWritten {
+		// If we have a single block encode, do a sync compression.
+		if final && len(s.filling) > 0 {
+			s.current = e.EncodeAll(s.filling, s.current[:0])
+			var n2 int
+			n2, s.err = s.w.Write(s.current)
+			if s.err != nil {
+				return s.err
+			}
+			s.nWritten += int64(n2)
+			s.current = s.current[:0]
+			s.filling = s.filling[:0]
+			s.headerWritten = true
+			s.fullFrameWritten = true
+			return nil
+		}
+
 		var tmp [maxHeaderSize]byte
 		fh := frameHeader{
 			ContentSize:   0,
@@ -294,7 +312,9 @@ func (e *Encoder) ReadFrom(r io.Reader) (n int64, err error) {
 	src := e.state.filling
 	for {
 		n2, err := r.Read(src)
-		_, _ = e.state.encoder.CRC().Write(src[:n2])
+		if e.o.crc {
+			_, _ = e.state.encoder.CRC().Write(src[:n2])
+		}
 		// src is now the unfilled part...
 		src = src[n2:]
 		n += int64(n2)
@@ -358,6 +378,9 @@ func (e *Encoder) Close() error {
 	err := e.nextBlock(true)
 	if err != nil {
 		return err
+	}
+	if e.state.fullFrameWritten {
+		return s.err
 	}
 	s.wg.Wait()
 	s.wWg.Wait()

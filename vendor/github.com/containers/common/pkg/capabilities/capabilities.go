@@ -91,17 +91,20 @@ func ValidateCapabilities(caps []string) error {
 // MergeCapabilities computes a set of capabilities by adding capapbitilities
 // to or dropping them from base.
 //
-// Note that "ALL" will cause all known capabilities to be added/dropped but
-// the ones specified to be dropped/added.
+// Note that:
+// "ALL" in capAdd adds returns known capabilities
+// "All" in capDrop returns only the capabilities specified in capAdd
 func MergeCapabilities(base, adds, drops []string) ([]string, error) {
-	if len(adds) == 0 && len(drops) == 0 {
-		// Nothing to tweak; we're done
-		return base, nil
-	}
+	var caps []string
 
+	// Normalize the base capabilities
 	base, err := normalizeCapabilities(base)
 	if err != nil {
 		return nil, err
+	}
+	if len(adds) == 0 && len(drops) == 0 {
+		// Nothing to tweak; we're done
+		return base, nil
 	}
 	capDrop, err := normalizeCapabilities(drops)
 	if err != nil {
@@ -112,35 +115,42 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 		return nil, err
 	}
 
-	// Make sure that capDrop and capAdd are distinct sets.
+	if stringInSlice(All, capDrop) {
+		// "Drop" all capabilities; return what's in capAdd instead
+		return capAdd, nil
+	}
+
+	if stringInSlice(All, capAdd) {
+		// "Add" all capabilities;
+		return capabilityList, nil
+	}
+
+	for _, add := range capAdd {
+		if stringInSlice(add, capDrop) {
+			return nil, errors.Errorf("capability %q cannot be dropped and added", add)
+		}
+	}
+
 	for _, drop := range capDrop {
 		if stringInSlice(drop, capAdd) {
 			return nil, errors.Errorf("capability %q cannot be dropped and added", drop)
 		}
 	}
 
-	var caps []string
+	// Drop any capabilities in capDrop that are in base
+	for _, cap := range base {
+		if stringInSlice(cap, capDrop) {
+			continue
+		}
+		caps = append(caps, cap)
+	}
 
-	switch {
-	case stringInSlice(All, capAdd):
-		// Add all capabilities except ones on capDrop
-		for _, c := range capabilityList {
-			if !stringInSlice(c, capDrop) {
-				caps = append(caps, c)
-			}
+	// Add any capabilities in capAdd that are not in base
+	for _, cap := range capAdd {
+		if stringInSlice(cap, base) {
+			continue
 		}
-	case stringInSlice(All, capDrop):
-		// "Drop" all capabilities; use what's in capAdd instead
-		caps = capAdd
-	default:
-		// First drop some capabilities
-		for _, c := range base {
-			if !stringInSlice(c, capDrop) {
-				caps = append(caps, c)
-			}
-		}
-		// Then add the list of capabilities from capAdd
-		caps = append(caps, capAdd...)
+		caps = append(caps, cap)
 	}
 	return caps, nil
 }

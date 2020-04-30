@@ -4,4 +4,5 @@ docs/buildah*.1
 /build/
 tests/tools/build
 Dockerfile*
+!/tests/bud/*/Dockerfile*
 *.swp
