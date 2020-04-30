@@ -869,7 +869,8 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int
 			logrus.Error(err)
 			return false
 		}
-		if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+		if state == define.ContainerStateStopped || state == define.ContainerStateExited ||
+			state == define.ContainerStateCreated || state == define.ContainerStateConfigured {
 			return true
 		}
 		return false
