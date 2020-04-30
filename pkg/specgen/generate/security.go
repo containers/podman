@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/capabilities"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/specgen"
@@ -55,76 +56,61 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 	return nil
 }
 
-func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator, newImage *image.Image) error {
+func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator, newImage *image.Image, rtc *config.Config) error {
+	var (
+		caplist []string
+		err     error
+	)
 	// HANDLE CAPABILITIES
 	// NOTE: Must happen before SECCOMP
 	if s.Privileged {
 		g.SetupPrivileged(true)
-	}
-
-	useNotRoot := func(user string) bool {
-		if user == "" || user == "root" || user == "0" {
-			return false
-		}
-		return true
-	}
-	configSpec := g.Config
-	var err error
-	var caplist []string
-	bounding := configSpec.Process.Capabilities.Bounding
-	if useNotRoot(s.User) {
-		configSpec.Process.Capabilities.Bounding = caplist
-	}
-	caplist, err = capabilities.MergeCapabilities(configSpec.Process.Capabilities.Bounding, s.CapAdd, s.CapDrop)
-	if err != nil {
-		return err
-	}
-	privCapsRequired := []string{}
-
-	// If the container image specifies an label with a
-	// capabilities.ContainerImageLabel then split the comma separated list
-	// of capabilities and record them.  This list indicates the only
-	// capabilities, required to run the container.
-	var capsRequiredRequested []string
-	for key, val := range s.Labels {
-		if util.StringInSlice(key, capabilities.ContainerImageLabels) {
-			capsRequiredRequested = strings.Split(val, ",")
-		}
-	}
-	if !s.Privileged && len(capsRequiredRequested) > 0 {
-
-		// Pass capRequiredRequested in CapAdd field to normalize capabilities names
-		capsRequired, err := capabilities.MergeCapabilities(nil, capsRequiredRequested, nil)
+		caplist = capabilities.AllCapabilities()
+	} else {
+		caplist, err = rtc.Capabilities(s.User, s.CapAdd, s.CapDrop)
 		if err != nil {
-			logrus.Errorf("capabilities requested by user or image are not valid: %q", strings.Join(capsRequired, ","))
-		} else {
-			// Verify all capRequiered are in the capList
-			for _, cap := range capsRequired {
-				if !util.StringInSlice(cap, caplist) {
-					privCapsRequired = append(privCapsRequired, cap)
-				}
+			return err
+		}
+
+		privCapsRequired := []string{}
+
+		// If the container image specifies an label with a
+		// capabilities.ContainerImageLabel then split the comma separated list
+		// of capabilities and record them.  This list indicates the only
+		// capabilities, required to run the container.
+		var capsRequiredRequested []string
+		for key, val := range s.Labels {
+			if util.StringInSlice(key, capabilities.ContainerImageLabels) {
+				capsRequiredRequested = strings.Split(val, ",")
 			}
 		}
-		if len(privCapsRequired) == 0 {
-			caplist = capsRequired
-		} else {
-			logrus.Errorf("capabilities requested by user or image are not allowed by default: %q", strings.Join(privCapsRequired, ","))
+		if !s.Privileged && len(capsRequiredRequested) > 0 {
+
+			// Pass capRequiredRequested in CapAdd field to normalize capabilities names
+			capsRequired, err := capabilities.MergeCapabilities(nil, capsRequiredRequested, nil)
+			if err != nil {
+				logrus.Errorf("capabilities requested by user or image are not valid: %q", strings.Join(capsRequired, ","))
+			} else {
+				// Verify all capRequiered are in the capList
+				for _, cap := range capsRequired {
+					if !util.StringInSlice(cap, caplist) {
+						privCapsRequired = append(privCapsRequired, cap)
+					}
+				}
+			}
+			if len(privCapsRequired) == 0 {
+				caplist = capsRequired
+			} else {
+				logrus.Errorf("capabilities requested by user or image are not allowed by default: %q", strings.Join(privCapsRequired, ","))
+			}
 		}
 	}
-
+	configSpec := g.Config
 	configSpec.Process.Capabilities.Bounding = caplist
 	configSpec.Process.Capabilities.Permitted = caplist
 	configSpec.Process.Capabilities.Inheritable = caplist
 	configSpec.Process.Capabilities.Effective = caplist
 	configSpec.Process.Capabilities.Ambient = caplist
-	if useNotRoot(s.User) {
-		caplist, err = capabilities.MergeCapabilities(bounding, s.CapAdd, s.CapDrop)
-		if err != nil {
-			return err
-		}
-	}
-	configSpec.Process.Capabilities.Bounding = caplist
-
 	// HANDLE SECCOMP
 	if s.SeccompProfilePath != "unconfined" {
 		seccompConfig, err := getSeccompConfig(s, configSpec, newImage)

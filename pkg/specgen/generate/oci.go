@@ -304,7 +304,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 	configSpec := g.Config
 
-	if err := securityConfigureGenerator(s, &g, newImage); err != nil {
+	if err := securityConfigureGenerator(s, &g, newImage, rtc); err != nil {
 		return nil, err
 	}
 
