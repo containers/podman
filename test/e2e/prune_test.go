@@ -22,7 +22,6 @@ var _ = Describe("Podman prune", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -149,6 +148,7 @@ var _ = Describe("Podman prune", func() {
 
 	It("podman system image prune unused images", func() {
 		SkipIfRemote()
+		Skip(v2fail)
 		podmanTest.RestoreAllArtifacts()
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		prune := podmanTest.PodmanNoCache([]string{"system", "prune", "-a", "--force"})
@@ -162,6 +162,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune pods", func() {
+		Skip(v2fail)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
