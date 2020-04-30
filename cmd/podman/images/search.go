@@ -105,6 +105,10 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("search requires exactly one argument")
 	}
 
+	if searchOptions.Limit > 100 {
+		return errors.Errorf("Limit %d is outside the range of [1, 100]", searchOptions.Limit)
+	}
+
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified
 	// which is important to implement a sane way of dealing with defaults of
