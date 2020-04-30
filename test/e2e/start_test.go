@@ -17,7 +17,6 @@ var _ = Describe("Podman start", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -66,10 +65,11 @@ var _ = Describe("Podman start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
-		session = podmanTest.Podman([]string{"container", "start", cid[0:10]})
+		shortID := cid[0:10]
+		session = podmanTest.Podman([]string{"container", "start", shortID})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal(cid))
+		Expect(session.OutputToString()).To(Equal(shortID))
 	})
 
 	It("podman start single container by name", func() {
