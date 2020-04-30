@@ -44,9 +44,6 @@ func init() {
 }
 
 func prune(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
 	// Prompt for confirmation if --force is not set
 	if !pruneOptions.Force {
 		reader := bufio.NewReader(os.Stdin)
@@ -64,12 +61,5 @@ func prune(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	for _, r := range responses {
-		if r.Err == nil {
-			fmt.Println(r.Id)
-		} else {
-			errs = append(errs, r.Err)
-		}
-	}
-	return errs.PrintErrors()
+	return utils.PrintVolumePruneResults(responses)
 }

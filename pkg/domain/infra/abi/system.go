@@ -175,3 +175,41 @@ func setUMask() { // nolint:deadcode,unused
 func checkInput() error { // nolint:deadcode,unused
 	return nil
 }
+
+// SystemPrune removes unsed data from the system. Pruning pods, containers, volumes and images.
+func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
+	var systemPruneReport = new(entities.SystemPruneReport)
+	podPruneReport, err := ic.prunePodHelper(ctx)
+	if err != nil {
+		return nil, err
+	}
+	systemPruneReport.PodPruneReport = podPruneReport
+
+	containerPruneReport, err := ic.pruneContainersHelper(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	systemPruneReport.ContainerPruneReport = containerPruneReport
+
+	results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, nil)
+	if err != nil {
+		return nil, err
+	}
+	report := entities.ImagePruneReport{
+		Report: entities.Report{
+			Id:  results,
+			Err: nil,
+		},
+	}
+
+	systemPruneReport.ImagePruneReport = &report
+
+	if options.Volume {
+		volumePruneReport, err := ic.pruneVolumesHelper(ctx)
+		if err != nil {
+			return nil, err
+		}
+		systemPruneReport.VolumePruneReport = volumePruneReport
+	}
+	return systemPruneReport, nil
+}

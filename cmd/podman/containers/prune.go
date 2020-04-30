@@ -43,7 +43,6 @@ func init() {
 
 func prune(cmd *cobra.Command, args []string) error {
 	var (
-		errs         utils.OutputErrors
 		pruneOptions = entities.ContainerPruneOptions{}
 	)
 	if len(args) > 0 {
@@ -76,11 +75,5 @@ func prune(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	for k := range responses.ID {
-		fmt.Println(k)
-	}
-	for _, v := range responses.Err {
-		errs = append(errs, v)
-	}
-	return errs.PrintErrors()
+	return utils.PrintContainerPruneResults(responses)
 }

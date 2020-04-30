@@ -1,5 +1,3 @@
-// +build ABISupport
-
 package abi
 
 import (
@@ -113,6 +111,10 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.VolumePruneOptions) ([]*entities.VolumePruneReport, error) {
+	return ic.pruneVolumesHelper(ctx)
+}
+
+func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context) ([]*entities.VolumePruneReport, error) {
 	var (
 		reports []*entities.VolumePruneReport
 	)

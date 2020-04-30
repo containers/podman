@@ -36,7 +36,11 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.Boo
 }
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) (*entities.ImagePruneReport, error) {
-	results, err := ir.Libpod.ImageRuntime().PruneImages(ctx, opts.All, opts.Filter)
+	return ir.pruneImagesHelper(ctx, opts.All, opts.Filter)
+}
+
+func (ir *ImageEngine) pruneImagesHelper(ctx context.Context, all bool, filters []string) (*entities.ImagePruneReport, error) {
+	results, err := ir.Libpod.ImageRuntime().PruneImages(ctx, all, filters)
 	if err != nil {
 		return nil, err
 	}

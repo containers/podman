@@ -42,6 +42,7 @@ type ContainerEngine interface {
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
 	Events(ctx context.Context, opts EventsOptions) error
 	GenerateSystemd(ctx context.Context, nameOrID string, opts GenerateSystemdOptions) (*GenerateSystemdReport, error)
+	SystemPrune(ctx context.Context, options SystemPruneOptions) (*SystemPruneReport, error)
 	HealthCheckRun(ctx context.Context, nameOrId string, options HealthCheckOptions) (*define.HealthCheckResults, error)
 	Info(ctx context.Context) (*define.Info, error)
 	PodCreate(ctx context.Context, opts PodCreateOptions) (*PodCreateReport, error)

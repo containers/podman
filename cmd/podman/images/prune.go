@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -71,17 +72,5 @@ Are you sure you want to continue? [y/N] `)
 		return err
 	}
 
-	for _, i := range results.Report.Id {
-		fmt.Println(i)
-	}
-
-	for _, e := range results.Report.Err {
-		fmt.Fprint(os.Stderr, e.Error()+"\n")
-	}
-
-	if results.Size > 0 {
-		fmt.Fprintf(os.Stdout, "Size: %d\n", results.Size)
-	}
-
-	return nil
+	return utils.PrintImagePruneResults(results)
 }
