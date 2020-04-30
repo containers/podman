@@ -514,7 +514,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string,
 	}
 
 	// If the container is in a pod, also set to recursively start dependencies
-	if err := terminal.StartAttachCtr(ctx, ctr, options.Stdin, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != define.ErrDetach {
+	if err := terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != define.ErrDetach {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 	return nil
