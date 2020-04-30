@@ -236,7 +236,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		}
 
 		if err := r.removeContainer(ctx, ctr, force, false, true); err != nil {
-			if removalErr != nil {
+			if removalErr == nil {
 				removalErr = err
 			} else {
 				logrus.Errorf("Error removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
