@@ -227,6 +227,7 @@ type ContainerStartOptions struct {
 // containers from the cli
 type ContainerStartReport struct {
 	Id       string
+	RawInput string
 	Err      error
 	ExitCode int
 }
