@@ -661,7 +661,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 				if ns.Path != "" {
 					networkMode = fmt.Sprintf("ns:%s", ns.Path)
 				} else {
-					networkMode = "none"
+					networkMode = "private"
 				}
 				break
 			}
@@ -743,22 +743,23 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	ipcMode := ""
 	if c.config.IPCNsCtr != "" {
 		ipcMode = fmt.Sprintf("container:%s", c.config.IPCNsCtr)
-	} else {
+	} else if ctrSpec.Linux != nil {
 		// Locate the spec's IPC namespace.
 		// If there is none, it's ipc=host.
 		// If there is one and it has a path, it's "ns:".
 		// If no path, it's default - the empty string.
-		foundIPCNS := false
+
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == spec.IPCNamespace {
-				foundIPCNS = true
 				if ns.Path != "" {
 					ipcMode = fmt.Sprintf("ns:%s", ns.Path)
+				} else {
+					ipcMode = "private"
 				}
 				break
 			}
 		}
-		if !foundIPCNS {
+		if ipcMode == "" {
 			ipcMode = "host"
 		}
 	}
@@ -781,22 +782,22 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	pidMode := ""
 	if c.config.PIDNsCtr != "" {
 		pidMode = fmt.Sprintf("container:%s", c.config.PIDNsCtr)
-	} else {
+	} else if ctrSpec.Linux != nil {
 		// Locate the spec's PID namespace.
 		// If there is none, it's pid=host.
 		// If there is one and it has a path, it's "ns:".
 		// If there is no path, it's default - the empty string.
-		foundPIDNS := false
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == spec.PIDNamespace {
-				foundPIDNS = true
 				if ns.Path != "" {
 					pidMode = fmt.Sprintf("ns:%s", ns.Path)
+				} else {
+					pidMode = "private"
 				}
 				break
 			}
 		}
-		if !foundPIDNS {
+		if pidMode == "" {
 			pidMode = "host"
 		}
 	}
@@ -806,22 +807,23 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	utsMode := ""
 	if c.config.UTSNsCtr != "" {
 		utsMode = fmt.Sprintf("container:%s", c.config.UTSNsCtr)
-	} else {
+	} else if ctrSpec.Linux != nil {
+
 		// Locate the spec's UTS namespace.
 		// If there is none, it's uts=host.
 		// If there is one and it has a path, it's "ns:".
 		// If there is no path, it's default - the empty string.
-		foundUTSNS := false
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == spec.UTSNamespace {
-				foundUTSNS = true
 				if ns.Path != "" {
 					utsMode = fmt.Sprintf("ns:%s", ns.Path)
+				} else {
+					utsMode = "private"
 				}
 				break
 			}
 		}
-		if !foundUTSNS {
+		if utsMode == "" {
 			utsMode = "host"
 		}
 	}
@@ -831,11 +833,12 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	usernsMode := ""
 	if c.config.UserNsCtr != "" {
 		usernsMode = fmt.Sprintf("container:%s", c.config.UserNsCtr)
-	} else {
+	} else if ctrSpec.Linux != nil {
 		// Locate the spec's user namespace.
 		// If there is none, it's default - the empty string.
 		// If there is one, it's "private" if no path, or "ns:" if
 		// there's a path.
+
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == spec.UserNamespace {
 				if ns.Path != "" {

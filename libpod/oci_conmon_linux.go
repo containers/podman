@@ -731,7 +731,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 		args = append(args, "-t")
 	}
 
-	if options.Streams.AttachInput {
+	if options.Streams != nil && options.Streams.AttachInput {
 		args = append(args, "-i")
 	}
 
