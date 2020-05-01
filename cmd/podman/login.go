@@ -63,6 +63,6 @@ func login(cmd *cobra.Command, args []string) error {
 		DockerCertPath:              loginOptions.CertDir,
 		DockerInsecureSkipTLSVerify: skipTLS,
 	}
-
+	loginOptions.GetLoginSet = cmd.Flag("get-login").Changed
 	return auth.Login(context.Background(), &sysCtx, &loginOptions.LoginOptions, args[0])
 }
