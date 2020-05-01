@@ -67,8 +67,8 @@ func listFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVar(&listOpts.Sync, "sync", false, "Sync container state with OCI runtime")
 	flags.UintVarP(&listOpts.Watch, "watch", "w", 0, "Watch the ps output on an interval in seconds")
 
-	created := validate.ChoiceValue(&listOpts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
-	flags.Var(created, "sort", "Sort output by: "+created.Choices())
+	sort := validate.ChoiceValue(&listOpts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
+	flags.Var(sort, "sort", "Sort output by: "+sort.Choices())
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
