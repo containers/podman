@@ -326,10 +326,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 		defaultEnv = env.Join(env.DefaultEnvVariables, defaultEnv)
 	}
-	config.Env = env.Join(defaultEnv, config.Env)
-	for name, val := range config.Env {
-		g.AddProcessEnv(name, val)
-	}
 
 	if err := addRlimits(config, &g); err != nil {
 		return nil, err
@@ -359,6 +355,11 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 
 	if err := config.Cgroup.ConfigureGenerator(&g); err != nil {
 		return nil, err
+	}
+
+	config.Env = env.Join(defaultEnv, config.Env)
+	for name, val := range config.Env {
+		g.AddProcessEnv(name, val)
 	}
 	configSpec := g.Config
 
