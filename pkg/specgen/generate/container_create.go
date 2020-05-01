@@ -24,11 +24,10 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	// If joining a pod, retrieve the pod for use.
 	var pod *libpod.Pod
 	if s.Pod != "" {
-		foundPod, err := rt.LookupPod(s.Pod)
+		pod, err = rt.LookupPod(s.Pod)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving pod %s", s.Pod)
 		}
-		pod = foundPod
 	}
 
 	// Set defaults for unset namespaces
@@ -130,12 +129,8 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		logrus.Debugf("setting container name %s", s.Name)
 		options = append(options, libpod.WithName(s.Name))
 	}
-	if s.Pod != "" {
-		pod, err := rt.LookupPod(s.Pod)
-		if err != nil {
-			return nil, err
-		}
-		logrus.Debugf("adding container to pod %s", s.Pod)
+	if pod != nil {
+		logrus.Debugf("adding container to pod %s", pod.Name())
 		options = append(options, rt.WithPod(pod))
 	}
 	destinations := []string{}
@@ -160,11 +155,12 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithNamedVolumes(vols))
 	}
 
-	if len(s.Command) != 0 {
+	if s.Command != nil {
 		options = append(options, libpod.WithCommand(s.Command))
 	}
-
-	options = append(options, libpod.WithEntrypoint(s.Entrypoint))
+	if s.Entrypoint != nil {
+		options = append(options, libpod.WithEntrypoint(s.Entrypoint))
+	}
 	if s.StopSignal != nil {
 		options = append(options, libpod.WithStopSignal(*s.StopSignal))
 	}

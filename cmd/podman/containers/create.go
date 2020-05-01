@@ -1,8 +1,10 @@
 package containers
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/common"
@@ -106,6 +108,10 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if _, err := createPodIfNecessary(s); err != nil {
+		return err
+	}
+
 	report, err := registry.ContainerEngine().ContainerCreate(registry.GetContext(), s)
 	if err != nil {
 		return err
@@ -160,6 +166,10 @@ func createInit(c *cobra.Command) error {
 	if c.Flag("cgroupns").Changed {
 		cliVals.CGroupsNS = c.Flag("cgroupns").Value.String()
 	}
+	if c.Flag("entrypoint").Changed {
+		val := c.Flag("entrypoint").Value.String()
+		cliVals.Entrypoint = &val
+	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
 	// the hostname (see https://github.com/containers/libpod/issues/1367).
@@ -181,8 +191,10 @@ func pullImage(imageName string) error {
 			return errors.New("unable to find a name and tag match for busybox in repotags: no such image")
 		}
 		_, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
-			Authfile: cliVals.Authfile,
-			Quiet:    cliVals.Quiet,
+			Authfile:     cliVals.Authfile,
+			Quiet:        cliVals.Quiet,
+			OverrideArch: cliVals.OverrideArch,
+			OverrideOS:   cliVals.OverrideOS,
 		})
 		if pullErr != nil {
 			return pullErr
@@ -203,4 +215,26 @@ func openCidFile(cidfile string) (*os.File, error) {
 		return nil, errors.Errorf("error opening cidfile %s", cidfile)
 	}
 	return cidFile, nil
+}
+
+// createPodIfNecessary automatically creates a pod when requested.  if the pod name
+// has the form new:ID, the pod ID is created and the name in the spec generator is replaced
+// with ID.
+func createPodIfNecessary(s *specgen.SpecGenerator) (*entities.PodCreateReport, error) {
+	if !strings.HasPrefix(s.Pod, "new:") {
+		return nil, nil
+	}
+	podName := strings.Replace(s.Pod, "new:", "", 1)
+	if len(podName) < 1 {
+		return nil, errors.Errorf("new pod name must be at least one character")
+	}
+	createOptions := entities.PodCreateOptions{
+		Name:  podName,
+		Infra: true,
+		Net: &entities.NetOptions{
+			PublishPorts: s.PortMappings,
+		},
+	}
+	s.Pod = podName
+	return registry.ContainerEngine().PodCreate(context.Background(), createOptions)
 }

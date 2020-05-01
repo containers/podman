@@ -146,6 +146,10 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	runOpts.Spec = s
 
+	if _, err := createPodIfNecessary(s); err != nil {
+		return err
+	}
+
 	report, err := registry.ContainerEngine().ContainerRun(registry.GetContext(), runOpts)
 	// report.ExitCode is set by ContainerRun even it it returns an error
 	if report != nil {

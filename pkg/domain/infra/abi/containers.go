@@ -32,9 +32,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// getContainersByContext gets pods whether all, latest, or a slice of names/ids
-// is specified.
-func getContainersByContext(all, latest bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, err error) {
+// getContainersAndInputByContext gets containers whether all, latest, or a slice of names/ids
+// is specified.  It also returns a list of the corresponding input name used to lookup each container.
+func getContainersAndInputByContext(all, latest bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, rawInput []string, err error) {
 	var ctr *libpod.Container
 	ctrs = []*libpod.Container{}
 
@@ -43,6 +43,7 @@ func getContainersByContext(all, latest bool, names []string, runtime *libpod.Ru
 		ctrs, err = runtime.GetAllContainers()
 	case latest:
 		ctr, err = runtime.GetLatestContainer()
+		rawInput = append(rawInput, ctr.ID())
 		ctrs = append(ctrs, ctr)
 	default:
 		for _, n := range names {
@@ -54,10 +55,18 @@ func getContainersByContext(all, latest bool, names []string, runtime *libpod.Ru
 					err = e
 				}
 			} else {
+				rawInput = append(rawInput, n)
 				ctrs = append(ctrs, ctr)
 			}
 		}
 	}
+	return
+}
+
+// getContainersByContext gets containers whether all, latest, or a slice of names/ids
+// is specified.
+func getContainersByContext(all, latest bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, err error) {
+	ctrs, _, err = getContainersAndInputByContext(all, latest, names, runtime)
 	return
 }
 
@@ -555,12 +564,14 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, o
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	var reports []*entities.ContainerStartReport
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, err := getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(false, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
 	// There can only be one container if attach was used
-	for _, ctr := range ctrs {
+	for i := range ctrs {
+		ctr := ctrs[i]
+		rawInput := rawInputs[i]
 		ctrState, err := ctr.State()
 		if err != nil {
 			return nil, err
@@ -574,6 +585,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				// Exit cleanly immediately
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
+					RawInput: rawInput,
 					Err:      nil,
 					ExitCode: 0,
 				})
@@ -584,6 +596,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				logrus.Debugf("Deadlock error: %v", err)
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
+					RawInput: rawInput,
 					Err:      err,
 					ExitCode: define.ExitCode(err),
 				})
@@ -593,6 +606,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if ctrRunning {
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
+					RawInput: rawInput,
 					Err:      nil,
 					ExitCode: 0,
 				})
@@ -602,6 +616,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if err != nil {
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
+					RawInput: rawInput,
 					Err:      err,
 					ExitCode: exitCode,
 				})
@@ -624,6 +639,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			}
 			reports = append(reports, &entities.ContainerStartReport{
 				Id:       ctr.ID(),
+				RawInput: rawInput,
 				Err:      err,
 				ExitCode: exitCode,
 			})
@@ -636,6 +652,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			// If the container is in a pod, also set to recursively start dependencies
 			report := &entities.ContainerStartReport{
 				Id:       ctr.ID(),
+				RawInput: rawInput,
 				ExitCode: 125,
 			}
 			if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {

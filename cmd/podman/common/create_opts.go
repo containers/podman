@@ -31,7 +31,7 @@ type ContainerCLIOpts struct {
 	DeviceReadIOPs    []string
 	DeviceWriteBPs    []string
 	DeviceWriteIOPs   []string
-	Entrypoint        string
+	Entrypoint        *string
 	env               []string
 	EnvHost           bool
 	EnvFile           []string

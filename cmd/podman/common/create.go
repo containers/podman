@@ -49,9 +49,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"cap-drop", []string{},
 		"Drop capabilities from the container",
 	)
-	cgroupNS := ""
-	createFlags.StringVar(
-		&cgroupNS,
+	createFlags.String(
 		"cgroupns", containerConfig.CgroupNS(),
 		"cgroup namespace to use",
 	)
@@ -155,9 +153,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"device-write-iops", []string{},
 		"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
 	)
-	createFlags.StringVar(
-		&cf.Entrypoint,
-		"entrypoint", "",
+	createFlags.String("entrypoint", "",
 		"Overwrite the default ENTRYPOINT of the image",
 	)
 	createFlags.StringArrayVarP(
@@ -248,9 +244,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"interactive", "i", false,
 		"Keep STDIN open even if not attached",
 	)
-	ipcNS := ""
-	createFlags.StringVar(
-		&ipcNS,
+	createFlags.String(
 		"ipc", containerConfig.IPCNS(),
 		"IPC namespace to use",
 	)
@@ -331,9 +325,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"use `OS` instead of the running OS for choosing images",
 	)
 	// markFlagHidden(createFlags, "override-os")
-	pid := ""
-	createFlags.StringVar(
-		&pid,
+	createFlags.String(
 		"pid", containerConfig.PidNS(),
 		"PID namespace to use",
 	)
@@ -397,9 +389,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"security-opt", containerConfig.SecurityOptions(),
 		"Security Options",
 	)
-	shmSize := ""
-	createFlags.StringVar(
-		&shmSize,
+	createFlags.String(
 		"shm-size", containerConfig.ShmSize(),
 		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
@@ -464,15 +454,11 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"user", "u", "",
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
-	userNS := ""
-	createFlags.StringVar(
-		&userNS,
+	createFlags.String(
 		"userns", containerConfig.Containers.UserNS,
 		"User namespace to use",
 	)
-	utsNS := ""
-	createFlags.StringVar(
-		&utsNS,
+	createFlags.String(
 		"uts", containerConfig.Containers.UTSNS,
 		"UTS namespace to use",
 	)

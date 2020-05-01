@@ -67,7 +67,7 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 	finalCommand = append(finalCommand, entrypoint...)
 
 	command := s.Command
-	if len(command) == 0 && img != nil {
+	if command == nil && img != nil {
 		newCmd, err := img.Cmd(ctx)
 		if err != nil {
 			return nil, err

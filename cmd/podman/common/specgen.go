@@ -364,20 +364,20 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.WorkDir = workDir
 	entrypoint := []string{}
 	userCommand := []string{}
-	if ep := c.Entrypoint; len(ep) > 0 {
-		// Check if entrypoint specified is json
-		if err := json.Unmarshal([]byte(c.Entrypoint), &entrypoint); err != nil {
-			entrypoint = append(entrypoint, ep)
+	if c.Entrypoint != nil {
+		if ep := *c.Entrypoint; len(ep) > 0 {
+			// Check if entrypoint specified is json
+			if err := json.Unmarshal([]byte(*c.Entrypoint), &entrypoint); err != nil {
+				entrypoint = append(entrypoint, ep)
+			}
 		}
+		s.Entrypoint = entrypoint
 	}
-
 	var command []string
-
-	s.Entrypoint = entrypoint
 
 	// Build the command
 	// If we have an entry point, it goes first
-	if len(entrypoint) > 0 {
+	if c.Entrypoint != nil {
 		command = entrypoint
 	}
 	if len(inputCommand) > 0 {
@@ -386,9 +386,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		userCommand = append(userCommand, inputCommand...)
 	}
 
-	if len(inputCommand) > 0 {
+	switch {
+	case len(inputCommand) > 0:
 		s.Command = userCommand
-	} else {
+	case c.Entrypoint != nil:
+		s.Command = []string{}
+	default:
 		s.Command = command
 	}
 
