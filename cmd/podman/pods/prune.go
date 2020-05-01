@@ -41,9 +41,6 @@ func init() {
 }
 
 func prune(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
 	if len(args) > 0 {
 		return errors.Errorf("`%s` takes no arguments", cmd.CommandPath())
 	}
@@ -60,16 +57,8 @@ func prune(cmd *cobra.Command, args []string) error {
 		}
 	}
 	responses, err := registry.ContainerEngine().PodPrune(context.Background(), pruneOptions)
-
 	if err != nil {
 		return err
 	}
-	for _, r := range responses {
-		if r.Err == nil {
-			fmt.Println(r.Id)
-		} else {
-			errs = append(errs, r.Err)
-		}
-	}
-	return errs.PrintErrors()
+	return utils.PrintPodPruneResults(responses)
 }

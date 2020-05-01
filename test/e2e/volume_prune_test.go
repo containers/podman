@@ -65,7 +65,6 @@ var _ = Describe("Podman volume prune", func() {
 	})
 
 	It("podman system prune --volume", func() {
-		Skip(v2fail)
 		session := podmanTest.Podman([]string{"volume", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

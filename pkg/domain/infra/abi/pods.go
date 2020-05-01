@@ -243,6 +243,10 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 }
 
 func (ic *ContainerEngine) PodPrune(ctx context.Context, options entities.PodPruneOptions) ([]*entities.PodPruneReport, error) {
+	return ic.prunePodHelper(ctx)
+}
+
+func (ic *ContainerEngine) prunePodHelper(ctx context.Context) ([]*entities.PodPruneReport, error) {
 	var (
 		reports []*entities.PodPruneReport
 	)

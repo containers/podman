@@ -193,6 +193,10 @@ func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.
 			filterFuncs = append(filterFuncs, generatedFunc)
 		}
 	}
+	return ic.pruneContainersHelper(ctx, filterFuncs)
+}
+
+func (ic *ContainerEngine) pruneContainersHelper(ctx context.Context, filterFuncs []libpod.ContainerFilter) (*entities.ContainerPruneReport, error) {
 	prunedContainers, pruneErrors, err := ic.Libpod.PruneContainers(filterFuncs)
 	if err != nil {
 		return nil, err
