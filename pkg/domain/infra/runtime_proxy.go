@@ -19,3 +19,11 @@ func NewLibpodRuntime(flags *flag.FlagSet, opts *entities.PodmanConfig) (entitie
 	}
 	return &abi.ContainerEngine{Libpod: r}, nil
 }
+
+func NewLibpodImageRuntime(flags *flag.FlagSet, opts *entities.PodmanConfig) (entities.ImageEngine, error) {
+	r, err := GetRuntime(context.Background(), flags, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &abi.ImageEngine{Libpod: r}, nil
+}

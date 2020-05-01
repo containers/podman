@@ -12,9 +12,18 @@ import (
 // EngineMode is the connection type podman is using to access libpod
 type EngineMode string
 
+// EngineSetup calls out whether a "normal" or specialized engine should be created
+type EngineSetup string
+
 const (
 	ABIMode    = EngineMode("abi")
 	TunnelMode = EngineMode("tunnel")
+
+	MigrateMode  = EngineSetup("migrate")
+	NoFDsMode    = EngineSetup("disablefds")
+	NormalMode   = EngineSetup("normal")
+	RenumberMode = EngineSetup("renumber")
+	ResetMode    = EngineSetup("reset")
 )
 
 // Convert EngineMode to String

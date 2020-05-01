@@ -16,4 +16,9 @@ type ContainerEngine struct {
 	Libpod *libpod.Runtime
 }
 
+// Container-related runtime linked against libpod library
+type SystemEngine struct {
+	Libpod *libpod.Runtime
+}
+
 var shutdownSync sync.Once

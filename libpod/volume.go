@@ -3,6 +3,7 @@ package libpod
 import (
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 )
 
@@ -132,4 +133,16 @@ func (v *Volume) Config() (*VolumeConfig, error) {
 	config := VolumeConfig{}
 	err := JSONDeepCopy(v.config, &config)
 	return &config, err
+}
+
+// VolumeInUse goes through the container dependencies of a volume
+// and checks if the volume is being used by any container.
+func (v *Volume) VolumesInUse() ([]string, error) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if !v.valid {
+		return nil, define.ErrVolumeRemoved
+	}
+	return v.runtime.state.VolumeInUse(v)
 }

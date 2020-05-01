@@ -3,7 +3,6 @@ package tunnel
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/bindings/system"
@@ -25,6 +24,9 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 
 // SystemPrune prunes unused data from the system.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
-	fmt.Println("in tunnel")
 	return system.Prune(ic.ClientCxt, &options.All, &options.Volume)
+}
+
+func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
+	panic(errors.New("system df is not supported on remote clients"))
 }

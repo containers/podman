@@ -65,6 +65,7 @@ type ContainerEngine interface {
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
 	SetupRootless(ctx context.Context, cmd *cobra.Command) error
 	Shutdown(ctx context.Context)
+	SystemDf(ctx context.Context, options SystemDfOptions) (*SystemDfReport, error)
 	VarlinkService(ctx context.Context, opts ServiceOptions) error
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts VolumeInspectOptions) ([]*VolumeInspectReport, error)
