@@ -8,7 +8,7 @@
 # The containers created by this image also come with a
 # Podman development environment in /root/podman.
 #
-FROM fedora:latest
+FROM registry.fedoraproject.org/fedora:latest
 ENV GOPATH=/root/podman
 
 # Install the software required to build Podman.
