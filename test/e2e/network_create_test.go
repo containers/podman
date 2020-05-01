@@ -140,7 +140,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and subnet", func() {
-		Skip(v2fail)
 		var (
 			results []network.NcList
 		)

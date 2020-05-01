@@ -34,6 +34,7 @@ var _ = Describe("Podman network", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -79,7 +80,6 @@ var _ = Describe("Podman network", func() {
 	)
 
 	It("podman network list", func() {
-		SkipIfRootless()
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
 		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
@@ -93,7 +93,6 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network list -q", func() {
-		SkipIfRootless()
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
 		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
@@ -107,14 +106,12 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network rm no args", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"network", "rm"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(BeZero())
 	})
 
 	It("podman network rm", func() {
-		SkipIfRootless()
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
 		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
@@ -137,14 +134,12 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network inspect no args", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"network", "inspect"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(BeZero())
 	})
 
 	It("podman network inspect", func() {
-		SkipIfRootless()
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
 		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
@@ -158,8 +153,6 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman inspect container single CNI network", func() {
-		Skip(v2fail)
-		SkipIfRootless()
 		netName := "testNetSingleCNI"
 		network := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.50.0/24", netName})
 		network.WaitWithDefaultTimeout()
@@ -190,8 +183,6 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman inspect container two CNI networks", func() {
-		Skip(v2fail)
-		SkipIfRootless()
 		netName1 := "testNetTwoCNI1"
 		network1 := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.51.0/25", netName1})
 		network1.WaitWithDefaultTimeout()

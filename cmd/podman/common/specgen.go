@@ -400,6 +400,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		}
 		s.ShmSize = &shmSize
 	}
+	s.CNINetworks = c.Net.CNINetworks
 	s.HostAdd = c.Net.AddHosts
 	s.UseImageResolvConf = c.Net.UseImageResolvConf
 	s.DNSServers = c.Net.DNSServers
