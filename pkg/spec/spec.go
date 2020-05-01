@@ -16,6 +16,8 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const CpuPeriod = 100000
@@ -534,11 +536,31 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	// If not explicitly overridden by the user, default number of open
 	// files and number of processes to the maximum they can be set to
 	// (without overriding a sysctl)
-	if !nofileSet && !isRootless {
-		g.AddProcessRlimits("RLIMIT_NOFILE", kernelMax, kernelMax)
+	if !nofileSet {
+		max := kernelMax
+		current := kernelMax
+		if isRootless {
+			var rlimit unix.Rlimit
+			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
+				logrus.Warnf("failed to return RLIMIT_NOFILE ulimit %q", err)
+			}
+			current = rlimit.Cur
+			max = rlimit.Max
+		}
+		g.AddProcessRlimits("RLIMIT_NOFILE", current, max)
 	}
-	if !nprocSet && !isRootless {
-		g.AddProcessRlimits("RLIMIT_NPROC", kernelMax, kernelMax)
+	if !nprocSet {
+		max := kernelMax
+		current := kernelMax
+		if isRootless {
+			var rlimit unix.Rlimit
+			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
+				logrus.Warnf("failed to return RLIMIT_NPROC ulimit %q", err)
+			}
+			current = rlimit.Cur
+			max = rlimit.Max
+		}
+		g.AddProcessRlimits("RLIMIT_NPROC", current, max)
 	}
 
 	return nil
