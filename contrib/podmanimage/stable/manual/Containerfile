@@ -17,7 +17,7 @@
 #   `podman push quay.io/stable:v1.7.0 docker://quay.io/podman/stable:v1.7.0`
 #
 # Start Build Process using the latest Fedora
-FROM fedora:latest
+FROM registry.fedoraproject.org/fedora:latest
 
 # Don't include container-selinux and remove
 # directories used by dnf that are just taking
