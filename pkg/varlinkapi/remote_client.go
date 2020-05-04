@@ -3,14 +3,14 @@
 package varlinkapi
 
 import (
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // ContainerStatsToLibpodContainerStats converts the varlink containerstats to a libpod
 // container stats
-func ContainerStatsToLibpodContainerStats(stats iopodman.ContainerStats) libpod.ContainerStats {
-	cstats := libpod.ContainerStats{
+func ContainerStatsToLibpodContainerStats(stats iopodman.ContainerStats) define.ContainerStats {
+	cstats := define.ContainerStats{
 		ContainerID: stats.Id,
 		Name:        stats.Name,
 		CPU:         stats.Cpu,

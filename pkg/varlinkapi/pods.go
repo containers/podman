@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	iopodman "github.com/containers/libpod/pkg/varlink"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
-
-	"github.com/containers/libpod/libpod"
-	iopodman "github.com/containers/libpod/pkg/varlink"
 )
 
 // CreatePod ...
@@ -263,7 +263,7 @@ func (i *VarlinkAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
 	}
-	prevStats := make(map[string]*libpod.ContainerStats)
+	prevStats := make(map[string]*define.ContainerStats)
 	podStats, err := pod.GetPodStats(prevStats)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())

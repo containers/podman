@@ -206,7 +206,7 @@ func ps(cmd *cobra.Command, args []string) error {
 				return err
 			}
 			if err := tmpl.Execute(w, responses); err != nil {
-				return nil
+				return err
 			}
 			if err := w.Flush(); err != nil {
 				return err

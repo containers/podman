@@ -331,7 +331,7 @@ func (i *VarlinkAPI) GetContainerStats(call iopodman.VarlinkCall, name string) e
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	containerStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
+	containerStats, err := ctr.GetContainerStats(&define.ContainerStats{})
 	if err != nil {
 		if errors.Cause(err) == define.ErrCtrStateInvalid {
 			return call.ReplyNoContainerRunning()

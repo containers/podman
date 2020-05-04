@@ -8,8 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	lpfilters "github.com/containers/libpod/libpod/filters"
+	"time"
 
 	"github.com/containers/buildah"
 	"github.com/containers/common/pkg/config"
@@ -17,8 +16,10 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	lpfilters "github.com/containers/libpod/libpod/filters"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/logs"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi/terminal"
@@ -997,4 +998,77 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 	shutdownSync.Do(func() {
 		_ = ic.Libpod.Shutdown(false)
 	})
+}
+
+func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) error {
+	containerFunc := ic.Libpod.GetRunningContainers
+	switch {
+	case len(namesOrIds) > 0:
+		containerFunc = func() ([]*libpod.Container, error) { return ic.Libpod.GetContainersByList(namesOrIds) }
+	case options.Latest:
+		containerFunc = func() ([]*libpod.Container, error) {
+			lastCtr, err := ic.Libpod.GetLatestContainer()
+			if err != nil {
+				return nil, err
+			}
+			return []*libpod.Container{lastCtr}, nil
+		}
+	case options.All:
+		containerFunc = ic.Libpod.GetAllContainers
+	}
+
+	ctrs, err := containerFunc()
+	if err != nil {
+		return errors.Wrapf(err, "unable to get list of containers")
+	}
+	containerStats := map[string]*define.ContainerStats{}
+	for _, ctr := range ctrs {
+		initialStats, err := ctr.GetContainerStats(&define.ContainerStats{})
+		if err != nil {
+			// when doing "all", don't worry about containers that are not running
+			cause := errors.Cause(err)
+			if options.All && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
+				continue
+			}
+			if cause == cgroups.ErrCgroupV1Rootless {
+				err = cause
+			}
+			return err
+		}
+		containerStats[ctr.ID()] = initialStats
+	}
+	for {
+		reportStats := []*define.ContainerStats{}
+		for _, ctr := range ctrs {
+			id := ctr.ID()
+			if _, ok := containerStats[ctr.ID()]; !ok {
+				initialStats, err := ctr.GetContainerStats(&define.ContainerStats{})
+				if errors.Cause(err) == define.ErrCtrRemoved || errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrStateInvalid {
+					// skip dealing with a container that is gone
+					continue
+				}
+				if err != nil {
+					return err
+				}
+				containerStats[id] = initialStats
+			}
+			stats, err := ctr.GetContainerStats(containerStats[id])
+			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
+				return err
+			}
+			// replace the previous measurement with the current one
+			containerStats[id] = stats
+			reportStats = append(reportStats, stats)
+		}
+		ctrs, err = containerFunc()
+		if err != nil {
+			return err
+		}
+		options.StatChan <- reportStats
+		if options.NoStream {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	return nil
 }

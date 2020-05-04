@@ -50,7 +50,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats, err := ctnr.GetContainerStats(&libpod.ContainerStats{})
+	stats, err := ctnr.GetContainerStats(&define.ContainerStats{})
 	if err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain Container %s stats", name))
 		return

@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/utils"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 )
@@ -68,7 +69,7 @@ func combineHumanValues(a, b uint64) string {
 }
 
 func floatToPercentString(f float64) string {
-	strippedFloat, err := libpod.RemoveScientificNotationFromFloat(f)
+	strippedFloat, err := utils.RemoveScientificNotationFromFloat(f)
 	if err != nil || strippedFloat == 0 {
 		// If things go bazinga, return a safe value
 		return "--"

@@ -247,14 +247,14 @@ func (p *Pod) InfraContainerID() (string, error) {
 // PodContainerStats is an organization struct for pods and their containers
 type PodContainerStats struct {
 	Pod            *Pod
-	ContainerStats map[string]*ContainerStats
+	ContainerStats map[string]*define.ContainerStats
 }
 
 // GetPodStats returns the stats for each of its containers
-func (p *Pod) GetPodStats(previousContainerStats map[string]*ContainerStats) (map[string]*ContainerStats, error) {
+func (p *Pod) GetPodStats(previousContainerStats map[string]*define.ContainerStats) (map[string]*define.ContainerStats, error) {
 	var (
 		ok       bool
-		prevStat *ContainerStats
+		prevStat *define.ContainerStats
 	)
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -266,10 +266,10 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*ContainerStats) (ma
 	if err != nil {
 		return nil, err
 	}
-	newContainerStats := make(map[string]*ContainerStats)
+	newContainerStats := make(map[string]*define.ContainerStats)
 	for _, c := range containers {
 		if prevStat, ok = previousContainerStats[c.ID()]; !ok {
-			prevStat = &ContainerStats{}
+			prevStat = &define.ContainerStats{}
 		}
 		newStats, err := c.GetContainerStats(prevStat)
 		// If the container wasn't running, don't include it
