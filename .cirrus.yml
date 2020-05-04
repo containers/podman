@@ -706,10 +706,12 @@ test_building_snap_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
     container:
-        image: yakshaveinc/snapcraft:core18
+        #image: yakshaveinc/snapcraft:core18
+        image: snapcore/snapcraft:stable
     env:
         - SNAPCRAFT_ENABLE_DEVELOPER_DEBUG: true
     snapcraft_script:
+        - 'cat /etc/os-release'
         - 'apt-get -y update'
         - 'cd contrib/snapcraft && snapcraft'
 
