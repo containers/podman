@@ -47,7 +47,7 @@ var _ = Describe("Podman containers ", func() {
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
-		_, err = images.Remove(bt.conn, id, nil)
+		_, err = images.Remove(bt.conn, id, false)
 		Expect(err).To(BeNil())
 
 		// create manifest list with images

@@ -109,36 +109,6 @@ func Load(ctx context.Context, r io.Reader, name *string) (*entities.ImageLoadRe
 	return &report, response.Process(&report)
 }
 
-// Remove deletes an image from local storage.  The optional force parameter
-// will forcibly remove the image by removing all all containers, including
-// those that are Running, first.
-func Remove(ctx context.Context, images []string, opts entities.ImageRemoveOptions) (*entities.ImageRemoveReport, error) {
-	var report handlers.LibpodImagesRemoveReport
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-	params := url.Values{}
-	params.Set("all", strconv.FormatBool(opts.All))
-	params.Set("force", strconv.FormatBool(opts.Force))
-	for _, i := range images {
-		params.Add("images", i)
-	}
-
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/remove", params)
-	if err != nil {
-		return nil, err
-	}
-	if err := response.Process(&report); err != nil {
-		return nil, err
-	}
-	var rmError error
-	if report.Error != "" {
-		rmError = errors.New(report.Error)
-	}
-	return &report.ImageRemoveReport, rmError
-}
-
 // Export saves an image from local storage as a tarball or image archive.  The optional format
 // parameter is used to change the format of the output.
 func Export(ctx context.Context, nameOrID string, w io.Writer, format *string, compress *bool) error {

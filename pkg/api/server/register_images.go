@@ -822,7 +822,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/import"), s.APIHandler(libpod.ImagesImport)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/images/remove libpod libpodImagesRemove
+	// swagger:operation DELETE /libpod/images/remove libpod libpodImagesRemove
 	// ---
 	// tags:
 	//  - images
@@ -853,7 +853,37 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/remove"), s.APIHandler(libpod.ImagesRemove)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/images/remove"), s.APIHandler(libpod.ImagesBatchRemove)).Methods(http.MethodDelete)
+	// swagger:operation DELETE /libpod/images/{name:.*}/remove libpod libpodRemoveImage
+	// ---
+	// tags:
+	//  - images
+	// summary: Remove an image from the local storage.
+	// description: Remove an image from the local storage.
+	// parameters:
+	//  - in: path
+	//    name: name:.*
+	//    type: string
+	//    required: true
+	//    description: name or ID of image to remove
+	//  - in: query
+	//    name: force
+	//    type: boolean
+	//    description: remove the image even if used by containers or has other tags
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/responses/DocsImageDeleteResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: '#/responses/NoSuchImage'
+	//   409:
+	//     $ref: '#/responses/ConflictError'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/images/{name:.*}/remove"), s.APIHandler(libpod.ImagesRemove)).Methods(http.MethodDelete)
 	// swagger:operation POST /libpod/images/pull libpod libpodImagesPull
 	// ---
 	// tags:
@@ -952,36 +982,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/search"), s.APIHandler(libpod.SearchImages)).Methods(http.MethodGet)
-	// swagger:operation DELETE /libpod/images/{name:.*} libpod libpodRemoveImage
-	// ---
-	// tags:
-	//  - images
-	// summary: Remove Image
-	// description: Delete an image from local store
-	// parameters:
-	//  - in: path
-	//    name: name:.*
-	//    type: string
-	//    required: true
-	//    description: name or ID of image to delete
-	//  - in: query
-	//    name: force
-	//    type: boolean
-	//    description: remove the image even if used by containers or has other tags
-	// produces:
-	// - application/json
-	// responses:
-	//   200:
-	//     $ref: "#/responses/DocsImageDeleteResponse"
-	//   400:
-	//     $ref: "#/responses/BadParamError"
-	//   404:
-	//     $ref: '#/responses/NoSuchImage'
-	//   409:
-	//     $ref: '#/responses/ConflictError'
-	//   500:
-	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}"), s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
 	// swagger:operation GET /libpod/images/{name:.*}/get libpod libpodExportImage
 	// ---
 	// tags:

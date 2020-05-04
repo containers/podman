@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -48,7 +49,9 @@ func rm(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
 	}
 
-	report, err := registry.ImageEngine().Remove(registry.GetContext(), args, imageOpts)
+	// Note: certain image-removal errors are non-fatal.  Hence, the report
+	// might be set even if err != nil.
+	report, rmErrors := registry.ImageEngine().Remove(registry.GetContext(), args, imageOpts)
 	if report != nil {
 		for _, u := range report.Untagged {
 			fmt.Println("Untagged: " + u)
@@ -62,5 +65,5 @@ func rm(cmd *cobra.Command, args []string) error {
 		registry.SetExitCode(report.ExitCode)
 	}
 
-	return err
+	return errorhandling.JoinErrors(rmErrors)
 }

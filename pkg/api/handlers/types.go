@@ -41,7 +41,7 @@ type LibpodImagesPullReport struct {
 type LibpodImagesRemoveReport struct {
 	entities.ImageRemoveReport
 	// Image removal requires is to return data and an error.
-	Error string
+	Errors []string
 }
 
 type ContainersPruneReport struct {

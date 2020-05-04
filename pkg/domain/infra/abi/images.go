@@ -21,7 +21,6 @@ import (
 	domainUtils "github.com/containers/libpod/pkg/domain/utils"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
-	"github.com/hashicorp/go-multierror"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -423,8 +422,10 @@ func (ir *ImageEngine) Tree(ctx context.Context, nameOrId string, opts entities.
 	return &entities.ImageTreeReport{Tree: results}, nil
 }
 
-// Remove removes one or more images from local storage.
-func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entities.ImageRemoveOptions) (report *entities.ImageRemoveReport, finalError error) {
+// removeErrorsToExitCode returns an exit code for the specified slice of
+// image-removal errors. The error codes are set according to the documented
+// behaviour in the Podman man pages.
+func removeErrorsToExitCode(rmErrors []error) int {
 	var (
 		// noSuchImageErrors indicates that at least one image was not found.
 		noSuchImageErrors bool
@@ -434,59 +435,53 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 		// otherErrors indicates that at least one error other than the two
 		// above occured.
 		otherErrors bool
-		// deleteError is a multierror to conveniently collect errors during
-		// removal. We really want to delete as many images as possible and not
-		// error out immediately.
-		deleteError *multierror.Error
 	)
 
+	if len(rmErrors) == 0 {
+		return 0
+	}
+
+	for _, e := range rmErrors {
+		switch errors.Cause(e) {
+		case define.ErrNoSuchImage:
+			noSuchImageErrors = true
+		case define.ErrImageInUse, storage.ErrImageUsedByContainer:
+			inUseErrors = true
+		default:
+			otherErrors = true
+		}
+	}
+
+	switch {
+	case inUseErrors:
+		// One of the specified images has child images or is
+		// being used by a container.
+		return 2
+	case noSuchImageErrors && !(otherErrors || inUseErrors):
+		// One of the specified images did not exist, and no other
+		// failures.
+		return 1
+	default:
+		return 125
+	}
+}
+
+// Remove removes one or more images from local storage.
+func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entities.ImageRemoveOptions) (report *entities.ImageRemoveReport, rmErrors []error) {
 	report = &entities.ImageRemoveReport{}
 
-	// Set the removalCode and the error after all work is done.
+	// Set the exit code at very end.
 	defer func() {
-		switch {
-		// 2
-		case inUseErrors:
-			// One of the specified images has child images or is
-			// being used by a container.
-			report.ExitCode = 2
-		// 1
-		case noSuchImageErrors && !(otherErrors || inUseErrors):
-			// One of the specified images did not exist, and no other
-			// failures.
-			report.ExitCode = 1
-		// 0
-		default:
-			// Nothing to do.
-		}
-		if deleteError != nil {
-			// go-multierror has a trailing new line which we need to remove to normalize the string.
-			finalError = deleteError.ErrorOrNil()
-			finalError = errors.New(strings.TrimSpace(finalError.Error()))
-		}
+		report.ExitCode = removeErrorsToExitCode(rmErrors)
 	}()
 
 	// deleteImage is an anonymous function to conveniently delete an image
 	// without having to pass all local data around.
 	deleteImage := func(img *image.Image) error {
 		results, err := ir.Libpod.RemoveImage(ctx, img, opts.Force)
-		switch errors.Cause(err) {
-		case nil:
-			break
-		case define.ErrNoSuchImage:
-			inUseErrors = true // ExitCode is expected
-		case storage.ErrImageUsedByContainer:
-			inUseErrors = true // Important for exit codes in Podman.
-			return errors.New(
-				fmt.Sprintf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID()))
-		case define.ErrImageInUse:
-			inUseErrors = true
-			return err
-		default:
-			otherErrors = true // Important for exit codes in Podman.
+		if err != nil {
 			return err
 		}
-
 		report.Deleted = append(report.Deleted, results.Deleted)
 		report.Untagged = append(report.Untagged, results.Untagged...)
 		return nil
@@ -499,9 +494,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 		for {
 			storageImages, err := ir.Libpod.ImageRuntime().GetRWImages()
 			if err != nil {
-				deleteError = multierror.Append(deleteError,
-					errors.Wrapf(err, "unable to query local images"))
-				otherErrors = true // Important for exit codes in Podman.
+				rmErrors = append(rmErrors, err)
 				return
 			}
 			// No images (left) to remove, so we're done.
@@ -510,9 +503,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 			}
 			// Prevent infinity loops by making a delete-progress check.
 			if previousImages == len(storageImages) {
-				otherErrors = true // Important for exit codes in Podman.
-				deleteError = multierror.Append(deleteError,
-					errors.New("unable to delete all images, check errors and re-run image removal if needed"))
+				rmErrors = append(rmErrors, errors.New("unable to delete all images, check errors and re-run image removal if needed"))
 				break
 			}
 			previousImages = len(storageImages)
@@ -520,15 +511,15 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 			for _, img := range storageImages {
 				isParent, err := img.IsParent(ctx)
 				if err != nil {
-					otherErrors = true // Important for exit codes in Podman.
-					deleteError = multierror.Append(deleteError, err)
+					rmErrors = append(rmErrors, err)
+					continue
 				}
 				// Skip parent images.
 				if isParent {
 					continue
 				}
 				if err := deleteImage(img); err != nil {
-					deleteError = multierror.Append(deleteError, err)
+					rmErrors = append(rmErrors, err)
 				}
 			}
 		}
@@ -539,21 +530,13 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 	// Delete only the specified images.
 	for _, id := range images {
 		img, err := ir.Libpod.ImageRuntime().NewFromLocal(id)
-		switch errors.Cause(err) {
-		case nil:
-			break
-		case image.ErrNoSuchImage:
-			noSuchImageErrors = true // Important for exit codes in Podman.
-			fallthrough
-		default:
-			deleteError = multierror.Append(deleteError, errors.Wrapf(err, "failed to remove image '%s'", id))
+		if err != nil {
+			rmErrors = append(rmErrors, err)
 			continue
 		}
-
 		err = deleteImage(img)
 		if err != nil {
-			otherErrors = true // Important for exit codes in Podman.
-			deleteError = multierror.Append(deleteError, err)
+			rmErrors = append(rmErrors, err)
 		}
 	}
 
