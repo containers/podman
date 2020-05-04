@@ -18,28 +18,26 @@ parts:
     build-snaps:
      - go/1.13/stable
     build-packages:
-     # https://github.com/containers/libpod/blob/master/install.md#build-and-run-dependencies
+     # https://podman.io/getting-started/installation#building-from-scratch
      - btrfs-tools
      - git
      - go-md2man
      - iptables
      - libassuan-dev
+     - libc6-dev
      - libdevmapper-dev
      - libglib2.0-dev
-     - libc6-dev
-     - libgpgme11-dev
+     - libgpgme-dev
      - libgpg-error-dev
-     - libostree-dev
      - libprotobuf-dev
      - libprotobuf-c0-dev
      - libseccomp-dev
      - libselinux1-dev
      - pkg-config
-    stage-packages:
-     - libarchive13
-     - libassuan0
-     - libgpgme11
-     - libicu60
-     - libostree-1-1
-     - libsoup2.4-1
-     - libxml2
+       # stage-packages:
+       #- libarchive13
+       #     - libassuan0
+       #     - libgpgme11
+       #     - libicu60
+       #     - libsoup2.4-1
+       #     - libxml2
