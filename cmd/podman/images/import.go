@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -26,6 +27,17 @@ var (
   cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
   cat ctr.tar | podman import -`,
 	}
+
+	imageImportCommand = &cobra.Command{
+		Args:  cobra.MinimumNArgs(1),
+		Use:   importCommand.Use,
+		Short: importCommand.Short,
+		Long:  importCommand.Long,
+		RunE:  importCommand.RunE,
+		Example: `podman image import http://example.com/ctr.tar url-image
+  cat ctr.tar | podman -q image import --message "importing the ctr.tar tarball" - image-imported
+  cat ctr.tar | podman image import -`,
+	}
 )
 
 var (
@@ -37,8 +49,17 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: importCommand,
 	})
+	importFlags(importCommand.Flags())
 
-	flags := importCommand.Flags()
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: imageImportCommand,
+		Parent:  imageCmd,
+	})
+	importFlags(imageImportCommand.Flags())
+}
+
+func importFlags(flags *pflag.FlagSet) {
 	flags.StringArrayVarP(&importOpts.Changes, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
 	flags.StringVarP(&importOpts.Message, "message", "m", "", "Set commit message for imported image")
 	flags.BoolVarP(&importOpts.Quiet, "quiet", "q", false, "Suppress output")

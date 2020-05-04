@@ -25,7 +25,7 @@ var (
 
 	topCommand = &cobra.Command{
 		Use:   "top [flags] POD [FORMAT-DESCRIPTORS|ARGS]",
-		Short: "Display the running processes in a pod",
+		Short: "Display the running processes of containers in a pod",
 		Long:  topDescription,
 		RunE:  top,
 		Args:  cobra.ArbitraryArgs,

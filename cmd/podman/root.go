@@ -212,7 +212,7 @@ func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	flags.StringSliceVar(&opts.Identities, "identity", []string{}, "path to SSH identity file")
 
 	cfg := opts.Config
-	flags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, opts.CGroupUsage)
+	flags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
 	flags.StringVar(&opts.CpuProfile, "cpu-profile", "", "Path for the cpu profiling results")
 	flags.StringVar(&opts.ConmonPath, "conmon", "", "Path of the conmon binary")
 	flags.StringVar(&cfg.Engine.NetworkCmdPath, "network-cmd-path", cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")

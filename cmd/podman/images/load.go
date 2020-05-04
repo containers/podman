@@ -15,6 +15,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -27,6 +28,14 @@ var (
 		RunE:  load,
 		Args:  cobra.MaximumNArgs(1),
 	}
+
+	imageLoadCommand = &cobra.Command{
+		Args:  cobra.MinimumNArgs(1),
+		Use:   loadCommand.Use,
+		Short: loadCommand.Short,
+		Long:  loadCommand.Long,
+		RunE:  loadCommand.RunE,
+	}
 )
 
 var (
@@ -38,8 +47,16 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: loadCommand,
 	})
+	loadFlags(loadCommand.Flags())
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: imageLoadCommand,
+		Parent:  imageCmd,
+	})
+	loadFlags(imageLoadCommand.Flags())
+}
 
-	flags := loadCommand.Flags()
+func loadFlags(flags *pflag.FlagSet) {
 	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Read from specified archive file (default: stdin)")
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.StringVar(&loadOpts.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file")

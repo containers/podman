@@ -35,7 +35,7 @@ var (
 
 	containerRmCommand = &cobra.Command{
 		Use:   rmCommand.Use,
-		Short: rmCommand.Use,
+		Short: rmCommand.Short,
 		Long:  rmCommand.Long,
 		RunE:  rmCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {

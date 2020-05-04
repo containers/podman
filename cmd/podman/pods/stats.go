@@ -35,7 +35,7 @@ var (
 	// Command: podman pod _pod_
 	statsCmd = &cobra.Command{
 		Use:   "stats [flags] [POD...]",
-		Short: "Display resource-usage statistics of pods",
+		Short: "Display a live stream of resource usage statistics for the containers in one or more pods",
 		Long:  statsDescription,
 		RunE:  stats,
 		Example: `podman pod stats

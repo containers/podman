@@ -27,7 +27,7 @@ var (
 `
 	logsCommand = &cobra.Command{
 		Use:   "logs [flags] CONTAINER [CONTAINER...]",
-		Short: "Fetch the logs of one or more container",
+		Short: "Fetch the logs of one or more containers",
 		Long:  logsDescription,
 		RunE:  logs,
 		Example: `podman logs ctrID

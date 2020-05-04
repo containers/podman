@@ -11,8 +11,8 @@ var (
 	// Command: healthcheck
 	healthCmd = &cobra.Command{
 		Use:              "healthcheck",
-		Short:            "Manage Healthcheck",
-		Long:             "Manage Healthcheck",
+		Short:            "Manage health checks on containers",
+		Long:             "Run health checks on containers",
 		TraverseChildren: true,
 		RunE:             validate.SubCommandExists,
 	}

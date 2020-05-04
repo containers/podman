@@ -18,12 +18,28 @@ var (
   podman tag imageID:latest myNewImage:newTag
   podman tag httpd myregistryhost:5000/fedora/httpd:v2`,
 	}
+
+	imageTagCommand = &cobra.Command{
+		Args:  tagCommand.Args,
+		Use:   tagCommand.Use,
+		Short: tagCommand.Short,
+		Long:  tagCommand.Long,
+		RunE:  tagCommand.RunE,
+		Example: `podman image tag 0e3bbc2 fedora:latest
+  podman image tag imageID:latest myNewImage:newTag
+  podman image tag httpd myregistryhost:5000/fedora/httpd:v2`,
+	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: tagCommand,
+	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: imageTagCommand,
+		Parent:  imageCmd,
 	})
 }
 

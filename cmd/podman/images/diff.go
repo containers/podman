@@ -6,6 +6,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -28,9 +29,11 @@ func init() {
 		Command: diffCmd,
 		Parent:  imageCmd,
 	})
+	diffFlags(diffCmd.Flags())
+}
 
+func diffFlags(flags *pflag.FlagSet) {
 	diffOpts = &entities.DiffOptions{}
-	flags := diffCmd.Flags()
 	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
 	_ = flags.MarkDeprecated("archive", "Provided for backwards compatibility, has no impact on output.")
 	flags.StringVar(&diffOpts.Format, "format", "", "Change the output format")
