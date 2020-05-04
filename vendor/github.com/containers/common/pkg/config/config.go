@@ -709,7 +709,7 @@ func (c *Config) GetDefaultEnv() []string {
 
 // Capabilities returns the capabilities parses the Add and Drop capability
 // list from the default capabiltiies for the container
-func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []string) []string {
+func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []string) ([]string, error) {
 
 	userNotRoot := func(user string) bool {
 		if user == "" || user == "root" || user == "0" {
@@ -718,36 +718,12 @@ func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []s
 		return true
 	}
 
-	var caps []string
 	defaultCapabilities := c.Containers.DefaultCapabilities
 	if userNotRoot(user) {
 		defaultCapabilities = []string{}
 	}
 
-	mapCap := make(map[string]bool, len(defaultCapabilities))
-	for _, c := range addCapabilities {
-		if strings.ToLower(c) == "all" {
-			defaultCapabilities = capabilities.AllCapabilities()
-			addCapabilities = nil
-			break
-		}
-	}
-
-	for _, c := range append(defaultCapabilities, addCapabilities...) {
-		mapCap[c] = true
-	}
-	for _, c := range dropCapabilities {
-		if "all" == strings.ToLower(c) {
-			return caps
-		}
-		mapCap[c] = false
-	}
-	for cap, add := range mapCap {
-		if add {
-			caps = append(caps, cap)
-		}
-	}
-	return caps
+	return capabilities.MergeCapabilities(defaultCapabilities, addCapabilities, dropCapabilities)
 }
 
 // Device parses device mapping string to a src, dest & permissions string

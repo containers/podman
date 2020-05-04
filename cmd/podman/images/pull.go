@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -75,7 +75,7 @@ func init() {
 // pullFlags set the flags for the pull command.
 func pullFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&pullOptions.AllTags, "all-tags", false, "All tagged images in the repository will be pulled")
-	flags.StringVar(&pullOptions.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.StringVar(&pullOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pullOptions.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&pullOptions.Credentials, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVar(&pullOptions.OverrideArch, "override-arch", "", "Use `ARCH` instead of the architecture of the machine for choosing images")

@@ -3,6 +3,8 @@ package specgen
 import (
 	"strings"
 
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 )
 
@@ -163,7 +165,7 @@ func ParseNamespace(ns string) (Namespace, error) {
 		toReturn.NSMode = FromPod
 	case ns == "host":
 		toReturn.NSMode = Host
-	case ns == "private":
+	case ns == "private", ns == "":
 		toReturn.NSMode = Private
 	case strings.HasPrefix(ns, "ns:"):
 		split := strings.SplitN(ns, ":", 2)
@@ -186,6 +188,31 @@ func ParseNamespace(ns string) (Namespace, error) {
 	return toReturn, nil
 }
 
+// ParseCgroupNamespace parses a cgroup namespace specification in string
+// form.
+func ParseCgroupNamespace(ns string) (Namespace, error) {
+	toReturn := Namespace{}
+	// Cgroup is host for v1, private for v2.
+	// We can't trust c/common for this, as it only assumes private.
+	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return toReturn, err
+	}
+	if cgroupsv2 {
+		switch ns {
+		case "host":
+			toReturn.NSMode = Host
+		case "private", "":
+			toReturn.NSMode = Private
+		default:
+			return toReturn, errors.Errorf("unrecognized namespace mode %s passed", ns)
+		}
+	} else {
+		toReturn.NSMode = Host
+	}
+	return toReturn, nil
+}
+
 // ParseUserNamespace parses a user namespace specification in string
 // form.
 func ParseUserNamespace(ns string) (Namespace, error) {
@@ -205,6 +232,9 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 	case ns == "keep-id":
 		toReturn.NSMode = KeepID
 		return toReturn, nil
+	case ns == "":
+		toReturn.NSMode = Host
+		return toReturn, nil
 	}
 	return ParseNamespace(ns)
 }
@@ -215,11 +245,18 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 	toReturn := Namespace{}
 	var cniNetworks []string
+	// Net defaults to Slirp on rootless
 	switch {
 	case ns == "slirp4netns":
 		toReturn.NSMode = Slirp
 	case ns == "pod":
 		toReturn.NSMode = FromPod
+	case ns == "":
+		if rootless.IsRootless() {
+			toReturn.NSMode = Slirp
+		} else {
+			toReturn.NSMode = Bridge
+		}
 	case ns == "bridge":
 		toReturn.NSMode = Bridge
 	case ns == "none":

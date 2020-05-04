@@ -3,7 +3,7 @@ package images
 import (
 	"os"
 
-	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -70,7 +70,7 @@ func init() {
 
 // pushFlags set the flags for the push command.
 func pushFlags(flags *pflag.FlagSet) {
-	flags.StringVar(&pushOptions.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.StringVar(&pushOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pushOptions.CertDir, "cert-dir", "", "Path to a directory containing TLS certificates and keys")
 	flags.BoolVar(&pushOptions.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
 	flags.StringVar(&pushOptions.Credentials, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")

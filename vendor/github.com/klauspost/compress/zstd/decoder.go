@@ -169,7 +169,12 @@ func (d *Decoder) Reset(r io.Reader) error {
 			println("*bytes.Buffer detected, doing sync decode, len:", bb.Len())
 		}
 		b := bb.Bytes()
-		dst, err := d.DecodeAll(b, nil)
+		var dst []byte
+		if cap(d.current.b) > 0 {
+			dst = d.current.b
+		}
+
+		dst, err := d.DecodeAll(b, dst[:0])
 		if err == nil {
 			err = io.EOF
 		}

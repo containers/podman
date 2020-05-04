@@ -267,6 +267,13 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 			return nil, err
 		}
 	} else {
+		// add default devices from containers.conf
+		for _, device := range rtc.Containers.Devices {
+			if err := DevicesFromPath(&g, device); err != nil {
+				return nil, err
+			}
+		}
+		// add default devices specified by caller
 		for _, device := range s.Devices {
 			if err := DevicesFromPath(&g, device.Path); err != nil {
 				return nil, err
@@ -297,7 +304,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 	configSpec := g.Config
 
-	if err := securityConfigureGenerator(s, &g, newImage); err != nil {
+	if err := securityConfigureGenerator(s, &g, newImage, rtc); err != nil {
 		return nil, err
 	}
 

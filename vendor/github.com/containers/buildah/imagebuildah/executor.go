@@ -113,7 +113,10 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 	if err != nil {
 		return nil, err
 	}
-	capabilities := defaultContainerConfig.Capabilities("", options.AddCapabilities, options.DropCapabilities)
+	capabilities, err := defaultContainerConfig.Capabilities("", options.AddCapabilities, options.DropCapabilities)
+	if err != nil {
+		return nil, err
+	}
 
 	devices := []configs.Device{}
 	for _, device := range append(defaultContainerConfig.Containers.Devices, options.Devices...) {

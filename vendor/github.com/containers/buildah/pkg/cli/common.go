@@ -13,6 +13,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/config"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -150,7 +151,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.StringVar(&flags.Arch, "arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
 	fs.StringArrayVar(&flags.Annotation, "annotation", []string{}, "Set metadata for an image (default [])")
-	fs.StringVar(&flags.Authfile, "authfile", GetDefaultAuthFile(), "path of the authentication file.")
+	fs.StringVar(&flags.Authfile, "authfile", auth.GetDefaultAuthFile(), "path of the authentication file.")
 	fs.StringArrayVar(&flags.BuildArg, "build-arg", []string{}, "`argument=value` to supply to the builder")
 	fs.StringVar(&flags.CacheFrom, "cache-from", "", "Images to utilise as potential cache sources. The build process does not currently support caching so this is a NOOP.")
 	fs.StringVar(&flags.CertDir, "cert-dir", "", "use certificates at the specified path to access the registry")
@@ -275,20 +276,6 @@ func VerifyFlagsArgsOrder(args []string) error {
 		if strings.HasPrefix(arg, "-") {
 			return errors.Errorf("No options (%s) can be specified after the image or container name", arg)
 		}
-	}
-	return nil
-}
-
-func GetDefaultAuthFile() string {
-	return os.Getenv("REGISTRY_AUTH_FILE")
-}
-
-func CheckAuthFile(authfile string) error {
-	if authfile == "" {
-		return nil
-	}
-	if _, err := os.Stat(authfile); err != nil {
-		return errors.Wrapf(err, "error checking authfile path %s", authfile)
 	}
 	return nil
 }

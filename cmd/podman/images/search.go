@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -87,7 +87,7 @@ func searchFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&searchOptions.Format, "format", "", "Change the output format to a Go template")
 	flags.IntVar(&searchOptions.Limit, "limit", 0, "Limit the number of results")
 	flags.BoolVar(&searchOptions.NoTrunc, "no-trunc", false, "Do not truncate the output")
-	flags.StringVar(&searchOptions.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.StringVar(&searchOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.BoolVar(&searchOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
