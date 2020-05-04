@@ -8,7 +8,6 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 type Container struct {
@@ -40,7 +39,7 @@ type NetOptions struct {
 	DNSServers         []net.IP
 	Network            specgen.Namespace
 	NoHosts            bool
-	PublishPorts       []ocicni.PortMapping
+	PublishPorts       []specgen.PortMapping
 	StaticIP           *net.IP
 	StaticMAC          *net.HardwareAddr
 }

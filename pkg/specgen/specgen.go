@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/storage"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -306,11 +305,23 @@ type ContainerNetworkConfig struct {
 	// PortBindings is a set of ports to map into the container.
 	// Only available if NetNS is set to bridge or slirp.
 	// Optional.
-	PortMappings []ocicni.PortMapping `json:"portmappings,omitempty"`
-	// PublishImagePorts will publish ports specified in the image to random
-	// ports outside.
-	// Requires Image to be set.
-	PublishImagePorts bool `json:"publish_image_ports,omitempty"`
+	PortMappings []PortMapping `json:"portmappings,omitempty"`
+	// PublishExposedPorts will publish ports specified in the image to
+	// random unused ports (guaranteed to be above 1024) on the host.
+	// This is based on ports set in Expose below, and any ports specified
+	// by the Image (if one is given).
+	// Only available if NetNS is set to Bridge or Slirp.
+	PublishExposedPorts bool `json:"publish_image_ports,omitempty"`
+	// Expose is a number of ports that will be forwarded to the container
+	// if PublishExposedPorts is set.
+	// Expose is a map of uint16 (port number) to a string representing
+	// protocol. Allowed protocols are "tcp", "udp", and "sctp", or some
+	// combination of the three separated by commas.
+	// If protocol is set to "" we will assume TCP.
+	// Only available if NetNS is set to Bridge or Slirp, and
+	// PublishExposedPorts is set.
+	// Optional.
+	Expose map[uint16]string `json:"expose,omitempty"`
 	// CNINetworks is a list of CNI networks to join the container to.
 	// If this list is empty, the default CNI network will be joined
 	// instead. If at least one entry is present, we will not join the
@@ -408,6 +419,35 @@ type NamedVolume struct {
 	Dest string
 	// Options are options that the named volume will be mounted with.
 	Options []string
+}
+
+// PortMapping is one or more ports that will be mapped into the container.
+type PortMapping struct {
+	// HostIP is the IP that we will bind to on the host.
+	// If unset, assumed to be 0.0.0.0 (all interfaces).
+	HostIP string `json:"host_ip,omitempty"`
+	// ContainerPort is the port number that will be exposed from the
+	// container.
+	// Mandatory.
+	ContainerPort uint16 `json:"container_port"`
+	// HostPort is the port number that will be forwarded from the host into
+	// the container.
+	// If omitted, will be assumed to be identical to
+	HostPort uint16 `json:"host_port,omitempty"`
+	// Range is the number of ports that will be forwarded, starting at
+	// HostPort and ContainerPort and counting up.
+	// This is 1-indexed, so 1 is assumed to be a single port (only the
+	// Hostport:Containerport mapping will be added), 2 is two ports (both
+	// Hostport:Containerport and Hostport+1:Containerport+1), etc.
+	// If unset, assumed to be 1 (a single port).
+	// Both hostport + range and containerport + range must be less than
+	// 65536.
+	Range uint16 `json:"range,omitempty"`
+	// Protocol is the protocol forward.
+	// Must be either "tcp", "udp", and "sctp", or some combination of these
+	// separated by commas.
+	// If unset, assumed to be TCP.
+	Protocol string `json:"protocol,omitempty"`
 }
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs

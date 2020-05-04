@@ -96,7 +96,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, err
 	}
 
-	opts, err := createContainerOptions(rt, s, pod, finalVolumes)
+	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, newImage)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	return rt.NewContainer(ctx, runtimeSpec, options...)
 }
 
-func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, img *image.Image) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -134,7 +134,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, rt.WithPod(pod))
 	}
 	destinations := []string{}
-	//	// Take all mount and named volume destinations.
+	// Take all mount and named volume destinations.
 	for _, mount := range s.Mounts {
 		destinations = append(destinations, mount.Destination)
 	}
@@ -188,7 +188,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	options = append(options, libpod.WithPrivileged(s.Privileged))
 
 	// Get namespace related options
-	namespaceOptions, err := GenerateNamespaceOptions(s, rt, pod)
+	namespaceOptions, err := GenerateNamespaceOptions(ctx, s, rt, pod, img)
 	if err != nil {
 		return nil, err
 	}
