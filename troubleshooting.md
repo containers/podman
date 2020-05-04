@@ -517,3 +517,23 @@ The runtime uses `setgroups(2)` hence the process looses all additional groups
 the non-root user has. If you use the `crun` runtime, 0.10.4 or newer,
 then you can enable a workaround by adding `--annotation io.crun.keep_original_groups=1`
 to the `podman` command line.
+
+### 22) A rootless container running in detached mode is closed at logout
+
+When running a container with a command like `podman run --detach httpd` as
+a rootless user, the container is closed upon logout and is not kept running.
+
+#### Symptom
+
+When logging out of a rootless user session, all containers that were started
+in detached mode are stopped and are not kept running.  As the root user, these
+same containers would survive the logout and continue running.
+
+#### Solution
+
+When systemd notes that a session that started a Podman container has exited,
+it will also stop any containers that has been associated with it.  To avoid
+this, use the following command before logging out: `loginctl enable-linger`.
+To later revert the linger functionality, use `loginctl disable-linger`.
+
+LOGINCTL(1), SYSTEMD(1)
