@@ -367,3 +367,14 @@ type ContainerCpOptions struct {
 // ContainerCpReport describes the output from a cp operation
 type ContainerCpReport struct {
 }
+
+// ContainerStatsOptions describes input options for getting
+// stats on containers
+type ContainerStatsOptions struct {
+	All      bool
+	Format   string
+	Latest   bool
+	NoReset  bool
+	NoStream bool
+	StatChan chan []*define.ContainerStats
+}

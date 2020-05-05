@@ -9,12 +9,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/common/pkg/config"
-
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/utils"
 	"github.com/fsnotify/fsnotify"
@@ -34,24 +32,6 @@ const (
 func FuncTimer(funcName string) {
 	elapsed := time.Since(time.Now())
 	fmt.Printf("%s executed in %d ms\n", funcName, elapsed)
-}
-
-// RemoveScientificNotationFromFloat returns a float without any
-// scientific notation if the number has any.
-// golang does not handle conversion of float64s that have scientific
-// notation in them and otherwise stinks.  please replace this if you have
-// a better implementation.
-func RemoveScientificNotationFromFloat(x float64) (float64, error) {
-	bigNum := strconv.FormatFloat(x, 'g', -1, 64)
-	breakPoint := strings.IndexAny(bigNum, "Ee")
-	if breakPoint > 0 {
-		bigNum = bigNum[:breakPoint]
-	}
-	result, err := strconv.ParseFloat(bigNum, 64)
-	if err != nil {
-		return x, errors.Wrapf(err, "unable to remove scientific number from calculations")
-	}
-	return result, nil
 }
 
 // MountExists returns true if dest exists in the list of mounts

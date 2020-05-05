@@ -35,6 +35,7 @@ type ContainerEngine interface {
 	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*RmReport, error)
 	ContainerRun(ctx context.Context, opts ContainerRunOptions) (*ContainerRunReport, error)
 	ContainerStart(ctx context.Context, namesOrIds []string, options ContainerStartOptions) ([]*ContainerStartReport, error)
+	ContainerStats(ctx context.Context, namesOrIds []string, options ContainerStatsOptions) error
 	ContainerStop(ctx context.Context, namesOrIds []string, options StopOptions) ([]*StopReport, error)
 	ContainerTop(ctx context.Context, options TopOptions) (*StringSliceReport, error)
 	ContainerUnmount(ctx context.Context, nameOrIds []string, options ContainerUnmountOptions) ([]*ContainerUnmountReport, error)

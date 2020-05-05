@@ -13,8 +13,8 @@ import (
 )
 
 // GetContainerStats gets the running stats for a given container
-func (c *Container) GetContainerStats(previousStats *ContainerStats) (*ContainerStats, error) {
-	stats := new(ContainerStats)
+func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*define.ContainerStats, error) {
+	stats := new(define.ContainerStats)
 	stats.ContainerID = c.ID()
 	stats.Name = c.Name()
 
