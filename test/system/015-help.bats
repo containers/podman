@@ -28,12 +28,19 @@ function check_help() {
     local subcommands_found=0
 
     for cmd in $(podman_commands "$@"); do
-        dprint "podman $@ $cmd --help"
+        # Human-readable podman command string, with multiple spaces collapsed
+        command_string="podman $* $cmd"
+        command_string=${command_string//  / }  # 'podman  x' -> 'podman x'
+
+        dprint "$command_string --help"
         run_podman "$@" $cmd --help
 
         # The line immediately after 'Usage:' gives us a 1-line synopsis
         usage=$(echo "$output" | grep -A1 '^Usage:' | tail -1)
         [ -n "$usage" ] || die "podman $cmd: no Usage message found"
+
+        # e.g. 'podman ps' should not show 'podman container ps' in usage
+        is "$usage" "  $command_string .*" "Usage string matches command"
 
         # If usage ends in '[command]', recurse into subcommands
         if expr "$usage" : '.*\[command\]$' >/dev/null; then
@@ -46,10 +53,10 @@ function check_help() {
         # Confirm that by running with 'invalid-arg' and expecting failure.
         if expr "$usage" : '.*\[flags\]$' >/dev/null; then
             if [ "$cmd" != "help" ]; then
-                dprint "podman $@ $cmd invalid-arg"
+                dprint "$command_string invalid-arg"
                 run_podman 125 "$@" $cmd invalid-arg
                 is "$output" "Error: .* takes no arguments" \
-                   "'podman $@ $cmd' with extra (invalid) arguments"
+                   "'$command_string' with extra (invalid) arguments"
             fi
         fi
 
@@ -69,10 +76,10 @@ function check_help() {
 
             # The </dev/null protects us from 'podman login' which will
             # try to read username/password from stdin.
-            dprint "podman $@ $cmd (without required args)"
+            dprint "$command_string (without required args)"
             run_podman 125 "$@" $cmd </dev/null
             is "$output" "Error:.* \(require\|specif\|must\|provide\|need\|choose\|accepts\)" \
-               "'podman $@ $cmd' without required arg"
+               "'$command_string' without required arg"
         fi
 
         count=$(expr $count + 1)
