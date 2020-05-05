@@ -26,6 +26,16 @@ func getCPULimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) 
 	cpu := &specs.LinuxCPU{}
 	hasLimits := false
 
+	const cpuPeriod = 100000
+
+	if c.CPUS > 0 {
+		quota := int64(c.CPUS * cpuPeriod)
+		period := uint64(cpuPeriod)
+
+		cpu.Period = &period
+		cpu.Quota = &quota
+		hasLimits = true
+	}
 	if c.CPUShares > 0 {
 		cpu.Shares = &c.CPUShares
 		hasLimits = true
@@ -142,6 +152,10 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []strin
 			return nil, errors.Wrapf(err, "invalid value for memory")
 		}
 		memory.Limit = &ml
+		if c.MemorySwap == "" {
+			limit := 2 * ml
+			memory.Swap = &(limit)
+		}
 		hasLimits = true
 	}
 	if m := c.MemoryReservation; len(m) > 0 {
@@ -606,7 +620,29 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Name = c.Name
 
 	s.OOMScoreAdj = &c.OOMScoreAdj
-	s.RestartPolicy = c.Restart
+	if c.Restart != "" {
+		splitRestart := strings.Split(c.Restart, ":")
+		switch len(splitRestart) {
+		case 1:
+			// No retries specified
+		case 2:
+			if strings.ToLower(splitRestart[0]) != "on-failure" {
+				return errors.Errorf("restart policy retries can only be specified with on-failure restart policy")
+			}
+			retries, err := strconv.Atoi(splitRestart[1])
+			if err != nil {
+				return errors.Wrapf(err, "error parsing restart policy retry count")
+			}
+			if retries < 0 {
+				return errors.Errorf("must specify restart policy retry count as a number greater than 0")
+			}
+			var retriesUint uint = uint(retries)
+			s.RestartRetries = &retriesUint
+		default:
+			return errors.Errorf("invalid restart policy: may specify retries at most once")
+		}
+		s.RestartPolicy = splitRestart[0]
+	}
 	s.Remove = c.Rm
 	s.StopTimeout = &c.StopTimeout
 

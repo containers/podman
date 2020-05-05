@@ -342,4 +342,53 @@ var _ = Describe("Podman create", func() {
 		Expect(ok2).To(BeTrue())
 		Expect(val2).To(Equal("bar"))
 	})
+
+	It("podman create with --restart=on-failure:5 parses correctly", func() {
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"create", "-t", "--restart", "on-failure:5", "--name", ctrName, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].HostConfig.RestartPolicy.Name).To(Equal("on-failure"))
+		Expect(data[0].HostConfig.RestartPolicy.MaximumRetryCount).To(Equal(uint(5)))
+	})
+
+	It("podman create with --restart-policy=always:5 fails", func() {
+		session := podmanTest.Podman([]string{"create", "-t", "--restart", "always:5", ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman create with -m 1000000 sets swap to 2000000", func() {
+		numMem := 1000000
+		ctrName := "testCtr"
+		session := podmanTest.Podman([]string{"create", "-t", "-m", fmt.Sprintf("%db", numMem), "--name", ctrName, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].HostConfig.MemorySwap).To(Equal(int64(2 * numMem)))
+	})
+
+	It("podman create --cpus 5 sets nanocpus", func() {
+		numCpus := 5
+		nanoCPUs := numCpus * 1000000000
+		ctrName := "testCtr"
+		session := podmanTest.Podman([]string{"create", "-t", "--cpus", fmt.Sprintf("%d", numCpus), "--name", ctrName, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].HostConfig.NanoCpus).To(Equal(int64(nanoCPUs)))
+	})
 })
