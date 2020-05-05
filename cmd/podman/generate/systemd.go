@@ -29,7 +29,7 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: systemdCmd,
 		Parent:  generateCmd,
 	})

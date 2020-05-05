@@ -7,6 +7,7 @@ import (
 	cconfig "github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/rootless"
@@ -436,29 +437,29 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	if config.CidFile != "" {
-		configSpec.Annotations[libpod.InspectAnnotationCIDFile] = config.CidFile
+		configSpec.Annotations[define.InspectAnnotationCIDFile] = config.CidFile
 	}
 
 	if config.Rm {
-		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseTrue
+		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseTrue
 	} else {
-		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseFalse
+		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseFalse
 	}
 
 	if len(config.VolumesFrom) > 0 {
-		configSpec.Annotations[libpod.InspectAnnotationVolumesFrom] = strings.Join(config.VolumesFrom, ",")
+		configSpec.Annotations[define.InspectAnnotationVolumesFrom] = strings.Join(config.VolumesFrom, ",")
 	}
 
 	if config.Security.Privileged {
-		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseTrue
+		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseTrue
 	} else {
-		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseFalse
+		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseFalse
 	}
 
 	if config.Init {
-		configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseTrue
+		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseTrue
 	} else {
-		configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseFalse
+		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseFalse
 	}
 
 	return configSpec, nil

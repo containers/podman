@@ -1,5 +1,7 @@
 package entities
 
+import "io"
+
 // GenerateSystemdOptions control the generation of systemd unit files.
 type GenerateSystemdOptions struct {
 	// Files - generate files instead of printing to stdout.
@@ -19,4 +21,16 @@ type GenerateSystemdReport struct {
 	// Output of the generate process. Either the generated files or their
 	// entire content.
 	Output string
+}
+
+// GenerateKubeOptions control the generation of Kubernetes YAML files.
+type GenerateKubeOptions struct {
+	// Service - generate YAML for a Kubernetes _service_ object.
+	Service bool
+}
+
+// GenerateKubeReport
+type GenerateKubeReport struct {
+	// Reader - the io.Reader to reader the generated YAML file.
+	Reader io.Reader
 }
