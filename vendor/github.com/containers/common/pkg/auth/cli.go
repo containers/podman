@@ -9,22 +9,28 @@ import (
 // LoginOptions represents common flags in login
 // caller should define bool or optionalBool fields for flags --get-login and --tls-verify
 type LoginOptions struct {
+	// CLI flags managed by the FlagSet returned by GetLoginFlags
 	AuthFile      string
 	CertDir       string
-	GetLoginSet   bool
 	Password      string
 	Username      string
 	StdinPassword bool
-	Stdin         io.Reader
-	Stdout        io.Writer
+	// Options caller can set
+	GetLoginSet               bool      // set to true if --get-login is explicitly set
+	Stdin                     io.Reader // set to os.Stdin
+	Stdout                    io.Writer // set to os.Stdout
+	AcceptUnspecifiedRegistry bool      // set to true if allows login with unspecified registry
 }
 
 // LogoutOptions represents the results for flags in logout
 type LogoutOptions struct {
+	// CLI flags managed by the FlagSet returned by GetLogoutFlags
 	AuthFile string
 	All      bool
-	Stdin    io.Reader
-	Stdout   io.Writer
+	// Options caller can set
+	Stdin                     io.Reader // set to os.Stdin
+	Stdout                    io.Writer // set to os.Stdout
+	AcceptUnspecifiedRegistry bool      // set to true if allows logout with unspecified registry
 }
 
 // GetLoginFlags defines and returns login flags for containers tools
