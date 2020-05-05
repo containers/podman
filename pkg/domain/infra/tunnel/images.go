@@ -20,8 +20,8 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.Boo
 	return &entities.BoolReport{Value: found}, err
 }
 
-func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts entities.ImageRemoveOptions) (*entities.ImageRemoveReport, error) {
-	return images.Remove(ir.ClientCxt, imagesArg, opts)
+func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts entities.ImageRemoveOptions) (*entities.ImageRemoveReport, []error) {
+	return images.BatchRemove(ir.ClientCxt, imagesArg, opts)
 }
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {

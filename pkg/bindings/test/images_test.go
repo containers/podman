@@ -84,17 +84,20 @@ var _ = Describe("Podman images", func() {
 	// Test to validate the remove image api
 	It("remove image", func() {
 		// Remove invalid image should be a 404
-		_, err = images.Remove(bt.conn, "foobar5000", &bindings.PFalse)
+		response, err := images.Remove(bt.conn, "foobar5000", false)
 		Expect(err).ToNot(BeNil())
+		Expect(response).To(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Remove an image by name, validate image is removed and error is nil
 		inspectData, err := images.GetImage(bt.conn, busybox.shortName, nil)
 		Expect(err).To(BeNil())
-		response, err := images.Remove(bt.conn, busybox.shortName, nil)
+		response, err = images.Remove(bt.conn, busybox.shortName, false)
 		Expect(err).To(BeNil())
-		Expect(inspectData.ID).To(Equal(response[0]["Deleted"]))
+		code, _ = bindings.CheckResponseCode(err)
+
+		Expect(inspectData.ID).To(Equal(response.Deleted[0]))
 		inspectData, err = images.GetImage(bt.conn, busybox.shortName, nil)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -104,30 +107,31 @@ var _ = Describe("Podman images", func() {
 		_, err = bt.RunTopContainer(&top, &bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// we should now have a container called "top" running
-		containerResponse, err := containers.Inspect(bt.conn, "top", &bindings.PFalse)
+		containerResponse, err := containers.Inspect(bt.conn, "top", nil)
 		Expect(err).To(BeNil())
 		Expect(containerResponse.Name).To(Equal("top"))
 
 		// try to remove the image "alpine". This should fail since we are not force
 		// deleting hence image cannot be deleted until the container is deleted.
-		response, err = images.Remove(bt.conn, alpine.shortName, &bindings.PFalse)
+		response, err = images.Remove(bt.conn, alpine.shortName, false)
 		code, _ = bindings.CheckResponseCode(err)
-		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
+		Expect(code).To(BeNumerically("==", http.StatusConflict))
 
 		// Removing the image "alpine" where force = true
-		response, err = images.Remove(bt.conn, alpine.shortName, &bindings.PTrue)
+		response, err = images.Remove(bt.conn, alpine.shortName, true)
 		Expect(err).To(BeNil())
+		// To be extra sure, check if the previously created container
+		// is gone as well.
+		_, err = containers.Inspect(bt.conn, "top", &bindings.PFalse)
+		code, _ = bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
-		// Checking if both the images are gone as well as the container is deleted
+		// Now make sure both images are gone.
 		inspectData, err = images.GetImage(bt.conn, busybox.shortName, nil)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		inspectData, err = images.GetImage(bt.conn, alpine.shortName, nil)
-		code, _ = bindings.CheckResponseCode(err)
-		Expect(code).To(BeNumerically("==", http.StatusNotFound))
-
-		_, err = containers.Inspect(bt.conn, "top", &bindings.PFalse)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 	})
@@ -209,7 +213,7 @@ var _ = Describe("Podman images", func() {
 
 	It("Load|Import Image", func() {
 		// load an image
-		_, err := images.Remove(bt.conn, alpine.name, nil)
+		_, err := images.Remove(bt.conn, alpine.name, false)
 		Expect(err).To(BeNil())
 		exists, err := images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
@@ -219,7 +223,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 		names, err := images.Load(bt.conn, f, nil)
 		Expect(err).To(BeNil())
-		Expect(names.Name).To(Equal(alpine.name))
+		Expect(names.Names[0]).To(Equal(alpine.name))
 		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
@@ -227,7 +231,7 @@ var _ = Describe("Podman images", func() {
 		// load with a repo name
 		f, err = os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
 		Expect(err).To(BeNil())
-		_, err = images.Remove(bt.conn, alpine.name, nil)
+		_, err = images.Remove(bt.conn, alpine.name, false)
 		Expect(err).To(BeNil())
 		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
@@ -235,7 +239,7 @@ var _ = Describe("Podman images", func() {
 		newName := "quay.io/newname:fizzle"
 		names, err = images.Load(bt.conn, f, &newName)
 		Expect(err).To(BeNil())
-		Expect(names.Name).To(Equal(alpine.name))
+		Expect(names.Names[0]).To(Equal(alpine.name))
 		exists, err = images.Exists(bt.conn, newName)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
@@ -243,7 +247,7 @@ var _ = Describe("Podman images", func() {
 		// load with a bad repo name should trigger a 500
 		f, err = os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
 		Expect(err).To(BeNil())
-		_, err = images.Remove(bt.conn, alpine.name, nil)
+		_, err = images.Remove(bt.conn, alpine.name, false)
 		Expect(err).To(BeNil())
 		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
@@ -271,7 +275,7 @@ var _ = Describe("Podman images", func() {
 
 	It("Import Image", func() {
 		// load an image
-		_, err = images.Remove(bt.conn, alpine.name, nil)
+		_, err = images.Remove(bt.conn, alpine.name, false)
 		Expect(err).To(BeNil())
 		exists, err := images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())

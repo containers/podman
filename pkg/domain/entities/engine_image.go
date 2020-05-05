@@ -19,7 +19,7 @@ type ImageEngine interface {
 	Prune(ctx context.Context, opts ImagePruneOptions) (*ImagePruneReport, error)
 	Pull(ctx context.Context, rawImage string, opts ImagePullOptions) (*ImagePullReport, error)
 	Push(ctx context.Context, source string, destination string, opts ImagePushOptions) error
-	Remove(ctx context.Context, images []string, opts ImageRemoveOptions) (*ImageRemoveReport, error)
+	Remove(ctx context.Context, images []string, opts ImageRemoveOptions) (*ImageRemoveReport, []error)
 	Save(ctx context.Context, nameOrId string, tags []string, options ImageSaveOptions) error
 	Search(ctx context.Context, term string, opts ImageSearchOptions) ([]ImageSearchReport, error)
 	Shutdown(ctx context.Context)

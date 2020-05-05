@@ -56,7 +56,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 				}
 			}
 		} else {
-			return nil, fmt.Errorf("could not remove image %s as it is being used by %d containers", img.ID(), len(imageCtrs))
+			return nil, errors.Wrapf(define.ErrImageInUse, "could not remove image %s as it is being used by %d containers", img.ID(), len(imageCtrs))
 		}
 	}
 
