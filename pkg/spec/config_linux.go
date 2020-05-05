@@ -16,6 +16,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -365,4 +366,28 @@ func GetStatFromPath(path string) (unix.Stat_t, error) {
 	s := unix.Stat_t{}
 	err := unix.Stat(path, &s)
 	return s, err
+}
+
+func getNOFILESettings() (uint64, uint64) {
+	if rootless.IsRootless() {
+		var rlimit unix.Rlimit
+		if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err == nil {
+			return rlimit.Cur, rlimit.Max
+		} else {
+			logrus.Warnf("failed to return RLIMIT_NOFILE ulimit %q", err)
+		}
+	}
+	return kernelMax, kernelMax
+}
+
+func getNPROCSettings() (uint64, uint64) {
+	if rootless.IsRootless() {
+		var rlimit unix.Rlimit
+		if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err == nil {
+			return rlimit.Cur, rlimit.Max
+		} else {
+			logrus.Warnf("failed to return RLIMIT_NPROC ulimit %q", err)
+		}
+	}
+	return kernelMax, kernelMax
 }
