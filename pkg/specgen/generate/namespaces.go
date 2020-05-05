@@ -1,12 +1,14 @@
 package generate
 
 import (
+	"context"
 	"os"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/util"
@@ -76,7 +78,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 // joining a pod.
 // TODO: Consider grouping options that are not directly attached to a namespace
 // elsewhere.
-func GenerateNamespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
+func GenerateNamespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.Pod, img *image.Image) ([]libpod.CtrCreateOption, error) {
 	toReturn := []libpod.CtrCreateOption{}
 
 	// If pod is not nil, get infra container.
@@ -204,7 +206,6 @@ func GenerateNamespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod 
 	}
 
 	// Net
-	// TODO image ports
 	// TODO validate CNINetworks, StaticIP, StaticIPv6 are only set if we
 	// are in bridge mode.
 	postConfigureNetNS := !s.UserNS.IsHost()
@@ -221,9 +222,17 @@ func GenerateNamespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod 
 		}
 		toReturn = append(toReturn, libpod.WithNetNSFrom(netCtr))
 	case specgen.Slirp:
-		toReturn = append(toReturn, libpod.WithNetNS(s.PortMappings, postConfigureNetNS, "slirp4netns", nil))
+		portMappings, err := createPortMappings(ctx, s, img)
+		if err != nil {
+			return nil, err
+		}
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, "slirp4netns", nil))
 	case specgen.Bridge:
-		toReturn = append(toReturn, libpod.WithNetNS(s.PortMappings, postConfigureNetNS, "bridge", s.CNINetworks))
+		portMappings, err := createPortMappings(ctx, s, img)
+		if err != nil {
+			return nil, err
+		}
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, "bridge", s.CNINetworks))
 	}
 
 	if s.UseImageHosts {
@@ -428,7 +437,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	if g.Config.Annotations == nil {
 		g.Config.Annotations = make(map[string]string)
 	}
-	if s.PublishImagePorts {
+	if s.PublishExposedPorts {
 		g.Config.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseTrue
 	} else {
 		g.Config.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseFalse

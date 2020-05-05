@@ -192,7 +192,6 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []strin
 func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) error {
 	var (
 		err error
-		// namespaces map[string]string
 	)
 
 	// validate flags as needed
@@ -234,8 +233,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	// We are not handling the Expose flag yet.
 	// s.PortsExpose = c.Expose
 	s.PortMappings = c.Net.PublishPorts
-	s.PublishImagePorts = c.PublishAll
+	s.PublishExposedPorts = c.PublishAll
 	s.Pod = c.Pod
+
+	expose, err := createExpose(c.Expose)
+	if err != nil {
+		return err
+	}
+	s.Expose = expose
 
 	for k, v := range map[string]*specgen.Namespace{
 		c.IPC:       &s.IpcNS,

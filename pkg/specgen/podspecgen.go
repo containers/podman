@@ -2,8 +2,6 @@ package specgen
 
 import (
 	"net"
-
-	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 // PodBasicConfig contains basic configuration options for pods.
@@ -79,7 +77,7 @@ type PodNetworkConfig struct {
 	// container, this will forward the ports to the entire pod.
 	// Only available if NetNS is set to Bridge or Slirp.
 	// Optional.
-	PortMappings []ocicni.PortMapping `json:"portmappings,omitempty"`
+	PortMappings []PortMapping `json:"portmappings,omitempty"`
 	// CNINetworks is a list of CNI networks that the infra container will
 	// join. As, by default, containers share their network with the infra
 	// container, these networks will effectively be joined by the

@@ -83,7 +83,11 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 		options = append(options, libpod.WithPodUseImageHosts())
 	}
 	if len(p.PortMappings) > 0 {
-		options = append(options, libpod.WithInfraContainerPorts(p.PortMappings))
+		ports, _, _, err := parsePortMapping(p.PortMappings)
+		if err != nil {
+			return nil, err
+		}
+		options = append(options, libpod.WithInfraContainerPorts(ports))
 	}
 	options = append(options, libpod.WithPodCgroups())
 	return options, nil
