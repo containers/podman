@@ -19,7 +19,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// parameters:
 	//  - in: query
-	//    name: fromImage
+	//    name: fromImagepanic("implement me")
 	//    type: string
 	//    description: needs description
 	//  - in: query
