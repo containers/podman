@@ -20,3 +20,16 @@ type GenerateSystemdReport struct {
 	// entire content.
 	Output string
 }
+
+// GenerateKubeOptions control the generation of Kubernetes YAML files.
+type GenerateKubeOptions struct {
+	// Service - generate YAML for a Kubernetes _service_ object.
+	Service bool
+}
+
+// GenerateKubeReport
+type GenerateKubeReport struct {
+	// Output of the generate process. Either the generated files or their
+	// entire content.
+	Output string
+}

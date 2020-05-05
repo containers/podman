@@ -520,10 +520,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			case "label":
 				// TODO selinux opts and label opts are the same thing
 				s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])
+				s.Annotations[define.InspectAnnotationLabel] = con[1]
 			case "apparmor":
 				s.ContainerSecurityConfig.ApparmorProfile = con[1]
+				s.Annotations[define.InspectAnnotationApparmor] = con[1]
 			case "seccomp":
 				s.SeccompProfilePath = con[1]
+				s.Annotations[define.InspectAnnotationSeccomp] = con[1]
 			default:
 				return fmt.Errorf("invalid --security-opt 2: %q", opt)
 			}

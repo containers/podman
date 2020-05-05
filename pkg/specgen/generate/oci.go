@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/specgen"
@@ -327,19 +328,19 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	//}
 
 	if s.Remove {
-		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseTrue
+		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseTrue
 	} else {
-		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseFalse
+		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseFalse
 	}
 
 	if len(s.VolumesFrom) > 0 {
-		configSpec.Annotations[libpod.InspectAnnotationVolumesFrom] = strings.Join(s.VolumesFrom, ",")
+		configSpec.Annotations[define.InspectAnnotationVolumesFrom] = strings.Join(s.VolumesFrom, ",")
 	}
 
 	if s.Privileged {
-		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseTrue
+		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseTrue
 	} else {
-		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseFalse
+		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseFalse
 	}
 
 	// TODO Init might not make it into the specgen and therefore is not available here.  We should deal
