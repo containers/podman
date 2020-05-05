@@ -291,7 +291,7 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/gofuzz v1.0.0
+# github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
 # github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 github.com/google/shlex
@@ -641,9 +641,9 @@ gopkg.in/square/go-jose.v2/json
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
-# k8s.io/api v0.17.4
+# k8s.io/api v0.18.2
 k8s.io/api/core/v1
-# k8s.io/apimachinery v0.17.4
+# k8s.io/apimachinery v0.18.2
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/apis/meta/v1
@@ -704,5 +704,7 @@ k8s.io/client-go/util/keyutil
 k8s.io/klog
 # k8s.io/utils v0.0.0-20190221042446-c2654d5206da
 k8s.io/utils/integer
-# sigs.k8s.io/yaml v1.1.0
+# sigs.k8s.io/structured-merge-diff/v3 v3.0.0
+sigs.k8s.io/structured-merge-diff/v3/value
+# sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
