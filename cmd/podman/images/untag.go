@@ -17,12 +17,28 @@ var (
   podman untag imageID:latest otherImageName:latest
   podman untag httpd myregistryhost:5000/fedora/httpd:v2`,
 	}
+
+	imageUntagCommand = &cobra.Command{
+		Args:  untagCommand.Args,
+		Use:   untagCommand.Use,
+		Short: untagCommand.Short,
+		Long:  untagCommand.Long,
+		RunE:  untagCommand.RunE,
+		Example: `podman image untag 0e3bbc2
+  podman image untag imageID:latest otherImageName:latest
+  podman image untag httpd myregistryhost:5000/fedora/httpd:v2`,
+	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: untagCommand,
+	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: imageUntagCommand,
+		Parent:  imageCmd,
 	})
 }
 

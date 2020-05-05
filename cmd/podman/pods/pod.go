@@ -16,7 +16,7 @@ var (
 	podCmd = &cobra.Command{
 		Use:              "pod",
 		Short:            "Manage pods",
-		Long:             "Manage pods",
+		Long:             "Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.",
 		TraverseChildren: true,
 		RunE:             validate.SubCommandExists,
 	}

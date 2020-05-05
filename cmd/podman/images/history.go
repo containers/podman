@@ -15,6 +15,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -32,6 +33,15 @@ var (
 		RunE:    history,
 	}
 
+	imageHistoryCmd = &cobra.Command{
+		Args:    historyCmd.Args,
+		Use:     historyCmd.Use,
+		Short:   historyCmd.Short,
+		Long:    historyCmd.Long,
+		RunE:    historyCmd.RunE,
+		Example: `podman image history imageID`,
+	}
+
 	opts = struct {
 		human   bool
 		noTrunc bool
@@ -45,8 +55,17 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: historyCmd,
 	})
+	historyFlags(historyCmd.Flags())
 
-	flags := historyCmd.Flags()
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: imageHistoryCmd,
+		Parent:  imageCmd,
+	})
+	historyFlags(imageHistoryCmd.Flags())
+}
+
+func historyFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&opts.format, "format", "", "Change the output to JSON or a Go template")
 	flags.BoolVarP(&opts.human, "human", "H", true, "Display sizes and dates in human readable format")
 	flags.BoolVar(&opts.noTrunc, "no-trunc", false, "Do not truncate the output")

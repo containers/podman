@@ -26,7 +26,7 @@ var (
 	psCmd = &cobra.Command{
 		Use:     "ps",
 		Aliases: []string{"ls", "list"},
-		Short:   "list pods",
+		Short:   "List pods",
 		Long:    psDescription,
 		RunE:    pods,
 		Args:    validate.NoArgs,

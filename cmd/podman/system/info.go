@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -25,6 +26,15 @@ var (
 		RunE:    info,
 		Example: `podman info`,
 	}
+
+	systemInfoCommand = &cobra.Command{
+		Args:    infoCommand.Args,
+		Use:     infoCommand.Use,
+		Short:   infoCommand.Short,
+		Long:    infoCommand.Long,
+		RunE:    infoCommand.RunE,
+		Example: `podman system info`,
+	}
 )
 
 var (
@@ -37,7 +47,17 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: infoCommand,
 	})
-	flags := infoCommand.Flags()
+	infoFlags(infoCommand.Flags())
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: systemInfoCommand,
+		Parent:  systemCmd,
+	})
+	infoFlags(systemInfoCommand.Flags())
+}
+
+func infoFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&debug, "debug", "D", false, "Display additional debug information")
 	flags.StringVarP(&inFormat, "format", "f", "", "Change the output format to JSON or a Go template")
 }

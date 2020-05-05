@@ -18,10 +18,10 @@ import (
 var (
 	pruneDescription = fmt.Sprintf(`podman container prune
 
-	Removes all stopped | exited containers`)
+	Removes all non running containers`)
 	pruneCommand = &cobra.Command{
 		Use:     "prune [flags]",
-		Short:   "Remove all stopped | exited containers",
+		Short:   "Remove all non running containers",
 		Long:    pruneDescription,
 		RunE:    prune,
 		Example: `podman container prune`,
@@ -50,7 +50,7 @@ func prune(cmd *cobra.Command, args []string) error {
 	}
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("WARNING! This will remove all stopped containers.")
+		fmt.Println("WARNING! This will remove all non running containers.")
 		fmt.Print("Are you sure you want to continue? [y/N] ")
 		answer, err := reader.ReadString('\n')
 		if err != nil {

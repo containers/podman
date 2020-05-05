@@ -13,6 +13,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -43,6 +44,16 @@ var (
   podman save --format docker-dir -o ubuntu-dir ubuntu
   podman save > alpine-all.tar alpine:latest`,
 	}
+	imageSaveCommand = &cobra.Command{
+		Args:  saveCommand.Args,
+		Use:   saveCommand.Use,
+		Short: saveCommand.Short,
+		Long:  saveCommand.Long,
+		RunE:  saveCommand.RunE,
+		Example: `podman image save --quiet -o myimage.tar imageID
+  podman image save --format docker-dir -o ubuntu-dir ubuntu
+  podman image save > alpine-all.tar alpine:latest`,
+	}
 )
 
 var (
@@ -54,7 +65,17 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: saveCommand,
 	})
-	flags := saveCommand.Flags()
+	saveFlags(saveCommand.Flags())
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: imageSaveCommand,
+		Parent:  imageCmd,
+	})
+	saveFlags(imageSaveCommand.Flags())
+}
+
+func saveFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&saveOpts.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
 	flags.StringVar(&saveOpts.Format, "format", define.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
 	flags.StringVarP(&saveOpts.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")

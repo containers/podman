@@ -1,4 +1,4 @@
-package main
+package images
 
 import (
 	"os"
@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // buildFlagsWrapper are local to cmd/ as the build code is using Buildah-internal
@@ -48,6 +49,17 @@ var (
   podman build --layers --force-rm --tag imageName .`,
 	}
 
+	imageBuildCmd = &cobra.Command{
+		Args:  buildCmd.Args,
+		Use:   buildCmd.Use,
+		Short: buildCmd.Short,
+		Long:  buildCmd.Long,
+		RunE:  buildCmd.RunE,
+		Example: `podman image build .
+  podman image build --creds=username:password -t imageName -f Containerfile.simple .
+  podman image build --layers --force-rm --tag imageName .`,
+	}
+
 	buildOpts = buildFlagsWrapper{}
 )
 
@@ -66,8 +78,17 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: buildCmd,
 	})
-	flags := buildCmd.Flags()
+	buildFlags(buildCmd.Flags())
 
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: imageBuildCmd,
+		Parent:  imageCmd,
+	})
+	buildFlags(imageBuildCmd.Flags())
+}
+
+func buildFlags(flags *pflag.FlagSet) {
 	// Podman flags
 	flags.BoolVarP(&buildOpts.SquashAll, "squash-all", "", false, "Squash all layers into a single layer")
 
