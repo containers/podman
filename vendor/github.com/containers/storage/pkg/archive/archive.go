@@ -394,7 +394,7 @@ func fillGo18FileTypeBits(mode int64, fi os.FileInfo) int64 {
 // to a tar header
 func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
 	capability, err := system.Lgetxattr(path, "security.capability")
-	if err != nil && err != system.EOPNOTSUPP {
+	if err != nil && err != system.EOPNOTSUPP && err != system.ErrNotSupportedPlatform {
 		return err
 	}
 	if capability != nil {
@@ -407,7 +407,7 @@ func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
 // ReadUserXattrToTarHeader reads user.* xattr from filesystem to a tar header
 func ReadUserXattrToTarHeader(path string, hdr *tar.Header) error {
 	xattrs, err := system.Llistxattr(path)
-	if err != nil && err != system.EOPNOTSUPP {
+	if err != nil && err != system.EOPNOTSUPP && err != system.ErrNotSupportedPlatform {
 		return err
 	}
 	for _, key := range xattrs {

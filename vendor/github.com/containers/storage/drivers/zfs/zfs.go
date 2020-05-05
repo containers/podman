@@ -384,9 +384,21 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr
 		}
 	}()
 
+	// In the case of a read-only mount we first mount read-write so we can set the
+	// correct permissions on the mount point and remount read-only afterwards.
+	remountReadOnly := false
 	mountOptions := d.options.mountOptions
 	if len(options.Options) > 0 {
-		mountOptions = strings.Join(options.Options, ",")
+		var newOptions []string
+		for _, option := range options.Options {
+			if option == "ro" {
+				// Filter out read-only mount option but remember for later remounting.
+				remountReadOnly = true
+			} else {
+				newOptions = append(newOptions, option)
+			}
+		}
+		mountOptions = strings.Join(newOptions, ",")
 	}
 
 	filesystem := d.zfsPath(id)
@@ -409,7 +421,14 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr
 	// this could be our first mount after creation of the filesystem, and the root dir may still have root
 	// permissions instead of the remapped root uid:gid (if user namespaces are enabled):
 	if err := os.Chown(mountpoint, rootUID, rootGID); err != nil {
-		return "", fmt.Errorf("error modifying zfs mountpoint (%s) directory ownership: %v", mountpoint, err)
+		return "", errors.Wrapf(err, "modifying zfs mountpoint (%s) ownership", mountpoint)
+	}
+
+	if remountReadOnly {
+		opts = label.FormatMountLabel("remount,ro", options.MountLabel)
+		if err := mount.Mount(filesystem, mountpoint, "zfs", opts); err != nil {
+			return "", errors.Wrap(err, "error remounting zfs mount read-only")
+		}
 	}
 
 	return mountpoint, nil

@@ -3397,7 +3397,7 @@ func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
 }
 
 // defaultConfigFile path to the system wide storage.conf file
-const defaultConfigFile = "/etc/containers/storage.conf"
+var defaultConfigFile = "/etc/containers/storage.conf"
 
 // AutoUserNsMinSize is the minimum size for automatically created user namespaces
 const AutoUserNsMinSize = 1024
@@ -3408,6 +3408,11 @@ const AutoUserNsMaxSize = 65536
 // RootAutoUserNsUser is the default user used for root containers when automatically
 // creating a user namespace.
 const RootAutoUserNsUser = "containers"
+
+// SetDefaultConfigFilePath sets the default configuration to the specified path
+func SetDefaultConfigFilePath(path string) {
+	defaultConfigFile = path
+}
 
 // DefaultConfigFile returns the path to the storage config file used
 func DefaultConfigFile(rootless bool) (string, error) {

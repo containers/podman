@@ -131,17 +131,25 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 	b.Type = blockType((bh >> 1) & 3)
 	// find size.
 	cSize := int(bh >> 3)
+	maxSize := maxBlockSize
 	switch b.Type {
 	case blockTypeReserved:
 		return ErrReservedBlockType
 	case blockTypeRLE:
 		b.RLESize = uint32(cSize)
+		if b.lowMem {
+			maxSize = cSize
+		}
 		cSize = 1
 	case blockTypeCompressed:
 		if debug {
 			println("Data size on stream:", cSize)
 		}
 		b.RLESize = 0
+		maxSize = maxCompressedBlockSize
+		if windowSize < maxCompressedBlockSize && b.lowMem {
+			maxSize = int(windowSize)
+		}
 		if cSize > maxCompressedBlockSize || uint64(cSize) > b.WindowSize {
 			if debug {
 				printf("compressed block too big: csize:%d block: %+v\n", uint64(cSize), b)
@@ -160,8 +168,8 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 			b.dataStorage = make([]byte, 0, maxBlockSize)
 		}
 	}
-	if cap(b.dst) <= maxBlockSize {
-		b.dst = make([]byte, 0, maxBlockSize+1)
+	if cap(b.dst) <= maxSize {
+		b.dst = make([]byte, 0, maxSize+1)
 	}
 	var err error
 	b.data, err = br.readBig(cSize, b.dataStorage)
@@ -679,8 +687,11 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 		println("initializing sequences:", err)
 		return err
 	}
-
-	err = seqs.decode(nSeqs, br, hist.b)
+	hbytes := hist.b
+	if len(hbytes) > hist.windowSize {
+		hbytes = hbytes[len(hbytes)-hist.windowSize:]
+	}
+	err = seqs.decode(nSeqs, br, hbytes)
 	if err != nil {
 		return err
 	}
