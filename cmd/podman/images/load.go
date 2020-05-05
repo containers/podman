@@ -78,7 +78,6 @@ func load(cmd *cobra.Command, args []string) error {
 			loadOpts.Tag = "latest"
 		}
 		if r, ok := ref.(reference.Named); ok {
-			fmt.Println(r.Name())
 			loadOpts.Name = r.Name()
 		}
 	}
