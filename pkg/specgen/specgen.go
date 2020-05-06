@@ -47,6 +47,7 @@ type ContainerBasicConfig struct {
 	// Optional.
 	Env map[string]string `json:"env,omitempty"`
 	// Terminal is whether the container will create a PTY.
+	// Optional.
 	Terminal bool `json:"terminal,omitempty"`
 	// Stdin is whether the container will keep its STDIN open.
 	Stdin bool `json:"stdin,omitempty"`

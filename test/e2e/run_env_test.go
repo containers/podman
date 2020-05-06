@@ -91,7 +91,8 @@ var _ = Describe("Podman run", func() {
 		Expect(match).Should(BeTrue())
 	})
 
-	It("podman run --host-env environment test", func() {
+	It("podman run --env-host environment test", func() {
+		SkipIfRemote()
 		env := append(os.Environ(), "FOO=BAR")
 		session := podmanTest.PodmanAsUser([]string{"run", "--rm", "--env-host", ALPINE, "/bin/printenv", "FOO"}, 0, 0, "", env)
 
@@ -109,6 +110,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run --http-proxy test", func() {
+		SkipIfRemote()
 		os.Setenv("http_proxy", "1.2.3.4")
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
