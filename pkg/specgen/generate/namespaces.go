@@ -438,9 +438,9 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 		g.Config.Annotations = make(map[string]string)
 	}
 	if s.PublishExposedPorts {
-		g.Config.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseTrue
+		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseTrue
 	} else {
-		g.Config.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseFalse
+		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseFalse
 	}
 
 	return nil

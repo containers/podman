@@ -17,6 +17,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// DefaultKernelNamespaces is a comma-separated list of default kernel
+// namespaces.
+const DefaultKernelNamespaces = "cgroup,ipc,net,uts"
+
 // ToCreateOptions converts the input to a slice of container create options.
 func (c *NetworkConfig) ToCreateOptions(runtime *libpod.Runtime, userns *UserConfig) ([]libpod.CtrCreateOption, error) {
 	var portBindings []ocicni.PortMapping
@@ -154,9 +158,9 @@ func (c *NetworkConfig) ConfigureGenerator(g *generate.Generator) error {
 	}
 
 	if c.PublishAll {
-		g.Config.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseTrue
+		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseTrue
 	} else {
-		g.Config.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseFalse
+		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseFalse
 	}
 
 	return nil

@@ -469,7 +469,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 	}
 
 	var selinuxOpts v1.SELinuxOptions
-	opts := strings.SplitN(c.config.Spec.Annotations[InspectAnnotationLabel], ":", 2)
+	opts := strings.SplitN(c.config.Spec.Annotations[define.InspectAnnotationLabel], ":", 2)
 	if len(opts) == 2 {
 		switch opts[0] {
 		case "type":

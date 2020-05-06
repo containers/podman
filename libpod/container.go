@@ -1221,5 +1221,5 @@ func (c *Container) AutoRemove() bool {
 	if spec.Annotations == nil {
 		return false
 	}
-	return c.Spec().Annotations[InspectAnnotationAutoremove] == InspectResponseTrue
+	return c.Spec().Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
 }

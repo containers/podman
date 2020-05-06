@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -184,11 +185,11 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 		}
 		switch splitOpt[0] {
 		case "label":
-			configSpec.Annotations[libpod.InspectAnnotationLabel] = splitOpt[1]
+			configSpec.Annotations[define.InspectAnnotationLabel] = splitOpt[1]
 		case "seccomp":
-			configSpec.Annotations[libpod.InspectAnnotationSeccomp] = splitOpt[1]
+			configSpec.Annotations[define.InspectAnnotationSeccomp] = splitOpt[1]
 		case "apparmor":
-			configSpec.Annotations[libpod.InspectAnnotationApparmor] = splitOpt[1]
+			configSpec.Annotations[define.InspectAnnotationApparmor] = splitOpt[1]
 		}
 	}
 

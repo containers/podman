@@ -56,6 +56,13 @@ type swagLibpodImagesRemoveResponse struct {
 	Body handlers.LibpodImagesRemoveReport
 }
 
+// PlayKube response
+// swagger:response DocsLibpodPlayKubeResponse
+type swagLibpodPlayKubeResponse struct {
+	// in:body
+	Body entities.PlayKubeReport
+}
+
 // Delete response
 // swagger:response DocsImageDeleteResponse
 type swagImageDeleteResponse struct {
