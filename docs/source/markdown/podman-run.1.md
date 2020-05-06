@@ -371,8 +371,7 @@ Defaults to **true**.
 
 Tells Podman how to handle the builtin image volumes. Default is **bind**.
 
-- **bind**: A directory is created inside the container state directory and bind mounted into
-the container for the volumes.
+- **bind**: An anonymous named volume will be created and mounted into the container.
 - **tmpfs**: The volume is mounted onto the container as a tmpfs, which allows the users to create
 content that disappears when the container is stopped.
 - **ignore**: All volumes are just ignored and no action is taken.
@@ -453,8 +452,6 @@ Container MAC address (e.g. **92:d0:c6:0a:29:33**).
 Remember that the MAC address in an Ethernet network must be unique.
 The IPv6 link-local address will be based on the device's MAC address
 according to RFC4862.
-
-Not currently supported
 
 **--memory**, **-m**=_number_[_unit_]
 
