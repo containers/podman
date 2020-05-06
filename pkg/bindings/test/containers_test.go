@@ -531,7 +531,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).ToNot(BeNil())
 	})
 
-	It("podman prune stoped containers", func() {
+	It("podman prune stopped containers", func() {
 		// Start and stop a container to enter in exited state.
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
@@ -546,7 +546,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(len(pruneResponse.ID)).To(Equal(1))
 	})
 
-	It("podman prune stoped containers with filters", func() {
+	It("podman prune stopped containers with filters", func() {
 		// Start and stop a container to enter in exited state.
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
