@@ -69,3 +69,13 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusOK, systemPruneReport)
 }
+
+// SystemReset Resets podman storage back to default state
+func SystemReset(w http.ResponseWriter, r *http.Request) {
+	err := r.Context().Value("runtime").(*libpod.Runtime).Reset(r.Context())
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, nil)
+}

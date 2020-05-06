@@ -375,7 +375,7 @@ func sizeOfPath(path string) (int64, error) {
 	return size, err
 }
 
-func (se *SystemEngine) Reset(ctx context.Context, options entities.SystemResetOptions) error {
+func (se *SystemEngine) Reset(ctx context.Context) error {
 	return se.Libpod.Reset(ctx)
 }
 
