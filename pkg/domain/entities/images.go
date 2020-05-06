@@ -7,6 +7,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/pkg/trust"
 	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/opencontainers/go-digest"
@@ -284,4 +285,27 @@ type ImageTreeOptions struct {
 // ImageTreeReport provides results from ImageEngine.Tree()
 type ImageTreeReport struct {
 	Tree string // TODO: Refactor move presentation work out of server
+}
+
+// ShowTrustOptions are the cli options for showing trust
+type ShowTrustOptions struct {
+	JSON         bool
+	PolicyPath   string
+	Raw          bool
+	RegistryPath string
+}
+
+// ShowTrustReport describes the results of show trust
+type ShowTrustReport struct {
+	Raw                     []byte
+	SystemRegistriesDirPath string
+	JSONOutput              []byte
+	Policies                []*trust.TrustPolicy
+}
+
+// SetTrustOptions describes the CLI options for setting trust
+type SetTrustOptions struct {
+	PolicyPath  string
+	PubKeysFile []string
+	Type        string
 }
