@@ -294,6 +294,9 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	for name, val := range s.Env {
 		g.AddProcessEnv(name, val)
 	}
+	for name, val := range s.EnvOverride {
+		g.AddProcessEnv(name, val)
+	}
 
 	if err := addRlimits(s, &g); err != nil {
 		return nil, err

@@ -61,9 +61,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			return err
 		}
 		for k, v := range envs {
-			if _, exists := s.Env[k]; !exists {
-				s.Env[v] = k
-			}
+			s.Env[k] = v
 		}
 	}
 

@@ -299,6 +299,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		"container": "podman",
 	}
 
+	if defaultEnv, err := envLib.ParseSlice(containerConfig.GetDefaultEnv()); err != nil {
+		return errors.Wrap(err, "error parsing default env variables")
+	} else {
+		for k, v := range defaultEnv {
+			env[k] = v
+		}
+	}
+
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
 	osEnv, err := envLib.ParseSlice(os.Environ())
@@ -334,16 +342,19 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		// File env is overridden by env.
 		env = envLib.Join(env, fileEnv)
 	}
+	s.Env = env
+
+	envOverride := map[string]string{}
 
 	// env overrides any previous variables
-	if cmdLineEnv := c.env; len(cmdLineEnv) > 0 {
+	if cmdLineEnv := c.EnvOverrides; len(cmdLineEnv) > 0 {
 		parsedEnv, err := envLib.ParseSlice(cmdLineEnv)
 		if err != nil {
 			return err
 		}
-		env = envLib.Join(env, parsedEnv)
+		envOverride = envLib.Join(envOverride, parsedEnv)
 	}
-	s.Env = env
+	s.EnvOverride = envOverride
 
 	// LABEL VARIABLES
 	labels, err := parse.GetAllLabels(c.LabelFile, c.Label)

@@ -170,6 +170,13 @@ func createInit(c *cobra.Command) error {
 		val := c.Flag("entrypoint").Value.String()
 		cliVals.Entrypoint = &val
 	}
+	if c.Flags().Changed("env") {
+		env, err := c.Flags().GetStringArray("env")
+		if err != nil {
+			return errors.Wrapf(err, "retrieve env flag")
+		}
+		cliVals.EnvOverrides = env
+	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
 	// the hostname (see https://github.com/containers/libpod/issues/1367).

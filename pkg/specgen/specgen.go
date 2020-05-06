@@ -43,9 +43,15 @@ type ContainerBasicConfig struct {
 	// Optional.
 	Command []string `json:"command,omitempty"`
 	// Env is a set of environment variables that will be set in the
-	// container.
+	// container.  They have lower precedence than the variables set in
+	// the image's configuration.
 	// Optional.
 	Env map[string]string `json:"env,omitempty"`
+	// EnvOverride is a set of environment variables that will be set in the
+	// container.  They have higher precedence than the variables set in
+	// the image's configuration.
+	// Optional.
+	EnvOverride map[string]string `json:"env_override,omitempty"`
 	// Terminal is whether the container will create a PTY.
 	Terminal bool `json:"terminal,omitempty"`
 	// Stdin is whether the container will keep its STDIN open.

@@ -32,7 +32,7 @@ type ContainerCLIOpts struct {
 	DeviceWriteBPs    []string
 	DeviceWriteIOPs   []string
 	Entrypoint        *string
-	env               []string
+	EnvOverrides      []string
 	EnvHost           bool
 	EnvFile           []string
 	Expose            []string
