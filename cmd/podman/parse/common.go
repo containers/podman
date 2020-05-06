@@ -30,13 +30,20 @@ func CheckAllLatestAndCIDFile(c *cobra.Command, args []string, ignoreArgLen bool
 		return errors.Errorf("--all and --latest cannot be used together")
 	}
 
+	if (argLen > 0) && specifiedAll {
+		return errors.Errorf("no arguments are needed with --all")
+	}
+
 	if ignoreArgLen {
 		return nil
 	}
-	if (argLen > 0) && (specifiedAll || specifiedLatest) {
-		return errors.Errorf("no arguments are needed with --all or --latest")
-	} else if cidfile && (argLen > 0) && (specifiedAll || specifiedLatest || specifiedCIDFile) {
-		return errors.Errorf("no arguments are needed with --all, --latest or --cidfile")
+
+	if argLen > 0 {
+		if specifiedLatest {
+			return errors.Errorf("no arguments are needed with --latest")
+		} else if cidfile && (specifiedLatest || specifiedCIDFile) {
+			return errors.Errorf("no arguments are needed with --latest or --cidfile")
+		}
 	}
 
 	if specifiedCIDFile {
