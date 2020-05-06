@@ -198,9 +198,15 @@ func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
 	if err != nil {
 		return cs, err
 	}
+	cs.Number = len(cons)
 	for _, con := range cons {
 		state, err := con.State()
 		if err != nil {
+			if errors.Cause(err) == define.ErrNoSuchCtr {
+				// container was probably removed
+				cs.Number--
+				continue
+			}
 			return cs, err
 		}
 		switch state {
@@ -212,7 +218,6 @@ func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
 			stopped += 1
 		}
 	}
-	cs.Number = len(cons)
 	cs.Paused = paused
 	cs.Stopped = stopped
 	cs.Running = running
