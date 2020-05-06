@@ -14,6 +14,7 @@ import (
 	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
+	"github.com/opencontainers/go-digest"
 
 	"github.com/pkg/errors"
 )
@@ -71,7 +72,7 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 	}
 	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(listImageSpec)
 	if err != nil {
-		return "", errors.Wrapf(err, "error retriving local image from image name %s", listImageSpec)
+		return "", errors.Wrapf(err, "error retrieving local image from image name %s", listImageSpec)
 	}
 
 	manifestAddOpts := libpodImage.ManifestAddOpts{
@@ -99,4 +100,40 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 		return listID, err
 	}
 	return listID, nil
+}
+
+// ManifestAnnotate updates an entry of the manifest list
+func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opts entities.ManifestAnnotateOptions) (string, error) {
+	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(names[0])
+	if err != nil {
+		return "", errors.Wrapf(err, "error retreiving local image from image name %s", names[0])
+	}
+	digest, err := digest.Parse(names[1])
+	if err != nil {
+		return "", errors.Errorf(`invalid image digest "%s": %v`, names[1], err)
+	}
+	manifestAnnotateOpts := libpodImage.ManifestAnnotateOpts{
+		Arch:       opts.Arch,
+		Features:   opts.Features,
+		OS:         opts.OS,
+		OSFeatures: opts.OSFeatures,
+		OSVersion:  opts.OSVersion,
+		Variant:    opts.Variant,
+	}
+	if len(opts.Annotation) > 0 {
+		annotations := make(map[string]string)
+		for _, annotationSpec := range opts.Annotation {
+			spec := strings.SplitN(annotationSpec, "=", 2)
+			if len(spec) != 2 {
+				return "", errors.Errorf("no value given for annotation %q", spec[0])
+			}
+			annotations[spec[0]] = spec[1]
+		}
+		manifestAnnotateOpts.Annotation = annotations
+	}
+	updatedListID, err := listImage.AnnotateManifest(*ir.Libpod.SystemContext(), digest, manifestAnnotateOpts)
+	if err == nil {
+		return fmt.Sprintf("%s: %s", updatedListID, digest.String()), nil
+	}
+	return "", err
 }

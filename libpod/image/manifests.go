@@ -24,6 +24,18 @@ type ManifestAddOpts struct {
 	Variant    string            `json:"variant"`
 }
 
+// ManifestAnnotateOptions defines the options for
+// manifest annotate
+type ManifestAnnotateOpts struct {
+	Annotation map[string]string `json:"annotation"`
+	Arch       string            `json:"arch"`
+	Features   []string          `json:"features"`
+	OS         string            `json:"os"`
+	OSFeatures []string          `json:"os_feature"`
+	OSVersion  string            `json:"os_version"`
+	Variant    string            `json:"variant"`
+}
+
 // InspectManifest returns a dockerized version of the manifest list
 func (i *Image) InspectManifest() (*manifest.Schema2List, error) {
 	list, err := i.getManifestList()
@@ -157,4 +169,48 @@ func (i *Image) PushManifest(dest types.ImageReference, opts manifests.PushOptio
 	}
 	_, d, err := list.Push(context.Background(), dest, opts)
 	return d, err
+}
+
+// AnnotateManifest updates an image configuration of a manifest list.
+func (i *Image) AnnotateManifest(systemContext types.SystemContext, d digest.Digest, opts ManifestAnnotateOpts) (string, error) {
+	list, err := i.getManifestList()
+	if err != nil {
+		return "", err
+	}
+	if len(opts.OS) > 0 {
+		if err := list.SetOS(d, opts.OS); err != nil {
+			return "", err
+		}
+	}
+	if len(opts.OSVersion) > 0 {
+		if err := list.SetOSVersion(d, opts.OSVersion); err != nil {
+			return "", err
+		}
+	}
+	if len(opts.Features) > 0 {
+		if err := list.SetFeatures(d, opts.Features); err != nil {
+			return "", err
+		}
+	}
+	if len(opts.OSFeatures) > 0 {
+		if err := list.SetOSFeatures(d, opts.OSFeatures); err != nil {
+			return "", err
+		}
+	}
+	if len(opts.Arch) > 0 {
+		if err := list.SetArchitecture(d, opts.Arch); err != nil {
+			return "", err
+		}
+	}
+	if len(opts.Variant) > 0 {
+		if err := list.SetVariant(d, opts.Variant); err != nil {
+			return "", err
+		}
+	}
+	if len(opts.Annotation) > 0 {
+		if err := list.SetAnnotations(&d, opts.Annotation); err != nil {
+			return "", err
+		}
+	}
+	return list.SaveToImage(i.imageruntime.store, i.ID(), nil, "")
 }
