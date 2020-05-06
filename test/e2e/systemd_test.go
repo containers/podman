@@ -23,7 +23,6 @@ var _ = Describe("Podman systemd", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2fail)
 		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
@@ -86,6 +85,7 @@ WantedBy=multi-user.target
 		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
 		Expect(err).To(BeNil())
 		if cgroupsv2 {
+			// TODO: Find a way to enable this for v2
 			Skip("systemd test does not work in cgroups V2 mode yet")
 		}
 
