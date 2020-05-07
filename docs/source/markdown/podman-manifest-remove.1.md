@@ -1,0 +1,23 @@
+% podman-manifest-remove(1)
+
+## NAME
+podman\-manifest\-remove - Remove an image from a manifest list or image index
+
+## SYNOPSIS
+**podman manifest remove** *listnameorindexname* *transport:details*
+
+## DESCRIPTION
+Removes the image with the specified digest from the specified manifest list or image index.
+
+## RETURN VALUE
+The list image's ID and the digest of the removed image's manifest.
+
+## EXAMPLE
+
+```
+podman manifest remove mylist:v1.11 sha256:cb8a924afdf0229ef7515d9e5b3024e23b3eb03ddbba287f4a19c6ac90b8d221
+e604eabaaee4858232761b4fef84e2316ed8f93e15eceafce845966ee3400036 :sha256:cb8a924afdf0229ef7515d9e5b3024e23b3eb03ddbba287f4a19c6ac90b8d221
+```
+
+## SEE ALSO
+podman(1), podman-manifest(1), podman-manifest-add(1), podman-manifest-create(1), podman-manifest-inspect(1), podman-manifest-push(1), podman-rmi(1)

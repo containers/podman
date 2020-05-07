@@ -1742,7 +1742,9 @@ _podman_manifest() {
      add
      create
      inspect
-     "
+     push
+     remove
+    "
      __podman_subcommands "$subcommands" && return
 
      case "$cur" in
@@ -1834,6 +1836,57 @@ _podman_manifest_inspect() {
         *)
 			__podman_complete_images --id
 
+            ;;
+    esac
+}
+
+_podman_manifest_push() {
+	local options_with_args="
+      --authfile
+      --cert-dir
+      --creds
+      --digestfile
+      --format
+      -f
+      --sign-by
+      --signature-policy,
+    "
+
+    local boolean_options="
+      --all
+      --purge
+      --help
+      -h
+      --remove-signatures
+      --tls-verify
+      --quiet
+    "
+
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_images --id
+            ;;
+    esac
+}
+
+_podman_manifest_remove() {
+	local options_with_args="
+    "
+
+    local boolean_options="
+    "
+
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_images --id
             ;;
     esac
 }

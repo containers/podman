@@ -91,3 +91,18 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opt
 	}
 	return fmt.Sprintf("%s :%s", updatedListID, names[1]), nil
 }
+
+// ManifestRemove removes the digest from manifest list
+func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (string, error) {
+	updatedListID, err := manifests.Remove(ctx, names[0], names[1])
+	if err != nil {
+		return updatedListID, errors.Wrapf(err, "error removing from manifest %s", names[0])
+	}
+	return fmt.Sprintf("%s :%s\n", updatedListID, names[1]), nil
+}
+
+// ManifestPush pushes a manifest list or image index to the destination
+func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts entities.ManifestPushOptions) error {
+	_, err := manifests.Push(ctx, names[0], &names[1], &opts.All)
+	return err
+}

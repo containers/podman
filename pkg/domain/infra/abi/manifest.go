@@ -6,15 +6,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
+	"github.com/containers/buildah/manifests"
 	buildahUtil "github.com/containers/buildah/util"
+	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/pkg/errors"
 )
@@ -136,4 +142,69 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opt
 		return fmt.Sprintf("%s: %s", updatedListID, digest.String()), nil
 	}
 	return "", err
+}
+
+// ManifestRemove removes specified digest from the specified manifest list
+func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (string, error) {
+	instanceDigest, err := digest.Parse(names[1])
+	if err != nil {
+		return "", errors.Errorf(`invalid image digest "%s": %v`, names[1], err)
+	}
+	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(names[0])
+	if err != nil {
+		return "", errors.Wrapf(err, "error retriving local image from image name %s", names[0])
+	}
+	updatedListID, err := listImage.RemoveManifest(instanceDigest)
+	if err == nil {
+		return fmt.Sprintf("%s :%s\n", updatedListID, instanceDigest.String()), nil
+	}
+	return "", err
+}
+
+// ManifestPush pushes a manifest list or image index to the destination
+func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts entities.ManifestPushOptions) error {
+	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(names[0])
+	if err != nil {
+		return errors.Wrapf(err, "error retriving local image from image name %s", names[0])
+	}
+	dest, err := alltransports.ParseImageName(names[1])
+	if err != nil {
+		return err
+	}
+	var manifestType string
+	if opts.Format != "" {
+		switch opts.Format {
+		case "oci":
+			manifestType = imgspecv1.MediaTypeImageManifest
+		case "v2s2", "docker":
+			manifestType = manifest.DockerV2Schema2MediaType
+		default:
+			return errors.Errorf("unknown format %q. Choose on of the supported formats: 'oci' or 'v2s2'", opts.Format)
+		}
+	}
+	options := manifests.PushOptions{
+		Store:              ir.Libpod.GetStore(),
+		SystemContext:      ir.Libpod.SystemContext(),
+		ImageListSelection: cp.CopySpecificImages,
+		Instances:          nil,
+		RemoveSignatures:   opts.RemoveSignatures,
+		SignBy:             opts.SignBy,
+		ManifestType:       manifestType,
+	}
+	if opts.All {
+		options.ImageListSelection = cp.CopyAllImages
+	}
+	if !opts.Quiet {
+		options.ReportWriter = os.Stderr
+	}
+	digest, err := listImage.PushManifest(dest, options)
+	if err == nil && opts.Purge {
+		_, err = ir.Libpod.GetStore().DeleteImage(listImage.ID(), true)
+	}
+	if opts.DigestFile != "" {
+		if err = ioutil.WriteFile(opts.DigestFile, []byte(digest.String()), 0644); err != nil {
+			return buildahUtil.GetFailureCause(err, errors.Wrapf(err, "failed to write digest to file %q", opts.DigestFile))
+		}
+	}
+	return err
 }
