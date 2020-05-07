@@ -644,7 +644,6 @@ special_testing_cross_task:
 
 special_testing_bindings_task:
 
-    skip: $CI == 'true'
     depends_on:
         - "gating"
         - "varlink_api"
