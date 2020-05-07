@@ -11,6 +11,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -28,23 +29,50 @@ var (
   podman port ctrID 80/tcp
   podman port --latest 80`,
 	}
+
+	containerPortCommand = &cobra.Command{
+		Use:   "port [flags] CONTAINER [PORT]",
+		Short: portCommand.Short,
+		Long:  portDescription,
+		RunE:  portCommand.RunE,
+		Args: func(cmd *cobra.Command, args []string) error {
+			return parse.CheckAllLatestAndCIDFile(cmd, args, true, false)
+		},
+		Example: `podman container port --all
+  podman container port --latest 80`,
+	}
 )
 
 var (
 	portOpts entities.ContainerPortOptions
 )
 
-func init() {
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: portCommand,
-	})
-	flags := portCommand.Flags()
+func portFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&portOpts.All, "all", "a", false, "Display port information for all containers")
 	flags.BoolVarP(&portOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 	}
+}
+
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: portCommand,
+	})
+
+	flags := portCommand.Flags()
+	portFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerPortCommand,
+		Parent:  containerCmd,
+	})
+
+	containerPortflags := containerPortCommand.Flags()
+	portFlags(containerPortflags)
+
 }
 
 func port(cmd *cobra.Command, args []string) error {
