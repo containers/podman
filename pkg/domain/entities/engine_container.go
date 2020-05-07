@@ -10,6 +10,7 @@ import (
 )
 
 type ContainerEngine interface {
+	AutoUpdate(ctx context.Context) (*AutoUpdateReport, []error)
 	Config(ctx context.Context) (*config.Config, error)
 	ContainerAttach(ctx context.Context, nameOrId string, options AttachOptions) error
 	ContainerCheckpoint(ctx context.Context, namesOrIds []string, options CheckpointOptions) ([]*CheckpointReport, error)
