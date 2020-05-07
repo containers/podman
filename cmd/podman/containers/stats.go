@@ -234,7 +234,6 @@ func outputJSON(stats []*containerStats) error {
 			Pids:       j.PIDS(),
 		})
 	}
-
 	b, err := json.MarshalIndent(jstats, "", " ")
 	if err != nil {
 		return err
