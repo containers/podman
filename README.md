@@ -24,12 +24,14 @@ At a high level, the scope of libpod and Podman is the following:
 * Support for pods to manage groups of containers together.
 * Resource isolation of containers and pods.
 * Support for a Docker-compatible CLI interface through Podman.
+* Support for a REST API providing both a Docker-compatible interface and an improved interface exposing advanced Podman functionality.
 * Integration with CRI-O to share containers and backend code.
 
-This project tests all builds against each supported version of Fedora, the latest released version of Red Hat Enterprise Linux, and the latest Ubuntu Long Term Support release. The community has also reported success with other Linux flavors.
+Podman presently only supports running containers on Linux. However, we are building a remote client which can run on Windows and OS X and manage Podman containers on a Linux system via the REST API using SSH tunneling.
 
 ## Roadmap
 
+1. Complete the Podman REST API and Podman v2, which will be able to connect to remote Podman instances via this API
 1. Integrate libpod into CRI-O to replace its existing container management backend
 1. Further work on the podman pod command
 1. Further improvements on rootless containers
@@ -81,7 +83,8 @@ A little configuration by an administrator is required before rootless Podman ca
   there are other third-party tools that support the docker-compose format such as
   [kompose](https://github.com/kubernetes/kompose/) and
   [podman-compose](https://github.com/muayyad-alsadi/podman-compose)
-  that might be appropriate for your environment.
+  that might be appropriate for your environment. This situation may change with
+  the addition of the REST API.
 
 ## OCI Projects Plans
 
@@ -103,8 +106,8 @@ Information on how to install Podman in your environment.
 **[OCI Hooks Support](pkg/hooks/README.md)**
 Information on how Podman configures [OCI Hooks][spec-hooks] to run when launching a container.
 
-**[Podman API](API.md)**
-Documentation on the Podman API using [Varlink](https://www.varlink.org/).
+**[Podman API](http://docs.podman.io/en/latest/_static/api.html)**
+Documentation on the Podman REST API. Please note that the API is still in its early stages and not yet stable.
 
 **[Podman Commands](https://podman.readthedocs.io/en/latest/Commands.html)**
 A list of the Podman commands with links to their man pages and in many cases videos
@@ -171,3 +174,9 @@ In short, Buildah is an efficient way to create OCI images while Podman allows
 you to manage and maintain those images and containers in a production environment using
 familiar container cli commands.  For more details, see the
 [Container Tools Guide](https://github.com/containers/buildah/tree/master/docs/containertools).
+
+## Podman Legacy API (Varlink)
+Podman offers a Varlink-based API for remote management of containers.
+However, this API has been deprecated by the REST API.
+Varlink support is in maintenance mode, and will be removed in a future release.
+For more details, you can see [this blog](https://podman.io/blogs/2020/01/17/podman-new-api.html).
