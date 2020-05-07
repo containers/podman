@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -59,6 +60,14 @@ func init() {
 	flags.StringVarP(&createOptions.Hostname, "hostname", "", "", "Set a hostname to the pod")
 	flags.StringVar(&podIDFile, "pod-id-file", "", "Write the pod ID to the file")
 	flags.StringVar(&share, "share", createconfig.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
+	flags.SetNormalizeFunc(aliasNetworkFlag)
+}
+
+func aliasNetworkFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {
+	if name == "net" {
+		name = "network"
+	}
+	return pflag.NormalizedName(name)
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -105,29 +114,21 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	netInput, err := cmd.Flags().GetString("network")
-	if err != nil {
-		return err
-	}
-	n := specgen.Namespace{}
-	switch netInput {
-	case "bridge":
-		n.NSMode = specgen.Bridge
-	case "host":
-		n.NSMode = specgen.Host
-	case "slip4netns":
-		n.NSMode = specgen.Slirp
-	default:
-		if strings.HasPrefix(netInput, "container:") { // nolint
-			split := strings.Split(netInput, ":")
-			if len(split) != 2 {
-				return errors.Errorf("invalid network paramater: %q", netInput)
-			}
-			n.NSMode = specgen.FromContainer
-			n.Value = split[1]
-		} else if strings.HasPrefix(netInput, "ns:") {
-			return errors.New("the ns: network option is not supported for pods")
-		} else {
+	if cmd.Flag("network").Changed {
+		netInput, err := cmd.Flags().GetString("network")
+		if err != nil {
+			return err
+		}
+		n := specgen.Namespace{}
+		switch netInput {
+		case "bridge":
+			n.NSMode = specgen.Bridge
+		case "host":
+			n.NSMode = specgen.Host
+		case "slirp4netns":
+			n.NSMode = specgen.Slirp
+		default:
+			// Container and NS mode are presently unsupported
 			n.NSMode = specgen.Bridge
 			createOptions.Net.CNINetworks = strings.Split(netInput, ",")
 		}

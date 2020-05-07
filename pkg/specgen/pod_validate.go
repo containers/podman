@@ -33,7 +33,7 @@ func (p *PodSpecGenerator) Validate() error {
 	}
 
 	// PodNetworkConfig
-	if err := p.NetNS.validate(); err != nil {
+	if err := validateNetNS(&p.NetNS); err != nil {
 		return err
 	}
 	if p.NoInfra {
@@ -83,10 +83,6 @@ func (p *PodSpecGenerator) Validate() error {
 	}
 	if p.NoManageHosts && len(p.HostAdd) > 0 {
 		return exclusivePodOptions("NoManageHosts", "HostAdd")
-	}
-
-	if err := p.NetNS.validate(); err != nil {
-		return err
 	}
 
 	// Set Defaults
