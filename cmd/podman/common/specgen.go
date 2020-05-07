@@ -335,15 +335,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		env = envLib.Join(env, fileEnv)
 	}
 
-	// env overrides any previous variables
-	if cmdLineEnv := c.env; len(cmdLineEnv) > 0 {
-		parsedEnv, err := envLib.ParseSlice(cmdLineEnv)
-		if err != nil {
-			return err
-		}
-		env = envLib.Join(env, parsedEnv)
+	parsedEnv, err := envLib.ParseSlice(c.Env)
+	if err != nil {
+		return err
 	}
-	s.Env = env
+
+	s.Env = envLib.Join(env, parsedEnv)
 
 	// LABEL VARIABLES
 	labels, err := parse.GetAllLabels(c.LabelFile, c.Label)

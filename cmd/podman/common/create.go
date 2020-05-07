@@ -156,8 +156,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	createFlags.String("entrypoint", "",
 		"Overwrite the default ENTRYPOINT of the image",
 	)
-	createFlags.StringArrayVarP(
-		&cf.env,
+	createFlags.StringArrayP(
 		"env", "e", containerConfig.Env(),
 		"Set environment variables in container",
 	)

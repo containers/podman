@@ -9,6 +9,7 @@ import (
 	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -48,24 +49,28 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		s.StopSignal = &sig
 	}
 
+	rtc, err := r.GetConfig()
+	if err != nil {
+		return err
+	}
+	// Get Default Environment
+	defaultEnvs, err := envLib.ParseSlice(rtc.Containers.Env)
+	if err != nil {
+		return errors.Wrap(err, "Env fields in containers.conf failed to parse")
+	}
+
 	// Image envs from the image if they don't exist
-	// already
-	env, err := newImage.Env(ctx)
+	// already, overriding the default environments
+	imageEnvs, err := newImage.Env(ctx)
 	if err != nil {
 		return err
 	}
 
-	if len(env) > 0 {
-		envs, err := envLib.ParseSlice(env)
-		if err != nil {
-			return err
-		}
-		for k, v := range envs {
-			if _, exists := s.Env[k]; !exists {
-				s.Env[v] = k
-			}
-		}
+	envs, err := envLib.ParseSlice(imageEnvs)
+	if err != nil {
+		return errors.Wrap(err, "Env fields from image failed to parse")
 	}
+	s.Env = envLib.Join(envLib.Join(defaultEnvs, envs), s.Env)
 
 	labels, err := newImage.Labels(ctx)
 	if err != nil {

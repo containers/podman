@@ -55,6 +55,11 @@ func createFlags(flags *pflag.FlagSet) {
 	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
 	flags.AddFlagSet(common.GetNetFlags())
 	flags.SetNormalizeFunc(common.AliasFlags)
+	if registry.IsRemote() {
+		_ = flags.MarkHidden("authfile")
+		_ = flags.MarkHidden("env-host")
+		_ = flags.MarkHidden("http-proxy")
+	}
 }
 
 func init() {
@@ -169,6 +174,13 @@ func createInit(c *cobra.Command) error {
 	if c.Flag("entrypoint").Changed {
 		val := c.Flag("entrypoint").Value.String()
 		cliVals.Entrypoint = &val
+	}
+	if c.Flags().Changed("env") {
+		env, err := c.Flags().GetStringArray("env")
+		if err != nil {
+			return errors.Wrapf(err, "retrieve env flag")
+		}
+		cliVals.Env = env
 	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for

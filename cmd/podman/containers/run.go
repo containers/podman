@@ -60,6 +60,8 @@ func runFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&runRmi, "rmi", false, "Remove container image unless used by other containers")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
+		_ = flags.MarkHidden("env-host")
+		_ = flags.MarkHidden("http-proxy")
 	}
 }
 func init() {
