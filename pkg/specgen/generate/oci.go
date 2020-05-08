@@ -321,12 +321,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		configSpec.Annotations = make(map[string]string)
 	}
 
-	// TODO cidfile is not in specgen; when wiring up cli, we will need to move this out of here
-	// leaving as a reminder
-	//if config.CidFile != "" {
-	//	configSpec.Annotations[libpod.InspectAnnotationCIDFile] = config.CidFile
-	//}
-
 	if s.Remove {
 		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseTrue
 	} else {
@@ -343,13 +337,11 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseFalse
 	}
 
-	// TODO Init might not make it into the specgen and therefore is not available here.  We should deal
-	// with this when we wire up the CLI; leaving as a reminder
-	//if s.Init {
-	//	configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseTrue
-	//} else {
-	//	configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseFalse
-	//}
+	if s.Init {
+		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseTrue
+	} else {
+		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseFalse
+	}
 
 	return configSpec, nil
 }

@@ -519,6 +519,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	s.Sysctl = sysmap
 
+	if c.CIDFile != "" {
+		s.Annotations[define.InspectAnnotationCIDFile] = c.CIDFile
+	}
+
 	for _, opt := range c.SecurityOpt {
 		if opt == "no-new-privileges" {
 			s.ContainerSecurityConfig.NoNewPrivileges = true
