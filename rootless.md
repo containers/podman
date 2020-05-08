@@ -32,7 +32,7 @@ can easily fail
   * CNI wants to modify IPTables, plus other network manipulation that requires CAP_SYS_ADMIN.
   * There is potential we could probably do some sort of blacklisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
 * Cannot use ping out of the box.
-  * [(Can be fixed by setting sysctl on host)](https://github.com/containers/libpod/blob/master/troubleshooting.md#5-rootless-containers-cannot-ping-hosts)
+  * [(Can be fixed by setting sysctl on host)](https://github.com/containers/libpod/blob/master/troubleshooting.md#6-rootless-containers-cannot-ping-hosts)
 * Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release)
 * A few commands do not work.
   * mount/unmount (on fuse-overlay)
