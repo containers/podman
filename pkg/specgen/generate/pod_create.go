@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -68,15 +69,17 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 	if p.NoManageResolvConf {
 		options = append(options, libpod.WithPodUseImageResolvConf())
 	}
+	if len(p.CNINetworks) > 0 {
+		options = append(options, libpod.WithPodNetworks(p.CNINetworks))
+	}
 	switch p.NetNS.NSMode {
-	case specgen.Bridge:
+	case specgen.Bridge, specgen.Default, "":
 		logrus.Debugf("Pod using default network mode")
 	case specgen.Host:
 		logrus.Debugf("Pod will use host networking")
 		options = append(options, libpod.WithPodHostNetwork())
 	default:
-		logrus.Debugf("Pod joining CNI networks: %v", p.CNINetworks)
-		options = append(options, libpod.WithPodNetworks(p.CNINetworks))
+		return nil, errors.Errorf("pods presently do not support network mode %s", p.NetNS.NSMode)
 	}
 
 	if p.NoManageHosts {

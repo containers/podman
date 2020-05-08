@@ -16,6 +16,7 @@ import (
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -81,6 +82,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	if !createOptions.Infra {
+		logrus.Debugf("Not creating an infra container")
 		if cmd.Flag("infra-command").Changed {
 			return errors.New("cannot set infra-command without an infra container")
 		}
@@ -114,6 +116,7 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	createOptions.Net.Network = specgen.Namespace{}
 	if cmd.Flag("network").Changed {
 		netInput, err := cmd.Flags().GetString("network")
 		if err != nil {
@@ -132,6 +135,7 @@ func create(cmd *cobra.Command, args []string) error {
 			n.NSMode = specgen.Bridge
 			createOptions.Net.CNINetworks = strings.Split(netInput, ",")
 		}
+		createOptions.Net.Network = n
 	}
 	if len(createOptions.Net.PublishPorts) > 0 {
 		if !createOptions.Infra {

@@ -1,7 +1,6 @@
 package specgen
 
 import (
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -37,8 +36,8 @@ func (p *PodSpecGenerator) Validate() error {
 		return err
 	}
 	if p.NoInfra {
-		if p.NetNS.NSMode == NoNetwork {
-			return errors.New("NoInfra and a none network cannot be used toegther")
+		if p.NetNS.NSMode != Default && p.NetNS.NSMode != "" {
+			return errors.New("NoInfra and network modes cannot be used toegther")
 		}
 		if p.StaticIP != nil {
 			return exclusivePodOptions("NoInfra", "StaticIP")
@@ -86,13 +85,6 @@ func (p *PodSpecGenerator) Validate() error {
 	}
 
 	// Set Defaults
-	if p.NetNS.Value == "" {
-		if rootless.IsRootless() {
-			p.NetNS.NSMode = Slirp
-		} else {
-			p.NetNS.NSMode = Bridge
-		}
-	}
 	if len(p.InfraImage) < 1 {
 		p.InfraImage = containerConfig.Engine.InfraImage
 	}
