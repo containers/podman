@@ -252,17 +252,6 @@ function skip_if_remote() {
     fi
 }
 
-#########################
-#  skip_if_not_systemd  #  ...with an optional message
-#########################
-function skip_if_not_systemd() {
-    if systemctl --user >/dev/null 2>&1; then
-        return
-    fi
-
-    skip "${1:-no systemd or daemon does not respond}"
-}
-
 #########
 #  die  #  Abort with helpful message
 #########
