@@ -377,7 +377,7 @@ MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
-$(MANPAGES): %: %.md .gopathok
+$(MANPAGES): %: %.md .install.md2man docdir
 	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
 
 .PHONY: docs
@@ -385,7 +385,7 @@ docdir:
 	mkdir -p docs/build/man
 
 .PHONY: docs
-docs: .install.md2man docdir $(MANPAGES) ## Generate documentation
+docs: $(MANPAGES) ## Generate documentation
 
 .PHONE: xref_helpmsgs_manpages
 xref_helpmsgs_manpages:
