@@ -18,7 +18,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-const CpuPeriod = 100000
+const (
+	CpuPeriod        = 100000
+	kernelMax uint64 = 1048576
+)
 
 func GetAvailableGids() (int64, error) {
 	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
@@ -502,10 +505,8 @@ func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.
 
 func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	var (
-		kernelMax  uint64 = 1048576
-		isRootless        = rootless.IsRootless()
-		nofileSet         = false
-		nprocSet          = false
+		nofileSet = false
+		nprocSet  = false
 	)
 
 	for _, u := range config.Resources.Ulimit {
@@ -534,11 +535,13 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	// If not explicitly overridden by the user, default number of open
 	// files and number of processes to the maximum they can be set to
 	// (without overriding a sysctl)
-	if !nofileSet && !isRootless {
-		g.AddProcessRlimits("RLIMIT_NOFILE", kernelMax, kernelMax)
+	if !nofileSet {
+		current, max := getNOFILESettings()
+		g.AddProcessRlimits("RLIMIT_NOFILE", current, max)
 	}
-	if !nprocSet && !isRootless {
-		g.AddProcessRlimits("RLIMIT_NPROC", kernelMax, kernelMax)
+	if !nprocSet {
+		current, max := getNPROCSettings()
+		g.AddProcessRlimits("RLIMIT_NPROC", current, max)
 	}
 
 	return nil

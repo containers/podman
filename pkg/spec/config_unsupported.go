@@ -34,3 +34,11 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 func deviceCgroupRules(g *generate.Generator, deviceCgroupRules []string) error {
 	return errors.New("function not implemented")
 }
+
+func getNOFILESettings() (uint64, uint64) {
+	return kernelMax, kernelMax
+}
+
+func getNPROCSettings() (uint64, uint64) {
+	return kernelMax, kernelMax
+}
