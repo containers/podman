@@ -320,7 +320,7 @@ under `/var/lib/containers/storage`.
 
 ```
 semanage fcontext -a -e /var/lib/containers /srv/containers
-restorecon -R -v /src/containers
+restorecon -R -v /srv/containers
 ```
 
 The semanage command above tells SELinux to setup the default labeling of
