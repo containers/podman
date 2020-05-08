@@ -30,3 +30,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
 	panic(errors.New("system df is not supported on remote clients"))
 }
+
+func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
+	return errors.New("unshare is not supported on remote clients")
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -22,11 +23,25 @@ var (
 		RunE:    cp,
 		Example: "podman cp [CONTAINER:]SRC_PATH [CONTAINER:]DEST_PATH",
 	}
+
+	containerCpCommand = &cobra.Command{
+		Use:     cpCommand.Use,
+		Short:   cpCommand.Short,
+		Long:    cpCommand.Long,
+		Args:    cpCommand.Args,
+		RunE:    cpCommand.RunE,
+		Example: "podman container cp [CONTAINER:]SRC_PATH [CONTAINER:]DEST_PATH",
+	}
 )
 
 var (
 	cpOpts entities.ContainerCpOptions
 )
+
+func cpFlags(flags *pflag.FlagSet) {
+	flags.BoolVar(&cpOpts.Extract, "extract", false, "Extract the tar file into the destination directory.")
+	flags.BoolVar(&cpOpts.Pause, "pause", copyPause(), "Pause the container while copying")
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -34,8 +49,15 @@ func init() {
 		Command: cpCommand,
 	})
 	flags := cpCommand.Flags()
-	flags.BoolVar(&cpOpts.Extract, "extract", false, "Extract the tar file into the destination directory.")
-	flags.BoolVar(&cpOpts.Pause, "pause", copyPause(), "Pause the container while copying")
+	cpFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode},
+		Command: containerCpCommand,
+		Parent:  containerCmd,
+	})
+	containerCpFlags := containerCpCommand.Flags()
+	cpFlags(containerCpFlags)
 }
 
 func cp(cmd *cobra.Command, args []string) error {

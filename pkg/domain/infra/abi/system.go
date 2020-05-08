@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"syscall"
@@ -390,4 +391,19 @@ func (s SystemEngine) Shutdown(ctx context.Context) {
 	if err := s.Libpod.Shutdown(false); err != nil {
 		logrus.Error(err)
 	}
+}
+
+func unshareEnv(graphroot, runroot string) []string {
+	return append(os.Environ(), "_CONTAINERS_USERNS_CONFIGURED=done",
+		fmt.Sprintf("CONTAINERS_GRAPHROOT=%s", graphroot),
+		fmt.Sprintf("CONTAINERS_RUNROOT=%s", runroot))
+}
+
+func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Env = unshareEnv(ic.Libpod.StorageConfig().GraphRoot, ic.Libpod.StorageConfig().RunRoot)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }

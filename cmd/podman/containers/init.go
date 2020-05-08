@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -25,11 +26,30 @@ var (
   podman init 3c45ef19d893
   podman init test1`,
 	}
+
+	containerInitCommand = &cobra.Command{
+		Use:   initCommand.Use,
+		Short: initCommand.Short,
+		Long:  initCommand.Long,
+		RunE:  initCommand.RunE,
+		Args:  initCommand.Args,
+		Example: `podman container init --latest
+  podman container init 3c45ef19d893
+  podman container init test1`,
+	}
 )
 
 var (
 	initOptions entities.ContainerInitOptions
 )
+
+func initFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&initOptions.All, "all", "a", false, "Initialize all containers")
+	flags.BoolVarP(&initOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	if registry.IsRemote() {
+		_ = flags.MarkHidden("latest")
+	}
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -37,9 +57,16 @@ func init() {
 		Command: initCommand,
 	})
 	flags := initCommand.Flags()
-	flags.BoolVarP(&initOptions.All, "all", "a", false, "Initialize all containers")
-	flags.BoolVarP(&initOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	_ = flags.MarkHidden("latest")
+	initFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Parent:  containerCmd,
+		Command: containerInitCommand,
+	})
+
+	containerInitFlags := containerInitCommand.Flags()
+	initFlags(containerInitFlags)
 }
 
 func initContainer(cmd *cobra.Command, args []string) error {
