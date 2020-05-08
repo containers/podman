@@ -158,4 +158,20 @@ echo $rand        |   0 | $rand
     run_podman 1 image exists $NONLOCAL_IMAGE
 }
 
+# 'run --conmon-pidfile --cid-file' makes sure we don't regress on these flags.
+# Both are critical for systemd units.
+@test "podman run --conmon-pidfile --cidfile" {
+    pid=$(mktemp)
+    cid=$(mktemp)
+
+    # CID file exists -> expected to fail.
+    run_podman 125 run --rm --conmon-pidfile=$pid --cidfile=$cid $IMAGE ls
+
+    rm $pid $cid
+    run_podman run --name keepme --conmon-pidfile=$pid --cidfile=$cid --detach $IMAGE sleep infinity
+    stat $pid $cid
+    run_podman rm -f keepme
+    rm $pid $cid
+}
+
 # vim: filetype=sh
