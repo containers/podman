@@ -24,7 +24,7 @@ import (
 	"github.com/onsi/gomega/types"
 )
 
-const GOMEGA_VERSION = "1.9.0"
+const GOMEGA_VERSION = "1.10.0"
 
 const nilFailHandlerPanic = `You are trying to make an assertion, but Gomega's fail handler is nil.
 If you're using Ginkgo then you probably forgot to put your assertion in an It().
@@ -252,7 +252,7 @@ func Consistently(actual interface{}, intervals ...interface{}) AsyncAssertion {
 	return ConsistentlyWithOffset(0, actual, intervals...)
 }
 
-// ConsistentlyWithOffset operates like Consistnetly but takes an additional
+// ConsistentlyWithOffset operates like Consistently but takes an additional
 // initial argument to indicate an offset in the call stack. This is useful when building helper
 // functions that contain matchers. To learn more, read about `ExpectWithOffset`.
 func ConsistentlyWithOffset(offset int, actual interface{}, intervals ...interface{}) AsyncAssertion {
@@ -431,4 +431,33 @@ func toDuration(input interface{}) time.Duration {
 	}
 
 	panic(fmt.Sprintf("%v is not a valid interval.  Must be time.Duration, parsable duration string or a number.", input))
+}
+
+// Gomega describes the essential Gomega DSL. This interface allows libraries
+// to abstract between the standard package-level function implementations
+// and alternatives like *WithT.
+type Gomega interface {
+	Expect(actual interface{}, extra ...interface{}) Assertion
+	Eventually(actual interface{}, intervals ...interface{}) AsyncAssertion
+	Consistently(actual interface{}, intervals ...interface{}) AsyncAssertion
+}
+
+type globalFailHandlerGomega struct{}
+
+// DefaultGomega supplies the standard package-level implementation
+var Default Gomega = globalFailHandlerGomega{}
+
+// Expect is used to make assertions. See documentation for Expect.
+func (globalFailHandlerGomega) Expect(actual interface{}, extra ...interface{}) Assertion {
+	return Expect(actual, extra...)
+}
+
+// Eventually is used to make asynchronous assertions. See documentation for Eventually.
+func (globalFailHandlerGomega) Eventually(actual interface{}, extra ...interface{}) AsyncAssertion {
+	return Eventually(actual, extra...)
+}
+
+// Consistently is used to make asynchronous assertions. See documentation for Consistently.
+func (globalFailHandlerGomega) Consistently(actual interface{}, extra ...interface{}) AsyncAssertion {
+	return Consistently(actual, extra...)
 }

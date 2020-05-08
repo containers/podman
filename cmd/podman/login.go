@@ -46,7 +46,6 @@ func init() {
 
 	// Podman flags.
 	flags.BoolVarP(&loginOptions.tlsVerify, "tls-verify", "", false, "Require HTTPS and verify certificates when contacting registries")
-	flags.BoolVarP(&loginOptions.GetLoginSet, "get-login", "", false, "Return the current login user for the registry")
 	loginOptions.Stdin = os.Stdin
 	loginOptions.Stdout = os.Stdout
 	loginOptions.AcceptUnspecifiedRegistry = true

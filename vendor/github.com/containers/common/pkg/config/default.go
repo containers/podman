@@ -479,6 +479,8 @@ func (c *Config) PidsLimit() int64 {
 		cgroup2, _ := cgroupv2.Enabled()
 		if cgroup2 {
 			return c.Containers.PidsLimit
+		} else {
+			return 0
 		}
 	}
 	return sysinfo.GetDefaultPidsLimit()

@@ -10,7 +10,7 @@ require (
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.14.9-0.20200501175434-42a48f9373d9
-	github.com/containers/common v0.11.0
+	github.com/containers/common v0.11.1
 	github.com/containers/conmon v2.0.14+incompatible
 	github.com/containers/image/v5 v5.4.3
 	github.com/containers/psgo v1.5.0
@@ -35,7 +35,7 @@ require (
 	github.com/json-iterator/go v1.1.9
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.9.0
+	github.com/onsi/gomega v1.10.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/opencontainers/runc v1.0.0-rc9

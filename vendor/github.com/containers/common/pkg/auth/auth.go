@@ -34,9 +34,32 @@ func CheckAuthFile(authfile string) error {
 	return nil
 }
 
+// systemContextWithOptions returns a version of sys
+// updated with authFile and certDir values (if they are not "").
+// NOTE: this is a shallow copy that can be used and updated, but may share
+// data with the original parameter.
+func systemContextWithOptions(sys *types.SystemContext, authFile, certDir string) *types.SystemContext {
+	if sys != nil {
+		copy := *sys
+		sys = &copy
+	} else {
+		sys = &types.SystemContext{}
+	}
+
+	if authFile != "" {
+		sys.AuthFilePath = authFile
+	}
+	if certDir != "" {
+		sys.DockerCertPath = certDir
+	}
+	return sys
+}
+
 // Login implements a “log in” command with the provided opts and args
 // reading the password from opts.Stdin or the options in opts.
 func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginOptions, args []string) error {
+	systemContext = systemContextWithOptions(systemContext, opts.AuthFile, opts.CertDir)
+
 	var (
 		server string
 		err    error
@@ -172,6 +195,11 @@ func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (stri
 
 // Logout implements a “log out” command with the provided opts and args
 func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []string) error {
+	if err := CheckAuthFile(opts.AuthFile); err != nil {
+		return err
+	}
+	systemContext = systemContextWithOptions(systemContext, opts.AuthFile, "")
+
 	var (
 		server string
 		err    error
@@ -193,9 +221,6 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 			return errors.Errorf("--all takes no arguments")
 		}
 		server = getRegistryName(args[0])
-	}
-	if err := CheckAuthFile(opts.AuthFile); err != nil {
-		return err
 	}
 
 	if opts.All {

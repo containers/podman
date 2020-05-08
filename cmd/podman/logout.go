@@ -37,7 +37,6 @@ func init() {
 
 	// Flags from the auth package.
 	flags.AddFlagSet(auth.GetLogoutFlags(&logoutOptions))
-	logoutOptions.Stdin = os.Stdin
 	logoutOptions.Stdout = os.Stdout
 	logoutOptions.AcceptUnspecifiedRegistry = true
 }

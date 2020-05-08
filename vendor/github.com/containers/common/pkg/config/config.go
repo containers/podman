@@ -442,16 +442,6 @@ func readConfigFromFile(path string, config *Config) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode configuration %v: %v", path, err)
 	}
-	if config.Engine.VolumePath != "" {
-		config.Engine.VolumePathSet = true
-	}
-	if config.Engine.StaticDir != "" {
-		config.Engine.StaticDirSet = true
-	}
-	if config.Engine.TmpDir != "" {
-		config.Engine.TmpDirSet = true
-	}
-
 	return config, err
 }
 
