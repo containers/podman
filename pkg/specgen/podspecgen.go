@@ -54,7 +54,7 @@ type PodNetworkConfig struct {
 	// namespace. This network will, by default, be shared with all
 	// containers in the pod.
 	// Cannot be set to FromContainer and FromPod.
-	// Setting this to anything except "" conflicts with NoInfra=true.
+	// Setting this to anything except default conflicts with NoInfra=true.
 	// Defaults to Bridge as root and Slirp as rootless.
 	// Mandatory.
 	NetNS Namespace `json:"netns,omitempty"`
