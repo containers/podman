@@ -2,6 +2,8 @@ package containers
 
 import (
 	"context"
+	"encoding/binary"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,6 +15,10 @@ import (
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
+)
+
+var (
+	ErrLostSync = errors.New("lost synchronization with attach multiplexed result")
 )
 
 // List obtains a list of containers in local storage.  All parameters to this method are optional.
@@ -247,7 +253,7 @@ func Unpause(ctx context.Context, nameOrID string) error {
 // Wait blocks until the given container reaches a condition. If not provided, the condition will
 // default to stopped.  If the condition is stopped, an exit code for the container will be provided. The
 // nameOrID can be a container name or a partial/full ID.
-func Wait(ctx context.Context, nameOrID string, condition *define.ContainerStatus) (int32, error) { //nolint
+func Wait(ctx context.Context, nameOrID string, condition *define.ContainerStatus) (int32, error) { // nolint
 	var exitCode int32
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -332,4 +338,126 @@ func ContainerInit(ctx context.Context, nameOrID string) error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has already been created in runtime", nameOrID)
 	}
 	return response.Process(nil)
+}
+
+// Attach attaches to a running container
+func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stream *bool, stdin *bool, stdout io.Writer, stderr io.Writer) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	params := url.Values{}
+	if detachKeys != nil {
+		params.Add("detachKeys", *detachKeys)
+	}
+	if logs != nil {
+		params.Add("logs", fmt.Sprintf("%t", *logs))
+	}
+	if stream != nil {
+		params.Add("stream", fmt.Sprintf("%t", *stream))
+	}
+	if stdin != nil && *stdin {
+		params.Add("stdin", "true")
+	}
+	if stdout != nil {
+		params.Add("stdout", "true")
+	}
+	if stderr != nil {
+		params.Add("stderr", "true")
+	}
+
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/attach", params, nameOrId)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	ctype := response.Header.Get("Content-Type")
+	upgrade := response.Header.Get("Connection")
+
+	buffer := make([]byte, 1024)
+	if ctype == "application/vnd.docker.raw-stream" && upgrade == "Upgrade" {
+		for {
+			// Read multiplexed channels and write to appropriate stream
+			fd, l, err := DemuxHeader(response.Body, buffer)
+			if err != nil {
+				switch {
+				case errors.Is(err, io.EOF):
+					return nil
+				case errors.Is(err, io.ErrUnexpectedEOF):
+					continue
+				}
+				return err
+			}
+			frame, err := DemuxFrame(response.Body, buffer, l)
+			if err != nil {
+				return err
+			}
+
+			switch {
+			case fd == 0 && stdin != nil && *stdin:
+				stdout.Write(frame)
+			case fd == 1 && stdout != nil:
+				stdout.Write(frame)
+			case fd == 2 && stderr != nil:
+				stderr.Write(frame)
+			case fd == 3:
+				return fmt.Errorf("error from daemon in stream: %s", frame)
+			default:
+				return fmt.Errorf("unrecognized input header: %d", fd)
+			}
+		}
+	} else {
+		// If not multiplex'ed from server just dump stream to stdout
+		for {
+			_, err := response.Body.Read(buffer)
+			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					return err
+				}
+				break
+			}
+			stdout.Write(buffer)
+		}
+	}
+	return err
+}
+
+// DemuxHeader reads header for stream from server multiplexed stdin/stdout/stderr/2nd error channel
+func DemuxHeader(r io.Reader, buffer []byte) (fd, sz int, err error) {
+	n, err := io.ReadFull(r, buffer[0:8])
+	if err != nil {
+		return
+	}
+	if n < 8 {
+		err = io.ErrUnexpectedEOF
+		return
+	}
+
+	fd = int(buffer[0])
+	if fd < 0 || fd > 3 {
+		err = ErrLostSync
+		return
+	}
+
+	sz = int(binary.BigEndian.Uint32(buffer[4:8]))
+	return
+}
+
+// DemuxFrame reads contents for frame from server multiplexed stdin/stdout/stderr/2nd error channel
+func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error) {
+	if len(buffer) < length {
+		buffer = append(buffer, make([]byte, length-len(buffer)+1)...)
+	}
+	n, err := io.ReadFull(r, buffer[0:length])
+	if err != nil {
+		return nil, nil
+	}
+	if n < length {
+		err = io.ErrUnexpectedEOF
+		return
+	}
+
+	return buffer[0:length], nil
 }
