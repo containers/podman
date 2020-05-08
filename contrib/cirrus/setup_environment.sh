@@ -87,7 +87,7 @@ case "$CG_FS_TYPE" in
             # Normally not something to do for stable testing
             # but crun is new, and late-breaking fixes may be required
             # on short notice
-            dnf update -y crun
+            dnf update -y crun containers-common
         fi
         ;;
     *)

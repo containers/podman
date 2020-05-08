@@ -57,6 +57,11 @@ var _ = Describe("Podman pods", func() {
 		podSummary, err := pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
 		Expect(len(podSummary)).To(Equal(1))
+
+		// Start the pod
+		_, err = pods.Start(bt.conn, newpod)
+		Expect(err).To(BeNil())
+
 		// Adding an alpine container to the existing pod
 		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
 		Expect(err).To(BeNil())
@@ -83,6 +88,11 @@ var _ = Describe("Podman pods", func() {
 	It("List pods with filters", func() {
 		newpod2 := "newpod2"
 		bt.Podcreate(&newpod2)
+
+		// Start the pod
+		_, err = pods.Start(bt.conn, newpod)
+		Expect(err).To(BeNil())
+
 		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
 		Expect(err).To(BeNil())
 

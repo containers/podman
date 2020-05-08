@@ -5,6 +5,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/containers/libpod/pkg/cgroups"
 	. "github.com/containers/libpod/test/utils"
@@ -87,13 +88,24 @@ var _ = Describe("Podman stats", func() {
 	})
 
 	It("podman stats with json output", func() {
+		var found bool
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "json"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		for i := 0; i < 5; i++ {
+			ps := podmanTest.Podman([]string{"ps", "-q"})
+			ps.WaitWithDefaultTimeout()
+			if len(ps.OutputToStringArray()) == 1 {
+				found = true
+				break
+			}
+			time.Sleep(time.Second)
+		}
+		Expect(found).To(BeTrue())
+		stats := podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "json"})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats.IsJSONOutputValid()).To(BeTrue())
 	})
 
 	It("podman stats on a container with no net ns", func() {

@@ -42,11 +42,13 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		if err != nil {
 			return err
 		}
-		sig, err := signal.ParseSignalNameOrNumber(stopSignal)
-		if err != nil {
-			return err
+		if stopSignal != "" {
+			sig, err := signal.ParseSignalNameOrNumber(stopSignal)
+			if err != nil {
+				return err
+			}
+			s.StopSignal = &sig
 		}
-		s.StopSignal = &sig
 	}
 
 	rtc, err := r.GetConfig()
@@ -78,6 +80,9 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	// labels from the image that dont exist already
+	if len(labels) > 0 && s.Labels == nil {
+		s.Labels = make(map[string]string)
+	}
 	for k, v := range labels {
 		if _, exists := s.Labels[k]; !exists {
 			s.Labels[k] = v

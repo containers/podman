@@ -3,7 +3,6 @@ package test_bindings
 import (
 	"time"
 
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/bindings/pods"
@@ -39,8 +38,8 @@ var _ = Describe("Podman system", func() {
 	})
 
 	It("podman events", func() {
-		eChan := make(chan handlers.Event, 1)
-		var messages []handlers.Event
+		eChan := make(chan entities.Event, 1)
+		var messages []entities.Event
 		cancelChan := make(chan bool, 1)
 		go func() {
 			for e := range eChan {
