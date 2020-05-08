@@ -86,6 +86,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 				}
 			}
 		}
+		return nil
 	}
 
 	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
