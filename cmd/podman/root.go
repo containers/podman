@@ -208,7 +208,7 @@ func syslogHook() {
 
 func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	// V2 flags
-	flags.StringVarP(&opts.Uri, "remote", "r", "", "URL to access Podman service")
+	flags.StringVarP(&opts.Uri, "remote", "r", registry.DefaultAPIAddress(), "URL to access Podman service")
 	flags.StringSliceVar(&opts.Identities, "identity", []string{}, "path to SSH identity file")
 
 	cfg := opts.Config

@@ -22,6 +22,7 @@ const (
 var (
 	podmanOptions entities.PodmanConfig
 	podmanSync    sync.Once
+	abiSupport    = false
 )
 
 // PodmanConfig returns an entities.PodmanConfig built up from
@@ -39,23 +40,31 @@ func newPodmanConfig() {
 
 	var mode entities.EngineMode
 	switch runtime.GOOS {
-	case "darwin":
-		fallthrough
-	case "windows":
+	case "darwin", "windows":
 		mode = entities.TunnelMode
 	case "linux":
-		mode = entities.ABIMode
+		// Some linux clients might only be compiled without ABI
+		// support (e.g., podman-remote).
+		if abiSupport {
+			mode = entities.ABIMode
+		} else {
+			mode = entities.TunnelMode
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "%s is not a supported OS", runtime.GOOS)
 		os.Exit(1)
 	}
 
-	// cobra.Execute() may not be called yet, so we peek at os.Args.
-	for _, v := range os.Args {
-		// Prefix checking works because of how default EngineMode's
-		// have been defined.
-		if strings.HasPrefix(v, "--remote") {
-			mode = entities.TunnelMode
+	// Check if need to fallback to the tunnel mode if --remote is used.
+	if abiSupport && mode == entities.ABIMode {
+		// cobra.Execute() may not be called yet, so we peek at os.Args.
+		for _, v := range os.Args {
+			// Prefix checking works because of how default EngineMode's
+			// have been defined.
+			if strings.HasPrefix(v, "--remote") {
+				mode = entities.TunnelMode
+				break
+			}
 		}
 	}
 

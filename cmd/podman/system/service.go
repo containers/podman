@@ -139,6 +139,6 @@ func resolveApiURI(_url []string) (string, error) {
 	case srvArgs.Varlink:
 		return registry.DefaultVarlinkAddress, nil
 	default:
-		return registry.DefaultAPIAddress, nil
+		return registry.DefaultRootAPIAddress, nil
 	}
 }
