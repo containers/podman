@@ -2,14 +2,18 @@ package registry
 
 import (
 	"context"
+	"path/filepath"
 
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-// DefaultAPIAddress is the default address of the REST socket
-const DefaultAPIAddress = "unix:/run/podman/podman.sock"
+// DefaultRootAPIAddress is the default address of the REST socket
+const DefaultRootAPIAddress = "unix:/run/podman/podman.sock"
 
 // DefaultVarlinkAddress is the default address of the varlink socket
 const DefaultVarlinkAddress = "unix:/run/podman/io.podman"
@@ -97,4 +101,16 @@ func GetContextWithOptions() context.Context {
 // GetContext deprecated, use  Context()
 func GetContext() context.Context {
 	return Context()
+}
+
+func DefaultAPIAddress() string {
+	if rootless.IsRootless() {
+		xdg, err := util.GetRuntimeDir()
+		if err != nil {
+			logrus.Warnf("Failed to get rootless runtime dir for DefaultAPIAddress: %s", err)
+			return DefaultRootAPIAddress
+		}
+		return "unix:" + filepath.Join(xdg, "podman", "podman.sock")
+	}
+	return DefaultRootAPIAddress
 }
