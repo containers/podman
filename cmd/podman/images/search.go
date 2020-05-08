@@ -38,9 +38,6 @@ var (
 		Long:  searchDescription,
 		RunE:  imageSearch,
 		Args:  cobra.ExactArgs(1),
-		Annotations: map[string]string{
-			registry.ParentNSRequired: "",
-		},
 		Example: `podman search --filter=is-official --limit 3 alpine
   podman search registry.fedoraproject.org/  # only works with v2 registries
   podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
