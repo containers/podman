@@ -580,7 +580,10 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	networkMode := ""
 	switch {
 	case c.config.CreateNetNS:
-		networkMode = "default"
+		// We actually store the network
+		// mode for Slirp and Bridge, so
+		// we can just use that
+		networkMode = string(c.config.NetMode)
 	case c.config.NetNsCtr != "":
 		networkMode = fmt.Sprintf("container:%s", c.config.NetNsCtr)
 	default:
@@ -594,7 +597,10 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 				if ns.Path != "" {
 					networkMode = fmt.Sprintf("ns:%s", ns.Path)
 				} else {
-					networkMode = "private"
+					// We're making a network ns,  but not
+					// configuring with Slirp or CNI. That
+					// means it's --net=none
+					networkMode = "none"
 				}
 				break
 			}
