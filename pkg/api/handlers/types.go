@@ -71,10 +71,6 @@ type Container struct {
 	docker.ContainerCreateConfig
 }
 
-type Version struct {
-	docker.Version
-}
-
 type DiskUsage struct {
 	docker.DiskUsage
 }

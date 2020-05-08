@@ -17,7 +17,7 @@ var (
 	buildInfo string
 )
 
-//Version is an output struct for varlink
+// Version is an output struct for varlink
 type Version struct {
 	RemoteAPIVersion int64
 	Version          string

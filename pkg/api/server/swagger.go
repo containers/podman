@@ -181,3 +181,12 @@ type swagHealthCheckRunResponse struct {
 		define.HealthCheckResults
 	}
 }
+
+// Version
+// swagger:response Version
+type swagVersion struct {
+	// in:body
+	Body struct {
+		entities.SystemVersionReport
+	}
+}

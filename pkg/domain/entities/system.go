@@ -3,6 +3,8 @@ package entities
 import (
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
+	"github.com/docker/docker/api/types"
 	"github.com/spf13/cobra"
 )
 
@@ -82,4 +84,16 @@ type SystemDfVolumeReport struct {
 // container runtime storage, etc
 type SystemResetOptions struct {
 	Force bool
+}
+
+// SystemVersionReport describes version information about the running Podman service
+type SystemVersionReport struct {
+	// Always populated
+	Client *define.Version `json:",omitempty"`
+	// May be populated, when in tunnel mode
+	Server *define.Version `json:",omitempty"`
+}
+
+type ComponentVersion struct {
+	types.Version
 }

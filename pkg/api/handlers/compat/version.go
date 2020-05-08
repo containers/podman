@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	docker "github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 )
@@ -46,7 +47,7 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}}
 
-	utils.WriteResponse(w, http.StatusOK, handlers.Version{Version: docker.Version{
+	utils.WriteResponse(w, http.StatusOK, entities.ComponentVersion{Version: docker.Version{
 		Platform: struct {
 			Name string
 		}{

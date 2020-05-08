@@ -73,6 +73,7 @@ type ContainerEngine interface {
 	SystemDf(ctx context.Context, options SystemDfOptions) (*SystemDfReport, error)
 	Unshare(ctx context.Context, args []string) error
 	VarlinkService(ctx context.Context, opts ServiceOptions) error
+	Version(ctx context.Context) (*SystemVersionReport, error)
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts VolumeInspectOptions) ([]*VolumeInspectReport, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)

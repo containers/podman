@@ -34,3 +34,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
 	return errors.New("unshare is not supported on remote clients")
 }
+
+func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
+	return system.Version(ic.ClientCxt)
+}
