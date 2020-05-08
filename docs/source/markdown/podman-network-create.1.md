@@ -24,7 +24,7 @@ resolution.
 
 **-d**, **--driver**
 
-Driver to manage the network (default "bridge").  Currently on `bridge` is supported.
+Driver to manage the network (default "bridge").  Currently only `bridge` is supported.
 
 **--gateway**
 
