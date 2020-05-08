@@ -466,6 +466,24 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	namespaces := map[string]bool{
+		"pid":    p.config.UsePodPID,
+		"ipc":    p.config.UsePodIPC,
+		"net":    p.config.UsePodNet,
+		"mount":  p.config.UsePodMount,
+		"user":   p.config.UsePodUser,
+		"uts":    p.config.UsePodUTS,
+		"cgroup": p.config.UsePodCgroupNS,
+	}
+
+	sharesNS := []string{}
+	for nsStr, include := range namespaces {
+		if include {
+			sharesNS = append(sharesNS, nsStr)
+		}
+	}
+
 	inspectData := define.InspectPodData{
 		ID:               p.ID(),
 		Name:             p.Name(),
@@ -480,7 +498,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		CreateInfra:      false,
 		InfraContainerID: p.state.InfraContainerID,
 		InfraConfig:      nil,
-		SharedNamespaces: nil,
+		SharedNamespaces: sharesNS,
 		NumContainers:    uint(len(containers)),
 		Containers:       ctrs,
 	}

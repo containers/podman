@@ -1692,6 +1692,22 @@ func WithPodUTS() PodCreateOption {
 	}
 }
 
+// WithPodCgroup tells containers in this pod to use the cgroup namespace
+// created for this pod.
+// Containers in a pod will inherit the kernel namespaces from the first
+// container added.
+func WithPodCgroup() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.UsePodCgroupNS = true
+
+		return nil
+	}
+}
+
 // WithInfraContainer tells the pod to create a pause container
 func WithInfraContainer() PodCreateOption {
 	return func(pod *Pod) error {

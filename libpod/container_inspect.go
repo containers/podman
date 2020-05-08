@@ -698,6 +698,30 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	}
 	hostConfig.IpcMode = ipcMode
 
+	// Cgroup namespace mode
+	cgroupMode := ""
+	if c.config.CgroupNsCtr != "" {
+		cgroupMode = fmt.Sprintf("container:%s", c.config.CgroupNsCtr)
+	} else if ctrSpec.Linux != nil {
+		// Locate the spec's cgroup namespace
+		// If there is none, it's cgroup=host.
+		// If there is one and it has a path, it's "ns:".
+		// If there is no path, it's private.
+		for _, ns := range ctrSpec.Linux.Namespaces {
+			if ns.Type == spec.CgroupNamespace {
+				if ns.Path != "" {
+					cgroupMode = fmt.Sprintf("ns:%s", ns.Path)
+				} else {
+					cgroupMode = "private"
+				}
+			}
+		}
+		if cgroupMode == "" {
+			cgroupMode = "host"
+		}
+	}
+	hostConfig.CgroupMode = cgroupMode
+
 	// CGroup parent
 	// Need to check if it's the default, and not print if so.
 	defaultCgroupParent := ""
