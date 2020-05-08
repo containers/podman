@@ -390,6 +390,16 @@ func Panic() types.GomegaMatcher {
 	return &matchers.PanicMatcher{}
 }
 
+//PanicWith succeeds if actual is a function that, when invoked, panics with a specific value.
+//Actual must be a function that takes no arguments and returns no results.
+//
+//By default PanicWith uses Equal() to perform the match, however a
+//matcher can be passed in instead:
+//    Expect(fn).Should(PanicWith(MatchRegexp(`.+Foo$`)))
+func PanicWith(expected interface{}) types.GomegaMatcher {
+	return &matchers.PanicMatcher{Expected: expected}
+}
+
 //BeAnExistingFile succeeds if a file exists.
 //Actual must be a string representing the abs path to the file being checked.
 func BeAnExistingFile() types.GomegaMatcher {
@@ -406,6 +416,15 @@ func BeARegularFile() types.GomegaMatcher {
 //Actual must be a string representing the abs path to the file being checked.
 func BeADirectory() types.GomegaMatcher {
 	return &matchers.BeADirectoryMatcher{}
+}
+
+//HaveHTTPStatus succeeds if the Status or StatusCode field of an HTTP response matches.
+//Actual must be either a *http.Response or *httptest.ResponseRecorder.
+//Expected must be either an int or a string.
+//  Expect(resp).Should(HaveHTTPStatus(http.StatusOK))   // asserts that resp.StatusCode == 200
+//  Expect(resp).Should(HaveHTTPStatus("404 Not Found")) // asserts that resp.Status == "404 Not Found"
+func HaveHTTPStatus(expected interface{}) types.GomegaMatcher {
+	return &matchers.HaveHTTPStatusMatcher{Expected: expected}
 }
 
 //And succeeds only if all of the given matchers succeed.
