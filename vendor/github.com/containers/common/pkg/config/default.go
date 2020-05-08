@@ -105,6 +105,9 @@ const (
 	DefaultPidsLimit = 2048
 	// DefaultPullPolicy pulls the image if it does not exist locally
 	DefaultPullPolicy = "missing"
+	// DefaultSignaturePolicyPath is the default value for the
+	// policy.json file.
+	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
 	// DefaultRootlessSignaturePolicyPath is the default value for the
 	// rootless policy.json file.
 	DefaultRootlessSignaturePolicyPath = ".config/containers/policy.json"
@@ -129,14 +132,19 @@ func DefaultConfig() (*Config, error) {
 	}
 
 	netns := "bridge"
+
+	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 	if unshare.IsRootless() {
 		home, err := unshare.HomeDir()
 		if err != nil {
 			return nil, err
 		}
 		sigPath := filepath.Join(home, DefaultRootlessSignaturePolicyPath)
-		if _, err := os.Stat(sigPath); err == nil {
-			defaultEngineConfig.SignaturePolicyPath = sigPath
+		defaultEngineConfig.SignaturePolicyPath = sigPath
+		if _, err := os.Stat(sigPath); err != nil {
+			if _, err := os.Stat(DefaultSignaturePolicyPath); err == nil {
+				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
+			}
 		}
 		netns = "slirp4netns"
 	}

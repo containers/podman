@@ -7,7 +7,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/pkg/errors"
+	"github.com/containers/libpod/pkg/registries"
 	"github.com/spf13/cobra"
 )
 
@@ -39,19 +39,14 @@ func init() {
 	flags.AddFlagSet(auth.GetLogoutFlags(&logoutOptions))
 	logoutOptions.Stdin = os.Stdin
 	logoutOptions.Stdout = os.Stdout
+	logoutOptions.AcceptUnspecifiedRegistry = true
 }
 
 // Implementation of podman-logout.
 func logout(cmd *cobra.Command, args []string) error {
-	sysCtx := types.SystemContext{AuthFilePath: logoutOptions.AuthFile}
-
-	registry := ""
-	if len(args) > 0 {
-		if logoutOptions.All {
-			return errors.New("--all takes no arguments")
-		}
-		registry = args[0]
+	sysCtx := types.SystemContext{
+		AuthFilePath:             logoutOptions.AuthFile,
+		SystemRegistriesConfPath: registries.SystemRegistriesConfPath(),
 	}
-
-	return auth.Logout(&sysCtx, &logoutOptions, registry)
+	return auth.Logout(&sysCtx, &logoutOptions, args)
 }

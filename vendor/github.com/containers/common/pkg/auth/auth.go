@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/pkg/docker/config"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,9 +34,27 @@ func CheckAuthFile(authfile string) error {
 	return nil
 }
 
-// Login login to the server with creds from Stdin or CLI
-func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginOptions, registry string) error {
-	server := getRegistryName(registry)
+// Login implements a “log in” command with the provided opts and args
+// reading the password from opts.Stdin or the options in opts.
+func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginOptions, args []string) error {
+	var (
+		server string
+		err    error
+	)
+	if len(args) > 1 {
+		return errors.Errorf("login accepts only one registry to login to")
+	}
+	if len(args) == 0 {
+		if !opts.AcceptUnspecifiedRegistry {
+			return errors.Errorf("please provide a registry to login to")
+		}
+		if server, err = defaultRegistryWhenUnspecified(systemContext); err != nil {
+			return err
+		}
+		logrus.Debugf("registry not specified, default to the first registry %q from registries.conf", server)
+	} else {
+		server = getRegistryName(args[0])
+	}
 	authConfig, err := config.GetCredentials(systemContext, server)
 	if err != nil {
 		return errors.Wrapf(err, "error reading auth file")
@@ -151,11 +170,29 @@ func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (stri
 	return strings.TrimSpace(username), password, err
 }
 
-// Logout removes the authentication of server from authfile
-// removes all authtication if specifies all in the options
-func Logout(systemContext *types.SystemContext, opts *LogoutOptions, server string) error {
-	if server != "" {
-		server = getRegistryName(server)
+// Logout implements a “log out” command with the provided opts and args
+func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []string) error {
+	var (
+		server string
+		err    error
+	)
+	if len(args) > 1 {
+		return errors.Errorf("logout accepts only one registry to logout from")
+	}
+	if len(args) == 0 && !opts.All {
+		if !opts.AcceptUnspecifiedRegistry {
+			return errors.Errorf("please provide a registry to logout from")
+		}
+		if server, err = defaultRegistryWhenUnspecified(systemContext); err != nil {
+			return err
+		}
+		logrus.Debugf("registry not specified, default to the first registry %q from registries.conf", server)
+	}
+	if len(args) != 0 {
+		if opts.All {
+			return errors.Errorf("--all takes no arguments")
+		}
+		server = getRegistryName(args[0])
 	}
 	if err := CheckAuthFile(opts.AuthFile); err != nil {
 		return err
@@ -169,7 +206,7 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, server stri
 		return nil
 	}
 
-	err := config.RemoveAuthentication(systemContext, server)
+	err = config.RemoveAuthentication(systemContext, server)
 	switch err {
 	case nil:
 		fmt.Fprintf(opts.Stdout, "Removed login credentials for %s\n", server)
@@ -179,4 +216,17 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, server stri
 	default:
 		return errors.Wrapf(err, "error logging out of %q", server)
 	}
+}
+
+// defaultRegistryWhenUnspecified returns first registry from search list of registry.conf
+// used by login/logout when registry argument is not specified
+func defaultRegistryWhenUnspecified(systemContext *types.SystemContext) (string, error) {
+	registriesFromFile, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting registry from registry.conf, please specify a registry")
+	}
+	if len(registriesFromFile) == 0 {
+		return "", errors.Errorf("no registries found in registries.conf, a registry must be provided")
+	}
+	return registriesFromFile[0], nil
 }

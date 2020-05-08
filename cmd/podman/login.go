@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/registries"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +24,7 @@ var (
 		Short: "Login to a container registry",
 		Long:  "Login to a container registry on a specified server.",
 		RunE:  login,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		Example: `podman login quay.io
   podman login --username ... --password ... quay.io
   podman login --authfile dir/auth.json quay.io`,
@@ -48,6 +49,7 @@ func init() {
 	flags.BoolVarP(&loginOptions.GetLoginSet, "get-login", "", false, "Return the current login user for the registry")
 	loginOptions.Stdin = os.Stdin
 	loginOptions.Stdout = os.Stdout
+	loginOptions.AcceptUnspecifiedRegistry = true
 }
 
 // Implementation of podman-login.
@@ -62,7 +64,8 @@ func login(cmd *cobra.Command, args []string) error {
 		AuthFilePath:                loginOptions.AuthFile,
 		DockerCertPath:              loginOptions.CertDir,
 		DockerInsecureSkipTLSVerify: skipTLS,
+		SystemRegistriesConfPath:    registries.SystemRegistriesConfPath(),
 	}
 	loginOptions.GetLoginSet = cmd.Flag("get-login").Changed
-	return auth.Login(context.Background(), &sysCtx, &loginOptions.LoginOptions, args[0])
+	return auth.Login(context.Background(), &sysCtx, &loginOptions.LoginOptions, args)
 }
