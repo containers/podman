@@ -501,6 +501,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.CapDrop = c.CapDrop
 	s.Privileged = c.Privileged
 	s.ReadOnlyFilesystem = c.ReadOnly
+	s.ConmonPidFile = c.ConmonPIDFile
 
 	// TODO
 	// ouitside of specgen and oci though
