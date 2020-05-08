@@ -14,6 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, image string, args []string, options entities.ContainerRunlabelOptions) error {
+	return errors.New("not implemented")
+}
+
 func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
 	exists, err := containers.Exists(ic.ClientCxt, nameOrId)
 	return &entities.BoolReport{Value: exists}, err

@@ -6,10 +6,48 @@ import (
 	"os"
 	"time"
 
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
+
+// ContainerRunlabelOptions are the options to execute container-runlabel.
+type ContainerRunlabelOptions struct {
+	// Authfile - path to an authentication file.
+	Authfile string
+	// CertDir - path to a directory containing TLS certifications and
+	// keys.
+	CertDir string
+	// Credentials - `user:password` to use when pulling an image.
+	Credentials string
+	// Display - do not execute but print the command.
+	Display bool
+	// Replace - replace an existing container with a new one from the
+	// image.
+	Replace bool
+	// Name - use this name when executing the runlabel container.
+	Name string
+	// Optional1 - fist optional parameter for install.
+	Optional1 string
+	// Optional2 - second optional parameter for install.
+	Optional2 string
+	// Optional3 - third optional parameter for install.
+	Optional3 string
+	// Pull - pull the specified image if it's not in the local storage.
+	Pull bool
+	// Quiet - suppress output when pulling images.
+	Quiet bool
+	// SignaturePolicy - path to a signature-policy file.
+	SignaturePolicy string
+	// SkipTLSVerify - skip HTTPS and certificate verifications when
+	// contacting registries.
+	SkipTLSVerify types.OptionalBool
+}
+
+// ContainerRunlabelReport contains the results from executing container-runlabel.
+type ContainerRunlabelReport struct {
+}
 
 type WaitOptions struct {
 	Condition define.ContainerStatus
