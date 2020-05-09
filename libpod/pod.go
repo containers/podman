@@ -51,12 +51,13 @@ type PodConfig struct {
 
 	// The following UsePod{kernelNamespace} indicate whether the containers
 	// in the pod will inherit the namespace from the first container in the pod.
-	UsePodPID   bool `json:"sharesPid,omitempty"`
-	UsePodIPC   bool `json:"sharesIpc,omitempty"`
-	UsePodNet   bool `json:"sharesNet,omitempty"`
-	UsePodMount bool `json:"sharesMnt,omitempty"`
-	UsePodUser  bool `json:"sharesUser,omitempty"`
-	UsePodUTS   bool `json:"sharesUts,omitempty"`
+	UsePodPID      bool `json:"sharesPid,omitempty"`
+	UsePodIPC      bool `json:"sharesIpc,omitempty"`
+	UsePodNet      bool `json:"sharesNet,omitempty"`
+	UsePodMount    bool `json:"sharesMnt,omitempty"`
+	UsePodUser     bool `json:"sharesUser,omitempty"`
+	UsePodUTS      bool `json:"sharesUts,omitempty"`
+	UsePodCgroupNS bool `json:"sharesCgroupNS,omitempty"`
 
 	InfraContainer *InfraContainerConfig `json:"infraConfig"`
 
@@ -167,7 +168,7 @@ func (p *Pod) SharesUTS() bool {
 // SharesCgroup returns whether containers in the pod will default to this pod's
 // cgroup instead of the default libpod parent
 func (p *Pod) SharesCgroup() bool {
-	return p.config.UsePodCgroup
+	return p.config.UsePodCgroupNS
 }
 
 // CgroupPath returns the path to the pod's CGroup

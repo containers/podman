@@ -228,6 +228,13 @@ type InspectContainerHostConfig struct {
 	// include a Mounts field in inspect.
 	// Format: <src>:<destination>[:<comma-separated options>]
 	Binds []string `json:"Binds"`
+	// CgroupMode is the configuration of the container's cgroup namespace.
+	// Populated as follows:
+	// private - a cgroup namespace has been created
+	// host - No cgroup namespace created
+	// container:<id> - Using another container's cgroup namespace
+	// ns:<path> - A path to a cgroup namespace has been specified
+	CgroupMode string `json:"CgroupMode"`
 	// ContainerIDFile is a file created during container creation to hold
 	// the ID of the created container.
 	// This is not handled within libpod and is stored in an annotation.
