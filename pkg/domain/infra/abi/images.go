@@ -4,14 +4,22 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
+
+	"github.com/containers/libpod/pkg/rootless"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/signature"
+	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/define"
@@ -19,12 +27,16 @@ import (
 	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
 	domainUtils "github.com/containers/libpod/pkg/domain/utils"
+	"github.com/containers/libpod/pkg/trust"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// SignatureStoreDir defines default directory to store signatures
+const SignatureStoreDir = "/var/lib/containers/sigstore"
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.BoolReport, error) {
 	_, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
@@ -548,4 +560,146 @@ func (ir *ImageEngine) Shutdown(_ context.Context) {
 	shutdownSync.Do(func() {
 		_ = ir.Libpod.Shutdown(false)
 	})
+}
+
+func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entities.SignOptions) (*entities.SignReport, error) {
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerCertPath: options.CertDir,
+	}
+
+	mech, err := signature.NewGPGSigningMechanism()
+	if err != nil {
+		return nil, errors.Wrap(err, "error initializing GPG")
+	}
+	defer mech.Close()
+	if err := mech.SupportsSigning(); err != nil {
+		return nil, errors.Wrap(err, "signing is not supported")
+	}
+	sc := ir.Libpod.SystemContext()
+	sc.DockerCertPath = options.CertDir
+
+	systemRegistriesDirPath := trust.RegistriesDirPath(sc)
+	registryConfigs, err := trust.LoadAndMergeConfig(systemRegistriesDirPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading registry configuration")
+	}
+
+	for _, signimage := range names {
+		var sigStoreDir string
+		srcRef, err := alltransports.ParseImageName(signimage)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing image name")
+		}
+		rawSource, err := srcRef.NewImageSource(ctx, sc)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error getting image source")
+		}
+		err = rawSource.Close()
+		if err != nil {
+			logrus.Errorf("unable to close new image source %q", err)
+		}
+		getManifest, _, err := rawSource.GetManifest(ctx, nil)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error getting getManifest")
+		}
+		dockerReference := rawSource.Reference().DockerReference()
+		if dockerReference == nil {
+			return nil, errors.Errorf("cannot determine canonical Docker reference for destination %s", transports.ImageName(rawSource.Reference()))
+		}
+
+		// create the signstore file
+		rtc, err := ir.Libpod.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+		newImage, err := ir.Libpod.ImageRuntime().New(ctx, signimage, rtc.Engine.SignaturePolicyPath, "", os.Stderr, &dockerRegistryOptions, image.SigningOptions{SignBy: options.SignBy}, nil, util.PullImageMissing)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error pulling image %s", signimage)
+		}
+		if sigStoreDir == "" {
+			if rootless.IsRootless() {
+				sigStoreDir = filepath.Join(filepath.Dir(ir.Libpod.StorageConfig().GraphRoot), "sigstore")
+			} else {
+				registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)
+				if registryInfo != nil {
+					if sigStoreDir = registryInfo.SigStoreStaging; sigStoreDir == "" {
+						sigStoreDir = registryInfo.SigStore
+
+					}
+				}
+			}
+		}
+		sigStoreDir, err = isValidSigStoreDir(sigStoreDir)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid signature storage %s", sigStoreDir)
+		}
+		repos, err := newImage.RepoDigests()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error calculating repo digests for %s", signimage)
+		}
+		if len(repos) == 0 {
+			logrus.Errorf("no repodigests associated with the image %s", signimage)
+			continue
+		}
+
+		// create signature
+		newSig, err := signature.SignDockerManifest(getManifest, dockerReference.String(), mech, options.SignBy)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error creating new signature")
+		}
+
+		trimmedDigest := strings.TrimPrefix(repos[0], strings.Split(repos[0], "/")[0])
+		sigStoreDir = filepath.Join(sigStoreDir, strings.Replace(trimmedDigest, ":", "=", 1))
+		if err := os.MkdirAll(sigStoreDir, 0751); err != nil {
+			// The directory is allowed to exist
+			if !os.IsExist(err) {
+				logrus.Errorf("error creating directory %s: %s", sigStoreDir, err)
+				continue
+			}
+		}
+		sigFilename, err := getSigFilename(sigStoreDir)
+		if err != nil {
+			logrus.Errorf("error creating sigstore file: %v", err)
+			continue
+		}
+		err = ioutil.WriteFile(filepath.Join(sigStoreDir, sigFilename), newSig, 0644)
+		if err != nil {
+			logrus.Errorf("error storing signature for %s", rawSource.Reference().DockerReference().String())
+			continue
+		}
+	}
+	return nil, nil
+}
+
+func getSigFilename(sigStoreDirPath string) (string, error) {
+	sigFileSuffix := 1
+	sigFiles, err := ioutil.ReadDir(sigStoreDirPath)
+	if err != nil {
+		return "", err
+	}
+	sigFilenames := make(map[string]bool)
+	for _, file := range sigFiles {
+		sigFilenames[file.Name()] = true
+	}
+	for {
+		sigFilename := "signature-" + strconv.Itoa(sigFileSuffix)
+		if _, exists := sigFilenames[sigFilename]; !exists {
+			return sigFilename, nil
+		}
+		sigFileSuffix++
+	}
+}
+
+func isValidSigStoreDir(sigStoreDir string) (string, error) {
+	writeURIs := map[string]bool{"file": true}
+	url, err := url.Parse(sigStoreDir)
+	if err != nil {
+		return sigStoreDir, errors.Wrapf(err, "invalid directory %s", sigStoreDir)
+	}
+	_, exists := writeURIs[url.Scheme]
+	if !exists {
+		return sigStoreDir, errors.Errorf("writing to %s is not supported. Use a supported scheme", sigStoreDir)
+	}
+	sigStoreDir = url.Path
+	return sigStoreDir, nil
 }
