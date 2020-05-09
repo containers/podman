@@ -3,11 +3,14 @@ package system
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -82,4 +85,39 @@ func Prune(ctx context.Context, all, volumes *bool) (*entities.SystemPruneReport
 		return nil, err
 	}
 	return &report, response.Process(&report)
+}
+
+func Version(ctx context.Context) (*entities.SystemVersionReport, error) {
+	var report entities.SystemVersionReport
+	var component entities.ComponentVersion
+
+	version, err := define.GetVersion()
+	if err != nil {
+		return nil, err
+	}
+	report.Client = &version
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/version", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = response.Process(&component); err != nil {
+		return nil, err
+	}
+	f, _ := strconv.ParseFloat(component.APIVersion, 64)
+	b, _ := time.Parse(time.RFC3339, component.BuildTime)
+	report.Server = &define.Version{
+		RemoteAPIVersion: int64(f),
+		Version:          component.Version.Version,
+		GoVersion:        component.GoVersion,
+		GitCommit:        component.GitCommit,
+		Built:            b.Unix(),
+		OsArch:           fmt.Sprintf("%s/%s", component.Os, component.Arch),
+	}
+	return &report, err
 }

@@ -8,12 +8,10 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -23,17 +21,9 @@ var (
 		Args:  validate.NoArgs,
 		Short: "Display the Podman Version Information",
 		RunE:  version,
-		Annotations: map[string]string{
-			registry.ParentNSRequired: "",
-		},
 	}
 	versionFormat string
 )
-
-type versionStruct struct {
-	Client define.Version
-	Server define.Version
-}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -45,68 +35,44 @@ func init() {
 }
 
 func version(cmd *cobra.Command, args []string) error {
-	var (
-		v   versionStruct
-		err error
-	)
-	v.Client, err = define.GetVersion()
+	versions, err := registry.ContainerEngine().Version(registry.Context())
 	if err != nil {
-		return errors.Wrapf(err, "unable to determine version")
+		return err
 	}
-	// TODO we need to discuss how to implement
-	// this more. current endpoints dont have a
-	// version endpoint.  maybe we use info?
-	// if remote {
-	//	v.Server, err = getRemoteVersion(c)
-	//	if err != nil {
-	//		return err
-	//	}
-	// } else {
-	v.Server = v.Client
-	// }
 
-	versionOutputFormat := versionFormat
-	if versionOutputFormat != "" {
-		if strings.Join(strings.Fields(versionOutputFormat), "") == "{{json.}}" {
-			versionOutputFormat = formats.JSONString
+	switch {
+	case versionFormat == "json", versionFormat == "{{ json .}}":
+		s, err := json.MarshalToString(versions)
+		if err != nil {
+			return err
 		}
-		var out formats.Writer
-		switch versionOutputFormat {
-		case formats.JSONString:
-			out = formats.JSONStruct{Output: v}
-			return out.Out()
-		default:
-			out = formats.StdoutTemplate{Output: v, Template: versionOutputFormat}
-			err := out.Out()
-			if err != nil {
-				// On Failure, assume user is using older version of podman version --format and check client
-				out = formats.StdoutTemplate{Output: v.Client, Template: versionOutputFormat}
-				if err1 := out.Out(); err1 != nil {
-					return err
-				}
-			}
+		_, err = io.WriteString(os.Stdout, s)
+		return err
+	case cmd.Flag("format").Changed:
+		if !strings.HasSuffix(versionFormat, "\n") {
+			versionFormat += "\n"
 		}
-		return nil
 	}
+
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	defer w.Flush()
 
-	if registry.IsRemote() {
+	if versions.Server != nil {
 		if _, err := fmt.Fprintf(w, "Client:\n"); err != nil {
 			return err
 		}
-		formatVersion(w, v.Client)
+		formatVersion(w, versions.Client)
 		if _, err := fmt.Fprintf(w, "\nServer:\n"); err != nil {
 			return err
 		}
-		formatVersion(w, v.Server)
+		formatVersion(w, versions.Server)
 	} else {
-		formatVersion(w, v.Client)
+		formatVersion(w, versions.Client)
 	}
 	return nil
 }
 
-func formatVersion(writer io.Writer, version define.Version) {
+func formatVersion(writer io.Writer, version *define.Version) {
 	fmt.Fprintf(writer, "Version:\t%s\n", version.Version)
 	fmt.Fprintf(writer, "RemoteAPI Version:\t%d\n", version.RemoteAPIVersion)
 	fmt.Fprintf(writer, "Go Version:\t%s\n", version.GoVersion)

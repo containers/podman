@@ -407,3 +407,13 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
+
+func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
+	var report entities.SystemVersionReport
+	v, err := define.GetVersion()
+	if err != nil {
+		return nil, err
+	}
+	report.Client = &v
+	return &report, err
+}
