@@ -19,6 +19,7 @@ var _ = Describe("Podman run networking", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRootlessV2()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

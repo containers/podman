@@ -21,6 +21,12 @@ func SkipIfRootless() {
 	}
 }
 
+func SkipIfRootlessV2() {
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("This function is not enabled for v2 rootless podman")
+	}
+}
+
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
 	podmanSession := p.PodmanBase(args, false, false)

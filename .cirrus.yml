@@ -523,7 +523,6 @@ integration_test_temporary_task:
 # This task executes tests under unique environments/conditions
 special_testing_rootless_task:
 
-    skip: $CI == 'true'
     depends_on:
         - "gating"
         - "varlink_api"
@@ -539,9 +538,10 @@ special_testing_rootless_task:
         ADD_SECOND_PARTITION: 'true'
         SPECIALMODE: 'rootless'  # See docs
         matrix:
-            - name: remote
-              env:
-                  TEST_REMOTE_CLIENT: 'true'
+          # FIX ME ...
+          #- name: remote
+          #    env:
+          #        TEST_REMOTE_CLIENT: 'true'
             - name: local
               env:
                   TEST_REMOTE_CLIENT: 'false'

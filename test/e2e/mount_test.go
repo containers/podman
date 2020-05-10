@@ -18,6 +18,7 @@ var _ = Describe("Podman mount", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRootlessV2()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
