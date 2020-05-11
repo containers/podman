@@ -217,7 +217,6 @@ var _ = Describe("Podman generate kube", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootlessV2()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

@@ -545,10 +545,14 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
 				logrus.Warnf("failed to return RLIMIT_NOFILE ulimit %q", err)
 			}
-			current = rlimit.Cur
-			max = rlimit.Max
+			if rlimit.Cur < current {
+				current = rlimit.Cur
+			}
+			if rlimit.Max < max {
+				max = rlimit.Max
+			}
 		}
-		g.AddProcessRlimits("RLIMIT_NOFILE", current, max)
+		g.AddProcessRlimits("RLIMIT_NOFILE", max, current)
 	}
 	if !nprocSet {
 		max := kernelMax
@@ -558,10 +562,14 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
 				logrus.Warnf("failed to return RLIMIT_NPROC ulimit %q", err)
 			}
-			current = rlimit.Cur
-			max = rlimit.Max
+			if rlimit.Cur < current {
+				current = rlimit.Cur
+			}
+			if rlimit.Max < max {
+				max = rlimit.Max
+			}
 		}
-		g.AddProcessRlimits("RLIMIT_NPROC", current, max)
+		g.AddProcessRlimits("RLIMIT_NPROC", max, current)
 	}
 
 	return nil
