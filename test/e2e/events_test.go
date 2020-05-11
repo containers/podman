@@ -19,7 +19,6 @@ var _ = Describe("Podman events", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootlessV2()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

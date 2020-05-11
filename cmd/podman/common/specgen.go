@@ -8,12 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/libpod/define"
 	ann "github.com/containers/libpod/pkg/annotations"
 	envLib "github.com/containers/libpod/pkg/env"
 	ns "github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/specgen"
 	systemdGen "github.com/containers/libpod/pkg/systemd/generate"
 	"github.com/containers/libpod/pkg/util"
@@ -126,20 +128,23 @@ func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (
 	return io, nil
 }
 
-func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxPids, error) {
+func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) *specs.LinuxPids {
 	pids := &specs.LinuxPids{}
-	hasLimits := false
-	if c.CGroupsMode == "disabled" && c.PIDsLimit > 0 {
-		return nil, nil
+	if c.CGroupsMode == "disabled" && c.PIDsLimit != 0 {
+		return nil
+	}
+	if c.PIDsLimit < 0 {
+		if rootless.IsRootless() && containerConfig.Engine.CgroupManager != config.SystemdCgroupsManager {
+			return nil
+		}
+		pids.Limit = containerConfig.PidsLimit()
+		return pids
 	}
 	if c.PIDsLimit > 0 {
 		pids.Limit = c.PIDsLimit
-		hasLimits = true
+		return pids
 	}
-	if !hasLimits {
-		return nil, nil
-	}
-	return pids, nil
+	return nil
 }
 
 func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxMemory, error) {
@@ -464,10 +469,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if err != nil {
 		return err
 	}
-	s.ResourceLimits.Pids, err = getPidsLimits(s, c, args)
-	if err != nil {
-		return err
-	}
+	s.ResourceLimits.Pids = getPidsLimits(s, c, args)
 	s.ResourceLimits.CPU, err = getCPULimits(s, c, args)
 	if err != nil {
 		return err
