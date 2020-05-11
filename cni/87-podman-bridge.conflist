@@ -7,6 +7,7 @@
       "bridge": "cni-podman0",
       "isGateway": true,
       "ipMasq": true,
+      "hairpinMode": true,
       "ipam": {
         "type": "host-local",
         "routes": [{ "dst": "0.0.0.0/0" }],
