@@ -256,13 +256,3 @@ func FromBlob(manblob []byte, mt string) (Manifest, error) {
 	// Note that this may not be reachable, NormalizedMIMEType has a default for unknown values.
 	return nil, fmt.Errorf("Unimplemented manifest MIME type %s (normalized as %s)", mt, nmt)
 }
-
-// layerInfosToStrings converts a list of layer infos, presumably obtained from a Manifest.LayerInfos()
-// method call, into a format suitable for inclusion in a types.ImageInspectInfo structure.
-func layerInfosToStrings(infos []LayerInfo) []string {
-	layers := make([]string, len(infos))
-	for i, info := range infos {
-		layers[i] = info.Digest.String()
-	}
-	return layers
-}
