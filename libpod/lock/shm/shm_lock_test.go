@@ -76,6 +76,7 @@ func TestCreateNewSHMBadSizeRoundsUp(t *testing.T) {
 	// Odd number, not a power of 2, should never be a word size on a system
 	lock, err := CreateSHMLock("/test1", 7)
 	assert.NoError(t, err)
+	assert.NotNil(t, lock)
 
 	assert.Equal(t, lock.GetMaxLocks(), BitmapSize)
 
