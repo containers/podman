@@ -537,7 +537,7 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	// If not explicitly overridden by the user, default number of open
 	// files and number of processes to the maximum they can be set to
 	// (without overriding a sysctl)
-	if !nofileSet {
+	if !nofileSet && !isRootless {
 		max := kernelMax
 		current := kernelMax
 		if isRootless {
