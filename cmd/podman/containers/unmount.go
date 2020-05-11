@@ -27,9 +27,6 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
-		Annotations: map[string]string{
-			registry.ParentNSRequired: "",
-		},
 		Example: `podman umount ctrID
   podman umount ctrID1 ctrID2 ctrID3
   podman umount --all`,
