@@ -381,7 +381,29 @@ func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrId string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
-	return nil, errors.New("not implemented")
+	var (
+		reports    []*entities.ContainerPortReport
+		namesOrIds []string
+	)
+	if len(nameOrId) > 0 {
+		namesOrIds = append(namesOrIds, nameOrId)
+	}
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, con := range ctrs {
+		if con.State != define.ContainerStateRunning.String() {
+			continue
+		}
+		if len(con.Ports) > 0 {
+			reports = append(reports, &entities.ContainerPortReport{
+				Id:    con.ID,
+				Ports: con.Ports,
+			})
+		}
+	}
+	return reports, nil
 }
 
 func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string, options entities.ContainerCpOptions) (*entities.ContainerCpReport, error) {
