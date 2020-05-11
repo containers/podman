@@ -43,7 +43,6 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect bogus container", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"inspect", "foobar4321"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
@@ -67,7 +66,6 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container with GO format for ConmonPidFile", func() {
-		SkipIfRemote()
 		session, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 
@@ -77,11 +75,10 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container with size", func() {
-		SkipIfRemote()
-		_, ec, _ := podmanTest.RunLsContainer("")
+		_, ec, _ := podmanTest.RunLsContainer("sizetest")
 		Expect(ec).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"inspect", "--size", "-l"})
+		result := podmanTest.Podman([]string{"inspect", "--size", "sizetest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		conData := result.InspectContainerToJSON()
@@ -90,7 +87,6 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container and image", func() {
-		SkipIfRemote()
 		ls, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
@@ -102,7 +98,6 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container and filter for Image{ID}", func() {
-		SkipIfRemote()
 		ls, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
@@ -119,7 +114,6 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container and filter for CreateCommand", func() {
-		SkipIfRemote()
 		ls, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()

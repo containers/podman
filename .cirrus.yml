@@ -520,6 +520,48 @@ integration_test_temporary_task:
             path: "*.log.html"
             type: "text/html"
 
+# This task only temporary as we creep up on making
+# all tests passing for v2 remote. Once all tests pass, we
+# should immediately remove this and re-enable the
+# testing matrix.
+remote_integration_test_temporary_task:
+
+    depends_on:
+        - "gating"
+        - "varlink_api"
+        - "vendor"
+        - "build_each_commit"
+        - "build_without_cgo"
+
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+
+    env:
+        ADD_SECOND_PARTITION: 'true'
+        TEST_REMOTE_CLIENT: 'true'
+
+    timeout_in: 60m
+
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
+
+    on_failure:
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
+
+    always:
+        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
+        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
+        df_script: '$SCRIPT_BASE/logcollector.sh df'
+        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        varlink_script: '$SCRIPT_BASE/logcollector.sh varlink'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+        html_artifacts:
+            path: "*.log.html"
+            type: "text/html"
+
 # This task executes tests under unique environments/conditions
 special_testing_rootless_task:
 
@@ -823,6 +865,7 @@ success_task:
         - "static_build"
         # FIXME remove when all v2 tests pass
         - "integration_test_temporary"
+        - "remote_integration_test_temporary"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"

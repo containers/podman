@@ -62,6 +62,7 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run exit 50", func() {
+		Skip(v2remotefail)
 		result := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 50"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(50))

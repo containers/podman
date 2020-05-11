@@ -53,6 +53,7 @@ type PodmanTestIntegration struct {
 	Host                HostOS
 	Timings             []string
 	TmpDir              string
+	RemoteStartErr      error
 }
 
 var LockTmpDir string
@@ -259,12 +260,12 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		p.PodmanTest.RemotePodmanBinary = podmanRemoteBinary
 		uuid := stringid.GenerateNonCryptoID()
 		if !rootless.IsRootless() {
-			p.VarlinkEndpoint = fmt.Sprintf("unix:/run/podman/io.podman-%s", uuid)
+			p.RemoteSocket = fmt.Sprintf("unix:/run/podman/podman-%s.sock", uuid)
 		} else {
 			runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-			socket := fmt.Sprintf("io.podman-%s", uuid)
+			socket := fmt.Sprintf("podman-%s.sock", uuid)
 			fqpath := filepath.Join(runtimeDir, socket)
-			p.VarlinkEndpoint = fmt.Sprintf("unix:%s", fqpath)
+			p.RemoteSocket = fmt.Sprintf("unix:%s", fqpath)
 		}
 	}
 
@@ -441,7 +442,7 @@ func (p *PodmanTestIntegration) Cleanup() {
 	session := p.Podman([]string{"rm", "-fa"})
 	session.Wait(90)
 
-	p.StopVarlink()
+	p.StopRemoteService()
 	// Nuke tempdir
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)
@@ -449,17 +450,6 @@ func (p *PodmanTestIntegration) Cleanup() {
 
 	// Clean up the registries configuration file ENV variable set in Create
 	resetRegistriesConfigEnv()
-}
-
-// CleanupPod cleans up the temporary store
-func (p *PodmanTestIntegration) CleanupPod() {
-	// Remove all containers
-	session := p.Podman([]string{"pod", "rm", "-fa"})
-	session.Wait(90)
-	// Nuke tempdir
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		fmt.Printf("%q\n", err)
-	}
 }
 
 // CleanupVolume cleans up the temporary store

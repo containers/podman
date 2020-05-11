@@ -357,14 +357,14 @@ remotesystem:
 	# varlink server spews copious unhelpful output; ignore it.
 	rc=0;\
 	if timeout -v 1 true; then \
-		SOCK_FILE=$(shell mktemp --dry-run --tmpdir io.podman.XXXXXX);\
-		export PODMAN_VARLINK_ADDRESS=unix:$$SOCK_FILE; \
-		./bin/podman varlink --timeout=0 $$PODMAN_VARLINK_ADDRESS &> $(if $(VARLINK_LOG),$(VARLINK_LOG),/dev/null) & \
+		SOCK_FILE=$(shell mktemp --dry-run --tmpdir podman.XXXXXX);\
+		export PODMAN_SOCKEY=unix:$$SOCK_FILE; \
+		./bin/podman system service --timeout=0 $$PODMAN_VARLINK_ADDRESS &> $(if $(VARLINK_LOG),$(VARLINK_LOG),/dev/null) & \
 		retry=5;\
 		while [[ $$retry -ge 0 ]]; do\
-			echo Waiting for varlink server...;\
+			echo Waiting for server...;\
 			sleep 1;\
-			./bin/podman-remote info &>/dev/null && break;\
+			./bin/podman-remote --remote $(SOCK_FILE) info &>/dev/null && break;\
 			retry=$$(expr $$retry - 1);\
 		done;\
 		env PODMAN=./bin/podman-remote bats test/system/ ;\

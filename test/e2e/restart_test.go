@@ -122,6 +122,7 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("Podman restart the latest container", func() {
+		SkipIfRemote()
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 

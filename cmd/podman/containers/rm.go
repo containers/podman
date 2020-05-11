@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
@@ -120,10 +121,12 @@ func rm(cmd *cobra.Command, args []string) error {
 
 func setExitCode(err error) {
 	cause := errors.Cause(err)
-	switch cause {
-	case define.ErrNoSuchCtr:
+	switch {
+	case cause == define.ErrNoSuchCtr:
 		registry.SetExitCode(1)
-	case define.ErrCtrStateInvalid:
+	case strings.Contains(cause.Error(), define.ErrNoSuchImage.Error()):
+		registry.SetExitCode(1)
+	case cause == define.ErrCtrStateInvalid:
 		registry.SetExitCode(2)
 	}
 }

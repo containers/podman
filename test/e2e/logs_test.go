@@ -19,6 +19,7 @@ var _ = Describe("Podman logs", func() {
 	)
 
 	BeforeEach(func() {
+		Skip(v2remotefail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

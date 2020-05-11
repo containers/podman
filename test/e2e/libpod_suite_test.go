@@ -127,8 +127,8 @@ func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
 	return nil
 }
 
-func (p *PodmanTestIntegration) StopVarlink()     {}
-func (p *PodmanTestIntegration) DelayForVarlink() {}
+func (p *PodmanTestIntegration) StopRemoteService() {}
+func (p *PodmanTestIntegration) DelayForVarlink()   {}
 
 func populateCache(podman *PodmanTestIntegration) {
 	for _, image := range CACHE_IMAGES {
@@ -151,5 +151,5 @@ func (p *PodmanTestIntegration) SeedImages() error {
 }
 
 // We don't support running Varlink when local
-func (p *PodmanTestIntegration) StartVarlink() {
+func (p *PodmanTestIntegration) StartRemoteService() {
 }

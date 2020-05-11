@@ -39,9 +39,9 @@ type PodmanTest struct {
 	TempDir            string
 	RemoteTest         bool
 	RemotePodmanBinary string
-	VarlinkSession     *os.Process
-	VarlinkEndpoint    string
-	VarlinkCommand     *exec.Cmd
+	RemoteSession      *os.Process
+	RemoteSocket       string
+	RemoteCommand      *exec.Cmd
 	ImageCacheDir      string
 	ImageCacheFS       string
 }
@@ -71,9 +71,10 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
-		env = append(env, fmt.Sprintf("PODMAN_VARLINK_ADDRESS=%s", p.VarlinkEndpoint))
 	}
-
+	if p.RemoteTest {
+		podmanOptions = append([]string{"--remote", p.RemoteSocket}, podmanOptions...)
+	}
 	if env == nil {
 		fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(podmanOptions, " "))
 	} else {

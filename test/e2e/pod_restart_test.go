@@ -26,7 +26,7 @@ var _ = Describe("Podman pod restart", func() {
 	})
 
 	AfterEach(func() {
-		podmanTest.CleanupPod()
+		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
 
@@ -134,6 +134,7 @@ var _ = Describe("Podman pod restart", func() {
 	})
 
 	It("podman pod restart latest pod", func() {
+		SkipIfRemote()
 		_, ec, _ := podmanTest.CreatePod("foobar99")
 		Expect(ec).To(Equal(0))
 

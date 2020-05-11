@@ -184,6 +184,7 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop latest containers", func() {
+		SkipIfRemote()
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -197,6 +198,7 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop all containers with one stopped", func() {
+		Skip(v2remotefail)
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -216,6 +218,7 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop all containers with one created", func() {
+		Skip(v2remotefail)
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

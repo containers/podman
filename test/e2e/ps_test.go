@@ -101,6 +101,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps latest flag", func() {
+		SkipIfRemote()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 
