@@ -3,6 +3,10 @@ package network
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"io"
+	"os"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -24,12 +28,18 @@ var (
 	}
 )
 
+var (
+	networkInspectOptions entities.NetworkInspectOptions
+)
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: networkinspectCommand,
 		Parent:  networkCmd,
 	})
+	flags := networkinspectCommand.Flags()
+	flags.StringVarP(&networkInspectOptions.Format, "format", "f", "", "Pretty-print network to JSON or using a Go template")
 }
 
 func networkInspect(cmd *cobra.Command, args []string) error {
@@ -41,6 +51,22 @@ func networkInspect(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(b))
+	if strings.ToLower(networkInspectOptions.Format) == "json" || networkInspectOptions.Format == "" {
+		fmt.Println(string(b))
+	} else {
+		var w io.Writer = os.Stdout
+		//There can be more than 1 in the inspect output.
+		format := "{{range . }}" + networkInspectOptions.Format + "{{end}}"
+		tmpl, err := template.New("inspectNetworks").Parse(format)
+		if err != nil {
+			return err
+		}
+		if err := tmpl.Execute(w, responses); err != nil {
+			return err
+		}
+		if flusher, ok := w.(interface{ Flush() error }); ok {
+			return flusher.Flush()
+		}
+	}
 	return nil
 }
