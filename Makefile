@@ -74,7 +74,7 @@ LDFLAGS_PODMAN ?= \
 	  -X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
 	  -X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	  -X $(LIBPOD)/config._etcDir=$(ETCDIR) \
-	  -extldflags "$(LDFLAGS)"
+	  $(EXTRA_LDFLAGS)
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := v2.3.3
 # Rarely if ever should integration tests take more than 50min,
@@ -216,6 +216,30 @@ bin/podman.cross.%: .gopathok
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
+
+# Update nix/nixpkgs.json its latest master commit
+.PHONY: nixpkgs
+nixpkgs:
+	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -c nix-prefetch-git \
+		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
+
+NIX_IMAGE ?= quay.io/podman/nix-podman:1.0.0
+
+# Build the nix image as base for static builds
+.PHONY: nix-image
+nix-image:
+	$(CONTAINER_RUNTIME) build -t $(NIX_IMAGE) -f Containerfile-nix .
+
+# Build podman statically linked based on the default nix container image
+.PHONY: build-static
+build-static:
+	$(CONTAINER_RUNTIME) run \
+		--rm -it \
+		-v $(shell pwd):/work \
+		-w /work $(NIX_IMAGE) \
+		sh -c "nix build -f nix && \
+			   mkdir -p bin && \
+			   cp result-*bin/bin/podman bin/podman-static"
 
 .PHONY: run-docker-py-tests
 run-docker-py-tests:

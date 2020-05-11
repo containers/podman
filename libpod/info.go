@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/linkmode"
 	"github.com/containers/libpod/pkg/cgroups"
 	registries2 "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
@@ -86,6 +87,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	info := define.HostInfo{
 		Arch:           runtime.GOARCH,
 		BuildahVersion: buildah.Version,
+		Linkmode:       linkmode.Linkmode(),
 		CPUs:           runtime.NumCPU(),
 		Distribution:   hostDistributionInfo,
 		EventLogger:    r.eventer.String(),

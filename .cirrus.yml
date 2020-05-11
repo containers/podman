@@ -820,6 +820,7 @@ success_task:
         - "test_build_cache_images"
         - "verify_test_built_images"
         - "docs"
+        - "static_build"
         # FIXME remove when all v2 tests pass
         - "integration_test_temporary"
 
@@ -835,3 +836,18 @@ success_task:
         memory: 1
 
     success_script: '/usr/local/bin/entrypoint.sh ./$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
+
+static_build_task:
+    container:
+        image: quay.io/podman/nix-podman:1.0.0
+        cpu: 8
+        memory: 12
+    timeout_in: 20m
+    depends_on:
+        - "gating"
+    build_script:
+        - nix build -f nix
+    binaries_artifacts:
+        path: "result-bin/bin/podman"
+    on_failure:
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
