@@ -190,3 +190,21 @@ type swagVersion struct {
 		entities.SystemVersionReport
 	}
 }
+
+// Disk usage
+// swagger:response SystemDiskUse
+type swagDiskUseResponse struct {
+	// in:body
+	Body struct {
+		entities.SystemDfReport
+	}
+}
+
+// Prune report
+// swagger:response SystemPruneReport
+type swagSystemPruneReport struct {
+	// in:body
+	Body struct {
+		entities.SystemPruneReport
+	}
+}

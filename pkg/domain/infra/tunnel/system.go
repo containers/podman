@@ -33,7 +33,7 @@ func (ic *SystemEngine) Reset(ctx context.Context) error {
 }
 
 func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
-	panic(errors.New("system df is not supported on remote clients"))
+	return system.DiskUsage(ic.ClientCxt)
 }
 
 func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
