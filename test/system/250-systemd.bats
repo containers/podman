@@ -6,44 +6,65 @@
 load helpers
 
 SERVICE_NAME="podman_test_$(random_string)"
+
+SYSTEMCTL="systemctl"
 UNIT_DIR="/usr/lib/systemd/system"
+if is_rootless; then
+    UNIT_DIR="$HOME/.config/systemd/user"
+    mkdir -p $UNIT_DIR
+
+    SYSTEMCTL="$SYSTEMCTL --user"
+fi
 UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"
 
 function setup() {
     skip_if_remote
-    skip_if_rootless "systemd tests are root-only for now"
 
     basic_setup
 }
 
 function teardown() {
+    run '?' $SYSTEMCTL stop "$SERVICE_NAME"
     rm -f "$UNIT_FILE"
-    systemctl daemon-reload
+    $SYSTEMCTL daemon-reload
     basic_teardown
 }
 
+# This test can fail in dev. environment because of SELinux.
+# quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman generate - systemd - basic" {
-    run_podman create --name keepme --detach busybox:latest top
+    cname=$(random_string)
+    run_podman create --name $cname --detach $IMAGE top
 
-    run_podman generate systemd --new keepme > "$UNIT_FILE"
-    run_podman rm keepme
+    run_podman generate systemd --new $cname
+    echo "$output" > "$UNIT_FILE"
+    run_podman rm $cname
 
-    systemctl daemon-reload
+    $SYSTEMCTL daemon-reload
 
-    run systemctl start "$SERVICE_NAME"
+    run $SYSTEMCTL start "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error starting systemd unit $SERVICE_NAME, output: $output"
     fi
 
-    run systemctl status "$SERVICE_NAME"
+    run $SYSTEMCTL status "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Non-zero status of systemd unit $SERVICE_NAME, output: $output"
     fi
 
-    run systemctl stop "$SERVICE_NAME"
+    # Give container time to start; make sure output looks top-like
+    sleep 2
+    run_podman logs $cname
+    is "$output" ".*Load average:.*" "running container 'top'-like output"
+
+    # All good. Stop service, clean up.
+    run $SYSTEMCTL stop "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error stopping systemd unit $SERVICE_NAME, output: $output"
     fi
+
+    rm -f "$UNIT_FILE"
+    $SYSTEMCTL daemon-reload
 }
 
 # vim: filetype=sh

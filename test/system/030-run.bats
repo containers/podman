@@ -161,17 +161,31 @@ echo $rand        |   0 | $rand
 # 'run --conmon-pidfile --cid-file' makes sure we don't regress on these flags.
 # Both are critical for systemd units.
 @test "podman run --conmon-pidfile --cidfile" {
-    pid=$(mktemp)
-    cid=$(mktemp)
+    pidfile=${PODMAN_TMPDIR}/pidfile
+    cidfile=${PODMAN_TMPDIR}/cidfile
 
-    # CID file exists -> expected to fail.
-    run_podman 125 run --rm --conmon-pidfile=$pid --cidfile=$cid $IMAGE ls
+    cname=$(random_string)
+    run_podman run --name $cname \
+               --conmon-pidfile=$pidfile \
+               --cidfile=$cidfile \
+               --detach \
+               $IMAGE sleep infinity
+    cid="$output"
 
-    rm $pid $cid
-    run_podman run --name keepme --conmon-pidfile=$pid --cidfile=$cid --detach $IMAGE sleep infinity
-    stat $pid $cid
-    run_podman rm -f keepme
-    rm $pid $cid
+    is "$(< $cidfile)" "$cid" "contents of cidfile == container ID"
+
+    conmon_pid=$(< $pidfile)
+    is "$(readlink /proc/$conmon_pid/exe)" ".*/conmon"  \
+       "conmon pidfile (= PID $conmon_pid) points to conmon process"
+
+    # All OK. Kill container.
+    run_podman rm -f $cid
+
+    # Podman must not overwrite existing cid file.
+    # (overwriting conmon-pidfile is OK, so don't test that)
+    run_podman 125 run --cidfile=$cidfile $IMAGE true
+    is "$output" "Error: container id file exists. .* delete $cidfile" \
+       "podman will not overwrite existing cidfile"
 }
 
 # vim: filetype=sh
