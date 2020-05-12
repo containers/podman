@@ -23,6 +23,10 @@ import (
 // container labels.
 const Label = "io.containers.autoupdate"
 
+// Label denotes the container label key to specify authfile in
+// container labels.
+const AuthfileLabel = "io.containers.autoupdate.authfile"
+
 // Policy represents an auto-update policy.
 type Policy string
 
@@ -143,6 +147,11 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 			rawImageName := ctr.RawImageName()
 			if rawImageName == "" {
 				errs = append(errs, errors.Errorf("error auto-updating container %q: raw-image name is empty", ctr.ID()))
+			}
+			labels := ctr.Labels()
+			authFilePath, exists := labels[AuthfileLabel]
+			if exists {
+				options.Authfile = authFilePath
 			}
 			needsUpdate, err := newerImageAvailable(runtime, image, rawImageName, options)
 			if err != nil {
