@@ -702,6 +702,27 @@ __podman_images() {
 	__podman_q images $images_args | awk "$awk_script" | grep -v '<none>$'
 }
 
+_podman_auto_update() {
+  local options_with_args="
+      --authfile
+  "
+
+  local boolean_options="
+    --help
+    -h
+  "
+
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_volume_names
+            ;;
+    esac
+}
+
 # __podman_complete_volumes applies completion of volumes based on the current
 # value of `$cur` or the value of the optional first option `--cur`, if given.
 __podman_complete_volumes() {

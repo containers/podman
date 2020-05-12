@@ -63,6 +63,12 @@ func LookupPolicy(s string) (Policy, error) {
 	return "", errors.Errorf("invalid auto-update policy %q: valid policies are %+q", s, keys)
 }
 
+// Options include parameters for auto updates.
+type Options struct {
+	// Authfile to use when contacting registries.
+	Authfile string
+}
+
 // ValidateImageReference checks if the specified imageName is a fully-qualified
 // image reference to the docker transport (without digest).  Such a reference
 // includes a domain, name and tag (e.g., quay.io/podman/stable:latest).  The
@@ -96,7 +102,7 @@ func ValidateImageReference(imageName string) error {
 //
 // It returns a slice of successfully restarted systemd units and a slice of
 // errors encountered during auto update.
-func AutoUpdate(runtime *libpod.Runtime) ([]string, []error) {
+func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 	// Create a map from `image ID -> []*Container`.
 	containerMap, errs := imageContainersMap(runtime)
 	if len(containerMap) == 0 {
@@ -138,7 +144,7 @@ func AutoUpdate(runtime *libpod.Runtime) ([]string, []error) {
 			if rawImageName == "" {
 				errs = append(errs, errors.Errorf("error auto-updating container %q: raw-image name is empty", ctr.ID()))
 			}
-			needsUpdate, err := newerImageAvailable(runtime, image, rawImageName)
+			needsUpdate, err := newerImageAvailable(runtime, image, rawImageName, options)
 			if err != nil {
 				errs = append(errs, errors.Wrapf(err, "error auto-updating container %q: image check for %q failed", ctr.ID(), rawImageName))
 				continue
@@ -148,7 +154,7 @@ func AutoUpdate(runtime *libpod.Runtime) ([]string, []error) {
 			}
 			logrus.Infof("Auto-updating container %q using image %q", ctr.ID(), rawImageName)
 			if _, updated := updatedRawImages[rawImageName]; !updated {
-				_, err = updateImage(runtime, rawImageName)
+				_, err = updateImage(runtime, rawImageName, options)
 				if err != nil {
 					errs = append(errs, errors.Wrapf(err, "error auto-updating container %q: image update for %q failed", ctr.ID(), rawImageName))
 					continue
@@ -230,13 +236,15 @@ func imageContainersMap(runtime *libpod.Runtime) (map[string][]*libpod.Container
 
 // newerImageAvailable returns true if there corresponding image on the remote
 // registry is newer.
-func newerImageAvailable(runtime *libpod.Runtime, img *image.Image, origName string) (bool, error) {
+func newerImageAvailable(runtime *libpod.Runtime, img *image.Image, origName string, options Options) (bool, error) {
 	remoteRef, err := docker.ParseReference("//" + origName)
 	if err != nil {
 		return false, err
 	}
 
-	remoteImg, err := remoteRef.NewImage(context.Background(), runtime.SystemContext())
+	sys := runtime.SystemContext()
+	sys.AuthFilePath = options.Authfile
+	remoteImg, err := remoteRef.NewImage(context.Background(), sys)
 	if err != nil {
 		return false, err
 	}
@@ -255,25 +263,22 @@ func newerImageAvailable(runtime *libpod.Runtime, img *image.Image, origName str
 }
 
 // updateImage pulls the specified image.
-func updateImage(runtime *libpod.Runtime, name string) (*image.Image, error) {
+func updateImage(runtime *libpod.Runtime, name string, options Options) (*image.Image, error) {
 	sys := runtime.SystemContext()
 	registryOpts := image.DockerRegistryOptions{}
 	signaturePolicyPath := ""
-	authFilePath := ""
 
 	if sys != nil {
 		registryOpts.OSChoice = sys.OSChoice
 		registryOpts.ArchitectureChoice = sys.OSChoice
 		registryOpts.DockerCertPath = sys.DockerCertPath
-
 		signaturePolicyPath = sys.SignaturePolicyPath
-		authFilePath = sys.AuthFilePath
 	}
 
 	newImage, err := runtime.ImageRuntime().New(context.Background(),
 		docker.Transport.Name()+"://"+name,
 		signaturePolicyPath,
-		authFilePath,
+		options.Authfile,
 		os.Stderr,
 		&registryOpts,
 		image.SigningOptions{},
