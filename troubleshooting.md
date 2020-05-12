@@ -424,9 +424,9 @@ Choose one of the following:
     * Install the fuse-overlayfs package for your Linux Distribution.
     * Add `mount_program = "/usr/bin/fuse-overlayfs"` under `[storage.options]` in your `~/.config/containers/storage.conf` file.
 
-### 17) rhel7-init based images don't work with cgroups v2
+### 17) RHEL 7-based images don't work with cgroups v2
 
-The systemd version shipped in rhel7-init doesn't have support for cgroups v2.  You'll need at least systemd 230.
+The systemd version shipped in RHEL 7 and CentOS 7 doesn't have support for cgroups v2.  You'll need at least systemd 230 inside the RHEL 7-based container image.
 
 #### Symptom
 ```console
@@ -436,6 +436,8 @@ c8567461948439bce72fad3076a91ececfb7b14d469bfa5fbc32c6403185beff
 Failed to get D-Bus connection: Operation not permitted
 Error: non zero exit code: 1: OCI runtime error
 ```
+
+This means that you cannot run systemd inside a CentOS 7 or RHEL 7 container if your host uses cgroups v2. Fedora uses cgroups v2 by default. RHEL 8 defaults to cgroups v1 and supports cgroups v2 with a kernel boot option.
 
 #### Solution
 You'll need to either:
