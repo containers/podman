@@ -21,10 +21,11 @@ func NewNcList(name, version string) NcList {
 // NewHostLocalBridge creates a new LocalBridge for host-local
 func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, ipamConf IPAMHostLocalConf) *HostLocalBridge {
 	hostLocalBridge := HostLocalBridge{
-		PluginType: "bridge",
-		BrName:     name,
-		IPMasq:     ipMasq,
-		IPAM:       ipamConf,
+		PluginType:  "bridge",
+		BrName:      name,
+		IPMasq:      ipMasq,
+		HairpinMode: true,
+		IPAM:        ipamConf,
 	}
 	if isGateWay {
 		hostLocalBridge.IsGW = true
