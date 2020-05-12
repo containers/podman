@@ -26,10 +26,8 @@ var (
 		Long:  systemResetDescription,
 		Run:   reset,
 	}
-)
 
-var (
-	systemResetOptions entities.SystemResetOptions
+	forceFlag bool
 )
 
 func init() {
@@ -39,12 +37,12 @@ func init() {
 		Parent:  systemCmd,
 	})
 	flags := systemResetCommand.Flags()
-	flags.BoolVarP(&systemResetOptions.Force, "force", "f", false, "Do not prompt for confirmation")
+	flags.BoolVarP(&forceFlag, "force", "f", false, "Do not prompt for confirmation")
 }
 
 func reset(cmd *cobra.Command, args []string) {
 	// Prompt for confirmation if --force is not set
-	if !systemResetOptions.Force {
+	if !forceFlag {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print(`
 WARNING! This will remove:
@@ -74,7 +72,7 @@ Are you sure you want to continue? [y/N] `)
 	}
 	defer engine.Shutdown(registry.Context())
 
-	if err := engine.Reset(registry.Context(), systemResetOptions); err != nil {
+	if err := engine.Reset(registry.Context()); err != nil {
 		fmt.Println(err)
 		os.Exit(125)
 	}

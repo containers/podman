@@ -27,6 +27,11 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 	return system.Prune(ic.ClientCxt, &options.All, &options.Volume)
 }
 
+// Reset removes all storage
+func (ic *SystemEngine) Reset(ctx context.Context) error {
+	return system.Reset(ic.ClientCxt)
+}
+
 func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
 	panic(errors.New("system df is not supported on remote clients"))
 }

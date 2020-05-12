@@ -27,6 +27,19 @@ func (s *APIServer) registerSystemHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/system/prune"), s.APIHandler(libpod.SystemPrune)).Methods(http.MethodPost)
-
+	// swagger:operation POST /libpod/system/reset libpod resetSystem
+	// ---
+	// tags:
+	//   - system
+	// summary: Reset podman storage
+	// description: All containers will be stopped and removed, and all images, volumes and container content will be removed.
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.Handle(VersionedPath("/libpod/system/reset"), s.APIHandler(libpod.SystemReset)).Methods(http.MethodPost)
 	return nil
 }

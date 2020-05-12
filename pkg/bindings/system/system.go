@@ -121,3 +121,16 @@ func Version(ctx context.Context) (*entities.SystemVersionReport, error) {
 	}
 	return &report, err
 }
+
+// Reset removes all unused system data.
+func Reset(ctx context.Context) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	response, err := conn.DoRequest(nil, http.MethodPost, "/system/reset", nil)
+	if err != nil {
+		return err
+	}
+	return response.Process(response)
+}
