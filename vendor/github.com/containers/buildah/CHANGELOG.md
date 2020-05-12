@@ -2,6 +2,9 @@
 
 # Changelog
 
+## v1.14.9 (2020-05-11)
+    Bump github.com/containers/common to 0.8.4
+
 ## v1.14.8 (2020-04-09)
     Run (make vendor)
     Run (make -C tests/tools vendor)
