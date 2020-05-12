@@ -19,7 +19,6 @@ var _ = Describe("Podman run networking", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootlessV2()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -193,6 +192,8 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network expose duplicate host port results in error", func() {
+		SkipIfRootless()
+
 		session := podmanTest.Podman([]string{"run", "-dt", "-p", "80", ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -202,7 +203,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspect.ExitCode()).To(Equal(0))
 
 		containerConfig := inspect.InspectContainerToJSON()
-		Expect(containerConfig[0].NetworkSettings.Ports[0].HostPort).ToNot(Equal("80"))
+		Expect(containerConfig[0].NetworkSettings.Ports[0].HostPort).ToNot(Equal(80))
 	})
 
 	It("podman run hostname test", func() {
