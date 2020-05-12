@@ -105,6 +105,32 @@ var _ = Describe("Podman network", func() {
 		Expect(session.LineInOutputContains("podman-integrationtest")).To(BeTrue())
 	})
 
+	It("podman network list --filter success", func() {
+		// Setup, use uuid to prevent conflict with other tests
+		uuid := stringid.GenerateNonCryptoID()
+		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		writeConf([]byte(secondConf), secondPath)
+		defer removeConf(secondPath)
+
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=bridge"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("podman-integrationtest")).To(BeTrue())
+	})
+
+	It("podman network list --filter failure", func() {
+		// Setup, use uuid to prevent conflict with other tests
+		uuid := stringid.GenerateNonCryptoID()
+		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		writeConf([]byte(secondConf), secondPath)
+		defer removeConf(secondPath)
+
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("podman-integrationtest")).To(BeFalse())
+	})
+
 	It("podman network rm no args", func() {
 		session := podmanTest.Podman([]string{"network", "rm"})
 		session.WaitWithDefaultTimeout()
@@ -150,6 +176,19 @@ var _ = Describe("Podman network", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
+	It("podman network inspect", func() {
+		// Setup, use uuid to prevent conflict with other tests
+		uuid := stringid.GenerateNonCryptoID()
+		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		writeConf([]byte(secondConf), secondPath)
+		defer removeConf(secondPath)
+
+		session := podmanTest.Podman([]string{"network", "inspect", "podman-integrationtest", "--format", "{{.cniVersion}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("0.3.0")).To(BeTrue())
 	})
 
 	It("podman inspect container single CNI network", func() {
