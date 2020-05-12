@@ -219,8 +219,15 @@ the system.
 
 #### Solution
 
-SELinux provides a boolean `container_manage_cgroup`, which allows container
-processes to write to the cgroup file system. Turn on this boolean, on SELinux separated systems, to allow systemd to run properly in the container.
+Newer versions of Podman (2.0 or greater) support running init based containers
+with a different SELinux labels, which allow the container process access to the
+cgroup file system. This feature requires container-selinux-2.132 or newer
+versions.
+
+Prior to Podman 2.0, the SELinux boolean `container_manage_cgroup` allows
+container processes to write to the cgroup file system. Turn on this boolean,
+on SELinux separated systems, to allow systemd to run properly in the container.
+Only do this on systems running older versions of Podman.
 
 `setsebool -P container_manage_cgroup true`
 
@@ -240,7 +247,7 @@ cannot find newuidmap: exec: "newuidmap": executable file not found in $PATH
 
 #### Solution
 
-Install a version of shadow-utils that includes these executables.  Note RHEL7 and Centos 7 will not have support for this until RHEL7.7 is released.
+Install a version of shadow-utils that includes these executables.  Note RHEL 7 and CentOS 7 will not have support for this until RHEL7.7 is released.
 
 ### 11) rootless setup user: invalid argument
 
@@ -424,9 +431,10 @@ Choose one of the following:
     * Install the fuse-overlayfs package for your Linux Distribution.
     * Add `mount_program = "/usr/bin/fuse-overlayfs"` under `[storage.options]` in your `~/.config/containers/storage.conf` file.
 
-### 17) rhel7-init based images don't work with cgroups v2
+### 17) RHEL 7 and CentOS 7 based `init` images don't work with cgroup v2
 
-The systemd version shipped in rhel7-init doesn't have support for cgroups v2.  You'll need at least systemd 230.
+The systemd version shipped in RHEL 7 and CentOS 7 doesn't have support for cgroup v2.  Support for cgroup V2 requires version 230 of systemd or newer, which
+was never shipped or supported on RHEL 7 or CentOS 7.
 
 #### Symptom
 ```console
@@ -440,7 +448,15 @@ Error: non zero exit code: 1: OCI runtime error
 #### Solution
 You'll need to either:
 
-* configure the host to use cgroups v1
+* configure the host to use cgroup v1
+
+```
+On Fedora you can do:
+# dnf install -y grubby
+# grubby --update-kernel=ALL --args=”systemd.unified_cgroup_hierarchy=0"
+# reboot
+```
+
 * update the image to use an updated version of systemd.
 
 ### 18) rootless containers exit once the user session exits
@@ -483,7 +499,7 @@ Unable to pull images
 
 ```console
 $ podman unshare cat /proc/self/uid_map
-         0       1000          1
+	 0       1000          1
 ```
 
 #### Solution
@@ -496,8 +512,8 @@ Original command now returns
 
 ```
 $ podman unshare cat /proc/self/uid_map
-         0       1000          1
-         1     100000      65536
+	 0       1000          1
+	 1     100000      65536
 ```
 
 Reference [subuid](http://man7.org/linux/man-pages/man5/subuid.5.html) and [subgid](http://man7.org/linux/man-pages/man5/subgid.5.html) man pages for more detail.
