@@ -517,6 +517,10 @@ func (c *CgroupControl) AddPid(pid int) error {
 	}
 
 	for _, n := range names {
+		// If we aren't using cgroup2, we won't write correctly to unified hierarchy
+		if !c.cgroup2 && n == "unified" {
+			continue
+		}
 		p := filepath.Join(c.getCgroupv1Path(n), "tasks")
 		if err := ioutil.WriteFile(p, pidString, 0644); err != nil {
 			return errors.Wrapf(err, "write %s", p)
