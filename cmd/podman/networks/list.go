@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
 	"os"
 	"strings"
-
-	"github.com/containers/libpod/cmd/podman/validate"
+	"text/tabwriter"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/network"
 	"github.com/spf13/cobra"
@@ -47,7 +46,7 @@ func networkListFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: networklistCommand,
 		Parent:  networkCmd,
 	})
@@ -57,7 +56,6 @@ func init() {
 
 func networkList(cmd *cobra.Command, args []string) error {
 	var (
-		w     io.Writer = os.Stdout
 		nlprs []NetworkListPrintReports
 	)
 
@@ -95,13 +93,11 @@ func networkList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	if err := tmpl.Execute(w, nlprs); err != nil {
 		return err
 	}
-	if flusher, ok := w.(interface{ Flush() error }); ok {
-		return flusher.Flush()
-	}
-	return nil
+	return w.Flush()
 }
 
 func quietOut(responses []*entities.NetworkListReport) error {

@@ -5,9 +5,11 @@ tags:
       description: Actions related to exec
     - name: images
       description: Actions related to images
-    - name: pods
-      description: Actions related to manifests
     - name: manifests
+      description: Actions related to manifests
+    - name: networks
+      description: Actions related to networks
+    - name: pods
       description: Actions related to pods
     - name: volumes
       description: Actions related to volumes

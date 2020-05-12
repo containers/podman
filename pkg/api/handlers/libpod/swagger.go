@@ -91,6 +91,34 @@ type swagInfoResponse struct {
 	Body define.Info
 }
 
+// Network rm
+// swagger:response NetworkRmReport
+type swagNetworkRmReport struct {
+	// in:body
+	Body entities.NetworkRmReport
+}
+
+// Network inspect
+// swagger:response NetworkInspectReport
+type swagNetworkInspectReport struct {
+	// in:body
+	Body []entities.NetworkInspectReport
+}
+
+// Network list
+// swagger:response NetworkListReport
+type swagNetworkListReport struct {
+	// in:body
+	Body []entities.NetworkListReport
+}
+
+// Network create
+// swagger:response NetworkCreateReport
+type swagNetworkCreateReport struct {
+	// in:body
+	Body entities.NetworkCreateReport
+}
+
 func ServeSwagger(w http.ResponseWriter, r *http.Request) {
 	path := DefaultPodmanSwaggerSpec
 	if p, found := os.LookupEnv("PODMAN_SWAGGER_SPEC"); found {
