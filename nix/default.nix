@@ -43,7 +43,7 @@ let
       ]);
       src = ./..;
       EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static -lm"'';
-      BUILDTAGS = ''static apparmor selinux seccomp systemd varlink containers_image_ostree_stub'';
+      BUILDTAGS = ''static netgo apparmor selinux seccomp systemd varlink containers_image_ostree_stub'';
     })).override {
       gpgme = (static pkgs.gpgme);
       libseccomp = (static pkgs.libseccomp);
