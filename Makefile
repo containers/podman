@@ -527,11 +527,6 @@ install.man-nobuild:
 .PHONY: install.man
 install.man: docs install.man-nobuild
 
-.PHONY: install.config
-install.config:
-	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SHAREDIR_CONTAINERS)
-	install ${SELINUXOPT} -m 644 libpod.conf $(DESTDIR)$(SHAREDIR_CONTAINERS)/libpod.conf
-
 .PHONY: install.seccomp
 install.seccomp:
 	# TODO: we should really be using the upstream one from github.com/seccomp
