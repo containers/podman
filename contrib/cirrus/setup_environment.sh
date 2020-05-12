@@ -76,12 +76,6 @@ case "$CG_FS_TYPE" in
         X=$(echo "export OCI_RUNTIME=/usr/bin/crun" | \
             tee -a /etc/environment) && eval "$X" && echo "$X"
 
-        if [[ "$MOD_LIBPOD_CONF" == "true" ]]; then
-            warn "Updating runtime setting in repo. copy of libpod.conf"
-            sed -i -r -e 's/^runtime = "runc"/runtime = "crun"/' $GOSRC/libpod.conf
-            git diff $GOSRC/libpod.conf
-        fi
-
         if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
             warn "Upgrading to the latest crun"
             # Normally not something to do for stable testing

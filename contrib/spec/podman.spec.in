@@ -423,10 +423,6 @@ PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{build
 
 mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
-# install libpod.conf
-install -dp %{buildroot}%{_datadir}/containers
-install -p -m 644 %{repo}.conf %{buildroot}%{_datadir}/containers
-
 # install conmon
 install -dp %{buildroot}%{_libexecdir}/%{name}
 install -p -m 755 conmon/bin/conmon %{buildroot}%{_libexecdir}/%{name}

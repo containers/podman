@@ -50,7 +50,6 @@ case "$SPECIALMODE" in
     none)
         make
         make install PREFIX=/usr ETCDIR=/etc
-        make install.config PREFIX=/usr
         make test-binaries
         if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
         then

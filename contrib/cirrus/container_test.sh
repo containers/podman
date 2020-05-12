@@ -126,7 +126,6 @@ if [ $install -eq 1 ]; then
     make TAGS="${TAGS}" install.bin PREFIX=/usr ETCDIR=/etc
     make TAGS="${TAGS}" install.man PREFIX=/usr ETCDIR=/etc
     make TAGS="${TAGS}" install.cni PREFIX=/usr ETCDIR=/etc
-    make TAGS="${TAGS}" install.config PREFIX=/usr ETCDIR=/etc
     make TAGS="${TAGS}" install.systemd PREFIX=/usr ETCDIR=/etc
 fi
 
