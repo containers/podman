@@ -510,6 +510,8 @@ type InspectContainerHostConfig struct {
 	IOMaximumIOps uint64 `json:"IOMaximumIOps"`
 	// IOMaximumBandwidth is Windows-only and not presently implemented.
 	IOMaximumBandwidth uint64 `json:"IOMaximumBandwidth"`
+	//Authfile is path to used authfile
+	Authfile string `json:"AuthFile"`
 }
 
 // InspectBasicNetworkConfig holds basic configuration information (e.g. IP

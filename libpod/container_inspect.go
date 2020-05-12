@@ -378,6 +378,8 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.ShmSize = c.config.ShmSize
 	hostConfig.Runtime = "oci"
 
+	hostConfig.Authfile = c.config.Authfile
+
 	// This is very expensive to initialize.
 	// So we don't want to initialize it unless we absolutely have to - IE,
 	// there are things that require a major:minor to path translation.

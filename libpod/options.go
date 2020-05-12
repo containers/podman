@@ -1361,6 +1361,17 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 	}
 }
 
+// WithAuthfile adds the healthcheck to the container config
+func WithAuthfile(authfile string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.Authfile = authfile
+		return nil
+	}
+}
+
 // WithCreateCommand adds the full command plus arguments of the current
 // process to the container config.
 func WithCreateCommand() CtrCreateOption {

@@ -130,6 +130,8 @@ type ContainerBasicConfig struct {
 	// Remove indicates if the container should be removed once it has been started
 	// and exits
 	Remove bool `json:"remove"`
+	//Authfile is path to authfile to use
+	Authfile string `json:"authfile,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

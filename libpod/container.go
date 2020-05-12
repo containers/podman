@@ -414,6 +414,8 @@ type ContainerConfig struct {
 
 	// HealthCheckConfig has the health check command and related timings
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
+
+	Authfile string `json:"authfile"`
 }
 
 // ContainerNamedVolume is a named volume that will be mounted into the
