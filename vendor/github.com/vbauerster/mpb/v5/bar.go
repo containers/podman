@@ -69,6 +69,7 @@ type bState struct {
 	trimSpace         bool
 	toComplete        bool
 	completeFlushed   bool
+	ignoreComplete    bool
 	noPop             bool
 	aDecorators       []decor.Decorator
 	pDecorators       []decor.Decorator
@@ -170,17 +171,18 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 }
 
 // SetTotal sets total dynamically.
-// If total is less or equal to zero it takes progress' current value.
-// If complete is true, complete event will be triggered.
+// If total is less than or equal to zero it takes progress' current value.
+// A complete flag enables or disables complete event on `current >= total`.
 func (b *Bar) SetTotal(total int64, complete bool) {
 	select {
 	case b.operateState <- func(s *bState) {
+		s.ignoreComplete = !complete
 		if total <= 0 {
 			s.total = s.current
 		} else {
 			s.total = total
 		}
-		if complete && !s.toComplete {
+		if !s.ignoreComplete && !s.toComplete {
 			s.current = s.total
 			s.toComplete = true
 			go b.refreshTillShutdown()
@@ -197,7 +199,7 @@ func (b *Bar) SetCurrent(current int64) {
 		s.iterated = true
 		s.lastN = current - s.current
 		s.current = current
-		if s.total > 0 && s.current >= s.total {
+		if !s.ignoreComplete && s.current >= s.total {
 			s.current = s.total
 			s.toComplete = true
 			go b.refreshTillShutdown()
@@ -224,7 +226,7 @@ func (b *Bar) IncrInt64(n int64) {
 		s.iterated = true
 		s.lastN = n
 		s.current += n
-		if s.total > 0 && s.current >= s.total {
+		if !s.ignoreComplete && s.current >= s.total {
 			s.current = s.total
 			s.toComplete = true
 			go b.refreshTillShutdown()
