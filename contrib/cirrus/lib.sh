@@ -65,9 +65,9 @@ PACKER_VER="1.4.2"
 
 # Base-images rarely change, define them here so they're out of the way.
 export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-32,fedora-31}"
-# Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export UBUNTU_BASE_IMAGE="ubuntu-1910-eoan-v20200211"
-export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20200218"
+# Google cloud provides these, we just make copies (see $SCRIPT_BASE/README.md) for use
+export UBUNTU_BASE_IMAGE="ubuntu-2004-focal-v20200506"
+export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1910-eoan-v20200211"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
 export FEDORA_BASE_IMAGE="fedora-cloud-base-32-1-6-1588257430"
 export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1588257430"

@@ -26,12 +26,6 @@ source /usr/share/automation/environment
 
 $LILTO ooe.sh $SUDOAPTADD ppa:criu/ppa
 
-# Install newer version of golang
-if [[ "$OS_RELEASE_VER" -eq "18" ]]
-then
-    $LILTO ooe.sh $SUDOAPTADD ppa:longsleep/golang-backports
-fi
-
 echo "Configuring/Instaling deps from Open build server"
 VERSION_ID=$(source /etc/os-release; echo $VERSION_ID)
 echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_$VERSION_ID/ /" \
@@ -45,7 +39,9 @@ INSTALL_PACKAGES=(\
     autoconf
     automake
     bash-completion
+    bats
     bison
+    btrfs-progs
     build-essential
     buildah
     bzip2
@@ -60,6 +56,7 @@ INSTALL_PACKAGES=(\
     e2fslibs-dev
     emacs-nox
     file
+    fuse3
     gawk
     gcc
     gettext
@@ -71,11 +68,13 @@ INSTALL_PACKAGES=(\
     jq
     libaio-dev
     libapparmor-dev
+    libbtrfs-dev
     libcap-dev
     libdevmapper-dev
     libdevmapper1.02.1
     libfuse-dev
     libfuse2
+    libfuse3-dev
     libglib2.0-dev
     libgpgme11-dev
     liblzma-dev
@@ -122,27 +121,6 @@ INSTALL_PACKAGES=(\
     zip
     zlib1g-dev
 )
-
-if [[ $OS_RELEASE_VER -ge 19 ]]
-then
-    INSTALL_PACKAGES+=(\
-        bats
-        btrfs-progs
-        fuse3
-        libbtrfs-dev
-        libfuse3-dev
-    )
-else
-    echo "Downloading version of bats with fix for a \$IFS related bug in 'run' command"
-    cd /tmp
-    BATS_URL='http://launchpadlibrarian.net/438140887/bats_1.1.0+git104-g1c83a1b-1_all.deb'
-    curl -L -O "$BATS_URL"
-    cd -
-    INSTALL_PACKAGES+=(\
-        /tmp/$(basename $BATS_URL)
-        btrfs-tools
-    )
-fi
 
 # Do this at the last possible moment to avoid dpkg lock conflicts
 echo "Upgrading all packages"

@@ -36,10 +36,10 @@ env:
     ###
     FEDORA_NAME: "fedora-32"
     PRIOR_FEDORA_NAME: "fedora-31"
-    UBUNTU_NAME: "ubuntu-19"
-    PRIOR_UBUNTU_NAME: "ubuntu-18"
+    UBUNTU_NAME: "ubuntu-20"
+    PRIOR_UBUNTU_NAME: "ubuntu-19"
 
-    _BUILT_IMAGE_SUFFIX: "libpod-6224667180531712"  # From the packer output of 'build_vm_images_script'
+    _BUILT_IMAGE_SUFFIX: "FIXME"  # From the packer output of 'build_vm_images_script'
     FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
