@@ -21,11 +21,21 @@ Note that `podman auto-update` relies on systemd and requires a fully-qualified 
 This enforcement is necessary to know which image to actually check and pull.
 If an image ID was used, Podman would not know which image to check/pull anymore.
 
+## OPTIONS
+
+**--authfile**=*path*
+
+Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
+
 ## EXAMPLES
 
 ```
 # Start a container
-$ podman run -d busybox:latest top
+$ podman run --label "io.containers.autoupdate=image" -d busybox:latest top
 bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
 
 # Generate a systemd unit for this container
