@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
@@ -179,10 +180,13 @@ func getDefaultUserNS() string {
 
 func getDefaultPidsLimit() int64 {
 	if rootless.IsRootless() {
-		cgroup2, _ := cgroups.IsCgroup2UnifiedMode()
-		if cgroup2 {
-			return defaultContainerConfig.Containers.PidsLimit
+		if defaultContainerConfig.Engine.CgroupManager == config.SystemdCgroupsManager {
+			cgroup2, _ := cgroups.IsCgroup2UnifiedMode()
+			if cgroup2 {
+				return defaultContainerConfig.Containers.PidsLimit
+			}
 		}
+		return 0
 	}
 	return sysinfo.GetDefaultPidsLimit()
 }
