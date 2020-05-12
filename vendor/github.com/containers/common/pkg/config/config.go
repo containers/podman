@@ -19,12 +19,15 @@ import (
 )
 
 const (
+	// _configPath is the path to the containers/containers.conf
+	// inside a given config directory.
+	_configPath = "containers/containers.conf"
 	// DefaultContainersConfig holds the default containers config path
-	DefaultContainersConfig = "/usr/share/containers/containers.conf"
+	DefaultContainersConfig = "/usr/share/" + _configPath
 	// OverrideContainersConfig holds the default config paths overridden by the root user
-	OverrideContainersConfig = "/etc/containers/containers.conf"
+	OverrideContainersConfig = "/etc/" + _configPath
 	// UserOverrideContainersConfig holds the containers config path overridden by the rootless user
-	UserOverrideContainersConfig = ".config/containers/containers.conf"
+	UserOverrideContainersConfig = ".config/" + _configPath
 )
 
 // RuntimeStateStore is a constant indicating which state store implementation
@@ -827,7 +830,7 @@ func isDirectory(path string) error {
 
 func rootlessConfigPath() (string, error) {
 	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
-		return filepath.Join(configHome, UserOverrideContainersConfig), nil
+		return filepath.Join(configHome, _configPath), nil
 	}
 	home, err := unshare.HomeDir()
 	if err != nil {
