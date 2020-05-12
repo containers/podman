@@ -168,6 +168,9 @@ func createInit(c *cobra.Command) error {
 	if c.Flag("pid").Changed {
 		cliVals.PID = c.Flag("pid").Value.String()
 	}
+	if !c.Flag("pids-limit").Changed {
+		cliVals.PIDsLimit = -1
+	}
 	if c.Flag("cgroupns").Changed {
 		cliVals.CGroupsNS = c.Flag("cgroupns").Value.String()
 	}
