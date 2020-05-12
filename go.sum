@@ -105,8 +105,8 @@ github.com/coreos/go-systemd/v22 v22.0.0/go.mod h1:xO0FLkIi5MaZafQlIrOotqXZ90ih+
 github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/cpuguy83/go-md2man/v2 v2.0.0/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
-github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b h1:SgS+WV10y2Bubuy2HquSBori6DXj9sqRN77Hgs5H7Qc=
-github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b/go.mod h1:ZOuIEOp/3MB1eCBWANnNxM3zUA3NWh76wSRCsnKAg2c=
+github.com/cri-o/ocicni v0.2.0 h1:p0kO+/fcLTO574CcDwzAosFdP2U+NEL+a4wph3Bt85k=
+github.com/cri-o/ocicni v0.2.0/go.mod h1:ZOuIEOp/3MB1eCBWANnNxM3zUA3NWh76wSRCsnKAg2c=
 github.com/cyphar/filepath-securejoin v0.2.2 h1:jCwT2GTP+PY5nBz3c/YL5PAIbusElVrPujOBSCj8xRg=
 github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
 github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c/go.mod h1:Ct2BUK8SB0YC1SMSibvLzxjeJLnrYEVLULFNiHY9YfQ=
