@@ -78,14 +78,6 @@ case "$CG_FS_TYPE" in
         warn "Forcing testing with crun instead of runc"
         X=$(echo "export OCI_RUNTIME=/usr/bin/crun" | \
             tee -a /etc/environment) && eval "$X" && echo "$X"
-
-        if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
-            warn "Upgrading to the latest crun"
-            # Normally not something to do for stable testing
-            # but crun is new, and late-breaking fixes may be required
-            # on short notice
-            dnf update -y crun containers-common
-        fi
         ;;
     *)
         die 110 "Unsure how to handle cgroup filesystem type '$CG_FS_TYPE'"

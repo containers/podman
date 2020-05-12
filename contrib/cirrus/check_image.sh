@@ -6,7 +6,7 @@ source $(dirname $0)/lib.sh
 
 EVIL_UNITS="$($CIRRUS_WORKING_DIR/$PACKER_BASE/systemd_banish.sh --list)"
 
-req_env_var PACKER_BUILDER_NAME TEST_REMOTE_CLIENT EVIL_UNITS OS_RELEASE_ID
+req_env_var PACKER_BUILDER_NAME TEST_REMOTE_CLIENT EVIL_UNITS OS_RELEASE_ID CG_FS_TYPE
 
 NFAILS=0
 echo "Validating VM image"
@@ -22,7 +22,8 @@ item_test 'Minimum available memory' $MEM_FREE -ge $MIN_MEM_MB || let "NFAILS+=1
 
 # We're testing a custom-built podman; make sure there isn't a distro-provided
 # binary anywhere; that could potentially taint our results.
-item_test "remove_packaged_podman_files() did it's job" -z "$(type -P podman)" || let "NFAILS+=1"
+remove_packaged_podman_files
+item_test "remove_packaged_podman_files() does it's job" -z "$(type -P podman)" || let "NFAILS+=1"
 
 # Integration Tests require varlink in Fedora
 item_test "The varlink executable is present" -x "$(type -P varlink)" || let "NFAILS+=1"
@@ -39,8 +40,10 @@ for REQ_UNIT in google-accounts-daemon.service \
                 google-shutdown-scripts.service \
                 google-startup-scripts.service
 do
-    item_test "required $REQ_UNIT enabled" \
-        "$(systemctl list-unit-files --no-legend $REQ_UNIT)" = "$REQ_UNIT enabled" || let "NFAILS+=1"
+    # enabled/disabled appears at the end of the line, on some Ubuntu's it appears twice
+    service_status=$(systemctl list-unit-files --no-legend $REQ_UNIT | tac -s ' ' | head -1)
+    item_test "required $REQ_UNIT status is enabled" \
+        "$service_status" = "enabled" || let "NFAILS+=1"
 done
 
 for evil_unit in $EVIL_UNITS
@@ -50,19 +53,28 @@ do
     item_test "No $evil_unit unit is present or active:" "$unit_status" -ne "0" || let "NFAILS+=1"
 done
 
-if [[ "$OS_RELEASE_ID" == "ubuntu" ]] && [[ -x "/usr/lib/cri-o-runc/sbin/runc" ]]
-then
-    SAMESAME=$(diff --brief /usr/lib/cri-o-runc/sbin/runc /usr/bin/runc &> /dev/null; echo $?)
-    item_test "On ubuntu /usr/bin/runc is /usr/lib/cri-o-runc/sbin/runc" "$SAMESAME" -eq "0" || let "NFAILS+=1"
-fi
-
-if [[ "$OS_RELEASE_ID" == "ubuntu" ]]
-then
-    item_test "On ubuntu, no periodic apt crap is enabled" -z "$(egrep $PERIODIC_APT_RE /etc/apt/apt.conf.d/*)"
-fi
-
 echo "Checking items specific to ${PACKER_BUILDER_NAME}${BUILT_IMAGE_SUFFIX}"
 case "$PACKER_BUILDER_NAME" in
+    ubuntu*)
+        item_test "On ubuntu, no periodic apt crap is enabled" -z "$(egrep $PERIODIC_APT_RE /etc/apt/apt.conf.d/*)"
+        ;;
+    fedora*)
+        # Only runc -OR- crun should be installed, never both
+        case "$CG_FS_TYPE" in
+            tmpfs)
+                HAS=runc
+                HAS_NOT=crun
+                ;;
+            cgroup2fs)
+                HAS=crun
+                HAS_NOT=runc
+                ;;
+        esac
+        HAS_RC=$(rpm -qV $HAS &> /dev/null; echo $?)
+        HAS_NOT_RC=$(rpm -qV $HAS_NOT &> /dev/null; echo $?)
+        item_test "With a cgroups-fs type $CG_FS_TYPE, the $HAS package is installed" $HAS_RC -eq 0
+        item_test "With a cgroups-fs type $CG_FS_TYPE, the $HAS_NOT package is not installed" $HAS_NOT_RC -ne 0
+        ;;
     xfedora*)
         echo "Kernel Command-line: $(cat /proc/cmdline)"
         item_test \

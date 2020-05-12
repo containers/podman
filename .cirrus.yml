@@ -39,7 +39,7 @@ env:
     UBUNTU_NAME: "ubuntu-20"
     PRIOR_UBUNTU_NAME: "ubuntu-19"
 
-    _BUILT_IMAGE_SUFFIX: "libpod-6268069335007232"  # From the packer output of 'build_vm_images_script'
+    _BUILT_IMAGE_SUFFIX: "libpod-6508632441356288"
     FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
@@ -72,10 +72,6 @@ env:
     GCE_SSH_USERNAME: cirrus-ci
     # Name where this repositories cloud resources are located
     GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-    RELEASE_GCPJSON: ENCRYPTED[789d8f7e9a5972ce350fd8e60f1032ccbf4a35c3938b604774b711aad280e12c21faf10e25af1e0ba33597ffb9e39e46]
-    RELEASE_GCPNAME: ENCRYPTED[417d50488a4bd197bcc925ba6574de5823b97e68db1a17e3a5fde4bcf26576987345e75f8d9ea1c15a156b4612c072a1]
-    RELEASE_GCPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-
 
 
 # Default VM to use unless set or modified by task
@@ -601,6 +597,7 @@ special_testing_bindings_task:
 
     env:
         SPECIALMODE: 'bindings'  # See docs
+        ADD_SECOND_PARTITION: 'true'  # More root fs space is required
 
     timeout_in: 40m
 
@@ -701,20 +698,16 @@ verify_test_built_images_task:
               env:
                   TEST_REMOTE_CLIENT: 'false'
         matrix:
-            # Required env. var. by check_image_script
             PACKER_BUILDER_NAME: "${FEDORA_NAME}"
             PACKER_BUILDER_NAME: "${PRIOR_FEDORA_NAME}"
+            PACKER_BUILDER_NAME: "${UBUNTU_NAME}"
             PACKER_BUILDER_NAME: "${PRIOR_UBUNTU_NAME}"
-            # Multiple test failures on ${UBUNTU_CACHE_IMAGE_NAME}
-            # PACKER_BUILDER_NAME: "${UBUNTU_NAME}"
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     installed_packages_script: '$SCRIPT_BASE/logcollector.sh packages'
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    # Verify expectations once per image
-    check_image_script: >-
-        [[ "$TEST_REMOTE_CLIENT" == "false" ]] || \
-            $SCRIPT_BASE/check_image.sh |& ${TIMESTAMP}
+    # Verify expectations of built images
+    check_image_script: '$SCRIPT_BASE/check_image.sh |& ${TIMESTAMP}'
     # Note: A truncated form of normal testing. It only needs to confirm new images
     # "probably" work.  A full round of testing will happen again after $*_CACHE_IMAGE_NAME
     # are updated in this or another PR (w/o '***CIRRUS: TEST IMAGES***').
@@ -732,6 +725,10 @@ docs_task:
 
     depends_on:
         - "gating"
+    env:
+        RELEASE_GCPJSON: ENCRYPTED[789d8f7e9a5972ce350fd8e60f1032ccbf4a35c3938b604774b711aad280e12c21faf10e25af1e0ba33597ffb9e39e46]
+        RELEASE_GCPNAME: ENCRYPTED[417d50488a4bd197bcc925ba6574de5823b97e68db1a17e3a5fde4bcf26576987345e75f8d9ea1c15a156b4612c072a1]
+        RELEASE_GCPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
 
     script:
         - "$SCRIPT_BASE/build_swagger.sh |& ${TIMESTAMP}"

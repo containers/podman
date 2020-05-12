@@ -12,11 +12,11 @@ req_env_var SCRIPT_BASE PACKER_BASE INSTALL_AUTOMATION_VERSION PACKER_BUILDER_NA
 
 workaround_bfq_bug
 
-# Do not enable update-stesting on the previous Fedora release
-if [[ "$FEDORA_BASE_IMAGE" =~ "${OS_RELEASE_ID}-cloud-base-${OS_RELEASE_VER}" ]]; then
-    DISABLE_UPDATES_TESTING=0
-else
+# Do not enable updates-testing on the previous Fedora release
+if [[ "$PRIOR_FEDORA_BASE_IMAGE" =~ "${OS_RELEASE_ID}-cloud-base-${OS_RELEASE_VER}" ]]; then
     DISABLE_UPDATES_TESTING=1
+else
+    DISABLE_UPDATES_TESTING=0
 fi
 
 bash $PACKER_BASE/fedora_packaging.sh
