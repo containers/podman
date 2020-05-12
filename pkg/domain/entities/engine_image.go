@@ -34,4 +34,5 @@ type ImageEngine interface {
 	ManifestAnnotate(ctx context.Context, names []string, opts ManifestAnnotateOptions) (string, error)
 	ManifestRemove(ctx context.Context, names []string) (string, error)
 	ManifestPush(ctx context.Context, names []string, manifestPushOpts ManifestPushOptions) error
+	Sign(ctx context.Context, names []string, options SignOptions) (*SignReport, error)
 }

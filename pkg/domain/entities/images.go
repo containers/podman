@@ -309,3 +309,13 @@ type SetTrustOptions struct {
 	PubKeysFile []string
 	Type        string
 }
+
+// SignOptions describes input options for the CLI signing
+type SignOptions struct {
+	Directory string
+	SignBy    string
+	CertDir   string
+}
+
+// SignReport describes the result of signing
+type SignReport struct{}
