@@ -57,7 +57,7 @@ func portFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: portCommand,
 	})
 
@@ -65,7 +65,7 @@ func init() {
 	portFlags(flags)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerPortCommand,
 		Parent:  containerCmd,
 	})
