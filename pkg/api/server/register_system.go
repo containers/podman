@@ -12,7 +12,7 @@ func (s *APIServer) registerSystemHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/system/df"), s.APIHandler(compat.GetDiskUsage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/system/df", s.APIHandler(compat.GetDiskUsage)).Methods(http.MethodGet)
-	// Swagger:operation POST /libpod/system/prune libpod pruneSystem
+	// swagger:operation POST /libpod/system/prune libpod pruneSystem
 	// ---
 	// tags:
 	//   - system
@@ -41,5 +41,19 @@ func (s *APIServer) registerSystemHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/system/reset"), s.APIHandler(libpod.SystemReset)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/system/df libpod df
+	// ---
+	// tags:
+	//   - system
+	// summary: Show disk usage
+	// description: Return information about disk usage for containers, images, and volumes
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: '#/responses/SystemDiskUse'
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.Handle(VersionedPath("/libpod/system/df"), s.APIHandler(libpod.DiskUsage)).Methods(http.MethodGet)
 	return nil
 }

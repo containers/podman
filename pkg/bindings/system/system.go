@@ -134,3 +134,18 @@ func Reset(ctx context.Context) error {
 	}
 	return response.Process(response)
 }
+
+// DiskUsage returns information about image, container, and volume disk
+// consumption
+func DiskUsage(ctx context.Context) (*entities.SystemDfReport, error) {
+	var report entities.SystemDfReport
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/system/df", nil)
+	if err != nil {
+		return nil, err
+	}
+	return &report, response.Process(&report)
+}

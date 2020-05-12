@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers/compat"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -78,4 +79,16 @@ func SystemReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, nil)
+}
+
+func DiskUsage(w http.ResponseWriter, r *http.Request) {
+	// Options are only used by the CLI
+	options := entities.SystemDfOptions{}
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	ic := abi.ContainerEngine{Libpod: runtime}
+	response, err := ic.SystemDf(r.Context(), options)
+	if err != nil {
+		utils.InternalServerError(w, err)
+	}
+	utils.WriteResponse(w, http.StatusOK, response)
 }
