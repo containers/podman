@@ -1,5 +1,5 @@
 # Must resemble $UBUNTU_BASE_IMAGE in ./contrib/cirrus/lib.sh
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
 # This container image is intended for building and testing libpod
 # from inside a container environment.  It is assumed that the source

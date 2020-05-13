@@ -98,8 +98,6 @@ INSTALL_PACKAGES=(\
     podman
     protobuf-c-compiler
     protobuf-compiler
-    python-future
-    python-minimal
     python-protobuf
     python3-dateutil
     python3-pip
@@ -117,10 +115,18 @@ INSTALL_PACKAGES=(\
     vim
     wget
     xz-utils
-    yum-utils
     zip
     zlib1g-dev
 )
+
+# These aren't resolvable on Ubuntu 20
+if [[ "$OS_RELEASE_VER" -le 19 ]]; then
+    INSTALL_PACKAGES+=(\
+        python-future
+        python-minimal
+        yum-utils
+    )
+fi
 
 # Do this at the last possible moment to avoid dpkg lock conflicts
 echo "Upgrading all packages"

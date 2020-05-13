@@ -63,8 +63,9 @@ CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and uniq
 PACKER_VER="1.4.2"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
-# Base-images rarely change, define them here so they're out of the way.
-export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-32,fedora-31}"
+# List of cache imaes to build for 'CI:IMG' mode via build_vm_images.sh
+# Exists to support manual single-image building in case of emergency
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-20,ubuntu-19,fedora-32,fedora-31}"
 # Google cloud provides these, we just make copies (see $SCRIPT_BASE/README.md) for use
 export UBUNTU_BASE_IMAGE="ubuntu-2004-focal-v20200506"
 export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1910-eoan-v20200211"
