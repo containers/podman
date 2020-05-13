@@ -46,7 +46,7 @@ func BarID(id int) BarOption {
 // BarWidth sets bar width independent of the container.
 func BarWidth(width int) BarOption {
 	return func(s *bState) {
-		s.width = width
+		s.reqWidth = width
 	}
 }
 
@@ -77,19 +77,22 @@ func BarFillerClearOnComplete() BarOption {
 
 // BarFillerOnComplete replaces bar's filler with message, on complete event.
 func BarFillerOnComplete(message string) BarOption {
-	return func(s *bState) {
-		s.filler = makeBarFillerOnComplete(s.baseF, message)
-	}
+	return BarFillerMiddleware(func(base BarFiller) BarFiller {
+		return BarFillerFunc(func(w io.Writer, reqWidth int, st decor.Statistics) {
+			if st.Completed {
+				io.WriteString(w, message)
+			} else {
+				base.Fill(w, reqWidth, st)
+			}
+		})
+	})
 }
 
-func makeBarFillerOnComplete(filler BarFiller, message string) BarFiller {
-	return BarFillerFunc(func(w io.Writer, width int, st *decor.Statistics) {
-		if st.Completed {
-			io.WriteString(w, message)
-		} else {
-			filler.Fill(w, width, st)
-		}
-	})
+// BarFillerMiddleware provides a way to augment default BarFiller.
+func BarFillerMiddleware(middle func(BarFiller) BarFiller) BarOption {
+	return func(s *bState) {
+		s.middleware = middle
+	}
 }
 
 // BarPriority sets bar's priority. Zero is highest priority, i.e. bar
@@ -103,21 +106,20 @@ func BarPriority(priority int) BarOption {
 
 // BarExtender is an option to extend bar to the next new line, with
 // arbitrary output.
-func BarExtender(extender BarFiller) BarOption {
-	if extender == nil {
+func BarExtender(filler BarFiller) BarOption {
+	if filler == nil {
 		return nil
 	}
 	return func(s *bState) {
-		s.extender = makeExtFunc(extender)
+		s.extender = makeExtFunc(filler)
 	}
 }
 
-func makeExtFunc(extender BarFiller) extFunc {
+func makeExtFunc(filler BarFiller) extFunc {
 	buf := new(bytes.Buffer)
-	nl := []byte("\n")
-	return func(r io.Reader, tw int, st *decor.Statistics) (io.Reader, int) {
-		extender.Fill(buf, tw, st)
-		return io.MultiReader(r, buf), bytes.Count(buf.Bytes(), nl)
+	return func(r io.Reader, reqWidth int, st decor.Statistics) (io.Reader, int) {
+		filler.Fill(buf, reqWidth, st)
+		return io.MultiReader(r, buf), bytes.Count(buf.Bytes(), []byte("\n"))
 	}
 }
 
@@ -139,7 +141,7 @@ func BarStyle(style string) BarOption {
 		SetStyle(string)
 	}
 	return func(s *bState) {
-		if t, ok := s.baseF.(styleSetter); ok {
+		if t, ok := s.filler.(styleSetter); ok {
 			t.SetStyle(style)
 		}
 	}
@@ -159,7 +161,7 @@ func BarReverse() BarOption {
 		SetReverse(bool)
 	}
 	return func(s *bState) {
-		if t, ok := s.baseF.(revSetter); ok {
+		if t, ok := s.filler.(revSetter); ok {
 			t.SetReverse(true)
 		}
 	}
@@ -189,7 +191,7 @@ func MakeFillerTypeSpecificBarOption(
 	cb func(interface{}),
 ) BarOption {
 	return func(s *bState) {
-		if t, ok := typeChecker(s.baseF); ok {
+		if t, ok := typeChecker(s.filler); ok {
 			cb(t)
 		}
 	}

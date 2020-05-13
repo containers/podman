@@ -206,6 +206,7 @@ func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	flags.IntVar(&opts.MaxWorks, "max-workers", 0, "The maximum number of workers for parallel operations")
 	flags.StringVar(&cfg.Engine.Namespace, "namespace", cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
 	flags.StringVar(&cfg.Engine.StaticDir, "root", "", "Path to the root directory in which data, including images, is stored")
+	flags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
 	flags.StringVar(&opts.Runroot, "runroot", "", "Path to the 'run directory' where all state information is stored")
 	flags.StringVar(&opts.RuntimePath, "runtime", "", "Path to the OCI-compatible binary used to run containers, default is /usr/bin/runc")
 	// -s is deprecated due to conflict with -s on subcommands
@@ -225,6 +226,7 @@ func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 		"cpu-profile",
 		"default-mounts-file",
 		"max-workers",
+		"registries-conf",
 		"trace",
 	} {
 		if err := flags.MarkHidden(f); err != nil {

@@ -26,7 +26,7 @@ func Create(ctx context.Context, config entities.VolumeCreateOptions) (*entities
 		return nil, err
 	}
 	stringReader := strings.NewReader(createString)
-	response, err := conn.DoRequest(stringReader, http.MethodPost, "/volumes/create", nil)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/volumes/create", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func Inspect(ctx context.Context, nameOrID string) (*entities.VolumeConfigRespon
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/volumes/%s/json", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/volumes/%s/json", nil, nil, nameOrID)
 	if err != nil {
 		return &inspect, err
 	}
@@ -67,7 +67,7 @@ func List(ctx context.Context, filters map[string][]string) ([]*entities.VolumeL
 		}
 		params.Set("filters", strFilters)
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/volumes/json", params)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/volumes/json", params, nil)
 	if err != nil {
 		return vols, err
 	}
@@ -83,7 +83,7 @@ func Prune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/prune", nil)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/prune", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func Remove(ctx context.Context, nameOrID string, force *bool) error {
 	if force != nil {
 		params.Set("force", strconv.FormatBool(*force))
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/volumes/%s", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/volumes/%s", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}

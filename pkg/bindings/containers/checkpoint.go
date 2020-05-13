@@ -34,7 +34,7 @@ func Checkpoint(ctx context.Context, nameOrId string, keep, leaveRunning, tcpEst
 	if export != nil {
 		params.Set("export", *export)
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/checkpoint", params, nameOrId)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/checkpoint", params, nil, nameOrId)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func Restore(ctx context.Context, nameOrId string, keep, tcpEstablished, ignoreR
 	if importArchive != nil {
 		params.Set("import", *importArchive)
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restore", params, nameOrId)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restore", params, nil, nameOrId)
 	if err != nil {
 		return nil, err
 	}

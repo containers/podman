@@ -120,6 +120,10 @@ func ManifestRemove(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: newID})
 }
 func ManifestPush(w http.ResponseWriter, r *http.Request) {
+	// FIXME: parameters are missing (tlsVerify, format).
+	// Also, we should use the ABI function to avoid duplicate code.
+	// Also, support for XRegistryAuth headers are missing.
+
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {

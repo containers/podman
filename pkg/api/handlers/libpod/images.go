@@ -21,6 +21,7 @@ import (
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/auth"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi"
 	"github.com/containers/libpod/pkg/errorhandling"
@@ -28,6 +29,7 @@ import (
 	utils2 "github.com/containers/libpod/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Commit
@@ -339,7 +341,6 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Reference    string `schema:"reference"`
-		Credentials  string `schema:"credentials"`
 		OverrideOS   string `schema:"overrideOS"`
 		OverrideArch string `schema:"overrideArch"`
 		TLSVerify    bool   `schema:"tlsVerify"`
@@ -382,26 +383,29 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var registryCreds *types.DockerAuthConfig
-	if len(query.Credentials) != 0 {
-		creds, err := util.ParseRegistryCreds(query.Credentials)
-		if err != nil {
-			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-				errors.Wrapf(err, "error parsing credentials %q", query.Credentials))
-			return
-		}
-		registryCreds = creds
+	authConf, authfile, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", auth.XRegistryAuthHeader, r.URL.String()))
+		return
 	}
+	defer auth.RemoveAuthfile(authfile)
 
 	// Setup the registry options
 	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerRegistryCreds: registryCreds,
+		DockerRegistryCreds: authConf,
 		OSChoice:            query.OverrideOS,
 		ArchitectureChoice:  query.OverrideArch,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
+
+	sys := runtime.SystemContext()
+	if sys == nil {
+		sys = image.GetSystemContext("", authfile, false)
+	}
+	dockerRegistryOptions.DockerCertPath = sys.DockerCertPath
+	sys.DockerAuthConfig = authConf
 
 	// Prepare the images we want to pull
 	imagesToPull := []string{}
@@ -411,8 +415,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	if !query.AllTags {
 		imagesToPull = append(imagesToPull, imageName)
 	} else {
-		systemContext := image.GetSystemContext("", "", false)
-		tags, err := docker.GetRepositoryTags(context.Background(), systemContext, imageRef)
+		tags, err := docker.GetRepositoryTags(context.Background(), sys, imageRef)
 		if err != nil {
 			utils.InternalServerError(w, errors.Wrap(err, "error getting repository tags"))
 			return
@@ -420,12 +423,6 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		for _, tag := range tags {
 			imagesToPull = append(imagesToPull, fmt.Sprintf("%s:%s", imageName, tag))
 		}
-	}
-
-	authfile := ""
-	if sys := runtime.SystemContext(); sys != nil {
-		dockerRegistryOptions.DockerCertPath = sys.DockerCertPath
-		authfile = sys.AuthFilePath
 	}
 
 	// Finally pull the images
@@ -456,7 +453,6 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
-		Credentials string `schema:"credentials"`
 		Destination string `schema:"destination"`
 		TLSVerify   bool   `schema:"tlsVerify"`
 	}{
@@ -492,26 +488,20 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var registryCreds *types.DockerAuthConfig
-	if len(query.Credentials) != 0 {
-		creds, err := util.ParseRegistryCreds(query.Credentials)
-		if err != nil {
-			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-				errors.Wrapf(err, "error parsing credentials %q", query.Credentials))
-			return
-		}
-		registryCreds = creds
+	authConf, authfile, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", auth.XRegistryAuthHeader, r.URL.String()))
+		return
 	}
+	defer auth.RemoveAuthfile(authfile)
+	logrus.Errorf("AuthConf: %v", authConf)
 
-	// TODO: the X-Registry-Auth header is not checked yet here nor in any other
-	// endpoint. Pushing does NOT work with authentication at the moment.
 	dockerRegistryOptions := &image.DockerRegistryOptions{
-		DockerRegistryCreds: registryCreds,
+		DockerRegistryCreds: authConf,
 	}
-	authfile := ""
 	if sys := runtime.SystemContext(); sys != nil {
 		dockerRegistryOptions.DockerCertPath = sys.DockerCertPath
-		authfile = sys.AuthFilePath
+		dockerRegistryOptions.RegistriesConfPath = sys.SystemRegistriesConfPath
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)

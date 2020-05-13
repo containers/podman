@@ -17,11 +17,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/pkg/errors"
 )
 
@@ -33,6 +35,9 @@ var systemDefaultPolicyPath = builtinDefaultPolicyPath
 // builtinDefaultPolicyPath is the policy path used for DefaultPolicy().
 // DO NOT change this, instead see systemDefaultPolicyPath above.
 const builtinDefaultPolicyPath = "/etc/containers/policy.json"
+
+// userPolicyFile is the path to the per user policy path.
+var userPolicyFile = filepath.FromSlash(".config/containers/policy.json")
 
 // InvalidPolicyFormatError is returned when parsing an invalid policy configuration.
 type InvalidPolicyFormatError string
@@ -53,13 +58,15 @@ func DefaultPolicy(sys *types.SystemContext) (*Policy, error) {
 
 // defaultPolicyPath returns a path to the default policy of the system.
 func defaultPolicyPath(sys *types.SystemContext) string {
-	if sys != nil {
-		if sys.SignaturePolicyPath != "" {
-			return sys.SignaturePolicyPath
-		}
-		if sys.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
-		}
+	if sys != nil && sys.SignaturePolicyPath != "" {
+		return sys.SignaturePolicyPath
+	}
+	userPolicyFilePath := filepath.Join(homedir.Get(), userPolicyFile)
+	if _, err := os.Stat(userPolicyFilePath); err == nil {
+		return userPolicyFilePath
+	}
+	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
+		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
 	}
 	return systemDefaultPolicyPath
 }

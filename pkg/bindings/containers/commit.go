@@ -41,7 +41,7 @@ func Commit(ctx context.Context, nameOrId string, options CommitOptions) (handle
 	if options.Tag != nil {
 		params.Set("tag", *options.Tag)
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/commit", params)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/commit", params, nil)
 	if err != nil {
 		return id, err
 	}

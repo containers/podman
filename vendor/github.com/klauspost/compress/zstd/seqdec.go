@@ -64,6 +64,7 @@ type sequenceDecs struct {
 	hist         []byte
 	literals     []byte
 	out          []byte
+	windowSize   int
 	maxBits      uint8
 }
 
@@ -82,6 +83,7 @@ func (s *sequenceDecs) initialize(br *bitReader, hist *history, literals, out []
 	s.hist = hist.b
 	s.prevOffset = hist.recentOffsets
 	s.maxBits = s.litLengths.fse.maxBits + s.offsets.fse.maxBits + s.matchLengths.fse.maxBits
+	s.windowSize = hist.windowSize
 	s.out = out
 	return nil
 }
@@ -130,6 +132,9 @@ func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 		}
 		if matchOff > len(s.out)+len(hist)+litLen {
 			return fmt.Errorf("match offset (%d) bigger than current history (%d)", matchOff, len(s.out)+len(hist)+litLen)
+		}
+		if matchOff > s.windowSize {
+			return fmt.Errorf("match offset (%d) bigger than window size (%d)", matchOff, s.windowSize)
 		}
 		if matchOff == 0 && matchLen > 0 {
 			return fmt.Errorf("zero matchoff and matchlen > 0")

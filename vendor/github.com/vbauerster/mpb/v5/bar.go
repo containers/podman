@@ -6,27 +6,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"runtime/debug"
 	"strings"
 	"time"
-	"unicode/utf8"
 
+	"github.com/acarl005/stripansi"
+	"github.com/mattn/go-runewidth"
 	"github.com/vbauerster/mpb/v5/decor"
 )
-
-// BarFiller interface.
-// Bar renders itself by calling BarFiller's Fill method. You can
-// literally have any bar kind, by implementing this interface and
-// passing it to the *Progress.Add(...) *Bar method.
-type BarFiller interface {
-	Fill(w io.Writer, width int, stat *decor.Statistics)
-}
-
-// BarFillerFunc is function type adapter to convert function into Filler.
-type BarFillerFunc func(w io.Writer, width int, stat *decor.Statistics)
-
-func (f BarFillerFunc) Fill(w io.Writer, width int, stat *decor.Statistics) {
-	f(w, width, stat)
-}
 
 // Bar represents a progress Bar.
 type Bar struct {
@@ -55,21 +42,22 @@ type Bar struct {
 	recoveredPanic interface{}
 }
 
-type extFunc func(in io.Reader, tw int, st *decor.Statistics) (out io.Reader, lines int)
+type extFunc func(in io.Reader, reqWidth int, st decor.Statistics) (out io.Reader, lines int)
 
 type bState struct {
-	baseF             BarFiller
-	filler            BarFiller
 	id                int
-	width             int
+	priority          int
+	reqWidth          int
 	total             int64
 	current           int64
+	refill            int64
 	lastN             int64
 	iterated          bool
 	trimSpace         bool
 	toComplete        bool
 	completeFlushed   bool
 	ignoreComplete    bool
+	dropOnComplete    bool
 	noPop             bool
 	aDecorators       []decor.Decorator
 	pDecorators       []decor.Decorator
@@ -77,12 +65,10 @@ type bState struct {
 	ewmaDecorators    []decor.EwmaDecorator
 	shutdownListeners []decor.ShutdownListener
 	bufP, bufB, bufA  *bytes.Buffer
+	filler            BarFiller
+	middleware        func(BarFiller) BarFiller
 	extender          extFunc
 
-	// priority overrides *Bar's priority, if set
-	priority int
-	// dropOnComplete propagates to *Bar
-	dropOnComplete bool
 	// runningBar is a key for *pState.parkedBars
 	runningBar *Bar
 
@@ -146,13 +132,8 @@ func (b *Bar) Current() int64 {
 // Given default bar style is "[=>-]<+", refill rune is '+'.
 // To set bar style use mpb.BarStyle(string) BarOption.
 func (b *Bar) SetRefill(amount int64) {
-	type refiller interface {
-		SetRefill(int64)
-	}
 	b.operateState <- func(s *bState) {
-		if f, ok := s.baseF.(refiller); ok {
-			f.SetRefill(amount)
-		}
+		s.refill = amount
 	}
 }
 
@@ -318,42 +299,38 @@ func (b *Bar) serve(ctx context.Context, s *bState) {
 }
 
 func (b *Bar) render(tw int) {
-	if b.recoveredPanic != nil {
-		b.toShutdown = false
-		b.frameCh <- b.panicToFrame(tw)
-		return
-	}
 	select {
 	case b.operateState <- func(s *bState) {
+		stat := newStatistics(tw, s)
 		defer func() {
 			// recovering if user defined decorator panics for example
 			if p := recover(); p != nil {
-				b.dlogger.Println(p)
+				s.extender = makePanicExtender(p)
+				frame, lines := s.extender(nil, s.reqWidth, stat)
+				b.extendedLines = lines
+				b.toShutdown = !b.toShutdown
 				b.recoveredPanic = p
-				b.toShutdown = !s.completeFlushed
-				b.frameCh <- b.panicToFrame(tw)
+				b.frameCh <- frame
+				b.dlogger.Println(p)
 			}
+			s.completeFlushed = s.toComplete
 		}()
-
-		st := newStatistics(s)
-		frame := s.draw(tw, st)
-		frame, b.extendedLines = s.extender(frame, tw, st)
-
+		frame, lines := s.extender(s.draw(stat), s.reqWidth, stat)
+		b.extendedLines = lines
 		b.toShutdown = s.toComplete && !s.completeFlushed
-		s.completeFlushed = s.toComplete
 		b.frameCh <- frame
 	}:
 	case <-b.done:
 		s := b.cacheState
-		st := newStatistics(s)
-		frame := s.draw(tw, st)
-		frame, b.extendedLines = s.extender(frame, tw, st)
+		stat := newStatistics(tw, s)
+		var r io.Reader
+		if b.recoveredPanic == nil {
+			r = s.draw(stat)
+		}
+		frame, lines := s.extender(r, s.reqWidth, stat)
+		b.extendedLines = lines
 		b.frameCh <- frame
 	}
-}
-
-func (b *Bar) panicToFrame(termWidth int) io.Reader {
-	return strings.NewReader(fmt.Sprintf(fmt.Sprintf("%%.%dv\n", termWidth), b.recoveredPanic))
 }
 
 func (b *Bar) subscribeDecorators() {
@@ -398,34 +375,41 @@ func (b *Bar) wSyncTable() [][]chan int {
 	}
 }
 
-func (s *bState) draw(termWidth int, stat *decor.Statistics) io.Reader {
+func (s *bState) draw(stat decor.Statistics) io.Reader {
+	if !s.trimSpace {
+		stat.AvailableWidth -= 2
+		s.bufB.WriteByte(' ')
+		defer s.bufB.WriteByte(' ')
+	}
+
+	nlr := strings.NewReader("\n")
+	tw := stat.AvailableWidth
 	for _, d := range s.pDecorators {
-		s.bufP.WriteString(d.Decor(stat))
+		str := d.Decor(stat)
+		stat.AvailableWidth -= runewidth.StringWidth(stripansi.Strip(str))
+		s.bufP.WriteString(str)
+	}
+	if stat.AvailableWidth <= 0 {
+		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(s.bufP.String()), tw, "…"))
+		s.bufP.Reset()
+		return io.MultiReader(trunc, s.bufB, nlr)
 	}
 
+	tw = stat.AvailableWidth
 	for _, d := range s.aDecorators {
-		s.bufA.WriteString(d.Decor(stat))
+		str := d.Decor(stat)
+		stat.AvailableWidth -= runewidth.StringWidth(stripansi.Strip(str))
+		s.bufA.WriteString(str)
+	}
+	if stat.AvailableWidth <= 0 {
+		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(s.bufA.String()), tw, "…"))
+		s.bufA.Reset()
+		return io.MultiReader(s.bufP, s.bufB, trunc, nlr)
 	}
 
-	s.bufA.WriteByte('\n')
+	s.filler.Fill(s.bufB, s.reqWidth, stat)
 
-	prependCount := utf8.RuneCount(s.bufP.Bytes())
-	appendCount := utf8.RuneCount(s.bufA.Bytes()) - 1
-
-	if fitWidth := s.width; termWidth > 1 {
-		if !s.trimSpace {
-			// reserve space for edge spaces
-			termWidth -= 2
-			s.bufB.WriteByte(' ')
-			defer s.bufB.WriteByte(' ')
-		}
-		if prependCount+s.width+appendCount > termWidth {
-			fitWidth = termWidth - prependCount - appendCount
-		}
-		s.filler.Fill(s.bufB, fitWidth, stat)
-	}
-
-	return io.MultiReader(s.bufP, s.bufB, s.bufA)
+	return io.MultiReader(s.bufP, s.bufB, s.bufA, nlr)
 }
 
 func (s *bState) wSyncTable() [][]chan int {
@@ -450,12 +434,14 @@ func (s *bState) wSyncTable() [][]chan int {
 	return table
 }
 
-func newStatistics(s *bState) *decor.Statistics {
-	return &decor.Statistics{
-		ID:        s.id,
-		Completed: s.completeFlushed,
-		Total:     s.total,
-		Current:   s.current,
+func newStatistics(tw int, s *bState) decor.Statistics {
+	return decor.Statistics{
+		ID:             s.id,
+		AvailableWidth: tw,
+		Total:          s.total,
+		Current:        s.current,
+		Refill:         s.refill,
+		Completed:      s.completeFlushed,
 	}
 }
 
@@ -474,5 +460,19 @@ func ewmaIterationUpdate(done bool, s *bState, dur time.Duration) {
 	}
 	for _, d := range s.ewmaDecorators {
 		d.EwmaUpdate(s.lastN, dur)
+	}
+}
+
+func makePanicExtender(p interface{}) extFunc {
+	pstr := fmt.Sprint(p)
+	stack := debug.Stack()
+	stackLines := bytes.Count(stack, []byte("\n"))
+	return func(_ io.Reader, _ int, st decor.Statistics) (io.Reader, int) {
+		mr := io.MultiReader(
+			strings.NewReader(runewidth.Truncate(pstr, st.AvailableWidth, "…")),
+			strings.NewReader(fmt.Sprintf("\n%#v\n", st)),
+			bytes.NewReader(stack),
+		)
+		return mr, stackLines + 1
 	}
 }

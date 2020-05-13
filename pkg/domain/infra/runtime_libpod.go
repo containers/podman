@@ -213,6 +213,9 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if fs.Changed("hooks-dir") {
 		options = append(options, libpod.WithHooksDir(cfg.Engine.HooksDir...))
 	}
+	if fs.Changed("registries-conf") {
+		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))
+	}
 
 	// TODO flag to set CNI plugins dir?
 

@@ -93,7 +93,7 @@ github.com/containers/common/pkg/config
 github.com/containers/common/pkg/sysinfo
 # github.com/containers/conmon v2.0.16+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.4.4
+# github.com/containers/image/v5 v5.4.5-0.20200529084758-46b2ee6aebb0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -324,7 +324,7 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.9
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.10.5
+# github.com/klauspost/compress v1.10.6
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -335,6 +335,10 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.3
 github.com/konsorten/go-windows-terminal-sequences
+# github.com/mattn/go-isatty v0.0.12
+github.com/mattn/go-isatty
+# github.com/mattn/go-runewidth v0.0.9
+github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.10
 github.com/mattn/go-shellwords
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -527,7 +531,7 @@ github.com/varlink/go/varlink/idl
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v5 v5.0.4
+# github.com/vbauerster/mpb/v5 v5.2.2
 github.com/vbauerster/mpb/v5
 github.com/vbauerster/mpb/v5/cwriter
 github.com/vbauerster/mpb/v5/decor

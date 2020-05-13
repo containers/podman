@@ -46,21 +46,21 @@ func Counters(unit int, pairFmt string, wcc ...WC) Decorator {
 	return Any(chooseSizeProducer(unit, pairFmt), wcc...)
 }
 
-func chooseSizeProducer(unit int, format string) func(*Statistics) string {
+func chooseSizeProducer(unit int, format string) DecorFunc {
 	if format == "" {
 		format = "%d / %d"
 	}
 	switch unit {
 	case UnitKiB:
-		return func(s *Statistics) string {
+		return func(s Statistics) string {
 			return fmt.Sprintf(format, SizeB1024(s.Current), SizeB1024(s.Total))
 		}
 	case UnitKB:
-		return func(s *Statistics) string {
+		return func(s Statistics) string {
 			return fmt.Sprintf(format, SizeB1000(s.Current), SizeB1000(s.Total))
 		}
 	default:
-		return func(s *Statistics) string {
+		return func(s Statistics) string {
 			return fmt.Sprintf(format, s.Current, s.Total)
 		}
 	}

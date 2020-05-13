@@ -461,6 +461,7 @@ func (d *Decoder) startStreamDecoder(inStream chan decodeStream) {
 		br := readerWrapper{r: stream.r}
 	decodeStream:
 		for {
+			frame.history.reset()
 			err := frame.reset(&br)
 			if debug && err != nil {
 				println("Frame decoder returned", err)

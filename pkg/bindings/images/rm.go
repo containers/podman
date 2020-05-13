@@ -30,7 +30,7 @@ func BatchRemove(ctx context.Context, images []string, opts entities.ImageRemove
 		params.Add("images", i)
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/remove", params)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/remove", params, nil)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -52,7 +52,7 @@ func Remove(ctx context.Context, nameOrID string, force bool) (*entities.ImageRe
 
 	params := url.Values{}
 	params.Set("force", strconv.FormatBool(force))
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/%s", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/%s", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}

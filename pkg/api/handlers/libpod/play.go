@@ -9,6 +9,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/auth"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
@@ -47,9 +48,26 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error closing temporary file"))
 		return
 	}
+	authConf, authfile, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", auth.XRegistryAuthHeader, r.URL.String()))
+		return
+	}
+	defer auth.RemoveAuthfile(authfile)
+	var username, password string
+	if authConf != nil {
+		username = authConf.Username
+		password = authConf.Password
+	}
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
-	options := entities.PlayKubeOptions{Network: query.Network, Quiet: true}
+	options := entities.PlayKubeOptions{
+		Authfile: authfile,
+		Username: username,
+		Password: password,
+		Network:  query.Network,
+		Quiet:    true,
+	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}

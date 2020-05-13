@@ -172,7 +172,7 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 		Architecture:  v1.Architecture,
 		Os:            v1.OS,
 		Layers:        layerInfosToStrings(m.LayerInfos()),
-		Env:           d1.Config.Env,
+		Env:           v1.Config.Env,
 	}
 	return i, nil
 }

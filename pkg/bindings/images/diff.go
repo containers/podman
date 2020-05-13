@@ -15,7 +15,7 @@ func Diff(ctx context.Context, nameOrId string) ([]archive.Change, error) {
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/changes", nil, nameOrId)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/changes", nil, nil, nameOrId)
 	if err != nil {
 		return nil, err
 	}

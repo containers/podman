@@ -25,11 +25,11 @@ func Elapsed(style TimeStyle, wcc ...WC) Decorator {
 func NewElapsed(style TimeStyle, startTime time.Time, wcc ...WC) Decorator {
 	var msg string
 	producer := chooseTimeProducer(style)
-	f := func(s *Statistics) string {
+	fn := func(s Statistics) string {
 		if !s.Completed {
 			msg = producer(time.Since(startTime))
 		}
 		return msg
 	}
-	return Any(f, wcc...)
+	return Any(fn, wcc...)
 }

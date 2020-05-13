@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -17,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Runtime Creation Options
@@ -240,6 +242,22 @@ func WithStaticDir(dir string) RuntimeOption {
 		rt.config.Engine.StaticDir = dir
 		rt.config.Engine.StaticDirSet = true
 
+		return nil
+	}
+}
+
+// WithRegistriesConf configures the runtime to always use specified
+// registries.conf for image processing.
+func WithRegistriesConf(path string) RuntimeOption {
+	logrus.Debugf("Setting custom registries.conf: %q", path)
+	return func(rt *Runtime) error {
+		if _, err := os.Stat(path); err != nil {
+			return errors.Wrap(err, "error locating specified registries.conf")
+		}
+		if rt.imageContext == nil {
+			rt.imageContext = &types.SystemContext{}
+		}
+		rt.imageContext.SystemRegistriesConfPath = path
 		return nil
 	}
 }

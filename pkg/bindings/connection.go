@@ -150,7 +150,7 @@ func pingNewConnection(ctx context.Context) error {
 		return err
 	}
 	// the ping endpoint sits at / in this case
-	response, err := client.DoRequest(nil, http.MethodGet, "../../../_ping", nil)
+	response, err := client.DoRequest(nil, http.MethodGet, "../../../_ping", nil, nil)
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func unixClient(_url *url.URL) (Connection, error) {
 }
 
 // DoRequest assembles the http request and returns the response
-func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, queryParams url.Values, pathValues ...string) (*APIResponse, error) {
+func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, queryParams url.Values, header map[string]string, pathValues ...string) (*APIResponse, error) {
 	var (
 		err      error
 		response *http.Response
@@ -270,6 +270,9 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	}
 	if len(queryParams) > 0 {
 		req.URL.RawQuery = queryParams.Encode()
+	}
+	for key, val := range header {
+		req.Header.Set(key, val)
 	}
 	req = req.WithContext(context.WithValue(context.Background(), clientKey, c))
 	// Give the Do three chances in the case of a comm/service hiccup

@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -17,7 +18,8 @@ import (
 // CLI-only fields into the API types.
 type pullOptionsWrapper struct {
 	entities.ImagePullOptions
-	TLSVerifyCLI bool // CLI only
+	TLSVerifyCLI   bool // CLI only
+	CredentialsCLI string
 }
 
 var (
@@ -77,7 +79,7 @@ func pullFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&pullOptions.AllTags, "all-tags", false, "All tagged images in the repository will be pulled")
 	flags.StringVar(&pullOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pullOptions.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
-	flags.StringVar(&pullOptions.Credentials, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	flags.StringVar(&pullOptions.CredentialsCLI, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVar(&pullOptions.OverrideArch, "override-arch", "", "Use `ARCH` instead of the architecture of the machine for choosing images")
 	flags.StringVar(&pullOptions.OverrideOS, "override-os", "", "Use `OS` instead of the running OS for choosing images")
 	flags.BoolVarP(&pullOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
@@ -107,6 +109,14 @@ func imagePull(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if pullOptions.CredentialsCLI != "" {
+		creds, err := util.ParseRegistryCreds(pullOptions.CredentialsCLI)
+		if err != nil {
+			return err
+		}
+		pullOptions.Username = creds.Username
+		pullOptions.Password = creds.Password
+	}
 	// Let's do all the remaining Yoga in the API to prevent us from
 	// scattering logic across (too) many parts of the code.
 	pullReport, err := registry.ImageEngine().Pull(registry.GetContext(), args[0], pullOptions.ImagePullOptions)

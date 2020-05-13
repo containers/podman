@@ -1,5 +1,9 @@
 package entities
 
+import "github.com/containers/image/v5/types"
+
+// TODO: add comments to *all* types and fields.
+
 type ManifestCreateOptions struct {
 	All bool `schema:"all"`
 }
@@ -26,6 +30,9 @@ type ManifestAnnotateOptions struct {
 }
 
 type ManifestPushOptions struct {
-	Purge, Quiet, All, TlsVerify, RemoveSignatures       bool
-	Authfile, CertDir, Creds, DigestFile, Format, SignBy string
+	Purge, Quiet, All, RemoveSignatures bool
+
+	Authfile, CertDir, Username, Password, DigestFile, Format, SignBy string
+
+	SkipTLSVerify types.OptionalBool
 }

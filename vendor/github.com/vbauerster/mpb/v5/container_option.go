@@ -21,14 +21,11 @@ func WithWaitGroup(wg *sync.WaitGroup) ContainerOption {
 	}
 }
 
-// WithWidth sets container width. Default is 80. Bars inherit this
-// width, as long as no BarWidth is applied.
-func WithWidth(w int) ContainerOption {
+// WithWidth sets container width. If not set underlying bars will
+// occupy whole term width.
+func WithWidth(width int) ContainerOption {
 	return func(s *pState) {
-		if w < 0 {
-			return
-		}
-		s.width = w
+		s.reqWidth = width
 	}
 }
 

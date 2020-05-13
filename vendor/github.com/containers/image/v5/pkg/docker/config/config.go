@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/containers/image/v5/types"
@@ -37,7 +38,12 @@ var (
 	xdgRuntimeDirPath       = filepath.FromSlash("containers/auth.json")
 	dockerHomePath          = filepath.FromSlash(".docker/config.json")
 	dockerLegacyHomePath    = ".dockercfg"
+	nonLinuxAuthFilePath    = filepath.FromSlash(".config/containers/auth.json")
 
+	// Note that the keyring support has been disabled as it was causing
+	// regressions. Before enabling, please revisit TODO(keyring) comments
+	// which need to be addressed if the need remerged to support the
+	// kernel keyring.
 	enableKeyring = false
 
 	// ErrNotLoggedIn is returned for users not logged into a registry
@@ -73,6 +79,70 @@ func SetAuthentication(sys *types.SystemContext, registry, username, password st
 	})
 }
 
+// GetAllCredentials returns the registry credentials for all registries stored
+// in either the auth.json file or the docker/config.json.
+func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthConfig, error) {
+	// Note: we need to read the auth files in the inverse order to prevent
+	// a priority inversion when writing to the map.
+	authConfigs := make(map[string]types.DockerAuthConfig)
+	paths := getAuthFilePaths(sys)
+	for i := len(paths) - 1; i >= 0; i-- {
+		path := paths[i]
+		// readJSONFile returns an empty map in case the path doesn't exist.
+		auths, err := readJSONFile(path.path, path.legacyFormat)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading JSON file %q", path.path)
+		}
+
+		for registry, data := range auths.AuthConfigs {
+			conf, err := decodeDockerAuth(data)
+			if err != nil {
+				return nil, err
+			}
+			authConfigs[normalizeRegistry(registry)] = conf
+		}
+
+		// Credential helpers may override credentials from the auth file.
+		for registry, credHelper := range auths.CredHelpers {
+			username, password, err := getAuthFromCredHelper(credHelper, registry)
+			if err != nil {
+				if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
+					continue
+				}
+				return nil, err
+			}
+
+			conf := types.DockerAuthConfig{Username: username, Password: password}
+			authConfigs[normalizeRegistry(registry)] = conf
+		}
+	}
+
+	// TODO(keyring): if we ever reenable the keyring support, we had to
+	// query all credentials from the keyring here.
+
+	return authConfigs, nil
+}
+
+// getAuthFilePaths returns a slice of authPaths based on the system context
+// in the order they should be searched. Note that some paths may not exist.
+func getAuthFilePaths(sys *types.SystemContext) []authPath {
+	paths := []authPath{}
+	pathToAuth, lf, err := getPathToAuth(sys)
+	if err == nil {
+		paths = append(paths, authPath{path: pathToAuth, legacyFormat: lf})
+	} else {
+		// Error means that the path set for XDG_RUNTIME_DIR does not exist
+		// but we don't want to completely fail in the case that the user is pulling a public image
+		// Logging the error as a warning instead and moving on to pulling the image
+		logrus.Warnf("%v: Trying to pull image in the event that it is a public image.", err)
+	}
+	paths = append(paths,
+		authPath{path: filepath.Join(homedir.Get(), dockerHomePath), legacyFormat: false},
+		authPath{path: filepath.Join(homedir.Get(), dockerLegacyHomePath), legacyFormat: true},
+	)
+	return paths
+}
+
 // GetCredentials returns the registry credentials stored in either auth.json
 // file or .docker/config.json, including support for OAuth2 and IdentityToken.
 // If an entry is not found, an empty struct is returned.
@@ -93,21 +163,7 @@ func GetCredentials(sys *types.SystemContext, registry string) (types.DockerAuth
 		}
 	}
 
-	paths := []authPath{}
-	pathToAuth, lf, err := getPathToAuth(sys)
-	if err == nil {
-		paths = append(paths, authPath{path: pathToAuth, legacyFormat: lf})
-	} else {
-		// Error means that the path set for XDG_RUNTIME_DIR does not exist
-		// but we don't want to completely fail in the case that the user is pulling a public image
-		// Logging the error as a warning instead and moving on to pulling the image
-		logrus.Warnf("%v: Trying to pull image in the event that it is a public image.", err)
-	}
-	paths = append(paths,
-		authPath{path: filepath.Join(homedir.Get(), dockerHomePath), legacyFormat: false},
-		authPath{path: filepath.Join(homedir.Get(), dockerLegacyHomePath), legacyFormat: true})
-
-	for _, path := range paths {
+	for _, path := range getAuthFilePaths(sys) {
 		authConfig, err := findAuthentication(registry, path.path, path.legacyFormat)
 		if err != nil {
 			logrus.Debugf("Credentials not found")
@@ -189,10 +245,8 @@ func RemoveAllAuthentication(sys *types.SystemContext) error {
 	})
 }
 
-// getPath gets the path of the auth.json file
-// The path can be overriden by the user if the overwrite-path flag is set
-// If the flag is not set and XDG_RUNTIME_DIR is set, the auth.json file is saved in XDG_RUNTIME_DIR/containers
-// Otherwise, the auth.json file is stored in /run/containers/UID
+// getPathToAuth gets the path of the auth.json file used for reading and writting credentials
+// returns the path, and a bool specifies whether the file is in legacy format
 func getPathToAuth(sys *types.SystemContext) (string, bool, error) {
 	if sys != nil {
 		if sys.AuthFilePath != "" {
@@ -204,6 +258,9 @@ func getPathToAuth(sys *types.SystemContext) (string, bool, error) {
 		if sys.RootForImplicitAbsolutePaths != "" {
 			return filepath.Join(sys.RootForImplicitAbsolutePaths, fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid())), false, nil
 		}
+	}
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		return filepath.Join(homedir.Get(), nonLinuxAuthFilePath), false, nil
 	}
 
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
@@ -248,6 +305,13 @@ func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
 		return dockerConfigFile{}, errors.Wrapf(err, "error unmarshaling JSON at %q", path)
 	}
 
+	if auths.AuthConfigs == nil {
+		auths.AuthConfigs = map[string]dockerAuthConfig{}
+	}
+	if auths.CredHelpers == nil {
+		auths.CredHelpers = make(map[string]string)
+	}
+
 	return auths, nil
 }
 
@@ -257,17 +321,15 @@ func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (
 	if err != nil {
 		return err
 	}
-
-	dir := filepath.Dir(path)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, 0700); err != nil {
-			return errors.Wrapf(err, "error creating directory %q", dir)
-		}
-	}
-
 	if legacyFormat {
 		return fmt.Errorf("writes to %s using legacy format are not supported", path)
 	}
+
+	dir := filepath.Dir(path)
+	if err = os.MkdirAll(dir, 0700); err != nil {
+		return err
+	}
+
 	auths, err := readJSONFile(path, false)
 	if err != nil {
 		return errors.Wrapf(err, "error reading JSON file %q", path)

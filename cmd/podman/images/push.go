@@ -7,6 +7,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -16,7 +17,8 @@ import (
 // CLI-only fields into the API types.
 type pushOptionsWrapper struct {
 	entities.ImagePushOptions
-	TLSVerifyCLI bool // CLI only
+	TLSVerifyCLI   bool // CLI only
+	CredentialsCLI string
 }
 
 var (
@@ -73,7 +75,7 @@ func pushFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&pushOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pushOptions.CertDir, "cert-dir", "", "Path to a directory containing TLS certificates and keys")
 	flags.BoolVar(&pushOptions.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
-	flags.StringVar(&pushOptions.Credentials, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	flags.StringVar(&pushOptions.CredentialsCLI, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVar(&pushOptions.DigestFile, "digestfile", "", "Write the digest of the pushed image to the specified file")
 	flags.StringVarP(&pushOptions.Format, "format", "f", "", "Manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir' transport (default is manifest type of source)")
 	flags.BoolVarP(&pushOptions.Quiet, "quiet", "q", false, "Suppress output information when pushing images")
@@ -120,6 +122,15 @@ func imagePush(cmd *cobra.Command, args []string) error {
 		if _, err := os.Stat(pushOptions.Authfile); err != nil {
 			return errors.Wrapf(err, "error getting authfile %s", pushOptions.Authfile)
 		}
+	}
+
+	if pushOptions.CredentialsCLI != "" {
+		creds, err := util.ParseRegistryCreds(pushOptions.CredentialsCLI)
+		if err != nil {
+			return err
+		}
+		pushOptions.Username = creds.Username
+		pushOptions.Password = creds.Password
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering

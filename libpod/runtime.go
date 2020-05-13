@@ -339,9 +339,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	}
 
 	// Set up containers/image
-	runtime.imageContext = &types.SystemContext{
-		SignaturePolicyPath: runtime.config.Engine.SignaturePolicyPath,
+	if runtime.imageContext == nil {
+		runtime.imageContext = &types.SystemContext{}
 	}
+	runtime.imageContext.SignaturePolicyPath = runtime.config.Engine.SignaturePolicyPath
 
 	// Create the tmpDir
 	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0751); err != nil {

@@ -17,7 +17,7 @@ func Mount(ctx context.Context, nameOrID string) (string, error) {
 	var (
 		path string
 	)
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/mount", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/mount", nil, nil, nameOrID)
 	if err != nil {
 		return path, err
 	}
@@ -31,7 +31,7 @@ func Unmount(ctx context.Context, nameOrID string) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/unmount", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/unmount", nil, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func GetMountedContainerPaths(ctx context.Context) (map[string]string, error) {
 		return nil, err
 	}
 	mounts := make(map[string]string)
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/showmounted", nil)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/showmounted", nil, nil)
 	if err != nil {
 		return mounts, err
 	}

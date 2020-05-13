@@ -19,8 +19,6 @@ import (
 const (
 	// default RefreshRate
 	prr = 120 * time.Millisecond
-	// default width
-	pwidth = 80
 )
 
 // Progress represents the container that renders Progress bars
@@ -46,7 +44,7 @@ type pState struct {
 
 	// following are provided/overrided by user
 	idCount          int
-	width            int
+	reqWidth         int
 	popCompleted     bool
 	rr               time.Duration
 	uwg              *sync.WaitGroup
@@ -70,7 +68,6 @@ func New(options ...ContainerOption) *Progress {
 func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	s := &pState{
 		bHeap:      priorityQueue{},
-		width:      pwidth,
 		rr:         prr,
 		parkedBars: make(map[*Bar]*Bar),
 		output:     os.Stdout,
@@ -113,7 +110,7 @@ func (p *Progress) AddSpinner(total int64, alignment SpinnerAlignment, options .
 // Panics if *Progress instance is done, i.e. called after *Progress.Wait().
 func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) *Bar {
 	if filler == nil {
-		filler = NewBarFiller(DefaultBarStyle, false)
+		filler = BarFillerFunc(func(io.Writer, int, decor.Statistics) {})
 	}
 	p.bwg.Add(1)
 	result := make(chan *Bar)
@@ -215,12 +212,44 @@ func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 			op(s)
 		case <-p.refreshCh:
 			if err := s.render(cw); err != nil {
-				go p.dlogger.Println(err)
+				p.dlogger.Println(err)
 			}
 		case <-s.shutdownNotifier:
+			if s.heapUpdated {
+				if err := s.render(cw); err != nil {
+					p.dlogger.Println(err)
+				}
+			}
 			return
 		}
 	}
+}
+
+func (s *pState) newTicker(done <-chan struct{}) chan time.Time {
+	ch := make(chan time.Time)
+	if s.shutdownNotifier == nil {
+		s.shutdownNotifier = make(chan struct{})
+	}
+	go func() {
+		if s.renderDelay != nil {
+			<-s.renderDelay
+		}
+		if s.refreshSrc == nil {
+			ticker := time.NewTicker(s.rr)
+			defer ticker.Stop()
+			s.refreshSrc = ticker.C
+		}
+		for {
+			select {
+			case tick := <-s.refreshSrc:
+				ch <- tick
+			case <-done:
+				close(s.shutdownNotifier)
+				return
+			}
+		}
+	}()
+	return ch
 }
 
 func (s *pState) render(cw *cwriter.Writer) error {
@@ -233,7 +262,7 @@ func (s *pState) render(cw *cwriter.Writer) error {
 
 	tw, err := cw.GetWidth()
 	if err != nil {
-		tw = s.width
+		tw = s.reqWidth
 	}
 	for i := 0; i < s.bHeap.Len(); i++ {
 		bar := s.bHeap[i]
@@ -250,11 +279,16 @@ func (s *pState) flush(cw *cwriter.Writer) error {
 		b := heap.Pop(&s.bHeap).(*Bar)
 		cw.ReadFrom(<-b.frameCh)
 		if b.toShutdown {
-			// shutdown at next flush
-			// this ensures no bar ends up with less than 100% rendered
-			defer func() {
+			if b.recoveredPanic != nil {
 				s.barShutdownQueue = append(s.barShutdownQueue, b)
-			}()
+				b.toShutdown = false
+			} else {
+				// shutdown at next flush
+				// this ensures no bar ends up with less than 100% rendered
+				defer func() {
+					s.barShutdownQueue = append(s.barShutdownQueue, b)
+				}()
+			}
 		}
 		lineCount += b.extendedLines + 1
 		bm[b] = struct{}{}
@@ -295,33 +329,6 @@ func (s *pState) flush(cw *cwriter.Writer) error {
 	return cw.Flush(lineCount)
 }
 
-func (s *pState) newTicker(done <-chan struct{}) chan time.Time {
-	ch := make(chan time.Time)
-	if s.shutdownNotifier == nil {
-		s.shutdownNotifier = make(chan struct{})
-	}
-	go func() {
-		if s.renderDelay != nil {
-			<-s.renderDelay
-		}
-		if s.refreshSrc == nil {
-			ticker := time.NewTicker(s.rr)
-			defer ticker.Stop()
-			s.refreshSrc = ticker.C
-		}
-		for {
-			select {
-			case tick := <-s.refreshSrc:
-				ch <- tick
-			case <-done:
-				close(s.shutdownNotifier)
-				return
-			}
-		}
-	}()
-	return ch
-}
-
 func (s *pState) updateSyncMatrix() {
 	s.pMatrix = make(map[int][]chan int)
 	s.aMatrix = make(map[int][]chan int)
@@ -342,16 +349,13 @@ func (s *pState) updateSyncMatrix() {
 
 func (s *pState) makeBarState(total int64, filler BarFiller, options ...BarOption) *bState {
 	bs := &bState{
-		total:    total,
-		baseF:    extractBaseFiller(filler),
-		filler:   filler,
-		priority: s.idCount,
 		id:       s.idCount,
-		width:    s.width,
+		priority: s.idCount,
+		reqWidth: s.reqWidth,
+		total:    total,
+		filler:   filler,
+		extender: func(r io.Reader, _ int, _ decor.Statistics) (io.Reader, int) { return r, 0 },
 		debugOut: s.debugOut,
-		extender: func(r io.Reader, _ int, _ *decor.Statistics) (io.Reader, int) {
-			return r, 0
-		},
 	}
 
 	for _, opt := range options {
@@ -360,13 +364,18 @@ func (s *pState) makeBarState(total int64, filler BarFiller, options ...BarOptio
 		}
 	}
 
+	if bs.middleware != nil {
+		bs.filler = bs.middleware(filler)
+		bs.middleware = nil
+	}
+
 	if s.popCompleted && !bs.noPop {
 		bs.priority = -1
 	}
 
-	bs.bufP = bytes.NewBuffer(make([]byte, 0, bs.width))
-	bs.bufB = bytes.NewBuffer(make([]byte, 0, bs.width))
-	bs.bufA = bytes.NewBuffer(make([]byte, 0, bs.width))
+	bs.bufP = bytes.NewBuffer(make([]byte, 0, 128))
+	bs.bufB = bytes.NewBuffer(make([]byte, 0, 256))
+	bs.bufA = bytes.NewBuffer(make([]byte, 0, 128))
 
 	return bs
 }
@@ -386,14 +395,4 @@ func syncWidth(matrix map[int][]chan int) {
 			}
 		}()
 	}
-}
-
-func extractBaseFiller(f BarFiller) BarFiller {
-	type wrapper interface {
-		Base() BarFiller
-	}
-	if f, ok := f.(wrapper); ok {
-		return extractBaseFiller(f.Base())
-	}
-	return f
 }

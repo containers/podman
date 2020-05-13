@@ -15,6 +15,7 @@ import (
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/auth"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/docker/api/types"
@@ -251,19 +252,32 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*
-	   fromImage – Name of the image to pull. The name may include a tag or digest. This parameter may only be used when pulling an image. The pull is cancelled if the HTTP connection is closed.
-	   repo – Repository name given to an image when it is imported. The repo may include a tag. This parameter may only be used when importing an image.
-	   tag – Tag or digest. If empty when pulling an image, this causes all tags for the given image to be pulled.
-	*/
 	fromImage := query.FromImage
 	if len(query.Tag) >= 1 {
 		fromImage = fmt.Sprintf("%s:%s", fromImage, query.Tag)
 	}
 
-	// TODO
-	// We are eating the output right now because we haven't talked about how to deal with multiple responses yet
-	img, err := runtime.ImageRuntime().New(r.Context(), fromImage, "", "", nil, &image2.DockerRegistryOptions{}, image2.SigningOptions{}, nil, util.PullImageMissing)
+	authConf, authfile, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", auth.XRegistryAuthHeader, r.URL.String()))
+		return
+	}
+	defer auth.RemoveAuthfile(authfile)
+
+	registryOpts := image2.DockerRegistryOptions{DockerRegistryCreds: authConf}
+	if sys := runtime.SystemContext(); sys != nil {
+		registryOpts.DockerCertPath = sys.DockerCertPath
+	}
+	img, err := runtime.ImageRuntime().New(r.Context(),
+		fromImage,
+		"", // signature policy
+		authfile,
+		nil, // writer
+		&registryOpts,
+		image2.SigningOptions{},
+		nil, // label
+		util.PullImageMissing,
+	)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return

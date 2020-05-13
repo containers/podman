@@ -28,7 +28,7 @@ func Create(ctx context.Context, options entities.NetworkCreateOptions, name *st
 		return nil, err
 	}
 	stringReader := strings.NewReader(networkConfig)
-	response, err := conn.DoRequest(stringReader, http.MethodPost, "/networks/create", params)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/networks/create", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func Inspect(ctx context.Context, nameOrID string) ([]entities.NetworkInspectRep
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/%s/json", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/%s/json", nil, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func Remove(ctx context.Context, nameOrID string, force *bool) ([]*entities.Netw
 	if force != nil {
 		params.Set("size", strconv.FormatBool(*force))
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/networks/%s", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/networks/%s", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func List(ctx context.Context) ([]*entities.NetworkListReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/json", nil)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/json", nil, nil)
 	if err != nil {
 		return netList, err
 	}

@@ -8,5 +8,5 @@ package decor
 //	`wcc` optional WC config
 //
 func Name(str string, wcc ...WC) Decorator {
-	return Any(func(*Statistics) string { return str }, wcc...)
+	return Any(func(Statistics) string { return str }, wcc...)
 }

@@ -56,6 +56,9 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 		return nil, errors.Wrapf(err, "unable to read %q as YAML", path)
 	}
 
+	// NOTE: pkg/bindings/play is also parsing the file.
+	// A pkg/kube would be nice to refactor and abstract
+	// parts of the K8s-related code.
 	if podYAML.Kind != "Pod" {
 		return nil, errors.Errorf("invalid YAML kind: %q. Pod is the only supported Kubernetes YAML kind", podYAML.Kind)
 	}
@@ -145,6 +148,13 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	}
 	if !options.Quiet {
 		writer = os.Stderr
+	}
+
+	if len(options.Username) > 0 && len(options.Password) > 0 {
+		registryCreds = &types.DockerAuthConfig{
+			Username: options.Username,
+			Password: options.Password,
+		}
 	}
 
 	dockerRegistryOptions := image.DockerRegistryOptions{
