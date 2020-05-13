@@ -74,8 +74,22 @@ func GetImage(ctx context.Context, nameOrID string, size *bool) (*entities.Image
 	return &inspectedData, response.Process(&inspectedData)
 }
 
-func Tree(ctx context.Context, nameOrId string) error {
-	return bindings.ErrNotImplemented
+// Tree retrieves a "tree" based representation of the given image
+func Tree(ctx context.Context, nameOrId string, whatRequires *bool) (*entities.ImageTreeReport, error) {
+	var report entities.ImageTreeReport
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	if whatRequires != nil {
+		params.Set("size", strconv.FormatBool(*whatRequires))
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/tree", params, nameOrId)
+	if err != nil {
+		return nil, err
+	}
+	return &report, response.Process(&report)
 }
 
 // History returns the parent layers of an image.

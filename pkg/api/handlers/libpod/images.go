@@ -56,13 +56,6 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 func ImageTree(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
-
-	img, err := runtime.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
-		return
-	}
-
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		WhatRequires bool `schema:"whatrequires"`
@@ -74,14 +67,18 @@ func ImageTree(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-
-	tree, err := img.GenerateTree(query.WhatRequires)
+	ir := abi.ImageEngine{Libpod: runtime}
+	options := entities.ImageTreeOptions{WhatRequires: query.WhatRequires}
+	report, err := ir.Tree(r.Context(), name, options)
 	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchImage {
+			utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+			return
+		}
 		utils.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "failed to generate image tree for %s", name))
 		return
 	}
-
-	utils.WriteResponse(w, http.StatusOK, tree)
+	utils.WriteResponse(w, http.StatusOK, report)
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
