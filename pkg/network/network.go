@@ -7,6 +7,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -56,8 +57,8 @@ func GetLiveNetworkNames() ([]string, error) {
 
 // GetFreeNetwork looks for a free network according to existing cni configuration
 // files and network interfaces.
-func GetFreeNetwork() (*net.IPNet, error) {
-	networks, err := GetNetworksFromFilesystem()
+func GetFreeNetwork(config *config.Config) (*net.IPNet, error) {
+	networks, err := GetNetworksFromFilesystem(config)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +132,8 @@ func networkIntersect(n1, n2 *net.IPNet) bool {
 
 // ValidateUserNetworkIsAvailable returns via an error if a network is available
 // to be used
-func ValidateUserNetworkIsAvailable(userNet *net.IPNet) error {
-	networks, err := GetNetworksFromFilesystem()
+func ValidateUserNetworkIsAvailable(config *config.Config, userNet *net.IPNet) error {
+	networks, err := GetNetworksFromFilesystem(config)
 	if err != nil {
 		return err
 	}
@@ -153,8 +154,8 @@ func ValidateUserNetworkIsAvailable(userNet *net.IPNet) error {
 
 // RemoveNetwork removes a given network by name.  If the network has container associated with it, that
 // must be handled outside the context of this.
-func RemoveNetwork(name string) error {
-	cniPath, err := GetCNIConfigPathByName(name)
+func RemoveNetwork(config *config.Config, name string) error {
+	cniPath, err := GetCNIConfigPathByName(config, name)
 	if err != nil {
 		return err
 	}
@@ -181,8 +182,8 @@ func RemoveNetwork(name string) error {
 }
 
 // InspectNetwork reads a CNI config and returns its configuration
-func InspectNetwork(name string) (map[string]interface{}, error) {
-	b, err := ReadRawCNIConfByName(name)
+func InspectNetwork(config *config.Config, name string) (map[string]interface{}, error) {
+	b, err := ReadRawCNIConfByName(config, name)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/sirupsen/logrus"
@@ -11,12 +12,12 @@ import (
 
 // GetFreeDeviceName returns a device name that is unused; used when no network
 // name is provided by user
-func GetFreeDeviceName() (string, error) {
+func GetFreeDeviceName(config *config.Config) (string, error) {
 	var (
 		deviceNum  uint
 		deviceName string
 	)
-	networkNames, err := GetNetworkNamesFromFileSystem()
+	networkNames, err := GetNetworkNamesFromFileSystem(config)
 	if err != nil {
 		return "", err
 	}
@@ -24,7 +25,7 @@ func GetFreeDeviceName() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	bridgeNames, err := GetBridgeNamesFromFileSystem()
+	bridgeNames, err := GetBridgeNamesFromFileSystem(config)
 	if err != nil {
 		return "", err
 	}

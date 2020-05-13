@@ -9,8 +9,16 @@ import (
 
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
+	"github.com/containers/common/pkg/config"
 	"github.com/pkg/errors"
 )
+
+func GetCNIConfDir(config *config.Config) string {
+	if len(config.Network.NetworkConfigDir) < 1 {
+		return CNIConfigDir
+	}
+	return config.Network.NetworkConfigDir
+}
 
 // LoadCNIConfsFromDir loads all the CNI configurations from a dir
 func LoadCNIConfsFromDir(dir string) ([]*libcni.NetworkConfigList, error) {
@@ -33,8 +41,8 @@ func LoadCNIConfsFromDir(dir string) ([]*libcni.NetworkConfigList, error) {
 
 // GetCNIConfigPathByName finds a CNI network by name and
 // returns its configuration file path
-func GetCNIConfigPathByName(name string) (string, error) {
-	files, err := libcni.ConfFiles(CNIConfigDir, []string{".conflist"})
+func GetCNIConfigPathByName(config *config.Config, name string) (string, error) {
+	files, err := libcni.ConfFiles(GetCNIConfDir(config), []string{".conflist"})
 	if err != nil {
 		return "", err
 	}
@@ -52,8 +60,8 @@ func GetCNIConfigPathByName(name string) (string, error) {
 
 // ReadRawCNIConfByName reads the raw CNI configuration for a CNI
 // network by name
-func ReadRawCNIConfByName(name string) ([]byte, error) {
-	confFile, err := GetCNIConfigPathByName(name)
+func ReadRawCNIConfByName(config *config.Config, name string) ([]byte, error) {
+	confFile, err := GetCNIConfigPathByName(config, name)
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +81,10 @@ func GetCNIPlugins(list *libcni.NetworkConfigList) string {
 
 // GetNetworksFromFilesystem gets all the networks from the cni configuration
 // files
-func GetNetworksFromFilesystem() ([]*allocator.Net, error) {
+func GetNetworksFromFilesystem(config *config.Config) ([]*allocator.Net, error) {
 	var cniNetworks []*allocator.Net
-	networks, err := LoadCNIConfsFromDir(CNIConfigDir)
+
+	networks, err := LoadCNIConfsFromDir(GetCNIConfDir(config))
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +105,10 @@ func GetNetworksFromFilesystem() ([]*allocator.Net, error) {
 
 // GetNetworkNamesFromFileSystem gets all the names from the cni network
 // configuration files
-func GetNetworkNamesFromFileSystem() ([]string, error) {
+func GetNetworkNamesFromFileSystem(config *config.Config) ([]string, error) {
 	var networkNames []string
-	networks, err := LoadCNIConfsFromDir(CNIConfigDir)
+
+	networks, err := LoadCNIConfsFromDir(GetCNIConfDir(config))
 	if err != nil {
 		return nil, err
 	}
@@ -133,9 +143,10 @@ func GetInterfaceNameFromConfig(path string) (string, error) {
 
 // GetBridgeNamesFromFileSystem is a convenience function to get all the bridge
 // names from the configured networks
-func GetBridgeNamesFromFileSystem() ([]string, error) {
+func GetBridgeNamesFromFileSystem(config *config.Config) ([]string, error) {
 	var bridgeNames []string
-	networks, err := LoadCNIConfsFromDir(CNIConfigDir)
+
+	networks, err := LoadCNIConfsFromDir(GetCNIConfDir(config))
 	if err != nil {
 		return nil, err
 	}

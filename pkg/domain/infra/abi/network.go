@@ -15,26 +15,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getCNIConfDir(r *libpod.Runtime) (string, error) {
-	config, err := r.GetConfig()
-	if err != nil {
-		return "", err
-	}
-	configPath := config.Network.NetworkConfigDir
-
-	if len(config.Network.NetworkConfigDir) < 1 {
-		configPath = network.CNIConfigDir
-	}
-	return configPath, nil
-}
-
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
 	var reports []*entities.NetworkListReport
-	cniConfigPath, err := getCNIConfDir(ic.Libpod)
+
+	config, err := ic.Libpod.GetConfig()
 	if err != nil {
 		return nil, err
 	}
-	networks, err := network.LoadCNIConfsFromDir(cniConfigPath)
+
+	networks, err := network.LoadCNIConfsFromDir(network.GetCNIConfDir(config))
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +38,14 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 	var (
 		rawCNINetworks []entities.NetworkInspectReport
 	)
+
+	config, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, name := range namesOrIds {
-		rawList, err := network.InspectNetwork(name)
+		rawList, err := network.InspectNetwork(config, name)
 		if err != nil {
 			return nil, err
 		}
@@ -61,6 +56,12 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
 	var reports []*entities.NetworkRmReport
+
+	config, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, name := range namesOrIds {
 		report := entities.NetworkRmReport{Name: name}
 		containers, err := ic.Libpod.GetAllContainers()
@@ -80,7 +81,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 				}
 			}
 		}
-		if err := network.RemoveNetwork(name); err != nil {
+		if err := network.RemoveNetwork(config, name); err != nil {
 			report.Err = err
 		}
 		reports = append(reports, &report)
@@ -117,10 +118,10 @@ func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreate
 	// if range is provided, make sure it is "in" network
 	if subnet.IP != nil {
 		// if network is provided, does it conflict with existing CNI or live networks
-		err = network.ValidateUserNetworkIsAvailable(subnet)
+		err = network.ValidateUserNetworkIsAvailable(runtimeConfig, subnet)
 	} else {
 		// if no network is provided, figure out network
-		subnet, err = network.GetFreeNetwork()
+		subnet, err = network.GetFreeNetwork(runtimeConfig)
 	}
 	if err != nil {
 		return "", err
@@ -158,13 +159,13 @@ func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreate
 			return "", errors.Errorf("the ip range %s does not fall within the subnet range %s", options.Range.String(), subnet.String())
 		}
 	}
-	bridgeDeviceName, err := network.GetFreeDeviceName()
+	bridgeDeviceName, err := network.GetFreeDeviceName(runtimeConfig)
 	if err != nil {
 		return "", err
 	}
 
 	if len(name) > 0 {
-		netNames, err := network.GetNetworkNamesFromFileSystem()
+		netNames, err := network.GetNetworkNamesFromFileSystem(runtimeConfig)
 		if err != nil {
 			return "", err
 		}
@@ -205,11 +206,7 @@ func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreate
 	if err != nil {
 		return "", err
 	}
-	cniConfigPath, err := getCNIConfDir(r)
-	if err != nil {
-		return "", err
-	}
-	cniPathName := filepath.Join(cniConfigPath, fmt.Sprintf("%s.conflist", name))
+	cniPathName := filepath.Join(network.GetCNIConfDir(runtimeConfig), fmt.Sprintf("%s.conflist", name))
 	err = ioutil.WriteFile(cniPathName, b, 0644)
 	return cniPathName, err
 }
@@ -222,12 +219,18 @@ func createMacVLAN(r *libpod.Runtime, name string, options entities.NetworkCreat
 	if err != nil {
 		return "", err
 	}
+
+	config, err := r.GetConfig()
+	if err != nil {
+		return "", err
+	}
+
 	// Make sure the host-device exists
 	if !util.StringInSlice(options.MacVLAN, liveNetNames) {
 		return "", errors.Errorf("failed to find network interface %q", options.MacVLAN)
 	}
 	if len(name) > 0 {
-		netNames, err := network.GetNetworkNamesFromFileSystem()
+		netNames, err := network.GetNetworkNamesFromFileSystem(config)
 		if err != nil {
 			return "", err
 		}
@@ -235,7 +238,7 @@ func createMacVLAN(r *libpod.Runtime, name string, options entities.NetworkCreat
 			return "", errors.Errorf("the network name %s is already used", name)
 		}
 	} else {
-		name, err = network.GetFreeDeviceName()
+		name, err = network.GetFreeDeviceName(config)
 		if err != nil {
 			return "", err
 		}
@@ -248,11 +251,7 @@ func createMacVLAN(r *libpod.Runtime, name string, options entities.NetworkCreat
 	if err != nil {
 		return "", err
 	}
-	cniConfigPath, err := getCNIConfDir(r)
-	if err != nil {
-		return "", err
-	}
-	cniPathName := filepath.Join(cniConfigPath, fmt.Sprintf("%s.conflist", name))
+	cniPathName := filepath.Join(network.GetCNIConfDir(config), fmt.Sprintf("%s.conflist", name))
 	err = ioutil.WriteFile(cniPathName, b, 0644)
 	return cniPathName, err
 }
