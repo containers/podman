@@ -502,7 +502,6 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
-%{_datadir}/containers/%{repo}.conf
 %{_unitdir}/io.podman.service
 %{_unitdir}/io.podman.socket
 %{_usr}/lib/systemd/user/io.podman.service
