@@ -89,7 +89,7 @@ github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/cgroupv2
 github.com/containers/common/pkg/config
 github.com/containers/common/pkg/sysinfo
-# github.com/containers/conmon v2.0.14+incompatible
+# github.com/containers/conmon v2.0.16+incompatible
 github.com/containers/conmon/runner/config
 # github.com/containers/image/v5 v5.4.4
 github.com/containers/image/v5/copy
