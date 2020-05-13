@@ -1,3 +1,20 @@
+- Changelog for v1.9.2 (2020-05-13):
+  * Add release notes for v1.9.2
+  * cgroup: skip unified if we are using v1
+  * [1.9] vendor github.com/containers/common@v0.8.4
+  * Add HairpinMode to our CNI configs
+  * Set pids-limit to 0 on non cgroupv2 rootless systems
+  * [1.9] add --conmon-pidfile/--cidfile system test
+  * Fix handling of overridden paths from database
+  * Add command to build podman-remote-static
+  * Set up ulimits for rootless containers.
+  * User specified environment after other environments are set
+  * rootless: move ns open before fork
+  * rootlessport: use two different channels
+  * Fixes podman save fails when specifying an image using a digest #5234
+  * Bump to v1.9.1
+  * Update vendor to containers/common v0.8.2
+
 - Changelog for v1.9.1 (2020-04-28):
   * Update release notes for v1.9.1
   * separate healthcheck and container log paths
