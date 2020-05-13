@@ -13,8 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// DefaultNetworkDriver is the default network type used
+var DefaultNetworkDriver string = "bridge"
+
 // SupportedNetworkDrivers describes the list of supported drivers
-var SupportedNetworkDrivers = []string{"bridge"}
+var SupportedNetworkDrivers = []string{DefaultNetworkDriver}
 
 // IsSupportedDriver checks if the user provided driver is supported
 func IsSupportedDriver(driver string) error {
@@ -190,4 +193,17 @@ func InspectNetwork(config *config.Config, name string) (map[string]interface{},
 	rawList := make(map[string]interface{})
 	err = json.Unmarshal(b, &rawList)
 	return rawList, err
+}
+
+// Exists says whether a given network exists or not; it meant
+// specifically for restful reponses so 404s can be used
+func Exists(config *config.Config, name string) (bool, error) {
+	_, err := ReadRawCNIConfByName(config, name)
+	if err != nil {
+		if errors.Cause(err) == ErrNetworkNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
