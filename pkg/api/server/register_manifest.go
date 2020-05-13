@@ -141,5 +141,31 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/manifests/{name}/push"), s.APIHandler(libpod.ManifestPush)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/manifests/{name:.*}/annotate manifests AnnotateManifest
+	// ---
+	// summary: Annotate
+	// description: Update an image entry from a manifest list
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name:.*
+	//    type: string
+	//    required: true
+	//    description: the image associated with the manifest
+	//  - in: query
+	//    name: digest
+	//    type: string
+	//    description: image digest to be annotated
+	// responses:
+	//   200:
+	//     $ref: "#/definitions/IDResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: "#/responses/NoSuchManifest"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.Handle(VersionedPath("/libpod/manifests/{name:.*}/annotate"), s.APIHandler(libpod.ManifestAnnotate)).Methods(http.MethodPost)
 	return nil
 }

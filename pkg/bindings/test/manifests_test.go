@@ -118,27 +118,25 @@ var _ = Describe("Podman containers ", func() {
 		Expect(len(data.Manifests)).To(BeZero())
 	})
 
-	// There is NO annotate endpoint, this could never work.:w
+	It("annotate manifest", func() {
+		id, err := manifests.Create(bt.conn, []string{"quay.io/libpod/foobar:latest"}, []string{}, nil)
+		Expect(err).To(BeNil())
+		opts := image.ManifestAddOpts{Images: []string{"docker.io/library/alpine:latest"}}
 
-	//It("annotate manifest", func() {
-	//	id, err := manifests.Create(bt.conn, []string{"quay.io/libpod/foobar:latest"}, []string{}, nil)
-	//	Expect(err).To(BeNil())
-	//	opts := image.ManifestAddOpts{Images: []string{"docker.io/library/alpine:latest"}}
-	//
-	//	_, err = manifests.Add(bt.conn, id, opts)
-	//	Expect(err).To(BeNil())
-	//	data, err := manifests.Inspect(bt.conn, id)
-	//	Expect(err).To(BeNil())
-	//	Expect(len(data.Manifests)).To(BeNumerically("==", 1))
-	//	digest := data.Manifests[0].Digest.String()
-	//	annoOpts := image.ManifestAnnotateOpts{OS: "foo"}
-	//	_, err = manifests.Annotate(bt.conn, id, digest, annoOpts)
-	//	Expect(err).To(BeNil())
-	//	list, err := manifests.Inspect(bt.conn, id)
-	//	Expect(err).To(BeNil())
-	//	Expect(len(list.Manifests)).To(BeNumerically("==", 1))
-	//	Expect(list.Manifests[0].Platform.OS).To(Equal("foo"))
-	//})
+		_, err = manifests.Add(bt.conn, id, opts)
+		Expect(err).To(BeNil())
+		data, err := manifests.Inspect(bt.conn, id)
+		Expect(err).To(BeNil())
+		Expect(len(data.Manifests)).To(BeNumerically("==", 1))
+		digest := data.Manifests[0].Digest.String()
+		annoOpts := image.ManifestAnnotateOpts{OS: "foo"}
+		_, err = manifests.Annotate(bt.conn, id, digest, annoOpts)
+		Expect(err).To(BeNil())
+		list, err := manifests.Inspect(bt.conn, id)
+		Expect(err).To(BeNil())
+		Expect(len(list.Manifests)).To(BeNumerically("==", 1))
+		Expect(list.Manifests[0].Platform.OS).To(Equal("foo"))
+	})
 
 	It("push manifest", func() {
 		Skip("TODO")

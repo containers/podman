@@ -164,3 +164,45 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusOK, newD.String())
 }
+func ManifestAnnotate(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	var manifestInput image.ManifestAnnotateOpts
+	if err := json.NewDecoder(r.Body).Decode(&manifestInput); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	query := struct {
+		Digest string `schema:"digest"`
+	}{
+		// Add defaults here once needed.
+	}
+	name := utils.GetName(r)
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		utils.ImageNotFound(w, name, err)
+		return
+	}
+	d, err := digest.Parse(query.Digest)
+	if err != nil {
+		utils.Error(w, "invalid digest", http.StatusBadRequest, err)
+		return
+	}
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
+	newID, err := newImage.AnnotateManifest(*sc, d, manifestInput)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: newID})
+}
