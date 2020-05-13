@@ -1,5 +1,19 @@
 # Release Notes
 
+## 1.9.2
+### Bugfixes
+- Fixed a bug where `podman save` would fail when the target image was specified by digest ([#5234](https://github.com/containers/libpod/issues/5234))
+- Fixed a bug where rootless containers with ports forwarded to them could panic and dump core due to a concurrency issue ([#6018](https://github.com/containers/libpod/issues/6018))
+- Fixed a bug where rootless Podman could race when opening the rootless user namespace, resulting in commands failing to run
+- Fixed a bug where HTTP proxy environment variables forwarded into the container by the `--http-proxy` flag could not be overridden by `--env` or `--env-file` ([#6017](https://github.com/containers/libpod/issues/6017))
+- Fixed a bug where rootless Podman was setting resource limits on cgroups v2 systems that were not using systemd-managed cgroups (and thus did not support resource limits), resulting in containers failing to start
+
+### Misc
+- Rootless containers will now automatically set their ulimits to the maximum allowed for the user running the container, to match the behavior of containers run as root
+- Packages managed by the core Podman team will no longer include a default `libpod.conf`, instead defaulting to `containers.conf`. The default libpod.conf will remain available in the Github repository until the release of Podman 2.0
+- The default Podman CNI network configuration now sets HairpinMode to allow containers to access other containers via ports published on the host
+- Updated containers/common to v0.8.4
+
 ## 1.9.1
 ### Bugfixes
 - Fixed a bug where healthchecks could become nonfunctional if container log paths were manually set with `--log-path` and multiple container logs were placed in the same directory ([#5915](https://github.com/containers/libpod/issues/5915))
