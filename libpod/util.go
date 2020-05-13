@@ -249,9 +249,8 @@ func hijackWriteErrorAndClose(toWrite error, cid string, terminal bool, httpCon 
 // length and stream. Accepts an integer indicating which stream we are sending
 // to (STDIN = 0, STDOUT = 1, STDERR = 2).
 func makeHTTPAttachHeader(stream byte, length uint32) []byte {
-	headerBuf := []byte{stream, 0, 0, 0}
-	lenBuf := []byte{0, 0, 0, 0}
-	binary.BigEndian.PutUint32(lenBuf, length)
-	headerBuf = append(headerBuf, lenBuf...)
-	return headerBuf
+	header := make([]byte, 8)
+	header[0] = stream
+	binary.BigEndian.PutUint32(header[4:], length)
+	return header
 }

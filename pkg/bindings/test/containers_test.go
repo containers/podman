@@ -302,6 +302,8 @@ var _ = Describe("Podman containers ", func() {
 
 		errChan = make(chan error)
 		go func() {
+			defer GinkgoRecover()
+
 			_, waitErr := containers.Wait(bt.conn, name, &running)
 			errChan <- waitErr
 			close(errChan)

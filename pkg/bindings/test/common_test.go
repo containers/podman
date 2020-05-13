@@ -191,7 +191,7 @@ func (b *bindingTest) restoreImageFromCache(i testImage) {
 func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, podName *string) (string, error) {
 	s := specgen.NewSpecGenerator(alpine.name, false)
 	s.Terminal = false
-	s.Command = []string{"top"}
+	s.Command = []string{"/usr/bin/top"}
 	if containerName != nil {
 		s.Name = *containerName
 	}

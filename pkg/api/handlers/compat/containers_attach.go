@@ -108,7 +108,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 
 	// This header string sourced from Docker:
 	// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
-	// Using literally to ensure compatability with existing clients.
+	// Using literally to ensure compatibility with existing clients.
 	fmt.Fprintf(connection, "HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n")
 
 	logrus.Debugf("Hijack for attach of container %s successful", ctr.ID())

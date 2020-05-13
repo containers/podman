@@ -285,6 +285,7 @@ func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, stre
 
 	logrus.Infof("Performing HTTP Hijack attach to container %s", c.ID())
 
+	logSize := 0
 	if streamLogs {
 		// Get all logs for the container
 		logChan := make(chan *logs.LogLine)
@@ -302,7 +303,7 @@ func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, stre
 					device := logLine.Device
 					var header []byte
 					headerLen := uint32(len(logLine.Msg))
-
+					logSize += len(logLine.Msg)
 					switch strings.ToLower(device) {
 					case "stdin":
 						header = makeHTTPAttachHeader(0, headerLen)
@@ -341,7 +342,7 @@ func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, stre
 		if err := c.ReadLog(logOpts, logChan); err != nil {
 			return err
 		}
-		logrus.Debugf("Done reading logs for container %s", c.ID())
+		logrus.Debugf("Done reading logs for container %s, %d bytes", c.ID(), logSize)
 		if err := <-errChan; err != nil {
 			return err
 		}

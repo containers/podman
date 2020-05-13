@@ -1704,6 +1704,8 @@ func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid
 	buf := make([]byte, bufferSize)
 	for {
 		numR, err := container.Read(buf)
+		logrus.Debugf("Read fd(%d) %d/%d bytes for container %s", int(buf[0]), numR, len(buf), cid)
+
 		if numR > 0 {
 			switch buf[0] {
 			case AttachPipeStdout:
