@@ -1011,6 +1011,14 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 
 	logrus.Debugf("Created container %s in OCI runtime", c.ID())
 
+	// Remove any exec sessions leftover from a potential prior run.
+	if len(c.state.ExecSessions) > 0 {
+		if err := c.runtime.state.RemoveContainerExecSessions(c); err != nil {
+			logrus.Errorf("Error removing container %s exec sessions from DB: %v", err)
+		}
+		c.state.ExecSessions = make(map[string]*ExecSession)
+	}
+
 	c.state.ExitCode = 0
 	c.state.Exited = false
 	c.state.State = define.ContainerStateCreated
