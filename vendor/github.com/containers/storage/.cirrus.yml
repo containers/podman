@@ -15,15 +15,20 @@ env:
     CIRRUS_CLONE_DEPTH: 50
 
     ####
-    #### Cache-image names to test with
-    ####
+    #### Cache-image names to test with (double-quotes around names are critical)
+    ###
+    FEDORA_NAME: "fedora-32"
+    PRIOR_FEDORA_NAME: "fedora-31"
+    UBUNTU_NAME: "ubuntu-19"
+    PRIOR_UBUNTU_NAME: "ubuntu-18"
+
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    _BUILT_IMAGE_SUFFIX: "libpod-6301182083727360"
-    FEDORA_CACHE_IMAGE_NAME: "fedora-32-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-31-${_BUILT_IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
+    _BUILT_IMAGE_SUFFIX: "libpod-6224667180531712"  # From the packer output of 'build_vm_images_script'
+    FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
+    UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "${PRIOR_UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
 
     ####
     #### Command variables to help avoid duplication

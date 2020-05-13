@@ -7,24 +7,51 @@ import (
 	"path/filepath"
 )
 
-// NewAtomicFileWriter returns WriteCloser so that writing to it writes to a
+// AtomicFileWriterOptions specifies options for creating the atomic file writer.
+type AtomicFileWriterOptions struct {
+	// NoSync specifies whether the sync call must be skipped for the file.
+	// If NoSync is not specified, the file is synced to the
+	// storage after it has been written and before it is moved to
+	// the specified path.
+	NoSync bool
+}
+
+var defaultWriterOptions AtomicFileWriterOptions = AtomicFileWriterOptions{}
+
+// SetDefaultOptions overrides the default options used when creating an
+// atomic file writer.
+func SetDefaultOptions(opts AtomicFileWriterOptions) {
+	defaultWriterOptions = opts
+}
+
+// NewAtomicFileWriterWithOpts returns WriteCloser so that writing to it writes to a
 // temporary file and closing it atomically changes the temporary file to
 // destination path. Writing and closing concurrently is not allowed.
-func NewAtomicFileWriter(filename string, perm os.FileMode) (io.WriteCloser, error) {
+func NewAtomicFileWriterWithOpts(filename string, perm os.FileMode, opts *AtomicFileWriterOptions) (io.WriteCloser, error) {
 	f, err := ioutil.TempFile(filepath.Dir(filename), ".tmp-"+filepath.Base(filename))
 	if err != nil {
 		return nil, err
 	}
-
+	if opts == nil {
+		opts = &defaultWriterOptions
+	}
 	abspath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, err
 	}
 	return &atomicFileWriter{
-		f:    f,
-		fn:   abspath,
-		perm: perm,
+		f:      f,
+		fn:     abspath,
+		perm:   perm,
+		noSync: opts.NoSync,
 	}, nil
+}
+
+// NewAtomicFileWriter returns WriteCloser so that writing to it writes to a
+// temporary file and closing it atomically changes the temporary file to
+// destination path. Writing and closing concurrently is not allowed.
+func NewAtomicFileWriter(filename string, perm os.FileMode) (io.WriteCloser, error) {
+	return NewAtomicFileWriterWithOpts(filename, perm, nil)
 }
 
 // AtomicWriteFile atomically writes data to a file named by filename.
@@ -49,6 +76,7 @@ type atomicFileWriter struct {
 	fn       string
 	writeErr error
 	perm     os.FileMode
+	noSync   bool
 }
 
 func (w *atomicFileWriter) Write(dt []byte) (int, error) {
@@ -65,9 +93,11 @@ func (w *atomicFileWriter) Close() (retErr error) {
 			os.Remove(w.f.Name())
 		}
 	}()
-	if err := fdatasync(w.f); err != nil {
-		w.f.Close()
-		return err
+	if !w.noSync {
+		if err := fdatasync(w.f); err != nil {
+			w.f.Close()
+			return err
+		}
 	}
 	if err := w.f.Close(); err != nil {
 		return err
