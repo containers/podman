@@ -24,6 +24,15 @@ type swagErrNoSuchContainer struct {
 	}
 }
 
+// No such network
+// swagger:response NoSuchNetwork
+type swagErrNoSuchNetwork struct {
+	// in:body
+	Body struct {
+		entities.ErrorModel
+	}
+}
+
 // No such exec instance
 // swagger:response NoSuchExecInstance
 type swagErrNoSuchExecInstance struct {

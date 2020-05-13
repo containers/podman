@@ -36,6 +36,7 @@ type NetworkRmReport struct {
 }
 
 // NetworkCreateOptions describes options to create a network
+// swagger:model NetworkCreateOptions
 type NetworkCreateOptions struct {
 	DisableDNS bool
 	Driver     string

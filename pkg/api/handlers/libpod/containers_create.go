@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/containers/libpod/pkg/domain/entities"
-
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/specgen/generate"
 	"github.com/pkg/errors"

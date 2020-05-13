@@ -1,39 +1,59 @@
 package libpod
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/domain/infra/abi"
 	"github.com/containers/libpod/pkg/network"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
 
-func CreateNetwork(w http.ResponseWriter, r *http.Request) {}
+func CreateNetwork(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	options := entities.NetworkCreateOptions{}
+	if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
+		utils.Error(w, "unable to marshall input", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	query := struct {
+		Name string `schema:"name"`
+	}{
+		// override any golang type defaults
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	ic := abi.ContainerEngine{Libpod: runtime}
+	report, err := ic.NetworkCreate(r.Context(), query.Name, options)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, report)
+
+}
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	config, err := runtime.GetConfig()
+	options := entities.NetworkListOptions{}
+	ic := abi.ContainerEngine{Libpod: runtime}
+	reports, err := ic.NetworkList(r.Context(), options)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	configDir := config.Network.NetworkConfigDir
-	if len(configDir) < 1 {
-		configDir = network.CNIConfigDir
-	}
-	networks, err := network.LoadCNIConfsFromDir(configDir)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	utils.WriteResponse(w, http.StatusOK, networks)
+	utils.WriteResponse(w, http.StatusOK, reports)
 }
 
 func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Force bool `schema:"force"`
@@ -46,22 +66,30 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := utils.GetName(r)
-	if err := network.RemoveNetwork(name); err != nil {
+
+	options := entities.NetworkRmOptions{
+		Force: query.Force,
+	}
+	ic := abi.ContainerEngine{Libpod: runtime}
+	reports, err := ic.NetworkRm(r.Context(), []string{name}, options)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	if reports[0].Err != nil {
 		// If the network cannot be found, we return a 404.
 		if errors.Cause(err) == network.ErrNetworkNotFound {
 			utils.Error(w, "Something went wrong", http.StatusNotFound, err)
 			return
 		}
-		utils.InternalServerError(w, err)
-		return
 	}
-	utils.WriteResponse(w, http.StatusOK, "")
+	utils.WriteResponse(w, http.StatusOK, reports)
 }
 
 func InspectNetwork(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Force bool `schema:"force"`
 	}{
 		// override any golang type defaults
 	}
@@ -71,7 +99,9 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := utils.GetName(r)
-	n, err := network.InspectNetwork(name)
+	options := entities.NetworkInspectOptions{}
+	ic := abi.ContainerEngine{Libpod: runtime}
+	reports, err := ic.NetworkInspect(r.Context(), []string{name}, options)
 	if err != nil {
 		// If the network cannot be found, we return a 404.
 		if errors.Cause(err) == network.ErrNetworkNotFound {
@@ -81,5 +111,5 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, n)
+	utils.WriteResponse(w, http.StatusOK, reports)
 }

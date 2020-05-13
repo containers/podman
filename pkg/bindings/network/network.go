@@ -3,40 +3,76 @@ package network
 import (
 	"context"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 
-	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/domain/entities"
+	jsoniter "github.com/json-iterator/go"
 )
 
-func Create() {}
-func Inspect(ctx context.Context, nameOrID string) (map[string]interface{}, error) {
+// Create makes a new CNI network configuration
+func Create(ctx context.Context, options entities.NetworkCreateOptions, name *string) (*entities.NetworkCreateReport, error) {
+	var report entities.NetworkCreateReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	n := make(map[string]interface{})
-	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/%s/json", nil, nameOrID)
-	if err != nil {
-		return n, err
+	params := url.Values{}
+	if name != nil {
+		params.Set("name", *name)
 	}
-	return n, response.Process(&n)
+	networkConfig, err := jsoniter.MarshalToString(options)
+	if err != nil {
+		return nil, err
+	}
+	stringReader := strings.NewReader(networkConfig)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/networks/create", params)
+	if err != nil {
+		return nil, err
+	}
+	return &report, response.Process(&report)
 }
 
-func Remove(ctx context.Context, nameOrID string) error {
+// Inspect returns low level information about a CNI network configuration
+func Inspect(ctx context.Context, nameOrID string) ([]entities.NetworkInspectReport, error) {
+	var reports []entities.NetworkInspectReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/networks/%s", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/%s/json", nil, nameOrID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return response.Process(nil)
+	return reports, response.Process(&reports)
 }
 
-func List(ctx context.Context) ([]*libcni.NetworkConfigList, error) {
+// Remove deletes a defined CNI network configuration by name.  The optional force boolean
+// will remove all containers associated with the network when set to true.  A slice
+// of NetworkRemoveReports are returned.
+func Remove(ctx context.Context, nameOrID string, force *bool) ([]*entities.NetworkRmReport, error) {
+	var reports []*entities.NetworkRmReport
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	if force != nil {
+		params.Set("size", strconv.FormatBool(*force))
+	}
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/networks/%s", params, nameOrID)
+	if err != nil {
+		return nil, err
+	}
+	return reports, response.Process(&reports)
+}
+
+// List returns a summary of all CNI network configurations
+func List(ctx context.Context) ([]*entities.NetworkListReport, error) {
 	var (
-		netList []*libcni.NetworkConfigList
+		netList []*entities.NetworkListReport
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
