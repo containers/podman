@@ -137,5 +137,19 @@ var _ = Describe("Podman events", func() {
 		_, exist := eventsMap["Status"]
 		Expect(exist).To(BeTrue())
 		Expect(test.ExitCode()).To(BeZero())
+
+		test = podmanTest.Podman([]string{"events", "--stream=false", "--format", "{{json.}}"})
+		test.WaitWithDefaultTimeout()
+		fmt.Println(test.OutputToStringArray())
+		jsonArr = test.OutputToStringArray()
+		Expect(len(jsonArr)).To(Not(BeZero()))
+		eventsMap = make(map[string]string)
+		err = json.Unmarshal([]byte(jsonArr[0]), &eventsMap)
+		if err != nil {
+			os.Exit(1)
+		}
+		_, exist = eventsMap["Status"]
+		Expect(exist).To(BeTrue())
+		Expect(test.ExitCode()).To(BeZero())
 	})
 })

@@ -5,6 +5,7 @@ import (
 	"context"
 	"html/template"
 	"os"
+	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/registry"
@@ -54,6 +55,9 @@ func eventsCmd(cmd *cobra.Command, args []string) error {
 		eventsError error
 		tmpl        *template.Template
 	)
+	if strings.Join(strings.Fields(eventFormat), "") == "{{json.}}" {
+		eventFormat = formats.JSONString
+	}
 	if eventFormat != formats.JSONString {
 		tmpl, err = template.New("events").Parse(eventFormat)
 		if err != nil {
