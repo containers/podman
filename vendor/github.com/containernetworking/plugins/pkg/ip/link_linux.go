@@ -21,10 +21,12 @@ import (
 	"net"
 	"os"
 
-	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containernetworking/plugins/pkg/utils/hwaddr"
 	"github.com/safchain/ethtool"
 	"github.com/vishvananda/netlink"
+
+	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containernetworking/plugins/pkg/utils/hwaddr"
+	"github.com/containernetworking/plugins/pkg/utils/sysctl"
 )
 
 var (
@@ -158,6 +160,9 @@ func SetupVethWithName(contVethName, hostVethName string, mtu int, hostNS ns.Net
 		if err = netlink.LinkSetUp(hostVeth); err != nil {
 			return fmt.Errorf("failed to set %q up: %v", hostVethName, err)
 		}
+
+		// we want to own the routes for this interface
+		_, _ = sysctl.Sysctl(fmt.Sprintf("net/ipv6/conf/%s/accept_ra", hostVethName), "0")
 		return nil
 	})
 	if err != nil {
@@ -178,7 +183,7 @@ func SetupVeth(contVethName string, mtu int, hostNS ns.NetNS) (net.Interface, ne
 func DelLinkByName(ifName string) error {
 	iface, err := netlink.LinkByName(ifName)
 	if err != nil {
-		if err.Error() == "Link not found" {
+		if _, ok := err.(netlink.LinkNotFoundError); ok {
 			return ErrLinkNotFound
 		}
 		return fmt.Errorf("failed to lookup %q: %v", ifName, err)
@@ -195,7 +200,7 @@ func DelLinkByName(ifName string) error {
 func DelLinkByNameAddr(ifName string) ([]*net.IPNet, error) {
 	iface, err := netlink.LinkByName(ifName)
 	if err != nil {
-		if err != nil && err.Error() == "Link not found" {
+		if _, ok := err.(netlink.LinkNotFoundError); ok {
 			return nil, ErrLinkNotFound
 		}
 		return nil, fmt.Errorf("failed to lookup %q: %v", ifName, err)
