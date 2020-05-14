@@ -54,11 +54,12 @@ var _ = Describe("Podman containers attach", func() {
 		go func() {
 			defer GinkgoRecover()
 
-			err := containers.Attach(bt.conn, id, nil, &bindings.PTrue, &bindings.PTrue, nil, stdout, stderr)
+			err := containers.Attach(bt.conn, id, nil, bindings.PTrue, bindings.PTrue, nil, stdout, stderr)
 			Expect(err).ShouldNot(HaveOccurred())
 		}()
 
 		time.Sleep(5 * time.Second)
+
 		// First character/First line of top output
 		Expect(stdout.String()).Should(ContainSubstring("Mem: "))
 	})
@@ -97,7 +98,7 @@ var _ = Describe("Podman containers attach", func() {
 		go func() {
 			defer GinkgoRecover()
 
-			err := containers.Attach(bt.conn, ctnr.ID, nil, &bindings.PFalse, &bindings.PTrue, stdin, stdout, stderr)
+			err := containers.Attach(bt.conn, ctnr.ID, nil, bindings.PFalse, bindings.PTrue, stdin, stdout, stderr)
 			Expect(err).ShouldNot(HaveOccurred())
 		}()
 

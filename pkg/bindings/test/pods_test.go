@@ -63,7 +63,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 
 		// Adding an alpine container to the existing pod
-		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
+		_, err = bt.RunTopContainer(nil, bindings.PTrue, &newpod)
 		Expect(err).To(BeNil())
 		podSummary, err = pods.List(bt.conn, nil)
 		// Verify no errors.
@@ -93,7 +93,7 @@ var _ = Describe("Podman pods", func() {
 		_, err = pods.Start(bt.conn, newpod)
 		Expect(err).To(BeNil())
 
-		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
+		_, err = bt.RunTopContainer(nil, bindings.PTrue, &newpod)
 		Expect(err).To(BeNil())
 
 		// Expected err with invalid filter params
@@ -174,7 +174,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Adding an alpine container to the existing pod
-		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
+		_, err = bt.RunTopContainer(nil, bindings.PTrue, &newpod)
 		Expect(err).To(BeNil())
 
 		// Binding needs to be modified to inspect the pod state.

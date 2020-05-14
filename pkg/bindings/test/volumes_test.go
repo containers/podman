@@ -105,7 +105,7 @@ var _ = Describe("Podman volumes", func() {
 		zero := uint(0)
 		err = containers.Stop(connText, "vtest", &zero)
 		Expect(err).To(BeNil())
-		err = volumes.Remove(connText, vol.Name, &bindings.PTrue)
+		err = volumes.Remove(connText, vol.Name, bindings.PTrue)
 		Expect(err).To(BeNil())
 	})
 

@@ -11,8 +11,10 @@ package bindings
 var (
 	// PTrue is a convenience variable that can be used in bindings where
 	// a pointer to a bool (optional parameter) is required.
-	PTrue bool = true
+	pTrue = true
+	PTrue = &pTrue
 	// PFalse is a convenience variable that can be used in bindings where
 	// a pointer to a bool (optional parameter) is required.
-	PFalse bool = false
+	pFalse = false
+	PFalse = &pFalse
 )

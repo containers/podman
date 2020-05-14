@@ -76,7 +76,7 @@ var _ = Describe("Podman images", func() {
 		// Expect(data.Size).To(BeZero())
 
 		// Enabling the size parameter should result in size being populated
-		data, err = images.GetImage(bt.conn, alpine.name, &bindings.PTrue)
+		data, err = images.GetImage(bt.conn, alpine.name, bindings.PTrue)
 		Expect(err).To(BeNil())
 		Expect(data.Size).To(BeNumerically(">", 0))
 	})
@@ -104,7 +104,7 @@ var _ = Describe("Podman images", func() {
 
 		// Start a container with alpine image
 		var top string = "top"
-		_, err = bt.RunTopContainer(&top, &bindings.PFalse, nil)
+		_, err = bt.RunTopContainer(&top, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// we should now have a container called "top" running
 		containerResponse, err := containers.Inspect(bt.conn, "top", nil)
@@ -122,7 +122,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 		// To be extra sure, check if the previously created container
 		// is gone as well.
-		_, err = containers.Inspect(bt.conn, "top", &bindings.PFalse)
+		_, err = containers.Inspect(bt.conn, "top", bindings.PFalse)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
@@ -182,13 +182,13 @@ var _ = Describe("Podman images", func() {
 		// List  images with a filter
 		filters := make(map[string][]string)
 		filters["reference"] = []string{alpine.name}
-		filteredImages, err := images.List(bt.conn, &bindings.PFalse, filters)
+		filteredImages, err := images.List(bt.conn, bindings.PFalse, filters)
 		Expect(err).To(BeNil())
 		Expect(len(filteredImages)).To(BeNumerically("==", 1))
 
 		// List  images with a bad filter
 		filters["name"] = []string{alpine.name}
-		_, err = images.List(bt.conn, &bindings.PFalse, filters)
+		_, err = images.List(bt.conn, bindings.PFalse, filters)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
