@@ -159,33 +159,23 @@ func ExecResizeHandler(w http.ResponseWriter, r *http.Request) {
 // ExecStartHandler runs a given exec session.
 func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
 
 	sessionID := mux.Vars(r)["id"]
 
-	// TODO: Need to support these
-	query := struct {
-		Detach bool `schema:"Detach"`
-		Tty    bool `schema:"Tty"`
-	}{
-		// override any golang type defaults
-	}
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+	// TODO: We should read/support Tty and Detach from here.
+	bodyParams := new(handlers.ExecStartConfig)
+
+	if err := json.NewDecoder(r.Body).Decode(&bodyParams); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to decode parameters for %s", r.URL.String()))
 		return
 	}
-
-	if _, found := r.URL.Query()["Detach"]; found {
+	if bodyParams.Detach == true {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Errorf("Detached exec is not yet supported"))
 		return
 	}
-	if _, found := r.URL.Query()["Tty"]; found {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Errorf("overriding terminal setting in ExecStart is not yet supported"))
-		return
-	}
+	// TODO: Verify TTY setting against what inspect session was made with
 
 	sessionCtr, err := runtime.GetExecSessionContainer(sessionID)
 	if err != nil {
