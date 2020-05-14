@@ -112,7 +112,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, 
 func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string, options entities.ImageUntagOptions) error {
 	// Remove all tags if none are provided
 	if len(tags) == 0 {
-		newImage, err := images.GetImage(ir.ClientCxt, nameOrId, &bindings.PFalse)
+		newImage, err := images.GetImage(ir.ClientCxt, nameOrId, bindings.PFalse)
 		if err != nil {
 			return err
 		}

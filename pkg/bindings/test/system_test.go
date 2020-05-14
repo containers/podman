@@ -65,12 +65,12 @@ var _ = Describe("Podman system", func() {
 		Expect(err).To(BeNil())
 		// Start and stop a container to enter in exited state.
 		var name = "top"
-		_, err = bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		_, err = bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
-		systemPruneResponse, err := system.Prune(bt.conn, &bindings.PTrue, &bindings.PFalse)
+		systemPruneResponse, err := system.Prune(bt.conn, bindings.PTrue, bindings.PFalse)
 		Expect(err).To(BeNil())
 		Expect(len(systemPruneResponse.PodPruneReport)).To(Equal(1))
 		Expect(len(systemPruneResponse.ContainerPruneReport.ID)).To(Equal(1))
@@ -90,21 +90,21 @@ var _ = Describe("Podman system", func() {
 
 		// Start and stop a container to enter in exited state.
 		var name = "top"
-		_, err = bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		_, err = bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
 		// Start container and leave in running
 		var name2 = "top2"
-		_, err = bt.RunTopContainer(&name2, &bindings.PFalse, nil)
+		_, err = bt.RunTopContainer(&name2, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 
 		// Adding an unused volume
 		_, err = volumes.Create(bt.conn, entities.VolumeCreateOptions{})
 		Expect(err).To(BeNil())
 
-		systemPruneResponse, err := system.Prune(bt.conn, &bindings.PTrue, &bindings.PFalse)
+		systemPruneResponse, err := system.Prune(bt.conn, bindings.PTrue, bindings.PFalse)
 		Expect(err).To(BeNil())
 		Expect(len(systemPruneResponse.PodPruneReport)).To(Equal(1))
 		Expect(len(systemPruneResponse.ContainerPruneReport.ID)).To(Equal(1))
@@ -124,21 +124,21 @@ var _ = Describe("Podman system", func() {
 
 		// Start and stop a container to enter in exited state.
 		var name = "top"
-		_, err = bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		_, err = bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
 		// Start second container and leave in running
 		var name2 = "top2"
-		_, err = bt.RunTopContainer(&name2, &bindings.PFalse, nil)
+		_, err = bt.RunTopContainer(&name2, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 
 		// Adding an unused volume should work
 		_, err = volumes.Create(bt.conn, entities.VolumeCreateOptions{})
 		Expect(err).To(BeNil())
 
-		systemPruneResponse, err := system.Prune(bt.conn, &bindings.PTrue, &bindings.PTrue)
+		systemPruneResponse, err := system.Prune(bt.conn, bindings.PTrue, bindings.PTrue)
 		Expect(err).To(BeNil())
 		Expect(len(systemPruneResponse.PodPruneReport)).To(Equal(0))
 		Expect(len(systemPruneResponse.ContainerPruneReport.ID)).To(Equal(1))
@@ -182,7 +182,7 @@ var _ = Describe("Podman system", func() {
 		Expect(len(podSummary)).To(Equal(0))
 
 		// No images
-		imageSummary, err = images.List(bt.conn, &bindings.PTrue, nil)
+		imageSummary, err = images.List(bt.conn, bindings.PTrue, nil)
 		Expect(err).To(BeNil())
 		Expect(len(imageSummary)).To(Equal(0))
 

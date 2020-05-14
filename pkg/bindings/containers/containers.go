@@ -349,7 +349,7 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 	}
 
 	// Do we need to wire in stdin?
-	ctnr, err := Inspect(ctx, nameOrId, &bindings.PFalse)
+	ctnr, err := Inspect(ctx, nameOrId, bindings.PFalse)
 	if err != nil {
 		return err
 	}
