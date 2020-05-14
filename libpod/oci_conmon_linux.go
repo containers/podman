@@ -636,7 +636,6 @@ func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize remotecommand.Te
 }
 
 // ExecContainer executes a command in a running container
-// TODO: Split into Create/Start/Attach/Wait
 func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams) (int, chan error, error) {
 	if options == nil {
 		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide an ExecOptions struct to ExecContainer")
@@ -649,178 +648,46 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 		return -1, nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
 	}
 
-	// create sync pipe to receive the pid
-	parentSyncPipe, childSyncPipe, err := newPipe()
-	if err != nil {
-		return -1, nil, errors.Wrapf(err, "error creating socket pair")
-	}
-
-	defer errorhandling.CloseQuiet(parentSyncPipe)
-
-	// create start pipe to set the cgroup before running
-	// attachToExec is responsible for closing parentStartPipe
-	childStartPipe, parentStartPipe, err := newPipe()
-	if err != nil {
-		return -1, nil, errors.Wrapf(err, "error creating socket pair")
-	}
-
-	// We want to make sure we close the parent{Start,Attach}Pipes if we fail
-	// but also don't want to close them after attach to exec is called
-	attachToExecCalled := false
-
-	defer func() {
-		if !attachToExecCalled {
-			errorhandling.CloseQuiet(parentStartPipe)
-		}
-	}()
-
-	// create the attach pipe to allow attach socket to be created before
-	// $RUNTIME exec starts running. This is to make sure we can capture all output
-	// from the process through that socket, rather than half reading the log, half attaching to the socket
-	// attachToExec is responsible for closing parentAttachPipe
-	parentAttachPipe, childAttachPipe, err := newPipe()
-	if err != nil {
-		return -1, nil, errors.Wrapf(err, "error creating socket pair")
-	}
-
-	defer func() {
-		if !attachToExecCalled {
-			errorhandling.CloseQuiet(parentAttachPipe)
-		}
-	}()
-
-	childrenClosed := false
-	defer func() {
-		if !childrenClosed {
-			errorhandling.CloseQuiet(childSyncPipe)
-			errorhandling.CloseQuiet(childAttachPipe)
-			errorhandling.CloseQuiet(childStartPipe)
-		}
-	}()
-
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return -1, nil, err
-	}
-
-	finalEnv := make([]string, 0, len(options.Env))
-	for k, v := range options.Env {
-		finalEnv = append(finalEnv, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	processFile, err := prepareProcessExec(c, options.Cmd, finalEnv, options.Terminal, options.Cwd, options.User, sessionID)
-	if err != nil {
-		return -1, nil, err
+	// TODO: Should we default this to false?
+	// Or maybe make streams mandatory?
+	attachStdin := true
+	if streams != nil {
+		attachStdin = streams.AttachInput
 	}
 
 	var ociLog string
 	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
 		ociLog = c.execOCILog(sessionID)
 	}
-	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, "")
 
-	if options.PreserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
-	}
-
-	for _, capability := range options.CapAdd {
-		args = append(args, formatRuntimeOpts("--cap", capability)...)
-	}
-
-	if options.Terminal {
-		args = append(args, "-t")
-	}
-
-	if streams != nil && streams.AttachInput {
-		args = append(args, "-i")
-	}
-
-	// Append container ID and command
-	args = append(args, "-e")
-	// TODO make this optional when we can detach
-	args = append(args, "--exec-attach")
-	args = append(args, "--exec-process-spec", processFile.Name())
-
-	logrus.WithFields(logrus.Fields{
-		"args": args,
-	}).Debugf("running conmon: %s", r.conmonPath)
-	execCmd := exec.Command(r.conmonPath, args...)
-
-	if streams != nil {
-		// Don't add the InputStream to the execCmd. Instead, the data should be passed
-		// through CopyDetachable
-		if streams.AttachOutput {
-			execCmd.Stdout = options.Streams.OutputStream
-		}
-		if streams.AttachError {
-			execCmd.Stderr = options.Streams.ErrorStream
-		}
-	}
-
-	conmonEnv, extraFiles, err := r.configureConmonEnv(runtimeDir)
+	execCmd, pipes, err := r.startExec(c, sessionID, options, attachStdin, ociLog)
 	if err != nil {
 		return -1, nil, err
 	}
 
-	if options.PreserveFDs > 0 {
-		for fd := 3; fd < int(3+options.PreserveFDs); fd++ {
-			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
+	// Only close sync pipe. Start and attach are consumed in the attach
+	// goroutine.
+	defer func() {
+		if pipes.syncPipe != nil && !pipes.syncClosed {
+			errorhandling.CloseQuiet(pipes.syncPipe)
+			pipes.syncClosed = true
 		}
-	}
-
-	// we don't want to step on users fds they asked to preserve
-	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
-	execCmd.Env = r.conmonEnv
-	execCmd.Env = append(execCmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", options.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", options.PreserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", options.PreserveFDs+5))
-	execCmd.Env = append(execCmd.Env, conmonEnv...)
-
-	execCmd.ExtraFiles = append(execCmd.ExtraFiles, childSyncPipe, childStartPipe, childAttachPipe)
-	execCmd.ExtraFiles = append(execCmd.ExtraFiles, extraFiles...)
-	execCmd.Dir = c.execBundlePath(sessionID)
-	execCmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
-
-	err = startCommandGivenSelinux(execCmd)
-
-	// We don't need children pipes  on the parent side
-	errorhandling.CloseQuiet(childSyncPipe)
-	errorhandling.CloseQuiet(childAttachPipe)
-	errorhandling.CloseQuiet(childStartPipe)
-	childrenClosed = true
-
-	if err != nil {
-		return -1, nil, errors.Wrapf(err, "cannot start container %s", c.ID())
-	}
-	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe); err != nil {
-		return -1, nil, err
-	}
-
-	if options.PreserveFDs > 0 {
-		for fd := 3; fd < int(3+options.PreserveFDs); fd++ {
-			// These fds were passed down to the runtime.  Close them
-			// and not interfere
-			if err := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close(); err != nil {
-				logrus.Debugf("unable to close file fd-%d", fd)
-			}
-		}
-	}
+	}()
 
 	// TODO Only create if !detach
 	// Attach to the container before starting it
 	attachChan := make(chan error)
 	go func() {
 		// attachToExec is responsible for closing pipes
-		attachChan <- c.attachToExec(streams, options.DetachKeys, sessionID, parentStartPipe, parentAttachPipe)
+		attachChan <- c.attachToExec(streams, options.DetachKeys, sessionID, pipes.startPipe, pipes.attachPipe)
 		close(attachChan)
 	}()
-	attachToExecCalled = true
 
 	if err := execCmd.Wait(); err != nil {
 		return -1, nil, errors.Wrapf(err, "cannot run conmon")
 	}
 
-	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
+	pid, err := readConmonPipeData(pipes.syncPipe, ociLog)
 
 	return pid, attachChan, err
 }
@@ -1949,9 +1816,6 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		}
 	}()
 
-	// TODOTODOTODO
-	//defer errorhandling.CloseQuiet(parentSyncPipe)
-
 	// create start pipe to set the cgroup before running
 	// attachToExec is responsible for closing parentStartPipe
 	childStartPipe, parentStartPipe, err := newPipe()
@@ -1959,17 +1823,6 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		return nil, nil, errors.Wrapf(err, "error creating socket pair")
 	}
 	pipes.startPipe = parentStartPipe
-
-	// We want to make sure we close the parent{Start,Attach}Pipes if we fail
-	// but also don't want to close them after attach to exec is called
-	//attachToExecCalled := false
-
-	// TODOTODOTODO
-	// defer func() {
-	// 	if !attachToExecCalled {
-	// 		errorhandling.CloseQuiet(parentStartPipe)
-	// 	}
-	// }()
 
 	// create the attach pipe to allow attach socket to be created before
 	// $RUNTIME exec starts running. This is to make sure we can capture all output
