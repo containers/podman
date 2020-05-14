@@ -104,7 +104,7 @@ func (e *ExecSession) Inspect() (*define.InspectExecSession, error) {
 	}
 
 	output := new(define.InspectExecSession)
-	output.CanRemove = e.State != define.ExecStateRunning
+	output.CanRemove = e.State == define.ExecStateStopped
 	output.ContainerID = e.ContainerId
 	if e.Config.DetachKeys != nil {
 		output.DetachKeys = *e.Config.DetachKeys
