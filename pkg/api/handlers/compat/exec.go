@@ -106,6 +106,15 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, inspectOut)
+
+	// Only for the Compat API: we want to remove sessions that were
+	// stopped. This is very hacky, but should suffice for now.
+	if !utils.IsLibpodRequest(r) && inspectOut.CanRemove {
+		logrus.Infof("Pruning stale exec session %s from container %s", sessionID, sessionCtr.ID())
+		if err := sessionCtr.ExecRemove(sessionID, false); err != nil && errors.Cause(err) != define.ErrNoSuchExecSession {
+			logrus.Errorf("Error removing stale exec session %s from container %s: %v", sessionID, sessionCtr.ID(), err)
+		}
+	}
 }
 
 // ExecResizeHandler resizes a given exec session's TTY.
