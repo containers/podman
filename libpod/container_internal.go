@@ -1014,7 +1014,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	// Remove any exec sessions leftover from a potential prior run.
 	if len(c.state.ExecSessions) > 0 {
 		if err := c.runtime.state.RemoveContainerExecSessions(c); err != nil {
-			logrus.Errorf("Error removing container %s exec sessions from DB: %v", err)
+			logrus.Errorf("Error removing container %s exec sessions from DB: %v", c.ID(), err)
 		}
 		c.state.ExecSessions = make(map[string]*ExecSession)
 	}
