@@ -33,6 +33,13 @@ function teardown() {
 # This test can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman generate - systemd - basic" {
+    # podman initializes this if unset, but systemctl doesn't
+    if is_rootless; then
+        if [ -z "$XDG_RUNTIME_DIR" ]; then
+            export XDG_RUNTIME_DIR=/run/user/$(id -u)
+        fi
+    fi
+
     cname=$(random_string)
     run_podman create --name $cname --detach $IMAGE top
 

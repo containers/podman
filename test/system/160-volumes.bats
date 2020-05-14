@@ -116,8 +116,17 @@ EOF
     chmod 755 $mountpoint/myscript
 
     # By default, volumes are mounted noexec. This should fail.
-    run_podman 126 run --rm --volume $myvolume:/vol:z $IMAGE /vol/myscript
-    is "$output" ".* OCI runtime permission denied.*" "run on volume, noexec"
+    # ARGH. Unfortunately, runc (used for cgroups v1) produces a different error
+    local expect_rc=126
+    local expect_msg='.* OCI runtime permission denied.*'
+    run_podman info --format '{{ .Host.OCIRuntime.Path }}'
+    if expr "$output" : ".*/runc"; then
+        expect_rc=1
+        expect_msg='.* exec user process caused.*permission denied'
+    fi
+
+    run_podman ${expect_rc} run --rm --volume $myvolume:/vol:z $IMAGE /vol/myscript
+    is "$output" "$expect_msg" "run on volume, noexec"
 
     # With exec, it should pass
     run_podman run --rm -v $myvolume:/vol:z,exec $IMAGE /vol/myscript
