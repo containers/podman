@@ -434,6 +434,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		TCPEstablished: options.TCPEstablished,
 		TargetFile:     options.Export,
 		IgnoreRootfs:   options.IgnoreRootFS,
+		KeepRunning:    options.LeaveRunning,
 	}
 
 	if options.All {

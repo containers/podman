@@ -267,7 +267,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		}
 	}
 	for _, c := range ctrs {
-		report, err := containers.Checkpoint(ic.ClientCxt, c.ID, &options.Keep, &options.LeaveRuninng, &options.TCPEstablished, &options.IgnoreRootFS, &options.Export)
+		report, err := containers.Checkpoint(ic.ClientCxt, c.ID, &options.Keep, &options.LeaveRunning, &options.TCPEstablished, &options.IgnoreRootFS, &options.Export)
 		if err != nil {
 			reports = append(reports, &entities.CheckpointReport{Id: c.ID, Err: err})
 		}

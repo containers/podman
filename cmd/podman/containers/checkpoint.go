@@ -45,7 +45,7 @@ func init() {
 	})
 	flags := checkpointCommand.Flags()
 	flags.BoolVarP(&checkpointOptions.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
-	flags.BoolVarP(&checkpointOptions.LeaveRuninng, "leave-running", "R", false, "Leave the container running after writing checkpoint to disk")
+	flags.BoolVarP(&checkpointOptions.LeaveRunning, "leave-running", "R", false, "Leave the container running after writing checkpoint to disk")
 	flags.BoolVar(&checkpointOptions.TCPEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
 	flags.BoolVarP(&checkpointOptions.All, "all", "a", false, "Checkpoint all running containers")
 	flags.BoolVarP(&checkpointOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
