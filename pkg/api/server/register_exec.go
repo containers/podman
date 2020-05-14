@@ -100,7 +100,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//          description: Detach from the command. Not presently supported.
 	//        Tty:
 	//          type: boolean
-	//          description: Allocate a pseudo-TTY. Not presently supported.
+	//          description: Allocate a pseudo-TTY. Presently ignored.
 	// produces:
 	// - application/json
 	// responses:
@@ -153,7 +153,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec (compat)
 	// summary: Inspect an exec instance
-	// description: Return low-level information about an exec instance.
+	// description: Return low-level information about an exec instance. Stale (stopped) exec sessions will be auto-removed after inspect runs.
 	// parameters:
 	//  - in: path
 	//    name: id
@@ -267,7 +267,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//          description: Detach from the command. Not presently supported.
 	//        Tty:
 	//          type: boolean
-	//          description: Allocate a pseudo-TTY. Not presently supported.
+	//          description: Allocate a pseudo-TTY. Presently ignored.
 	// produces:
 	// - application/json
 	// responses:
