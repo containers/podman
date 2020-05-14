@@ -1562,21 +1562,24 @@ func (c *Container) cleanup(ctx context.Context) error {
 		lastError = errors.Wrapf(err, "error removing container %s network", c.ID())
 	}
 
+	// Remove the container from the runtime, if necessary.
+	// Do this *before* unmounting storage - some runtimes (e.g. Kata)
+	// apparently object to having storage removed while the container still
+	// exists.
+	if err := c.cleanupRuntime(ctx); err != nil {
+		if lastError != nil {
+			logrus.Errorf("Error removing container %s from OCI runtime: %v", c.ID(), err)
+		} else {
+			lastError = err
+		}
+	}
+
 	// Unmount storage
 	if err := c.cleanupStorage(); err != nil {
 		if lastError != nil {
 			logrus.Errorf("Error unmounting container %s storage: %v", c.ID(), err)
 		} else {
 			lastError = errors.Wrapf(err, "error unmounting container %s storage", c.ID())
-		}
-	}
-
-	// Remove the container from the runtime, if necessary
-	if err := c.cleanupRuntime(ctx); err != nil {
-		if lastError != nil {
-			logrus.Errorf("Error removing container %s from OCI runtime: %v", c.ID(), err)
-		} else {
-			lastError = err
 		}
 	}
 

@@ -488,18 +488,23 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
+	var cleanupErr error
+
+	// Clean up network namespace, cgroups, mounts.
+	// Do this before we set ContainerStateRemoving, to ensure that we can
+	// actually remove from the OCI runtime.
+	if err := c.cleanup(ctx); err != nil {
+		cleanupErr = errors.Wrapf(err, "error cleaning up container %s", c.ID())
+	}
+
 	// Set ContainerStateRemoving
 	c.state.State = define.ContainerStateRemoving
 
 	if err := c.save(); err != nil {
+		if cleanupErr != nil {
+			logrus.Errorf(err.Error())
+		}
 		return errors.Wrapf(err, "unable to set container %s removing state in database", c.ID())
-	}
-
-	var cleanupErr error
-
-	// Clean up network namespace, cgroups, mounts
-	if err := c.cleanup(ctx); err != nil {
-		cleanupErr = errors.Wrapf(err, "error cleaning up container %s", c.ID())
 	}
 
 	// Stop the container's storage
