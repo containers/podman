@@ -170,7 +170,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to decode parameters for %s", r.URL.String()))
 		return
 	}
-	if bodyParams.Detach == true {
+	if bodyParams.Detach {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Errorf("Detached exec is not yet supported"))
 		return
