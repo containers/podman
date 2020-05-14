@@ -80,13 +80,14 @@ BuildRequires: libselinux-devel
 BuildRequires: pkgconfig
 BuildRequires: make
 BuildRequires: systemd-devel
-Requires: runc
 Requires: skopeo-containers
 Requires: containernetworking-plugins >= 0.6.0-3
 Requires: iptables
 %if 0%{?rhel} <= 7
 Requires: container-selinux
 %else
+Requires: oci-runtime
+Recommends: crun
 Recommends: container-selinux
 Recommends: slirp4netns
 Recommends: fuse-overlayfs
