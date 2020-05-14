@@ -15,6 +15,7 @@ import (
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -341,8 +342,14 @@ func ContainerInit(ctx context.Context, nameOrID string) error {
 }
 
 // Attach attaches to a running container
-func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stream *bool, stdin *bool, stdout io.Writer, stderr io.Writer) error {
+func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stream *bool, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Do we need to wire in stdin?
+	ctnr, err := Inspect(ctx, nameOrId, &bindings.PFalse)
 	if err != nil {
 		return err
 	}
@@ -357,7 +364,7 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 	if stream != nil {
 		params.Add("stream", fmt.Sprintf("%t", *stream))
 	}
-	if stdin != nil && *stdin {
+	if stdin != nil {
 		params.Add("stdin", "true")
 	}
 	if stdout != nil {
@@ -373,11 +380,23 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 	}
 	defer response.Body.Close()
 
-	ctype := response.Header.Get("Content-Type")
-	upgrade := response.Header.Get("Connection")
+	if stdin != nil {
+		go func() {
+			_, err := io.Copy(conn, stdin)
+			if err != nil {
+				logrus.Error("failed to write input to service: " + err.Error())
+			}
+		}()
+	}
 
 	buffer := make([]byte, 1024)
-	if ctype == "application/vnd.docker.raw-stream" && upgrade == "Upgrade" {
+	if ctnr.Config.Tty {
+		// If not multiplex'ed, read from server and write to stdout
+		_, err := io.Copy(stdout, response.Body)
+		if err != nil {
+			return err
+		}
+	} else {
 		for {
 			// Read multiplexed channels and write to appropriate stream
 			fd, l, err := DemuxHeader(response.Body, buffer)
@@ -396,29 +415,26 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 			}
 
 			switch {
-			case fd == 0 && stdin != nil && *stdin:
-				stdout.Write(frame)
+			case fd == 0 && stdin != nil:
+				_, err := stdout.Write(frame[0:l])
+				if err != nil {
+					return err
+				}
 			case fd == 1 && stdout != nil:
-				stdout.Write(frame)
+				_, err := stdout.Write(frame[0:l])
+				if err != nil {
+					return err
+				}
 			case fd == 2 && stderr != nil:
-				stderr.Write(frame)
+				_, err := stderr.Write(frame[0:l])
+				if err != nil {
+					return err
+				}
 			case fd == 3:
 				return fmt.Errorf("error from daemon in stream: %s", frame)
 			default:
 				return fmt.Errorf("unrecognized input header: %d", fd)
 			}
-		}
-	} else {
-		// If not multiplex'ed from server just dump stream to stdout
-		for {
-			_, err := response.Body.Read(buffer)
-			if err != nil {
-				if !errors.Is(err, io.EOF) {
-					return err
-				}
-				break
-			}
-			stdout.Write(buffer)
 		}
 	}
 	return err
