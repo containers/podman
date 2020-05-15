@@ -584,9 +584,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/resize"), s.APIHandler(compat.ResizeContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
-	r.HandleFunc("/containers/{name}/resize", s.APIHandler(compat.ResizeContainer)).Methods(http.MethodPost)
+	r.HandleFunc("/containers/{name}/resize", s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/{name}/export compat exportContainer
 	// ---
 	// tags:
@@ -1259,7 +1259,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/resize"), s.APIHandler(compat.ResizeContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/{name}/export libpod libpodExportContainer
 	// ---
 	// tags:

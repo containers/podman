@@ -63,6 +63,14 @@ func PodNotFound(w http.ResponseWriter, name string, err error) {
 	Error(w, msg, http.StatusNotFound, err)
 }
 
+func SessionNotFound(w http.ResponseWriter, name string, err error) {
+	if errors.Cause(err) != define.ErrNoSuchExecSession {
+		InternalServerError(w, err)
+	}
+	msg := fmt.Sprintf("No such exec session: %s", name)
+	Error(w, msg, http.StatusNotFound, err)
+}
+
 func ContainerNotRunning(w http.ResponseWriter, containerID string, err error) {
 	msg := fmt.Sprintf("Container %s is not running", containerID)
 	Error(w, msg, http.StatusConflict, err)
