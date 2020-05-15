@@ -1644,7 +1644,6 @@ func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid
 				// Do nothing
 			default:
 				logrus.Errorf("Received unexpected attach type %+d, discarding %d bytes", buf[0], numR)
-				logrus.Debugf("String is %s", string(buf[1:numR]))
 				continue
 			}
 
