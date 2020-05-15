@@ -170,6 +170,11 @@ type ExecCreateResponse struct {
 	docker.IDResponse
 }
 
+type ExecStartConfig struct {
+	Detach bool `json:"Detach"`
+	Tty    bool `json:"Tty"`
+}
+
 func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 	containers, err := l.Containers()
 	if err != nil {

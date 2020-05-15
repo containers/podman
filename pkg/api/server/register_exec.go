@@ -97,10 +97,10 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//      properties:
 	//        Detach:
 	//          type: boolean
-	//          description: Detach from the command
+	//          description: Detach from the command. Not presently supported.
 	//        Tty:
 	//          type: boolean
-	//          description: Allocate a pseudo-TTY
+	//          description: Allocate a pseudo-TTY. Presently ignored.
 	// produces:
 	// - application/json
 	// responses:
@@ -109,12 +109,12 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   404:
 	//     $ref: "#/responses/NoSuchExecInstance"
 	//   409:
-	//	   description: container is stopped or paused
+	//	   description: container is not running
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/exec/{id}/start"), s.APIHandler(compat.UnsupportedHandler)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/exec/{id}/start"), s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/exec/{id}/start", s.APIHandler(compat.UnsupportedHandler)).Methods(http.MethodPost)
+	r.Handle("/exec/{id}/start", s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
 	// swagger:operation POST /exec/{id}/resize compat resizeExec
 	// ---
 	// tags:
@@ -153,7 +153,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec (compat)
 	// summary: Inspect an exec instance
-	// description: Return low-level information about an exec instance.
+	// description: Return low-level information about an exec instance. Stale (stopped) exec sessions will be auto-removed after inspect runs.
 	// parameters:
 	//  - in: path
 	//    name: id
@@ -264,10 +264,10 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//      properties:
 	//        Detach:
 	//          type: boolean
-	//          description: Detach from the command
+	//          description: Detach from the command. Not presently supported.
 	//        Tty:
 	//          type: boolean
-	//          description: Allocate a pseudo-TTY
+	//          description: Allocate a pseudo-TTY. Presently ignored.
 	// produces:
 	// - application/json
 	// responses:
@@ -276,10 +276,10 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   404:
 	//     $ref: "#/responses/NoSuchExecInstance"
 	//   409:
-	//	   description: container is stopped or paused
+	//	   description: container is not running.
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/libpod/exec/{id}/start"), s.APIHandler(compat.UnsupportedHandler)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/exec/{id}/start"), s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/exec/{id}/resize libpod libpodResizeExec
 	// ---
 	// tags:
