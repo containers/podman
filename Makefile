@@ -22,6 +22,7 @@ ETCDIR ?= /etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
+REMOTETAGS := !ABISupport remoteclient exclude_graphdriver_btrfs btrfs_noversion  exclude_graphdriver_devicemapper containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
@@ -189,11 +190,11 @@ podman: bin/podman
 
 .PHONY: bin/podman-remote
 bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "!ABISupport remoteclient" -o $@ $(PROJECT)/cmd/podman
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ $(PROJECT)/cmd/podman
 
 .PHONY: bin/podman-remote-static
 podman-remote-static: bin/podman-remote-static
-	CGO_ENABLED=0 $(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN_STATIC)' -tags "!ABISupport containers_image_openpgp remoteclient" -o bin/podman-remote-static $(PROJECT)/cmd/podman
+	CGO_ENABLED=0 $(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN_STATIC)' -tags "${REMOTETAGS}" -o bin/podman-remote-static $(PROJECT)/cmd/podman
 
 .PHONY: podman-remote
 podman-remote: bin/podman-remote
@@ -207,7 +208,7 @@ podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-do
 
 podman-remote-%: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build podman for a specific GOOS
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
-	CGO_ENABLED=0 GOOS=$* $(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@$(BINSFX) $(PROJECT)/cmd/podman
+	CGO_ENABLED=0 GOOS=$* $(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/$@$(BINSFX) $(PROJECT)/cmd/podman
 
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross local compilation
 
@@ -282,11 +283,11 @@ dbuild: libpodimage
 
 .PHONY: dbuild-podman-remote
 dbuild-podman-remote: libpodimage
-	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} go build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/podman-remote $(PROJECT)/cmd/podman
+	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} go build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(REMOTETAGS)" -o bin/podman-remote $(PROJECT)/cmd/podman
 
 .PHONY: dbuild-podman-remote-darwin
 dbuild-podman-remote-darwin: libpodimage
-	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} env GOOS=darwin go build -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/podman-remote-darwin $(PROJECT)/cmd/podman
+	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} env GOOS=darwin go build -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/podman-remote-darwin $(PROJECT)/cmd/podman
 
 .PHONY: test
 test: libpodimage ## Run tests on built image
@@ -329,7 +330,7 @@ ginkgo:
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
-	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS) remoteclient" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	ginkgo -v $(TESTFLAGS) -tags "$(REMOTETAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 .PHONY: endpoint
 endpoint:
