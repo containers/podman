@@ -52,14 +52,14 @@ func attachFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: attachCommand,
 	})
 	flags := attachCommand.Flags()
 	attachFlags(flags)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerAttachCommand,
 		Parent:  containerCmd,
 	})

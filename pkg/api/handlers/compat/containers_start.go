@@ -3,11 +3,12 @@ package compat
 import (
 	"net/http"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func StartContainer(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +24,7 @@ func StartContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(query.DetachKeys) > 0 {
 		// TODO - start does not support adding detach keys
-		utils.BadRequest(w, "detachKeys", query.DetachKeys, errors.New("the detachKeys parameter is not supported yet"))
-		return
+		logrus.Info("the detach keys parameter is not supported on start container")
 	}
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
