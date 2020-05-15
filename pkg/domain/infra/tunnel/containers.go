@@ -8,10 +8,12 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, image string, args []string, options entities.ContainerRunlabelOptions) error {
@@ -324,15 +326,39 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 }
 
 func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string, options entities.AttachOptions) error {
-	return errors.New("not implemented")
+	return containers.Attach(ic.ClientCxt, nameOrId, &options.DetachKeys, nil, bindings.PTrue, options.Stdin, options.Stdout, options.Stderr)
 }
 
 func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions) (int, error) {
 	return 125, errors.New("not implemented")
 }
 
+func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input, output, errput *os.File) error { //nolint
+	attachErr := make(chan error)
+	go func() {
+		err := containers.Attach(ic.ClientCxt, name, detachKeys, bindings.PFalse, bindings.PTrue, input, output, errput)
+		attachErr <- err
+	}()
+
+	if err := containers.Start(ic.ClientCxt, name, detachKeys); err != nil {
+		return err
+	}
+	return <-attachErr
+}
+
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
-	return nil, errors.New("not implemented")
+	var reports []*entities.ContainerStartReport
+	for _, name := range namesOrIds {
+		report := entities.ContainerStartReport{Id: name}
+		if options.Attach {
+			report.Err = startAndAttach(ic, name, &options.DetachKeys, options.Stdin, options.Stdout, options.Stderr)
+			reports = append(reports, &report)
+			return reports, nil
+		}
+		report.Err = containers.Start(ic.ClientCxt, name, &options.DetachKeys)
+		reports = append(reports, &report)
+	}
+	return reports, nil
 }
 
 func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
@@ -340,7 +366,23 @@ func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.C
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
-	return nil, errors.New("not implemented")
+	if opts.Rm {
+		logrus.Info("the remote client does not support --rm yet")
+	}
+	con, err := containers.CreateWithSpec(ic.ClientCxt, opts.Spec)
+	if err != nil {
+		return nil, err
+	}
+	report := entities.ContainerRunReport{Id: con.ID}
+	// Attach
+	if !opts.Detach {
+		err = startAndAttach(ic, con.ID, &opts.DetachKeys, opts.InputStream, opts.OutputStream, opts.ErrorStream)
+
+	} else {
+		err = containers.Start(ic.ClientCxt, con.ID, nil)
+	}
+	report.ExitCode = define.ExitCode(err)
+	return &report, err
 }
 
 func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrId string, _ entities.DiffOptions) (*entities.DiffReport, error) {
