@@ -1,6 +1,8 @@
 export GO111MODULE=off
 export GOPROXY=https://proxy.golang.org
 
+# DO NOT MERGE ME
+
 GO ?= go
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-master} HEAD)
