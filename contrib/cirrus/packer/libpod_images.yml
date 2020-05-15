@@ -29,7 +29,7 @@ sensitive-variables:
 builders:
     #  v----- is a YAML anchor, allows referencing this object by name (below)
     - &gce_hosted_image
-      name: 'ubuntu-19'
+      name: 'ubuntu-20'
       type: 'googlecompute'
       image_name: '{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}'
       image_family: '{{build_name}}-cache'
@@ -46,7 +46,7 @@ builders:
 
     #      v----- is a YAML alias, allows partial re-use of the anchor object
     - <<: *gce_hosted_image
-      name: 'ubuntu-18'
+      name: 'ubuntu-19'
       source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
       source_image_family: 'prior-ubuntu-base'
 

@@ -67,13 +67,6 @@ delvm() {
     cleanup
 }
 
-image_hints() {
-    _BIS=$(egrep -m 1 '_BUILT_IMAGE_SUFFIX:[[:space:]+"[[:print:]]+"' "$LIBPODROOT/.cirrus.yml" | cut -d: -f 2 | tr -d '"[:blank:]')
-    egrep '[[:space:]]+[[:alnum:]].+_CACHE_IMAGE_NAME:[[:space:]+"[[:print:]]+"' \
-        "$LIBPODROOT/.cirrus.yml" | cut -d: -f 2 | tr -d '"[:blank:]' | \
-        sed -r -e "s/\\\$[{]_BUILT_IMAGE_SUFFIX[}]/$_BIS/" | sort -u
-}
-
 show_usage() {
     echo -e "\n${RED}ERROR: $1${NOR}"
     echo -e "${YEL}Usage: $(basename $0) [-m <SPECIALMODE>] [-u <ROOTLESS_USER> ] <image_name>${NOR}"
@@ -90,16 +83,33 @@ show_usage() {
 }
 
 get_env_vars() {
-    python -c '
-import yaml
+    # Deal with both YAML and embedded shell-like substitutions in values
+    # if substitution fails, fall back to printing naked env. var as-is.
+    python3 -c '
+import yaml,re
 env=yaml.load(open(".cirrus.yml"), Loader=yaml.SafeLoader)["env"]
-keys=[k for k in env if "ENCRYPTED" not in str(env[k])]
+dollar_env_var=re.compile(r"\$(\w+)")
+dollarcurly_env_var=re.compile(r"\$\{(\w+)\}")
+class ReIterKey(dict):
+    def __missing__(self, key):
+        # Cirrus-CI provides some runtime-only env. vars.  Avoid
+        # breaking this hack-script if/when any are present in YAML
+        return "${0}".format(key)
+rep=r"{\1}"  # Convert env vars markup to -> str.format_map(re_iter_key) markup
+out=ReIterKey()
 for k,v in env.items():
     v=str(v)
-    if "ENCRYPTED" not in v and "ADD_SECOND_PARTITION" not in v:
-        print("{0}=\"{1}\"".format(k, v)),
+    if "ENCRYPTED" not in v:
+        out[k]=dollar_env_var.sub(rep, dollarcurly_env_var.sub(rep, v))
+for k,v in out.items():
+    print("{0}=\"{1}\"".format(k, v.format_map(out)))
     '
 }
+
+image_hints() {
+    get_env_vars | fgrep '_CACHE_IMAGE_NAME' | awk -F "=" '{print $2}'
+}
+
 
 parse_args(){
     echo -e "$USAGE_WARNING"
