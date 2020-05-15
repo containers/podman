@@ -92,7 +92,7 @@ gating_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:$DEST_BRANCH"
         cpu: 4
         memory: 12
 
@@ -148,7 +148,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:$DEST_BRANCH"
         cpu: 4
         memory: 12
 
@@ -180,7 +180,7 @@ varlink_api_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:$DEST_BRANCH"
         cpu: 4
         memory: 12
 
@@ -671,7 +671,7 @@ success_task:
         GOSRC: "/go/src/github.com/containers/libpod"
 
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:$DEST_BRANCH"
         cpu: 1
         memory: 1
 
