@@ -170,7 +170,7 @@ type CheckpointOptions struct {
 	IgnoreRootFS   bool
 	Keep           bool
 	Latest         bool
-	LeaveRuninng   bool
+	LeaveRunning   bool
 	TCPEstablished bool
 }
 
