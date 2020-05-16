@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
-	"time"
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/validate"
@@ -79,10 +78,6 @@ func formatVersion(writer io.Writer, version *define.Version) {
 	if version.GitCommit != "" {
 		fmt.Fprintf(writer, "Git Commit:\t%s\n", version.GitCommit)
 	}
-	// Prints out the build time in readable format
-	if version.Built != 0 {
-		fmt.Fprintf(writer, "Built:\t%s\n", time.Unix(version.Built, 0).Format(time.ANSIC))
-	}
-
+	fmt.Fprintf(writer, "Built:\t%s\n", version.BuiltTime)
 	fmt.Fprintf(writer, "OS/Arch:\t%s\n", version.OsArch)
 }

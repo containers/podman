@@ -3,6 +3,7 @@ package define
 import (
 	"runtime"
 	"strconv"
+	"time"
 
 	podmanVersion "github.com/containers/libpod/version"
 )
@@ -23,6 +24,7 @@ type Version struct {
 	Version          string
 	GoVersion        string
 	GitCommit        string
+	BuiltTime        string
 	Built            int64
 	OsArch           string
 }
@@ -44,6 +46,7 @@ func GetVersion() (Version, error) {
 		Version:          podmanVersion.Version,
 		GoVersion:        runtime.Version(),
 		GitCommit:        gitCommit,
+		BuiltTime:        time.Unix(buildTime, 0).Format(time.ANSIC),
 		Built:            buildTime,
 		OsArch:           runtime.GOOS + "/" + runtime.GOARCH,
 	}, nil
