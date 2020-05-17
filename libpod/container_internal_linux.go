@@ -1468,11 +1468,13 @@ func (c *Container) copyOwnerAndPerms(source, dest string) error {
 		}
 		return errors.Wrapf(err, "cannot stat `%s`", dest)
 	}
-	if err := os.Chmod(dest, info.Mode()); err != nil {
-		return errors.Wrapf(err, "cannot chmod `%s`", dest)
+	if (info.Mode() & os.ModeSymlink) != os.ModeSymlink {
+		if err := os.Chmod(dest, info.Mode()); err != nil {
+			return errors.Wrapf(err, "cannot chmod `%s`", dest)
+		}
 	}
-	if err := os.Chown(dest, int(info.Sys().(*syscall.Stat_t).Uid), int(info.Sys().(*syscall.Stat_t).Gid)); err != nil {
-		return errors.Wrapf(err, "cannot chown `%s`", dest)
+	if err := os.Lchown(dest, int(info.Sys().(*syscall.Stat_t).Uid), int(info.Sys().(*syscall.Stat_t).Gid)); err != nil {
+		return errors.Wrapf(err, "cannot lchown `%s`", dest)
 	}
 	return nil
 }

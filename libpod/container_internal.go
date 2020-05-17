@@ -1411,6 +1411,129 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	return mountPoint, nil
 }
 
+// Copy tree with owner and perms
+
+type CopyError struct {
+	Src string
+	Dst string
+}
+
+func (e CopyError) Error() string {
+	return fmt.Sprintf("`%s -> %s` copyerror", e.Src, e.Dst)
+}
+
+func samefile(src string, dst string) bool {
+	srcInfo, _ := os.Stat(src)
+	dstInfo, _ := os.Stat(dst)
+	return os.SameFile(srcInfo, dstInfo)
+}
+
+func specialfile(fi os.FileInfo) bool {
+	return (fi.Mode() & os.ModeNamedPipe) == os.ModeNamedPipe
+}
+
+func IsSymlink(fi os.FileInfo) bool {
+	return (fi.Mode() & os.ModeSymlink) == os.ModeSymlink
+}
+
+// Copy file with owner and perms
+func (c *Container) copyWithOwnerAndPerms(src, dst string) error {
+	if samefile(src, dst) {
+		return &CopyError{src, dst}
+	}
+
+	srcStat, err := os.Lstat(src)
+	if err != nil {
+		return err
+	} else if specialfile(srcStat) {
+		return &CopyError{src, dst}
+	}
+
+	if dstInfo, err := os.Stat(dst); err == nil && dstInfo.Mode().IsDir() {
+		dst = filepath.Join(dst, filepath.Base(src))
+	} else if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	if IsSymlink(srcStat) {
+		if srcLink, err := os.Readlink(src); err != nil {
+			return err
+		} else if err := os.Symlink(srcLink, dst); err != nil {
+			return err
+		}
+	}
+
+	// Do the actual copy
+	fsrc, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer fsrc.Close()
+
+	fdst, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer fdst.Close()
+
+	if size, err := io.Copy(fdst, fsrc); err != nil {
+		return err
+	} else if size != srcStat.Size() {
+		return fmt.Errorf("%s: %d/%d copied", src, size, srcStat.Size())
+	}
+
+	if err = c.copyOwnerAndPerms(src, dst); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Container) copyTreeWithOwnerAndPerms(src, dst string) error {
+	srcFileInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	} else if !srcFileInfo.IsDir() {
+		return &CopyError{src, dst}
+	}
+
+	entries, err := ioutil.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	if dstFileInfo, err := os.Stat(dst); os.IsNotExist(err) {
+		if err := os.MkdirAll(dst, srcFileInfo.Mode()); err != nil {
+			return err
+		}
+	} else if !dstFileInfo.IsDir() {
+		return &CopyError{src, dst}
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entryFileInfo, err := os.Lstat(srcPath); err != nil {
+			return err
+		} else if entryFileInfo.IsDir() {
+			if err = c.copyTreeWithOwnerAndPerms(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else {
+			if err = c.copyWithOwnerAndPerms(srcPath, dstPath); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err = c.copyOwnerAndPerms(src, dst); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Mount a single named volume into the container.
 // If necessary, copy up image contents into the volume.
 // Does not verify that the name volume given is actually present in container
@@ -1463,8 +1586,10 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
 		}
-		if err := c.copyWithTarFromImage(srcDir, volMount); err != nil && !os.IsNotExist(err) {
-			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
+		if err := c.copyTreeWithOwnerAndPerms(srcDir, volMount); err != nil {
+			return nil, errors.Wrapf(err,
+				"error copyOwnerAndPerms %s, container %s volume %s",
+				srcDir, c.ID(), vol.Name())
 		}
 	}
 	return vol, nil
