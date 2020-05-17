@@ -695,7 +695,10 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 				return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %s found in database when adding container %s", vol.Name, ctr.ID())
 			}
 
-			ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+			ctrDepsBkt, err := volDB.CreateBucketIfNotExists(volDependenciesBkt)
+			if err != nil {
+				return errors.Wrapf(err, "error creating volume %s dependencies bucket to add container %s", vol.Name, ctr.ID())
+			}
 			if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
 				if err := ctrDepsBkt.Put(ctrID, ctrID); err != nil {
 					return errors.Wrapf(err, "error adding container %s to volume %s dependencies", ctr.ID(), vol.Name)
@@ -890,6 +893,9 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		}
 
 		ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+		if ctrDepsBkt == nil {
+			return errors.Wrapf(define.ErrInternal, "volume %s is missing container dependencies bucket, cannot remove container %s from dependencies", vol.Name, ctr.ID())
+		}
 		if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
 			if err := ctrDepsBkt.Delete(ctrID); err != nil {
 				return errors.Wrapf(err, "error deleting container %s dependency on volume %s", ctr.ID(), vol.Name)
