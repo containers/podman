@@ -30,6 +30,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/termie/go-shutil"
 )
 
 const (
@@ -1455,7 +1456,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
 		}
-		if err := c.copyWithTarFromImage(srcDir, volMount); err != nil && !os.IsNotExist(err) {
+		if err := shutil.CopyTree(srcDir, volMount, nil); err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
 		}
 	}
