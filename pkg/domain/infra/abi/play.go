@@ -26,6 +26,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	v1apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -38,13 +39,7 @@ const (
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
 	var (
-		containers    []*libpod.Container
-		pod           *libpod.Pod
-		podOptions    []libpod.PodCreateOption
-		podYAML       v1.Pod
-		registryCreds *types.DockerAuthConfig
-		writer        io.Writer
-		report        entities.PlayKubeReport
+		kubeObject v1.ObjectReference
 	)
 
 	content, err := ioutil.ReadFile(path)
@@ -52,19 +47,79 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 		return nil, err
 	}
 
-	if err := yaml.Unmarshal(content, &podYAML); err != nil {
+	if err := yaml.Unmarshal(content, &kubeObject); err != nil {
 		return nil, errors.Wrapf(err, "unable to read %q as YAML", path)
 	}
 
 	// NOTE: pkg/bindings/play is also parsing the file.
 	// A pkg/kube would be nice to refactor and abstract
 	// parts of the K8s-related code.
-	if podYAML.Kind != "Pod" {
-		return nil, errors.Errorf("invalid YAML kind: %q. Pod is the only supported Kubernetes YAML kind", podYAML.Kind)
+	switch kubeObject.Kind {
+	case "Pod":
+		var podYAML v1.Pod
+		var podTemplateSpec v1.PodTemplateSpec
+		if err := yaml.Unmarshal(content, &podYAML); err != nil {
+			return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Pod", path)
+		}
+		podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
+		podTemplateSpec.Spec = podYAML.Spec
+		return ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options)
+	case "Deployment":
+		var deploymentYAML v1apps.Deployment
+		if err := yaml.Unmarshal(content, &deploymentYAML); err != nil {
+			return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Deployment", path)
+		}
+		return ic.playKubeDeployment(ctx, &deploymentYAML, options)
+	default:
+		return nil, errors.Errorf("invalid YAML kind: %q. [Pod|Deployment] are the only supported Kubernetes Kinds", kubeObject.Kind)
 	}
 
+}
+
+func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+	var (
+		deploymentName string
+		podSpec        v1.PodTemplateSpec
+		numReplicas    int32
+		i              int32
+		report         entities.PlayKubeReport
+	)
+
+	deploymentName = deploymentYAML.ObjectMeta.Name
+	if deploymentName == "" {
+		return nil, errors.Errorf("Deployment does not have a name")
+	}
+	numReplicas = 1
+	if deploymentYAML.Spec.Replicas != nil {
+		numReplicas = *deploymentYAML.Spec.Replicas
+	}
+	podSpec = deploymentYAML.Spec.Template
+
+	// create "replicas" number of pods
+	for i = 0; i < numReplicas; i++ {
+		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
+		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Error encountered while bringing up pod %s", podName)
+		}
+		report.Pods = append(report.Pods, podReport.Pods...)
+		report.Containers = append(report.Containers, podReport.Containers...)
+		report.Logs = append(report.Logs, podReport.Logs...)
+	}
+	return &report, nil
+}
+
+func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+	var (
+		containers    []*libpod.Container
+		pod           *libpod.Pod
+		podOptions    []libpod.PodCreateOption
+		registryCreds *types.DockerAuthConfig
+		writer        io.Writer
+		report        entities.PlayKubeReport
+	)
+
 	// check for name collision between pod and container
-	podName := podYAML.ObjectMeta.Name
 	if podName == "" {
 		return nil, errors.Errorf("pod does not have a name")
 	}
@@ -239,7 +294,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 		if err != nil {
 			return nil, err
 		}
-		conf, err := kubeContainerToCreateConfig(ctx, container, ic.Libpod, newImage, namespaces, volumes, pod.ID(), podInfraID, seccompPaths)
+		conf, err := kubeContainerToCreateConfig(ctx, container, ic.Libpod, newImage, namespaces, volumes, pod.ID(), podName, podInfraID, seccompPaths)
 		if err != nil {
 			return nil, err
 		}
@@ -259,7 +314,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 		}
 	}
 
-	report.Pod = pod.ID()
+	report.Pods = append(report.Pods, pod.ID())
 	for _, ctr := range containers {
 		report.Containers = append(report.Containers, ctr.ID())
 	}
@@ -351,7 +406,7 @@ func setupSecurityContext(securityConfig *createconfig.SecurityConfig, userConfi
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, infraID string, seccompPaths *kubeSeccompPaths) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, podName, infraID string, seccompPaths *kubeSeccompPaths) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		pidConfig       createconfig.PidConfig
@@ -369,6 +424,11 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.Image = containerYAML.Image
 	containerConfig.ImageID = newImage.ID()
 	containerConfig.Name = containerYAML.Name
+
+	if podName != "" {
+		containerConfig.Name = fmt.Sprintf("%s-%s", podName, containerYAML.Name)
+	}
+
 	containerConfig.Tty = containerYAML.TTY
 
 	containerConfig.Pod = podID

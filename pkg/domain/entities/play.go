@@ -28,8 +28,8 @@ type PlayKubeOptions struct {
 
 // PlayKubeReport contains the results of running play kube.
 type PlayKubeReport struct {
-	// Pod - the ID of the created pod.
-	Pod string
+	// Pods - the IDs of the created pods.
+	Pods []string
 	// Containers - the IDs of the containers running in the created pod.
 	Containers []string
 	// Logs - non-fatal erros and log messages while processing.
