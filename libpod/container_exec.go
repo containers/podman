@@ -62,6 +62,10 @@ type ExecConfig struct {
 	// given is the number that will be passed into the exec session,
 	// starting at 3.
 	PreserveFDs uint `json:"preserveFds,omitempty"`
+	// ExitCommand is the exec session's exit command.
+	// This command will be executed when the exec session exits.
+	// If unset, no command will be executed.
+	ExitCommand []string `json:"exitCommand,omitempty"`
 }
 
 // ExecSession contains information on a single exec session attached to a given

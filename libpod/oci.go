@@ -165,6 +165,9 @@ type ExecOptions struct {
 	// If provided but set to "", detaching from the container will be
 	// disabled.
 	DetachKeys *string
+	// ExitCommand is a command that will be run after the exec session
+	// exits.
+	ExitCommand []string
 }
 
 // HTTPAttachStreams informs the HTTPAttach endpoint which of the container's
