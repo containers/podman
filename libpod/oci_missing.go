@@ -130,6 +130,11 @@ func (r *MissingRuntime) ExecContainerHTTP(ctr *Container, sessionID string, opt
 	return -1, nil, r.printError()
 }
 
+// ExecContainerDetached is not available as the runtime is missing
+func (r *MissingRuntime) ExecContainerDetached(ctr *Container, sessionID string, options *ExecOptions, stdin bool) (int, error) {
+	return -1, r.printError()
+}
+
 // ExecAttachResize is not available as the runtime is missing.
 func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error {
 	return r.printError()

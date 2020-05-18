@@ -68,10 +68,10 @@ type OCIRuntime interface {
 	AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error
 
 	// ExecContainer executes a command in a running container.
-	// Returns an int (exit code), error channel (errors from attach), and
-	// error (errors that occurred attempting to start the exec session).
-	// This returns once the exec session is running - not once it has
-	// completed, as one might expect. The attach session will remain
+	// Returns an int (PID of exec session), error channel (errors from
+	// attach), and error (errors that occurred attempting to start the exec
+	// session). This returns once the exec session is running - not once it
+	// has completed, as one might expect. The attach session will remain
 	// running, in a goroutine that will return via the chan error in the
 	// return signature.
 	ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams) (int, chan error, error)
@@ -81,6 +81,10 @@ type OCIRuntime interface {
 	// start, with a goroutine running in the background to handle attach).
 	// The HTTP attach itself maintains the same invariants as HTTPAttach.
 	ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, cancel <-chan bool) (int, chan error, error)
+	// ExecContainerDetached executes a command in a running container, but
+	// does not attach to it. Returns the PID of the exec session and an
+	// error (if starting the exec session failed)
+	ExecContainerDetached(ctr *Container, sessionID string, options *ExecOptions, stdin bool) (int, error)
 	// ExecAttachResize resizes the terminal of a running exec session. Only
 	// allowed with sessions that were created with a TTY.
 	ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error

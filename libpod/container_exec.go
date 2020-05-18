@@ -214,11 +214,52 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 }
 
 // ExecStart starts an exec session in the container, but does not attach to it.
-// Returns immediately upon starting the exec session.
+// Returns immediately upon starting the exec session, unlike other ExecStart
+// functions, which will only return when the exec session exits.
 func (c *Container) ExecStart(sessionID string) error {
-	// Will be implemented in part 2, migrating Start and implementing
-	// detached Start.
-	return define.ErrNotImplemented
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	// Verify that we are in a good state to continue
+	if !c.ensureState(define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "can only start exec sessions when their container is running")
+	}
+
+	session, ok := c.state.ExecSessions[sessionID]
+	if !ok {
+		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+	}
+
+	if session.State != define.ExecStateCreated {
+		return errors.Wrapf(define.ErrExecSessionStateInvalid, "can only start created exec sessions, while container %s session %s state is %q", c.ID(), session.ID(), session.State.String())
+	}
+
+	logrus.Infof("Going to start container %s exec session %s and attach to it", c.ID(), session.ID())
+
+	opts, err := prepareForExec(c, session)
+	if err != nil {
+		return err
+	}
+
+	pid, err := c.ociRuntime.ExecContainerDetached(c, session.ID(), opts, session.Config.AttachStdin)
+	if err != nil {
+		return err
+	}
+
+	c.newContainerEvent(events.Exec)
+	logrus.Debugf("Successfully started exec session %s in container %s", session.ID(), c.ID())
+
+	// Update and save session to reflect PID/running
+	session.PID = pid
+	session.State = define.ExecStateRunning
+
+	return c.save()
 }
 
 // ExecStartAndAttach starts and attaches to an exec session in a container.

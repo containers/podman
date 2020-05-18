@@ -143,6 +143,49 @@ func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, o
 	return pid, attachChan, err
 }
 
+// ExecContainerDetached executes a command in a running container, but does
+// not attach to it.
+func (r *ConmonOCIRuntime) ExecContainerDetached(ctr *Container, sessionID string, options *ExecOptions, stdin bool) (int, error) {
+	if options == nil {
+		return -1, errors.Wrapf(define.ErrInvalidArg, "must provide exec options to ExecContainerHTTP")
+	}
+
+	var ociLog string
+	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
+		ociLog = ctr.execOCILog(sessionID)
+	}
+
+	execCmd, pipes, err := r.startExec(ctr, sessionID, options, stdin, ociLog)
+	if err != nil {
+		return -1, err
+	}
+
+	defer func() {
+		pipes.cleanup()
+	}()
+
+	// Wait for Conmon to tell us we're ready to attach.
+	// We aren't actually *going* to attach, but this means that we're good
+	// to proceed.
+	if _, err := readConmonPipeData(pipes.attachPipe, ""); err != nil {
+		return -1, err
+	}
+
+	// Start the exec session
+	if err := writeConmonPipeData(pipes.startPipe); err != nil {
+		return -1, err
+	}
+
+	// Wait for conmon to succeed, when return.
+	if err := execCmd.Wait(); err != nil {
+		return -1, errors.Wrapf(err, "cannot run conmon")
+	}
+
+	pid, err := readConmonPipeData(pipes.syncPipe, ociLog)
+
+	return pid, err
+}
+
 // ExecAttachResize resizes the TTY of the given exec session.
 func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error {
 	controlFile, err := openControlFile(ctr, ctr.execBundlePath(sessionID))
