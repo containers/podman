@@ -52,7 +52,7 @@ func Remove(ctx context.Context, nameOrID string, force bool) (*entities.ImageRe
 
 	params := url.Values{}
 	params.Set("force", strconv.FormatBool(force))
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/%s/remove", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/%s", params, nameOrID)
 	if err != nil {
 		return nil, err
 	}
