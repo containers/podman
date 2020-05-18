@@ -7,8 +7,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
@@ -16,6 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -374,11 +378,58 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		params.Add("stderr", "true")
 	}
 
+	// Unless all requirements are met, don't use "stdin" is a terminal
+	file, ok := stdin.(*os.File)
+	needTTY := ok && terminal.IsTerminal(int(file.Fd())) && ctnr.Config.Tty
+	if needTTY {
+		state, err := terminal.MakeRaw(int(file.Fd()))
+		if err != nil {
+			return err
+		}
+
+		logrus.SetFormatter(&rawFormatter{})
+
+		defer func() {
+			if err := terminal.Restore(int(file.Fd()), state); err != nil {
+				logrus.Errorf("unable to restore terminal: %q", err)
+			}
+			logrus.SetFormatter(&logrus.TextFormatter{})
+		}()
+
+		winChange := make(chan os.Signal, 1)
+		signal.Notify(winChange, syscall.SIGWINCH)
+		winCtx, winCancel := context.WithCancel(ctx)
+		defer winCancel()
+
+		go func() {
+			// Prime the pump, we need one reset to ensure everything is ready
+			winChange <- syscall.SIGWINCH
+			for {
+				select {
+				case <-winCtx.Done():
+					return
+				case <-winChange:
+					h, w, err := terminal.GetSize(int(file.Fd()))
+					if err != nil {
+						logrus.Warnf("failed to obtain TTY size: " + err.Error())
+					}
+
+					if err := ResizeContainerTTY(ctx, nameOrId, &h, &w); err != nil {
+						logrus.Warnf("failed to resize TTY: " + err.Error())
+					}
+				}
+			}
+		}()
+	}
+
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/attach", params, nameOrId)
 	if err != nil {
 		return err
 	}
 	defer response.Body.Close()
+	if !(response.IsSuccess() || response.IsInformational()) {
+		return response.Process(nil)
+	}
 
 	if stdin != nil {
 		go func() {
@@ -401,11 +452,8 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 			// Read multiplexed channels and write to appropriate stream
 			fd, l, err := DemuxHeader(response.Body, buffer)
 			if err != nil {
-				switch {
-				case errors.Is(err, io.EOF):
+				if errors.Is(err, io.EOF) {
 					return nil
-				case errors.Is(err, io.ErrUnexpectedEOF):
-					continue
 				}
 				return err
 			}
@@ -437,7 +485,7 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 			}
 		}
 	}
-	return err
+	return nil
 }
 
 // DemuxHeader reads header for stream from server multiplexed stdin/stdout/stderr/2nd error channel
@@ -476,4 +524,47 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 	}
 
 	return buffer[0:length], nil
+}
+
+// ResizeContainerTTY sets container's TTY height and width in characters
+func ResizeContainerTTY(ctx context.Context, nameOrId string, height *int, width *int) error {
+	return resizeTTY(ctx, bindings.JoinURL("containers", nameOrId, "resize"), height, width)
+}
+
+// ResizeExecTTY sets session's TTY height and width in characters
+func ResizeExecTTY(ctx context.Context, nameOrId string, height *int, width *int) error {
+	return resizeTTY(ctx, bindings.JoinURL("exec", nameOrId, "resize"), height, width)
+}
+
+// resizeTTY set size of TTY of container
+func resizeTTY(ctx context.Context, endpoint string, height *int, width *int) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	params := url.Values{}
+	if height != nil {
+		params.Set("h", strconv.Itoa(*height))
+	}
+	if width != nil {
+		params.Set("w", strconv.Itoa(*width))
+	}
+	rsp, err := conn.DoRequest(nil, http.MethodPost, endpoint, params)
+	if err != nil {
+		return err
+	}
+	return rsp.Process(nil)
+}
+
+type rawFormatter struct {
+	logrus.TextFormatter
+}
+
+func (f *rawFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	buffer, err := f.TextFormatter.Format(entry)
+	if err != nil {
+		return buffer, err
+	}
+	return append(buffer, '\r'), nil
 }

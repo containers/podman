@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 // AttachHeader is the literal header sent for upgraded/hijacked connections for
@@ -126,39 +125,4 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logrus.Debugf("Attach for container %s completed successfully", ctr.ID())
-}
-
-func ResizeContainer(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-
-	query := struct {
-		Height uint16 `schema:"h"`
-		Width  uint16 `schema:"w"`
-	}{}
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		// This is not a 400, despite the fact that is should be, for
-		// compatibility reasons.
-		utils.InternalServerError(w, errors.Wrapf(err, "error parsing query options"))
-		return
-	}
-
-	name := utils.GetName(r)
-	ctr, err := runtime.LookupContainer(name)
-	if err != nil {
-		utils.ContainerNotFound(w, name, err)
-		return
-	}
-
-	newSize := remotecommand.TerminalSize{
-		Width:  query.Width,
-		Height: query.Height,
-	}
-	if err := ctr.AttachResize(newSize); err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	// This is not a 204, even though we write nothing, for compatibility
-	// reasons.
-	utils.WriteResponse(w, http.StatusOK, "")
 }
