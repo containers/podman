@@ -854,7 +854,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/remove"), s.APIHandler(libpod.ImagesBatchRemove)).Methods(http.MethodDelete)
-	// swagger:operation DELETE /libpod/images/{name:.*}/remove libpod libpodRemoveImage
+	// swagger:operation DELETE /libpod/images/{name:.*} libpod libpodRemoveImage
 	// ---
 	// tags:
 	//  - images
@@ -883,7 +883,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/ConflictError'
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/remove"), s.APIHandler(libpod.ImagesRemove)).Methods(http.MethodDelete)
+	r.Handle(VersionedPath("/libpod/images/{name:.*}"), s.APIHandler(libpod.ImagesRemove)).Methods(http.MethodDelete)
 	// swagger:operation POST /libpod/images/pull libpod libpodImagesPull
 	// ---
 	// tags:
