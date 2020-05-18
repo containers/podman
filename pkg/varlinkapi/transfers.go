@@ -39,7 +39,7 @@ func (i *VarlinkAPI) SendFile(call iopodman.VarlinkCall, ftype string, length in
 
 	logrus.Debugf("successfully received %s", outputFile.Name())
 	// Send an ACK to the client
-	call.Call.Writer.WriteString(outputFile.Name())
+	call.Call.Writer.WriteString(outputFile.Name() + ":")
 	call.Call.Writer.Flush()
 	return nil
 
