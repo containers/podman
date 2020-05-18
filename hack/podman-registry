@@ -1,0 +1,231 @@
+#! /bin/bash
+#
+# podman-registry - start/stop/monitor a local instance of registry:2
+#
+ME=$(basename $0)
+
+###############################################################################
+# BEGIN defaults
+
+PODMAN_REGISTRY_IMAGE=docker.io/library/registry:2
+
+PODMAN_REGISTRY_USER=
+PODMAN_REGISTRY_PASS=
+PODMAN_REGISTRY_PORT=
+
+# Podman binary to run
+PODMAN=${PODMAN:-$(type -p podman)}
+
+# END   defaults
+###############################################################################
+# BEGIN help messages
+
+missing=" argument is missing; see $ME --help for details"
+usage="Usage: $ME [options] [start|stop|ps|logs]
+
+$ME manages a local instance of a container registry.
+
+When called to start a registry, $ME will pull an image
+into a local temporary directory, create an htpasswd, start the
+registry, and dump a series of environment variables to stdout:
+
+    \$ $ME start
+    PODMAN_REGISTRY_IMAGE=\"docker.io/library/registry:2\"
+    PODMAN_REGISTRY_PORT=\"5050\"
+    PODMAN_REGISTRY_USER=\"userZ3RZ\"
+    PODMAN_REGISTRY_PASS=\"T8JVJzKrcl4p6uT\"
+
+Expected usage, therefore, is something like this in a script
+
+    eval \$($ME start)
+
+To stop the registry, you will need to know the port number:
+
+    $ME -P \$PODMAN_REGISTRY_PORT stop
+
+Override the default image, port, user, password with:
+
+  -i IMAGE      registry image to pull (default: $PODMAN_REGISTRY_IMAGE)
+  -u USER       registry user (default: random)
+  -p PASS       password for registry user (default: random)
+  -P PORT       port to bind to (on 127.0.0.1) (default: random, 5000-5999)
+
+Other options:
+
+  -h            display usage message
+"
+
+die () {
+    echo "$ME: $*" >&2
+    exit 1
+}
+
+# END   help messages
+###############################################################################
+# BEGIN option processing
+
+while getopts "i:u:p:P:hv" opt; do
+    case "$opt" in
+        i)         PODMAN_REGISTRY_IMAGE=$OPTARG ;;
+        u)         PODMAN_REGISTRY_USER=$OPTARG  ;;
+        p)         PODMAN_REGISTRY_PASS=$OPTARG  ;;
+        P)         PODMAN_REGISTRY_PORT=$OPTARG  ;;
+        h)         echo "$usage"; exit 0;;
+        v)         verbose=1 ;;
+        \?)        echo "Run '$ME -h' for help" >&2; exit 1;;
+    esac
+done
+shift $((OPTIND-1))
+
+# END   option processing
+###############################################################################
+# BEGIN helper functions
+
+function random_string() {
+    local length=${1:-10}
+
+    head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
+}
+
+function podman() {
+    if [ -z "${PODMAN_REGISTRY_PORT}" ]; then
+        die "podman port undefined; please invoke me with -P PORT"
+    fi
+
+    if [ -z "${PODMAN_REGISTRY_WORKDIR}" ]; then
+        PODMAN_REGISTRY_WORKDIR=${TMPDIR:-/tmp}/podman-registry-${PODMAN_REGISTRY_PORT}
+        if [ ! -d ${PODMAN_REGISTRY_WORKDIR} ]; then
+            die "$ME: directory does not exist: ${PODMAN_REGISTRY_WORKDIR}"
+        fi
+    fi
+
+    ${PODMAN} --root    ${PODMAN_REGISTRY_WORKDIR}/root        \
+              --runroot ${PODMAN_REGISTRY_WORKDIR}/runroot     \
+              "$@"
+}
+
+# END   helper functions
+###############################################################################
+# BEGIN action processing
+
+function do_start() {
+    # If called without a port, assign a random one in the 5xxx range
+    if [ -z "${PODMAN_REGISTRY_PORT}" ]; then
+        for port in $(shuf -i 5000-5999);do
+            if ! { exec 3<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then
+                PODMAN_REGISTRY_PORT=$port
+                break
+            fi
+        done
+    fi
+
+    PODMAN_REGISTRY_WORKDIR=${TMPDIR:-/tmp}/podman-registry-${PODMAN_REGISTRY_PORT}
+    if [ -d ${PODMAN_REGISTRY_WORKDIR} ]; then
+        die "$ME: directory exists: ${PODMAN_REGISTRY_WORKDIR} (another registry might already be running on this port)"
+    fi
+
+    # Randomly-generated username and password, if none given on command line
+    if [ -z "${PODMAN_REGISTRY_USER}" ]; then
+        PODMAN_REGISTRY_USER="user$(random_string 4)"
+    fi
+    if [ -z "${PODMAN_REGISTRY_PASS}" ]; then
+        PODMAN_REGISTRY_PASS=$(random_string 15)
+    fi
+
+    # Die on any error
+    set -e
+
+    mkdir -p ${PODMAN_REGISTRY_WORKDIR}
+
+    local AUTHDIR=${PODMAN_REGISTRY_WORKDIR}/auth
+    mkdir -p $AUTHDIR
+
+    # We have to be silent; our only output must be env. vars. Log output here.
+    local log=${PODMAN_REGISTRY_WORKDIR}/log
+    touch $log
+
+    # Pull registry image, but into a separate container storage
+    mkdir -p ${PODMAN_REGISTRY_WORKDIR}/root
+    mkdir -p ${PODMAN_REGISTRY_WORKDIR}/runroot
+
+    # Give it three tries, to compensate for flakes
+    podman pull ${PODMAN_REGISTRY_IMAGE}      &>> $log  ||
+        podman pull ${PODMAN_REGISTRY_IMAGE}  &>> $log  ||
+        podman pull ${PODMAN_REGISTRY_IMAGE}  &>> $log
+
+    # Registry image needs a cert. Self-signed is good enough.
+    local CERT=$AUTHDIR/domain.crt
+    # FIXME: if this fails, we fail silently! It'd be more helpful
+    # to say 'openssl failed' and cat the logfile
+    openssl req -newkey rsa:4096 -nodes -sha256                      \
+            -keyout ${AUTHDIR}/domain.key -x509 -days 2              \
+            -out ${AUTHDIR}/domain.crt                               \
+            -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost"  \
+        &>> $log
+
+    # Store credentials where container will see them
+    podman run --rm                                               \
+           --entrypoint htpasswd ${PODMAN_REGISTRY_IMAGE}         \
+           -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
+           > $AUTHDIR/htpasswd
+
+    # In case someone needs to debug
+    echo "${PODMAN_REGISTRY_USER}:${PODMAN_REGISTRY_PASS}" \
+         > $AUTHDIR/htpasswd-plaintext
+
+    # Run the registry container.
+    podman run --quiet -d                                            \
+           -p ${PODMAN_REGISTRY_PORT}:5000                           \
+           --name registry                                           \
+           -v $AUTHDIR:/auth:Z                                       \
+           -e "REGISTRY_AUTH=htpasswd"                               \
+           -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm"          \
+           -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd"           \
+           -e "REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt"       \
+           -e "REGISTRY_HTTP_TLS_KEY=/auth/domain.key"               \
+           registry:2 &>> $log
+
+    # Dump settings. Our caller will use these to access the registry.
+    for v in IMAGE PORT USER PASS; do
+        echo "PODMAN_REGISTRY_${v}=\"$(eval echo \$PODMAN_REGISTRY_${v})\""
+    done
+}
+
+
+function do_stop() {
+    podman stop registry
+    podman rm -f registry
+
+    rm -rf ${PODMAN_REGISTRY_WORKDIR}
+}
+
+
+function do_ps() {
+    podman ps -a
+}
+
+
+function do_logs() {
+    podman logs registry
+}
+
+# END   action processing
+###############################################################################
+# BEGIN command-line processing
+
+# First command-line arg must be an action
+action=${1?ACTION$missing}
+shift
+
+case "$action" in
+    start)  do_start  ;;
+    stop)   do_stop   ;;
+    ps)     do_ps     ;;
+    logs)   do_logs   ;;
+    *)      die "Unknown action '$action'; must be start / stop / ps / logs" ;;
+esac
+
+# END   command-line processing
+###############################################################################
+
+exit 0
