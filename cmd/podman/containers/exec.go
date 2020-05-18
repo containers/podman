@@ -2,9 +2,11 @@ package containers
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/pkg/errors"
@@ -41,10 +43,12 @@ var (
 var (
 	envInput, envFile []string
 	execOpts          entities.ExecOptions
+	execDetach        bool
 )
 
 func execFlags(flags *pflag.FlagSet) {
 	flags.SetInterspersed(false)
+	flags.BoolVarP(&execDetach, "detach", "d", false, "Run the exec session in detached mode (backgrounded)")
 	flags.StringVar(&execOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
 	flags.StringArrayVarP(&envInput, "env", "e", []string{}, "Set environment variables")
 	flags.StringSliceVar(&envFile, "env-file", []string{}, "Read in a file of environment variables")
@@ -106,16 +110,27 @@ func exec(cmd *cobra.Command, args []string) error {
 	}
 
 	execOpts.Envs = envLib.Join(execOpts.Envs, cliEnv)
-	execOpts.Streams.OutputStream = os.Stdout
-	execOpts.Streams.ErrorStream = os.Stderr
-	if execOpts.Interactive {
-		execOpts.Streams.InputStream = bufio.NewReader(os.Stdin)
-		execOpts.Streams.AttachInput = true
-	}
-	execOpts.Streams.AttachOutput = true
-	execOpts.Streams.AttachError = true
 
-	exitCode, err := registry.ContainerEngine().ContainerExec(registry.GetContext(), nameOrId, execOpts)
-	registry.SetExitCode(exitCode)
-	return err
+	if !execDetach {
+		streams := define.AttachStreams{}
+		streams.OutputStream = os.Stdout
+		streams.ErrorStream = os.Stderr
+		if execOpts.Interactive {
+			streams.InputStream = bufio.NewReader(os.Stdin)
+			streams.AttachInput = true
+		}
+		streams.AttachOutput = true
+		streams.AttachError = true
+
+		exitCode, err := registry.ContainerEngine().ContainerExec(registry.GetContext(), nameOrId, execOpts, streams)
+		registry.SetExitCode(exitCode)
+		return err
+	}
+
+	id, err := registry.ContainerEngine().ContainerExecDetached(registry.GetContext(), nameOrId, execOpts)
+	if err != nil {
+		return err
+	}
+	fmt.Println(id)
+	return nil
 }

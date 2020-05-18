@@ -536,7 +536,22 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string,
 	return nil
 }
 
-func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions) (int, error) {
+func makeExecConfig(options entities.ExecOptions) *libpod.ExecConfig {
+	execConfig := new(libpod.ExecConfig)
+	execConfig.Command = options.Cmd
+	execConfig.Terminal = options.Tty
+	execConfig.Privileged = options.Privileged
+	execConfig.Environment = options.Envs
+	execConfig.User = options.User
+	execConfig.WorkDir = options.WorkDir
+	execConfig.DetachKeys = &options.DetachKeys
+	execConfig.PreserveFDs = options.PreserveFDs
+	execConfig.AttachStdin = options.Interactive
+
+	return execConfig
+}
+
+func checkExecPreserveFDs(options entities.ExecOptions) (int, error) {
 	ec := define.ExecErrorCodeGeneric
 	if options.PreserveFDs > 0 {
 		entries, err := ioutil.ReadDir("/proc/self/fd")
@@ -559,13 +574,50 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, o
 			}
 		}
 	}
+	return ec, nil
+}
+
+func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
+	ec, err := checkExecPreserveFDs(options)
+	if err != nil {
+		return ec, err
+	}
 	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrId}, ic.Libpod)
 	if err != nil {
 		return ec, err
 	}
 	ctr := ctrs[0]
-	ec, err = terminal.ExecAttachCtr(ctx, ctr, options.Tty, options.Privileged, options.Envs, options.Cmd, options.User, options.WorkDir, &options.Streams, options.PreserveFDs, options.DetachKeys)
+
+	execConfig := makeExecConfig(options)
+
+	ec, err = terminal.ExecAttachCtr(ctx, ctr, execConfig, &streams)
 	return define.TranslateExecErrorToExitCode(ec, err), err
+}
+
+func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrId string, options entities.ExecOptions) (string, error) {
+	_, err := checkExecPreserveFDs(options)
+	if err != nil {
+		return "", err
+	}
+	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrId}, ic.Libpod)
+	if err != nil {
+		return "", err
+	}
+	ctr := ctrs[0]
+
+	execConfig := makeExecConfig(options)
+
+	// Create and start the exec session
+	id, err := ctr.ExecCreate(execConfig)
+	if err != nil {
+		return "", err
+	}
+
+	// TODO: we should try and retrieve exit code if this fails.
+	if err := ctr.ExecStart(id); err != nil {
+			return "", err
+	}
+	return id, nil
 }
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {

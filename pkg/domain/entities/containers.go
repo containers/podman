@@ -242,7 +242,6 @@ type ExecOptions struct {
 	Latest      bool
 	PreserveFDs uint
 	Privileged  bool
-	Streams     define.AttachStreams
 	Tty         bool
 	User        string
 	WorkDir     string
