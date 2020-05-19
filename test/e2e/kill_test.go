@@ -100,7 +100,7 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill latest container", func() {
-		Skip(v2remotefail)
+		SkipIfRemote()
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

@@ -90,7 +90,7 @@ var _ = Describe("Podman images", func() {
 		session = podmanTest.PodmanNoCache([]string{"images", "-qn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 3))
 	})
 
 	It("podman images with digests", func() {
@@ -164,13 +164,13 @@ var _ = Describe("Podman images", func() {
 		retapline := podmanTest.PodmanNoCache([]string{"images", "-f", "reference=a*pine"})
 		retapline.WaitWithDefaultTimeout()
 		Expect(retapline).Should(Exit(0))
-		Expect(len(retapline.OutputToStringArray())).To(Equal(2))
+		Expect(len(retapline.OutputToStringArray())).To(Equal(3))
 		Expect(retapline.LineInOutputContains("alpine")).To(BeTrue())
 
 		retapline = podmanTest.PodmanNoCache([]string{"images", "-f", "reference=alpine"})
 		retapline.WaitWithDefaultTimeout()
 		Expect(retapline).Should(Exit(0))
-		Expect(len(retapline.OutputToStringArray())).To(Equal(2))
+		Expect(len(retapline.OutputToStringArray())).To(Equal(3))
 		Expect(retapline.LineInOutputContains("alpine")).To(BeTrue())
 
 		retnone := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "reference=bogus"})
@@ -321,12 +321,12 @@ ENV foo=bar
 		session := podmanTest.PodmanNoCache([]string{"images"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(4))
+		Expect(len(session.OutputToStringArray())).To(Equal(5))
 
 		session2 := podmanTest.PodmanNoCache([]string{"images", "--all"})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(Exit(0))
-		Expect(len(session2.OutputToStringArray())).To(Equal(6))
+		Expect(len(session2.OutputToStringArray())).To(Equal(7))
 	})
 
 	It("podman images filter by label", func() {

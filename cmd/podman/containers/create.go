@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
+
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
@@ -203,7 +205,7 @@ func pullImage(imageName string) error {
 	}
 	if !br.Value || pullPolicy == config.PullImageAlways {
 		if pullPolicy == config.PullImageNever {
-			return errors.New("unable to find a name and tag match for busybox in repotags: no such image")
+			return errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", imageName)
 		}
 		_, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
 			Authfile:     cliVals.Authfile,

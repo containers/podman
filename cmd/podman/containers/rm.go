@@ -128,5 +128,7 @@ func setExitCode(err error) {
 		registry.SetExitCode(1)
 	case cause == define.ErrCtrStateInvalid:
 		registry.SetExitCode(2)
+	case strings.Contains(cause.Error(), define.ErrCtrStateInvalid.Error()):
+		registry.SetExitCode(2)
 	}
 }

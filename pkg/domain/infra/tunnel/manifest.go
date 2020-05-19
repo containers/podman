@@ -57,46 +57,21 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 		}
 		manifestAddOpts.Annotation = annotations
 	}
-	listID, err := manifests.Add(ctx, opts.Images[1], manifestAddOpts)
+	listID, err := manifests.Add(ir.ClientCxt, opts.Images[1], manifestAddOpts)
 	if err != nil {
 		return listID, errors.Wrapf(err, "error adding to manifest list %s", opts.Images[1])
 	}
 	return listID, nil
 }
 
-// FIXME There is no endpoint for annotate and therefor this code is currently invalid
 // ManifestAnnotate updates an entry of the manifest list
 func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opts entities.ManifestAnnotateOptions) (string, error) {
 	return "", errors.New("not implemented")
-	//	manifestAnnotateOpts := image.ManifestAnnotateOpts{
-	//		Arch:       opts.Arch,
-	//		Features:   opts.Features,
-	//		OS:         opts.OS,
-	//		OSFeatures: opts.OSFeatures,
-	//		OSVersion:  opts.OSVersion,
-	//		Variant:    opts.Variant,
-	//	}
-	//	if len(opts.Annotation) > 0 {
-	//		annotations := make(map[string]string)
-	//		for _, annotationSpec := range opts.Annotation {
-	//			spec := strings.SplitN(annotationSpec, "=", 2)
-	//			if len(spec) != 2 {
-	//				return "", errors.Errorf("no value given for annotation %q", spec[0])
-	//			}
-	//			annotations[spec[0]] = spec[1]
-	//		}
-	//		manifestAnnotateOpts.Annotation = annotations
-	//	}
-	//	updatedListID, err := manifests.Annotate(ctx, names[0], names[1], manifestAnnotateOpts)
-	//	if err != nil {
-	//		return updatedListID, errors.Wrapf(err, "error annotating %s of manifest list %s", names[1], names[0])
-	//	}
-	//	return fmt.Sprintf("%s :%s", updatedListID, names[1]), nil
 }
 
 // ManifestRemove removes the digest from manifest list
 func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (string, error) {
-	updatedListID, err := manifests.Remove(ctx, names[0], names[1])
+	updatedListID, err := manifests.Remove(ir.ClientCxt, names[0], names[1])
 	if err != nil {
 		return updatedListID, errors.Wrapf(err, "error removing from manifest %s", names[0])
 	}
@@ -105,6 +80,6 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 
 // ManifestPush pushes a manifest list or image index to the destination
 func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts entities.ManifestPushOptions) error {
-	_, err := manifests.Push(ctx, names[0], &names[1], &opts.All)
+	_, err := manifests.Push(ir.ClientCxt, names[0], &names[1], &opts.All)
 	return err
 }

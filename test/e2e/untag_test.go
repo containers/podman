@@ -59,7 +59,7 @@ var _ = Describe("Podman untag", func() {
 		results := podmanTest.PodmanNoCache([]string{"images"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(results.OutputToStringArray()).To(HaveLen(5))
+		Expect(results.OutputToStringArray()).To(HaveLen(6))
 		Expect(results.LineInOuputStartsWith("docker.io/library/alpine")).To(BeTrue())
 		Expect(results.LineInOuputStartsWith("localhost/foo")).To(BeTrue())
 		Expect(results.LineInOuputStartsWith("localhost/bar")).To(BeTrue())
