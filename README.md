@@ -6,12 +6,12 @@ Libpod provides a library for applications looking to use the Container Pod conc
 popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`. Podman manages pods, containers, container images, and container volumes.
 
 * [Latest Version: 1.9.2](https://github.com/containers/libpod/releases/latest)
+  * Latest Remote client for Windows
+  * Latest Remote client for MacOs
+  * Latest Static Remote client for Linux
+
 * [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 * [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/libpod/libpod?status.svg)](https://godoc.org/github.com/containers/libpod/libpod)
-* Automated continuous release downloads (including remote-client):
-  * [Latest remote client for Windows](https://storage.googleapis.com/libpod-master-releases/podman-remote-latest-master-windows-amd64.msi)
-  * [Latest remote client for MacOS](https://storage.googleapis.com/libpod-master-releases/podman-remote-latest-master-darwin-amd64.zip)
-  * [Latest Snap package](https://snapcraft.io/podman)
 
 ## Overview and scope
 
