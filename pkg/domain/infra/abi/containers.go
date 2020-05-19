@@ -888,6 +888,20 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 	for _, ctr := range ctrs {
 		var err error
 		report := entities.ContainerCleanupReport{Id: ctr.ID()}
+
+		if options.Exec != "" {
+			if options.Remove {
+				if err := ctr.ExecRemove(options.Exec, false); err != nil {
+					return nil, err
+				}
+			} else {
+				if err := ctr.ExecCleanup(options.Exec); err != nil {
+					return nil, err
+				}
+			}
+			return []*entities.ContainerCleanupReport{}, nil
+		}
+
 		if options.Remove {
 			err = ic.Libpod.RemoveContainer(ctx, ctr, false, true)
 			if err != nil {

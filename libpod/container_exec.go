@@ -556,7 +556,27 @@ func (c *Container) ExecCleanup(sessionID string) error {
 	}
 
 	if session.State == define.ExecStateRunning {
-		return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot clean up container %s exec session %s as it is running", c.ID(), session.ID())
+		// Check if the exec session is still running.
+		alive, err := c.ociRuntime.ExecUpdateStatus(c, session.ID())
+		if err != nil {
+			return err
+		}
+
+		if alive {
+			return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot clean up container %s exec session %s as it is running", c.ID(), session.ID())
+		}
+
+		exitCode, err := c.readExecExitCode(session.ID())
+		if err != nil {
+			return err
+		}
+		session.ExitCode = exitCode
+		session.PID = 0
+		session.State = define.ExecStateStopped
+
+		if err := c.save(); err != nil {
+			return err
+		}
 	}
 
 	logrus.Infof("Cleaning up container %s exec session %s", c.ID(), session.ID())

@@ -310,6 +310,7 @@ type ContainerRunReport struct {
 // cleanup command
 type ContainerCleanupOptions struct {
 	All         bool
+	Exec        string
 	Latest      bool
 	Remove      bool
 	RemoveImage bool
