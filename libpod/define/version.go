@@ -20,13 +20,13 @@ var (
 
 // Version is an output struct for varlink
 type Version struct {
-	RemoteAPIVersion int64
-	Version          string
-	GoVersion        string
-	GitCommit        string
-	BuiltTime        string
-	Built            int64
-	OsArch           string
+	APIVersion int64
+	Version    string
+	GoVersion  string
+	GitCommit  string
+	BuiltTime  string
+	Built      int64
+	OsArch     string
 }
 
 // GetVersion returns a VersionOutput struct for varlink and podman
@@ -42,12 +42,12 @@ func GetVersion() (Version, error) {
 		}
 	}
 	return Version{
-		RemoteAPIVersion: podmanVersion.RemoteAPIVersion,
-		Version:          podmanVersion.Version,
-		GoVersion:        runtime.Version(),
-		GitCommit:        gitCommit,
-		BuiltTime:        time.Unix(buildTime, 0).Format(time.ANSIC),
-		Built:            buildTime,
-		OsArch:           runtime.GOOS + "/" + runtime.GOARCH,
+		APIVersion: podmanVersion.APIVersion,
+		Version:    podmanVersion.Version,
+		GoVersion:  runtime.Version(),
+		GitCommit:  gitCommit,
+		BuiltTime:  time.Unix(buildTime, 0).Format(time.ANSIC),
+		Built:      buildTime,
+		OsArch:     runtime.GOOS + "/" + runtime.GOARCH,
 	}, nil
 }

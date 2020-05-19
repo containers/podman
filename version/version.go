@@ -6,7 +6,7 @@ package version
 // bumped.
 const Version = "2.0.0-dev"
 
-// RemoteAPIVersion is the version for the remote
+// APIVersion is the version for the remote
 // client API.  It is used to determine compatibility
 // between a remote podman client and its backend
-const RemoteAPIVersion = 1
+const APIVersion = 1

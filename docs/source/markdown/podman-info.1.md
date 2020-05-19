@@ -121,7 +121,7 @@ version:
   GitCommit: c3678ce3289f4195f3f16802411e795c6a587c9f-dirty
   GoVersion: go1.14.2
   OsArch: linux/amd64
-  RemoteAPIVersion: 1
+  APIVersion: 1
   Version: 2.0.0
 ```
 Run podman info with JSON formatted response:
@@ -228,7 +228,7 @@ Run podman info with JSON formatted response:
 ]
   },
   "version": {
-    "RemoteAPIVersion": 1,
+    "APIVersion": 1,
     "Version": "2.0.0",
     "GoVersion": "go1.14.2",
     "GitCommit": "c3678ce3289f4195f3f16802411e795c6a587c9f-dirty",

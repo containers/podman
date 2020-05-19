@@ -23,7 +23,7 @@ function setup() {
 
     is "${lines[0]}" "Version:[ ]\+[1-9][0-9.]\+" "Version line 1"
     is "$output" ".*Go Version: \+"               "'Go Version' in output"
-    is "$output" ".*RemoteAPI Version: \+"        "API version in output"
+    is "$output" ".*API Version: \+"		  "API version in output"
 }
 
 
