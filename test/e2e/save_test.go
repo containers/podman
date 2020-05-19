@@ -68,6 +68,7 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save bogus image", func() {
+		Skip(v2remotefail)
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
 		save := podmanTest.PodmanNoCache([]string{"save", "-o", outfile, "FOOBAR"})

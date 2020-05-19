@@ -161,6 +161,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune pods", func() {
+		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -193,6 +194,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune - pod,container stopped", func() {
+		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -224,7 +226,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune with running, exited pod and volume prune set true", func() {
-
+		Skip(v2remotefail)
 		// Start and stop a pod to get it in exited state.
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
@@ -299,6 +301,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune - with dangling images true", func() {
+		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

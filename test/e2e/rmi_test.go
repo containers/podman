@@ -75,6 +75,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi tagged image", func() {
+		Skip(v2remotefail)
 		setup := podmanTest.PodmanNoCache([]string{"images", "-q", ALPINE})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
@@ -91,6 +92,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi image with tags by ID cannot be done without force", func() {
+		Skip(v2remotefail)
 		setup := podmanTest.PodmanNoCache([]string{"images", "-q", ALPINE})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))

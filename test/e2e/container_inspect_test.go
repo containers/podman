@@ -27,7 +27,7 @@ var _ = Describe("Podman container inspect", func() {
 	})
 
 	AfterEach(func() {
-		podmanTest.CleanupPod()
+		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
 	})

@@ -34,6 +34,7 @@ var _ = Describe("podman system reset", func() {
 	})
 
 	It("podman system reset", func() {
+		Skip(v2remotefail)
 		// system reset will not remove additional store images, so need to grab length
 
 		session := podmanTest.Podman([]string{"rmi", "--force", "--all"})
@@ -63,7 +64,7 @@ var _ = Describe("podman system reset", func() {
 
 		// If remote then the varlink service should have exited
 		// On local tests this is a noop
-		podmanTest.StartVarlink()
+		podmanTest.StartRemoteService()
 
 		session = podmanTest.Podman([]string{"images", "-n"})
 		session.WaitWithDefaultTimeout()

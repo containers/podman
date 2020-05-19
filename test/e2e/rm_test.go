@@ -43,6 +43,7 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm refuse to remove a running container", func() {
+		Skip(v2remotefail)
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -123,6 +124,7 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm the latest container", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

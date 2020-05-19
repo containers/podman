@@ -4,8 +4,8 @@ package integration
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"github.com/containers/libpod/pkg/rootless"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/onsi/ginkgo"
 )
 
@@ -27,22 +28,33 @@ func SkipIfRootless() {
 		ginkgo.Skip("This function is not enabled for rootless podman")
 	}
 }
+func SkipIfRootlessV2() {
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("This function is not enabled for v2 rootless podman")
+	}
+}
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, false, false)
+	var remoteArgs = []string{"--remote", p.RemoteSocket}
+	remoteArgs = append(remoteArgs, args...)
+	podmanSession := p.PodmanBase(remoteArgs, false, false)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
 func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, nil, extraFiles)
+	var remoteArgs = []string{"--remote", p.RemoteSocket}
+	remoteArgs = append(remoteArgs, args...)
+	podmanSession := p.PodmanAsUserBase(remoteArgs, 0, 0, "", nil, false, false, extraFiles)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanNoCache calls podman with out adding the imagecache
 func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, false, true)
+	var remoteArgs = []string{"--remote", p.RemoteSocket}
+	remoteArgs = append(remoteArgs, args...)
+	podmanSession := p.PodmanBase(remoteArgs, false, true)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -69,58 +81,49 @@ func resetRegistriesConfigEnv() {
 }
 func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 	pti := PodmanTestCreateUtil(tempDir, true)
-	pti.StartVarlink()
+	pti.StartRemoteService()
 	return pti
 }
 
-func (p *PodmanTestIntegration) ResetVarlinkAddress() {
-	os.Unsetenv("PODMAN_VARLINK_ADDRESS")
-}
-
-func (p *PodmanTestIntegration) SetVarlinkAddress(addr string) {
-	os.Setenv("PODMAN_VARLINK_ADDRESS", addr)
-}
-
-func (p *PodmanTestIntegration) StartVarlink() {
+func (p *PodmanTestIntegration) StartRemoteService() {
 	if os.Geteuid() == 0 {
 		os.MkdirAll("/run/podman", 0755)
 	}
-	varlinkEndpoint := p.VarlinkEndpoint
-	p.SetVarlinkAddress(p.VarlinkEndpoint)
-
-	args := []string{"varlink", "--timeout", "0", varlinkEndpoint}
-	podmanOptions := getVarlinkOptions(p, args)
+	remoteSocket := p.RemoteSocket
+	args := []string{"system", "service", "--timeout", "0", remoteSocket}
+	podmanOptions := getRemoteOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command.Start()
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	p.VarlinkCommand = command
-	p.VarlinkSession = command.Process
-	p.DelayForVarlink()
+	p.RemoteCommand = command
+	p.RemoteSession = command.Process
+	err := p.DelayForService()
+	p.RemoteStartErr = err
 }
 
-func (p *PodmanTestIntegration) StopVarlink() {
+func (p *PodmanTestIntegration) StopRemoteService() {
 	var out bytes.Buffer
 	var pids []int
-	varlinkSession := p.VarlinkSession
+	remoteSession := p.RemoteSession
 
 	if !rootless.IsRootless() {
-		if err := varlinkSession.Kill(); err != nil {
-			fmt.Fprintf(os.Stderr, "error on varlink stop-kill %q", err)
+		if err := remoteSession.Kill(); err != nil {
+			fmt.Fprintf(os.Stderr, "error on remote stop-kill %q", err)
 		}
-		if _, err := varlinkSession.Wait(); err != nil {
-			fmt.Fprintf(os.Stderr, "error on varlink stop-wait %q", err)
+		if _, err := remoteSession.Wait(); err != nil {
+			fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
 		}
 
 	} else {
-		p.ResetVarlinkAddress()
-		parentPid := fmt.Sprintf("%d", p.VarlinkSession.Pid)
+		//p.ResetVarlinkAddress()
+		parentPid := fmt.Sprintf("%d", p.RemoteSession.Pid)
 		pgrep := exec.Command("pgrep", "-P", parentPid)
 		fmt.Printf("running: pgrep %s\n", parentPid)
 		pgrep.Stdout = &out
 		err := pgrep.Run()
 		if err != nil {
-			fmt.Fprint(os.Stderr, "unable to find varlink pid")
+			fmt.Fprint(os.Stderr, "unable to find remote pid")
 		}
 
 		for _, s := range strings.Split(out.String(), "\n") {
@@ -136,12 +139,12 @@ func (p *PodmanTestIntegration) StopVarlink() {
 			}
 		}
 
-		pids = append(pids, p.VarlinkSession.Pid)
+		pids = append(pids, p.RemoteSession.Pid)
 		for _, pid := range pids {
 			syscall.Kill(pid, syscall.SIGKILL)
 		}
 	}
-	socket := strings.Split(p.VarlinkEndpoint, ":")[1]
+	socket := strings.Split(p.RemoteSocket, ":")[1]
 	if err := os.Remove(socket); err != nil {
 		fmt.Println(err)
 	}
@@ -153,7 +156,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 }
 
 //MakeOptions assembles all the podman main options
-func getVarlinkOptions(p *PodmanTestIntegration, args []string) []string {
+func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s",
 		p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager), " ")
 	if os.Getenv("HOOK_OPTION") != "" {
@@ -185,7 +188,7 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
 	args := []string{"load", "-q", "-i", destName}
-	podmanOptions := getVarlinkOptions(p, args)
+	podmanOptions := getRemoteOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command.Start()
@@ -193,15 +196,18 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	return nil
 }
 
-func (p *PodmanTestIntegration) DelayForVarlink() {
+func (p *PodmanTestIntegration) DelayForService() error {
 	for i := 0; i < 5; i++ {
 		session := p.Podman([]string{"info"})
 		session.WaitWithDefaultTimeout()
-		if session.ExitCode() == 0 || i == 4 {
+		if session.ExitCode() == 0 {
+			return nil
+		} else if i == 4 {
 			break
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
+	return errors.New("Service not detected")
 }
 
 func populateCache(podman *PodmanTestIntegration) {}

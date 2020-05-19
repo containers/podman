@@ -37,7 +37,7 @@ func getContainersByContext(contextWithConnection context.Context, all bool, nam
 			}
 		}
 		if !found {
-			return nil, errors.Errorf("unable to find container %q", id)
+			return nil, errors.Wrapf(define.ErrNoSuchCtr, "unable to find container %q", id)
 		}
 	}
 	return cons, nil

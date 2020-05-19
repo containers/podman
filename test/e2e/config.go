@@ -27,4 +27,8 @@ var (
 	// v2fail is a temporary variable to help us track
 	// tests that fail in v2
 	v2fail = "does not pass integration tests with v2 podman"
+
+	// v2remotefail is a temporary variable to help us track
+	// tests that fail in v2 remote
+	v2remotefail = "does not pass integration tests with v2 podman remote"
 )

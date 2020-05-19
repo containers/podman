@@ -71,7 +71,7 @@ func (p *EndpointTestIntegration) startVarlink(useImageCache bool) {
 		os.MkdirAll("/run/podman", 0755)
 	}
 	varlinkEndpoint := p.VarlinkEndpoint
-	//p.SetVarlinkAddress(p.VarlinkEndpoint)
+	//p.SetVarlinkAddress(p.RemoteSocket)
 
 	args := []string{"varlink", "--timeout", "0", varlinkEndpoint}
 	podmanOptions := getVarlinkOptions(p, args)
