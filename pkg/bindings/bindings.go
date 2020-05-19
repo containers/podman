@@ -8,6 +8,10 @@
 
 package bindings
 
+import (
+	"github.com/blang/semver"
+)
+
 var (
 	// PTrue is a convenience variable that can be used in bindings where
 	// a pointer to a bool (optional parameter) is required.
@@ -17,4 +21,7 @@ var (
 	// a pointer to a bool (optional parameter) is required.
 	pFalse = false
 	PFalse = &pFalse
+
+	// _*YES*- podman will fail to run if this value is wrong
+	APIVersion = semver.MustParse("1.0.0")
 )
