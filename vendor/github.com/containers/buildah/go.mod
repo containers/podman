@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
-	github.com/containers/common v0.8.1
+	github.com/containers/common v0.8.4
 	github.com/containers/image/v5 v5.4.3
 	github.com/containers/storage v1.18.2
 	github.com/cyphar/filepath-securejoin v0.2.2
