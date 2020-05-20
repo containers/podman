@@ -16,4 +16,3 @@ Search
     <input type="submit" value="search">
     <span id="search-progress" style="padding-left: 10px"></span>
     </form>
-

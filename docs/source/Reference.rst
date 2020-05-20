@@ -8,4 +8,3 @@ To see full screen version please visit: `API documentation <https://docs.podman
 .. raw:: html
 
     <iframe src="_static/api.html" allowfullscreen="true" height="600px" width="120%"></iframe>
-
