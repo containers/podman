@@ -65,6 +65,9 @@ type ExecConfig struct {
 	// ExitCommand is the exec session's exit command.
 	// This command will be executed when the exec session exits.
 	// If unset, no command will be executed.
+	// Two arguments will be appended to the exit command by Libpod:
+	// The ID of the exec session, and the ID of the container the exec
+	// session is a part of (in that order).
 	ExitCommand []string `json:"exitCommand,omitempty"`
 }
 
@@ -193,6 +196,10 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 	session.Config = new(ExecConfig)
 	if err := JSONDeepCopy(config, session.Config); err != nil {
 		return "", errors.Wrapf(err, "error copying exec configuration into exec session")
+	}
+
+	if len(session.Config.ExitCommand) > 0 {
+		session.Config.ExitCommand = append(session.Config.ExitCommand, []string{session.ID(), c.ID()}...)
 	}
 
 	if c.state.ExecSessions == nil {
@@ -606,11 +613,11 @@ func (c *Container) ExecRemove(sessionID string, force bool) error {
 	// Update status of exec session if running, so we cna check if it
 	// stopped in the meantime.
 	if session.State == define.ExecStateRunning {
-		stopped, err := c.ociRuntime.ExecUpdateStatus(c, session.ID())
+		running, err := c.ociRuntime.ExecUpdateStatus(c, session.ID())
 		if err != nil {
 			return err
 		}
-		if stopped {
+		if !running {
 			session.State = define.ExecStateStopped
 			// TODO: should we retrieve exit code here?
 			// TODO: Might be worth saving state here.
@@ -865,13 +872,6 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 			continue
 		}
 		if !alive {
-			if err := c.cleanupExecBundle(id); err != nil {
-				if lastErr != nil {
-					logrus.Errorf("Error checking container %s exec sessions: %v", c.ID(), lastErr)
-				}
-				lastErr = err
-			}
-
 			_, isLegacy := c.state.LegacyExecSessions[id]
 			if isLegacy {
 				delete(c.state.LegacyExecSessions, id)
@@ -890,6 +890,12 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 				session.State = define.ExecStateStopped
 
 				needSave = true
+			}
+			if err := c.cleanupExecBundle(id); err != nil {
+				if lastErr != nil {
+					logrus.Errorf("Error checking container %s exec sessions: %v", c.ID(), lastErr)
+				}
+				lastErr = err
 			}
 		} else {
 			activeSessions = append(activeSessions, id)
@@ -910,6 +916,8 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 // removeAllExecSessions stops and removes all the container's exec sessions
 func (c *Container) removeAllExecSessions() error {
 	knownSessions := c.getKnownExecSessions()
+
+	logrus.Debugf("Removing all exec sessions for container %s", c.ID())
 
 	var lastErr error
 	for _, id := range knownSessions {
@@ -975,6 +983,7 @@ func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
 	opts.User = user
 	opts.PreserveFDs = session.Config.PreserveFDs
 	opts.DetachKeys = session.Config.DetachKeys
+	opts.ExitCommand = session.Config.ExitCommand
 
 	return opts, nil
 }

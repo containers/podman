@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -68,6 +69,12 @@ func cleanup(cmd *cobra.Command, args []string) error {
 
 	responses, err := registry.ContainerEngine().ContainerCleanup(registry.GetContext(), args, cleanupOptions)
 	if err != nil {
+		// `podman container cleanup` is almost always run in the
+		// background. Our only way of relaying information to the user
+		// is via syslog.
+		// As such, we need to logrus.Errorf our errors to ensure they
+		// are properly printed if --syslog is set.
+		logrus.Errorf("Error running container cleanup: %v", err)
 		return err
 	}
 	for _, r := range responses {
@@ -76,12 +83,15 @@ func cleanup(cmd *cobra.Command, args []string) error {
 			continue
 		}
 		if r.RmErr != nil {
+			logrus.Errorf("Error removing container: %v", r.RmErr)
 			errs = append(errs, r.RmErr)
 		}
 		if r.RmiErr != nil {
+			logrus.Errorf("Error removing image: %v", r.RmiErr)
 			errs = append(errs, r.RmiErr)
 		}
 		if r.CleanErr != nil {
+			logrus.Errorf("Error cleaning up container: %v", r.CleanErr)
 			errs = append(errs, r.CleanErr)
 		}
 	}

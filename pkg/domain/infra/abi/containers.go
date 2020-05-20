@@ -607,6 +607,20 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrId s
 
 	execConfig := makeExecConfig(options)
 
+	// Make an exit command
+	storageConfig := ic.Libpod.StorageConfig()
+	runtimeConfig, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return "", errors.Wrapf(err, "error retrieving Libpod configuration to build exec exit command")
+	}
+	podmanPath, err := os.Executable()
+	if err != nil {
+		return "", errors.Wrapf(err, "error retrieving executable to build exec exit command")
+	}
+	// TODO: Add some ability to toggle syslog
+	exitCommandArgs := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, podmanPath, false, true, true)
+	execConfig.ExitCommand = exitCommandArgs
+
 	// Create and start the exec session
 	id, err := ctr.ExecCreate(execConfig)
 	if err != nil {
@@ -615,7 +629,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrId s
 
 	// TODO: we should try and retrieve exit code if this fails.
 	if err := ctr.ExecStart(id); err != nil {
-			return "", err
+		return "", err
 	}
 	return id, nil
 }
