@@ -9,13 +9,3 @@ Containers under the control of Podman can either be run by root or by a non-pri
 The Podman service runs only on Linux platforms, however a REST API and clients are currently under development which will allow Mac and Windows platforms to call the service. There is currently a Varlink based remote client which runs on Mac or Windows platforms that allows the remote client to talk to the Podman server on a Linux platform. In addition to those clients, there is also a Mac client. NOTE: the Varlink remote client will be deprecated after the REST API is completed.
 
 If you are completely new to containers, we recommend that you check out the :doc:`Introduction`. For power users or those comming from Docker, check out our :doc:`Tutorials`. For advanced users and contributors, you can get very detailed information about the podman CLI by looking our :doc:`Commands` page. Finally, for Developers looking at how to interact with the podman API, please see our API documentation :doc:`Reference`.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   Introduction
-   Commands
-   Reference
-   Tutorials
-   Search
