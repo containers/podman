@@ -283,4 +283,31 @@ var _ = Describe("Podman exec", func() {
 		Expect(exec.ExitCode()).To(Equal(0))
 		Expect(strings.Contains(exec.OutputToString(), fmt.Sprintf("%s(%s)", gid, groupName))).To(BeTrue())
 	})
+
+	It("podman exec --detach", func() {
+		ctrName := "testctr"
+		ctr := podmanTest.Podman([]string{"run", "-t", "-i", "-d", "--name", ctrName, ALPINE, "top"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(Equal(0))
+
+		exec1 := podmanTest.Podman([]string{"exec", "-t", "-i", "-d", ctrName, "top"})
+		exec1.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(Equal(0))
+
+		data := podmanTest.InspectContainer(ctrName)
+		Expect(len(data)).To(Equal(1))
+		Expect(len(data[0].ExecIDs)).To(Equal(1))
+		Expect(strings.Contains(exec1.OutputToString(), data[0].ExecIDs[0])).To(BeTrue())
+
+		exec2 := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "ps", "-a"})
+		exec2.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(Equal(0))
+		Expect(strings.Count(exec2.OutputToString(), "top")).To(Equal(2))
+
+		// Ensure that stop with a running detached exec session is
+		// clean.
+		stop := podmanTest.Podman([]string{"stop", ctrName})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop.ExitCode()).To(Equal(0))
+	})
 })
