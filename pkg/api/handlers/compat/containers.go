@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -295,7 +296,9 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	w.WriteHeader(http.StatusOK)
-	var builder strings.Builder
+
+	var frame strings.Builder
+	header := make([]byte, 8)
 	for ok := true; ok; ok = query.Follow {
 		for line := range logChannel {
 			if _, found := r.URL.Query()["until"]; found {
@@ -304,10 +307,8 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			// Reset variables we're ready to loop again
-			builder.Reset()
-			header := [8]byte{}
-
+			// Reset buffer we're ready to loop again
+			frame.Reset()
 			switch line.Device {
 			case "stdout":
 				if !query.Stdout {
@@ -327,17 +328,17 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if query.Timestamps {
-				builder.WriteString(line.Time.Format(time.RFC3339))
-				builder.WriteRune(' ')
+				frame.WriteString(line.Time.Format(time.RFC3339))
+				frame.WriteString(" ")
 			}
-			builder.WriteString(line.Msg)
-			// Build header and output entry
-			binary.BigEndian.PutUint32(header[4:], uint32(len(header)+builder.Len()))
-			if _, err := w.Write(header[:]); err != nil {
+			frame.WriteString(line.Msg)
+
+			binary.BigEndian.PutUint32(header[4:], uint32(frame.Len()))
+			if _, err := w.Write(header[0:8]); err != nil {
 				log.Errorf("unable to write log output header: %q", err)
 			}
-			if _, err := fmt.Fprint(w, builder.String()); err != nil {
-				log.Errorf("unable to write builder string: %q", err)
+			if _, err := io.WriteString(w, frame.String()); err != nil {
+				log.Errorf("unable to write frame string: %q", err)
 			}
 			if flusher, ok := w.(http.Flusher); ok {
 				flusher.Flush()

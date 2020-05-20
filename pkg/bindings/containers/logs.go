@@ -1,8 +1,9 @@
 package containers
 
 import (
+	"bytes"
 	"context"
-	"encoding/binary"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -49,68 +50,34 @@ func Logs(ctx context.Context, nameOrID string, opts LogOptions, stdoutChan, std
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 
-	// read 8 bytes
-	// first byte determines stderr=2|stdout=1
-	// bytes 4-7 len(msg) in uint32
+	buffer := make([]byte, 1024)
 	for {
-		stream, msgSize, err := readHeader(response.Body)
+		fd, l, err := DemuxHeader(response.Body, buffer)
 		if err != nil {
-			// In case the server side closes up shop because !follow
-			if err == io.EOF {
-				break
+			if errors.Is(err, io.EOF) {
+				return nil
 			}
-			return errors.Wrap(err, "unable to read log header")
+			return err
 		}
-		msg, err := readMsg(response.Body, msgSize)
+		frame, err := DemuxFrame(response.Body, buffer, l)
 		if err != nil {
-			return errors.Wrap(err, "unable to read log message")
+			return err
 		}
-		if stream == 1 {
-			stdoutChan <- msg
-		} else {
-			stderrChan <- msg
-		}
-	}
-	return nil
-}
+		frame = bytes.Replace(frame[0:l], []byte{13}, []byte{10}, -1)
 
-func readMsg(r io.Reader, msgSize int) (string, error) {
-	var msg []byte
-	size := msgSize
-	for {
-		b := make([]byte, size)
-		_, err := r.Read(b)
-		if err != nil {
-			return "", err
+		switch fd {
+		case 0:
+			stdoutChan <- string(frame)
+		case 1:
+			stdoutChan <- string(frame)
+		case 2:
+			stderrChan <- string(frame)
+		case 3:
+			return errors.New("error from service in stream: " + string(frame))
+		default:
+			return fmt.Errorf("unrecognized input header: %d", fd)
 		}
-		msg = append(msg, b...)
-		if len(msg) == msgSize {
-			break
-		}
-		size = msgSize - len(msg)
 	}
-	return string(msg), nil
-}
-
-func readHeader(r io.Reader) (byte, int, error) {
-	var (
-		header []byte
-		size   = 8
-	)
-	for {
-		b := make([]byte, size)
-		_, err := r.Read(b)
-		if err != nil {
-			return 0, 0, err
-		}
-		header = append(header, b...)
-		if len(header) == 8 {
-			break
-		}
-		size = 8 - len(header)
-	}
-	stream := header[0]
-	msgSize := int(binary.BigEndian.Uint32(header[4:]) - 8)
-	return stream, msgSize, nil
 }
