@@ -94,7 +94,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if !(state == define.ContainerStateCreated || state == define.ContainerStateRunning) {
-		utils.InternalServerError(w, errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers"))
+		utils.InternalServerError(w, errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers - currently in state %s", state.String()))
 		return
 	}
 
