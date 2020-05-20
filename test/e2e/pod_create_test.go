@@ -84,7 +84,6 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod without network portbindings", func() {
-		Skip(v2remotefail)
 		name := "test"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", name})
 		session.WaitWithDefaultTimeout()
@@ -100,7 +99,6 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod with network portbindings", func() {
-		Skip(v2remotefail)
 		name := "test"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "-p", "8080:80"})
 		session.WaitWithDefaultTimeout()
