@@ -3345,6 +3345,18 @@ _podman_pod_unpause() {
     esac
 }
 
+_podman_pod_inspect() {
+  local options_with_args="
+   --format
+   -f
+   --latest
+   -l
+  "
+
+  _complete_ "$options_with_args"
+}
+
+
 _podman_pod() {
     local boolean_options="
 	--help
@@ -3362,6 +3374,7 @@ _podman_pod() {
      stop
      top
      unpause
+     inspect
     "
     local aliases="
      list
