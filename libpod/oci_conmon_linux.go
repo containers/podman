@@ -1347,15 +1347,21 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*o
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
 func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath, logTag string) []string {
 	// set the conmon API version to be able to use the correct sync struct keys
-	args := []string{"--api-version", "1"}
+	args := []string{
+		"--api-version", "1",
+		"-c", ctr.ID(),
+		"-u", cuuid,
+		"-r", r.path,
+		"-b", bundlePath,
+		"-p", pidPath,
+		"-n", ctr.Name(),
+		"--exit-dir", exitDir,
+		"--socket-dir-path", r.socketsDir,
+	}
+
 	if r.cgroupManager == config.SystemdCgroupsManager && !ctr.config.NoCgroups {
 		args = append(args, "-s")
 	}
-	args = append(args, "-c", ctr.ID())
-	args = append(args, "-u", cuuid)
-	args = append(args, "-r", r.path)
-	args = append(args, "-b", bundlePath)
-	args = append(args, "-p", pidPath)
 
 	var logDriver string
 	switch ctr.LogDriver() {
@@ -1376,8 +1382,6 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	}
 
 	args = append(args, "-l", logDriver)
-	args = append(args, "--exit-dir", exitDir)
-	args = append(args, "--socket-dir-path", r.socketsDir)
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}

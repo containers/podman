@@ -19,7 +19,7 @@ var _ = Describe("Podman logs", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2remotefail)
+		SkipIfRemote() // v2remotefail
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -171,6 +171,24 @@ var _ = Describe("Podman logs", func() {
 		out, err := cmd.CombinedOutput()
 		Expect(err).To(BeNil())
 		Expect(string(out)).To(ContainSubstring("alpine"))
+	})
+
+	It("podman journald logs for container name", func() {
+		Skip("need to verify images have correct packages for journald")
+		containerName := "inside-journal"
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-d", "--name", containerName, ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		wait := podmanTest.Podman([]string{"wait", "-l"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait.ExitCode()).To(BeZero())
+
+		cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_NAME", "-u", fmt.Sprintf("libpod-conmon-%s.scope", cid))
+		out, err := cmd.CombinedOutput()
+		Expect(err).To(BeNil())
+		Expect(string(out)).To(ContainSubstring(containerName))
 	})
 
 	It("podman journald logs for container", func() {
