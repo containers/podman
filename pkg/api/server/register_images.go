@@ -698,7 +698,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// responses:
 	//   200:
 	//     $ref: '#/responses/LibpodImageTreeResponse'
-	//   401:
+	//   404:
 	//     $ref: '#/responses/NoSuchImage'
 	//   500:
 	//     $ref: '#/responses/InternalError'
