@@ -98,7 +98,7 @@ Output::
 
 To summarize, Podman makes it easy to find, run, build and share containers.
 
-* Find: whether finding a container on dockerhub.io or quay.io, an internal registry server, or directly from a vendor a couple of find, or pull commands make it easy
+* Find: whether finding a container on dockerhub.io or quay.io, an internal registry server, or directly from a vendor a couple of "podman search", or "podman pull" commands make it easy
 * Run: pre-built images make it easy to run entire applications, or start from a basic Linux base image based  on an existing Linux distribution
 * Build: creating new layers with small tweaks, or major overhauls is easy
 * Share: podman let’s you push your newly built containers anywhere you want with a single command
