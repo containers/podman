@@ -41,7 +41,7 @@ Here's an example of how to build an Nginx web server on top of a Debian base im
 Once, the image build completes, it’s easy to run the new image from our local cache::
 
     podman run -d -p 8080:80 nginx
-    curl localhost
+    curl localhost:8080
 
 Output::
 
@@ -84,7 +84,7 @@ Output::
 
 Notice that we pushed four layers to our registry and now it’s available for others to share. Take a quick look::
 
-    podman inspect quay.io/fatherlinux/nginx
+    podman inspect quay.io/USERNAME/nginx
 
 Output::
 
