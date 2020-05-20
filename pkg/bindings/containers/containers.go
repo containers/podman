@@ -346,7 +346,7 @@ func ContainerInit(ctx context.Context, nameOrID string) error {
 }
 
 // Attach attaches to a running container
-func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stream *bool, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stream *bool, stdin io.Reader, stdout io.Writer, stderr io.Writer, attachReady chan bool) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -427,6 +427,12 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		return err
 	}
 	defer response.Body.Close()
+	// If we are attaching around a start, we need to "signal"
+	// back that we are in fact attached so that started does
+	// not execute before we can attach.
+	if attachReady != nil {
+		attachReady <- true
+	}
 	if !(response.IsSuccess() || response.IsInformational()) {
 		return response.Process(nil)
 	}
