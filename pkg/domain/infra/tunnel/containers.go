@@ -326,7 +326,7 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 }
 
 func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string, options entities.AttachOptions) error {
-	return containers.Attach(ic.ClientCxt, nameOrId, &options.DetachKeys, nil, bindings.PTrue, options.Stdin, options.Stdout, options.Stderr)
+	return containers.Attach(ic.ClientCxt, nameOrId, &options.DetachKeys, nil, bindings.PTrue, options.Stdin, options.Stdout, options.Stderr, nil)
 }
 
 func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions) (int, error) {
@@ -335,11 +335,14 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, o
 
 func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input, output, errput *os.File) error { //nolint
 	attachErr := make(chan error)
+	attachReady := make(chan bool)
 	go func() {
-		err := containers.Attach(ic.ClientCxt, name, detachKeys, bindings.PFalse, bindings.PTrue, input, output, errput)
+		err := containers.Attach(ic.ClientCxt, name, detachKeys, bindings.PFalse, bindings.PTrue, input, output, errput, attachReady)
 		attachErr <- err
 	}()
-
+	// Wait for the attach to actually happen before starting
+	// the container.
+	<-attachReady
 	if err := containers.Start(ic.ClientCxt, name, detachKeys); err != nil {
 		return err
 	}
