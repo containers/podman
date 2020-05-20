@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/containers/libpod/pkg/api/types"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -143,7 +144,7 @@ func tcpClient(_url *url.URL) (Connection, error) {
 }
 
 // pingNewConnection pings to make sure the RESTFUL service is up
-// and running. it should only be used where initializing a connection
+// and running. it should only be used when initializing a connection
 func pingNewConnection(ctx context.Context) error {
 	client, err := GetClient(ctx)
 	if err != nil {
@@ -154,8 +155,20 @@ func pingNewConnection(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	if response.StatusCode == http.StatusOK {
-		return nil
+		v, err := semver.ParseTolerant(response.Header.Get("Libpod-API-Version"))
+		if err != nil {
+			return err
+		}
+
+		switch APIVersion.Compare(v) {
+		case 1, 0:
+			// Server's job when client version is equal or older
+			return nil
+		case -1:
+			return errors.Errorf("server API version is too old. client %q server %q", APIVersion.String(), v.String())
+		}
 	}
 	return errors.Errorf("ping response was %q", response.StatusCode)
 }
