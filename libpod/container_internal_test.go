@@ -60,7 +60,7 @@ func TestPostDeleteHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stateRegexp := `{"ociVersion":"1\.0\.1-dev","id":"123abc","status":"stopped","bundle":"` + strings.TrimSuffix(os.TempDir(), "/") + `/libpod_test_[0-9]*","annotations":{"a":"b"}}`
+	stateRegexp := `{"ociVersion":"1\.0\.2-dev","id":"123abc","status":"stopped","bundle":"` + strings.TrimSuffix(os.TempDir(), "/") + `/libpod_test_[0-9]*","annotations":{"a":"b"}}`
 	for _, p := range []string{statePath, copyPath} {
 		path := p
 		t.Run(path, func(t *testing.T) {

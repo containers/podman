@@ -1,2 +1,2 @@
-default.json
-fixtures
+*.orig
+generate
