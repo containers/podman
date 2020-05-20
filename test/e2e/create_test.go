@@ -35,14 +35,13 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create container based on a local image", func() {
-		Skip(v2remotefail)
-		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--name", "local_image_test", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		cid := session.OutputToString()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		check := podmanTest.Podman([]string{"inspect", "-l"})
+		check := podmanTest.Podman([]string{"inspect", "local_image_test"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectContainerToJSON()
 		Expect(data[0].ID).To(ContainSubstring(cid))
@@ -81,13 +80,12 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create adds annotation", func() {
-		Skip(v2remotefail)
-		session := podmanTest.Podman([]string{"create", "--annotation", "HELLO=WORLD", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--annotation", "HELLO=WORLD", "--name", "annotate_test", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		check := podmanTest.Podman([]string{"inspect", "-l"})
+		check := podmanTest.Podman([]string{"inspect", "annotate_test"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectContainerToJSON()
 		value, ok := data[0].Config.Annotations["HELLO"]
@@ -96,13 +94,12 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --entrypoint command", func() {
-		Skip(v2remotefail)
-		session := podmanTest.Podman([]string{"create", "--entrypoint", "/bin/foobar", ALPINE})
+		session := podmanTest.Podman([]string{"create", "--name", "entrypoint_test", "--entrypoint", "/bin/foobar", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		result := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{.Config.Entrypoint}}"})
+		result := podmanTest.Podman([]string{"inspect", "entrypoint_test", "--format", "{{.Config.Entrypoint}}"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.OutputToString()).To(Equal("/bin/foobar"))
@@ -121,14 +118,13 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --entrypoint json", func() {
-		Skip(v2remotefail)
 		jsonString := `[ "/bin/foo", "-c"]`
-		session := podmanTest.Podman([]string{"create", "--entrypoint", jsonString, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--name", "entrypoint_json", "--entrypoint", jsonString, ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		result := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{.Config.Entrypoint}}"})
+		result := podmanTest.Podman([]string{"inspect", "entrypoint_json", "--format", "{{.Config.Entrypoint}}"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.OutputToString()).To(Equal("/bin/foo -c"))
