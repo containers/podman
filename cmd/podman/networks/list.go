@@ -40,8 +40,9 @@ var (
 func networkListFlags(flags *pflag.FlagSet) {
 	// TODO enable filters based on something
 	//flags.StringSliceVarP(&networklistCommand.Filter, "filter", "f",  []string{}, "Pause all running containers")
-	flags.StringVarP(&networkListOptions.Format, "format", "f", "", "Pretty-print containers to JSON or using a Go template")
+	flags.StringVarP(&networkListOptions.Format, "format", "f", "", "Pretty-print networks to JSON or using a Go template")
 	flags.BoolVarP(&networkListOptions.Quiet, "quiet", "q", false, "display only names")
+	flags.StringVarP(&networkListOptions.Filter, "filter", "", "", "Provide filter values (e.g. 'name=podman')")
 }
 
 func init() {
@@ -59,6 +60,14 @@ func networkList(cmd *cobra.Command, args []string) error {
 		nlprs []NetworkListPrintReports
 	)
 
+	// validate the filter pattern.
+	if len(networkListOptions.Filter) > 0 {
+		tokens := strings.Split(networkListOptions.Filter, "=")
+		if len(tokens) != 2 {
+			return fmt.Errorf("invalid filter syntax : %s", networkListOptions.Filter)
+		}
+	}
+
 	responses, err := registry.ContainerEngine().NetworkList(registry.Context(), networkListOptions)
 	if err != nil {
 		return err
@@ -69,7 +78,7 @@ func networkList(cmd *cobra.Command, args []string) error {
 		return quietOut(responses)
 	}
 
-	if networkListOptions.Format == "json" {
+	if strings.ToLower(networkListOptions.Format) == "json" {
 		return jsonOut(responses)
 	}
 

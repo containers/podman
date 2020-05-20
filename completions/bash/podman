@@ -1024,6 +1024,8 @@ _podman_network_inspect() {
     local boolean_options="
 	--help
 	-h
+	--format
+	-f
     "
     _complete_ "$options_with_args" "$boolean_options"
 
@@ -1042,6 +1044,9 @@ _podman_network_ls() {
     -h
 	--quiet
 	-q
+	--format
+	-f
+	-- filter
     "
     _complete_ "$options_with_args" "$boolean_options"
 

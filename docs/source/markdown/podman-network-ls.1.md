@@ -12,7 +12,15 @@ Displays a list of existing podman networks. This command is not available for r
 ## OPTIONS
 **--quiet**, **-q**
 
-The `quiet` option will restrict the output to only the network names
+The `quiet` option will restrict the output to only the network names.
+
+**--format**, **-f**
+
+Pretty-print networks to JSON or using a Go template.
+
+**--filter**
+
+Provide filter values (e.g. 'name=podman').
 
 ## EXAMPLE
 
@@ -33,6 +41,14 @@ Display only network names
 podman
 podman2
 outside
+podman9
+```
+
+Display name of network which support bridge plugin
+```
+# podman network ls --filter plugin=portmap --format {{.Name}}
+podman
+podman2
 podman9
 ```
 

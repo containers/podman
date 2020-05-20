@@ -10,6 +10,7 @@ import (
 type NetworkListOptions struct {
 	Format string
 	Quiet  bool
+	Filter string
 }
 
 // NetworkListReport describes the results from listing networks
@@ -19,6 +20,7 @@ type NetworkListReport struct {
 
 // NetworkInspectOptions describes options for inspect networks
 type NetworkInspectOptions struct {
+	Format string
 }
 
 // NetworkInspectReport describes the results from inspect networks

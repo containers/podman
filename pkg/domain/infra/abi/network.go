@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 
+	"github.com/containernetworking/cni/libcni"
 	cniversion "github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -28,8 +30,19 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.Net
 		return nil, err
 	}
 
+	var tokens []string
+	// tokenize the networkListOptions.Filter in key=value.
+	if len(options.Filter) > 0 {
+		tokens = strings.Split(options.Filter, "=")
+		if len(tokens) != 2 {
+			return nil, fmt.Errorf("invalid filter syntax : %s", options.Filter)
+		}
+	}
+
 	for _, n := range networks {
-		reports = append(reports, &entities.NetworkListReport{NetworkConfigList: n})
+		if ifPassesFilterTest(n, tokens) {
+			reports = append(reports, &entities.NetworkListReport{NetworkConfigList: n})
+		}
 	}
 	return reports, nil
 }
@@ -254,4 +267,26 @@ func createMacVLAN(r *libpod.Runtime, name string, options entities.NetworkCreat
 	cniPathName := filepath.Join(network.GetCNIConfDir(config), fmt.Sprintf("%s.conflist", name))
 	err = ioutil.WriteFile(cniPathName, b, 0644)
 	return cniPathName, err
+}
+
+func ifPassesFilterTest(netconf *libcni.NetworkConfigList, filter []string) bool {
+	result := false
+	if len(filter) == 0 {
+		// No filter, so pass
+		return true
+	}
+	switch strings.ToLower(filter[0]) {
+	case "name":
+		if filter[1] == netconf.Name {
+			result = true
+		}
+	case "plugin":
+		plugins := network.GetCNIPlugins(netconf)
+		if strings.Contains(plugins, filter[1]) {
+			result = true
+		}
+	default:
+		result = false
+	}
+	return result
 }
