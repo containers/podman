@@ -11,7 +11,7 @@ Output::
     INDEX       NAME                                DESCRIPTION                                       STARS   OFFICIAL   AUTOMATED
     docker.io   docker.io/library/busybox           Busybox base image.                               1882    [OK]
     docker.io   docker.io/radial/busyboxplus        Full-chain, Internet enabled, busybox made f...   30                 [OK]
-docker.io   docker.io/yauritux/busybox-curl     Busybox with CURL                                 8
+    docker.io   docker.io/yauritux/busybox-curl     Busybox with CURL                                 8
     ...
 
 The previous command returned a list of publicly available container images on DockerHub. These container images are easy to consume, but of differing levels of quality and maintenance. Let’s use the first one listed because it seems to be well maintained.
@@ -41,7 +41,7 @@ Here's an example of how to build an Nginx web server on top of a Debian base im
 Once, the image build completes, it’s easy to run the new image from our local cache::
 
     podman run -d -p 8080:80 nginx
-    curl localhost
+    curl localhost:8080
 
 Output::
 
@@ -84,7 +84,7 @@ Output::
 
 Notice that we pushed four layers to our registry and now it’s available for others to share. Take a quick look::
 
-    podman inspect quay.io/fatherlinux/nginx
+    podman inspect quay.io/USERNAME/nginx
 
 Output::
 
@@ -98,9 +98,9 @@ Output::
 
 To summarize, Podman makes it easy to find, run, build and share containers.
 
-* Find: whether finding a container on dockerhub.io or quay.io, an internal registry server, or directly from a vendor a couple of find, or pull commands make it easy
-* Run: pre-built images make it easy to run entire applications, or start from a basic Linux base image based  on an existing Linux distribution
-* Build: creating new layers with small tweaks, or major overhauls is easy
-* Share: podman let’s you push your newly built containers anywhere you want with a single command
+* Find: whether finding a container on dockerhub.io or quay.io, an internal registry server, or directly from a vendor a couple of `podman search`_, or `podman pull`_ commands make it easy
+* Run: it's easy to consume pre-built images with everything needed to run an entire application, or start from a Linux distribution base image with the `podman run`_ command
+* Build: creating new layers with small tweaks, or major overhauls is easy with `podman build`
+* Share: podman let’s you push your newly built containers anywhere you want with a single `podman push`_ command
 
 For more deeper instructions on use cases, take a look at our `Tutorials` page.
