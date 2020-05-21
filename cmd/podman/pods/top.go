@@ -9,17 +9,15 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/psgo"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 var (
-	topDescription = fmt.Sprintf(`Specify format descriptors to alter the output.
+	topDescription = `Specify format descriptors to alter the output.
 
-	You may run "podman pod top -l pid pcpu seccomp" to print the process ID, the CPU percentage and the seccomp mode of each process of the latest pod.
-  Format Descriptors:
-    %s`, strings.Join(psgo.ListDescriptors(), ","))
+  You may run "podman pod top -l pid pcpu seccomp" to print the process ID, the CPU percentage and the seccomp mode of each process of the latest pod.`
 
 	topOptions = entities.PodTopOptions{}
 
@@ -43,6 +41,12 @@ func init() {
 		Parent:  podCmd,
 	})
 
+	descriptors, err := util.GetContainerPidInformationDescriptors()
+	if err == nil {
+		topDescription = fmt.Sprintf("%s\n\n  Format Descriptors:\n    %s", topDescription, strings.Join(descriptors, ","))
+		topCommand.Long = topDescription
+	}
+
 	flags := topCommand.Flags()
 	flags.SetInterspersed(false)
 	flags.BoolVar(&topOptions.ListDescriptors, "list-descriptors", false, "")
@@ -56,7 +60,11 @@ func init() {
 
 func top(cmd *cobra.Command, args []string) error {
 	if topOptions.ListDescriptors {
-		fmt.Println(strings.Join(psgo.ListDescriptors(), "\n"))
+		descriptors, err := util.GetContainerPidInformationDescriptors()
+		if err != nil {
+			return err
+		}
+		fmt.Println(strings.Join(descriptors, "\n"))
 		return nil
 	}
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log/syslog"
 	"os"
 	"path"
 	"runtime/pprof"
@@ -17,7 +16,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	logrusSyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -188,21 +186,6 @@ func loggingHook() {
 
 	if logrus.IsLevelEnabled(logrus.InfoLevel) {
 		logrus.Infof("%s filtering at log level %s", os.Args[0], logrus.GetLevel())
-	}
-}
-
-func syslogHook() {
-	if !useSyslog {
-		return
-	}
-
-	hook, err := logrusSyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
-	if err != nil {
-		fmt.Fprint(os.Stderr, "Failed to initialize syslog hook: "+err.Error())
-		os.Exit(1)
-	}
-	if err == nil {
-		logrus.AddHook(hook)
 	}
 }
 

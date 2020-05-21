@@ -9,20 +9,18 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/psgo"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
 var (
-	topDescription = fmt.Sprintf(`Similar to system "top" command.
+	topDescription = `Similar to system "top" command.
 
   Specify format descriptors to alter the output.
 
-  Running "podman top -l pid pcpu seccomp" will print the process ID, the CPU percentage and the seccomp mode of each process of the latest container.
-  Format Descriptors:
-    %s`, strings.Join(psgo.ListDescriptors(), ","))
+  Running "podman top -l pid pcpu seccomp" will print the process ID, the CPU percentage and the seccomp mode of each process of the latest container.`
 
 	topOptions = entities.TopOptions{}
 
@@ -68,6 +66,12 @@ func init() {
 	flags := topCommand.Flags()
 	topFlags(flags)
 
+	descriptors, err := util.GetContainerPidInformationDescriptors()
+	if err == nil {
+		topDescription = fmt.Sprintf("%s\n\n  Format Descriptors:\n    %s", topDescription, strings.Join(descriptors, ","))
+		topCommand.Long = topDescription
+	}
+
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerTopCommand,
@@ -79,7 +83,11 @@ func init() {
 
 func top(cmd *cobra.Command, args []string) error {
 	if topOptions.ListDescriptors {
-		fmt.Println(strings.Join(psgo.ListDescriptors(), "\n"))
+		descriptors, err := util.GetContainerPidInformationDescriptors()
+		if err != nil {
+			return err
+		}
+		fmt.Println(strings.Join(descriptors, "\n"))
 		return nil
 	}
 
