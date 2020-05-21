@@ -1,3 +1,8 @@
+## 1.12.2
+
+### Fixes
+- Update dependencies [ea4a036]
+
 ## 1.12.1
 
 ### Fixes
