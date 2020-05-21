@@ -1,5 +1,9 @@
 // +build seccomp
 
+// SPDX-License-Identifier: Apache-2.0
+
+// Copyright 2013-2018 Docker, Inc.
+
 package seccomp // import "github.com/seccomp/containers-golang"
 
 import (
@@ -9,6 +13,7 @@ import (
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 	libseccomp "github.com/seccomp/libseccomp-golang"
+	"golang.org/x/sys/unix"
 )
 
 //go:generate go run -tags 'seccomp' generate.go
@@ -22,9 +27,23 @@ func GetDefaultProfile(rs *specs.Spec) (*specs.LinuxSeccomp, error) {
 func LoadProfile(body string, rs *specs.Spec) (*specs.LinuxSeccomp, error) {
 	var config Seccomp
 	if err := json.Unmarshal([]byte(body), &config); err != nil {
-		return nil, fmt.Errorf("Decoding seccomp profile failed: %v", err)
+		return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
 	}
 	return setupSeccomp(&config, rs)
+}
+
+// LoadProfileFromBytes takes a byte slice and decodes the seccomp profile.
+func LoadProfileFromBytes(body []byte, rs *specs.Spec) (*specs.LinuxSeccomp, error) {
+	config := &Seccomp{}
+	if err := json.Unmarshal(body, config); err != nil {
+		return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
+	}
+	return setupSeccomp(config, rs)
+}
+
+// LoadProfileFromConfig takes a Seccomp struct and a spec to retrieve a LinuxSeccomp
+func LoadProfileFromConfig(config *Seccomp, specgen *specs.Spec) (*specs.LinuxSeccomp, error) {
+	return setupSeccomp(config, specgen)
 }
 
 var nativeToSeccomp = map[string]Arch{
@@ -127,21 +146,22 @@ Loop:
 		}
 
 		if call.Name != "" {
-			newConfig.Syscalls = append(newConfig.Syscalls, createSpecsSyscall(call.Name, call.Action, call.Args))
+			newConfig.Syscalls = append(newConfig.Syscalls, createSpecsSyscall([]string{call.Name}, call.Action, call.Args, call.ErrnoRet))
 		}
 
-		for _, n := range call.Names {
-			newConfig.Syscalls = append(newConfig.Syscalls, createSpecsSyscall(n, call.Action, call.Args))
+		if len(call.Names) > 0 {
+			newConfig.Syscalls = append(newConfig.Syscalls, createSpecsSyscall(call.Names, call.Action, call.Args, call.ErrnoRet))
 		}
 	}
 
 	return newConfig, nil
 }
 
-func createSpecsSyscall(name string, action Action, args []*Arg) specs.LinuxSyscall {
+func createSpecsSyscall(names []string, action Action, args []*Arg, errnoRet *uint) specs.LinuxSyscall {
 	newCall := specs.LinuxSyscall{
-		Names:  []string{name},
-		Action: specs.LinuxSeccompAction(action),
+		Names:    names,
+		Action:   specs.LinuxSeccompAction(action),
+		ErrnoRet: errnoRet,
 	}
 
 	// Loop through all the arguments of the syscall and convert them
@@ -156,4 +176,16 @@ func createSpecsSyscall(name string, action Action, args []*Arg) specs.LinuxSysc
 		newCall.Args = append(newCall.Args, newArg)
 	}
 	return newCall
+}
+
+// IsEnabled returns true if seccomp is enabled for the host.
+func IsEnabled() bool {
+	// Check if Seccomp is supported, via CONFIG_SECCOMP.
+	if err := unix.Prctl(unix.PR_GET_SECCOMP, 0, 0, 0, 0); err != unix.EINVAL {
+		// Make sure the kernel has CONFIG_SECCOMP_FILTER.
+		if err := unix.Prctl(unix.PR_SET_SECCOMP, unix.SECCOMP_MODE_FILTER, 0, 0, 0); err != unix.EINVAL {
+			return true
+		}
+	}
+	return false
 }

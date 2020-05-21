@@ -40,14 +40,14 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/opencontainers/runc v1.0.0-rc9
-	github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
+	github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.5.1
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/rootless-containers/rootlesskit v0.9.4
-	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f
+	github.com/seccomp/containers-golang v0.4.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5

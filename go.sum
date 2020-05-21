@@ -371,9 +371,12 @@ github.com/opencontainers/runc v1.0.0-rc9/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rm
 github.com/opencontainers/runtime-spec v0.1.2-0.20190507144316-5b71a03e2700/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7 h1:Dliu5QO+4JYWu/yMshaMU7G3JN2POGpwjJN7gjy10Go=
 github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
+github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2 h1:9mv9SC7GWmRWE0J/+oD8w3GsN2KYGKtg6uwLN7hfP5E=
+github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-tools v0.0.0-20181011054405-1d69bd0f9c39/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/runtime-tools v0.9.0 h1:FYgwVsKRI/H9hU32MJ/4MLOzXWodKK5zsQavY8NPMkU=
 github.com/opencontainers/runtime-tools v0.9.0/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
+github.com/opencontainers/selinux v1.3.0/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
 github.com/opencontainers/selinux v1.4.0/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.5.1 h1:jskKwSMFYqyTrHEuJgQoUlTcId0av64S6EWObrIfn5Y=
 github.com/opencontainers/selinux v1.5.1/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
@@ -431,6 +434,8 @@ github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8 h1:2c1EFnZHIPCW8q
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8/go.mod h1:Z0q5wiBQGYcxhMZ6gUqHn6pYNLypFAvaL3UvgZLR0U4=
 github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f h1:OtU/w6sBKmXYaw2KEODxjcYi3oPSyyslhgGFgIJVGAI=
 github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f/go.mod h1:f/98/SnvAzhAEFQJ3u836FePXvcbE8BS0YGMQNn4mhA=
+github.com/seccomp/containers-golang v0.4.1 h1:6hsmsP8Y9T6PWKJELqAkRWkc6Te60+zK64avkjInd44=
+github.com/seccomp/containers-golang v0.4.1/go.mod h1:5fP9lgyYyklJ8fg8Geq193G1QLe0ikf34z+hZKIjmnE=
 github.com/seccomp/libseccomp-golang v0.9.1 h1:NJjM5DNFOs0s3kYE1WUOr6G8V97sdt46rlXTMfXGWBo=
 github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
@@ -592,6 +597,7 @@ golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190904154756-749cb33beabd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20190921190940-14da1ac737cc/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20191005200804-aed5e4c7ecf9/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20191022100944-742c48ecaeb7/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20191115151921-52ab43148777/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
