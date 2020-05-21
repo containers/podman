@@ -35,7 +35,7 @@ var (
 	INTEGRATION_ROOT   string
 	CGROUP_MANAGER     = "systemd"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	RESTORE_IMAGES     = []string{ALPINE, BB}
+	RESTORE_IMAGES     = []string{ALPINE, BB, nginx}
 	defaultWaitTimeout = 90
 )
 

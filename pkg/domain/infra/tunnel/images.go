@@ -190,7 +190,6 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string,
 		f   *os.File
 		err error
 	)
-
 	switch options.Format {
 	case "oci-dir", "docker-dir":
 		f, err = ioutil.TempFile("", "podman_save")

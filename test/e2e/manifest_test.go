@@ -28,7 +28,6 @@ var _ = Describe("Podman manifest", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2remotefail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -103,6 +102,7 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("podman manifest annotate", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -155,6 +155,7 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("podman manifest push", func() {
+		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -184,6 +185,7 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("podman manifest push purge", func() {
+		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
