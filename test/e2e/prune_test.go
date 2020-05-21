@@ -161,7 +161,6 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune pods", func() {
-		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -169,12 +168,13 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		podid1 := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"pod", "start", "-l"})
+		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "stop", "-l"})
+		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -194,17 +194,17 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune - pod,container stopped", func() {
-		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		podid1 := session.OutputToString()
 
 		// Start and stop a pod to get it in exited state.
-		session = podmanTest.Podman([]string{"pod", "start", "-l"})
+		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "stop", "-l"})
+		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -226,17 +226,17 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune with running, exited pod and volume prune set true", func() {
-		Skip(v2remotefail)
 		// Start and stop a pod to get it in exited state.
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		podid1 := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"pod", "start", "-l"})
+		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "stop", "-l"})
+		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -244,7 +244,9 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"pod", "start", "-l"})
+		podid2 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"pod", "start", podid2})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -301,17 +303,17 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune - with dangling images true", func() {
-		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		podid1 := session.OutputToString()
 
 		// Start and stop a pod to get it in exited state.
-		session = podmanTest.Podman([]string{"pod", "start", "-l"})
+		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "stop", "-l"})
+		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -319,9 +321,6 @@ var _ = Describe("Podman prune", func() {
 		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(Equal(0))
-
-		// Adding images should be pruned
-		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 
 		// Adding unused volume should not be pruned as volumes not set
 		session = podmanTest.Podman([]string{"volume", "create"})
