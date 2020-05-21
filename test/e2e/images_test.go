@@ -131,7 +131,6 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images filter by image name", func() {
-		Skip(v2remotefail)
 		podmanTest.RestoreAllArtifacts()
 		session := podmanTest.PodmanNoCache([]string{"images", "-q", ALPINE})
 		session.WaitWithDefaultTimeout()
