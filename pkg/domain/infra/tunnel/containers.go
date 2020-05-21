@@ -360,10 +360,19 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		report := entities.ContainerStartReport{Id: name}
 		if options.Attach {
 			report.Err = startAndAttach(ic, name, &options.DetachKeys, options.Stdin, options.Stdout, options.Stderr)
+			if report.Err == nil {
+				exitCode, err := containers.Wait(ic.ClientCxt, name, nil)
+				if err == nil {
+					report.ExitCode = int(exitCode)
+				}
+			} else {
+				report.ExitCode = define.ExitCode(report.Err)
+			}
 			reports = append(reports, &report)
 			return reports, nil
 		}
 		report.Err = containers.Start(ic.ClientCxt, name, &options.DetachKeys)
+		report.ExitCode = define.ExitCode(report.Err)
 		reports = append(reports, &report)
 	}
 	return reports, nil
@@ -385,11 +394,18 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	// Attach
 	if !opts.Detach {
 		err = startAndAttach(ic, con.ID, &opts.DetachKeys, opts.InputStream, opts.OutputStream, opts.ErrorStream)
-
+		if err == nil {
+			exitCode, err := containers.Wait(ic.ClientCxt, con.ID, nil)
+			if err == nil {
+				report.ExitCode = int(exitCode)
+			}
+		}
 	} else {
 		err = containers.Start(ic.ClientCxt, con.ID, nil)
 	}
-	report.ExitCode = define.ExitCode(err)
+	if err != nil {
+		report.ExitCode = define.ExitCode(err)
+	}
 	return &report, err
 }
 
