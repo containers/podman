@@ -90,7 +90,6 @@ var _ = Describe("Podman init", func() {
 	})
 
 	It("podman init all three containers, one running", func() {
-		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"create", "--name", "test1", "-d", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -121,11 +120,10 @@ var _ = Describe("Podman init", func() {
 	})
 
 	It("podman init running container errors", func() {
-		Skip(v2remotefail)
-		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "--name", "init_test", "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		init := podmanTest.Podman([]string{"init", "--latest"})
+		init := podmanTest.Podman([]string{"init", "init_test"})
 		init.WaitWithDefaultTimeout()
 		Expect(init.ExitCode()).To(Equal(125))
 	})

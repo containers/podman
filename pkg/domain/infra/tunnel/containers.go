@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
@@ -405,6 +406,11 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 	}
 	for _, ctr := range ctrs {
 		err := containers.ContainerInit(ic.ClientCxt, ctr.ID)
+		// When using all, it is NOT considered an error if a container
+		// has already been init'd.
+		if err != nil && options.All && strings.Contains(errors.Cause(err).Error(), define.ErrCtrStateInvalid.Error()) {
+			err = nil
+		}
 		reports = append(reports, &entities.ContainerInitReport{
 			Err: err,
 			Id:  ctr.ID,
