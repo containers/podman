@@ -2,7 +2,9 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	. "github.com/containers/libpod/test/utils"
@@ -281,5 +283,27 @@ var _ = Describe("Podman pod create", func() {
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--mac-address", mac, "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate.ExitCode()).To(Equal(125))
+	})
+
+	It("podman create pod and print id to external file", func() {
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+		Expect(os.Chdir(os.TempDir())).To(BeNil())
+		targetPath := filepath.Join(os.TempDir(), "dir")
+		Expect(os.MkdirAll(targetPath, 0755)).To(BeNil())
+		targetFile := filepath.Join(targetPath, "idFile")
+		defer Expect(os.RemoveAll(targetFile)).To(BeNil())
+		defer Expect(os.Chdir(cwd)).To(BeNil())
+
+		session := podmanTest.Podman([]string{"pod", "create", "--name=abc", "--pod-id-file", targetFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		id, _ := ioutil.ReadFile(targetFile)
+		check := podmanTest.Podman([]string{"pod", "inspect", "abc"})
+		check.WaitWithDefaultTimeout()
+		data := check.InspectPodToJSON()
+		Expect(data.ID).To(Equal(string(id)))
 	})
 })

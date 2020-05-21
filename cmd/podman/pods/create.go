@@ -3,6 +3,7 @@ package pods
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -146,6 +147,11 @@ func create(cmd *cobra.Command, args []string) error {
 	response, err := registry.ContainerEngine().PodCreate(context.Background(), createOptions)
 	if err != nil {
 		return err
+	}
+	if len(podIDFile) > 0 {
+		if err = ioutil.WriteFile(podIDFile, []byte(response.Id), 0644); err != nil {
+			return errors.Wrapf(err, "failed to write pod ID to file %q", podIDFile)
+		}
 	}
 	fmt.Println(response.Id)
 	return nil
