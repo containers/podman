@@ -102,6 +102,9 @@ func (suite *Suite) generateSpecsIterator(description string, config config.Gink
 }
 
 func (suite *Suite) CurrentRunningSpecSummary() (*types.SpecSummary, bool) {
+	if !suite.running {
+		return nil, false
+	}
 	return suite.runner.CurrentSpecSummary()
 }
 

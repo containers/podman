@@ -1,3 +1,22 @@
+## 1.12.1
+
+### Fixes
+- Make unfocus ("blur") much faster (#674) [8b18061]
+- Fix typo (#673) [7fdcbe8]
+- Test against 1.14 and remove 1.12 [d5c2ad6]
+- Test if a coverprofile content is empty before checking its latest character (#670) [14d9fa2]
+- replace tail package with maintained one. this fixes go get errors (#667) [4ba33d4]
+- improve ginkgo performance - makes progress on #644 [a14f98e]
+- fix convert integration tests [1f8ba69]
+- fix typo succesful -> successful (#663) [1ea49cf]
+- Fix invalid link (#658) [b886136]
+- convert utility : Include comments from source (#657) [1077c6d]
+- Explain what BDD means [d79e7fb]
+- skip race detector test on unsupported platform (#642) [f8ab89d]
+- Use Dup2 from golang.org/x/sys/unix instead of syscallDup (#638) [5d53c55]
+- Fix missing newline in combined coverage file (#641) [6a07ea2]
+- check if a spec is run before returning SpecSummary (#645) [8850000]
+
 ## 1.12.0
 
 ### Features
@@ -208,7 +227,7 @@ New Features:
 - `ginkgo -tags=TAG_LIST` passes a list of tags down to the `go build` command.
 - `ginkgo --failFast` aborts the test suite after the first failure.
 - `ginkgo generate file_1 file_2` can take multiple file arguments.
-- Ginkgo now summarizes any spec failures that occured at the end of the test run. 
+- Ginkgo now summarizes any spec failures that occurred at the end of the test run. 
 - `ginkgo --randomizeSuites` will run tests *suites* in random order using the generated/passed-in seed.
 
 Improvements:

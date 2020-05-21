@@ -1,3 +1,8 @@
+## 1.10.1
+
+### Fixes
+- Update dependencies (#389) [9f5eecd]
+
 ## 1.10.0
 
 ### Features

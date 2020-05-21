@@ -35,8 +35,8 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.9
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
-	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.10.0
+	github.com/onsi/ginkgo v1.12.1
+	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/opencontainers/runc v1.0.0-rc9
@@ -59,7 +59,7 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
 	gopkg.in/yaml.v2 v2.3.0
