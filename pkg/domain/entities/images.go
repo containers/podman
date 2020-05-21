@@ -1,7 +1,6 @@
 package entities
 
 import (
-	"net/url"
 	"time"
 
 	"github.com/containers/image/v5/manifest"
@@ -226,9 +225,8 @@ type ImageListOptions struct {
 }
 
 type ImagePruneOptions struct {
-	All     bool       `json:"all" schema:"all"`
-	Filter  []string   `json:"filter" schema:"filter"`
-	Filters url.Values `json:"filters" schema:"filters"`
+	All    bool     `json:"all" schema:"all"`
+	Filter []string `json:"filter" schema:"filter"`
 }
 
 type ImagePruneReport struct {
