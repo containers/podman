@@ -62,7 +62,6 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
-	// TODO I think all is implemented with a filter?
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		return nil, err
@@ -71,6 +70,10 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 	if _, found := r.URL.Query()["digests"]; found && query.Digests {
 		UnSupportedParameter("digests")
 	}
+	var (
+		images []*image.Image
+		err    error
+	)
 
 	if len(query.Filters) > 0 {
 		for k, v := range query.Filters {
@@ -78,11 +81,33 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 				filters = append(filters, fmt.Sprintf("%s=%s", k, val))
 			}
 		}
-		return runtime.ImageRuntime().GetImagesWithFilters(filters)
+		images, err = runtime.ImageRuntime().GetImagesWithFilters(filters)
+		if err != nil {
+			return images, err
+		}
 	} else {
-		return runtime.ImageRuntime().GetImages()
+		images, err = runtime.ImageRuntime().GetImages()
+		if err != nil {
+			return images, err
+		}
 	}
-
+	if query.All {
+		return images, nil
+	}
+	var returnImages []*image.Image
+	for _, img := range images {
+		if len(img.Names()) == 0 {
+			parent, err := img.IsParent(r.Context())
+			if err != nil {
+				return nil, err
+			}
+			if parent {
+				continue
+			}
+		}
+		returnImages = append(returnImages, img)
+	}
+	return returnImages, nil
 }
 
 func GetImage(r *http.Request, name string) (*image.Image, error) {

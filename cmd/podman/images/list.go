@@ -85,7 +85,7 @@ func images(cmd *cobra.Command, args []string) error {
 		return errors.New("cannot specify an image and a filter(s)")
 	}
 
-	if len(listOptions.Filter) < 1 && len(args) > 0 {
+	if len(args) > 0 {
 		listOptions.Filter = append(listOptions.Filter, "reference="+args[0])
 	}
 
@@ -152,10 +152,16 @@ func writeTemplate(imageS []*entities.ImageSummary) error {
 	)
 	imgs := make([]imageReporter, 0, len(imageS))
 	for _, e := range imageS {
-		for _, tag := range e.RepoTags {
-			var h imageReporter
+		var h imageReporter
+		if len(e.RepoTags) > 0 {
+			for _, tag := range e.RepoTags {
+				h.ImageSummary = *e
+				h.Repository, h.Tag = tokenRepoTag(tag)
+				imgs = append(imgs, h)
+			}
+		} else {
 			h.ImageSummary = *e
-			h.Repository, h.Tag = tokenRepoTag(tag)
+			h.Repository = "<none>"
 			imgs = append(imgs, h)
 		}
 		listFlag.readOnly = e.IsReadOnly()

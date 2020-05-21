@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
@@ -25,8 +26,13 @@ func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts enti
 }
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
-	images, err := images.List(ir.ClientCxt, &opts.All, opts.Filters)
 
+	filters := make(map[string][]string, len(opts.Filter))
+	for _, filter := range opts.Filter {
+		f := strings.Split(filter, "=")
+		filters[f[0]] = f[1:]
+	}
+	images, err := images.List(ir.ClientCxt, &opts.All, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +67,7 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrId string, opts entiti
 }
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) (*entities.ImagePruneReport, error) {
+
 	results, err := images.Prune(ir.ClientCxt, &opts.All, opts.Filters)
 	if err != nil {
 		return nil, err

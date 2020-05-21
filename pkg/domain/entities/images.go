@@ -221,9 +221,8 @@ type ImageSearchReport struct {
 
 // Image List Options
 type ImageListOptions struct {
-	All     bool       `json:"all" schema:"all"`
-	Filter  []string   `json:"Filter,omitempty"`
-	Filters url.Values `json:"filters" schema:"filters"`
+	All    bool     `json:"all" schema:"all"`
+	Filter []string `json:"Filter,omitempty"`
 }
 
 type ImagePruneOptions struct {
