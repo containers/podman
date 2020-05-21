@@ -159,14 +159,14 @@ func (ic *ContainerEngine) generateSystemdgenContainerInfo(nameOrID string, pod 
 func generateServiceName(ctr *libpod.Container, pod *libpod.Pod, options entities.GenerateSystemdOptions) (string, string) {
 	var kind, name, ctrName string
 	if pod == nil {
-		kind = "container"
+		kind = options.ContainerPrefix //defaults to container
 		name = ctr.ID()
 		if options.Name {
 			name = ctr.Name()
 		}
 		ctrName = name
 	} else {
-		kind = "pod"
+		kind = options.PodPrefix //defaults to pod
 		name = pod.ID()
 		ctrName = ctr.ID()
 		if options.Name {
@@ -174,7 +174,7 @@ func generateServiceName(ctr *libpod.Container, pod *libpod.Pod, options entitie
 			ctrName = ctr.Name()
 		}
 	}
-	return ctrName, fmt.Sprintf("%s-%s", kind, name)
+	return ctrName, fmt.Sprintf("%s%s%s", kind, options.Separator, name)
 }
 
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrID string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {

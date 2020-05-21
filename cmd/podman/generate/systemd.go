@@ -39,6 +39,9 @@ func init() {
 	flags.UintVarP(&systemdTimeout, "time", "t", containerConfig.Engine.StopTimeout, "Stop timeout override")
 	flags.StringVar(&systemdOptions.RestartPolicy, "restart-policy", "on-failure", "Systemd restart-policy")
 	flags.BoolVarP(&systemdOptions.New, "new", "", false, "Create a new container instead of starting an existing one")
+	flags.StringVar(&systemdOptions.ContainerPrefix, "container-prefix", "container", "Systemd unit name prefix for containers")
+	flags.StringVar(&systemdOptions.PodPrefix, "pod-prefix", "pod", "Systemd unit name prefix for pods")
+	flags.StringVar(&systemdOptions.Separator, "separator", "-", "Systemd unit name seperator between name/id and prefix")
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 

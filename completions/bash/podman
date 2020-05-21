@@ -2838,7 +2838,10 @@ _podman_generate_systemd() {
     local options_with_args="
     --restart-policy
     -t
-    --time"
+    --time
+	--container-prefix
+	--pod-prefix
+	--separator"
 
     local boolean_options="
     -h
