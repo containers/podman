@@ -71,16 +71,6 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, systemPruneReport)
 }
 
-// SystemReset Resets podman storage back to default state
-func SystemReset(w http.ResponseWriter, r *http.Request) {
-	err := r.Context().Value("runtime").(*libpod.Runtime).Reset(r.Context())
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	utils.WriteResponse(w, http.StatusOK, nil)
-}
-
 func DiskUsage(w http.ResponseWriter, r *http.Request) {
 	// Options are only used by the CLI
 	options := entities.SystemDfOptions{}

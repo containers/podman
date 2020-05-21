@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/containers"
-	"github.com/containers/libpod/pkg/bindings/images"
 	"github.com/containers/libpod/pkg/bindings/pods"
 	"github.com/containers/libpod/pkg/bindings/system"
 	"github.com/containers/libpod/pkg/bindings/volumes"
@@ -149,46 +148,5 @@ var _ = Describe("Podman system", func() {
 			ToNot(ContainElement("docker.io/library/alpine:latest"))
 		// Volume should be pruned now as flag set true
 		Expect(len(systemPruneResponse.VolumePruneReport)).To(Equal(1))
-	})
-
-	It("podman system reset", func() {
-		// Adding an unused volume should work
-		_, err := volumes.Create(bt.conn, entities.VolumeCreateOptions{})
-		Expect(err).To(BeNil())
-
-		vols, err := volumes.List(bt.conn, nil)
-		Expect(err).To(BeNil())
-		Expect(len(vols)).To(Equal(1))
-
-		// Start a pod and leave it running
-		_, err = pods.Start(bt.conn, newpod)
-		Expect(err).To(BeNil())
-
-		imageSummary, err := images.List(bt.conn, nil, nil)
-		Expect(err).To(BeNil())
-		// Since in the begin context images are created
-		Expect(len(imageSummary)).To(Equal(3))
-
-		err = system.Reset(bt.conn)
-		Expect(err).To(BeNil())
-
-		// re-establish connection
-		s = bt.startAPIService()
-		time.Sleep(1 * time.Second)
-
-		// No pods
-		podSummary, err := pods.List(bt.conn, nil)
-		Expect(err).To(BeNil())
-		Expect(len(podSummary)).To(Equal(0))
-
-		// No images
-		imageSummary, err = images.List(bt.conn, bindings.PTrue, nil)
-		Expect(err).To(BeNil())
-		Expect(len(imageSummary)).To(Equal(0))
-
-		// no volumes
-		vols, err = volumes.List(bt.conn, nil)
-		Expect(err).To(BeNil())
-		Expect(len(vols)).To(BeZero())
 	})
 })

@@ -34,7 +34,7 @@ var _ = Describe("podman system reset", func() {
 	})
 
 	It("podman system reset", func() {
-		Skip(v2remotefail)
+		SkipIfRemote()
 		// system reset will not remove additional store images, so need to grab length
 
 		session := podmanTest.Podman([]string{"rmi", "--force", "--all"})
