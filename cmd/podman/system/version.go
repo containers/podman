@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
-	"time"
 
+	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
@@ -52,6 +52,17 @@ func version(cmd *cobra.Command, args []string) error {
 		if !strings.HasSuffix(versionFormat, "\n") {
 			versionFormat += "\n"
 		}
+		out := formats.StdoutTemplate{Output: versions, Template: versionFormat}
+		err := out.Out()
+		if err != nil {
+			// On Failure, assume user is using older version of podman version --format and check client
+			versionFormat = strings.Replace(versionFormat, ".Server.", ".", 1)
+			out = formats.StdoutTemplate{Output: versions.Client, Template: versionFormat}
+			if err1 := out.Out(); err1 != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -74,15 +85,11 @@ func version(cmd *cobra.Command, args []string) error {
 
 func formatVersion(writer io.Writer, version *define.Version) {
 	fmt.Fprintf(writer, "Version:\t%s\n", version.Version)
-	fmt.Fprintf(writer, "RemoteAPI Version:\t%d\n", version.RemoteAPIVersion)
+	fmt.Fprintf(writer, "API Version:\t%d\n", version.APIVersion)
 	fmt.Fprintf(writer, "Go Version:\t%s\n", version.GoVersion)
 	if version.GitCommit != "" {
 		fmt.Fprintf(writer, "Git Commit:\t%s\n", version.GitCommit)
 	}
-	// Prints out the build time in readable format
-	if version.Built != 0 {
-		fmt.Fprintf(writer, "Built:\t%s\n", time.Unix(version.Built, 0).Format(time.ANSIC))
-	}
-
+	fmt.Fprintf(writer, "Built:\t%s\n", version.BuiltTime)
 	fmt.Fprintf(writer, "OS/Arch:\t%s\n", version.OsArch)
 }

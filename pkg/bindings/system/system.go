@@ -112,12 +112,12 @@ func Version(ctx context.Context) (*entities.SystemVersionReport, error) {
 	f, _ := strconv.ParseFloat(component.APIVersion, 64)
 	b, _ := time.Parse(time.RFC3339, component.BuildTime)
 	report.Server = &define.Version{
-		RemoteAPIVersion: int64(f),
-		Version:          component.Version.Version,
-		GoVersion:        component.GoVersion,
-		GitCommit:        component.GitCommit,
-		Built:            b.Unix(),
-		OsArch:           fmt.Sprintf("%s/%s", component.Os, component.Arch),
+		APIVersion: int64(f),
+		Version:    component.Version.Version,
+		GoVersion:  component.GoVersion,
+		GitCommit:  component.GitCommit,
+		Built:      b.Unix(),
+		OsArch:     fmt.Sprintf("%s/%s", component.Os, component.Arch),
 	}
 	return &report, err
 }

@@ -28,7 +28,7 @@ func (i *VarlinkAPI) GetVersion(call iopodman.VarlinkCall) error {
 		versionInfo.GitCommit,
 		time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
 		versionInfo.OsArch,
-		versionInfo.RemoteAPIVersion,
+		versionInfo.APIVersion,
 	)
 }
 

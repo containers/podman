@@ -25,17 +25,18 @@ Change output format to "json" or a Go template.
 A sample output of the `version` command:
 ```
 $ podman version
-Version:       0.11.1
-Go Version:    go1.11
-Git Commit:    "8967a1d691ed44896b81ad48c863033f23c65eb0-dirty"
-Built:         Thu Nov  8 22:35:40 2018
-OS/Arch:       linux/amd64
+Version:      2.0.0
+API Version:  1
+Go Version:   go1.14.2
+Git Commit:   4520664f63c3a7f9a80227715359e20069d95542
+Built:        Tue May 19 10:48:59 2020
+OS/Arch:      linux/amd64
 ```
 
 Filtering out only the version:
 ```
 $ podman version --format '{{.Client.Version}}'
-1.6.3
+2.0.0
 ```
 
 ## SEE ALSO
