@@ -399,7 +399,7 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/opencontainers/go-digest v1.0.0-rc1
+# github.com/opencontainers/go-digest v1.0.0
 github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 github.com/opencontainers/image-spec/specs-go
