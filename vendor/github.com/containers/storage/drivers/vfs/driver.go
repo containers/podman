@@ -15,6 +15,7 @@ import (
 	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"github.com/vbatts/tar-split/tar/storage"
 )
 
 var (
@@ -99,6 +100,21 @@ func (d *Driver) Metadata(id string) (map[string]string, error) {
 // Cleanup is used to implement graphdriver.ProtoDriver. There is no cleanup required for this driver.
 func (d *Driver) Cleanup() error {
 	return nil
+}
+
+type fileGetNilCloser struct {
+	storage.FileGetter
+}
+
+func (f fileGetNilCloser) Close() error {
+	return nil
+}
+
+// DiffGetter returns a FileGetCloser that can read files from the directory that
+// contains files for the layer differences. Used for direct access for tar-split.
+func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
+	p := d.dir(id)
+	return fileGetNilCloser{storage.NewPathFileGetter(p)}, nil
 }
 
 // CreateFromTemplate creates a layer with the same contents and parent as another layer.

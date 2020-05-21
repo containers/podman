@@ -63,8 +63,6 @@ func NewPatternMatcher(patterns []string) (*PatternMatcher, error) {
 func (pm *PatternMatcher) Matches(file string) (bool, error) {
 	matched := false
 	file = filepath.FromSlash(file)
-	parentPath := filepath.Dir(file)
-	parentPathDirs := strings.Split(parentPath, string(os.PathSeparator))
 
 	for _, pattern := range pm.patterns {
 		negative := false
@@ -76,13 +74,6 @@ func (pm *PatternMatcher) Matches(file string) (bool, error) {
 		match, err := pattern.match(file)
 		if err != nil {
 			return false, err
-		}
-
-		if !match && parentPath != "." {
-			// Check to see if the pattern matches one of our parent dirs.
-			if len(pattern.dirs) <= len(parentPathDirs) {
-				match, _ = pattern.match(strings.Join(parentPathDirs[:len(pattern.dirs)], string(os.PathSeparator)))
-			}
 		}
 
 		if match {
@@ -122,8 +113,6 @@ func (m *MatchResult) Excludes() uint {
 // an error. This method is not safe to be called concurrently.
 func (pm *PatternMatcher) MatchesResult(file string) (res *MatchResult, err error) {
 	file = filepath.FromSlash(file)
-	parentPath := filepath.Dir(file)
-	parentPathDirs := strings.Split(parentPath, string(os.PathSeparator))
 	res = &MatchResult{false, 0, 0}
 
 	for _, pattern := range pm.patterns {
@@ -136,16 +125,6 @@ func (pm *PatternMatcher) MatchesResult(file string) (res *MatchResult, err erro
 		match, err := pattern.match(file)
 		if err != nil {
 			return nil, err
-		}
-
-		if !match && parentPath != "." {
-			// Check to see if the pattern matches one of our parent dirs.
-			if len(pattern.dirs) <= len(parentPathDirs) {
-				match, _ = pattern.match(strings.Join(
-					parentPathDirs[:len(pattern.dirs)],
-					string(os.PathSeparator)),
-				)
-			}
 		}
 
 		if match {
@@ -265,8 +244,7 @@ func (p *Pattern) compile() error {
 			// in golang's filepath.Match
 			regStr += bs + string(ch)
 		} else if ch == '\\' {
-			// escape next char. Note that a trailing \ in the pattern
-			// will be left alone (but need to escape it)
+			// escape next char.
 			if sl == bs {
 				// On windows map "\" to "\\", meaning an escaped backslash,
 				// and then just continue because filepath.Match on
@@ -277,14 +255,14 @@ func (p *Pattern) compile() error {
 			if scan.Peek() != scanner.EOF {
 				regStr += bs + string(scan.Next())
 			} else {
-				regStr += bs
+				return filepath.ErrBadPattern
 			}
 		} else {
 			regStr += string(ch)
 		}
 	}
 
-	regStr += "$"
+	regStr += "(/.*)?$"
 
 	re, err := regexp.Compile(regStr)
 	if err != nil {
