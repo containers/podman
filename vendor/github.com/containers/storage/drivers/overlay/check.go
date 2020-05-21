@@ -145,7 +145,7 @@ func doesMetacopy(d, mountOpts string) (bool, error) {
 		opts = fmt.Sprintf("%s,%s", opts, data)
 	}
 	if err := unix.Mount("overlay", filepath.Join(td, "merged"), "overlay", uintptr(flags), opts); err != nil {
-		return false, errors.Wrap(err, "failed to mount overlay for metacopy check")
+		return false, errors.Wrapf(err, "failed to mount overlay for metacopy check with %q options", mountOpts)
 	}
 	defer func() {
 		if err := unix.Unmount(filepath.Join(td, "merged"), 0); err != nil {

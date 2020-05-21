@@ -405,7 +405,7 @@ func (z *Writer) Write(p []byte) (int, error) {
 		if len(z.currentBuffer) == z.blockSize {
 			z.compressCurrent(false)
 			if err := z.checkError(); err != nil {
-				return len(p) - len(q) - length, err
+				return len(p) - len(q), err
 			}
 		}
 		z.size += length

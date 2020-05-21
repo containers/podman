@@ -113,7 +113,7 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 				size = u.Uid
 			}
 			if u.Gid > size {
-				size = u.Uid
+				size = u.Gid
 			}
 		}
 	}

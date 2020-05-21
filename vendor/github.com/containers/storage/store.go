@@ -629,14 +629,14 @@ func GetStore(options StoreOptions) (Store, error) {
 		return nil, errors.Wrap(ErrIncompleteOptions, "no storage runroot specified")
 	}
 
-	if err := os.MkdirAll(options.RunRoot, 0700); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(options.RunRoot, 0700); err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(options.GraphRoot, 0700); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(options.GraphRoot, 0700); err != nil {
 		return nil, err
 	}
 	for _, subdir := range []string{"mounts", "tmp", options.GraphDriverName} {
-		if err := os.MkdirAll(filepath.Join(options.GraphRoot, subdir), 0700); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(filepath.Join(options.GraphRoot, subdir), 0700); err != nil {
 			return nil, err
 		}
 	}
