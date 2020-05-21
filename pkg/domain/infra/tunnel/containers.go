@@ -372,7 +372,11 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	var reports []*entities.ContainerStartReport
 	for _, name := range namesOrIds {
-		report := entities.ContainerStartReport{Id: name}
+		report := entities.ContainerStartReport{
+			Id:       name,
+			RawInput: name,
+			ExitCode: 125,
+		}
 		if options.Attach {
 			report.Err = startAndAttach(ic, name, &options.DetachKeys, options.Stdin, options.Stdout, options.Stderr)
 			if report.Err == nil {
