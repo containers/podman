@@ -4,7 +4,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
 	"syscall"
 
 	"github.com/containers/common/pkg/config"
@@ -18,15 +17,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
-)
-
-var (
-	// NameRegex is a regular expression to validate container/pod names.
-	// This must NOT be changed from outside of Libpod. It should be a
-	// constant, but Go won't let us do that.
-	NameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
-	// RegexError is thrown in presence of an invalid container/pod name.
-	RegexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
 )
 
 // Runtime Creation Options
@@ -665,8 +655,8 @@ func WithName(name string) CtrCreateOption {
 		}
 
 		// Check the name against a regex
-		if !NameRegex.MatchString(name) {
-			return RegexError
+		if !define.NameRegex.MatchString(name) {
+			return define.RegexError
 		}
 
 		ctr.config.Name = name
@@ -1383,8 +1373,8 @@ func WithVolumeName(name string) VolumeCreateOption {
 		}
 
 		// Check the name against a regex
-		if !NameRegex.MatchString(name) {
-			return RegexError
+		if !define.NameRegex.MatchString(name) {
+			return define.RegexError
 		}
 		volume.config.Name = name
 
@@ -1502,8 +1492,8 @@ func WithPodName(name string) PodCreateOption {
 		}
 
 		// Check the name against a regex
-		if !NameRegex.MatchString(name) {
-			return RegexError
+		if !define.NameRegex.MatchString(name) {
+			return define.RegexError
 		}
 
 		pod.config.Name = name
@@ -1520,8 +1510,8 @@ func WithPodHostname(hostname string) PodCreateOption {
 		}
 
 		// Check the hostname against a regex
-		if !NameRegex.MatchString(hostname) {
-			return RegexError
+		if !define.NameRegex.MatchString(hostname) {
+			return define.RegexError
 		}
 
 		pod.config.Hostname = hostname

@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/network"
 	"github.com/pkg/errors"
@@ -65,8 +65,8 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 {
 		return errors.Errorf("only one network can be created at a time")
 	}
-	if len(args) > 0 && !libpod.NameRegex.MatchString(args[0]) {
-		return libpod.RegexError
+	if len(args) > 0 && !define.NameRegex.MatchString(args[0]) {
+		return define.RegexError
 	}
 
 	if len(args) > 0 {
