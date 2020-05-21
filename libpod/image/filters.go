@@ -170,8 +170,7 @@ func (ir *Runtime) createFilterFuncs(filters []string, img *Image) ([]ResultFilt
 			labelFilter := strings.Join(splitFilter[1:], "=")
 			filterFuncs = append(filterFuncs, LabelFilter(ctx, labelFilter))
 		case "reference":
-			referenceFilter := strings.Join(splitFilter[1:], "=")
-			filterFuncs = append(filterFuncs, ReferenceFilter(ctx, referenceFilter))
+			filterFuncs = append(filterFuncs, ReferenceFilter(ctx, splitFilter[1]))
 		case "id":
 			filterFuncs = append(filterFuncs, IdFilter(splitFilter[1]))
 		default:

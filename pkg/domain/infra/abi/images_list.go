@@ -13,14 +13,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		err    error
 	)
 
-	// TODO: Future work support for domain.Filters
-	// filters := utils.ToLibpodFilters(opts.Filters)
-
-	if len(opts.Filter) > 0 {
-		images, err = ir.Libpod.ImageRuntime().GetImagesWithFilters(opts.Filter)
-	} else {
-		images, err = ir.Libpod.ImageRuntime().GetImages()
-	}
+	images, err = ir.Libpod.ImageRuntime().GetImagesWithFilters(opts.Filter)
 	if err != nil {
 		return nil, err
 	}
@@ -40,9 +33,18 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 				}
 			}
 		} else {
-			repoTags, _ = img.RepoTags()
-			if len(repoTags) == 0 {
-				continue
+			repoTags, err = img.RepoTags()
+			if err != nil {
+				return nil, err
+			}
+			if len(img.Names()) == 0 {
+				parent, err := img.IsParent(ctx)
+				if err != nil {
+					return nil, err
+				}
+				if parent {
+					continue
+				}
 			}
 		}
 

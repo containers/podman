@@ -61,12 +61,6 @@ Are you sure you want to continue? [y/N] `)
 		}
 	}
 
-	// TODO Remove once filter refactor is finished and url.Values rules :)
-	for _, f := range filter {
-		t := strings.SplitN(f, "=", 2)
-		pruneOpts.Filters.Add(t[0], t[1])
-	}
-
 	results, err := registry.ImageEngine().Prune(registry.GetContext(), pruneOpts)
 	if err != nil {
 		return err
