@@ -646,7 +646,6 @@ special_testing_in_podman_task:
 
 special_testing_cross_task:
 
-    skip: $CI == 'true'
     alias: "special_testing_cross"
     depends_on:
         - "gating"

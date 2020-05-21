@@ -13,7 +13,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/errorhandling"
-	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -61,7 +60,7 @@ func init() {
 	flags.StringVarP(&createOptions.Name, "name", "n", "", "Assign a name to the pod")
 	flags.StringVarP(&createOptions.Hostname, "hostname", "", "", "Set a hostname to the pod")
 	flags.StringVar(&podIDFile, "pod-id-file", "", "Write the pod ID to the file")
-	flags.StringVar(&share, "share", createconfig.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
+	flags.StringVar(&share, "share", specgen.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
 	flags.SetNormalizeFunc(aliasNetworkFlag)
 }
 
