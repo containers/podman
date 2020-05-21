@@ -147,8 +147,7 @@ function random_ip() {
     pod_id="$output"
 
     # Check --pod-id-file
-    # FIXME: broken in master; reenable once #6292 is fixed
-    #is "$(<$pod_id_file)" "$pod_id" "contents of pod-id-file"
+    is "$(<$pod_id_file)" "$pod_id" "contents of pod-id-file"
 
     # Check each of the options
     if ! is_rootless; then
