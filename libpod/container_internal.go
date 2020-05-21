@@ -1169,7 +1169,7 @@ func (c *Container) start() error {
 	c.state.State = define.ContainerStateRunning
 
 	if c.config.HealthCheckConfig != nil {
-		if err := c.updateHealthStatus(HealthCheckStarting); err != nil {
+		if err := c.updateHealthStatus(define.HealthCheckStarting); err != nil {
 			logrus.Error(err)
 		}
 		if err := c.startTimer(); err != nil {

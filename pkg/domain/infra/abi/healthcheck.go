@@ -3,7 +3,6 @@ package abi
 import (
 	"context"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 )
@@ -13,9 +12,9 @@ func (ic *ContainerEngine) HealthCheckRun(ctx context.Context, nameOrId string, 
 	if err != nil {
 		return nil, err
 	}
-	hcStatus := "unhealthy"
-	if status == libpod.HealthCheckSuccess {
-		hcStatus = "healthy"
+	hcStatus := define.HealthCheckUnhealthy
+	if status == define.HealthCheckSuccess {
+		hcStatus = define.HealthCheckHealthy
 	}
 	report := define.HealthCheckResults{
 		Status: hcStatus,

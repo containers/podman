@@ -901,12 +901,12 @@ func (i *VarlinkAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.Exec
 // HealthCheckRun executes defined container's healthcheck command and returns the container's health status.
 func (i *VarlinkAPI) HealthCheckRun(call iopodman.VarlinkCall, nameOrID string) error {
 	hcStatus, err := i.Runtime.HealthCheck(nameOrID)
-	if err != nil && hcStatus != libpod.HealthCheckFailure {
+	if err != nil && hcStatus != define.HealthCheckFailure {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	status := libpod.HealthCheckUnhealthy
-	if hcStatus == libpod.HealthCheckSuccess {
-		status = libpod.HealthCheckHealthy
+	status := define.HealthCheckUnhealthy
+	if hcStatus == define.HealthCheckSuccess {
+		status = define.HealthCheckHealthy
 	}
 	return call.ReplyHealthCheckRun(status)
 }
