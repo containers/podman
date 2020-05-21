@@ -11,12 +11,12 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
+	sig "github.com/containers/libpod/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -397,13 +397,13 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		}()
 
 		winChange := make(chan os.Signal, 1)
-		signal.Notify(winChange, syscall.SIGWINCH)
+		signal.Notify(winChange, sig.SIGWINCH)
 		winCtx, winCancel := context.WithCancel(ctx)
 		defer winCancel()
 
 		go func() {
 			// Prime the pump, we need one reset to ensure everything is ready
-			winChange <- syscall.SIGWINCH
+			winChange <- sig.SIGWINCH
 			for {
 				select {
 				case <-winCtx.Done():

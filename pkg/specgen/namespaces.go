@@ -40,6 +40,9 @@ const (
 	KeepID NamespaceMode = "keep-id"
 	// KeepId indicates to automatically create a user namespace
 	Auto NamespaceMode = "auto"
+	// DefaultKernelNamespaces is a comma-separated list of default kernel
+	// namespaces.
+	DefaultKernelNamespaces = "cgroup,ipc,net,uts"
 )
 
 // Namespace describes the namespace
