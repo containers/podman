@@ -40,7 +40,6 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman untag all", func() {
-		Skip(v2remotefail)
 		session := podmanTest.PodmanNoCache([]string{"untag", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
