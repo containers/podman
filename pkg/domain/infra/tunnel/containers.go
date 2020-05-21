@@ -87,10 +87,25 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	}
 	for _, c := range ctrs {
 		report := entities.StopReport{Id: c.ID}
-		report.Err = containers.Stop(ic.ClientCxt, c.ID, &options.Timeout)
-		// TODO we need to associate errors returned by http with common
-		// define.errors so that we can equity tests. this will allow output
-		// to be the same as the native client
+		if err = containers.Stop(ic.ClientCxt, c.ID, &options.Timeout); err != nil {
+			// These first two are considered non-fatal under the right conditions
+			if errors.Cause(err).Error() == define.ErrCtrStopped.Error() {
+				logrus.Debugf("Container %s is already stopped", c.ID)
+				reports = append(reports, &report)
+				continue
+			} else if options.All && errors.Cause(err).Error() == define.ErrCtrStateInvalid.Error() {
+				logrus.Debugf("Container %s is not running, could not stop", c.ID)
+				reports = append(reports, &report)
+				continue
+			}
+
+			// TODO we need to associate errors returned by http with common
+			// define.errors so that we can equity tests. this will allow output
+			// to be the same as the native client
+			report.Err = err
+			reports = append(reports, &report)
+			continue
+		}
 		reports = append(reports, &report)
 	}
 	return reports, nil
