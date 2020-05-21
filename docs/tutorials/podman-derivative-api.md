@@ -4,6 +4,20 @@
 
 libpod today is a Golang library and a CLI.  The choice of interface you make has advantages and disadvantages.
 
+Using the REST API
+---
+
+Advantages:
+
+ - Stable, versioned API
+ - Language-agnostic
+ - [Well-documented](http://docs.podman.io/en/latest/_static/api.html) API
+
+Disadvantages:
+
+ - Error handling is less verbose than Golang API
+ - May be slower
+
 Running as a subprocess
 ---
 
@@ -35,12 +49,12 @@ Disadvantages:
 Varlink
 ---
 
-Some code exists for this; splits the difference.  Future uncertain.
+The Varlink API is presently deprecated. We do not recommend adopting it for new projects.
 
 Making the choice
 ---
 
 A good question to ask first is: Do you want users to be able to use `podman` to manipulate the containers created by your project?
-If so, that makes it more likely that you want to run `podman` as a subprocess.  If you want a separate image store and a fundamentally
+If so, that makes it more likely that you want to run `podman` as a subprocess or using the HTTP API.  If you want a separate image store and a fundamentally
 different experience; if what you're doing with containers is quite different from those created by the `podman` CLI,
 that may drive you towards vendoring.
