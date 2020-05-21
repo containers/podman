@@ -207,7 +207,7 @@ var _ = Describe("Podman create", func() {
 		session = podmanTest.Podman([]string{"logs", "test_tmpfs"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/create/test rw,nosuid,nodev,noexec,relatime - tmpfs"))
+		Expect(session.OutputToString()).To(ContainSubstring("/create/test rw,nosuid,nodev,relatime - tmpfs"))
 	})
 
 	It("podman create --pod automatically", func() {
