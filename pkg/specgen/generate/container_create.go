@@ -111,7 +111,8 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if err != nil {
 		return nil, err
 	}
-	options = append(options, createExitCommandOption(s, rt.StorageConfig(), rtc, podmanPath))
+	// TODO: Enable syslog support - we'll need to put this in SpecGen.
+	options = append(options, libpod.WithExitCommand(CreateExitCommandArgs(rt.StorageConfig(), rtc, podmanPath, false, s.Remove, false)))
 
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts)
 	if err != nil {
@@ -228,7 +229,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	return options, nil
 }
 
-func createExitCommandOption(s *specgen.SpecGenerator, storageConfig storage.StoreOptions, config *config.Config, podmanPath string) libpod.CtrCreateOption {
+func CreateExitCommandArgs(storageConfig storage.StoreOptions, config *config.Config, podmanPath string, syslog, rm bool, exec bool) []string {
 	// We need a cleanup process for containers in the current model.
 	// But we can't assume that the caller is Podman - it could be another
 	// user of the API.
@@ -255,14 +256,18 @@ func createExitCommandOption(s *specgen.SpecGenerator, storageConfig storage.Sto
 		command = append(command, []string{"--events-backend", config.Engine.EventsLogger}...)
 	}
 
-	// TODO Mheon wants to leave this for now
-	//if s.sys {
-	//	command = append(command, "--syslog", "true")
-	//}
+	if syslog {
+		command = append(command, "--syslog", "true")
+	}
 	command = append(command, []string{"container", "cleanup"}...)
 
-	if s.Remove {
+	if rm {
 		command = append(command, "--rm")
 	}
-	return libpod.WithExitCommand(command)
+
+	if exec {
+		command = append(command, "--exec")
+	}
+
+	return command
 }

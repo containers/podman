@@ -16,6 +16,13 @@ Sometimes container's mount points and network stacks can remain if the podman c
 
 Cleanup all containers.
 
+**--exec**=_session_
+
+Clean up an exec session for a single container.
+Can only be specified if a single container is being cleaned up (conflicts with **--all** as such).
+If **--rm** is not specified, temporary files for the exec session will be cleaned up; if it is, the exec session will be removed from the container.
+Conflicts with **--rmi** as the container is not being cleaned up so the image cannot be removed.
+
 **--latest**, **-l**
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.

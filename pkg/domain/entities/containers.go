@@ -242,7 +242,6 @@ type ExecOptions struct {
 	Latest      bool
 	PreserveFDs uint
 	Privileged  bool
-	Streams     define.AttachStreams
 	Tty         bool
 	User        string
 	WorkDir     string
@@ -311,6 +310,7 @@ type ContainerRunReport struct {
 // cleanup command
 type ContainerCleanupOptions struct {
 	All         bool
+	Exec        string
 	Latest      bool
 	Remove      bool
 	RemoveImage bool

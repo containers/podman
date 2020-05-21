@@ -19,7 +19,8 @@ type ContainerEngine interface {
 	ContainerCp(ctx context.Context, source, dest string, options ContainerCpOptions) (*ContainerCpReport, error)
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
 	ContainerDiff(ctx context.Context, nameOrId string, options DiffOptions) (*DiffReport, error)
-	ContainerExec(ctx context.Context, nameOrId string, options ExecOptions) (int, error)
+	ContainerExec(ctx context.Context, nameOrId string, options ExecOptions, streams define.AttachStreams) (int, error)
+	ContainerExecDetached(ctx context.Context, nameOrID string, options ExecOptions) (string, error)
 	ContainerExists(ctx context.Context, nameOrId string) (*BoolReport, error)
 	ContainerExport(ctx context.Context, nameOrId string, options ContainerExportOptions) error
 	ContainerInit(ctx context.Context, namesOrIds []string, options ContainerInitOptions) ([]*ContainerInitReport, error)

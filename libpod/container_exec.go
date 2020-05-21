@@ -62,6 +62,13 @@ type ExecConfig struct {
 	// given is the number that will be passed into the exec session,
 	// starting at 3.
 	PreserveFDs uint `json:"preserveFds,omitempty"`
+	// ExitCommand is the exec session's exit command.
+	// This command will be executed when the exec session exits.
+	// If unset, no command will be executed.
+	// Two arguments will be appended to the exit command by Libpod:
+	// The ID of the exec session, and the ID of the container the exec
+	// session is a part of (in that order).
+	ExitCommand []string `json:"exitCommand,omitempty"`
 }
 
 // ExecSession contains information on a single exec session attached to a given
@@ -191,6 +198,10 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 		return "", errors.Wrapf(err, "error copying exec configuration into exec session")
 	}
 
+	if len(session.Config.ExitCommand) > 0 {
+		session.Config.ExitCommand = append(session.Config.ExitCommand, []string{session.ID(), c.ID()}...)
+	}
+
 	if c.state.ExecSessions == nil {
 		c.state.ExecSessions = make(map[string]*ExecSession)
 	}
@@ -210,11 +221,52 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 }
 
 // ExecStart starts an exec session in the container, but does not attach to it.
-// Returns immediately upon starting the exec session.
+// Returns immediately upon starting the exec session, unlike other ExecStart
+// functions, which will only return when the exec session exits.
 func (c *Container) ExecStart(sessionID string) error {
-	// Will be implemented in part 2, migrating Start and implementing
-	// detached Start.
-	return define.ErrNotImplemented
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	// Verify that we are in a good state to continue
+	if !c.ensureState(define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "can only start exec sessions when their container is running")
+	}
+
+	session, ok := c.state.ExecSessions[sessionID]
+	if !ok {
+		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+	}
+
+	if session.State != define.ExecStateCreated {
+		return errors.Wrapf(define.ErrExecSessionStateInvalid, "can only start created exec sessions, while container %s session %s state is %q", c.ID(), session.ID(), session.State.String())
+	}
+
+	logrus.Infof("Going to start container %s exec session %s and attach to it", c.ID(), session.ID())
+
+	opts, err := prepareForExec(c, session)
+	if err != nil {
+		return err
+	}
+
+	pid, err := c.ociRuntime.ExecContainerDetached(c, session.ID(), opts, session.Config.AttachStdin)
+	if err != nil {
+		return err
+	}
+
+	c.newContainerEvent(events.Exec)
+	logrus.Debugf("Successfully started exec session %s in container %s", session.ID(), c.ID())
+
+	// Update and save session to reflect PID/running
+	session.PID = pid
+	session.State = define.ExecStateRunning
+
+	return c.save()
 }
 
 // ExecStartAndAttach starts and attaches to an exec session in a container.
@@ -511,7 +563,27 @@ func (c *Container) ExecCleanup(sessionID string) error {
 	}
 
 	if session.State == define.ExecStateRunning {
-		return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot clean up container %s exec session %s as it is running", c.ID(), session.ID())
+		// Check if the exec session is still running.
+		alive, err := c.ociRuntime.ExecUpdateStatus(c, session.ID())
+		if err != nil {
+			return err
+		}
+
+		if alive {
+			return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot clean up container %s exec session %s as it is running", c.ID(), session.ID())
+		}
+
+		exitCode, err := c.readExecExitCode(session.ID())
+		if err != nil {
+			return err
+		}
+		session.ExitCode = exitCode
+		session.PID = 0
+		session.State = define.ExecStateStopped
+
+		if err := c.save(); err != nil {
+			return err
+		}
 	}
 
 	logrus.Infof("Cleaning up container %s exec session %s", c.ID(), session.ID())
@@ -541,11 +613,11 @@ func (c *Container) ExecRemove(sessionID string, force bool) error {
 	// Update status of exec session if running, so we cna check if it
 	// stopped in the meantime.
 	if session.State == define.ExecStateRunning {
-		stopped, err := c.ociRuntime.ExecUpdateStatus(c, session.ID())
+		running, err := c.ociRuntime.ExecUpdateStatus(c, session.ID())
 		if err != nil {
 			return err
 		}
-		if stopped {
+		if !running {
 			session.State = define.ExecStateStopped
 			// TODO: should we retrieve exit code here?
 			// TODO: Might be worth saving state here.
@@ -800,13 +872,6 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 			continue
 		}
 		if !alive {
-			if err := c.cleanupExecBundle(id); err != nil {
-				if lastErr != nil {
-					logrus.Errorf("Error checking container %s exec sessions: %v", c.ID(), lastErr)
-				}
-				lastErr = err
-			}
-
 			_, isLegacy := c.state.LegacyExecSessions[id]
 			if isLegacy {
 				delete(c.state.LegacyExecSessions, id)
@@ -825,6 +890,12 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 				session.State = define.ExecStateStopped
 
 				needSave = true
+			}
+			if err := c.cleanupExecBundle(id); err != nil {
+				if lastErr != nil {
+					logrus.Errorf("Error checking container %s exec sessions: %v", c.ID(), lastErr)
+				}
+				lastErr = err
 			}
 		} else {
 			activeSessions = append(activeSessions, id)
@@ -845,6 +916,8 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 // removeAllExecSessions stops and removes all the container's exec sessions
 func (c *Container) removeAllExecSessions() error {
 	knownSessions := c.getKnownExecSessions()
+
+	logrus.Debugf("Removing all exec sessions for container %s", c.ID())
 
 	var lastErr error
 	for _, id := range knownSessions {
@@ -910,6 +983,7 @@ func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
 	opts.User = user
 	opts.PreserveFDs = session.Config.PreserveFDs
 	opts.DetachKeys = session.Config.DetachKeys
+	opts.ExitCommand = session.Config.ExitCommand
 
 	return opts, nil
 }

@@ -13,6 +13,10 @@ podman\-exec - Execute a command in a running container
 
 ## OPTIONS
 
+**--detach**
+
+Start the exec session, but do not attach to it. The command will run in the background and the exec session will be automatically removed when it completes. The **podman exec** command will print the ID of the exec session and exit immediately after it starts.
+
 **--detach-keys**=*sequence*
 
 Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.

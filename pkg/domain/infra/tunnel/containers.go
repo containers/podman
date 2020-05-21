@@ -330,8 +330,12 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string,
 	return containers.Attach(ic.ClientCxt, nameOrId, &options.DetachKeys, nil, bindings.PTrue, options.Stdin, options.Stdout, options.Stderr, nil)
 }
 
-func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions) (int, error) {
+func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
 	return 125, errors.New("not implemented")
+}
+
+func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID string, options entities.ExecOptions) (string, error) {
+	return "", errors.New("not implemented")
 }
 
 func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input, output, errput *os.File) error { //nolint

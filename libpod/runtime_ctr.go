@@ -390,6 +390,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
+	logrus.Debugf("Removing container %s", c.ID())
+
 	// We need to lock the pod before we lock the container.
 	// To avoid races around removing a container and the pod it is in.
 	// Don't need to do this in pod removal case - we're evicting the entire
