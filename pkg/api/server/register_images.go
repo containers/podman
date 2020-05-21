@@ -1188,5 +1188,214 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/images/{name}/changes"), s.APIHandler(compat.Changes)).Methods(http.MethodGet)
 
+	// swagger:operation POST /libpod/build libpod libpodBuildImage
+	// ---
+	// tags:
+	//  - images
+	// summary: Create image
+	// description: Build an image from the given Dockerfile(s)
+	// parameters:
+	//  - in: query
+	//    name: dockerfile
+	//    type: string
+	//    default: Dockerfile
+	//    description: |
+	//      Path within the build context to the `Dockerfile`.
+	//      This is ignored if remote is specified and points to an external `Dockerfile`.
+	//  - in: query
+	//    name: t
+	//    type: string
+	//    default: latest
+	//    description: A name and optional tag to apply to the image in the `name:tag` format.
+	//  - in: query
+	//    name: extrahosts
+	//    type: string
+	//    default:
+	//    description: |
+	//      TBD Extra hosts to add to /etc/hosts
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: remote
+	//    type: string
+	//    default:
+	//    description: |
+	//      A Git repository URI or HTTP/HTTPS context URI.
+	//      If the URI points to a single text file, the file’s contents are placed
+	//      into a file called Dockerfile and the image is built from that file. If
+	//      the URI points to a tarball, the file is downloaded by the daemon and the
+	//      contents therein used as the context for the build. If the URI points to a
+	//      tarball and the dockerfile parameter is also specified, there must be a file
+	//      with the corresponding path inside the tarball.
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: q
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Suppress verbose build output
+	//  - in: query
+	//    name: nocache
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Do not use the cache when building the image
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cachefrom
+	//    type: string
+	//    default:
+	//    description: |
+	//      JSON array of images used to build cache resolution
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: pull
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Attempt to pull the image even if an older image exists locally
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: rm
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Remove intermediate containers after a successful build
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: forcerm
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Always remove intermediate containers, even upon failure
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: memory
+	//    type: integer
+	//    description: |
+	//      Memory is the upper limit (in bytes) on how much memory running containers can use
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: memswap
+	//    type: integer
+	//    description: |
+	//      MemorySwap limits the amount of memory and swap together
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cpushares
+	//    type: integer
+	//    description: |
+	//      CPUShares (relative weight
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cpusetcpus
+	//    type: string
+	//    description: |
+	//      CPUSetCPUs in which to allow execution (0-3, 0,1)
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cpuperiod
+	//    type: integer
+	//    description: |
+	//      CPUPeriod limits the CPU CFS (Completely Fair Scheduler) period
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cpuquota
+	//    type: integer
+	//    description: |
+	//      CPUQuota limits the CPU CFS (Completely Fair Scheduler) quota
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: buildargs
+	//    type: string
+	//    default:
+	//    description: |
+	//      JSON map of string pairs denoting build-time variables.
+	//      For example, the build argument `Foo` with the value of `bar` would be encoded in JSON as `["Foo":"bar"]`.
+	//
+	//      For example, buildargs={"Foo":"bar"}.
+	//
+	//      Note(s):
+	//      * This should not be used to pass secrets.
+	//      * The value of buildargs should be URI component encoded before being passed to the API.
+	//
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: shmsize
+	//    type: integer
+	//    default: 67108864
+	//    description: |
+	//      ShmSize is the "size" value to use when mounting an shmfs on the container's /dev/shm directory.
+	//      Default is 64MB
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: squash
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Silently ignored.
+	//      Squash the resulting images layers into a single layer
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: labels
+	//    type: string
+	//    default:
+	//    description: |
+	//      JSON map of key, value pairs to set as labels on the new image
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: networkmode
+	//    type: string
+	//    default: bridge
+	//    description: |
+	//      Sets the networking mode for the run commands during build.
+	//      Supported standard values are:
+	//        * `bridge` limited to containers within a single host, port mapping required for external access
+	//        * `host` no isolation between host and containers on this network
+	//        * `none` disable all networking for this container
+	//        * container:<nameOrID> share networking with given container
+	//        ---All other values are assumed to be a custom network's name
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: platform
+	//    type: string
+	//    default:
+	//    description: |
+	//      Platform format os[/arch[/variant]]
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: target
+	//    type: string
+	//    default:
+	//    description: |
+	//      Target build stage
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: outputs
+	//    type: string
+	//    default:
+	//    description: |
+	//      output configuration TBD
+	//      (As of version 1.xx)
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: OK (As of version 1.xx)
+	//     schema:
+	//       type: object
+	//       required:
+	//         - stream
+	//       properties:
+	//         stream:
+	//           type: string
+	//           description: output from build process
+	//           example: |
+	//             (build details...)
+	//             Successfully built 8ba084515c724cbf90d447a63600c0a6
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.Handle(VersionedPath("/libpod/build"), s.APIHandler(compat.BuildImage)).Methods(http.MethodPost)
 	return nil
 }

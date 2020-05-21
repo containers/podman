@@ -226,6 +226,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	id, _, err := runtime.Build(r.Context(), buildOptions, query.Dockerfile)
 	if err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 
 	// Find image ID that was built...
