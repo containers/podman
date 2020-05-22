@@ -709,7 +709,6 @@ special_testing_bindings_task:
 
 special_testing_endpoint_task:
 
-    skip: $CI == 'true'
     depends_on:
         - "gating"
         - "varlink_api"
