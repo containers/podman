@@ -50,7 +50,6 @@ func Logs(ctx context.Context, nameOrID string, opts LogOptions, stdoutChan, std
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
 
 	buffer := make([]byte, 1024)
 	for {
