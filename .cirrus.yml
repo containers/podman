@@ -246,7 +246,6 @@ vendor_task:
 # whether the git tree is clean.
 varlink_api_task:
 
-    skip: $CI == 'true'
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
