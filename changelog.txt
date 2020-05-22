@@ -1,3 +1,72 @@
+- Changelog for v2.0.0-rc2 (2020-05-22)
+  * Attempt to turn on integration tests
+  * Removes remote system reset functionality. skip e2e test for remote.
+  * Attempt to turn on special_testing_endpoing tests
+  * Attempt to turn on varlink tests
+  * Attempt to turn on rpmbuild tests
+  * Bump github.com/containers/common from 0.11.2 to 0.11.4
+  * Enables iidfile test as issue fixed now
+  * [CI:DOCS] Docs revamp.
+  * Fix podman-remote start tests
+  * podman version --format ...  was not working
+  * Display human build date in podman info
+  * remote manifest test
+  * Turn on more remote tests
+  * v2 podman-remote build
+  * Fix podman-remote stop --all to handle not running containers
+  * Enable rmi test
+  * Bump github.com/opencontainers/go-digest from 1.0.0-rc1 to 1.0.0
+  * Remove github.com/libpod/libpod from cmd/pkg/podman
+  * Start testing with cross compilation
+  * Fixes podman pod create --pod-id-file #6292
+  * remote untag test
+  * Get proper exit code when running or starting a container.
+  * vendor: update seccomp/containers-golang to v0.4.1
+  * Bump github.com/containers/storage from 1.19.2 to 1.20.1
+  * Bump github.com/onsi/ginkgo from 1.12.0 to 1.12.2
+  * Handle filters correctly for podman prune
+  * Fix remote handling of podman images calls
+  * Bump k8s.io/api from 0.18.2 to 0.18.3
+  * Bump github.com/onsi/gomega from 1.10.0 to 1.10.1
+  * Enable system prune test remote client
+  * Fix build on OS X
+  * Update Derivative API tutorial to reflect the HTTP API
+  * Turn off 'noexec' option by default for named volumes
+  * enable remote integration tests for init
+  * Add a test for detached exec
+  * Update manpage for `podman exec` to include detach flag
+  * Enable cleanup processes for detached exec
+  * Add ability to clean up exec sessions with cleanup
+  * Add CLI frontend for detached exec
+  * Add backend code for detached exec
+  * Add exit commands to exec sessions
+  * enable pod_create remote integration tests
+  * Fix remote integration for healthchecks
+  * Fix create_test for remote integration
+  * govern remote attach and start
+  * Test fixes for remote integration
+  * V2 API Version Support
+  * Print container state when erroring that it is improper
+  * system tests: more podman-pod tests
+  * don't skip log tests unless remote
+  * [CI:DOCS] Image tree endpoint should return 404
+  * oci conmon: tell conmon to log container name
+  * add go-bindings for `hack/podman-registry`
+  * New tool: hack/podman-registry, manages local registry
+  * Testcase added for network commands
+  * format option added to network inspect command.
+  * filter option added to network ls command.
+  * Fix mountpont in SecretMountsWithUIDGID
+  * Update troubleshoot page
+  * v2 enable remote integration tests
+  * Get MAC, Windows and Linux podman-remote from latest version links.
+  * V2 Implement terminal handling in bindings attach
+  * Fix EOM for SendFile
+  * Bump to v2.0.0-dev
+  * Give `auto-update` ability to use per-container authfile specified by label.
+  * system tests: small fixes for rawhide+cgroups v1
+  * Add HairpinMode to our CNI configs
+
 - Changelog for v2.0.0-rc1 (2020-05-18)
   * v2endpoint remove image path correction
   * Drop APIv2 resize endpoint
