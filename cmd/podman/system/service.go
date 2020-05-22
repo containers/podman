@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -52,6 +53,14 @@ func init() {
 	flags.BoolVar(&srvArgs.Varlink, "varlink", false, "Use legacy varlink service instead of REST")
 
 	_ = flags.MarkDeprecated("varlink", "valink API is deprecated.")
+	flags.SetNormalizeFunc(aliasTimeoutFlag)
+}
+
+func aliasTimeoutFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {
+	if name == "timeout" {
+		name = "time"
+	}
+	return pflag.NormalizedName(name)
 }
 
 func service(cmd *cobra.Command, args []string) error {

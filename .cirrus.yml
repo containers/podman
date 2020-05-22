@@ -309,8 +309,6 @@ build_each_commit_task:
 
 build_without_cgo_task:
 
-    skip: $CI == 'true'
-
     depends_on:
         - "gating"
         - "vendor"

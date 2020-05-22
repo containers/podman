@@ -95,7 +95,7 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 		args = append(args, "--log-level", "debug")
 	}
 	remoteSocket := p.RemoteSocket
-	args = append(args, "system", "service", "--timeout", "0", remoteSocket)
+	args = append(args, "system", "service", "--time", "0", remoteSocket)
 	podmanOptions := getRemoteOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	command.Stdout = os.Stdout

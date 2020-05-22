@@ -270,7 +270,7 @@ function start_service() {
         die "Cannot start service on non-localhost ($HOST)"
     fi
 
-    $PODMAN_BIN --root $WORKDIR system service --timeout 15 tcp:127.0.0.1:$PORT \
+    $PODMAN_BIN --root $WORKDIR system service --time 15 tcp:127.0.0.1:$PORT \
         &> $WORKDIR/server.log &
     service_pid=$!
 
