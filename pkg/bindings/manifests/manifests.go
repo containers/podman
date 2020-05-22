@@ -112,17 +112,17 @@ func Push(ctx context.Context, name string, destination *string, all *bool) (str
 	params := url.Values{}
 	params.Set("image", name)
 	if destination != nil {
-		dest = name
+		dest = *destination
 	}
 	params.Set("destination", dest)
 	if all != nil {
 		params.Set("all", strconv.FormatBool(*all))
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/manifests/%s/push", params, name)
+	_, err = conn.DoRequest(nil, http.MethodPost, "/manifests/%s/push", params, name)
 	if err != nil {
 		return "", err
 	}
-	return idr.ID, response.Process(&idr)
+	return idr.ID, err
 }
 
 // There is NO annotate endpoint.  this binding could never work

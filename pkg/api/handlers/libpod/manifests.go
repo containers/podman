@@ -151,6 +151,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	}
 	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
 	opts := manifests.PushOptions{
+		Store:              runtime.GetStore(),
 		ImageListSelection: copy2.CopySpecificImages,
 		SystemContext:      sc,
 	}
