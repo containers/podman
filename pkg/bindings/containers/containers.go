@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	ErrLostSync = errors.New("lost synchronization with attach multiplexed result")
+	ErrLostSync = errors.New("lost synchronization with multiplexed stream")
 )
 
 // List obtains a list of containers in local storage.  All parameters to this method are optional.
@@ -485,7 +485,7 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 					return err
 				}
 			case fd == 3:
-				return fmt.Errorf("error from daemon in stream: %s", frame)
+				return errors.New("error from service in stream: " + string(frame))
 			default:
 				return fmt.Errorf("unrecognized input header: %d", fd)
 			}
@@ -507,7 +507,7 @@ func DemuxHeader(r io.Reader, buffer []byte) (fd, sz int, err error) {
 
 	fd = int(buffer[0])
 	if fd < 0 || fd > 3 {
-		err = ErrLostSync
+		err = errors.Wrapf(ErrLostSync, fmt.Sprintf(`channel "%d" found, 0-3 supported`, fd))
 		return
 	}
 
@@ -528,7 +528,6 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 		err = io.ErrUnexpectedEOF
 		return
 	}
-
 	return buffer[0:length], nil
 }
 

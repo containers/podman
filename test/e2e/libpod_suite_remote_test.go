@@ -89,10 +89,17 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 	if os.Geteuid() == 0 {
 		os.MkdirAll("/run/podman", 0755)
 	}
+
+	args := []string{}
+	if _, found := os.LookupEnv("DEBUG_SERVICE"); found {
+		args = append(args, "--log-level", "debug")
+	}
 	remoteSocket := p.RemoteSocket
-	args := []string{"system", "service", "--timeout", "0", remoteSocket}
+	args = append(args, "system", "service", "--timeout", "0", remoteSocket)
 	podmanOptions := getRemoteOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command.Start()
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

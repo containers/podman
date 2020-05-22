@@ -4,7 +4,9 @@ import (
 	"context"
 	"io"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
@@ -336,9 +338,36 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	return &entities.ContainerCreateReport{Id: response.ID}, nil
 }
 
-func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []string, options entities.ContainerLogsOptions) error {
-	// The endpoint is not ready yet and requires some more work.
-	return errors.New("not implemented yet")
+func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIds []string, options entities.ContainerLogsOptions) error {
+	since := options.Since.Format(time.RFC3339)
+	tail := strconv.FormatInt(options.Tail, 10)
+	stdout := options.Writer != nil
+	opts := containers.LogOptions{
+		Follow:     &options.Follow,
+		Since:      &since,
+		Stderr:     &stdout,
+		Stdout:     &stdout,
+		Tail:       &tail,
+		Timestamps: &options.Timestamps,
+		Until:      nil,
+	}
+
+	var err error
+	outCh := make(chan string)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		err = containers.Logs(ic.ClientCxt, nameOrIds[0], opts, outCh, outCh)
+		cancel()
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return err
+		case line := <-outCh:
+			_, _ = io.WriteString(options.Writer, line)
+		}
+	}
 }
 
 func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string, options entities.AttachOptions) error {

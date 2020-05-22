@@ -29,7 +29,18 @@ var (
 		Use:   "logs [flags] CONTAINER [CONTAINER...]",
 		Short: "Fetch the logs of one or more containers",
 		Long:  logsDescription,
-		RunE:  logs,
+		Args: func(cmd *cobra.Command, args []string) error {
+			switch {
+			case registry.IsRemote() && len(args) > 1:
+				return errors.New(cmd.Name() + " does not support multiple containers when run remotely")
+			case logsOptions.Latest && len(args) > 0:
+				return errors.New("no containers can be specified when using 'latest'")
+			case !logsOptions.Latest && len(args) < 1:
+				return errors.New("specify at least one container name or ID to log")
+			}
+			return nil
+		},
+		RunE: logs,
 		Example: `podman logs ctrID
   podman logs --names ctrID1 ctrID2
   podman logs --tail 2 mywebserver
@@ -41,6 +52,7 @@ var (
 		Use:   logsCommand.Use,
 		Short: logsCommand.Short,
 		Long:  logsCommand.Long,
+		Args:  logsCommand.Args,
 		RunE:  logsCommand.RunE,
 		Example: `podman container logs ctrID
 		podman container logs --names ctrID1 ctrID2
@@ -53,7 +65,7 @@ var (
 func init() {
 	// logs
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: logsCommand,
 	})
 
@@ -62,7 +74,7 @@ func init() {
 
 	// container logs
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerLogsCommand,
 		Parent:  containerCmd,
 	})
@@ -84,12 +96,6 @@ func logsFlags(flags *pflag.FlagSet) {
 }
 
 func logs(cmd *cobra.Command, args []string) error {
-	if len(args) > 0 && logsOptions.Latest {
-		return errors.New("no containers can be specified when using 'latest'")
-	}
-	if !logsOptions.Latest && len(args) < 1 {
-		return errors.New("specify at least one container name or ID to log")
-	}
 	if logsOptions.SinceRaw != "" {
 		// parse time, error out if something is wrong
 		since, err := util.ParseInputTime(logsOptions.SinceRaw)

@@ -378,9 +378,9 @@ var _ = Describe("Podman containers ", func() {
 			containers.Logs(bt.conn, r.ID, opts, stdoutChan, nil)
 		}()
 		o := <-stdoutChan
-		o = strings.ReplaceAll(o, "\r", "")
+		o = strings.TrimSpace(o)
 		_, err = time.Parse(time.RFC1123Z, o)
-		Expect(err).To(BeNil())
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("podman top", func() {
