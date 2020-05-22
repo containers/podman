@@ -1,6 +1,7 @@
 package images
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -8,10 +9,13 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/containers/buildah"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/docker/go-units"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
 
@@ -209,7 +213,108 @@ func Untag(ctx context.Context, nameOrID, tag, repo string) error {
 	return response.Process(nil)
 }
 
-func Build(nameOrId string) {}
+// Build creates an image using a containerfile reference
+func Build(ctx context.Context, containerFiles []string, options entities.BuildOptions, tarfile io.Reader) (*entities.BuildReport, error) {
+	var (
+		platform string
+		report   entities.BuildReport
+	)
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	params.Set("dockerfile", containerFiles[0])
+	if t := options.Output; len(t) > 0 {
+		params.Set("t", t)
+	}
+	//	TODO Remote, Quiet
+	if options.NoCache {
+		params.Set("nocache", "1")
+	}
+	//	 TODO cachefrom
+	if options.PullPolicy == buildah.PullAlways {
+		params.Set("pull", "1")
+	}
+	if options.RemoveIntermediateCtrs {
+		params.Set("rm", "1")
+	}
+	if options.ForceRmIntermediateCtrs {
+		params.Set("forcerm", "1")
+	}
+	if mem := options.CommonBuildOpts.Memory; mem > 0 {
+		params.Set("memory", strconv.Itoa(int(mem)))
+	}
+	if memSwap := options.CommonBuildOpts.MemorySwap; memSwap > 0 {
+		params.Set("memswap", strconv.Itoa(int(memSwap)))
+	}
+	if cpuShares := options.CommonBuildOpts.CPUShares; cpuShares > 0 {
+		params.Set("cpushares", strconv.Itoa(int(cpuShares)))
+	}
+	if cpuSetCpus := options.CommonBuildOpts.CPUSetCPUs; len(cpuSetCpus) > 0 {
+		params.Set("cpusetcpues", cpuSetCpus)
+	}
+	if cpuPeriod := options.CommonBuildOpts.CPUPeriod; cpuPeriod > 0 {
+		params.Set("cpuperiod", strconv.Itoa(int(cpuPeriod)))
+	}
+	if cpuQuota := options.CommonBuildOpts.CPUQuota; cpuQuota > 0 {
+		params.Set("cpuquota", strconv.Itoa(int(cpuQuota)))
+	}
+	if buildArgs := options.Args; len(buildArgs) > 0 {
+		bArgs, err := jsoniter.MarshalToString(buildArgs)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("buildargs", bArgs)
+	}
+	if shmSize := options.CommonBuildOpts.ShmSize; len(shmSize) > 0 {
+		shmBytes, err := units.RAMInBytes(shmSize)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("shmsize", strconv.Itoa(int(shmBytes)))
+	}
+	if options.Squash {
+		params.Set("squash", "1")
+	}
+	if labels := options.Labels; len(labels) > 0 {
+		l, err := jsoniter.MarshalToString(labels)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("labels", l)
+	}
+
+	// TODO network?
+	if OS := options.OS; len(OS) > 0 {
+		platform += OS
+	}
+	if arch := options.Architecture; len(arch) > 0 {
+		platform += "/" + arch
+	}
+	if len(platform) > 0 {
+		params.Set("platform", platform)
+	}
+	//	TODO outputs?
+
+	response, err := conn.DoRequest(tarfile, http.MethodPost, "/build", params)
+	if err != nil {
+		return nil, err
+	}
+	var streamReponse []byte
+	bb := bytes.NewBuffer(streamReponse)
+	if _, err = io.Copy(bb, response.Body); err != nil {
+		return nil, err
+	}
+	var s struct {
+		Stream string `json:"stream"`
+	}
+	if err := jsoniter.UnmarshalFromString(bb.String(), &s); err != nil {
+		return nil, err
+	}
+	fmt.Print(s.Stream)
+	return &report, nil
+}
 
 // Imports adds the given image to the local image store.  This can be done by file and the given reader
 // or via the url parameter.  Additional metadata can be associated with the image by using the changes and

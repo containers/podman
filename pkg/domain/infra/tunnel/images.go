@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -13,6 +14,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/utils"
 	utils2 "github.com/containers/libpod/utils"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 )
 
@@ -265,7 +267,14 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
-	return nil, errors.New("not implemented yet")
+	if len(containerFiles) > 1 {
+		return nil, errors.New("something")
+	}
+	tarfile, err := archive.Tar(path.Base(containerFiles[0]), 0)
+	if err != nil {
+		return nil, err
+	}
+	return images.Build(ir.ClientCxt, containerFiles, opts, tarfile)
 }
 
 func (ir *ImageEngine) Tree(ctx context.Context, nameOrId string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
