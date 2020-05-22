@@ -1,3 +1,10 @@
+- Changelog for v1.9.3 (2020-05-22):
+  * Update release notes for v1.9.3
+  * Turn off 'noexec' option by default for named volumes
+  * Fix mountpont in SecretMountsWithUIDGID
+  * Fix EOM for SendFile
+  * vendor to containers/buildah 1.14.9
+
 - Changelog for v1.9.2 (2020-05-13):
   * Add release notes for v1.9.2
   * cgroup: skip unified if we are using v1
