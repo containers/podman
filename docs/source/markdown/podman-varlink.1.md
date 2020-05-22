@@ -19,7 +19,7 @@ The varlink service should generally be done with systemd.  See _Configuration_ 
 
   Print usage statement
 
-**--timeout**, **-t**
+**--time**, **-t**
 
 The time until the varlink session expires in _milliseconds_. The default is 1
 second. A value of `0` means no timeout and the session will not expire.

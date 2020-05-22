@@ -58,6 +58,9 @@ Podman and libpod currently support an additional `precreate` state which is cal
 
 **WARNING**: the `precreate` hook lets you do powerful things, such as adding additional mounts to the runtime configuration.  That power also makes it easy to break things.  Before reporting libpod errors, try running your container with `precreate` hooks disabled to see if the problem is due to one of your hooks.
 
+**--identity**=*path*
+Path to SSH identity file
+
 **--log-level**=*level*
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic (default: "error")
@@ -69,6 +72,9 @@ When namespace is set, created containers and pods will join the given namespace
 
 **--network-cmd-path**=*path*
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
+
+**--remote**, **-r**=*url*
+URL to access Podman service (default "unix:/run/user/3267/podman/podman.sock")
 
 **--root**=*value*
 

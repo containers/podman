@@ -87,9 +87,9 @@ func pushFlags(flags *pflag.FlagSet) {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("quiet")
-		_ = flags.MarkHidden("signature-policy")
 		_ = flags.MarkHidden("tls-verify")
 	}
+	_ = flags.MarkHidden("signature-policy")
 }
 
 // imagePush is implement the command for pushing images.

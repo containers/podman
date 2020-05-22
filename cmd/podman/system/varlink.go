@@ -1,3 +1,5 @@
+// +build linux
+
 package system
 
 import (
@@ -6,6 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -20,7 +23,7 @@ var (
 		Long:  varlinkDescription,
 		RunE:  varlinkE,
 		Example: `podman varlink unix:/run/podman/io.podman
-  podman varlink --timeout 5000 unix:/run/podman/io.podman`,
+  podman varlink --time 5000 unix:/run/podman/io.podman`,
 	}
 	varlinkArgs = struct {
 		Timeout int64
@@ -34,8 +37,14 @@ func init() {
 	})
 	flags := varlinkCmd.Flags()
 	flags.Int64VarP(&varlinkArgs.Timeout, "time", "t", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")
-	flags.Int64Var(&varlinkArgs.Timeout, "timeout", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")
+	flags.SetNormalizeFunc(aliasTimeoutFlag)
+}
 
+func aliasTimeoutFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {
+	if name == "timeout" {
+		name = "time"
+	}
+	return pflag.NormalizedName(name)
 }
 
 func varlinkE(cmd *cobra.Command, args []string) error {

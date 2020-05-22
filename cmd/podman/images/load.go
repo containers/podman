@@ -60,10 +60,7 @@ func loadFlags(flags *pflag.FlagSet) {
 	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Read from specified archive file (default: stdin)")
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.StringVar(&loadOpts.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("signature-policy")
-	}
-
+	_ = flags.MarkHidden("signature-policy")
 }
 
 func load(cmd *cobra.Command, args []string) error {

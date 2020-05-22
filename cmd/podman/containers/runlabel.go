@@ -42,7 +42,7 @@ func init() {
 		Parent:  containerCmd,
 	})
 
-	flags := rmCommand.Flags()
+	flags := runlabelCommand.Flags()
 	flags.StringVar(&runlabelOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&runlabelOptions.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&runlabelOptions.Credentials, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
@@ -61,6 +61,7 @@ func init() {
 	_ = flags.MarkHidden("opt1")
 	_ = flags.MarkHidden("opt2")
 	_ = flags.MarkHidden("opt3")
+	_ = flags.MarkHidden("signature-policy")
 
 	if err := flags.MarkDeprecated("pull", "podman will pull if not found in local storage"); err != nil {
 		logrus.Error("unable to mark pull flag deprecated")

@@ -15,14 +15,10 @@ example *unix:/run/user/1000/podman/podman.sock*)
 
 ## OPTIONS
 
-**--timeout**, **-t**
+**--time**, **-t**
 
 The time until the session expires in _milliseconds_. The default is 1
 second. A value of `0` means no timeout and the session will not expire.
-
-**--varlink**
-
-Use the varlink protocol instead of the REST-based protocol.  This option will be deprecated in the future.
 
 **--help**, **-h**
 

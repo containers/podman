@@ -137,11 +137,9 @@ gating_task:
         # FIXME
         #- 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
         # N/B: need 'clean' so some committed files are re-generated.
-        # FIXME
-        #- '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
-        #- '/usr/local/bin/entrypoint.sh clean podman xref_helpmsgs_manpages BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
-        # FIXME
-        #- '/usr/local/bin/entrypoint.sh local-cross |& ${TIMESTAMP}'
+        - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
+        - '/usr/local/bin/entrypoint.sh clean podman xref_helpmsgs_manpages BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
+        - '/usr/local/bin/entrypoint.sh local-cross |& ${TIMESTAMP}'
 
     # Verify some aspects of ci/related scripts
     ci_script:
