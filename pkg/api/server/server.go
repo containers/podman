@@ -92,6 +92,14 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		},
 	)
 
+	router.MethodNotAllowedHandler = http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			// We can track user errors...
+			logrus.Infof("Failed Request: (%d:%s) for %s:'%s'", http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed), r.Method, r.URL.String())
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		},
+	)
+
 	for _, fn := range []func(*mux.Router) error{
 		server.registerAuthHandlers,
 		server.registerContainersHandlers,
