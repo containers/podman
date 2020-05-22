@@ -442,10 +442,9 @@ testing_task:
     env:
         ADD_SECOND_PARTITION: 'true'
         matrix:
-            # FIXME
-            #- name: remote
-            #  env:
-            #      TEST_REMOTE_CLIENT: 'true'
+            - name: remote
+              env:
+                  TEST_REMOTE_CLIENT: 'true'
             - name: local
               env:
                   TEST_REMOTE_CLIENT: 'false'
