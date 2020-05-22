@@ -39,7 +39,7 @@ func (ic *ContainerEngine) VarlinkService(_ context.Context, opts entities.Servi
 	if err = service.Listen(opts.URI, opts.Timeout); err != nil {
 		switch err.(type) {
 		case varlink.ServiceTimeoutError:
-			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %s ms, 0 means never timeout)", opts.Timeout.String())
+			logrus.Infof("varlink service expired (use --time to increase session time beyond %s ms, 0 means never timeout)", opts.Timeout.String())
 			return nil
 		default:
 			return errors.Wrapf(err, "unable to start varlink service")
