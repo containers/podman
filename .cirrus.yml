@@ -186,7 +186,6 @@ container_image_build_task:
 # source code using contrib/rpm/podman.spec.in
 rpmbuild_task:
 
-    skip: $CI == 'true'
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*' &&
