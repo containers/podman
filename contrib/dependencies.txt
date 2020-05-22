@@ -2,7 +2,6 @@
 
 btrfs-progs-devel
 bzip2
-container-selinux
 containernetworking-cni
 device-mapper-devel
 findutils

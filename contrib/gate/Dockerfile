@@ -1,4 +1,4 @@
-FROM fedora:31
+FROM fedora:32
 
 ENV GOPATH="/var/tmp/go" \
     GOBIN="/var/tmp/go/bin" \
@@ -7,12 +7,13 @@ ENV GOPATH="/var/tmp/go" \
     GOSRC="/var/tmp/go/src/github.com/containers/libpod"
 
 # Only needed for installing build-time dependencies, then will be removed
-COPY / $GOSRC
+COPY . $GOSRC
 
 # Install packages from dependencies.txt, ignoring commented lines
 # Note: adding conmon and crun so podman command checks will work
 RUN dnf -y install \
-   $(grep "^[^#]" $GOSRC/contrib/dependencies.txt) conmon crun \
+   $(grep "^[^#]" $GOSRC/contrib/dependencies.txt) diffutils containers-common fuse-overlayfs conmon crun runc --exclude container-selinux \
+   sed -i -e 's|^#mount_program|mount_program|g' /etc/containers/storage.conf \
    && dnf clean all
 
 # Install dependencies
