@@ -246,20 +246,6 @@ func readLibpodConfigFromFile(path string, config *ConfigFromLibpod) (*ConfigFro
 		return nil, fmt.Errorf("unable to decode configuration %v: %v", path, err)
 	}
 
-	// For the sake of backwards compat we need to check if the config fields
-	// with *Set suffix are set in the config.  Note that the storage-related
-	// fields are NOT set in the config here but in the storage.conf OR directly
-	// by the user.
-	if config.VolumePath != "" {
-		config.VolumePathSet = true
-	}
-	if config.StaticDir != "" {
-		config.StaticDirSet = true
-	}
-	if config.TmpDir != "" {
-		config.TmpDirSet = true
-	}
-
 	return config, err
 }
 
@@ -350,40 +336,75 @@ func (c *Config) libpodConfig() *ConfigFromLibpod {
 
 func (c *Config) libpodToContainersConfig(libpodConf *ConfigFromLibpod) {
 
-	c.Containers.InitPath = libpodConf.InitPath
+	if libpodConf.InitPath != "" {
+		c.Containers.InitPath = libpodConf.InitPath
+	}
 	c.Containers.LogSizeMax = libpodConf.MaxLogSize
 	c.Containers.EnableLabeling = libpodConf.EnableLabeling
 
-	c.Engine.SignaturePolicyPath = libpodConf.SignaturePolicyPath
+	if libpodConf.SignaturePolicyPath != "" {
+		c.Engine.SignaturePolicyPath = libpodConf.SignaturePolicyPath
+	}
 	c.Engine.SetOptions = libpodConf.SetOptions
-	c.Engine.VolumePath = libpodConf.VolumePath
-	c.Engine.ImageDefaultTransport = libpodConf.ImageDefaultTransport
-	c.Engine.OCIRuntime = libpodConf.OCIRuntime
+	if libpodConf.VolumePath != "" {
+		c.Engine.VolumePath = libpodConf.VolumePath
+	}
+	if libpodConf.ImageDefaultTransport != "" {
+		c.Engine.ImageDefaultTransport = libpodConf.ImageDefaultTransport
+	}
+	if libpodConf.OCIRuntime != "" {
+		c.Engine.OCIRuntime = libpodConf.OCIRuntime
+	}
 	c.Engine.OCIRuntimes = libpodConf.OCIRuntimes
 	c.Engine.RuntimeSupportsJSON = libpodConf.RuntimeSupportsJSON
 	c.Engine.RuntimeSupportsNoCgroups = libpodConf.RuntimeSupportsNoCgroups
 	c.Engine.RuntimePath = libpodConf.RuntimePath
 	c.Engine.ConmonPath = libpodConf.ConmonPath
 	c.Engine.ConmonEnvVars = libpodConf.ConmonEnvVars
-	c.Engine.CgroupManager = libpodConf.CgroupManager
-	c.Engine.StaticDir = libpodConf.StaticDir
-	c.Engine.TmpDir = libpodConf.TmpDir
+	if libpodConf.CgroupManager != "" {
+		c.Engine.CgroupManager = libpodConf.CgroupManager
+	}
+	if libpodConf.StaticDir != "" {
+		c.Engine.StaticDir = libpodConf.StaticDir
+	}
+	if libpodConf.TmpDir != "" {
+		c.Engine.TmpDir = libpodConf.TmpDir
+	}
 	c.Engine.NoPivotRoot = libpodConf.NoPivotRoot
 	c.Engine.HooksDir = libpodConf.HooksDir
-	c.Engine.Namespace = libpodConf.Namespace
-	c.Engine.InfraImage = libpodConf.InfraImage
-	c.Engine.InfraCommand = libpodConf.InfraCommand
+	if libpodConf.Namespace != "" {
+		c.Engine.Namespace = libpodConf.Namespace
+	}
+	if libpodConf.InfraImage != "" {
+		c.Engine.InfraImage = libpodConf.InfraImage
+	}
+	if libpodConf.InfraCommand != "" {
+		c.Engine.InfraCommand = libpodConf.InfraCommand
+	}
+
 	c.Engine.EnablePortReservation = libpodConf.EnablePortReservation
-	c.Engine.NetworkCmdPath = libpodConf.NetworkCmdPath
+	if libpodConf.NetworkCmdPath != "" {
+		c.Engine.NetworkCmdPath = libpodConf.NetworkCmdPath
+	}
 	c.Engine.NumLocks = libpodConf.NumLocks
 	c.Engine.LockType = libpodConf.LockType
-	c.Engine.EventsLogger = libpodConf.EventsLogger
-	c.Engine.EventsLogFilePath = libpodConf.EventsLogFilePath
-	c.Engine.DetachKeys = libpodConf.DetachKeys
+	if libpodConf.EventsLogger != "" {
+		c.Engine.EventsLogger = libpodConf.EventsLogger
+	}
+	if libpodConf.EventsLogFilePath != "" {
+		c.Engine.EventsLogFilePath = libpodConf.EventsLogFilePath
+	}
+	if libpodConf.DetachKeys != "" {
+		c.Engine.DetachKeys = libpodConf.DetachKeys
+	}
 	c.Engine.SDNotify = libpodConf.SDNotify
 	c.Engine.CgroupCheck = libpodConf.CgroupCheck
 
-	c.Network.NetworkConfigDir = libpodConf.CNIConfigDir
+	if libpodConf.CNIConfigDir != "" {
+		c.Network.NetworkConfigDir = libpodConf.CNIConfigDir
+	}
 	c.Network.CNIPluginDirs = libpodConf.CNIPluginDir
-	c.Network.DefaultNetwork = libpodConf.CNIDefaultNetwork
+	if libpodConf.CNIDefaultNetwork != "" {
+		c.Network.DefaultNetwork = libpodConf.CNIDefaultNetwork
+	}
 }
