@@ -13,7 +13,7 @@ podman\-exec - Execute a command in a running container
 
 ## OPTIONS
 
-**--detach**
+**--detach**, **-d**
 
 Start the exec session, but do not attach to it. The command will run in the background and the exec session will be automatically removed when it completes. The **podman exec** command will print the ID of the exec session and exit immediately after it starts.
 

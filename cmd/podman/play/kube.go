@@ -59,6 +59,8 @@ func init() {
 		flags.StringVar(&kubeOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.StringVar(&kubeOptions.SeccompProfileRoot, "seccomp-profile-root", defaultSeccompRoot, "Directory path for seccomp profiles")
 	}
+
+	_ = flags.MarkHidden("signature-policy")
 }
 
 func kube(cmd *cobra.Command, args []string) error {

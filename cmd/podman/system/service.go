@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -26,13 +27,12 @@ Enable a listening service for API access to Podman commands.
 `
 
 	srvCmd = &cobra.Command{
-		Use:   "service [flags] [URI]",
-		Args:  cobra.MaximumNArgs(1),
-		Short: "Run API service",
-		Long:  srvDescription,
-		RunE:  service,
-		Example: `podman system service --time=0 unix:///tmp/podman.sock
-  podman system service --varlink --time=0 unix:///tmp/podman.sock`,
+		Use:     "service [flags] [URI]",
+		Args:    cobra.MaximumNArgs(1),
+		Short:   "Run API service",
+		Long:    srvDescription,
+		RunE:    service,
+		Example: `podman system service --time=0 unix:///tmp/podman.sock`,
 	}
 
 	srvArgs = struct {
@@ -50,10 +50,17 @@ func init() {
 
 	flags := srvCmd.Flags()
 	flags.Int64VarP(&srvArgs.Timeout, "time", "t", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
-	flags.Int64Var(&srvArgs.Timeout, "timeout", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
 	flags.BoolVar(&srvArgs.Varlink, "varlink", false, "Use legacy varlink service instead of REST")
 
 	_ = flags.MarkDeprecated("varlink", "valink API is deprecated.")
+	flags.SetNormalizeFunc(aliasTimeoutFlag)
+}
+
+func aliasTimeoutFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {
+	if name == "timeout" {
+		name = "time"
+	}
+	return pflag.NormalizedName(name)
 }
 
 func service(cmd *cobra.Command, args []string) error {

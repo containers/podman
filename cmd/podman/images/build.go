@@ -126,6 +126,7 @@ func buildFlags(flags *pflag.FlagSet) {
 		os.Exit(1)
 	}
 	flags.AddFlagSet(&fromAndBudFlags)
+	_ = flags.MarkHidden("signature-policy")
 }
 
 // build executes the build command.

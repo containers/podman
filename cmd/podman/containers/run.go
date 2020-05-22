@@ -63,6 +63,9 @@ func runFlags(flags *pflag.FlagSet) {
 		_ = flags.MarkHidden("env-host")
 		_ = flags.MarkHidden("http-proxy")
 	}
+	// Not sure we want these exposed yet.  If we do, they need to be documented in man pages
+	_ = flags.MarkHidden("override-arch")
+	_ = flags.MarkHidden("override-os")
 }
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

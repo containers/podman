@@ -15,6 +15,9 @@ After the container stops, the container's return code is printed.
 
 ## OPTIONS
 
+**--condition**=*state*
+Condition to wait on (default "stopped")
+
 **--help**, **-h**
 
  Print usage statement

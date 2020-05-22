@@ -73,7 +73,10 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**--override-arch**=ARCH
+**--override-os**=*OS*
+Use OS instead of the running OS for choosing images
+
+**--override-arch**=*ARCH*
 
 Override the machine's default architecture of the image to be pulled. For example, `arm`.
 

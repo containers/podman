@@ -37,10 +37,13 @@ Display sizes and dates in human readable format (default *true*).
 
 Do not truncate the output (default *false*).
 
+**--notruncate**
+
+Do not truncate the output
+
 **--quiet**, **-q**=*true|false*
 
 Print the numeric IDs only (default *false*).
-
 **--format**=*format*
 
 Alter the output for a format like 'json' or a Go template.

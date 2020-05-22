@@ -89,7 +89,7 @@ func (p *PodmanTestIntegration) StartVarlink() {
 	varlinkEndpoint := p.RemoteSocket
 	p.SetVarlinkAddress(p.RemoteSocket)
 
-	args := []string{"varlink", "--timeout", "0", varlinkEndpoint}
+	args := []string{"varlink", "--time", "0", varlinkEndpoint}
 	podmanOptions := getVarlinkOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))

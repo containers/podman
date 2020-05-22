@@ -150,6 +150,10 @@ sub xref_by_man {
             my %ignore = map { $_ => 1 } qw(-l -s -t --latest --size --type);
             next if $man =~ /-inspect/ && $ignore{$k};
 
+            # Special case: podman-diff serves dual purpose (image, ctr)
+            my %diffignore = map { $_ => 1 } qw(-l --latest );
+            next if $man =~ /-diff/ && $diffignore{$k};
+
             # Special case: the 'trust' man page is a mess
             next if $man =~ /-trust/;
 

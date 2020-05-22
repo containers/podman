@@ -74,7 +74,6 @@ func imageListFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVar(&listFlag.digests, "digests", false, "Show digests")
 	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print column headings")
 	flags.BoolVar(&listFlag.noTrunc, "no-trunc", false, "Do not truncate output")
-	flags.BoolVar(&listFlag.noTrunc, "notruncate", false, "Do not truncate output")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Display only image IDs")
 	flags.StringVar(&listFlag.sort, "sort", "created", "Sort by "+sortFields.String())
 	flags.BoolVarP(&listFlag.history, "history", "", false, "Display the image name history")

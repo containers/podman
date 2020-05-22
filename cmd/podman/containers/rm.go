@@ -74,8 +74,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: rmCommand,
 	})
-	flags := rmCommand.Flags()
-	rmFlags(flags)
+	rmFlags(rmCommand.Flags())
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},

@@ -87,9 +87,9 @@ func pullFlags(flags *pflag.FlagSet) {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("cert-dir")
-		_ = flags.MarkHidden("signature-policy")
 		_ = flags.MarkHidden("tls-verify")
 	}
+	_ = flags.MarkHidden("signature-policy")
 }
 
 // imagePull is implement the command for pulling images.

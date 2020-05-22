@@ -73,7 +73,7 @@ func (p *EndpointTestIntegration) startVarlink(useImageCache bool) {
 	varlinkEndpoint := p.VarlinkEndpoint
 	//p.SetVarlinkAddress(p.RemoteSocket)
 
-	args := []string{"varlink", "--timeout", "0", varlinkEndpoint}
+	args := []string{"varlink", "--time", "0", varlinkEndpoint}
 	podmanOptions := getVarlinkOptions(p, args)
 	if useImageCache {
 		cacheOptions := []string{"--storage-opt", fmt.Sprintf("%s.imagestore=%s", p.ImageCacheFS, p.ImageCacheDir)}
