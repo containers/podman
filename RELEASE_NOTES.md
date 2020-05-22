@@ -1,5 +1,14 @@
 # Release Notes
 
+## 1.9.3
+### Bugfixes
+- Fixed a bug where, on FIPS enabled hosts, FIPS mode secrets were not properly mounted into containers
+- Fixed a bug where builds run over Varlink would hang ([#6237](https://github.com/containers/libpod/issues/6237))
+
+### Misc
+- Named volumes and tmpfs filesystems will no longer default to mounting `noexec` for improved compatibility with Docker
+- Updated Buildah to v1.14.9
+
 ## 1.9.2
 ### Bugfixes
 - Fixed a bug where `podman save` would fail when the target image was specified by digest ([#5234](https://github.com/containers/libpod/issues/5234))
