@@ -476,10 +476,11 @@ func (c *Config) Ulimits() []string {
 // PidsLimit returns the default maximum number of pids to use in containers
 func (c *Config) PidsLimit() int64 {
 	if unshare.IsRootless() {
-		cgroup2, _ := cgroupv2.Enabled()
-		if cgroup2 {
-			return c.Containers.PidsLimit
-		} else {
+		if c.Engine.CgroupManager == SystemdCgroupsManager {
+			cgroup2, _ := cgroupv2.Enabled()
+			if cgroup2 {
+				return c.Containers.PidsLimit
+			}
 			return 0
 		}
 	}
