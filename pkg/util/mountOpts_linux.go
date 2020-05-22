@@ -7,7 +7,7 @@ import (
 )
 
 func getDefaultMountOptions(path string) (defaultMountOptions, error) {
-	opts := defaultMountOptions{true, true, true}
+	opts := defaultMountOptions{false, true, true}
 	if path == "" {
 		return opts, nil
 	}
