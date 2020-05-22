@@ -10,9 +10,9 @@ ENV GOPATH="/var/tmp/go" \
 COPY / $GOSRC
 
 # Install packages from dependencies.txt, ignoring commented lines
-# Note: adding conmon so podman command checks will work
+# Note: adding conmon and crun so podman command checks will work
 RUN dnf -y install \
-   $(grep "^[^#]" $GOSRC/contrib/dependencies.txt) conmon \
+   $(grep "^[^#]" $GOSRC/contrib/dependencies.txt) conmon crun \
    && dnf clean all
 
 # Install dependencies
