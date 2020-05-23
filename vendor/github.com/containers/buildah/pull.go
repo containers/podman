@@ -19,6 +19,7 @@ import (
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -56,6 +57,9 @@ type PullOptions struct {
 	MaxRetries int
 	// RetryDelay is how long to wait before retrying a pull attempt.
 	RetryDelay time.Duration
+	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
+	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
+	OciDecryptConfig *encconfig.DecryptConfig
 }
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference) (string, error) {
@@ -164,6 +168,7 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 		ReportWriter:        options.ReportWriter,
 		MaxPullRetries:      options.MaxRetries,
 		PullRetryDelay:      options.RetryDelay,
+		OciDecryptConfig:    options.OciDecryptConfig,
 	}
 
 	storageRef, transport, img, err := resolveImage(ctx, systemContext, options.Store, boptions)
@@ -275,7 +280,7 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	}()
 
 	logrus.Debugf("copying %q to %q", transports.ImageName(srcRef), destName)
-	if _, err := retryCopyImage(ctx, policyContext, maybeCachedDestRef, srcRef, srcRef, "pull", getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, ""), options.MaxRetries, options.RetryDelay); err != nil {
+	if _, err := retryCopyImage(ctx, policyContext, maybeCachedDestRef, srcRef, srcRef, "pull", getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, "", nil, nil, options.OciDecryptConfig), options.MaxRetries, options.RetryDelay); err != nil {
 		logrus.Debugf("error copying src image [%q] to dest image [%q] err: %v", transports.ImageName(srcRef), destName, err)
 		return nil, err
 	}

@@ -30,12 +30,13 @@ const (
 
 func pullAndFindImage(ctx context.Context, store storage.Store, srcRef types.ImageReference, options BuilderOptions, sc *types.SystemContext) (*storage.Image, types.ImageReference, error) {
 	pullOptions := PullOptions{
-		ReportWriter:  options.ReportWriter,
-		Store:         store,
-		SystemContext: options.SystemContext,
-		BlobDirectory: options.BlobDirectory,
-		MaxRetries:    options.MaxPullRetries,
-		RetryDelay:    options.PullRetryDelay,
+		ReportWriter:     options.ReportWriter,
+		Store:            store,
+		SystemContext:    options.SystemContext,
+		BlobDirectory:    options.BlobDirectory,
+		MaxRetries:       options.MaxPullRetries,
+		RetryDelay:       options.PullRetryDelay,
+		OciDecryptConfig: options.OciDecryptConfig,
 	}
 	ref, err := pullImage(ctx, store, srcRef, pullOptions, sc)
 	if err != nil {

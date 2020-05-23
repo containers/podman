@@ -295,7 +295,7 @@ func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []st
 			// container.  Update the ID mappings and
 			// all-content-comes-from-below-this-directory value.
 			from := strings.TrimPrefix(flag, "--from=")
-			if other, ok := s.executor.stages[from]; ok {
+			if other, ok := s.executor.stages[from]; ok && other.index < s.index {
 				contextDir = other.mountPoint
 				idMappingOptions = &other.builder.IDMappingOptions
 			} else if builder, ok := s.executor.containerMap[from]; ok {
@@ -633,6 +633,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		Devices:               s.executor.devices,
 		MaxPullRetries:        s.executor.maxPullPushRetries,
 		PullRetryDelay:        s.executor.retryPullPushDelay,
+		OciDecryptConfig:      s.executor.ociDecryptConfig,
 	}
 
 	// Check and see if the image is a pseudonym for the end result of a
@@ -868,13 +869,10 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				if len(arr) != 2 {
 					return "", nil, errors.Errorf("%s: invalid --from flag, should be --from=<name|stage>", command)
 				}
-				otherStage, ok := s.executor.stages[arr[1]]
-				if !ok {
-					if mountPoint, err = s.getImageRootfs(ctx, arr[1]); err != nil {
-						return "", nil, errors.Errorf("%s --from=%s: no stage or image found with that name", command, arr[1])
-					}
-				} else {
+				if otherStage, ok := s.executor.stages[arr[1]]; ok && otherStage.index < s.index {
 					mountPoint = otherStage.mountPoint
+				} else if mountPoint, err = s.getImageRootfs(ctx, arr[1]); err != nil {
+					return "", nil, errors.Errorf("%s --from=%s: no stage or image found with that name", command, arr[1])
 				}
 				s.copyFrom = mountPoint
 				break

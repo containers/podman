@@ -4,8 +4,8 @@ run:
     - apparmor
     - seccomp
     - selinux
-  concurrency: 6
-  deadline: 5m
+  # Don't exceed number of threads available when running under CI
+  concurrency: 4
 linters:
   disable-all: true
   enable:
@@ -17,7 +17,8 @@ linters:
     - gofmt
     - goimports
     - golint
-    - gosimple
+    # Broken? Unpredictably dies w/o any error well before deadline/timeout expires
+    # - gosimple
     - govet
     - ineffassign
     - interfacer

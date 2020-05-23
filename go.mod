@@ -10,7 +10,7 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.6
-	github.com/containers/buildah v1.14.9-0.20200501175434-42a48f9373d9
+	github.com/containers/buildah v1.14.9-0.20200523094741-de0f541d9224
 	github.com/containers/common v0.11.4
 	github.com/containers/conmon v2.0.16+incompatible
 	github.com/containers/image/v5 v5.4.4
