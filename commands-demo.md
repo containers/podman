@@ -28,8 +28,10 @@
 | [podman-history(1)](https://podman.readthedocs.io/en/latest/markdown/podman-history.1.html)                           | Shows the history of an image                                              |
 | [podman-image(1)](https://podman.readthedocs.io/en/latest/image.html)                                                 | Manage Images                                                              |
 | [podman-image-exists(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-exists.1.html)                 | Check if an image exists in local storage                                  |
+| [podman-image-diff(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-diff.html)                       | Inspect changes on an image's filesystem.                                  |
 | [podman-image-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-prune.1.html)                   | Remove all unused images from the local store                              |
 | [podman-image-sign(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-sign.1.html)                     | Create a signature for an image                                            |
+| [podman-image-search(1)](https://podman.readthedocs.io/en/latest/markdown/podman-search.1.html)                       | Search a registry for an image.                                            |
 | [podman-image-tree(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-tree.1.html)                     | Prints layer hierarchy of an image in a tree format                        |
 | [podman-image-trust(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-trust.1.html)                   | Manage container registry image trust policy                               |
 | [podman-images(1)](https://podman.readthedocs.io/en/latest/markdown/podman-images.1.html)                             | List images in local storage                                               | [![...](/docs/source/markdown/play.png)](https://podman.io/asciinema/podman/images/)        | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_images.sh) |
