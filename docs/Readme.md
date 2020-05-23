@@ -1,7 +1,7 @@
 # Podman Documentation
 
 The online man pages and other documents regarding Podman can be found at
-[Read The Docs](https://podman.readthedocs.io/en/latest/index.html).  The man pages
+[Read The Docs](https://podman.readthedocs.io).  The man pages
 can be found under the [Commands](https://podman.readthedocs.io/en/latest/Commands.html)
 link on that page.
 
