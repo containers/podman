@@ -22,7 +22,7 @@ ETCDIR ?= /etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
-REMOTETAGS := !ABISupport remoteclient exclude_graphdriver_btrfs btrfs_noversion  exclude_graphdriver_devicemapper containers_image_openpgp
+REMOTETAGS ?= !ABISupport remoteclient exclude_graphdriver_btrfs btrfs_noversion  exclude_graphdriver_devicemapper containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
