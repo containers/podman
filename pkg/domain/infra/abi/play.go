@@ -103,8 +103,6 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 			return nil, errors.Wrapf(err, "Error encountered while bringing up pod %s", podName)
 		}
 		report.Pods = append(report.Pods, podReport.Pods...)
-		report.Containers = append(report.Containers, podReport.Containers...)
-		report.Logs = append(report.Logs, podReport.Logs...)
 	}
 	return &report, nil
 }
@@ -116,6 +114,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		podOptions    []libpod.PodCreateOption
 		registryCreds *types.DockerAuthConfig
 		writer        io.Writer
+		playKubePod   entities.PlayKubePod
 		report        entities.PlayKubeReport
 	)
 
@@ -125,7 +124,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 	for _, n := range podYAML.Spec.Containers {
 		if n.Name == podName {
-			report.Logs = append(report.Logs,
+			playKubePod.Logs = append(playKubePod.Logs,
 				fmt.Sprintf("a container exists with the same name (%q) as the pod in your YAML file; changing pod name to %s_pod\n", podName, podName))
 			podName = fmt.Sprintf("%s_pod", podName)
 		}
@@ -314,10 +313,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
-	report.Pods = append(report.Pods, pod.ID())
+	playKubePod.ID = pod.ID()
 	for _, ctr := range containers {
-		report.Containers = append(report.Containers, ctr.ID())
+		playKubePod.Containers = append(playKubePod.Containers, ctr.ID())
 	}
+
+	report.Pods = append(report.Pods, playKubePod)
 
 	return &report, nil
 }
@@ -425,9 +426,12 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.ImageID = newImage.ID()
 	containerConfig.Name = containerYAML.Name
 
-	if podName != "" {
-		containerConfig.Name = fmt.Sprintf("%s-%s", podName, containerYAML.Name)
+	// podName should be non-empty for Deployment objects to be able to create
+	// multiple pods having containers with unique names
+	if podName == "" {
+		return nil, errors.Errorf("kubeContainerToCreateConfig got empty podName")
 	}
+	containerConfig.Name = fmt.Sprintf("%s-%s", podName, containerYAML.Name)
 
 	containerConfig.Tty = containerYAML.TTY
 

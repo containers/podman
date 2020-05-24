@@ -26,12 +26,17 @@ type PlayKubeOptions struct {
 	SeccompProfileRoot string
 }
 
-// PlayKubeReport contains the results of running play kube.
-type PlayKubeReport struct {
-	// Pods - the IDs of the created pods.
-	Pods []string
+// PlayKubePods represents a single pod and associated containers created by play kube
+type PlayKubePod struct {
+	ID string
 	// Containers - the IDs of the containers running in the created pod.
 	Containers []string
 	// Logs - non-fatal erros and log messages while processing.
 	Logs []string
+}
+
+// PlayKubeReport contains the results of running play kube.
+type PlayKubeReport struct {
+	// Pods - pods created by play kube.
+	Pods []PlayKubePod
 }

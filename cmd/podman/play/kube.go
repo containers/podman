@@ -92,8 +92,10 @@ func kube(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for _, l := range report.Logs {
-		fmt.Fprintf(os.Stderr, l)
+	for _, pod := range report.Pods {
+		for _, l := range pod.Logs {
+			fmt.Fprintf(os.Stderr, l)
+		}
 	}
 
 	switch len(report.Pods) {
@@ -105,19 +107,19 @@ func kube(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Pods:\n")
 	}
 	for _, pod := range report.Pods {
-		fmt.Println(pod)
-	}
+		fmt.Println(pod.ID)
 
-	switch len(report.Containers) {
-	case 0:
-		return nil
-	case 1:
-		fmt.Printf("Container:\n")
-	default:
-		fmt.Printf("Containers:\n")
-	}
-	for _, ctr := range report.Containers {
-		fmt.Println(ctr)
+		switch len(pod.Containers) {
+		case 0:
+			return nil
+		case 1:
+			fmt.Printf("Container:\n")
+		default:
+			fmt.Printf("Containers:\n")
+		}
+		for _, ctr := range pod.Containers {
+			fmt.Println(ctr)
+		}
 	}
 
 	return nil
