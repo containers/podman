@@ -134,8 +134,7 @@ gating_task:
     # not break.  It also verifies all sub-commands have man pages.
     build_script:
         - '/usr/local/bin/entrypoint.sh podman |& ${TIMESTAMP}'
-        # FIXME
-        #- 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
+        - 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
         # N/B: need 'clean' so some committed files are re-generated.
         - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh clean podman xref_helpmsgs_manpages BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
