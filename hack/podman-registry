@@ -104,6 +104,24 @@ function podman() {
               "$@"
 }
 
+###############
+#  must_pass  #  Run a command quietly; abort with error on failure
+###############
+function must_pass() {
+    local log=${PODMAN_REGISTRY_WORKDIR}/log
+
+    "$@" &> $log
+    if [ $? -ne 0 ]; then
+        echo "$ME: Command failed: $*" >&2
+        cat $log                       >&2
+
+        # If we ever get here, it's a given that the registry is not running.
+        # Clean up after ourselves.
+        rm -rf ${PODMAN_REGISTRY_WORKDIR}
+        exit 1
+    fi
+}
+
 # END   helper functions
 ###############################################################################
 # BEGIN action processing
@@ -132,7 +150,7 @@ function do_start() {
         PODMAN_REGISTRY_PASS=$(random_string 15)
     fi
 
-    # Die on any error
+    # For the next few commands, die on any error
     set -e
 
     mkdir -p ${PODMAN_REGISTRY_WORKDIR}
@@ -140,50 +158,45 @@ function do_start() {
     local AUTHDIR=${PODMAN_REGISTRY_WORKDIR}/auth
     mkdir -p $AUTHDIR
 
-    # We have to be silent; our only output must be env. vars. Log output here.
-    local log=${PODMAN_REGISTRY_WORKDIR}/log
-    touch $log
-
     # Pull registry image, but into a separate container storage
     mkdir -p ${PODMAN_REGISTRY_WORKDIR}/root
     mkdir -p ${PODMAN_REGISTRY_WORKDIR}/runroot
 
+    set +e
+
     # Give it three tries, to compensate for flakes
-    podman pull ${PODMAN_REGISTRY_IMAGE}      &>> $log  ||
-        podman pull ${PODMAN_REGISTRY_IMAGE}  &>> $log  ||
-        podman pull ${PODMAN_REGISTRY_IMAGE}  &>> $log
+    podman pull ${PODMAN_REGISTRY_IMAGE}      &>/dev/null ||
+        podman pull ${PODMAN_REGISTRY_IMAGE}  &>/dev/null ||
+        must_pass podman pull ${PODMAN_REGISTRY_IMAGE}
 
     # Registry image needs a cert. Self-signed is good enough.
     local CERT=$AUTHDIR/domain.crt
-    # FIXME: if this fails, we fail silently! It'd be more helpful
-    # to say 'openssl failed' and cat the logfile
-    openssl req -newkey rsa:4096 -nodes -sha256                      \
-            -keyout ${AUTHDIR}/domain.key -x509 -days 2              \
-            -out ${AUTHDIR}/domain.crt                               \
-            -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost"  \
-        &>> $log
+    must_pass openssl req -newkey rsa:4096 -nodes -sha256              \
+              -keyout ${AUTHDIR}/domain.key -x509 -days 2              \
+              -out ${AUTHDIR}/domain.crt                               \
+              -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost"
 
     # Store credentials where container will see them
-    podman run --rm                                               \
-           --entrypoint htpasswd ${PODMAN_REGISTRY_IMAGE}         \
-           -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
-           > $AUTHDIR/htpasswd
+    must_pass podman run --rm                                        \
+              --entrypoint htpasswd ${PODMAN_REGISTRY_IMAGE}         \
+              -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
+              > $AUTHDIR/htpasswd
 
     # In case someone needs to debug
     echo "${PODMAN_REGISTRY_USER}:${PODMAN_REGISTRY_PASS}" \
          > $AUTHDIR/htpasswd-plaintext
 
     # Run the registry container.
-    podman run --quiet -d                                            \
-           -p ${PODMAN_REGISTRY_PORT}:5000                           \
-           --name registry                                           \
-           -v $AUTHDIR:/auth:Z                                       \
-           -e "REGISTRY_AUTH=htpasswd"                               \
-           -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm"          \
-           -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd"           \
-           -e "REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt"       \
-           -e "REGISTRY_HTTP_TLS_KEY=/auth/domain.key"               \
-           registry:2 &>> $log
+    must_pass podman run --quiet -d                                     \
+              -p ${PODMAN_REGISTRY_PORT}:5000                           \
+              --name registry                                           \
+              -v $AUTHDIR:/auth:Z                                       \
+              -e "REGISTRY_AUTH=htpasswd"                               \
+              -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm"          \
+              -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd"           \
+              -e "REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt"       \
+              -e "REGISTRY_HTTP_TLS_KEY=/auth/domain.key"               \
+              registry:2
 
     # Dump settings. Our caller will use these to access the registry.
     for v in IMAGE PORT USER PASS; do
