@@ -423,13 +423,12 @@ testing_task:
         - name: "test ${PRIOR_FEDORA_NAME}"
           gce_instance:
               image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-        # TODO:
-        # - name: "test ${UBUNTU_NAME}"
-        #   gce_instance:
-        #       image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-        # - name: "test ${PRIOR_UBUNTU_NAME}"
-        #   gce_instance:
-        #       image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
+        - name: "test ${UBUNTU_NAME}"
+          gce_instance:
+              image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+        - name: "test ${PRIOR_UBUNTU_NAME}"
+          gce_instance:
+              image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
 
