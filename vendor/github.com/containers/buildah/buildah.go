@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/buildah/docker"
 	"github.com/containers/image/v5/types"
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -413,6 +414,9 @@ type BuilderOptions struct {
 	MaxPullRetries int
 	// PullRetryDelay is how long to wait before retrying a pull attempt.
 	PullRetryDelay time.Duration
+	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
+	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
+	OciDecryptConfig *encconfig.DecryptConfig
 }
 
 // ImportOptions are used to initialize a Builder from an existing container

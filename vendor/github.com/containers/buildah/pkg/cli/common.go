@@ -57,6 +57,7 @@ type BudResults struct {
 	Creds               string
 	DisableCompression  bool
 	DisableContentTrust bool
+	DecryptionKeys      []string
 	File                []string
 	Format              string
 	Iidfile             string

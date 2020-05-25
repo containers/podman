@@ -14,6 +14,7 @@ import (
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/types"
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -30,7 +31,7 @@ const (
 	DOCKER = "docker"
 )
 
-func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string, removeSignatures bool, addSigner string) *cp.Options {
+func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string, removeSignatures bool, addSigner string, ociEncryptLayers *[]int, ociEncryptConfig *encconfig.EncryptConfig, ociDecryptConfig *encconfig.DecryptConfig) *cp.Options {
 	sourceCtx := getSystemContext(store, nil, "")
 	if sourceSystemContext != nil {
 		*sourceCtx = *sourceSystemContext
@@ -47,6 +48,9 @@ func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemCon
 		ForceManifestMIMEType: manifestType,
 		RemoveSignatures:      removeSignatures,
 		SignBy:                addSigner,
+		OciEncryptConfig:      ociEncryptConfig,
+		OciDecryptConfig:      ociDecryptConfig,
+		OciEncryptLayers:      ociEncryptLayers,
 	}
 }
 

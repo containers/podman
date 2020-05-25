@@ -66,7 +66,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.14.9-0.20200501175434-42a48f9373d9
+# github.com/containers/buildah v1.14.9-0.20200523094741-de0f541d9224
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -425,8 +425,6 @@ github.com/opencontainers/runtime-tools/validate
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316
-github.com/openshift/api/config/v1
 # github.com/openshift/imagebuilder v1.1.4
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command

@@ -3,6 +3,7 @@ package imagebuildah
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,10 +17,12 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
+	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -171,6 +174,9 @@ type BuildOptions struct {
 	MaxPullPushRetries int
 	// PullPushRetryDelay is how long to wait before retrying a pull or push attempt.
 	PullPushRetryDelay time.Duration
+	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
+	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
+	OciDecryptConfig *encconfig.DecryptConfig
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
@@ -249,6 +255,9 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile")
 	}
+
+	warnOnUnsetBuildArgs(mainNode, options.Args)
+
 	for _, d := range dockerfiles[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(d)
 		if err != nil {
@@ -278,6 +287,20 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		stages = stagesTargeted
 	}
 	return exec.Build(ctx, stages)
+}
+
+func warnOnUnsetBuildArgs(node *parser.Node, args map[string]string) {
+	for _, child := range node.Children {
+		switch strings.ToUpper(child.Value) {
+		case "ARG":
+			argName := child.Next.Value
+			if _, ok := args[argName]; !strings.Contains(argName, "=") && !ok {
+				logrus.Warnf("missing %q build argument. Try adding %q to the command line", argName, fmt.Sprintf("--build-arg %s=<VALUE>", argName))
+			}
+		default:
+			continue
+		}
+	}
 }
 
 // preprocessDockerfileContents runs CPP(1) in preprocess-only mode on the input
