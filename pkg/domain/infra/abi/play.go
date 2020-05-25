@@ -424,7 +424,6 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 
 	containerConfig.Image = containerYAML.Image
 	containerConfig.ImageID = newImage.ID()
-	containerConfig.Name = containerYAML.Name
 
 	// podName should be non-empty for Deployment objects to be able to create
 	// multiple pods having containers with unique names
@@ -446,7 +445,10 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 
 	setupSecurityContext(&securityConfig, &userConfig, containerYAML)
 
-	securityConfig.SeccompProfilePath = seccompPaths.findForContainer(containerConfig.Name)
+	// Since we prefix the container name with pod name to work-around the uniqueness requirement,
+	// seccom stuff should reference the actual container name from the YAML
+	// but apply to the containers with the prefixed name
+	securityConfig.SeccompProfilePath = seccompPaths.findForContainer(containerYAML.Name)
 
 	containerConfig.Command = []string{}
 	if imageData != nil && imageData.Config != nil {

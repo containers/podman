@@ -208,6 +208,10 @@ func withPullPolicy(policy string) ctrOption {
 	}
 }
 
+func getCtrNameInPod(pod *Pod) string {
+	return fmt.Sprintf("%s-%s", pod.Name, defaultCtrName)
+}
+
 var _ = Describe("Podman generate kube", func() {
 	var (
 		tempdir    string
@@ -245,14 +249,15 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube test correct command", func() {
-		err := generateKubeYaml(getPod(), kubeYaml)
+		pod := getPod()
+		err := generateKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", defaultCtrName})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(defaultCtrCmd[0]))
@@ -268,26 +273,27 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		logs := podmanTest.Podman([]string{"logs", defaultCtrName})
+		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(p)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
 		Expect(logs.OutputToString()).To(ContainSubstring("hello"))
 
-		inspect := podmanTest.Podman([]string{"inspect", defaultCtrName, "--format", "'{{ .Config.Cmd }}'"})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(p), "--format", "'{{ .Config.Cmd }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("hello"))
 	})
 
 	It("podman play kube test hostname", func() {
-		err := generateKubeYaml(getPod(), kubeYaml)
+		pod := getPod()
+		err := generateKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", defaultCtrName, "--format", "{{ .Config.Hostname }}"})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ .Config.Hostname }}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(Equal(defaultPodName))
@@ -295,6 +301,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube test with customized hostname", func() {
 		hostname := "myhostname"
+		pod := getPod(withHostname(hostname))
 		err := generateKubeYaml(getPod(withHostname(hostname)), kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -302,7 +309,7 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", defaultCtrName, "--format", "{{ .Config.Hostname }}"})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ .Config.Hostname }}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(Equal(hostname))
@@ -312,14 +319,15 @@ var _ = Describe("Podman generate kube", func() {
 		capAdd := "CAP_SYS_ADMIN"
 		ctr := getCtr(withCapAdd([]string{capAdd}), withCmd([]string{"cat", "/proc/self/status"}))
 
-		err := generateKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		pod := getPod(withCtr(ctr))
+		err := generateKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", defaultCtrName})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(capAdd))
@@ -329,14 +337,15 @@ var _ = Describe("Podman generate kube", func() {
 		capDrop := "CAP_CHOWN"
 		ctr := getCtr(withCapDrop([]string{capDrop}))
 
-		err := generateKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		pod := getPod(withCtr(ctr))
+		err := generateKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", defaultCtrName})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(capDrop))
@@ -344,14 +353,15 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube no security context", func() {
 		// expect play kube to not fail if no security context is specified
-		err := generateKubeYaml(getPod(withCtr(getCtr(withSecurityContext(false)))), kubeYaml)
+		pod := getPod(withCtr(getCtr(withSecurityContext(false))))
+		err := generateKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", defaultCtrName})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 	})
@@ -367,7 +377,8 @@ var _ = Describe("Podman generate kube", func() {
 		ctrAnnotation := "container.seccomp.security.alpha.kubernetes.io/" + defaultCtrName
 		ctr := getCtr(withCmd([]string{"pwd"}))
 
-		err = generateKubeYaml(getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost/"+filepath.Base(jsonFile))), kubeYaml)
+		pod := getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost/"+filepath.Base(jsonFile)))
+		err = generateKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		// CreateSeccompJson will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
@@ -375,7 +386,7 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		logs := podmanTest.Podman([]string{"logs", defaultCtrName})
+		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
 		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
@@ -392,7 +403,8 @@ var _ = Describe("Podman generate kube", func() {
 
 		ctr := getCtr(withCmd([]string{"pwd"}))
 
-		err = generateKubeYaml(getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost/"+filepath.Base(jsonFile))), kubeYaml)
+		pod := getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost/"+filepath.Base(jsonFile)))
+		err = generateKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		// CreateSeccompJson will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
@@ -400,7 +412,7 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		logs := podmanTest.Podman([]string{"logs", defaultCtrName})
+		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
 		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
@@ -519,7 +531,7 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", "demo_kube"})
+		inspect := podmanTest.Podman([]string{"inspect", "demo_pod-demo_kube"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 
