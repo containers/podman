@@ -21,5 +21,7 @@ tags:
       description: Actions related to exec for the compatibility endpoints
     - name: images (compat)
       description: Actions related to images for the compatibility endpoints
+    - name: networks (compat)
+      description: Actions related to compatibility networks
     - name: system (compat)
       description: Actions related to Podman and compatibility engines
