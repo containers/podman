@@ -233,4 +233,96 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session.ExitCode()).To(Equal(125))
 	})
 
+	It("podman generate systemd --container-prefix con", func() {
+		n := podmanTest.Podman([]string{"create", "--name", "foo", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--name", "--container-prefix", "con", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Grepping the output (in addition to unit tests)
+		found, _ := session.GrepString("# con-foo.service")
+		Expect(found).To(BeTrue())
+	})
+
+	It("podman generate systemd --separator _", func() {
+		n := podmanTest.Podman([]string{"create", "--name", "foo", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--name", "--separator", "_", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Grepping the output (in addition to unit tests)
+		found, _ := session.GrepString("# container_foo.service")
+		Expect(found).To(BeTrue())
+	})
+
+	It("podman generate systemd pod --pod-prefix p", func() {
+		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		n = podmanTest.Podman([]string{"create", "--pod", "foo", "--name", "foo-1", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		n = podmanTest.Podman([]string{"create", "--pod", "foo", "--name", "foo-2", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--pod-prefix", "p", "--name", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Grepping the output (in addition to unit tests)
+		found, _ := session.GrepString("# p-foo.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("Requires=container-foo-1.service container-foo-2.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("# container-foo-1.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("BindsTo=p-foo.service")
+		Expect(found).To(BeTrue())
+	})
+
+	It("podman generate systemd pod --pod-prefix p --container-prefix con --separator _ change all prefixes/separator", func() {
+		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		n = podmanTest.Podman([]string{"create", "--pod", "foo", "--name", "foo-1", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		n = podmanTest.Podman([]string{"create", "--pod", "foo", "--name", "foo-2", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--container-prefix", "con", "--pod-prefix", "p", "--separator", "_", "--name", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Grepping the output (in addition to unit tests)
+		found, _ := session.GrepString("# p_foo.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("Requires=con_foo-1.service con_foo-2.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("# con_foo-1.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("# con_foo-2.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("BindsTo=p_foo.service")
+		Expect(found).To(BeTrue())
+	})
 })

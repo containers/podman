@@ -40,6 +40,18 @@ Override the default stop timeout for the container with the given value.
 Set the systemd restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
 "on-watchdog", "on-abort", or "always".  The default policy is *on-failure*.
 
+**--container-prefix**=*prefix*
+
+Set the systemd unit name prefix for containers. The default is *container*.
+
+**--pod-prefix**=*prefix*
+
+Set the systemd unit name prefix for pods. The default is *pod*.
+
+**--separator**=*separator*
+
+Set the systemd unit name seperator between the name/id of a container/pod and the prefix. The default is *-*.
+
 ## Examples
 
 ### Generate and print a systemd unit file for a container
