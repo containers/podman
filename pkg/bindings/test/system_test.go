@@ -47,7 +47,7 @@ var _ = Describe("Podman system", func() {
 			}
 		}()
 		go func() {
-			system.Events(bt.conn, eChan, cancelChan, nil, nil, nil)
+			system.Events(bt.conn, eChan, cancelChan, nil, nil, nil, bindings.PFalse)
 		}()
 
 		_, err := bt.RunTopContainer(nil, nil, nil)
