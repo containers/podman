@@ -21,6 +21,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -572,4 +573,11 @@ func (p *PodmanTestIntegration) CreateSeccompJson(in []byte) (string, error) {
 		return "", err
 	}
 	return jsonFile, nil
+}
+
+func SkipIfNotFedora() {
+	info := GetHostDistributionInfo()
+	if info.Distribution != "fedora" {
+		ginkgo.Skip("Test can only run on Fedora")
+	}
 }

@@ -47,13 +47,13 @@ var _ = Describe("Podman system", func() {
 			}
 		}()
 		go func() {
-			system.Events(bt.conn, eChan, cancelChan, nil, nil, nil)
+			system.Events(bt.conn, eChan, cancelChan, nil, nil, nil, bindings.PFalse)
 		}()
 
 		_, err := bt.RunTopContainer(nil, nil, nil)
 		Expect(err).To(BeNil())
 		cancelChan <- true
-		Expect(len(messages)).To(BeNumerically("==", 3))
+		Expect(len(messages)).To(BeNumerically("==", 5))
 	})
 
 	It("podman system prune - pod,container stopped", func() {

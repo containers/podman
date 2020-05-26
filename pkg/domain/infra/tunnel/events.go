@@ -25,6 +25,7 @@ func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptio
 		for e := range binChan {
 			opts.EventChan <- entities.ConvertToLibpodEvent(e)
 		}
+		close(opts.EventChan)
 	}()
-	return system.Events(ic.ClientCxt, binChan, nil, &opts.Since, &opts.Until, filters)
+	return system.Events(ic.ClientCxt, binChan, nil, &opts.Since, &opts.Until, filters, &opts.Stream)
 }

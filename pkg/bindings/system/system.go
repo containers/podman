@@ -20,7 +20,7 @@ import (
 // Events allows you to monitor libdpod related events like container creation and
 // removal.  The events are then passed to the eventChan provided. The optional cancelChan
 // can be used to cancel the read of events and close down the HTTP connection.
-func Events(ctx context.Context, eventChan chan (entities.Event), cancelChan chan bool, since, until *string, filters map[string][]string) error {
+func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan bool, since, until *string, filters map[string][]string, stream *bool) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -31,6 +31,9 @@ func Events(ctx context.Context, eventChan chan (entities.Event), cancelChan cha
 	}
 	if until != nil {
 		params.Set("until", *until)
+	}
+	if stream != nil {
+		params.Set("stream", strconv.FormatBool(*stream))
 	}
 	if filters != nil {
 		filterString, err := bindings.FiltersToString(filters)
@@ -50,18 +53,24 @@ func Events(ctx context.Context, eventChan chan (entities.Event), cancelChan cha
 			logrus.Error(errors.Wrap(err, "unable to close event response body"))
 		}()
 	}
+
 	dec := json.NewDecoder(response.Body)
-	for {
-		e := entities.Event{}
-		if err := dec.Decode(&e); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return errors.Wrap(err, "unable to decode event response")
+	for err = (error)(nil); err == nil; {
+		var e = entities.Event{}
+		err = dec.Decode(&e)
+		if err == nil {
+			eventChan <- e
 		}
-		eventChan <- e
 	}
-	return nil
+	close(eventChan)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, io.EOF):
+		return nil
+	default:
+		return errors.Wrap(err, "unable to decode event response")
+	}
 }
 
 // Prune removes all unused system data.

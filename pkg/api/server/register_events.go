@@ -58,6 +58,11 @@ func (s *APIServer) registerEventsHandlers(r *mux.Router) error {
 	//   type: string
 	//   in: query
 	//   description: JSON encoded map[string][]string of constraints
+	// - name: stream
+	//   type: boolean
+	//   in: query
+	//   default: true
+	//   description: when false, do not follow events
 	// responses:
 	//   200:
 	//     description: returns a string of json data describing an event
