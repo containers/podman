@@ -318,7 +318,7 @@ localunit: test/goecho/goecho varlink_generate
 	ginkgo \
 		-r \
 		$(TESTFLAGS) \
-		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings \
+		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings,hack \
 		--cover \
 		--covermode atomic \
 		--tags "$(BUILDTAGS)" \
@@ -326,7 +326,7 @@ localunit: test/goecho/goecho varlink_generate
 
 .PHONY: ginkgo
 ginkgo:
-	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/.
+	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. hack/.
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
