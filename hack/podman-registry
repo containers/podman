@@ -14,7 +14,7 @@ PODMAN_REGISTRY_PASS=
 PODMAN_REGISTRY_PORT=
 
 # Podman binary to run
-PODMAN=${PODMAN:-$(type -p podman)}
+PODMAN=${PODMAN:-$(dirname $0)/../bin/podman}
 
 # END   defaults
 ###############################################################################
@@ -176,11 +176,16 @@ function do_start() {
               -out ${AUTHDIR}/domain.crt                               \
               -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost"
 
-    # Store credentials where container will see them
-    must_pass podman run --rm                                        \
-              --entrypoint htpasswd ${PODMAN_REGISTRY_IMAGE}         \
-              -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
-              > $AUTHDIR/htpasswd
+    # Store credentials where container will see them. We can't run
+    # this one via must_pass because we need its stdout.
+    podman run --rm                                               \
+           --entrypoint htpasswd ${PODMAN_REGISTRY_IMAGE}         \
+           -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
+           > $AUTHDIR/htpasswd
+    if [ $? -ne 0 ]; then
+        rm -rf ${PODMAN_REGISTRY_WORKDIR}
+        die "Command failed: podman run [htpasswd]"
+    fi
 
     # In case someone needs to debug
     echo "${PODMAN_REGISTRY_USER}:${PODMAN_REGISTRY_PASS}" \
