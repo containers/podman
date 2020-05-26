@@ -58,7 +58,7 @@ The number of user namespaces that are allowed on the system is specified in the
 
 ### /etc/subuid and /etc/subgid configuration
 
-Rootless podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid files.  The `shadows-utils` or `newuid` package provides these files on different distributions and  they must be installed on the system.  These files will need someone with root privileges on the system to add or update the entries within them.  The following is a summarization from the [How does rootless Podman work?](https://opensource.com/article/19/2/how-does-rootless-podman-work) article by Dan Walsh on [opensource.com](https://opensource.com)
+Rootless Podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid files.  The `shadows-utils` or `newuid` package provides these files on different distributions and  they must be installed on the system.  These files will need someone with root privileges on the system to add or update the entries within them.  The following is a summarization from the [How does rootless Podman work?](https://opensource.com/article/19/2/how-does-rootless-podman-work) article by Dan Walsh on [opensource.com](https://opensource.com)
 
 Update the /etc/subuid and /etc/subgid with fields for each user that will be allowed to create containers that look like the following.  Note that the values for each user must be unique and without any overlap.  If there is an overlap, there is a potential for a user to use another’s namespace and they could corrupt it.
 
@@ -112,7 +112,7 @@ The default authorization file used by the `podman login` and `podman logout` co
 
 ### Using volumes
 
-Rootless Podman is not, and will never be, root; it's not a setuid binary, and gains no privileges when it runs. Instead, Podman makes use of a user namespace to shift the UIDs and GIDs of a block of users it is given access to on the host (via the newuidmap and newgidmap executables) and your own user within the containers that podman creates.
+Rootless Podman is not, and will never be, root; it's not a setuid binary, and gains no privileges when it runs. Instead, Podman makes use of a user namespace to shift the UIDs and GIDs of a block of users it is given access to on the host (via the newuidmap and newgidmap executables) and your own user within the containers that Podman creates.
 
 If your container runs with the root user, then `root` in the container is actually your user on the host. UID/GID 1 is the first UID/GID specified in your user's mapping in `/etc/subuid` and `/etc/subgid`, etc. If you mount a directory from the host into a container as a rootless user, and create a file in that directory as root in the container, you'll see it's actually owned by your user on the host.
 
@@ -143,7 +143,7 @@ total 0
 
 We do recognize that this doesn't really match how many people intend to use rootless Podman - they want their UID inside and outside the container to match. Thus, we provide the `--userns=keep-id` flag, which ensures that your user is mapped to its own UID and GID inside the container.
 
-It is also helpful to distinguish between running podman as a rootless user, and a container which is built to run rootless. If the container you're trying you run has a `USER` which is not root, then when mounting volumes you **must** use `--userns=keep-id`. This is because the container user would not be able to become `root` and access the mounted volumes.
+It is also helpful to distinguish between running Podman as a rootless user, and a container which is built to run rootless. If the container you're trying you run has a `USER` which is not root, then when mounting volumes you **must** use `--userns=keep-id`. This is because the container user would not be able to become `root` and access the mounted volumes.
 
 Other considerations in regards to volumes:
 
