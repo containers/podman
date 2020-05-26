@@ -12,7 +12,7 @@ COPY . $GOSRC
 # Install packages from dependencies.txt, ignoring commented lines
 # Note: adding conmon and crun so podman command checks will work
 RUN dnf -y install \
-   $(grep "^[^#]" $GOSRC/contrib/dependencies.txt) diffutils containers-common fuse-overlayfs conmon crun runc --exclude container-selinux \
+   $(grep "^[^#]" $GOSRC/contrib/dependencies.txt) diffutils containers-common fuse-overlayfs conmon crun runc --exclude container-selinux; \
    sed -i -e 's|^#mount_program|mount_program|g' /etc/containers/storage.conf \
    && dnf clean all
 
