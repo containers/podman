@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/containers/libpod/pkg/api/types"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -28,7 +27,7 @@ var (
 	basePath = &url.URL{
 		Scheme: "http",
 		Host:   "d",
-		Path:   "/v" + types.MinimalAPIVersion + "/libpod",
+		Path:   "/v" + APIVersion.String() + "/libpod",
 	}
 )
 
@@ -157,17 +156,22 @@ func pingNewConnection(ctx context.Context) error {
 	}
 
 	if response.StatusCode == http.StatusOK {
-		v, err := semver.ParseTolerant(response.Header.Get("Libpod-API-Version"))
+		versionHdr := response.Header.Get("Libpod-API-Version")
+		if versionHdr == "" {
+			logrus.Info("Service did not provide Libpod-API-Version Header")
+			return nil
+		}
+		versionSrv, err := semver.ParseTolerant(versionHdr)
 		if err != nil {
 			return err
 		}
 
-		switch APIVersion.Compare(v) {
+		switch APIVersion.Compare(versionSrv) {
 		case 1, 0:
 			// Server's job when client version is equal or older
 			return nil
 		case -1:
-			return errors.Errorf("server API version is too old. client %q server %q", APIVersion.String(), v.String())
+			return errors.Errorf("server API version is too old. client %q server %q", APIVersion.String(), versionSrv.String())
 		}
 	}
 	return errors.Errorf("ping response was %q", response.StatusCode)

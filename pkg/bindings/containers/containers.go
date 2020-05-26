@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -347,6 +348,26 @@ func ContainerInit(ctx context.Context, nameOrID string) error {
 
 // Attach attaches to a running container
 func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stream *bool, stdin io.Reader, stdout io.Writer, stderr io.Writer, attachReady chan bool) error {
+	isSet := struct {
+		stdin  bool
+		stdout bool
+		stderr bool
+	}{
+		stdin:  !(stdin == nil || reflect.ValueOf(stdin).IsNil()),
+		stdout: !(stdout == nil || reflect.ValueOf(stdout).IsNil()),
+		stderr: !(stderr == nil || reflect.ValueOf(stderr).IsNil()),
+	}
+	// Ensure golang can determine that interfaces are "really" nil
+	if !isSet.stdin {
+		stdin = (io.Reader)(nil)
+	}
+	if !isSet.stdout {
+		stdout = (io.Writer)(nil)
+	}
+	if !isSet.stderr {
+		stderr = (io.Writer)(nil)
+	}
+
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -368,13 +389,13 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 	if stream != nil {
 		params.Add("stream", fmt.Sprintf("%t", *stream))
 	}
-	if stdin != nil {
+	if isSet.stdin {
 		params.Add("stdin", "true")
 	}
-	if stdout != nil {
+	if isSet.stdout {
 		params.Add("stdout", "true")
 	}
-	if stderr != nil {
+	if isSet.stderr {
 		params.Add("stderr", "true")
 	}
 
@@ -422,32 +443,26 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		}()
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/attach", params, nameOrId)
+	response, err := conn.DoRequest(stdin, http.MethodPost, "/containers/%s/attach", params, nameOrId)
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	if !(response.IsSuccess() || response.IsInformational()) {
+		return response.Process(nil)
+	}
+
 	// If we are attaching around a start, we need to "signal"
 	// back that we are in fact attached so that started does
 	// not execute before we can attach.
 	if attachReady != nil {
 		attachReady <- true
 	}
-	if !(response.IsSuccess() || response.IsInformational()) {
-		return response.Process(nil)
-	}
-
-	if stdin != nil {
-		go func() {
-			_, err := io.Copy(conn, stdin)
-			if err != nil {
-				logrus.Error("failed to write input to service: " + err.Error())
-			}
-		}()
-	}
 
 	buffer := make([]byte, 1024)
 	if ctnr.Config.Tty {
+		if !isSet.stdout {
+			return fmt.Errorf("container %q requires stdout to be set", ctnr.ID)
+		}
 		// If not multiplex'ed, read from server and write to stdout
 		_, err := io.Copy(stdout, response.Body)
 		if err != nil {
@@ -469,25 +484,25 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 			}
 
 			switch {
-			case fd == 0 && stdin != nil:
+			case fd == 0 && isSet.stdout:
 				_, err := stdout.Write(frame[0:l])
 				if err != nil {
 					return err
 				}
-			case fd == 1 && stdout != nil:
+			case fd == 1 && isSet.stdout:
 				_, err := stdout.Write(frame[0:l])
 				if err != nil {
 					return err
 				}
-			case fd == 2 && stderr != nil:
+			case fd == 2 && isSet.stderr:
 				_, err := stderr.Write(frame[0:l])
 				if err != nil {
 					return err
 				}
 			case fd == 3:
-				return errors.New("error from service in stream: " + string(frame))
+				return fmt.Errorf("error from service from stream: %s", frame)
 			default:
-				return fmt.Errorf("unrecognized input header: %d", fd)
+				return fmt.Errorf("unrecognized channel in header: %d, 0-3 supported", fd)
 			}
 		}
 	}
@@ -520,6 +535,7 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 	if len(buffer) < length {
 		buffer = append(buffer, make([]byte, length-len(buffer)+1)...)
 	}
+
 	n, err := io.ReadFull(r, buffer[0:length])
 	if err != nil {
 		return nil, nil
@@ -528,6 +544,7 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 		err = io.ErrUnexpectedEOF
 		return
 	}
+
 	return buffer[0:length], nil
 }
 
