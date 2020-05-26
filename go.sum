@@ -343,6 +343,8 @@ github.com/opencontainers/selinux v1.3.0/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOl
 github.com/opencontainers/selinux v1.4.0/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.5.1 h1:jskKwSMFYqyTrHEuJgQoUlTcId0av64S6EWObrIfn5Y=
 github.com/opencontainers/selinux v1.5.1/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
+github.com/opencontainers/selinux v1.5.2 h1:F6DgIsjgBIcDksLW4D5RG9bXok6oqZ3nvMwj4ZoFu/Q=
+github.com/opencontainers/selinux v1.5.2/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/openshift/imagebuilder v1.1.4 h1:LUg8aTjyXMtlDx6IbtvaqofFGZ6aYqe+VIeATE735LM=
 github.com/openshift/imagebuilder v1.1.4/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
 github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
