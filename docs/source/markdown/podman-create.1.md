@@ -502,7 +502,7 @@ Current supported mount TYPES are `bind`, `volume`, and `tmpfs`.
 
               · dst, destination, target: mount destination spec.
 
-              · ro, read-only: true or false (default).
+              · ro, readonly: true or false (default).
 
        Options specific to bind:
 
