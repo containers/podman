@@ -1087,6 +1087,7 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 }
 
 func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) error {
+	defer close(options.StatChan)
 	containerFunc := ic.Libpod.GetRunningContainers
 	switch {
 	case len(namesOrIds) > 0:
