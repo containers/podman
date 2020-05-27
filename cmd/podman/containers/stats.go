@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"text/tabwriter"
 	"text/template"
 
@@ -111,14 +112,20 @@ func stats(cmd *cobra.Command, args []string) error {
 		}
 	}
 	statsOptions.StatChan = make(chan []*define.ContainerStats, 1)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		for reports := range statsOptions.StatChan {
 			if err := outputStats(reports); err != nil {
 				logrus.Error(err)
 			}
 		}
+		wg.Done()
+
 	}()
-	return registry.ContainerEngine().ContainerStats(registry.Context(), args, statsOptions)
+	err := registry.ContainerEngine().ContainerStats(registry.Context(), args, statsOptions)
+	wg.Wait()
+	return err
 }
 
 func outputStats(reports []*define.ContainerStats) error {
