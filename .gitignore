@@ -31,3 +31,4 @@ contrib/spec/podman.spec
 *.rpm
 *.coverprofile
 /cmd/podmanV2/podmanV2
+result
