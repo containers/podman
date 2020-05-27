@@ -4,7 +4,7 @@ import docker
 busybox = "docker.io/library/busybox:latest"
 
 def get_client():
-   return docker.DockerClient(base_url="unix://var/run/docker.sock")
+   return docker.Client(base_url="unix://var/run/docker.sock")
 
 class TestImages(unittest.TestCase):
     client = ""
