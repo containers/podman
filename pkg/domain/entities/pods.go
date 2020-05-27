@@ -184,6 +184,8 @@ type PodInspectOptions struct {
 
 	// Options for the API.
 	NameOrID string
+
+	Format string
 }
 
 type PodInspectReport struct {

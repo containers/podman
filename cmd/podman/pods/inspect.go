@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -36,6 +37,7 @@ func init() {
 	})
 	flags := inspectCmd.Flags()
 	flags.BoolVarP(&inspectOptions.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
+	flags.StringVarP(&inspectOptions.Format, "format", "f", "json", "Format the output to a Go template or json")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 	}
@@ -54,10 +56,11 @@ func inspect(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	b, err := json.MarshalIndent(responses, "", "  ")
-	if err != nil {
-		return err
+	var data interface{} = responses
+	var out formats.Writer = formats.JSONStruct{Output: data}
+	if inspectOptions.Format != "json" {
+		out = formats.StdoutTemplate{Output: data, Template: inspectOptions.Format}
 	}
-	fmt.Println(string(b))
-	return nil
+
+	return out.Out()
 }

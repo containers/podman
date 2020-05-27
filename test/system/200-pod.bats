@@ -170,4 +170,16 @@ function random_ip() {
     is "$output" ".*options $dns_opt"        "--dns-opt was added"
 }
 
+@test "podman pod inspect - format" {
+    skip_if_remote "podman-pod does not work with podman-remote"
+
+    run_podman pod create --name podtest
+    podid=$output
+
+    run_podman pod inspect --format '-> {{.Name}}: {{.NumContainers}}' podtest
+    is "$output" "-> podtest: 1"
+
+    run_podman pod rm -f podtest
+}
+
 # vim: filetype=sh
