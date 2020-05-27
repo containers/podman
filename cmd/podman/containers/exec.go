@@ -67,14 +67,14 @@ func execFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: execCommand,
 	})
 	flags := execCommand.Flags()
 	execFlags(flags)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerExecCommand,
 		Parent:  containerCmd,
 	})

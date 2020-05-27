@@ -18,7 +18,6 @@ var _ = Describe("Podman exec", func() {
 	)
 
 	BeforeEach(func() {
-		Skip(v2remotefail)
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -285,6 +284,7 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec --detach", func() {
+		Skip(v2remotefail)
 		ctrName := "testctr"
 		ctr := podmanTest.Podman([]string{"run", "-t", "-i", "-d", "--name", ctrName, ALPINE, "top"})
 		ctr.WaitWithDefaultTimeout()

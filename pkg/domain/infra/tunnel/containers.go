@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -375,7 +377,39 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string,
 }
 
 func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
-	return 125, errors.New("not implemented")
+	env := []string{}
+	for k, v := range options.Envs {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	createConfig := new(handlers.ExecCreateConfig)
+	createConfig.User = options.User
+	createConfig.Privileged = options.Privileged
+	createConfig.Tty = options.Tty
+	createConfig.AttachStdin = options.Interactive
+	createConfig.AttachStdout = true
+	createConfig.AttachStderr = true
+	createConfig.Detach = false
+	createConfig.DetachKeys = options.DetachKeys
+	createConfig.Env = env
+	createConfig.WorkingDir = options.WorkDir
+	createConfig.Cmd = options.Cmd
+
+	sessionID, err := containers.ExecCreate(ic.ClientCxt, nameOrId, createConfig)
+	if err != nil {
+		return 125, err
+	}
+
+	if err := containers.ExecStartAndAttach(ic.ClientCxt, sessionID, &streams); err != nil {
+		return 125, err
+	}
+
+	inspectOut, err := containers.ExecInspect(ic.ClientCxt, sessionID)
+	if err != nil {
+		return 125, err
+	}
+
+	return inspectOut.ExitCode, nil
 }
 
 func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID string, options entities.ExecOptions) (string, error) {

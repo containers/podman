@@ -310,7 +310,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchExecInstance"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/libpod/exec/{id}/resize"), s.APIHandler(compat.UnsupportedHandler)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/exec/{id}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/exec/{id}/json libpod libpodInspectExec
 	// ---
 	// tags:
