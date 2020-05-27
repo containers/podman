@@ -11,7 +11,7 @@ class TestImages(unittest.TestCase):
     def test_get_image(self):
         client = get_client()
         bb = client.images.get("busybox")
-        self.assertTrue(busybox in bb.tags)
+        self.assertTrue(busybox in bb.RepoTags)
 
 
 if __name__ == '__main__':
