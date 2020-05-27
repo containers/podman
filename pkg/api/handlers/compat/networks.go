@@ -123,7 +123,7 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 	report := types.NetworkResource{
 		Name:       name,
 		ID:         "",
-		Created:    time.Unix(stat.Ctim.Sec, stat.Ctim.Nsec),
+		Created:    time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)), // nolint: unconvert
 		Scope:      "",
 		Driver:     network.DefaultNetworkDriver,
 		EnableIPv6: false,
