@@ -26,7 +26,10 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		Since   string              `schema:"since"`
 		Until   string              `schema:"until"`
 		Filters map[string][]string `schema:"filters"`
-	}{}
+		Stream  bool                `schema:"stream"`
+	}{
+		Stream: true,
+	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 	}
@@ -41,9 +44,10 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	if len(query.Since) > 0 || len(query.Until) > 0 {
 		fromStart = true
 	}
+
 	eventChannel := make(chan *events.Event)
 	go func() {
-		readOpts := events.ReadOptions{FromStart: fromStart, Stream: true, Filters: libpodFilters, EventChannel: eventChannel, Since: query.Since, Until: query.Until}
+		readOpts := events.ReadOptions{FromStart: fromStart, Stream: query.Stream, Filters: libpodFilters, EventChannel: eventChannel, Since: query.Since, Until: query.Until}
 		eventsError = runtime.Events(readOpts)
 	}()
 	if eventsError != nil {
@@ -55,7 +59,9 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	// If client disappears we need to stop listening for events
 	go func(done <-chan struct{}) {
 		<-done
-		close(eventChannel)
+		if _, ok := <-eventChannel; ok {
+			close(eventChannel)
+		}
 	}(r.Context().Done())
 
 	// Headers need to be written out before turning Writer() over to json encoder
