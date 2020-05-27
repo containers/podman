@@ -220,29 +220,18 @@ bin/podman.cross.%: .gopathok
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
 
-# Update nix/nixpkgs.json its latest master commit
+# Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
 nixpkgs:
-	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -c nix-prefetch-git \
+	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
 
-NIX_IMAGE ?= quay.io/podman/nix-podman:1.0.0
-
-# Build the nix image as base for static builds
-.PHONY: nix-image
-nix-image:
-	$(CONTAINER_RUNTIME) build -t $(NIX_IMAGE) -f Containerfile-nix .
-
-# Build podman statically linked based on the default nix container image
-.PHONY: build-static
-build-static:
-	$(CONTAINER_RUNTIME) run \
-		--rm -it \
-		-v $(shell pwd):/work \
-		-w /work $(NIX_IMAGE) \
-		sh -c "nix build -f nix && \
-			   mkdir -p bin && \
-			   cp result-*bin/bin/podman bin/podman-static"
+# Build statically linked binary
+.PHONY: static
+static:
+	@nix build -f nix/
+	mkdir -p ./bin
+	cp -rfp ./result/bin/* ./bin/
 
 .PHONY: run-docker-py-tests
 run-docker-py-tests:

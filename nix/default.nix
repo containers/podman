@@ -1,53 +1,48 @@
+{ system ? builtins.currentSystem }:
 let
-  pkgs = import ./nixpkgs.nix {
+  pkgs = (import ./nixpkgs.nix {
     config = {
       packageOverrides = pkg: {
-        go_1_12 = pkg.go_1_14;
+        gpgme = (static pkg.gpgme);
+        libassuan = (static pkg.libassuan);
+        libgpgerror = (static pkg.libgpgerror);
+        libseccomp = (static pkg.libseccomp);
       };
     };
-  };
+  });
 
-  static = pkg: pkg.overrideAttrs(old: {
-    configureFlags = (old.configureFlags or []) ++
-      [ "--without-shared" "--disable-shared" ];
+  static = pkg: pkg.overrideAttrs(x: {
+    doCheck = false;
+    configureFlags = (x.configureFlags or []) ++ [
+      "--without-shared"
+      "--disable-shared"
+    ];
     dontDisableStatic = true;
     enableSharedExecutables = false;
     enableStatic = true;
   });
 
-  patchLvm2 = pkg: pkg.overrideAttrs(old: {
-    configureFlags = [
-      "--disable-cmdlib" "--disable-readline" "--disable-udev_rules"
-      "--disable-udev_sync" "--enable-pkgconfig" "--enable-static_link"
-    ];
-    preConfigure = old.preConfigure + ''
-      substituteInPlace libdm/Makefile.in --replace \
-        SUBDIRS=dm-tools SUBDIRS=
-      substituteInPlace tools/Makefile.in --replace \
-        "TARGETS += lvm.static" ""
-      substituteInPlace tools/Makefile.in --replace \
-        "INSTALL_LVM_TARGETS += install_tools_static" ""
+  self = with pkgs; buildGoModule rec {
+    name = "podman";
+    src = ./..;
+    vendorSha256 = null;
+    doCheck = false;
+    enableParallelBuilding = true;
+    outputs = [ "out" ];
+    nativeBuildInputs = [ bash git go-md2man installShellFiles makeWrapper pkg-config which ];
+    buildInputs = [ glibc glibc.static gpgme libassuan libgpgerror libseccomp libapparmor libselinux ];
+    prePatch = ''
+      export CFLAGS='-static'
+      export LDFLAGS='-s -w -static-libgcc -static'
+      export EXTRA_LDFLAGS='-s -w -linkmode external -extldflags "-static -lm"'
+      export BUILDTAGS='static netgo exclude_graphdriver_btrfs exclude_graphdriver_devicemapper seccomp apparmor selinux'
     '';
-    postInstall = "";
-  });
-
-  self = {
-    podman-static = (pkgs.podman.overrideAttrs(old: {
-      name = "podman-static";
-      buildInputs = old.buildInputs ++ (with pkgs; [
-        (static pkgs.libassuan)
-        (static pkgs.libgpgerror)
-        git
-        glibc
-        glibc.static
-      ]);
-      src = ./..;
-      EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static -lm"'';
-      BUILDTAGS = ''static netgo apparmor selinux seccomp systemd varlink containers_image_ostree_stub'';
-    })).override {
-      gpgme = (static pkgs.gpgme);
-      libseccomp = (static pkgs.libseccomp);
-      lvm2 = (patchLvm2 (static pkgs.lvm2));
-    };
+    buildPhase = ''
+      patchShebangs .
+      make bin/podman
+    '';
+    installPhase = ''
+      install -Dm755 bin/podman $out/bin/podman
+    '';
   };
 in self

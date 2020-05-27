@@ -756,17 +756,25 @@ success_task:
 
     success_script: '/usr/local/bin/entrypoint.sh ./$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
 
+# Build the static binary
 static_build_task:
-    container:
-        image: quay.io/podman/nix-podman:1.0.0
-        cpu: 8
-        memory: 12
-    timeout_in: 20m
     depends_on:
         - "gating"
-    build_script:
-        - nix build -f nix
+    gce_instance:
+        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+        cpu: 8
+        memory: 12
+        disk: 200
+    script: |
+        set -ex
+        setenforce 0
+        growpart /dev/sda 1 || true
+        resize2fs /dev/sda1 || true
+        yum -y install podman
+        mkdir -p /nix
+        podman run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix
+        podman run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
     binaries_artifacts:
-        path: "result-bin/bin/podman"
+        path: "result/bin/podman"
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
