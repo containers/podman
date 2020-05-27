@@ -7,15 +7,15 @@
 podman pull -q $IMAGE
 
 t GET libpod/images/json 200 \
-  .[0].ID~[0-9a-f]\\{64\\}
-iid=$(jq -r '.[0].ID' <<<"$output")
+  .[0].Id~[0-9a-f]\\{64\\}
+iid=$(jq -r '.[0].Id' <<<"$output")
 
 t GET libpod/images/$iid/exists                     204
 t GET libpod/images/$PODMAN_TEST_IMAGE_NAME/exists  204
 
 # FIXME: compare to actual podman info
 t GET libpod/images/json 200  \
-  .[0].ID=${iid}
+  .[0].Id=${iid}
 
 t GET libpod/images/$iid/json 200 \
   .Id=$iid \

@@ -45,8 +45,8 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	if state != define.ContainerStateRunning && !query.Stream {
-		utils.InternalServerError(w, define.ErrCtrStateInvalid)
+	if state != define.ContainerStateRunning {
+		utils.Error(w, "Container not running and streaming requested", http.StatusConflict, define.ErrCtrStateInvalid)
 		return
 	}
 

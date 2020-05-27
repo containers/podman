@@ -28,7 +28,7 @@ load helpers
     # 'created': podman includes fractional seconds, podman-remote does not
     tests="
 Names[0]    | $PODMAN_TEST_IMAGE_FQN
-ID          |        [0-9a-f]\\\{64\\\}
+Id          |        [0-9a-f]\\\{64\\\}
 Digest      | sha256:[0-9a-f]\\\{64\\\}
 CreatedAt   | [0-9-]\\\+T[0-9:.]\\\+Z
 Size        | [0-9]\\\+

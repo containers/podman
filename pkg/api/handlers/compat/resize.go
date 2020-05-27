@@ -1,10 +1,12 @@
 package compat
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -43,6 +45,14 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 			utils.ContainerNotFound(w, name, err)
 			return
 		}
+		if state, err := ctnr.State(); err != nil {
+			utils.InternalServerError(w, errors.Wrapf(err, "cannot obtain container state"))
+			return
+		} else if state != define.ContainerStateRunning {
+			utils.Error(w, "Container not running", http.StatusConflict,
+				fmt.Errorf("container %q in wrong state %q", name, state.String()))
+			return
+		}
 		if err := ctnr.AttachResize(sz); err != nil {
 			utils.InternalServerError(w, errors.Wrapf(err, "cannot resize container"))
 			return
@@ -54,6 +64,14 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 		ctnr, err := runtime.GetExecSessionContainer(name)
 		if err != nil {
 			utils.SessionNotFound(w, name, err)
+			return
+		}
+		if state, err := ctnr.State(); err != nil {
+			utils.InternalServerError(w, errors.Wrapf(err, "cannot obtain session container state"))
+			return
+		} else if state != define.ContainerStateRunning {
+			utils.Error(w, "Container not running", http.StatusConflict,
+				fmt.Errorf("container %q in wrong state %q", name, state.String()))
 			return
 		}
 		if err := ctnr.ExecResize(name, sz); err != nil {

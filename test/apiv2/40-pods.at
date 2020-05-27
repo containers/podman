@@ -5,8 +5,8 @@
 
 t GET  "libpod/pods/json (clean slate at start)"   200 null
 
-t POST libpod/pods/create name=foo 201 .id~[0-9a-f]\\{64\\}
-pod_id=$(jq -r .id <<<"$output")
+t POST libpod/pods/create name=foo 201 .Id~[0-9a-f]\\{64\\}
+pod_id=$(jq -r .Id <<<"$output")
 t GET  libpod/pods/foo/exists      204
 t GET  libpod/pods/$pod_id/exists  204
 t GET  libpod/pods/notfoo/exists   404

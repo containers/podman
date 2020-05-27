@@ -66,6 +66,10 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+	if len(pss) == 0 {
+		utils.WriteResponse(w, http.StatusOK, "[]")
+		return
+	}
 	utils.WriteResponse(w, http.StatusOK, pss)
 }
 
