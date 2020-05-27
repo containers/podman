@@ -72,13 +72,17 @@ func addPrivilegedDevices(g *generate.Generator) error {
 			newMounts = append(newMounts, devMnt)
 		}
 		g.Config.Mounts = append(newMounts, g.Config.Mounts...)
-		g.Config.Linux.Resources.Devices = nil
+		if g.Config.Linux.Resources != nil {
+			g.Config.Linux.Resources.Devices = nil
+		}
 	} else {
 		for _, d := range hostDevices {
 			g.AddDevice(Device(d))
 		}
 		// Add resources device - need to clear the existing one first.
-		g.Config.Linux.Resources.Devices = nil
+		if g.Config.Linux.Resources != nil {
+			g.Config.Linux.Resources.Devices = nil
+		}
 		g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
 	}
 
