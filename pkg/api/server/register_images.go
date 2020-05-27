@@ -631,13 +631,18 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: Name of image to push.
 	//  - in: query
-	//    name: tag
+	//    name: destination
 	//    type: string
-	//    description: The tag to associate with the image on the registry.
+	//    description: Allows for pushing the image to a different destintation than the image refers to.
 	//  - in: query
 	//    name: credentials
 	//    description: username:password for the registry.
 	//    type: string
+	//  - in: query
+	//    name: tlsVerify
+	//    description: Require TLS verification.
+	//    type: boolean
+	//    default: true
 	//  - in: header
 	//    name: X-Registry-Auth
 	//    type: string
