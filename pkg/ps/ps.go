@@ -23,7 +23,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 		filterFuncs []libpod.ContainerFilter
 		pss         []entities.ListContainer
 	)
-	all := options.All
+	all := options.All || options.Last > 0
 	if len(options.Filters) > 0 {
 		for k, v := range options.Filters {
 			for _, val := range v {
