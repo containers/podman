@@ -31,6 +31,10 @@ The latest option is not supported on the remote client.
 
 Stop running containers and delete all stopped containers before removal of pod.
 
+**--pod-id-file**
+
+Read pod ID from the specified file and remove the pod.  Can be specified multiple times.
+
 ## EXAMPLE
 
 podman pod rm mywebserverpod
@@ -42,6 +46,8 @@ podman pod rm -f 860a4b23
 podman pod rm -f -a
 
 podman pod rm -fa
+
+podman pod rm --pod-id-file /path/to/id/file
 
 ## SEE ALSO
 podman-pod(1)

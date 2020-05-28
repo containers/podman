@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
@@ -135,5 +136,61 @@ var _ = Describe("Podman pod start", func() {
 		session = podmanTest.Podman([]string{"pod", "start", podid, "doesnotexist"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman pod start single pod via --pod-id-file", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile := tmpDir + "podID"
+		defer os.RemoveAll(tmpDir)
+
+		podName := "rudolph"
+
+		// Create a pod with --pod-id-file.
+		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", tmpFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Create container inside the pod.
+		session = podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "start", "--pod-id-file", tmpFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2)) // infra+top
+	})
+
+	It("podman pod start multiple pods via --pod-id-file", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		defer os.RemoveAll(tmpDir)
+
+		podIDFiles := []string{}
+		for _, i := range "0123456789" {
+			tmpFile := tmpDir + "cid" + string(i)
+			podName := "rudolph" + string(i)
+			// Create a pod with --pod-id-file.
+			session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", tmpFile})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+
+			// Create container inside the pod.
+			session = podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+
+			// Append the id files along with the command.
+			podIDFiles = append(podIDFiles, "--pod-id-file")
+			podIDFiles = append(podIDFiles, tmpFile)
+		}
+
+		cmd := []string{"pod", "start"}
+		cmd = append(cmd, podIDFiles...)
+		session := podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(20)) // 10*(infra+top)
 	})
 })

@@ -11,7 +11,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// allows for splitting API and CLI-only options
+type podStopOptionsWrapper struct {
+	entities.PodStopOptions
+
+	PodIDFiles []string
+	TimeoutCLI uint
+}
+
 var (
+	stopOptions = podStopOptionsWrapper{
+		PodStopOptions: entities.PodStopOptions{Timeout: -1},
+	}
 	podStopDescription = `The pod name or ID can be used.
 
   This command will stop all running containers in each of the specified pods.`
@@ -22,19 +33,12 @@ var (
 		Long:  podStopDescription,
 		RunE:  stop,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return parse.CheckAllLatestAndPodIDFile(cmd, args, false, true)
 		},
 		Example: `podman pod stop mywebserverpod
   podman pod stop --latest
   podman pod stop --time 0 490eb 3557fb`,
 	}
-)
-
-var (
-	stopOptions = entities.PodStopOptions{
-		Timeout: -1,
-	}
-	timeout uint
 )
 
 func init() {
@@ -47,7 +51,8 @@ func init() {
 	flags.BoolVarP(&stopOptions.All, "all", "a", false, "Stop all running pods")
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
 	flags.BoolVarP(&stopOptions.Latest, "latest", "l", false, "Stop the latest pod podman is aware of")
-	flags.UintVarP(&timeout, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for pod stop before killing the container")
+	flags.UintVarP(&stopOptions.TimeoutCLI, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for pod stop before killing the container")
+	flags.StringArrayVarP(&stopOptions.PodIDFiles, "pod-id-file", "", nil, "Read the pod ID from the file")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("ignore")
@@ -60,9 +65,16 @@ func stop(cmd *cobra.Command, args []string) error {
 		errs utils.OutputErrors
 	)
 	if cmd.Flag("time").Changed {
-		stopOptions.Timeout = int(timeout)
+		stopOptions.Timeout = int(stopOptions.TimeoutCLI)
 	}
-	responses, err := registry.ContainerEngine().PodStop(context.Background(), args, stopOptions)
+
+	ids, err := readPodIDFiles(stopOptions.PodIDFiles)
+	if err != nil {
+		return err
+	}
+	args = append(args, ids...)
+
+	responses, err := registry.ContainerEngine().PodStop(context.Background(), args, stopOptions.PodStopOptions)
 	if err != nil {
 		return err
 	}

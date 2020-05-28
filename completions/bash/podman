@@ -3223,6 +3223,7 @@ _podman_pod_restart() {
 
 _podman_pod_rm() {
   local options_with_args="
+      --pod-id-file
   "
 
   local boolean_options="
@@ -3250,6 +3251,7 @@ _podman_pod_rm() {
 
 _podman_pod_start() {
   local options_with_args="
+      --pod-id-file
   "
 
   local boolean_options="
@@ -3275,6 +3277,7 @@ _podman_pod_stop() {
   local options_with_args="
       -t
       --time
+      --pod-id-file
   "
 
   local boolean_options="
