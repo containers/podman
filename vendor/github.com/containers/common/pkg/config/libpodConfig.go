@@ -226,7 +226,7 @@ func newLibpodConfig(c *Config) error {
 
 	// hard code EventsLogger to "file" to match older podman versions.
 	if config.EventsLogger != "file" {
-		logrus.Debugf("Ignoring lipod.conf EventsLogger setting %q. Use containers.conf if you want to change this setting and remove libpod.conf files.", config.EventsLogger)
+		logrus.Debugf("Ignoring libpod.conf EventsLogger setting %q. Use %q if you want to change this setting and remove libpod.conf files.", Path(), config.EventsLogger)
 		config.EventsLogger = "file"
 	}
 
@@ -262,7 +262,7 @@ func systemLibpodConfigs() ([]string, error) {
 			}
 			// TODO: Raise to Warnf, when Podman is updated to
 			// remove libpod.conf by default
-			logrus.Debugf("Found deprecated file %s, please remove. Use %s to override defaults.\n", path, containersConfPath)
+			logrus.Debugf("Found deprecated file %s, please remove. Use %s to override defaults.\n", Path(), containersConfPath)
 			return []string{path}, nil
 		}
 		return nil, err

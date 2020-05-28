@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/capabilities"
@@ -263,6 +262,13 @@ type EngineConfig struct {
 	// PullPolicy determines whether to pull image before creating or running a container
 	// default is "missing"
 	PullPolicy string `toml:"pull_policy"`
+
+	// Indicates whether the application should be running in Remote mode
+	Remote bool `toml:"_"`
+
+	// RemoteURI containers connection information used to connect to remote system.
+	RemoteURI string `toml:"remote_uri,omitempty"`
+
 	// RuntimePath is the path to OCI runtime binary for launching containers.
 	// The first path pointing to a valid file will be used This is used only
 	// when there are no OCIRuntime/OCIRuntimes defined.  It is used only to be
@@ -540,17 +546,8 @@ func (c *Config) Validate() error {
 // It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *EngineConfig) Validate() error {
-	// Relative paths can cause nasty bugs, because core paths we use could
-	// shift between runs (or even parts of the program - the OCI runtime
-	// uses a different working directory than we do, for example.
-	if c.StaticDir != "" && !filepath.IsAbs(c.StaticDir) {
-		return fmt.Errorf("static directory must be an absolute path - instead got %q", c.StaticDir)
-	}
-	if c.TmpDir != "" && !filepath.IsAbs(c.TmpDir) {
-		return fmt.Errorf("temporary directory must be an absolute path - instead got %q", c.TmpDir)
-	}
-	if c.VolumePath != "" && !filepath.IsAbs(c.VolumePath) {
-		return fmt.Errorf("volume path must be an absolute path - instead got %q", c.VolumePath)
+	if err := c.validatePaths(); err != nil {
+		return err
 	}
 
 	// Check if the pullPolicy from containers.conf is valid
@@ -566,22 +563,13 @@ func (c *EngineConfig) Validate() error {
 // It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *ContainersConfig) Validate() error {
-	for _, u := range c.DefaultUlimits {
-		ul, err := units.ParseUlimit(u)
-		if err != nil {
-			return fmt.Errorf("unrecognized ulimit %s: %v", u, err)
-		}
-		_, err = ul.GetRlimit()
-		if err != nil {
-			return err
-		}
+
+	if err := c.validateUlimits(); err != nil {
+		return err
 	}
 
-	for _, d := range c.Devices {
-		_, _, _, err := Device(d)
-		if err != nil {
-			return err
-		}
+	if err := c.validateDevices(); err != nil {
+		return err
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
@@ -600,8 +588,7 @@ func (c *ContainersConfig) Validate() error {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *NetworkConfig) Validate() error {
-
-	if c.NetworkConfigDir != cniConfigDir {
+	if c.NetworkConfigDir != _cniConfigDir {
 		err := isDirectory(c.NetworkConfigDir)
 		if err != nil {
 			return errors.Wrapf(err, "invalid network_config_dir: %s", c.NetworkConfigDir)
@@ -803,31 +790,6 @@ func resolveHomeDir(path string) (string, error) {
 	return strings.Replace(path, "~", home, 1), nil
 }
 
-// isDirectory tests whether the given path exists and is a directory. It
-// follows symlinks.
-func isDirectory(path string) error {
-	path, err := resolveHomeDir(path)
-	if err != nil {
-		return err
-	}
-
-	info, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
-
-	if !info.Mode().IsDir() {
-		// Return a PathError to be consistent with os.Stat().
-		return &os.PathError{
-			Op:   "stat",
-			Path: path,
-			Err:  syscall.ENOTDIR,
-		}
-	}
-
-	return nil
-}
-
 func rootlessConfigPath() (string, error) {
 	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
 		return filepath.Join(configHome, _configPath), nil
@@ -877,4 +839,17 @@ func Default() (*Config, error) {
 		config, err = NewConfig("")
 	})
 	return config, err
+}
+
+func Path() string {
+	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
+		return path
+	}
+	if unshare.IsRootless() {
+		if rpath, err := rootlessConfigPath(); err == nil {
+			return rpath
+		}
+		return "$HOME/" + UserOverrideContainersConfig
+	}
+	return OverrideContainersConfig
 }
