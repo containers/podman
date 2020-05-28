@@ -76,7 +76,7 @@ func (s *barFiller) SetReverse(reverse bool) {
 		s.flush = reverseFlush
 	} else {
 		s.tip = s.format[rTip]
-		s.flush = normalFlush
+		s.flush = regularFlush
 	}
 	s.reverse = reverse
 }
@@ -125,7 +125,7 @@ func (s *barFiller) Fill(w io.Writer, width int, stat *decor.Statistics) {
 	s.flush(w, bb)
 }
 
-func normalFlush(w io.Writer, bb [][]byte) {
+func regularFlush(w io.Writer, bb [][]byte) {
 	for i := 0; i < len(bb); i++ {
 		w.Write(bb[i])
 	}

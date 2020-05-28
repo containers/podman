@@ -107,7 +107,7 @@ func (list *Schema2List) ChooseInstance(ctx *types.SystemContext) (digest.Digest
 			}
 		}
 	}
-	return "", fmt.Errorf("no image found in manifest list for architecture %s, variant %s, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
+	return "", fmt.Errorf("no image found in manifest list for architecture %s, variant %q, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
 }
 
 // Serialize returns the list in a blob format.
