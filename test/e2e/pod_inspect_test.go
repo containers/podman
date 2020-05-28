@@ -57,4 +57,26 @@ var _ = Describe("Podman pod inspect", func() {
 		podData := inspect.InspectPodToJSON()
 		Expect(podData.ID).To(Equal(podid))
 	})
+
+	It("podman pod inspect (CreateCommand)", func() {
+		podName := "myTestPod"
+		createCommand := []string{"pod", "create", "--name", podName, "--hostname", "rudolph", "--share", "net"}
+
+		// Create the pod.
+		session := podmanTest.Podman(createCommand)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Inspect the pod and make sure that the create command is
+		// exactly how we created the pod.
+		inspect := podmanTest.Podman([]string{"pod", "inspect", podName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		podData := inspect.InspectPodToJSON()
+		// Let's get the last len(createCommand) items in the command.
+		inspectCreateCommand := podData.CreateCommand
+		index := len(inspectCreateCommand) - len(createCommand)
+		Expect(inspectCreateCommand[index:]).To(Equal(createCommand))
+	})
 })

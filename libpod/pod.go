@@ -64,6 +64,10 @@ type PodConfig struct {
 	// Time pod was created
 	CreatedTime time.Time `json:"created"`
 
+	// CreateCommand is the full command plus arguments of the process the
+	// container has been created with.
+	CreateCommand []string `json:"CreateCommand,omitempty"`
+
 	// ID of the pod's lock
 	LockID uint32 `json:"lockID"`
 }

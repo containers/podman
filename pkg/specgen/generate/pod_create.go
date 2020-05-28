@@ -93,5 +93,6 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 		options = append(options, libpod.WithInfraContainerPorts(ports))
 	}
 	options = append(options, libpod.WithPodCgroups())
+	options = append(options, libpod.WithPodCreateCommand())
 	return options, nil
 }
