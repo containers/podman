@@ -50,6 +50,7 @@ load helpers
 }
 
 # Issue #4785 - piping to exec statement - fixed in #4818
+# Issue #5046 - piping to exec truncates results (actually a conmon issue)
 @test "podman exec - cat from stdin" {
     skip_if_remote
 
@@ -60,6 +61,20 @@ load helpers
     run_podman exec -i $cid cat < <(echo $echo_string)
     is "$output" "$echo_string" "output read back from 'exec cat'"
 
+    # #5046 - large file content gets lost via exec
+    # Generate a large file with random content; get a hash of its content
+    local bigfile=${PODMAN_TMPDIR}/bigfile
+    dd if=/dev/urandom of=$bigfile bs=1024 count=1500
+    expect=$(sha512sum $bigfile | awk '{print $1}')
+    # Transfer it to container, via exec, make sure correct #bytes are sent
+    run_podman exec -i $cid dd of=/tmp/bigfile bs=512 <$bigfile
+    is "${lines[0]}" "3000+0 records in"  "dd: number of records in"
+    is "${lines[1]}" "3000+0 records out" "dd: number of records out"
+    # Verify sha. '% *' strips off the path, keeping only the SHA
+    run_podman exec $cid sha512sum /tmp/bigfile
+    is "${output% *}" "$expect" "SHA of file in container"
+
+    # Clean up
     run_podman exec $cid touch /stop
     run_podman wait $cid
     run_podman rm $cid
