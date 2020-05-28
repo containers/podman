@@ -33,4 +33,27 @@ t GET images/$iid/json 200 \
 
 #t POST images/create fromImage=alpine 201 foo
 
+# Display the image history
+t GET libpod/images/nonesuch/history 404
+
+for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
+  t GET libpod/images/$i/history 200 \
+    .[0].Id=$iid \
+    .[0].Created~[0-9]\\{10\\} \
+    .[0].Tags=null \
+    .[0].Size=0 \
+    .[0].Comment=
+done
+
+# Export an image on the local
+t GET libpod/images/nonesuch/get 404
+t GET libpod/images/$iid/get?format=foo 500
+t GET libpod/images/$PODMAN_TEST_IMAGE_NAME/get?compress=bar 400
+
+for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
+  t GET "libpod/images/$i/get"                200 '[POSIX tar archive]'
+  t GET "libpod/images/$i/get?compress=true"  200 '[POSIX tar archive]'
+  t GET "libpod/images/$i/get?compress=false" 200 '[POSIX tar archive]'
+done
+
 # vim: filetype=sh

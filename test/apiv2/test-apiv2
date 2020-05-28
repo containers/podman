@@ -207,13 +207,21 @@ function t() {
     fi
 
     cat $WORKDIR/curl.headers.out >>$LOG 2>/dev/null || true
-    output=$(< $WORKDIR/curl.result.out)
 
-    # Log results. If JSON, filter through jq for readability
-    if egrep -qi '^Content-Type: application/json' $WORKDIR/curl.headers.out; then
-        jq . <<<"$output" >>$LOG
-    else
+    # Log results, if text. If JSON, filter through jq for readability.
+    content_type=$(sed -ne 's/^Content-Type:[ ]\+//pi' <$WORKDIR/curl.headers.out)
+
+    if [[ $content_type =~ /octet ]]; then
+        output="[$(file --brief $WORKDIR/curl.result.out)]"
         echo "$output" >>$LOG
+    else
+        output=$(< $WORKDIR/curl.result.out)
+
+        if [[ $content_type =~ application/json ]]; then
+            jq . <<<"$output" >>$LOG
+        else
+            echo "$output" >>$LOG
+        fi
     fi
 
     # Test return code
@@ -232,6 +240,7 @@ function t() {
         return
     fi
 
+    local i
     for i; do
         case "$i" in
             # Exact match on json field
