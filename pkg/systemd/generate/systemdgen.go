@@ -27,8 +27,6 @@ type ContainerInfo struct {
 	ServiceName string
 	// Name or ID of the container.
 	ContainerName string
-	// InfraContainer of the pod.
-	InfraContainer string
 	// StopTimeout sets the timeout Podman waits before killing the container
 	// during service stop.
 	StopTimeout uint
