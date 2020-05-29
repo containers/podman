@@ -1237,6 +1237,15 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 		i--
 	}
 
+	// We need to re-create the work directory as it might keep a reference
+	// to the old upper layer in the index.
+	workDir := filepath.Join(dir, "work")
+	if err := os.RemoveAll(workDir); err == nil {
+		if err := idtools.MkdirAs(workDir, 0755, rootUID, rootGID); err != nil {
+			return err
+		}
+	}
+
 	// Re-create the directory that we're going to use as the upper layer.
 	if err := idtools.MkdirAs(diffDir, 0755, rootUID, rootGID); err != nil {
 		return err

@@ -7,6 +7,9 @@ func Percentage(total, current int64, width int) float64 {
 	if total <= 0 {
 		return 0
 	}
+	if current >= total {
+		return float64(width)
+	}
 	return float64(int64(width)*current) / float64(total)
 }
 

@@ -46,10 +46,9 @@ func Verify(mac *[16]byte, m []byte, key *[32]byte) bool {
 // two different messages with the same key allows an attacker
 // to forge messages at will.
 func New(key *[32]byte) *MAC {
-	return &MAC{
-		mac:       newMAC(key),
-		finalized: false,
-	}
+	m := &MAC{}
+	initialize(key, &m.macState)
+	return m
 }
 
 // MAC is an io.Writer computing an authentication tag
@@ -58,7 +57,7 @@ func New(key *[32]byte) *MAC {
 // MAC cannot be used like common hash.Hash implementations,
 // because using a poly1305 key twice breaks its security.
 // Therefore writing data to a running MAC after calling
-// Sum causes it to panic.
+// Sum or Verify causes it to panic.
 type MAC struct {
 	mac // platform-dependent implementation
 
@@ -71,10 +70,10 @@ func (h *MAC) Size() int { return TagSize }
 // Write adds more data to the running message authentication code.
 // It never returns an error.
 //
-// It must not be called after the first call of Sum.
+// It must not be called after the first call of Sum or Verify.
 func (h *MAC) Write(p []byte) (n int, err error) {
 	if h.finalized {
-		panic("poly1305: write to MAC after Sum")
+		panic("poly1305: write to MAC after Sum or Verify")
 	}
 	return h.mac.Write(p)
 }
@@ -86,4 +85,13 @@ func (h *MAC) Sum(b []byte) []byte {
 	h.mac.Sum(&mac)
 	h.finalized = true
 	return append(b, mac[:]...)
+}
+
+// Verify returns whether the authenticator of all data written to
+// the message authentication code matches the expected value.
+func (h *MAC) Verify(expected []byte) bool {
+	var mac [TagSize]byte
+	h.mac.Sum(&mac)
+	h.finalized = true
+	return subtle.ConstantTimeCompare(expected, mac[:]) == 1
 }

@@ -12,15 +12,16 @@ type EOption func(*encoderOptions) error
 
 // options retains accumulated state of multiple options.
 type encoderOptions struct {
-	concurrent int
-	crc        bool
-	single     *bool
-	pad        int
-	blockSize  int
-	windowSize int
-	level      EncoderLevel
-	fullZero   bool
-	noEntropy  bool
+	concurrent   int
+	level        EncoderLevel
+	single       *bool
+	pad          int
+	blockSize    int
+	windowSize   int
+	crc          bool
+	fullZero     bool
+	noEntropy    bool
+	customWindow bool
 }
 
 func (o *encoderOptions) setDefault() {
@@ -30,7 +31,7 @@ func (o *encoderOptions) setDefault() {
 		crc:        true,
 		single:     nil,
 		blockSize:  1 << 16,
-		windowSize: 1 << 22,
+		windowSize: 8 << 20,
 		level:      SpeedDefault,
 	}
 }
@@ -85,6 +86,7 @@ func WithWindowSize(n int) EOption {
 		}
 
 		o.windowSize = n
+		o.customWindow = true
 		if o.blockSize > o.windowSize {
 			o.blockSize = o.windowSize
 		}
@@ -195,6 +197,16 @@ func WithEncoderLevel(l EncoderLevel) EOption {
 			return fmt.Errorf("unknown encoder level")
 		}
 		o.level = l
+		if !o.customWindow {
+			switch o.level {
+			case SpeedFastest:
+				o.windowSize = 4 << 20
+			case SpeedDefault:
+				o.windowSize = 8 << 20
+			case SpeedBetterCompression:
+				o.windowSize = 16 << 20
+			}
+		}
 		return nil
 	}
 }

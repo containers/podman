@@ -79,6 +79,9 @@ func (index *OCI1Index) ChooseInstance(ctx *types.SystemContext) (digest.Digest,
 	}
 	for _, wantedPlatform := range wantedPlatforms {
 		for _, d := range index.Manifests {
+			if d.Platform == nil {
+				continue
+			}
 			imagePlatform := imgspecv1.Platform{
 				Architecture: d.Platform.Architecture,
 				OS:           d.Platform.OS,
@@ -97,7 +100,7 @@ func (index *OCI1Index) ChooseInstance(ctx *types.SystemContext) (digest.Digest,
 			return d.Digest, nil
 		}
 	}
-	return "", fmt.Errorf("no image found in image index for architecture %s, variant %s, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
+	return "", fmt.Errorf("no image found in image index for architecture %s, variant %q, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
 }
 
 // Serialize returns the index in a blob format.

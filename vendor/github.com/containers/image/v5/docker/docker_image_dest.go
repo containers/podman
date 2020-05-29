@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
+	"github.com/containers/image/v5/internal/uploadreader"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	"github.com/containers/image/v5/types"
@@ -162,19 +163,30 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 
 	digester := digest.Canonical.Digester()
 	sizeCounter := &sizeCounter{}
-	tee := io.TeeReader(stream, io.MultiWriter(digester.Hash(), sizeCounter))
-	res, err = d.c.makeRequestToResolvedURL(ctx, "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, v2Auth, nil)
+	uploadLocation, err = func() (*url.URL, error) { // A scope for defer
+		uploadReader := uploadreader.NewUploadReader(io.TeeReader(stream, io.MultiWriter(digester.Hash(), sizeCounter)))
+		// This error text should never be user-visible, we terminate only after makeRequestToResolvedURL
+		// returns, so there isn’t a way for the error text to be provided to any of our callers.
+		defer uploadReader.Terminate(errors.New("Reading data from an already terminated upload"))
+		res, err = d.c.makeRequestToResolvedURL(ctx, "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, uploadReader, inputInfo.Size, v2Auth, nil)
+		if err != nil {
+			logrus.Debugf("Error uploading layer chunked %v", err)
+			return nil, err
+		}
+		defer res.Body.Close()
+		if !successStatus(res.StatusCode) {
+			return nil, errors.Wrapf(client.HandleErrorResponse(res), "Error uploading layer chunked")
+		}
+		uploadLocation, err := res.Location()
+		if err != nil {
+			return nil, errors.Wrap(err, "Error determining upload URL")
+		}
+		return uploadLocation, nil
+	}()
 	if err != nil {
-		logrus.Debugf("Error uploading layer chunked, response %#v", res)
 		return types.BlobInfo{}, err
 	}
-	defer res.Body.Close()
 	computedDigest := digester.Digest()
-
-	uploadLocation, err = res.Location()
-	if err != nil {
-		return types.BlobInfo{}, errors.Wrap(err, "Error determining upload URL")
-	}
 
 	// FIXME: DELETE uploadLocation on failure (does not really work in docker/distribution servers, which incorrectly require the "delete" action in the token's scope)
 
@@ -469,17 +481,17 @@ func (d *dockerImageDestination) PutSignatures(ctx context.Context, signatures [
 	}
 	switch {
 	case d.c.signatureBase != nil:
-		return d.putSignaturesToLookaside(signatures, instanceDigest)
+		return d.putSignaturesToLookaside(signatures, *instanceDigest)
 	case d.c.supportsSignatures:
-		return d.putSignaturesToAPIExtension(ctx, signatures, instanceDigest)
+		return d.putSignaturesToAPIExtension(ctx, signatures, *instanceDigest)
 	default:
 		return errors.Errorf("X-Registry-Supports-Signatures extension not supported, and lookaside is not configured")
 	}
 }
 
 // putSignaturesToLookaside implements PutSignatures() from the lookaside location configured in s.c.signatureBase,
-// which is not nil.
-func (d *dockerImageDestination) putSignaturesToLookaside(signatures [][]byte, instanceDigest *digest.Digest) error {
+// which is not nil, for a manifest with manifestDigest.
+func (d *dockerImageDestination) putSignaturesToLookaside(signatures [][]byte, manifestDigest digest.Digest) error {
 	// FIXME? This overwrites files one at a time, definitely not atomic.
 	// A failure when updating signatures with a reordered copy could lose some of them.
 
@@ -490,7 +502,7 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures [][]byte, i
 
 	// NOTE: Keep this in sync with docs/signature-protocols.md!
 	for i, signature := range signatures {
-		url := signatureStorageURL(d.c.signatureBase, *instanceDigest, i)
+		url := signatureStorageURL(d.c.signatureBase, manifestDigest, i)
 		if url == nil {
 			return errors.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
 		}
@@ -505,7 +517,7 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures [][]byte, i
 	// is enough for dockerImageSource to stop looking for other signatures, so that
 	// is sufficient.
 	for i := len(signatures); ; i++ {
-		url := signatureStorageURL(d.c.signatureBase, *instanceDigest, i)
+		url := signatureStorageURL(d.c.signatureBase, manifestDigest, i)
 		if url == nil {
 			return errors.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
 		}
@@ -564,8 +576,9 @@ func (c *dockerClient) deleteOneSignature(url *url.URL) (missing bool, err error
 	}
 }
 
-// putSignaturesToAPIExtension implements PutSignatures() using the X-Registry-Supports-Signatures API extension.
-func (d *dockerImageDestination) putSignaturesToAPIExtension(ctx context.Context, signatures [][]byte, instanceDigest *digest.Digest) error {
+// putSignaturesToAPIExtension implements PutSignatures() using the X-Registry-Supports-Signatures API extension,
+// for a manifest with manifestDigest.
+func (d *dockerImageDestination) putSignaturesToAPIExtension(ctx context.Context, signatures [][]byte, manifestDigest digest.Digest) error {
 	// Skip dealing with the manifest digest, or reading the old state, if not necessary.
 	if len(signatures) == 0 {
 		return nil
@@ -575,7 +588,7 @@ func (d *dockerImageDestination) putSignaturesToAPIExtension(ctx context.Context
 	// always adds signatures.  Eventually we should also allow removing signatures,
 	// but the X-Registry-Supports-Signatures API extension does not support that yet.
 
-	existingSignatures, err := d.c.getExtensionsSignatures(ctx, d.ref, *instanceDigest)
+	existingSignatures, err := d.c.getExtensionsSignatures(ctx, d.ref, manifestDigest)
 	if err != nil {
 		return err
 	}
@@ -600,7 +613,7 @@ sigExists:
 			if err != nil || n != 16 {
 				return errors.Wrapf(err, "Error generating random signature len %d", n)
 			}
-			signatureName = fmt.Sprintf("%s@%032x", instanceDigest.String(), randBytes)
+			signatureName = fmt.Sprintf("%s@%032x", manifestDigest.String(), randBytes)
 			if _, ok := existingSigNames[signatureName]; !ok {
 				break
 			}
@@ -616,7 +629,7 @@ sigExists:
 			return err
 		}
 
-		path := fmt.Sprintf(extensionsSignaturePath, reference.Path(d.ref.ref), d.manifestDigest.String())
+		path := fmt.Sprintf(extensionsSignaturePath, reference.Path(d.ref.ref), manifestDigest.String())
 		res, err := d.c.makeRequest(ctx, "PUT", path, nil, bytes.NewReader(body), v2Auth, nil)
 		if err != nil {
 			return err
