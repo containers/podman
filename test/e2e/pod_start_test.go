@@ -193,4 +193,23 @@ var _ = Describe("Podman pod start", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(20)) // 10*(infra+top)
 	})
+
+	It("podman pod create --infra-conmon-pod create + start", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile := tmpDir + "podID"
+		defer os.RemoveAll(tmpDir)
+
+		podName := "rudolph"
+		// Create a pod with --infra-conmon-pid.
+		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--infra-conmon-pidfile", tmpFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "start", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1)) // infra
+	})
+
 })

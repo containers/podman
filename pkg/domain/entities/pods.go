@@ -103,15 +103,16 @@ type PodRmReport struct {
 }
 
 type PodCreateOptions struct {
-	CGroupParent string
-	Hostname     string
-	Infra        bool
-	InfraImage   string
-	InfraCommand string
-	Labels       map[string]string
-	Name         string
-	Net          *NetOptions
-	Share        []string
+	CGroupParent       string
+	Hostname           string
+	Infra              bool
+	InfraImage         string
+	InfraCommand       string
+	InfraConmonPidFile string
+	Labels             map[string]string
+	Name               string
+	Net                *NetOptions
+	Share              []string
 }
 
 type PodCreateReport struct {
@@ -126,6 +127,9 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 	s.NoInfra = !p.Infra
 	if len(p.InfraCommand) > 0 {
 		s.InfraCommand = strings.Split(p.InfraCommand, " ")
+	}
+	if len(p.InfraConmonPidFile) > 0 {
+		s.InfraConmonPidFile = p.InfraConmonPidFile
 	}
 	s.InfraImage = p.InfraImage
 	s.SharedNamespaces = p.Share

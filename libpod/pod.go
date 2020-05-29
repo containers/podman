@@ -83,6 +83,7 @@ type podState struct {
 
 // InfraContainerConfig is the configuration for the pod's infra container
 type InfraContainerConfig struct {
+	ConmonPidFile      string               `json:"conmonPidFile"`
 	HasInfraContainer  bool                 `json:"makeInfraContainer"`
 	HostNetwork        bool                 `json:"infraHostNetwork,omitempty"`
 	PortBindings       []ocicni.PortMapping `json:"infraPortBindings"`

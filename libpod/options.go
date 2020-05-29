@@ -1550,6 +1550,18 @@ func WithPodCreateCommand() PodCreateOption {
 	}
 }
 
+// WithInfraConmonPidFile sets the path to a custom conmon PID file for the
+// infra container.
+func WithInfraConmonPidFile(path string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+		pod.config.InfraContainer.ConmonPidFile = path
+		return nil
+	}
+}
+
 // WithPodLabels sets the labels of a pod.
 func WithPodLabels(labels map[string]string) PodCreateOption {
 	return func(pod *Pod) error {

@@ -53,6 +53,7 @@ func init() {
 	flags.AddFlagSet(common.GetNetFlags())
 	flags.StringVar(&createOptions.CGroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
 	flags.BoolVar(&createOptions.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
+	flags.StringVar(&createOptions.InfraConmonPidFile, "infra-conmon-pidfile", "", "Path to the file that will receive the POD of the infra container's conmon")
 	flags.StringVar(&createOptions.InfraImage, "infra-image", containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
 	flags.StringVar(&createOptions.InfraCommand, "infra-command", containerConfig.Engine.InfraCommand, "The command to run on the infra container when the pod is started")
 	flags.StringSliceVar(&labelFile, "label-file", []string{}, "Read in a line delimited file of labels")
@@ -83,6 +84,9 @@ func create(cmd *cobra.Command, args []string) error {
 
 	if !createOptions.Infra {
 		logrus.Debugf("Not creating an infra container")
+		if cmd.Flag("infra-conmon-pidfile").Changed {
+			return errors.New("cannot set infra-conmon-pid without an infra container")
+		}
 		if cmd.Flag("infra-command").Changed {
 			return errors.New("cannot set infra-command without an infra container")
 		}

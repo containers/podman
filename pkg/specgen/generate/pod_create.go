@@ -94,5 +94,8 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 	}
 	options = append(options, libpod.WithPodCgroups())
 	options = append(options, libpod.WithPodCreateCommand())
+	if len(p.InfraConmonPidFile) > 0 {
+		options = append(options, libpod.WithInfraConmonPidFile(p.InfraConmonPidFile))
+	}
 	return options, nil
 }

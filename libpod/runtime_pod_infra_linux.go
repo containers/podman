@@ -130,6 +130,9 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 	options = append(options, WithRootFSFromImage(imgID, imgName, rawImageName))
 	options = append(options, WithName(containerName))
 	options = append(options, withIsInfra())
+	if len(p.config.InfraContainer.ConmonPidFile) > 0 {
+		options = append(options, WithConmonPidFile(p.config.InfraContainer.ConmonPidFile))
+	}
 
 	return r.newContainer(ctx, g.Config, options...)
 }

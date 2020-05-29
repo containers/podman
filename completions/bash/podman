@@ -3098,6 +3098,7 @@ _podman_pod_create() {
       --dns-opt
       --dns-search
       --infra-command
+      --infra-conmon-pidfile
       --infra-image
       --ip
       --label-file
