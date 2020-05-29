@@ -139,6 +139,13 @@ type swagImageSummary struct {
 	Body []entities.ImageSummary
 }
 
+// Registries summary
+// swagger:response DocsRegistriesList
+type swagRegistriesList struct {
+	// in:body
+	Body entities.ListRegistriesReport
+}
+
 // List Containers
 // swagger:response DocsListContainer
 type swagListContainers struct {

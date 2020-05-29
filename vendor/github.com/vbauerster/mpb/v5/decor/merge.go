@@ -1,9 +1,10 @@
 package decor
 
 import (
-	"fmt"
 	"strings"
-	"unicode/utf8"
+
+	"github.com/acarl005/stripansi"
+	"github.com/mattn/go-runewidth"
 )
 
 // Merge wraps its decorator argument with intention to sync width
@@ -64,18 +65,18 @@ func (d *mergeDecorator) Base() Decorator {
 	return d.Decorator
 }
 
-func (d *mergeDecorator) Decor(s *Statistics) string {
+func (d *mergeDecorator) Decor(s Statistics) string {
 	msg := d.Decorator.Decor(s)
-	msgLen := utf8.RuneCountInString(msg)
+	pureWidth := runewidth.StringWidth(msg)
+	stripWidth := runewidth.StringWidth(stripansi.Strip(msg))
+	cellCount := stripWidth
 	if (d.wc.C & DextraSpace) != 0 {
-		msgLen++
+		cellCount++
 	}
 
-	var total int
-	max := utf8.RuneCountInString(d.placeHolders[0].FormatMsg(""))
-	total += max
-	pw := (msgLen - max) / len(d.placeHolders)
-	rem := (msgLen - max) % len(d.placeHolders)
+	total := runewidth.StringWidth(d.placeHolders[0].FormatMsg(""))
+	pw := (cellCount - total) / len(d.placeHolders)
+	rem := (cellCount - total) % len(d.placeHolders)
 
 	var diff int
 	for i := 1; i < len(d.placeHolders); i++ {
@@ -87,20 +88,20 @@ func (d *mergeDecorator) Decor(s *Statistics) string {
 				width = 0
 			}
 		}
-		max = utf8.RuneCountInString(ph.FormatMsg(strings.Repeat(" ", width)))
+		max := runewidth.StringWidth(ph.FormatMsg(strings.Repeat(" ", width)))
 		total += max
 		diff = max - pw
 	}
 
 	d.wc.wsync <- pw + rem
-	max = <-d.wc.wsync
-	return fmt.Sprintf(fmt.Sprintf(d.wc.dynFormat, max+total), msg)
+	max := <-d.wc.wsync
+	return d.wc.fill(msg, max+total+(pureWidth-stripWidth))
 }
 
 type placeHolderDecorator struct {
 	WC
 }
 
-func (d *placeHolderDecorator) Decor(*Statistics) string {
+func (d *placeHolderDecorator) Decor(Statistics) string {
 	return ""
 }

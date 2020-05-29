@@ -1,21 +1,21 @@
 package decor
 
 // Any decorator displays text, that can be changed during decorator's
-// lifetime via provided func call back.
+// lifetime via provided DecorFunc.
 //
-//	`f` call back which provides string to display
+//	`fn` DecorFunc callback
 //
 //	`wcc` optional WC config
 //
-func Any(f func(*Statistics) string, wcc ...WC) Decorator {
-	return &any{initWC(wcc...), f}
+func Any(fn DecorFunc, wcc ...WC) Decorator {
+	return &any{initWC(wcc...), fn}
 }
 
 type any struct {
 	WC
-	f func(*Statistics) string
+	fn DecorFunc
 }
 
-func (d *any) Decor(s *Statistics) string {
-	return d.FormatMsg(d.f(s))
+func (d *any) Decor(s Statistics) string {
+	return d.FormatMsg(d.fn(s))
 }

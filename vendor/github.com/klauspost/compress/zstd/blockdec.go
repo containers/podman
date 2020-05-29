@@ -156,8 +156,12 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 			}
 			return ErrCompressedSizeTooBig
 		}
-	default:
+	case blockTypeRaw:
 		b.RLESize = 0
+		// We do not need a destination for raw blocks.
+		maxSize = -1
+	default:
+		panic("Invalid block type")
 	}
 
 	// Read block data.

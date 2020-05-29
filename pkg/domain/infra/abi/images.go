@@ -121,12 +121,11 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	}
 
 	var registryCreds *types.DockerAuthConfig
-	if options.Credentials != "" {
-		creds, err := util.ParseRegistryCreds(options.Credentials)
-		if err != nil {
-			return nil, err
+	if len(options.Username) > 0 && len(options.Password) > 0 {
+		registryCreds = &types.DockerAuthConfig{
+			Username: options.Username,
+			Password: options.Password,
 		}
-		registryCreds = creds
 	}
 	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds:         registryCreds,
@@ -226,12 +225,11 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	}
 
 	var registryCreds *types.DockerAuthConfig
-	if options.Credentials != "" {
-		creds, err := util.ParseRegistryCreds(options.Credentials)
-		if err != nil {
-			return err
+	if len(options.Username) > 0 && len(options.Password) > 0 {
+		registryCreds = &types.DockerAuthConfig{
+			Username: options.Username,
+			Password: options.Password,
 		}
-		registryCreds = creds
 	}
 	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds:         registryCreds,

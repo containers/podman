@@ -78,7 +78,7 @@ type movingAverageSpeed struct {
 	msg      string
 }
 
-func (d *movingAverageSpeed) Decor(s *Statistics) string {
+func (d *movingAverageSpeed) Decor(s Statistics) string {
 	if !s.Completed {
 		var speed float64
 		if v := d.average.Value(); v > 0 {
@@ -140,7 +140,7 @@ type averageSpeed struct {
 	msg       string
 }
 
-func (d *averageSpeed) Decor(s *Statistics) string {
+func (d *averageSpeed) Decor(s Statistics) string {
 	if !s.Completed {
 		speed := float64(s.Current) / float64(time.Since(d.startTime))
 		d.msg = d.producer(speed * 1e9)

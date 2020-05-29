@@ -34,7 +34,7 @@ func ExecCreate(ctx context.Context, nameOrID string, config *handlers.ExecCreat
 	}
 	jsonReader := strings.NewReader(string(requestJSON))
 
-	resp, err := conn.DoRequest(jsonReader, http.MethodPost, "/containers/%s/exec", nil, nameOrID)
+	resp, err := conn.DoRequest(jsonReader, http.MethodPost, "/containers/%s/exec", nil, nil, nameOrID)
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +57,7 @@ func ExecInspect(ctx context.Context, sessionID string) (*define.InspectExecSess
 
 	logrus.Debugf("Inspecting session ID %q", sessionID)
 
-	resp, err := conn.DoRequest(nil, http.MethodGet, "/exec/%s/json", nil, sessionID)
+	resp, err := conn.DoRequest(nil, http.MethodGet, "/exec/%s/json", nil, nil, sessionID)
 	if err != nil {
 		return nil, err
 	}

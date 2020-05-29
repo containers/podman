@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"github.com/mattn/go-isatty"
 )
 
 // NotATTY not a TeleTYpewriter error.
@@ -30,13 +30,14 @@ func New(out io.Writer) *Writer {
 	w := &Writer{out: out}
 	if f, ok := out.(*os.File); ok {
 		w.fd = f.Fd()
-		w.isTerminal = terminal.IsTerminal(int(w.fd))
+		w.isTerminal = isatty.IsTerminal(w.fd)
 	}
 	return w
 }
 
 // Flush flushes the underlying buffer.
 func (w *Writer) Flush(lineCount int) (err error) {
+	// some terminals interpret clear 0 lines as clear 1
 	if w.lineCount > 0 {
 		w.clearLines()
 	}
@@ -63,9 +64,9 @@ func (w *Writer) ReadFrom(r io.Reader) (n int64, err error) {
 
 // GetWidth returns width of underlying terminal.
 func (w *Writer) GetWidth() (int, error) {
-	if w.isTerminal {
-		tw, _, err := terminal.GetSize(int(w.fd))
-		return tw, err
+	if !w.isTerminal {
+		return -1, NotATTY
 	}
-	return -1, NotATTY
+	tw, _, err := GetSize(w.fd)
+	return tw, err
 }

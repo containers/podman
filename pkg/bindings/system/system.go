@@ -42,7 +42,7 @@ func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan 
 		}
 		params.Set("filters", filterString)
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/events", params)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/events", params, nil)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func Prune(ctx context.Context, all, volumes *bool) (*entities.SystemPruneReport
 	if volumes != nil {
 		params.Set("Volumes", strconv.FormatBool(*volumes))
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/system/prune", params)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/system/prune", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func Version(ctx context.Context) (*entities.SystemVersionReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/version", nil)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/version", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func DiskUsage(ctx context.Context) (*entities.SystemDfReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/system/df", nil)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/system/df", nil, nil)
 	if err != nil {
 		return nil, err
 	}

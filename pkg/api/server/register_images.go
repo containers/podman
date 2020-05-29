@@ -8,6 +8,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// TODO
+//
+// * /images/create is missing the "message" and "platform" parameters
+
 func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// swagger:operation POST /images/create compat createImage
 	// ---
@@ -634,10 +638,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: destination
 	//    type: string
 	//    description: Allows for pushing the image to a different destintation than the image refers to.
-	//  - in: query
-	//    name: credentials
-	//    description: username:password for the registry.
-	//    type: string
 	//  - in: query
 	//    name: tlsVerify
 	//    description: Require TLS verification.

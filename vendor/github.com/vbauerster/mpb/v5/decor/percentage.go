@@ -50,7 +50,7 @@ func NewPercentage(format string, wcc ...WC) Decorator {
 	if format == "" {
 		format = "% d"
 	}
-	f := func(s *Statistics) string {
+	f := func(s Statistics) string {
 		p := internal.Percentage(s.Total, s.Current, 100)
 		return fmt.Sprintf(format, percentageType(p))
 	}

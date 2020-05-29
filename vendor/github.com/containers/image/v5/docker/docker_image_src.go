@@ -190,6 +190,7 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	if err != nil {
 		return nil, "", err
 	}
+	logrus.Debugf("Content-Type from manifest GET is %q", res.Header.Get("Content-Type"))
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return nil, "", errors.Wrapf(client.HandleErrorResponse(res), "Error reading manifest %s in %s", tagOrDigest, s.physicalRef.ref.Name())

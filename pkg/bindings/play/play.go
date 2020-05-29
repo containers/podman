@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/pkg/auth"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
 )
@@ -31,7 +32,13 @@ func PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions
 		params.Set("tlsVerify", strconv.FormatBool(options.SkipTLSVerify == types.OptionalBoolTrue))
 	}
 
-	response, err := conn.DoRequest(f, http.MethodPost, "/play/kube", params)
+	// TODO: have a global system context we can pass around (1st argument)
+	header, err := auth.Header(nil, options.Authfile, options.Username, options.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(f, http.MethodPost, "/play/kube", params, header)
 	if err != nil {
 		return nil, err
 	}

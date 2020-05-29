@@ -61,7 +61,7 @@ func List(ctx context.Context, filters map[string][]string, all *bool, last *int
 		}
 		params.Set("filters", filterString)
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/json", params)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/json", params, nil)
 	if err != nil {
 		return containers, err
 	}
@@ -86,7 +86,7 @@ func Prune(ctx context.Context, filters map[string][]string) (*entities.Containe
 		}
 		params.Set("filters", filterString)
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/prune", params)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/prune", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func Remove(ctx context.Context, nameOrID string, force, volumes *bool) error {
 	if volumes != nil {
 		params.Set("vols", strconv.FormatBool(*volumes))
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/containers/%s", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/containers/%s", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func Inspect(ctx context.Context, nameOrID string, size *bool) (*define.InspectC
 	if size != nil {
 		params.Set("size", strconv.FormatBool(*size))
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/json", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/json", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func Kill(ctx context.Context, nameOrID string, sig string) error {
 	}
 	params := url.Values{}
 	params.Set("signal", sig)
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/kill", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/kill", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func Pause(ctx context.Context, nameOrID string) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/pause", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/pause", nil, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func Restart(ctx context.Context, nameOrID string, timeout *int) error {
 	if timeout != nil {
 		params.Set("t", strconv.Itoa(*timeout))
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restart", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restart", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func Start(ctx context.Context, nameOrID string, detachKeys *string) error {
 	if detachKeys != nil {
 		params.Set("detachKeys", *detachKeys)
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/start", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/start", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func Top(ctx context.Context, nameOrID string, descriptors []string) ([]string, 
 		// flatten the slice into one string
 		params.Set("ps_args", strings.Join(descriptors, ","))
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/top", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/top", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +249,7 @@ func Unpause(ctx context.Context, nameOrID string) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/unpause", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/unpause", nil, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func Wait(ctx context.Context, nameOrID string, condition *define.ContainerStatu
 	if condition != nil {
 		params.Set("condition", condition.String())
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/wait", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/wait", params, nil, nameOrID)
 	if err != nil {
 		return exitCode, err
 	}
@@ -284,7 +284,7 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/exists", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/exists", nil, nil, nameOrID)
 	if err != nil {
 		return false, err
 	}
@@ -302,7 +302,7 @@ func Stop(ctx context.Context, nameOrID string, timeout *uint) error {
 	if timeout != nil {
 		params.Set("t", strconv.Itoa(int(*timeout)))
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/stop", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/stop", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -317,7 +317,7 @@ func Export(ctx context.Context, nameOrID string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/export", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/export", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -336,7 +336,7 @@ func ContainerInit(ctx context.Context, nameOrID string) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/init", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/init", nil, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -443,7 +443,7 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		}()
 	}
 
-	response, err := conn.DoRequest(stdin, http.MethodPost, "/containers/%s/attach", params, nameOrId)
+	response, err := conn.DoRequest(stdin, http.MethodPost, "/containers/%s/attach", params, nil, nameOrId)
 	if err != nil {
 		return err
 	}
@@ -572,7 +572,7 @@ func resizeTTY(ctx context.Context, endpoint string, height *int, width *int) er
 	if width != nil {
 		params.Set("w", strconv.Itoa(*width))
 	}
-	rsp, err := conn.DoRequest(nil, http.MethodPost, endpoint, params)
+	rsp, err := conn.DoRequest(nil, http.MethodPost, endpoint, params, nil)
 	if err != nil {
 		return err
 	}

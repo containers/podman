@@ -28,7 +28,7 @@ func CreatePodFromSpec(ctx context.Context, s *specgen.PodSpecGenerator) (*entit
 		return nil, err
 	}
 	stringReader := strings.NewReader(specgenString)
-	response, err := conn.DoRequest(stringReader, http.MethodPost, "/pods/create", nil)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/pods/create", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/%s/exists", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/%s/exists", nil, nil, nameOrID)
 	if err != nil {
 		return false, err
 	}
@@ -57,7 +57,7 @@ func Inspect(ctx context.Context, nameOrID string) (*entities.PodInspectReport, 
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/%s/json", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/%s/json", nil, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func Kill(ctx context.Context, nameOrID string, signal *string) (*entities.PodKi
 	if signal != nil {
 		params.Set("signal", *signal)
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/kill", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/kill", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func Pause(ctx context.Context, nameOrID string) (*entities.PodPauseReport, erro
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/pause", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/pause", nil, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func Prune(ctx context.Context) ([]*entities.PodPruneReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/prune", nil)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/prune", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func List(ctx context.Context, filters map[string][]string) ([]*entities.ListPod
 		}
 		params.Set("filters", stringFilter)
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/json", params)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/json", params, nil)
 	if err != nil {
 		return podsReports, err
 	}
@@ -146,7 +146,7 @@ func Restart(ctx context.Context, nameOrID string) (*entities.PodRestartReport, 
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/restart", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/restart", nil, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func Remove(ctx context.Context, nameOrID string, force *bool) (*entities.PodRmR
 	if force != nil {
 		params.Set("force", strconv.FormatBool(*force))
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/pods/%s", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/pods/%s", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func Start(ctx context.Context, nameOrID string) (*entities.PodStartReport, erro
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/start", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/start", nil, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func Stop(ctx context.Context, nameOrID string, timeout *int) (*entities.PodStop
 	if timeout != nil {
 		params.Set("t", strconv.Itoa(*timeout))
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/stop", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/stop", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func Top(ctx context.Context, nameOrID string, descriptors []string) ([]string, 
 		// flatten the slice into one string
 		params.Set("ps_args", strings.Join(descriptors, ","))
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/%s/top", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/%s/top", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func Unpause(ctx context.Context, nameOrID string) (*entities.PodUnpauseReport, 
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/unpause", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/unpause", nil, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func Stats(ctx context.Context, namesOrIDs []string, options entities.PodStatsOp
 	params.Set("all", strconv.FormatBool(options.All))
 
 	var reports []*entities.PodStatsReport
-	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/stats", params)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/stats", params, nil)
 	if err != nil {
 		return nil, err
 	}

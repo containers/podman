@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/auth"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -48,13 +49,17 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: the X-Registry-Auth header is not checked yet here nor in any other
-	// endpoint. Pushing does NOT work with authentication at the moment.
-	dockerRegistryOptions := &image.DockerRegistryOptions{}
-	authfile := ""
+	authConf, authfile, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", auth.XRegistryAuthHeader, r.URL.String()))
+		return
+	}
+	defer auth.RemoveAuthfile(authfile)
+
+	dockerRegistryOptions := &image.DockerRegistryOptions{DockerRegistryCreds: authConf}
 	if sys := runtime.SystemContext(); sys != nil {
 		dockerRegistryOptions.DockerCertPath = sys.DockerCertPath
-		authfile = sys.AuthFilePath
+		dockerRegistryOptions.RegistriesConfPath = sys.SystemRegistriesConfPath
 	}
 
 	err = newImage.PushImageToHeuristicDestination(

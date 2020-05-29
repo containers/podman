@@ -45,6 +45,7 @@ case "$SPECIALMODE" in
     bindings)
 	    make
         make install PREFIX=/usr ETCDIR=/etc
+	    export PATH=$PATH:`pwd`/hack
 	    cd pkg/bindings/test && ginkgo -trace -noColor -debug  -r
 	;;
     none)

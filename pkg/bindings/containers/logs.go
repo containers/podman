@@ -46,7 +46,7 @@ func Logs(ctx context.Context, nameOrID string, opts LogOptions, stdoutChan, std
 	if opts.Stdout == nil && opts.Stderr == nil {
 		params.Set("stdout", strconv.FormatBool(true))
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/logs", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/logs", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}

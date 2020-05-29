@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +19,8 @@ import (
 type playKubeOptionsWrapper struct {
 	entities.PlayKubeOptions
 
-	TLSVerifyCLI bool
+	TLSVerifyCLI   bool
+	CredentialsCLI string
 }
 
 var (
@@ -49,7 +51,7 @@ func init() {
 
 	flags := kubeCmd.Flags()
 	flags.SetNormalizeFunc(utils.AliasFlags)
-	flags.StringVar(&kubeOptions.Credentials, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	flags.StringVar(&kubeOptions.CredentialsCLI, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVar(&kubeOptions.Network, "network", "", "Connect pod to CNI network(s)")
 	flags.BoolVarP(&kubeOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	if !registry.IsRemote() {
@@ -75,6 +77,14 @@ func kube(cmd *cobra.Command, args []string) error {
 		if _, err := os.Stat(kubeOptions.Authfile); err != nil {
 			return errors.Wrapf(err, "error getting authfile %s", kubeOptions.Authfile)
 		}
+	}
+	if kubeOptions.CredentialsCLI != "" {
+		creds, err := util.ParseRegistryCreds(kubeOptions.CredentialsCLI)
+		if err != nil {
+			return err
+		}
+		kubeOptions.Username = creds.Username
+		kubeOptions.Password = creds.Password
 	}
 
 	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), args[0], kubeOptions.PlayKubeOptions)

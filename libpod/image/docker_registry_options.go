@@ -30,6 +30,8 @@ type DockerRegistryOptions struct {
 	OSChoice string
 	// If not "", overrides the use of platform.GOARCH when choosing an image or verifying architecture match.
 	ArchitectureChoice string
+	// RegistriesConfPath can be used to override the default path of registries.conf.
+	RegistriesConfPath string
 }
 
 // GetSystemContext constructs a new system context from a parent context. the values in the DockerRegistryOptions, and other parameters.

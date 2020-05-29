@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
@@ -179,12 +180,28 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts en
 		case "v2s2", "docker":
 			manifestType = manifest.DockerV2Schema2MediaType
 		default:
-			return errors.Errorf("unknown format %q. Choose on of the supported formats: 'oci' or 'v2s2'", opts.Format)
+			return errors.Errorf("unknown format %q. Choose one of the supported formats: 'oci' or 'v2s2'", opts.Format)
 		}
 	}
+
+	// Set the system context.
+	sys := ir.Libpod.SystemContext()
+	if sys != nil {
+		sys = &types.SystemContext{}
+	}
+	sys.AuthFilePath = opts.Authfile
+	sys.DockerInsecureSkipTLSVerify = opts.SkipTLSVerify
+
+	if opts.Username != "" && opts.Password != "" {
+		sys.DockerAuthConfig = &types.DockerAuthConfig{
+			Username: opts.Username,
+			Password: opts.Password,
+		}
+	}
+
 	options := manifests.PushOptions{
 		Store:              ir.Libpod.GetStore(),
-		SystemContext:      ir.Libpod.SystemContext(),
+		SystemContext:      sys,
 		ImageListSelection: cp.CopySpecificImages,
 		Instances:          nil,
 		RemoveSignatures:   opts.RemoveSignatures,

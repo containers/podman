@@ -18,7 +18,7 @@ func GenerateKube(ctx context.Context, nameOrID string, options entities.Generat
 	params := url.Values{}
 	params.Set("service", strconv.FormatBool(options.Service))
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/%s/kube", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/%s/kube", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}

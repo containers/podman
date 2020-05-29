@@ -128,9 +128,10 @@ type ImagePullOptions struct {
 	// CertDir is the path to certificate directories.  Ignored for remote
 	// calls.
 	CertDir string
-	// Credentials for authenticating against the registry in the format
-	// USERNAME:PASSWORD.
-	Credentials string
+	// Username for authenticating against the registry.
+	Username string
+	// Password for authenticating against the registry.
+	Password string
 	// OverrideArch will overwrite the local architecture for image pulls.
 	OverrideArch string
 	// OverrideOS will overwrite the local operating system (OS) for image
@@ -162,9 +163,10 @@ type ImagePushOptions struct {
 	// transport. Default is same compression type as source. Ignored for remote
 	// calls.
 	Compress bool
-	// Credentials for authenticating against the registry in the format
-	// USERNAME:PASSWORD.
-	Credentials string
+	// Username for authenticating against the registry.
+	Username string
+	// Password for authenticating against the registry.
+	Password string
 	// DigestFile, after copying the image, write the digest of the resulting
 	// image to the file.  Ignored for remote calls.
 	DigestFile string

@@ -39,7 +39,7 @@ func Create(ctx context.Context, names, images []string, all *bool) (string, err
 		params.Add("image", i)
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodPost, "/manifests/create", params)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/manifests/create", params, nil)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +53,7 @@ func Inspect(ctx context.Context, name string) (*manifest.Schema2List, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/manifests/%s/json", nil, name)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/manifests/%s/json", nil, nil, name)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func Add(ctx context.Context, name string, options image.ManifestAddOpts) (strin
 		return "", err
 	}
 	stringReader := strings.NewReader(optionsString)
-	response, err := conn.DoRequest(stringReader, http.MethodPost, "/manifests/%s/add", nil, name)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/manifests/%s/add", nil, nil, name)
 	if err != nil {
 		return "", err
 	}
@@ -90,7 +90,7 @@ func Remove(ctx context.Context, name, digest string) (string, error) {
 	}
 	params := url.Values{}
 	params.Set("digest", digest)
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/manifests/%s", params, name)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/manifests/%s", params, nil, name)
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +118,7 @@ func Push(ctx context.Context, name string, destination *string, all *bool) (str
 	if all != nil {
 		params.Set("all", strconv.FormatBool(*all))
 	}
-	_, err = conn.DoRequest(nil, http.MethodPost, "/manifests/%s/push", params, name)
+	_, err = conn.DoRequest(nil, http.MethodPost, "/manifests/%s/push", params, nil, name)
 	if err != nil {
 		return "", err
 	}

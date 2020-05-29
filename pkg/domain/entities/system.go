@@ -97,3 +97,9 @@ type SystemVersionReport struct {
 type ComponentVersion struct {
 	types.Version
 }
+
+// ListRegistriesReport is the report when querying for a sorted list of
+// registries which may be contacted during certain operations.
+type ListRegistriesReport struct {
+	Registries []string
+}

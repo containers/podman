@@ -24,7 +24,7 @@ type onCompleteWrapper struct {
 	msg string
 }
 
-func (d *onCompleteWrapper) Decor(s *Statistics) string {
+func (d *onCompleteWrapper) Decor(s Statistics) string {
 	if s.Completed {
 		wc := d.GetConf()
 		return wc.FormatMsg(d.msg)

@@ -12,7 +12,7 @@ func Spinner(frames []string, wcc ...WC) Decorator {
 		frames = defaultSpinnerStyle
 	}
 	var count uint
-	f := func(s *Statistics) string {
+	f := func(s Statistics) string {
 		frame := frames[count%uint(len(frames))]
 		count++
 		return frame

@@ -8,9 +8,10 @@ type PlayKubeOptions struct {
 	Authfile string
 	// CertDir - to a directory containing TLS certifications and keys.
 	CertDir string
-	// Credentials - `username:password` for authentication against a
-	// container registry.
-	Credentials string
+	// Username for authenticating against the registry.
+	Username string
+	// Password for authenticating against the registry.
+	Password string
 	// Network - name of the CNI network to connect to.
 	Network string
 	// Quiet - suppress output when pulling images.
