@@ -48,7 +48,7 @@ type StatsJSON struct {
 	Stats
 
 	Name string `json:"name,omitempty"`
-	ID   string `json:"id,omitempty"`
+	ID   string `json:"Id,omitempty"`
 
 	// Networks request version >=1.21
 	Networks map[string]docker.NetworkStats `json:"networks,omitempty"`

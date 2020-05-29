@@ -120,7 +120,7 @@ type CreateContainerConfig struct {
 // swagger:model IDResponse
 type IDResponse struct {
 	// ID
-	ID string `json:"id"`
+	ID string `json:"Id"`
 }
 
 type ContainerTopOKBody struct {
