@@ -101,10 +101,10 @@ Before={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ 
 Environment={{.EnvVariable}}=%n
 Restart={{.RestartPolicy}}
 {{- if .New}}
-ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
+ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-ctr-id
 ExecStart={{.RunCommand}}
-ExecStop={{.Executable}} stop --ignore --cidfile %t/%n-cid {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}
-ExecStopPost={{.Executable}} rm --ignore -f --cidfile %t/%n-cid
+ExecStop={{.Executable}} stop --ignore --cidfile %t/%n-ctr-id {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}
+ExecStopPost={{.Executable}} rm --ignore -f --cidfile %t/%n-ctr-id
 PIDFile=%t/%n-pid
 {{- else}}
 ExecStart={{.Executable}} start {{.ContainerName}}
@@ -168,7 +168,7 @@ func CreateContainerSystemdUnit(info *ContainerInfo, opts Options) (string, erro
 			info.Executable,
 			"run",
 			"--conmon-pidfile", "%t/%n-pid",
-			"--cidfile", "%t/%n-cid",
+			"--cidfile", "%t/%n-ctr-id",
 			"--cgroups=no-conmon",
 		}
 

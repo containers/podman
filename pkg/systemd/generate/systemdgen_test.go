@@ -136,10 +136,10 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-cid --cgroups=no-conmon -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/%n-cid -t 42
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/%n-cid
+ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-ctr-id
+ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-ctr-id --cgroups=no-conmon -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/%n-ctr-id -t 42
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/%n-ctr-id
 PIDFile=%t/%n-pid
 KillMode=none
 Type=forking
@@ -159,10 +159,10 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-cid --cgroups=no-conmon --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/%n-cid -t 42
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/%n-cid
+ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-ctr-id
+ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-ctr-id --cgroups=no-conmon --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/%n-ctr-id -t 42
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/%n-ctr-id
 PIDFile=%t/%n-pid
 KillMode=none
 Type=forking
@@ -182,10 +182,10 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-cid --cgroups=no-conmon -d awesome-image:latest
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/%n-cid -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/%n-cid
+ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-ctr-id
+ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-ctr-id --cgroups=no-conmon -d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/%n-ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/%n-ctr-id
 PIDFile=%t/%n-pid
 KillMode=none
 Type=forking
