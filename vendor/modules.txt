@@ -486,7 +486,7 @@ github.com/sirupsen/logrus/hooks/syslog
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/stretchr/testify v1.5.1
+# github.com/stretchr/testify v1.6.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
@@ -680,6 +680,8 @@ gopkg.in/square/go-jose.v2/json
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3
 # k8s.io/api v0.18.3
 k8s.io/api/core/v1
 # k8s.io/apimachinery v0.18.3

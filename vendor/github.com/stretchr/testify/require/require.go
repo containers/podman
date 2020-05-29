@@ -7,6 +7,7 @@ package require
 
 import (
 	assert "github.com/stretchr/testify/assert"
+	io "io"
 	http "net/http"
 	url "net/url"
 	time "time"
@@ -212,7 +213,7 @@ func EqualValues(t TestingT, expected interface{}, actual interface{}, msgAndArg
 // EqualValuesf asserts that two objects are equal or convertable to the same types
 // and equal.
 //
-//    assert.EqualValuesf(t, uint32(123, "error message %s", "formatted"), int32(123))
+//    assert.EqualValuesf(t, uint32(123), int32(123), "error message %s", "formatted")
 func EqualValuesf(t TestingT, expected interface{}, actual interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -315,7 +316,7 @@ func Exactly(t TestingT, expected interface{}, actual interface{}, msgAndArgs ..
 
 // Exactlyf asserts that two objects are equal in value and type.
 //
-//    assert.Exactlyf(t, int32(123, "error message %s", "formatted"), int64(123))
+//    assert.Exactlyf(t, int32(123), int64(123), "error message %s", "formatted")
 func Exactlyf(t TestingT, expected interface{}, actual interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -470,7 +471,7 @@ func GreaterOrEqualf(t TestingT, e1 interface{}, e2 interface{}, msg string, arg
 // Greaterf asserts that the first element is greater than the second
 //
 //    assert.Greaterf(t, 2, 1, "error message %s", "formatted")
-//    assert.Greaterf(t, float64(2, "error message %s", "formatted"), float64(1))
+//    assert.Greaterf(t, float64(2), float64(1), "error message %s", "formatted")
 //    assert.Greaterf(t, "b", "a", "error message %s", "formatted")
 func Greaterf(t TestingT, e1 interface{}, e2 interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
@@ -488,11 +489,11 @@ func Greaterf(t TestingT, e1 interface{}, e2 interface{}, msg string, args ...in
 //  assert.HTTPBodyContains(t, myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky")
 //
 // Returns whether the assertion was successful (true) or not (false).
-func HTTPBodyContains(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, str interface{}, msgAndArgs ...interface{}) {
+func HTTPBodyContains(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, body io.Reader, str interface{}, msgAndArgs ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
-	if assert.HTTPBodyContains(t, handler, method, url, values, str, msgAndArgs...) {
+	if assert.HTTPBodyContains(t, handler, method, url, values, body, str, msgAndArgs...) {
 		return
 	}
 	t.FailNow()
@@ -504,11 +505,11 @@ func HTTPBodyContains(t TestingT, handler http.HandlerFunc, method string, url s
 //  assert.HTTPBodyContainsf(t, myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky", "error message %s", "formatted")
 //
 // Returns whether the assertion was successful (true) or not (false).
-func HTTPBodyContainsf(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, str interface{}, msg string, args ...interface{}) {
+func HTTPBodyContainsf(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, body io.Reader, str interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
-	if assert.HTTPBodyContainsf(t, handler, method, url, values, str, msg, args...) {
+	if assert.HTTPBodyContainsf(t, handler, method, url, values, body, str, msg, args...) {
 		return
 	}
 	t.FailNow()
@@ -520,11 +521,11 @@ func HTTPBodyContainsf(t TestingT, handler http.HandlerFunc, method string, url 
 //  assert.HTTPBodyNotContains(t, myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky")
 //
 // Returns whether the assertion was successful (true) or not (false).
-func HTTPBodyNotContains(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, str interface{}, msgAndArgs ...interface{}) {
+func HTTPBodyNotContains(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, body io.Reader, str interface{}, msgAndArgs ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
-	if assert.HTTPBodyNotContains(t, handler, method, url, values, str, msgAndArgs...) {
+	if assert.HTTPBodyNotContains(t, handler, method, url, values, body, str, msgAndArgs...) {
 		return
 	}
 	t.FailNow()
@@ -536,11 +537,11 @@ func HTTPBodyNotContains(t TestingT, handler http.HandlerFunc, method string, ur
 //  assert.HTTPBodyNotContainsf(t, myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky", "error message %s", "formatted")
 //
 // Returns whether the assertion was successful (true) or not (false).
-func HTTPBodyNotContainsf(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, str interface{}, msg string, args ...interface{}) {
+func HTTPBodyNotContainsf(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, body io.Reader, str interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
-	if assert.HTTPBodyNotContainsf(t, handler, method, url, values, str, msg, args...) {
+	if assert.HTTPBodyNotContainsf(t, handler, method, url, values, body, str, msg, args...) {
 		return
 	}
 	t.FailNow()
@@ -565,7 +566,7 @@ func HTTPError(t TestingT, handler http.HandlerFunc, method string, url string, 
 //
 //  assert.HTTPErrorf(t, myHandler, "POST", "/a/b/c", url.Values{"a": []string{"b", "c"}}
 //
-// Returns whether the assertion was successful (true, "error message %s", "formatted") or not (false).
+// Returns whether the assertion was successful (true) or not (false).
 func HTTPErrorf(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -595,12 +596,42 @@ func HTTPRedirect(t TestingT, handler http.HandlerFunc, method string, url strin
 //
 //  assert.HTTPRedirectf(t, myHandler, "GET", "/a/b/c", url.Values{"a": []string{"b", "c"}}
 //
-// Returns whether the assertion was successful (true, "error message %s", "formatted") or not (false).
+// Returns whether the assertion was successful (true) or not (false).
 func HTTPRedirectf(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
 	if assert.HTTPRedirectf(t, handler, method, url, values, msg, args...) {
+		return
+	}
+	t.FailNow()
+}
+
+// HTTPStatusCode asserts that a specified handler returns a specified status code.
+//
+//  assert.HTTPStatusCode(t, myHandler, "GET", "/notImplemented", nil, 501)
+//
+// Returns whether the assertion was successful (true) or not (false).
+func HTTPStatusCode(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, statuscode int, msgAndArgs ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.HTTPStatusCode(t, handler, method, url, values, statuscode, msgAndArgs...) {
+		return
+	}
+	t.FailNow()
+}
+
+// HTTPStatusCodef asserts that a specified handler returns a specified status code.
+//
+//  assert.HTTPStatusCodef(t, myHandler, "GET", "/notImplemented", nil, 501, "error message %s", "formatted")
+//
+// Returns whether the assertion was successful (true) or not (false).
+func HTTPStatusCodef(t TestingT, handler http.HandlerFunc, method string, url string, values url.Values, statuscode int, msg string, args ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.HTTPStatusCodef(t, handler, method, url, values, statuscode, msg, args...) {
 		return
 	}
 	t.FailNow()
@@ -651,7 +682,7 @@ func Implements(t TestingT, interfaceObject interface{}, object interface{}, msg
 
 // Implementsf asserts that an object is implemented by the specified interface.
 //
-//    assert.Implementsf(t, (*MyInterface, "error message %s", "formatted")(nil), new(MyObject))
+//    assert.Implementsf(t, (*MyInterface)(nil), new(MyObject), "error message %s", "formatted")
 func Implementsf(t TestingT, interfaceObject interface{}, object interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -902,7 +933,7 @@ func LessOrEqualf(t TestingT, e1 interface{}, e2 interface{}, msg string, args .
 // Lessf asserts that the first element is less than the second
 //
 //    assert.Lessf(t, 1, 2, "error message %s", "formatted")
-//    assert.Lessf(t, float64(1, "error message %s", "formatted"), float64(2))
+//    assert.Lessf(t, float64(1), float64(2), "error message %s", "formatted")
 //    assert.Lessf(t, "a", "b", "error message %s", "formatted")
 func Lessf(t TestingT, e1 interface{}, e2 interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
@@ -1128,6 +1159,32 @@ func NotEqual(t TestingT, expected interface{}, actual interface{}, msgAndArgs .
 	t.FailNow()
 }
 
+// NotEqualValues asserts that two objects are not equal even when converted to the same type
+//
+//    assert.NotEqualValues(t, obj1, obj2)
+func NotEqualValues(t TestingT, expected interface{}, actual interface{}, msgAndArgs ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.NotEqualValues(t, expected, actual, msgAndArgs...) {
+		return
+	}
+	t.FailNow()
+}
+
+// NotEqualValuesf asserts that two objects are not equal even when converted to the same type
+//
+//    assert.NotEqualValuesf(t, obj1, obj2, "error message %s", "formatted")
+func NotEqualValuesf(t TestingT, expected interface{}, actual interface{}, msg string, args ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.NotEqualValuesf(t, expected, actual, msg, args...) {
+		return
+	}
+	t.FailNow()
+}
+
 // NotEqualf asserts that the specified values are NOT equal.
 //
 //    assert.NotEqualf(t, obj1, obj2, "error message %s", "formatted")
@@ -1212,7 +1269,7 @@ func NotRegexp(t TestingT, rx interface{}, str interface{}, msgAndArgs ...interf
 
 // NotRegexpf asserts that a specified regexp does not match a string.
 //
-//  assert.NotRegexpf(t, regexp.MustCompile("starts", "error message %s", "formatted"), "it's starting")
+//  assert.NotRegexpf(t, regexp.MustCompile("starts"), "it's starting", "error message %s", "formatted")
 //  assert.NotRegexpf(t, "^start", "it's not starting", "error message %s", "formatted")
 func NotRegexpf(t TestingT, rx interface{}, str interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
@@ -1406,7 +1463,7 @@ func Regexp(t TestingT, rx interface{}, str interface{}, msgAndArgs ...interface
 
 // Regexpf asserts that a specified regexp matches a string.
 //
-//  assert.Regexpf(t, regexp.MustCompile("start", "error message %s", "formatted"), "it's starting")
+//  assert.Regexpf(t, regexp.MustCompile("start"), "it's starting", "error message %s", "formatted")
 //  assert.Regexpf(t, "start...$", "it's not starting", "error message %s", "formatted")
 func Regexpf(t TestingT, rx interface{}, str interface{}, msg string, args ...interface{}) {
 	if h, ok := t.(tHelper); ok {
