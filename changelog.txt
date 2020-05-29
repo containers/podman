@@ -1,3 +1,42 @@
+- Changelog for v2.0.0-rc3 (2020-05-29)
+  * Bump github.com/stretchr/testify from 1.5.1 to 1.6.0
+  * V2 verify JSON output is consistent and doesn't drift
+  * Vendor in containers/common v0.12.0
+  * Ensure that signal names can be parsed on Windows
+  * fix `ps --last=N`
+  * test.apiv2: add testing for image and deal with API returning binary
+  * specgen: fix segfault
+  * Add streaming ability to endpoint
+  * Fix builds on 32 bit arches
+  * v2 libpod push: correct docs
+  * container stats: fix --no-stream race
+  * Add --format to pod inspect
+  * Add support for `readonly` option to --mount
+  * docs: fix typo
+  * V2 Fix interface nil checks
+  * [CI:DOCS] Tweak casing in rootless doc
+  * podman-registry: many unrelated fixes
+  * Fix Dockerfile
+  * Bump github.com/opencontainers/selinux from 1.5.1 to 1.5.2
+  * podman-registry helper script: handle errors
+  * Makefile: customizable $REMOTETAGS
+  * add section on rootless volumes
+  * [CI:DOCS] Prepare image to turn on podman-commands test
+  * Vendor in latest containers/buildah
+  * Turn on Fedora testing
+  * [CI:DOCS] Fix readthedocs link
+  * [CI:DOCS]add crun to gating image
+  * network compatibility endpoints for API
+  * Add MethodNotAllowedHandler() to add in debugging
+  * Follow up PR to fix issues found in #6341
+  * Bump to v2.0.0-dev
+  * [CI:DOCS]Add conmon to gating image
+  * Attempt to turn on build_without_cgo tests
+  * Attempt to turn on additional build tests
+  * Added new flags to 'podman generate systemd' to change the unit name prefix
+  * Enable rootless tests for podman remote
+  * V2 enable remote logs and testing
+
 - Changelog for v2.0.0-rc2 (2020-05-22)
   * Attempt to turn on integration tests
   * Removes remote system reset functionality. skip e2e test for remote.
