@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
@@ -61,7 +62,7 @@ func start(cmd *cobra.Command, args []string) error {
 		errs utils.OutputErrors
 	)
 
-	ids, err := readPodIDFiles(startOptions.PodIDFiles)
+	ids, err := common.ReadPodIDFiles(startOptions.PodIDFiles)
 	if err != nil {
 		return err
 	}

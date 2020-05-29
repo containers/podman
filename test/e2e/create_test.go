@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -219,6 +220,42 @@ var _ = Describe("Podman create", func() {
 		check.WaitWithDefaultTimeout()
 		match, _ := check.GrepString("foobar")
 		Expect(match).To(BeTrue())
+	})
+
+	It("podman create --pod-id-file", func() {
+		// First, make sure that --pod and --pod-id-file yield an error
+		// if used together.
+		session := podmanTest.Podman([]string{"create", "--pod", "foo", "--pod-id-file", "bar", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		defer os.RemoveAll(tmpDir)
+
+		podName := "rudoplh"
+		ctrName := "prancer"
+		podIDFile := tmpDir + "pod-id-file"
+
+		// Now, let's create a pod with --pod-id-file.
+		session = podmanTest.Podman([]string{"pod", "create", "--pod-id-file", podIDFile, "--name", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "inspect", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		podData := session.InspectPodToJSON()
+
+		// Finally we can create a container with --pod-id-file and do
+		// some checks to make sure it's working as expected.
+		session = podmanTest.Podman([]string{"create", "--pod-id-file", podIDFile, "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		ctrJSON := podmanTest.InspectContainer(ctrName)
+		Expect(podData.ID).To(Equal(ctrJSON[0].Pod)) // Make sure the container's pod matches the pod's ID
 	})
 
 	It("podman run entrypoint and cmd test", func() {

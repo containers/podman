@@ -2102,6 +2102,7 @@ _podman_container_run() {
 		--pid
 		--pids-limit
 		--pod
+		--pod-id-file
 		--publish -p
 		--pull
 		--runtime
@@ -2206,7 +2207,7 @@ _podman_container_run() {
 			__podman_complete_capabilities
 			return
 			;;
-		--cidfile|--env-file|--init-path|--label-file)
+		--cidfile|--env-file|--init-path|--label-file|--pod-id-file)
 			_filedir
 			return
 			;;

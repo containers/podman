@@ -593,6 +593,10 @@ Tune the container's pids limit. Set `0` to have unlimited pids for the containe
 Run container in an existing pod. If you want Podman to make the pod for you, preference the pod name with `new:`.
 To make a pod with more granular options, use the `podman pod create` command before creating a container.
 
+**--pod-id-file**=*path*
+
+Run container in an existing pod and read the pod's ID from the specified file.  If a container is run with a pod, and the pod has an infra-container, the infra-container will be started before the container is.
+
 **--privileged**=*true|false*
 
 Give extended privileges to this container. The default is *false*.

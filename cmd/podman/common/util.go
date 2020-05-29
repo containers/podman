@@ -1,6 +1,7 @@
 package common
 
 import (
+	"io/ioutil"
 	"net"
 	"strconv"
 	"strings"
@@ -9,6 +10,30 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// ReadPodIDFile reads the specified file and returns its content (i.e., first
+// line).
+func ReadPodIDFile(path string) (string, error) {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", errors.Wrap(err, "error reading pod ID file")
+	}
+	return strings.Split(string(content), "\n")[0], nil
+}
+
+// ReadPodIDFiles reads the specified files and returns their content (i.e.,
+// first line).
+func ReadPodIDFiles(files []string) ([]string, error) {
+	ids := []string{}
+	for _, file := range files {
+		id, err := ReadPodIDFile(file)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
 
 // createExpose parses user-provided exposed port definitions and converts them
 // into SpecGen format.
