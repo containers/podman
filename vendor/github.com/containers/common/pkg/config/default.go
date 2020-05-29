@@ -53,9 +53,6 @@ var (
 	// DefaultDetachKeys is the default keys sequence for detaching a
 	// container
 	DefaultDetachKeys = "ctrl-p,ctrl-q"
-)
-
-var (
 	// ErrConmonOutdated indicates the version of conmon found (whether via the configuration or $PATH)
 	// is out of date for the current podman version
 	ErrConmonOutdated = errors.New("outdated conmon version")
@@ -80,15 +77,24 @@ var (
 		"CAP_SETUID",
 		"CAP_SYS_CHROOT",
 	}
+
+	cniBinDir = []string{
+		"/usr/libexec/cni",
+		"/usr/lib/cni",
+		"/usr/local/lib/cni",
+		"/opt/cni/bin",
+	}
 )
 
 const (
-	// EtcDir is the sysconfdir where podman should look for system config files.
+	// _etcDir is the sysconfdir where podman should look for system config files.
 	// It can be overridden at build time.
 	_etcDir = "/etc"
 	// InstallPrefix is the prefix where podman will be installed.
 	// It can be overridden at build time.
 	_installPrefix = "/usr"
+	// _cniConfigDir is the directory where cni plugins are found
+	_cniConfigDir = "/etc/cni/net.d/"
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
@@ -191,7 +197,7 @@ func DefaultConfig() (*Config, error) {
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:   "podman",
-			NetworkConfigDir: cniConfigDir,
+			NetworkConfigDir: _cniConfigDir,
 			CNIPluginDirs:    cniBinDir,
 		},
 		Engine: *defaultEngineConfig,
@@ -233,6 +239,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.CgroupManager = defaultCgroupManager()
 	c.StopTimeout = uint(10)
 
+	c.Remote = isRemote()
 	c.OCIRuntimes = map[string][]string{
 		"runc": {
 			"/usr/bin/runc",
