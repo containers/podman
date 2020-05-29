@@ -106,6 +106,11 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(dest + " ro"))
 
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", mount + ",readonly", ALPINE, "grep", dest, "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(dest + " ro"))
+
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount", mount + ",shared", ALPINE, "grep", dest, "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
