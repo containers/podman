@@ -117,6 +117,7 @@ func annotateEPERM(origErr error, spec port.Spec) error {
 		// Podman launches the parent driver in the child user namespace (but in the parent network namespace), which disables the file capability.
 		text += ", or set CAP_NET_BIND_SERVICE on rootlesskit binary"
 	}
+	text += fmt.Sprintf(", or choose a larger port number (>= %d)", start)
 	return errors.Wrap(origErr, text)
 }
 
