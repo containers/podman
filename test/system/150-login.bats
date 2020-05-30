@@ -282,7 +282,6 @@ function _test_skopeo_credential_sharing() {
 }
 
 @test "podman login - shares credentials with skopeo - via envariable" {
-    skip "skopeo does not yet support REGISTRY_AUTH_FILE; #822"
     authfile=${PODMAN_LOGIN_WORKDIR}/auth-$(random_string 10).json
     rm -f $authfile
 
