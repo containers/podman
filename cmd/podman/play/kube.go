@@ -98,15 +98,8 @@ func kube(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	switch len(report.Pods) {
-	case 0:
-		return nil
-	case 1:
-		fmt.Printf("Pod:\n")
-	default:
-		fmt.Printf("Pods:\n")
-	}
 	for _, pod := range report.Pods {
+		fmt.Printf("Pod:\n")
 		fmt.Println(pod.ID)
 
 		switch len(pod.Containers) {
@@ -120,6 +113,8 @@ func kube(cmd *cobra.Command, args []string) error {
 		for _, ctr := range pod.Containers {
 			fmt.Println(ctr)
 		}
+		// Empty line for space for next block
+		fmt.Println()
 	}
 
 	return nil
