@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -23,6 +24,9 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		// TODO have a function which shows only pods which could be unpaused
+		// for now show all
+		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod unpause podID1 podID2
   podman pod unpause --all
   podman pod unpause --latest`,

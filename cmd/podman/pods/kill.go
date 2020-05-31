@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -23,6 +24,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod kill podID
   podman pod kill --signal TERM mywebserver
   podman pod kill --latest`,
@@ -41,7 +43,11 @@ func init() {
 	})
 	flags := killCommand.Flags()
 	flags.BoolVarP(&killOpts.All, "all", "a", false, "Kill all containers in all pods")
-	flags.StringVarP(&killOpts.Signal, "signal", "s", "KILL", "Signal to send to the containers in the pod")
+
+	signalFlagName := "signal"
+	flags.StringVarP(&killOpts.Signal, signalFlagName, "s", "KILL", "Signal to send to the containers in the pod")
+	_ = killCommand.RegisterFlagCompletionFunc(signalFlagName, common.AutocompleteStopSignal)
+
 	validate.AddLatestFlag(killCommand, &killOpts.Latest)
 }
 

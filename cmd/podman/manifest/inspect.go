@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -16,6 +17,7 @@ var (
 		Short:                 "Display the contents of a manifest list or image index",
 		Long:                  "Display the contents of a manifest list or image index.",
 		RunE:                  inspect,
+		ValidArgsFunction:     common.AutocompleteImages,
 		Example:               "podman manifest inspect localhost/list",
 		Args:                  cobra.ExactArgs(1),
 		DisableFlagsInUseLine: true,

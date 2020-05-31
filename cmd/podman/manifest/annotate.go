@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -13,12 +15,13 @@ import (
 var (
 	manifestAnnotateOpts = entities.ManifestAnnotateOptions{}
 	annotateCmd          = &cobra.Command{
-		Use:     "annotate [options] LIST IMAGE",
-		Short:   "Add or update information about an entry in a manifest list or image index",
-		Long:    "Adds or updates information about an entry in a manifest list or image index.",
-		RunE:    annotate,
-		Example: `podman manifest annotate --annotation left=right mylist:v1.11 image:v1.11-amd64`,
-		Args:    cobra.ExactArgs(2),
+		Use:               "annotate [options] LIST IMAGE",
+		Short:             "Add or update information about an entry in a manifest list or image index",
+		Long:              "Adds or updates information about an entry in a manifest list or image index.",
+		RunE:              annotate,
+		Example:           `podman manifest annotate --annotation left=right mylist:v1.11 image:v1.11-amd64`,
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: common.AutocompleteImages,
 	}
 )
 
@@ -29,13 +32,34 @@ func init() {
 		Parent:  manifestCmd,
 	})
 	flags := annotateCmd.Flags()
-	flags.StringSliceVar(&manifestAnnotateOpts.Annotation, "annotation", nil, "set an `annotation` for the specified image")
-	flags.StringVar(&manifestAnnotateOpts.Arch, "arch", "", "override the `architecture` of the specified image")
-	flags.StringSliceVar(&manifestAnnotateOpts.Features, "features", nil, "override the `features` of the specified image")
-	flags.StringVar(&manifestAnnotateOpts.OS, "os", "", "override the `OS` of the specified image")
-	flags.StringSliceVar(&manifestAnnotateOpts.OSFeatures, "os-features", nil, "override the OS `features` of the specified image")
-	flags.StringVar(&manifestAnnotateOpts.OSVersion, "os-version", "", "override the OS `version` of the specified image")
-	flags.StringVar(&manifestAnnotateOpts.Variant, "variant", "", "override the `variant` of the specified image")
+
+	annotationFlagName := "annotation"
+	flags.StringSliceVar(&manifestAnnotateOpts.Annotation, annotationFlagName, nil, "set an `annotation` for the specified image")
+	_ = annotateCmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
+
+	archFlagName := "arch"
+	flags.StringVar(&manifestAnnotateOpts.Arch, archFlagName, "", "override the `architecture` of the specified image")
+	_ = annotateCmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteNone)
+
+	featuresFlagName := "features"
+	flags.StringSliceVar(&manifestAnnotateOpts.Features, featuresFlagName, nil, "override the `features` of the specified image")
+	_ = annotateCmd.RegisterFlagCompletionFunc(featuresFlagName, completion.AutocompleteNone)
+
+	osFlagName := "os"
+	flags.StringVar(&manifestAnnotateOpts.OS, osFlagName, "", "override the `OS` of the specified image")
+	_ = annotateCmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteNone)
+
+	osFeaturesFlagName := "os-features"
+	flags.StringSliceVar(&manifestAnnotateOpts.OSFeatures, osFeaturesFlagName, nil, "override the OS `features` of the specified image")
+	_ = annotateCmd.RegisterFlagCompletionFunc(osFeaturesFlagName, completion.AutocompleteNone)
+
+	osVersionFlagName := "os-version"
+	flags.StringVar(&manifestAnnotateOpts.OSVersion, osVersionFlagName, "", "override the OS `version` of the specified image")
+	_ = annotateCmd.RegisterFlagCompletionFunc(osVersionFlagName, completion.AutocompleteNone)
+
+	variantFlagName := "variant"
+	flags.StringVar(&manifestAnnotateOpts.Variant, variantFlagName, "", "override the `Variant` of the specified image")
+	_ = annotateCmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
 }
 
 func annotate(cmd *cobra.Command, args []string) error {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -31,6 +32,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndPodIDFile(cmd, args, false, true)
 		},
+		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod start podID
   podman pod start --latest
   podman pod start --all`,
@@ -50,7 +52,11 @@ func init() {
 
 	flags := startCommand.Flags()
 	flags.BoolVarP(&startOptions.All, "all", "a", false, "Restart all running pods")
-	flags.StringArrayVarP(&startOptions.PodIDFiles, "pod-id-file", "", nil, "Read the pod ID from the file")
+
+	podIDFileFlagName := "pod-id-file"
+	flags.StringArrayVarP(&startOptions.PodIDFiles, podIDFileFlagName, "", nil, "Read the pod ID from the file")
+	_ = startCommand.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
+
 	validate.AddLatestFlag(startCommand, &startOptions.Latest)
 }
 

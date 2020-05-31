@@ -4,7 +4,9 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/registries"
@@ -14,11 +16,12 @@ import (
 var (
 	logoutOptions = auth.LogoutOptions{}
 	logoutCommand = &cobra.Command{
-		Use:   "logout [options] [REGISTRY]",
-		Short: "Logout of a container registry",
-		Long:  "Remove the cached username and password for the registry.",
-		RunE:  logout,
-		Args:  cobra.MaximumNArgs(1),
+		Use:               "logout [options] [REGISTRY]",
+		Short:             "Logout of a container registry",
+		Long:              "Remove the cached username and password for the registry.",
+		RunE:              logout,
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: common.AutocompleteRegistries,
 		Example: `podman logout quay.io
   podman logout --authfile dir/auth.json quay.io
   podman logout --all`,
@@ -37,6 +40,10 @@ func init() {
 
 	// Flags from the auth package.
 	flags.AddFlagSet(auth.GetLogoutFlags(&logoutOptions))
+
+	// Add flag completion
+	completion.CompleteCommandFlags(logoutCommand, auth.GetLogoutFlagsCompletions())
+
 	logoutOptions.Stdout = os.Stdout
 	logoutOptions.AcceptUnspecifiedRegistry = true
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -19,12 +20,13 @@ var (
 
   If an image is not being used by a container, it will be removed from the system.`
 	pruneCmd = &cobra.Command{
-		Use:     "prune [options]",
-		Args:    validate.NoArgs,
-		Short:   "Remove unused images",
-		Long:    pruneDescription,
-		RunE:    prune,
-		Example: `podman image prune`,
+		Use:               "prune [options]",
+		Args:              validate.NoArgs,
+		Short:             "Remove unused images",
+		Long:              pruneDescription,
+		RunE:              prune,
+		ValidArgsFunction: completion.AutocompleteNone,
+		Example:           `podman image prune`,
 	}
 
 	pruneOpts = entities.ImagePruneOptions{}
@@ -42,7 +44,11 @@ func init() {
 	flags := pruneCmd.Flags()
 	flags.BoolVarP(&pruneOpts.All, "all", "a", false, "Remove all unused images, not just dangling ones")
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation")
-	flags.StringArrayVar(&filter, "filter", []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
+
+	filterFlagName := "filter"
+	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
+	//TODO: add completion for filters
+	_ = pruneCmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
 
 }
 

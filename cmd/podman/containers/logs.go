@@ -3,13 +3,14 @@ package containers
 import (
 	"os"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // logsOptionsWrapper wraps entities.LogsOptions and prevents leaking
@@ -43,7 +44,8 @@ var (
 			}
 			return nil
 		},
-		RunE: logs,
+		RunE:              logs,
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman logs ctrID
   podman logs --names ctrID1 ctrID2
   podman logs --tail 2 mywebserver
@@ -52,11 +54,12 @@ var (
 	}
 
 	containerLogsCommand = &cobra.Command{
-		Use:   logsCommand.Use,
-		Short: logsCommand.Short,
-		Long:  logsCommand.Long,
-		Args:  logsCommand.Args,
-		RunE:  logsCommand.RunE,
+		Use:               logsCommand.Use,
+		Short:             logsCommand.Short,
+		Long:              logsCommand.Long,
+		Args:              logsCommand.Args,
+		RunE:              logsCommand.RunE,
+		ValidArgsFunction: logsCommand.ValidArgsFunction,
 		Example: `podman container logs ctrID
 		podman container logs --names ctrID1 ctrID2
 		podman container logs --tail 2 mywebserver
@@ -71,7 +74,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: logsCommand,
 	})
-	logsFlags(logsCommand.Flags())
+	logsFlags(logsCommand)
 	validate.AddLatestFlag(logsCommand, &logsOptions.Latest)
 
 	// container logs
@@ -80,15 +83,24 @@ func init() {
 		Command: containerLogsCommand,
 		Parent:  containerCmd,
 	})
-	logsFlags(containerLogsCommand.Flags())
+	logsFlags(containerLogsCommand)
 	validate.AddLatestFlag(containerLogsCommand, &logsOptions.Latest)
 }
 
-func logsFlags(flags *pflag.FlagSet) {
+func logsFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVar(&logsOptions.Details, "details", false, "Show extra details provided to the logs")
 	flags.BoolVarP(&logsOptions.Follow, "follow", "f", false, "Follow log output.  The default is false")
-	flags.StringVar(&logsOptions.SinceRaw, "since", "", "Show logs since TIMESTAMP")
-	flags.Int64Var(&logsOptions.Tail, "tail", -1, "Output the specified number of LINES at the end of the logs.  Defaults to -1, which prints all lines")
+
+	sinceFlagName := "since"
+	flags.StringVar(&logsOptions.SinceRaw, sinceFlagName, "", "Show logs since TIMESTAMP")
+	_ = cmd.RegisterFlagCompletionFunc(sinceFlagName, completion.AutocompleteNone)
+
+	tailFlagName := "tail"
+	flags.Int64Var(&logsOptions.Tail, tailFlagName, -1, "Output the specified number of LINES at the end of the logs.  Defaults to -1, which prints all lines")
+	_ = cmd.RegisterFlagCompletionFunc(tailFlagName, completion.AutocompleteNone)
+
 	flags.BoolVarP(&logsOptions.Timestamps, "timestamps", "t", false, "Output the timestamps in the log")
 	flags.BoolVarP(&logsOptions.Names, "names", "n", false, "Output the container name in the log")
 	flags.SetInterspersed(false)

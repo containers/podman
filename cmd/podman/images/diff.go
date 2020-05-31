@@ -13,11 +13,12 @@ import (
 var (
 	// podman container _inspect_
 	diffCmd = &cobra.Command{
-		Use:   "diff [options] IMAGE",
-		Args:  cobra.ExactArgs(1),
-		Short: "Inspect changes to the image's file systems",
-		Long:  `Displays changes to the image's filesystem.  The image will be compared to its parent layer.`,
-		RunE:  diff,
+		Use:               "diff [options] IMAGE",
+		Args:              cobra.ExactArgs(1),
+		Short:             "Inspect changes to the image's file systems",
+		Long:              `Displays changes to the image's filesystem.  The image will be compared to its parent layer.`,
+		RunE:              diff,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image diff myImage
   podman image diff --format json redis:alpine`,
 	}
@@ -37,7 +38,10 @@ func diffFlags(flags *pflag.FlagSet) {
 	diffOpts = &entities.DiffOptions{}
 	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
 	_ = flags.MarkDeprecated("archive", "Provided for backwards compatibility, has no impact on output.")
-	flags.StringVar(&diffOpts.Format, "format", "", "Change the output format")
+
+	formatFlagName := "format"
+	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format")
+	_ = diffCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 }
 
 func diff(cmd *cobra.Command, args []string) error {

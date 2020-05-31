@@ -19,7 +19,6 @@ import (
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -27,22 +26,24 @@ var (
 
   The container ID is then printed to stdout. You can then start it at any time with the podman start <container_id> command. The container will be created with the initial state 'created'.`
 	createCommand = &cobra.Command{
-		Use:   "create [options] IMAGE [COMMAND [ARG...]]",
-		Short: "Create but do not start a container",
-		Long:  createDescription,
-		RunE:  create,
-		Args:  cobra.MinimumNArgs(1),
+		Use:               "create [options] IMAGE [COMMAND [ARG...]]",
+		Short:             "Create but do not start a container",
+		Long:              createDescription,
+		RunE:              create,
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: common.AutocompleteCreateRun,
 		Example: `podman create alpine ls
   podman create --annotation HELLO=WORLD alpine ls
   podman create -t -i --name myctr alpine ls`,
 	}
 
 	containerCreateCommand = &cobra.Command{
-		Args:  cobra.MinimumNArgs(1),
-		Use:   createCommand.Use,
-		Short: createCommand.Short,
-		Long:  createCommand.Long,
-		RunE:  createCommand.RunE,
+		Args:              cobra.MinimumNArgs(1),
+		Use:               createCommand.Use,
+		Short:             createCommand.Short,
+		Long:              createCommand.Long,
+		RunE:              createCommand.RunE,
+		ValidArgsFunction: createCommand.ValidArgsFunction,
 		Example: `podman container create alpine ls
   podman container create --annotation HELLO=WORLD alpine ls
   podman container create -t -i --name myctr alpine ls`,
@@ -53,10 +54,13 @@ var (
 	cliVals common.ContainerCLIOpts
 )
 
-func createFlags(flags *pflag.FlagSet) {
+func createFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.SetInterspersed(false)
-	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
-	flags.AddFlagSet(common.GetNetFlags())
+	common.DefineCreateFlags(cmd, &cliVals)
+	common.DefineNetFlags(cmd)
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 
 	_ = flags.MarkHidden("signature-policy")
@@ -70,18 +74,14 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: createCommand,
 	})
-	// common.GetCreateFlags(createCommand)
-	flags := createCommand.Flags()
-	createFlags(flags)
+	createFlags(createCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerCreateCommand,
 		Parent:  containerCmd,
 	})
-
-	containerCreateFlags := containerCreateCommand.Flags()
-	createFlags(containerCreateFlags)
+	createFlags(containerCreateCommand)
 }
 
 func create(cmd *cobra.Command, args []string) error {

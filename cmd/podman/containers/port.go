@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -25,6 +26,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman port --all
   podman port ctrID 80/tcp
   podman port --latest 80`,
@@ -38,6 +40,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
+		ValidArgsFunction: portCommand.ValidArgsFunction,
 		Example: `podman container port --all
   podman container port --latest 80`,
 	}

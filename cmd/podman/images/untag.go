@@ -1,6 +1,7 @@
 package images
 
 import (
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -14,6 +15,7 @@ var (
 		RunE:                  untag,
 		Args:                  cobra.MinimumNArgs(1),
 		DisableFlagsInUseLine: true,
+		ValidArgsFunction:     common.AutocompleteImages,
 		Example: `podman untag 0e3bbc2
   podman untag imageID:latest otherImageName:latest
   podman untag httpd myregistryhost:5000/fedora/httpd:v2`,
@@ -26,6 +28,7 @@ var (
 		Short:                 untagCommand.Short,
 		Long:                  untagCommand.Long,
 		RunE:                  untagCommand.RunE,
+		ValidArgsFunction:     untagCommand.ValidArgsFunction,
 		Example: `podman image untag 0e3bbc2
   podman image untag imageID:latest otherImageName:latest
   podman image untag httpd myregistryhost:5000/fedora/httpd:v2`,

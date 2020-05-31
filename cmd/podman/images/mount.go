@@ -7,12 +7,12 @@ import (
 	"text/template"
 
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -24,10 +24,11 @@ var (
 `
 
 	mountCommand = &cobra.Command{
-		Use:   "mount [options] [IMAGE...]",
-		Short: "Mount an image's root filesystem",
-		Long:  mountDescription,
-		RunE:  mount,
+		Use:               "mount [options] [IMAGE...]",
+		Short:             "Mount an image's root filesystem",
+		Long:              mountDescription,
+		RunE:              mount,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image mount imgID
   podman image mount imgID1 imgID2 imgID3
   podman image mount
@@ -43,9 +44,14 @@ var (
 	mountOpts entities.ImageMountOptions
 )
 
-func mountFlags(flags *pflag.FlagSet) {
+func mountFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&mountOpts.All, "all", "a", false, "Mount all images")
-	flags.StringVar(&mountOpts.Format, "format", "", "Print the mounted images in specified format (json)")
+
+	formatFlagName := "format"
+	flags.StringVar(&mountOpts.Format, formatFlagName, "", "Print the mounted images in specified format (json)")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 }
 
 func init() {
@@ -54,7 +60,7 @@ func init() {
 		Command: mountCommand,
 		Parent:  imageCmd,
 	})
-	mountFlags(mountCommand.Flags())
+	mountFlags(mountCommand)
 }
 
 func mount(cmd *cobra.Command, args []string) error {

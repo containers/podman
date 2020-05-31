@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -16,6 +17,7 @@ var (
 		Short:                 "Remove an entry from a manifest list or image index",
 		Long:                  "Removes an image from a manifest list or image index.",
 		RunE:                  remove,
+		ValidArgsFunction:     common.AutocompleteImages,
 		Example:               `podman manifest remove mylist:v1.11 sha256:15352d97781ffdf357bf3459c037be3efac4133dc9070c2dce7eca7c05c3e736`,
 		Args:                  cobra.ExactArgs(2),
 		DisableFlagsInUseLine: true,

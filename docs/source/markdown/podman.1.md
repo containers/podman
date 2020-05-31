@@ -205,6 +205,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-auto-update(1)](podman-auto-update.1.md) | Auto update containers according to their auto-update policy                |
 | [podman-build(1)](podman-build.1.md)             | Build a container image using a Containerfile.                              |
 | [podman-commit(1)](podman-commit.1.md)           | Create new image based on the changed container.                            |
+| [podman-completion(1)](podman-completion.1.md)   | Generate shell completion scripts                                           |
 | [podman-container(1)](podman-container.1.md)     | Manage containers.                                                          |
 | [podman-cp(1)](podman-cp.1.md)                   | Copy files/folders between a container and the local filesystem.            |
 | [podman-create(1)](podman-create.1.md)           | Create a new container.                                                     |

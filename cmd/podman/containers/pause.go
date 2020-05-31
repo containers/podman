@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/cgroups"
@@ -17,20 +18,22 @@ import (
 var (
 	pauseDescription = `Pauses one or more running containers.  The container name or ID can be used.`
 	pauseCommand     = &cobra.Command{
-		Use:   "pause [options] CONTAINER [CONTAINER...]",
-		Short: "Pause all the processes in one or more containers",
-		Long:  pauseDescription,
-		RunE:  pause,
+		Use:               "pause [options] CONTAINER [CONTAINER...]",
+		Short:             "Pause all the processes in one or more containers",
+		Long:              pauseDescription,
+		RunE:              pause,
+		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman pause mywebserver
   podman pause 860a4b23
   podman pause -a`,
 	}
 
 	containerPauseCommand = &cobra.Command{
-		Use:   pauseCommand.Use,
-		Short: pauseCommand.Short,
-		Long:  pauseCommand.Long,
-		RunE:  pauseCommand.RunE,
+		Use:               pauseCommand.Use,
+		Short:             pauseCommand.Short,
+		Long:              pauseCommand.Long,
+		RunE:              pauseCommand.RunE,
+		ValidArgsFunction: pauseCommand.ValidArgsFunction,
 		Example: `podman container pause mywebserver
   podman container pause 860a4b23
   podman container pause -a`,

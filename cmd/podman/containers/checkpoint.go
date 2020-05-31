@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -27,6 +29,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman container checkpoint --keep ctrID
   podman container checkpoint --all
   podman container checkpoint --leave-running --latest`,
@@ -48,7 +51,11 @@ func init() {
 	flags.BoolVarP(&checkpointOptions.LeaveRunning, "leave-running", "R", false, "Leave the container running after writing checkpoint to disk")
 	flags.BoolVar(&checkpointOptions.TCPEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
 	flags.BoolVarP(&checkpointOptions.All, "all", "a", false, "Checkpoint all running containers")
-	flags.StringVarP(&checkpointOptions.Export, "export", "e", "", "Export the checkpoint image to a tar.gz")
+
+	exportFlagName := "export"
+	flags.StringVarP(&checkpointOptions.Export, exportFlagName, "e", "", "Export the checkpoint image to a tar.gz")
+	_ = checkpointCommand.RegisterFlagCompletionFunc(exportFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVar(&checkpointOptions.IgnoreRootFS, "ignore-rootfs", false, "Do not include root file-system changes when exporting")
 	validate.AddLatestFlag(checkpointCommand, &checkpointOptions.Latest)
 }

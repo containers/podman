@@ -8,7 +8,9 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -21,12 +23,13 @@ import (
 var (
 	networklistDescription = `List networks`
 	networklistCommand     = &cobra.Command{
-		Use:     "ls [options]",
-		Args:    validate.NoArgs,
-		Short:   "network list",
-		Long:    networklistDescription,
-		RunE:    networkList,
-		Example: `podman network list`,
+		Use:               "ls [options]",
+		Args:              validate.NoArgs,
+		Short:             "network list",
+		Long:              networklistDescription,
+		RunE:              networkList,
+		ValidArgsFunction: completion.AutocompleteNone,
+		Example:           `podman network list`,
 	}
 )
 
@@ -35,11 +38,16 @@ var (
 )
 
 func networkListFlags(flags *pflag.FlagSet) {
-	// TODO enable filters based on something
-	// flags.StringSliceVarP(&networklistCommand.Filter, "filter", "f",  []string{}, "Pause all running containers")
-	flags.StringVarP(&networkListOptions.Format, "format", "f", "", "Pretty-print networks to JSON or using a Go template")
+	formatFlagName := "format"
+	flags.StringVarP(&networkListOptions.Format, formatFlagName, "f", "", "Pretty-print networks to JSON or using a Go template")
+	_ = networklistCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVarP(&networkListOptions.Quiet, "quiet", "q", false, "display only names")
-	flags.StringVarP(&networkListOptions.Filter, "filter", "", "", "Provide filter values (e.g. 'name=podman')")
+
+	filterFlagName := "filter"
+	flags.StringVarP(&networkListOptions.Filter, filterFlagName, "", "", "Provide filter values (e.g. 'name=podman')")
+	_ = networklistCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+
 }
 
 func init() {

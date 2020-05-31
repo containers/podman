@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/inspect"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -10,12 +11,13 @@ import (
 var (
 	networkinspectDescription = `Inspect network`
 	networkinspectCommand     = &cobra.Command{
-		Use:     "inspect [options] NETWORK [NETWORK...]",
-		Short:   "network inspect",
-		Long:    networkinspectDescription,
-		RunE:    networkInspect,
-		Example: `podman network inspect podman`,
-		Args:    cobra.MinimumNArgs(1),
+		Use:               "inspect [options] NETWORK [NETWORK...]",
+		Short:             "network inspect",
+		Long:              networkinspectDescription,
+		RunE:              networkInspect,
+		Example:           `podman network inspect podman`,
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: common.AutocompleteNetworks,
 	}
 	inspectOpts *entities.InspectOptions
 )
@@ -28,7 +30,10 @@ func init() {
 	})
 	inspectOpts = new(entities.InspectOptions)
 	flags := networkinspectCommand.Flags()
-	flags.StringVarP(&inspectOpts.Format, "format", "f", "", "Pretty-print network to JSON or using a Go template")
+
+	formatFlagName := "format"
+	flags.StringVarP(&inspectOpts.Format, formatFlagName, "f", "", "Pretty-print network to JSON or using a Go template")
+	_ = networkinspectCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 }
 
 func networkInspect(_ *cobra.Command, args []string) error {

@@ -5,6 +5,7 @@ package system
 import (
 	"time"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -16,13 +17,14 @@ var (
   Tools speaking varlink protocol can remotely manage pods, containers and images.
 `
 	varlinkCmd = &cobra.Command{
-		Use:        "varlink [options] [URI]",
-		Args:       cobra.MinimumNArgs(1),
-		Short:      "Run varlink interface",
-		Long:       varlinkDescription,
-		RunE:       varlinkE,
-		Deprecated: "Please see 'podman system service' for RESTful APIs",
-		Hidden:     true,
+		Use:               "varlink [options] [URI]",
+		Args:              cobra.MinimumNArgs(1),
+		Short:             "Run varlink interface",
+		Long:              varlinkDescription,
+		RunE:              varlinkE,
+		ValidArgsFunction: completion.AutocompleteDefault,
+		Deprecated:        "Please see 'podman system service' for RESTful APIs",
+		Hidden:            true,
 		Example: `podman varlink unix:/run/podman/io.podman
   podman varlink --time 5000 unix:/run/podman/io.podman`,
 	}
@@ -37,7 +39,11 @@ func init() {
 		Command: varlinkCmd,
 	})
 	flags := varlinkCmd.Flags()
-	flags.Int64VarP(&varlinkArgs.Timeout, "time", "t", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")
+
+	timeFlagName := "time"
+	flags.Int64VarP(&varlinkArgs.Timeout, timeFlagName, "t", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")
+	_ = varlinkCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
+
 	flags.SetNormalizeFunc(aliasTimeoutFlag)
 }
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -23,12 +24,13 @@ var (
 	pruneDescription = fmt.Sprintf(`podman pod prune Removes all exited pods`)
 
 	pruneCommand = &cobra.Command{
-		Use:     "prune [options]",
-		Args:    validate.NoArgs,
-		Short:   "Remove all stopped pods and their containers",
-		Long:    pruneDescription,
-		RunE:    prune,
-		Example: `podman pod prune`,
+		Use:               "prune [options]",
+		Args:              validate.NoArgs,
+		Short:             "Remove all stopped pods and their containers",
+		Long:              pruneDescription,
+		RunE:              prune,
+		ValidArgsFunction: common.AutocompletePods,
+		Example:           `podman pod prune`,
 	}
 )
 

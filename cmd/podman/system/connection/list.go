@@ -5,6 +5,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/system"
@@ -23,8 +24,9 @@ var (
 		DisableFlagsInUseLine: true,
 		Example: `podman system connection list
   podman system connection ls`,
-		RunE:             list,
-		TraverseChildren: false,
+		ValidArgsFunction: completion.AutocompleteNone,
+		RunE:              list,
+		TraverseChildren:  false,
 	}
 )
 

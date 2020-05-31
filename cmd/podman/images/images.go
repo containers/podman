@@ -16,6 +16,7 @@ var (
 		Short:                 listCmd.Short,
 		Long:                  listCmd.Long,
 		RunE:                  listCmd.RunE,
+		ValidArgsFunction:     listCmd.ValidArgsFunction,
 		Example:               strings.Replace(listCmd.Example, "podman image list", "podman images", -1),
 		DisableFlagsInUseLine: true,
 	}
@@ -27,5 +28,5 @@ func init() {
 		Command: imagesCmd,
 	})
 
-	imageListFlagSet(imagesCmd.Flags())
+	imageListFlagSet(imagesCmd)
 }

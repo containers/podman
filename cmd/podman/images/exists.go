@@ -1,6 +1,7 @@
 package images
 
 import (
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -8,11 +9,12 @@ import (
 
 var (
 	existsCmd = &cobra.Command{
-		Use:   "exists IMAGE",
-		Short: "Check if an image exists in local storage",
-		Long:  `If the named image exists in local storage, podman image exists exits with 0, otherwise the exit code will be 1.`,
-		Args:  cobra.ExactArgs(1),
-		RunE:  exists,
+		Use:               "exists IMAGE",
+		Short:             "Check if an image exists in local storage",
+		Long:              `If the named image exists in local storage, podman image exists exits with 0, otherwise the exit code will be 1.`,
+		Args:              cobra.ExactArgs(1),
+		RunE:              exists,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image exists ID
   podman image exists IMAGE && podman pull IMAGE`,
 		DisableFlagsInUseLine: true,

@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -20,11 +22,12 @@ var (
 Whether the input is for a container or pod, Podman will always generate the specification as a pod.`
 
 	kubeCmd = &cobra.Command{
-		Use:   "kube [options] CONTAINER | POD",
-		Short: "Generate Kubernetes YAML from a container or pod.",
-		Long:  kubeDescription,
-		RunE:  kube,
-		Args:  cobra.ExactArgs(1),
+		Use:               "kube [options] CONTAINER | POD",
+		Short:             "Generate Kubernetes YAML from a container or pod.",
+		Long:              kubeDescription,
+		RunE:              kube,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: common.AutocompleteContainersAndPods,
 		Example: `podman generate kube ctrID
   podman generate kube podID
   podman generate kube --service podID`,
@@ -39,7 +42,11 @@ func init() {
 	})
 	flags := kubeCmd.Flags()
 	flags.BoolVarP(&kubeOptions.Service, "service", "s", false, "Generate YAML for a Kubernetes service object")
-	flags.StringVarP(&kubeFile, "filename", "f", "", "Write output to the specified path")
+
+	filenameFlagName := "filename"
+	flags.StringVarP(&kubeFile, filenameFlagName, "f", "", "Write output to the specified path")
+	_ = kubeCmd.RegisterFlagCompletionFunc(filenameFlagName, completion.AutocompleteDefault)
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 

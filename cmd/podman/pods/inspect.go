@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -25,11 +26,12 @@ var (
 	By default, this will render all results in a JSON array.`)
 
 	inspectCmd = &cobra.Command{
-		Use:     "inspect [options] POD [POD...]",
-		Short:   "Displays a pod configuration",
-		Long:    inspectDescription,
-		RunE:    inspect,
-		Example: `podman pod inspect podID`,
+		Use:               "inspect [options] POD [POD...]",
+		Short:             "Displays a pod configuration",
+		Long:              inspectDescription,
+		RunE:              inspect,
+		ValidArgsFunction: common.AutocompletePods,
+		Example:           `podman pod inspect podID`,
 	}
 )
 
@@ -40,7 +42,11 @@ func init() {
 		Parent:  podCmd,
 	})
 	flags := inspectCmd.Flags()
-	flags.StringVarP(&inspectOptions.Format, "format", "f", "json", "Format the output to a Go template or json")
+
+	formatFlagName := "format"
+	flags.StringVarP(&inspectOptions.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
+	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	validate.AddLatestFlag(inspectCmd, &inspectOptions.Latest)
 }
 
