@@ -22,7 +22,7 @@ ETCDIR ?= /etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
-REMOTETAGS ?= !ABISupport remote exclude_graphdriver_btrfs btrfs_noversion  exclude_graphdriver_devicemapper containers_image_openpgp
+REMOTETAGS ?= !ABISupport remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
@@ -30,8 +30,7 @@ BUILDTAGS ?= \
 	$(shell hack/selinux_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	exclude_graphdriver_devicemapper \
-	seccomp \
-	varlink
+	seccomp
 PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
@@ -145,6 +144,9 @@ help:
 ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
 	ln -sfn "$(CURDIR)" "$(GOPKGDIR)"
+endif
+
+ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	ln -sfn "$(CURDIR)/vendor/github.com/varlink" "$(FIRST_GOPATH)/src/github.com/varlink"
 endif
 	touch $@
@@ -333,8 +335,11 @@ ginkgo-remote:
 	ginkgo -v $(TESTFLAGS) -tags "$(REMOTETAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 .PHONY: endpoint
+ifneq (,$(findstring varlink,$(BUILDTAGS)))
 endpoint:
 	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -debug test/endpoint/.
+endpoint:
+endif
 
 .PHONY: localintegration
 localintegration: varlink_generate test-binaries ginkgo
@@ -554,17 +559,25 @@ install.docker: docker-docs
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${TMPFILESDIR}
 
-.PHONY: install.systemd
-install.systemd:
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
+.PHONY: install.varlink
+ifneq (,$(findstring varlink,$(BUILDTAGS)))
+install.varlink:
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${DESTDIR}${SYSTEMDDIR}/io.podman.service
-	install ${SELINUXOPT} -d ${DESTDIR}${USERSYSTEMDDIR}
 	# User units are ordered differently, we can't make the *system* multi-user.target depend on a user unit.
 	# For user units the default.target that's the default is fine.
 	sed -e 's,^WantedBy=.*,WantedBy=default.target,' < contrib/varlink/io.podman.service > ${DESTDIR}${USERSYSTEMDDIR}/io.podman.service
 	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
+else
+install.varlink:
+endif
+
+
+.PHONY: install.systemd
+install.systemd: install.varlink
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -d ${DESTDIR}${USERSYSTEMDDIR}
 	# Install APIV2 services
 	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman.socket ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
 	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman.service ${DESTDIR}${USERSYSTEMDDIR}/podman.service
@@ -634,11 +647,20 @@ endef
 		$(call go-get,github.com/cpuguy83/go-md2man); \
 	fi
 
+# $BUILD_TAGS variable is used in hack/golangci-lint.sh
 .PHONY: varlink_generate
+ifneq (or $(findstring varlink,$(BUILDTAGS)),$(findstring varlink,$(BUILD_TAGS)))
 varlink_generate: .gopathok pkg/varlink/iopodman.go ## Generate varlink
+else
+varlink_generate:
+endif
 
 .PHONY: varlink_api_generate
+ifneq (,$(findstring varlink,$(BUILDTAGS)))
 varlink_api_generate: .gopathok API.md
+else
+varlink_api_generate:
+endif
 
 .PHONY: install.libseccomp.sudo
 install.libseccomp.sudo:

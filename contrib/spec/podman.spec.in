@@ -5,12 +5,6 @@
 %bcond_without doc
 %bcond_without debug
 
-%if 0%{?fedora} >= 28
-%bcond_without varlink
-%else
-%bcond_with varlink
-%endif
-
 %if %{with debug}
 %global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0
@@ -387,9 +381,7 @@ popd
 ln -s vendor src
 export GO111MODULE=off
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
-export BUILDTAGS="varlink selinux seccomp systemd $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
-
-GOPATH=$GOPATH go generate ./pkg/varlink/...
+export BUILDTAGS="selinux seccomp systemd $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 
 %if %{with doc}
 BUILDTAGS=$BUILDTAGS make binaries docs
@@ -503,15 +495,10 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
-%{_unitdir}/io.podman.service
-%{_unitdir}/io.podman.socket
-%{_usr}/lib/systemd/user/io.podman.service
-%{_usr}/lib/systemd/user/io.podman.socket
 %{_unitdir}/podman.service
 %{_unitdir}/podman.socket
 %{_usr}/lib/systemd/user/podman.service
 %{_usr}/lib/systemd/user/podman.socket
-%{_usr}/lib/tmpfiles.d/%{name}.conf
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
