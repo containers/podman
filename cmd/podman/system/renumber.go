@@ -1,3 +1,5 @@
+// +build !remote
+
 package system
 
 import (
