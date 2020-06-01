@@ -209,36 +209,21 @@ func getBindMount(args []string) (spec.Mount, error) {
 		switch kv[0] {
 		case "bind-nonrecursive":
 			newMount.Options = append(newMount.Options, "bind")
-		case "readonly", "read-only":
-			if setRORW {
-				return newMount, errors.Wrapf(optionArgError, "cannot pass 'readonly', 'ro', or 'rw' options more than once")
-			}
-			setRORW = true
-			switch len(kv) {
-			case 1:
-				newMount.Options = append(newMount.Options, "ro")
-			case 2:
-				switch strings.ToLower(kv[1]) {
-				case "true":
-					newMount.Options = append(newMount.Options, "ro")
-				case "false":
-					// RW is default, so do nothing
-				default:
-					return newMount, errors.Wrapf(optionArgError, "readonly must be set to true or false, instead received %q", kv[1])
-				}
-			default:
-				return newMount, errors.Wrapf(optionArgError, "badly formatted option %q", val)
-			}
-		case "ro", "rw":
+		case "readonly", "ro", "rw":
 			if setRORW {
 				return newMount, errors.Wrapf(optionArgError, "cannot pass 'readonly', 'ro', or 'rw' options more than once")
 			}
 			setRORW = true
 			// Can be formatted as one of:
+			// readonly
+			// readonly=[true|false]
 			// ro
 			// ro=[true|false]
 			// rw
 			// rw=[true|false]
+			if kv[0] == "readonly" {
+				kv[0] = "ro"
+			}
 			switch len(kv) {
 			case 1:
 				newMount.Options = append(newMount.Options, kv[0])
@@ -253,7 +238,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 						newMount.Options = append(newMount.Options, "ro")
 					}
 				default:
-					return newMount, errors.Wrapf(optionArgError, "%s must be set to true or false, instead received %q", kv[0], kv[1])
+					return newMount, errors.Wrapf(optionArgError, "'readonly', 'ro', or 'rw' must be set to true or false, instead received %q", kv[1])
 				}
 			default:
 				return newMount, errors.Wrapf(optionArgError, "badly formatted option %q", val)
