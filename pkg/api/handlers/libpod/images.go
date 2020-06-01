@@ -180,6 +180,12 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+	name := utils.GetName(r)
+	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		utils.ImageNotFound(w, name, err)
+		return
+	}
 	switch query.Format {
 	case define.OCIArchive, define.V2s2Archive:
 		tmpfile, err := ioutil.TempFile("", "api.tar")
@@ -203,13 +209,6 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "unknown format", http.StatusInternalServerError, errors.Errorf("unknown format %q", query.Format))
 		return
 	}
-	name := utils.GetName(r)
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		utils.ImageNotFound(w, name, err)
-		return
-	}
-
 	if err := newImage.Save(r.Context(), name, query.Format, output, []string{}, false, query.Compress); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
