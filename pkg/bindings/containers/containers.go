@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -443,7 +444,20 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		}()
 	}
 
-	response, err := conn.DoRequest(stdin, http.MethodPost, "/containers/%s/attach", params, nil, nameOrId)
+	var socket net.Conn
+	dialContext := conn.Client.Transport.(*http.Transport).DialContext
+	t := &http.Transport{
+		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			c, err := dialContext(ctx, network, address)
+			if err != nil {
+				return nil, err
+			}
+			socket = c
+			return c, err
+		},
+	}
+	conn.Client.Transport = t
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/attach", params, nil, nameOrId)
 	if err != nil {
 		return err
 	}
@@ -458,27 +472,33 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		attachReady <- true
 	}
 
+	if isSet.stdin {
+		go func() {
+			_, _ = io.Copy(socket, stdin)
+		}()
+	}
+
 	buffer := make([]byte, 1024)
 	if ctnr.Config.Tty {
 		if !isSet.stdout {
 			return fmt.Errorf("container %q requires stdout to be set", ctnr.ID)
 		}
 		// If not multiplex'ed, read from server and write to stdout
-		_, err := io.Copy(stdout, response.Body)
+		_, err := io.Copy(stdout, socket)
 		if err != nil {
 			return err
 		}
 	} else {
 		for {
 			// Read multiplexed channels and write to appropriate stream
-			fd, l, err := DemuxHeader(response.Body, buffer)
+			fd, l, err := DemuxHeader(socket, buffer)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					return nil
 				}
 				return err
 			}
-			frame, err := DemuxFrame(response.Body, buffer, l)
+			frame, err := DemuxFrame(socket, buffer, l)
 			if err != nil {
 				return err
 			}
