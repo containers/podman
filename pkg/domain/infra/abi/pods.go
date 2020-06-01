@@ -360,6 +360,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 			Name:       p.Name(),
 			Namespace:  p.Namespace(),
 			Status:     status,
+			Labels:     p.Labels(),
 		})
 	}
 	return reports, nil

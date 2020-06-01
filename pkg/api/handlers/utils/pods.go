@@ -66,6 +66,7 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport
 			Namespace: pod.Namespace(),
 			Status:    status,
 			InfraId:   infraId,
+			Labels:    pod.Labels(),
 		}
 		for _, ctr := range ctrs {
 			state, err := ctr.State()
