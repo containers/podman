@@ -56,7 +56,11 @@ function teardown() {
     skip_if_remote "podman-pod does not work with podman-remote"
 
     podname=pod$(random_string)
+    run_podman 1 pod exists $podname
     run_podman pod create --infra=true --name=$podname
+    podid="$output"
+    run_podman pod exists $podname
+    run_podman pod exists $podid
 
     # Randomly-assigned port in the 5xxx range
     for port in $(shuf -i 5000-5999);do
@@ -91,6 +95,10 @@ function teardown() {
     # ...then rm the pod, then rmi the pause image so we don't leave strays.
     run_podman pod rm $podname
     run_podman rmi $pause_iid
+
+    # Pod no longer exists
+    run_podman 1 pod exists $podid
+    run_podman 1 pod exists $podname
 }
 
 # Random byte
@@ -131,6 +139,9 @@ function random_ip() {
 
     hostname=$(random_string | tr A-Z a-z).$(random_string | tr A-Z a-z).net
 
+    labelname=$(random_string 11)
+    labelvalue=$(random_string 22)
+
     pod_id_file=${PODMAN_TMPDIR}/pod-id-file
 
     # Create a pod with all the desired options
@@ -143,7 +154,8 @@ function random_ip() {
                --add-host   "$add_host_n:$add_host_ip"   \
                --dns        "$dns_server"                \
                --dns-search "$dns_search"                \
-               --dns-opt    "$dns_opt"
+               --dns-opt    "$dns_opt"                   \
+               --label      "${labelname}=${labelvalue}"
     pod_id="$output"
 
     # Check --pod-id-file
@@ -168,18 +180,20 @@ function random_ip() {
     is "$output" ".*nameserver $dns_server"  "--dns [server] was added"
     is "$output" ".*search $dns_search"      "--dns-search was added"
     is "$output" ".*options $dns_opt"        "--dns-opt was added"
-}
 
-@test "podman pod inspect - format" {
-    skip_if_remote "podman-pod does not work with podman-remote"
+    # pod inspect
+    run_podman pod inspect --format '{{.Name}}: {{.ID}} : {{.NumContainers}} : {{.Labels}}' mypod
+    is "$output" "mypod: $pod_id : 1 : map\[${labelname}:${labelvalue}]" \
+       "pod inspect --format ..."
 
-    run_podman pod create --name podtest
-    podid=$output
+    # pod ps
+    run_podman pod ps --format '{{.ID}} {{.Name}} {{.Status}} {{.Labels}}'
+    is "$output" "${pod_id:0:12} mypod Running map\[${labelname}:${labelvalue}]"  "pod ps"
 
-    run_podman pod inspect --format '-> {{.Name}}: {{.NumContainers}}' podtest
-    is "$output" "-> podtest: 1"
+    run_podman pod ps --no-trunc --filter "label=${labelname}=${labelvalue}" --format '{{.ID}}'
+    is "$output" "$pod_id" "pod ps --filter label=..."
 
-    run_podman pod rm -f podtest
+    run_podman pod rm -f mypod
 }
 
 # vim: filetype=sh

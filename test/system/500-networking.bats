@@ -60,4 +60,27 @@ load helpers
     run_podman rmi busybox
 }
 
+# Issue #5466 - port-forwarding doesn't work with this option and -d
+@test "podman networking: port with --userns=keep-id" {
+    skip_if_remote
+
+    # FIXME: randomize port, and create second random host port
+    myport=54321
+
+    # Container will exit as soon as 'nc' receives input
+    run_podman run -d --userns=keep-id -p 127.0.0.1:$myport:$myport \
+               $IMAGE nc -l -p $myport
+    cid="$output"
+
+    # emit random string, and check it
+    teststring=$(random_string 30)
+    echo "$teststring" | nc 127.0.0.1 $myport
+
+    run_podman logs $cid
+    is "$output" "$teststring" "test string received on container"
+
+    # Clean up
+    run_podman rm $cid
+}
+
 # vim: filetype=sh
