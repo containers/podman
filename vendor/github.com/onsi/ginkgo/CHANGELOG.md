@@ -1,3 +1,8 @@
+## 1.12.3
+
+### Fixes
+- Print correct code location of failing table test (#666) [c6d7afb]
+
 ## 1.12.2
 
 ### Fixes
