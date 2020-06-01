@@ -50,7 +50,8 @@ func (s *SpecGenerator) Validate() error {
 	}
 	// imagevolumemode must be one of ignore, tmpfs, or anonymous if given
 	if len(s.ContainerStorageConfig.ImageVolumeMode) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerStorageConfig.ImageVolumeMode), ImageVolumeModeValues) {
-		return errors.Errorf("ImageVolumeMode values must be one of %s", strings.Join(ImageVolumeModeValues, ","))
+		return errors.Errorf("invalid ImageVolumeMode %q, value must be one of %s",
+			s.ContainerStorageConfig.ImageVolumeMode, strings.Join(ImageVolumeModeValues, ","))
 	}
 	// shmsize conflicts with IPC namespace
 	if s.ContainerStorageConfig.ShmSize != nil && !s.ContainerStorageConfig.IpcNS.IsPrivate() {
