@@ -178,6 +178,11 @@ func (l ListPodReporter) Created() string {
 	return units.HumanDuration(time.Since(l.ListPodsReport.Created)) + " ago"
 }
 
+// Labels returns a map of the pod's labels
+func (l ListPodReporter) Labels() map[string]string {
+	return l.ListPodsReport.Labels
+}
+
 // NumberofContainers returns an int representation for
 // the number of containers belonging to the pod
 func (l ListPodReporter) NumberOfContainers() int {

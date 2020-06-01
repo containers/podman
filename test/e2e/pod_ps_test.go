@@ -243,4 +243,20 @@ var _ = Describe("Podman ps", func() {
 		infra.WaitWithDefaultTimeout()
 		Expect(len(infra.OutputToString())).To(BeZero())
 	})
+
+	It("podman pod ps format with labels", func() {
+		_, ec, _ := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		_, ec1, _ := podmanTest.CreatePodWithLabels("", map[string]string{
+			"io.podman.test.label": "value1",
+			"io.podman.test.key":   "irrelevant-value",
+		})
+		Expect(ec1).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"pod", "ps", "--format", "{{.Labels}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("value1"))
+	})
 })

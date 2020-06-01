@@ -29,6 +29,7 @@ type ListPodsReport struct {
 	Name       string
 	Namespace  string
 	Status     string
+	Labels     map[string]string
 }
 
 type ListPodContainer struct {
