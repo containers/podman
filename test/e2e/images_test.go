@@ -179,7 +179,7 @@ var _ = Describe("Podman images", func() {
 	It("podman images filter before image", func() {
 		SkipIfRemote()
 		dockerfile := `FROM docker.io/library/alpine:latest
-RUN apk update && apk add man
+RUN apk update && apk add strace
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "before=foobar.com/before:latest"})
