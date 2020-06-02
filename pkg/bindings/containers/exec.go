@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"strings"
@@ -68,4 +69,32 @@ func ExecInspect(ctx context.Context, sessionID string) (*define.InspectExecSess
 	}
 
 	return respStruct, nil
+}
+
+// ExecStart starts (but does not attach to) a given exec session.
+func ExecStart(ctx context.Context, sessionID string) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	logrus.Debugf("Starting exec session ID %q", sessionID)
+
+	// We force Detach to true
+	body := struct {
+		Detach bool `json:"Detach"`
+	}{
+		Detach: true,
+	}
+	bodyJSON, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	resp, err := conn.DoRequest(bytes.NewReader(bodyJSON), http.MethodPost, "/exec/%s/start", nil, nil, sessionID)
+	if err != nil {
+		return err
+	}
+
+	return resp.Process(nil)
 }

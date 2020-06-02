@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/specgen/generate"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -53,6 +54,24 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	libpodConfig.WorkDir = input.WorkingDir
 	libpodConfig.Privileged = input.Privileged
 	libpodConfig.User = input.User
+
+	// Make our exit command
+	storageConfig := runtime.StorageConfig()
+	runtimeConfig, err := runtime.GetConfig()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, false, true, true)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	libpodConfig.ExitCommand = exitCommandArgs
+
+	// Run the exit command after 5 minutes, to mimic Docker's exec cleanup
+	// behavior.
+	libpodConfig.ExitCommandDelay = 5 * 60
 
 	sessID, err := ctr.ExecCreate(libpodConfig)
 	if err != nil {
@@ -104,15 +123,6 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, inspectOut)
-
-	// Only for the Compat API: we want to remove sessions that were
-	// stopped. This is very hacky, but should suffice for now.
-	if !utils.IsLibpodRequest(r) && inspectOut.CanRemove {
-		logrus.Infof("Pruning stale exec session %s from container %s", sessionID, sessionCtr.ID())
-		if err := sessionCtr.ExecRemove(sessionID, false); err != nil && errors.Cause(err) != define.ErrNoSuchExecSession {
-			logrus.Errorf("Error removing stale exec session %s from container %s: %v", sessionID, sessionCtr.ID(), err)
-		}
-	}
 }
 
 // ExecStartHandler runs a given exec session.
@@ -121,17 +131,12 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionID := mux.Vars(r)["id"]
 
-	// TODO: We should read/support Tty and Detach from here.
+	// TODO: We should read/support Tty from here.
 	bodyParams := new(handlers.ExecStartConfig)
 
 	if err := json.NewDecoder(r.Body).Decode(&bodyParams); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "failed to decode parameters for %s", r.URL.String()))
-		return
-	}
-	if bodyParams.Detach {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Errorf("Detached exec is not yet supported"))
 		return
 	}
 	// TODO: Verify TTY setting against what inspect session was made with
@@ -151,6 +156,19 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if state != define.ContainerStateRunning {
 		utils.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict, errors.Errorf("cannot exec in a container that is not running; container %s is %s", sessionCtr.ID(), state.String()))
+		return
+	}
+
+	if bodyParams.Detach {
+		// If we are detaching, we do NOT want to hijack.
+		// Instead, we perform a detached start, and return 200 if
+		// successful.
+		if err := sessionCtr.ExecStart(sessionID); err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		// This is a 200 despite having no content
+		utils.WriteResponse(w, http.StatusOK, "")
 		return
 	}
 

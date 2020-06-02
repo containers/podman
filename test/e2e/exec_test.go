@@ -25,6 +25,10 @@ var _ = Describe("Podman exec", func() {
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
 		podmanTest.SeedImages()
+		// HACK: Remove this once we get Conmon 2.0.17 on Ubuntu
+		if podmanTest.Host.Distribution == "ubuntu" {
+			Skip("Unable to perform test on Ubuntu distributions due to too-old Conmon (need 2.0.17)")
+		}
 	})
 
 	AfterEach(func() {
@@ -284,7 +288,6 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec --detach", func() {
-		Skip(v2remotefail)
 		ctrName := "testctr"
 		ctr := podmanTest.Podman([]string{"run", "-t", "-i", "-d", "--name", ctrName, ALPINE, "top"})
 		ctr.WaitWithDefaultTimeout()
