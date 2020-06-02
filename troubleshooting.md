@@ -247,7 +247,7 @@ cannot find newuidmap: exec: "newuidmap": executable file not found in $PATH
 
 #### Solution
 
-Install a version of shadow-utils that includes these executables.  Note RHEL 7 and CentOS 7 will not have support for this until RHEL7.7 is released.
+Install a version of shadow-utils that includes these executables.  Note that for RHEL and CentOS 7, at least the 7.7 release must be installed for support to be available.
 
 ### 11) rootless setup user: invalid argument
 
