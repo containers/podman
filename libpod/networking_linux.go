@@ -550,7 +550,7 @@ func getContainerNetNS(ctr *Container) (string, error) {
 		if err = c.syncContainer(); err != nil {
 			return "", err
 		}
-		return c.state.NetNS.Path(), nil
+		return getContainerNetNS(c)
 	}
 	return "", nil
 }

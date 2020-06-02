@@ -178,4 +178,21 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).To(ExitWithError())
 	})
 
+	It("podman stats on net=host post", func() {
+		// --net=host not supported for rootless pods at present
+		SkipIfRootless()
+		podName := "testPod"
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--net=host", "--name", podName})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(0))
+
+		ctrRun := podmanTest.Podman([]string{"run", "-d", "--pod", podName, ALPINE, "top"})
+		ctrRun.WaitWithDefaultTimeout()
+		Expect(ctrRun.ExitCode()).To(Equal(0))
+
+		stats := podmanTest.Podman([]string{"pod", "stats", "--format", "json", "--no-stream", podName})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats.IsJSONOutputValid()).To(BeTrue())
+	})
 })
