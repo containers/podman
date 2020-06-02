@@ -234,11 +234,7 @@ func imageListFormat(flags listFlagType) (string, string) {
 	}
 
 	hdr += "\tIMAGE ID"
-	if flags.noTrunc {
-		row += "\tsha256:{{.ID}}"
-	} else {
-		row += "\t{{.ID}}"
-	}
+	row += "\t{{.ID}}"
 
 	hdr += "\tCREATED\tSIZE"
 	row += "\t{{.Created}}\t{{.Size}}"
