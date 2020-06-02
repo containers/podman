@@ -141,7 +141,6 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm --cidfile", func() {
-		SkipIfRemote()
 
 		tmpDir, err := ioutil.TempDir("", "")
 		Expect(err).To(BeNil())
@@ -164,7 +163,6 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm multiple --cidfile", func() {
-		SkipIfRemote()
 
 		tmpDir, err := ioutil.TempDir("", "")
 		Expect(err).To(BeNil())
