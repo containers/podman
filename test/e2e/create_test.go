@@ -301,7 +301,6 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --authfile with nonexist authfile", func() {
-		SkipIfRemote()
 		session := podmanTest.PodmanNoCache([]string{"create", "--authfile", "/tmp/nonexist", "--name=foo", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(Not(Equal(0)))

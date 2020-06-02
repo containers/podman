@@ -48,7 +48,6 @@ var _ = Describe("Podman volume rm", func() {
 	})
 
 	It("podman volume rm with --force flag", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"create", "-v", "myvol:/myvol", ALPINE, "ls"})
 		cid := session.OutputToString()
 		session.WaitWithDefaultTimeout()

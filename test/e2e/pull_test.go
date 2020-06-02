@@ -351,7 +351,6 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from docker with nonexist --authfile", func() {
-		SkipIfRemote()
 		session := podmanTest.PodmanNoCache([]string{"pull", "--authfile", "/tmp/nonexist", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))

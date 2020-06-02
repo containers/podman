@@ -24,8 +24,7 @@ var (
 		Long:  waitDescription,
 		RunE:  wait,
 		Args:  validate.IdOrLatestArgs,
-		Example: `podman wait --latest
-  podman wait --interval 5000 ctrID
+		Example: `podman wait --interval 5000 ctrID
   podman wait ctrID1 ctrID2`,
 	}
 
@@ -35,8 +34,7 @@ var (
 		Long:  waitCommand.Long,
 		RunE:  waitCommand.RunE,
 		Args:  validate.IdOrLatestArgs,
-		Example: `podman container wait --latest
-  podman container wait --interval 5000 ctrID
+		Example: `podman container wait --interval 5000 ctrID
   podman container wait ctrID1 ctrID2`,
 	}
 )
@@ -48,11 +46,9 @@ var (
 
 func waitFlags(flags *pflag.FlagSet) {
 	flags.DurationVarP(&waitOptions.Interval, "interval", "i", time.Duration(250), "Milliseconds to wait before polling for completion")
-	flags.BoolVarP(&waitOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.StringVar(&waitCondition, "condition", "stopped", "Condition to wait on")
-	if registry.IsRemote() {
-		// TODO: This is the same as V1.  We could skip creating the flag altogether in V2...
-		_ = flags.MarkHidden("latest")
+	if !registry.IsRemote() {
+		flags.BoolVarP(&waitOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	}
 }
 

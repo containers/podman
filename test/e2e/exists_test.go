@@ -112,7 +112,6 @@ var _ = Describe("Podman image|container exists", func() {
 	})
 	It("podman pod does not exist in local storage", func() {
 		// The exit code for non-existing pod is incorrect (125 vs 1)
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"pod", "exists", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
