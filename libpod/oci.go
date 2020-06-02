@@ -172,6 +172,9 @@ type ExecOptions struct {
 	// ExitCommand is a command that will be run after the exec session
 	// exits.
 	ExitCommand []string
+	// ExitCommandDelay is a delay (in seconds) between the exec session
+	// exiting, and the exit command being invoked.
+	ExitCommandDelay uint
 }
 
 // HTTPAttachStreams informs the HTTPAttach endpoint which of the container's

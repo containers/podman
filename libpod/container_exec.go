@@ -69,6 +69,10 @@ type ExecConfig struct {
 	// The ID of the exec session, and the ID of the container the exec
 	// session is a part of (in that order).
 	ExitCommand []string `json:"exitCommand,omitempty"`
+	// ExitCommandDelay is a delay (in seconds) between the container
+	// exiting, and the exit command being executed. If set to 0, there is
+	// no delay. If set, ExitCommand must also be set.
+	ExitCommandDelay uint `json:"exitCommandDelay,omitempty"`
 }
 
 // ExecSession contains information on a single exec session attached to a given
@@ -164,6 +168,9 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 	}
 	if len(config.Command) == 0 {
 		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty command to start an exec session")
+	}
+	if config.ExitCommandDelay > 0 && len(config.ExitCommand) == 0 {
+		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty exit command if giving an exit command delay")
 	}
 
 	// Verify that we are in a good state to continue
@@ -984,6 +991,7 @@ func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
 	opts.PreserveFDs = session.Config.PreserveFDs
 	opts.DetachKeys = session.Config.DetachKeys
 	opts.ExitCommand = session.Config.ExitCommand
+	opts.ExitCommandDelay = session.Config.ExitCommandDelay
 
 	return opts, nil
 }

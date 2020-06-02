@@ -107,12 +107,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, opts...)
 
-	podmanPath, err := os.Executable()
+	// TODO: Enable syslog support - we'll need to put this in SpecGen.
+	exitCommandArgs, err := CreateExitCommandArgs(rt.StorageConfig(), rtc, false, s.Remove, false)
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Enable syslog support - we'll need to put this in SpecGen.
-	options = append(options, libpod.WithExitCommand(CreateExitCommandArgs(rt.StorageConfig(), rtc, podmanPath, false, s.Remove, false)))
+	options = append(options, libpod.WithExitCommand(exitCommandArgs))
 
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts)
 	if err != nil {
@@ -229,12 +229,17 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	return options, nil
 }
 
-func CreateExitCommandArgs(storageConfig storage.StoreOptions, config *config.Config, podmanPath string, syslog, rm bool, exec bool) []string {
+func CreateExitCommandArgs(storageConfig storage.StoreOptions, config *config.Config, syslog, rm, exec bool) ([]string, error) {
 	// We need a cleanup process for containers in the current model.
 	// But we can't assume that the caller is Podman - it could be another
 	// user of the API.
 	// As such, provide a way to specify a path to Podman, so we can
 	// still invoke a cleanup process.
+
+	podmanPath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
 
 	command := []string{podmanPath,
 		"--root", storageConfig.GraphRoot,
@@ -265,9 +270,11 @@ func CreateExitCommandArgs(storageConfig storage.StoreOptions, config *config.Co
 		command = append(command, "--rm")
 	}
 
+	// This has to be absolutely last, to ensure that the exec session ID
+	// will be added after it by Libpod.
 	if exec {
 		command = append(command, "--exec")
 	}
 
-	return command
+	return command, nil
 }

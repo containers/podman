@@ -46,6 +46,9 @@ case "${OS_RELEASE_ID}" in
 
         workaround_bfq_bug
 
+	# HACK: Need Conmon 2.0.17, currently in updates-testing on F31.
+	dnf update -y --enablerepo=updates-testing conmon
+
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
             bash "$SCRIPT_BASE/add_second_partition.sh"
         fi

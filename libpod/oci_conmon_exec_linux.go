@@ -421,12 +421,14 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		for _, arg := range options.ExitCommand[1:] {
 			args = append(args, []string{"--exit-command-arg", arg}...)
 		}
+		if options.ExitCommandDelay > 0 {
+			args = append(args, []string{"--exit-delay", fmt.Sprintf("%d", options.ExitCommandDelay)}...)
+		}
 	}
 
 	logrus.WithFields(logrus.Fields{
 		"args": args,
 	}).Debugf("running conmon: %s", r.conmonPath)
-	// TODO: Need to pass this back so we can wait on it.
 	execCmd := exec.Command(r.conmonPath, args...)
 
 	// TODO: This is commented because it doesn't make much sense in HTTP

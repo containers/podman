@@ -13,7 +13,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec (compat)
 	// summary: Create an exec instance
-	// description: Run a command inside a running container.
+	// description: Create an exec session to run a command inside a running container. Exec sessions will be automatically removed 5 minutes after they exit.
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -153,7 +153,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec (compat)
 	// summary: Inspect an exec instance
-	// description: Return low-level information about an exec instance. Stale (stopped) exec sessions will be auto-removed after inspect runs.
+	// description: Return low-level information about an exec instance.
 	// parameters:
 	//  - in: path
 	//    name: id
@@ -182,7 +182,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec
 	// summary: Create an exec instance
-	// description: Run a command inside a running container.
+	// description: Create an exec session to run a command inside a running container. Exec sessions will be automatically removed 5 minutes after they exit.
 	// parameters:
 	//  - in: path
 	//    name: name
