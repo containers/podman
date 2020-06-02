@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	basePath = &url.URL{
+	BasePath = &url.URL{
 		Scheme: "http",
 		Host:   "d",
 		Path:   "/v" + APIVersion.String() + "/libpod",
@@ -37,15 +37,14 @@ type APIResponse struct {
 }
 
 type Connection struct {
-	_url   *url.URL
-	client *http.Client
-	conn   *net.Conn
+	Uri    *url.URL
+	Client *http.Client
 }
 
 type valueKey string
 
 const (
-	clientKey = valueKey("client")
+	clientKey = valueKey("Client")
 )
 
 // GetClient from context build by NewConnection()
@@ -59,7 +58,7 @@ func GetClient(ctx context.Context) (*Connection, error) {
 
 // JoinURL elements with '/'
 func JoinURL(elements ...string) string {
-	return strings.Join(elements, "/")
+	return "/" + strings.Join(elements, "/")
 }
 
 // NewConnection takes a URI as a string and returns a context with the
@@ -88,7 +87,7 @@ func NewConnection(ctx context.Context, uri string, identity ...string) (context
 		return nil, errors.Wrapf(err, "Value of PODMAN_HOST is not a valid url: %s", uri)
 	}
 
-	// Now we setup the http client to use the connection above
+	// Now we setup the http Client to use the connection above
 	var connection Connection
 	switch _url.Scheme {
 	case "ssh":
@@ -125,16 +124,12 @@ func NewConnection(ctx context.Context, uri string, identity ...string) (context
 
 func tcpClient(_url *url.URL) (Connection, error) {
 	connection := Connection{
-		_url: _url,
+		Uri: _url,
 	}
-	connection.client = &http.Client{
+	connection.Client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				conn, err := net.Dial("tcp", _url.Host)
-				if c, ok := ctx.Value(clientKey).(*Connection); ok {
-					c.conn = &conn
-				}
-				return conn, err
+				return net.Dial("tcp", _url.Host)
 			},
 			DisableCompression: true,
 		},
@@ -167,11 +162,11 @@ func pingNewConnection(ctx context.Context) error {
 		}
 
 		switch APIVersion.Compare(versionSrv) {
-		case 1, 0:
-			// Server's job when client version is equal or older
+		case -1, 0:
+			// Server's job when Client version is equal or older
 			return nil
-		case -1:
-			return errors.Errorf("server API version is too old. client %q server %q", APIVersion.String(), versionSrv.String())
+		case 1:
+			return errors.Errorf("server API version is too old. Client %q server %q", APIVersion.String(), versionSrv.String())
 		}
 	}
 	return errors.Errorf("ping response was %q", response.StatusCode)
@@ -217,31 +212,22 @@ func sshClient(_url *url.URL, identity string, secure bool) (Connection, error) 
 		return Connection{}, errors.Wrapf(err, "Connection to bastion host (%s) failed.", _url.String())
 	}
 
-	connection := Connection{_url: _url}
-	connection.client = &http.Client{
+	connection := Connection{Uri: _url}
+	connection.Client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				conn, err := bastion.Dial("unix", _url.Path)
-				if c, ok := ctx.Value(clientKey).(*Connection); ok {
-					c.conn = &conn
-				}
-				return conn, err
+				return bastion.Dial("unix", _url.Path)
 			},
 		}}
 	return connection, nil
 }
 
 func unixClient(_url *url.URL) (Connection, error) {
-	connection := Connection{_url: _url}
-	connection.client = &http.Client{
+	connection := Connection{Uri: _url}
+	connection.Client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				d := net.Dialer{}
-				conn, err := d.DialContext(ctx, "unix", _url.Path)
-				if c, ok := ctx.Value(clientKey).(*Connection); ok {
-					c.conn = &conn
-				}
-				return conn, err
+				return (&net.Dialer{}).DialContext(ctx, "unix", _url.Path)
 			},
 			DisableCompression: true,
 		},
@@ -263,7 +249,7 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	// Lets eventually use URL for this which might lead to safer
 	// usage
 	safeEndpoint := fmt.Sprintf(endpoint, safePathValues...)
-	e := basePath.String() + safeEndpoint
+	e := BasePath.String() + safeEndpoint
 	req, err := http.NewRequest(httpMethod, e, httpBody)
 	if err != nil {
 		return nil, err
@@ -277,17 +263,13 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	req = req.WithContext(context.WithValue(context.Background(), clientKey, c))
 	// Give the Do three chances in the case of a comm/service hiccup
 	for i := 0; i < 3; i++ {
-		response, err = c.client.Do(req) // nolint
+		response, err = c.Client.Do(req) // nolint
 		if err == nil {
 			break
 		}
 		time.Sleep(time.Duration(i*100) * time.Millisecond)
 	}
 	return &APIResponse{response, req}, err
-}
-
-func (c *Connection) Write(b []byte) (int, error) {
-	return (*c.conn).Write(b)
 }
 
 // FiltersToString converts our typical filter format of a

@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/remotecommand"
@@ -37,9 +38,9 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var status int
-	name := utils.GetName(r)
 	switch {
 	case strings.Contains(r.URL.Path, "/containers/"):
+		name := utils.GetName(r)
 		ctnr, err := runtime.LookupContainer(name)
 		if err != nil {
 			utils.ContainerNotFound(w, name, err)
@@ -61,6 +62,7 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 		// reasons.
 		status = http.StatusOK
 	case strings.Contains(r.URL.Path, "/exec/"):
+		name := mux.Vars(r)["id"]
 		ctnr, err := runtime.GetExecSessionContainer(name)
 		if err != nil {
 			utils.SessionNotFound(w, name, err)
