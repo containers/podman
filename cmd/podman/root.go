@@ -103,6 +103,11 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	cfg := registry.PodmanConfig()
 
+	// Help is a special case, no need for more setup
+	if cmd.Name() == "help" {
+		return nil
+	}
+
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
 		return err
@@ -150,6 +155,11 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPostRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
+	// Help is a special case, no need for more cleanup
+	if cmd.Name() == "help" {
+		return nil
+	}
+
 	cfg := registry.PodmanConfig()
 	if cmd.Flag("cpu-profile").Changed {
 		pprof.StopCPUProfile()
@@ -191,8 +201,11 @@ func loggingHook() {
 
 func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	// V2 flags
-	flags.StringVarP(&opts.Uri, "remote", "r", registry.DefaultAPIAddress(), "URL to access Podman service")
-	flags.StringSliceVar(&opts.Identities, "identity", []string{}, "path to SSH identity file")
+	flags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
+	// TODO Read uri from containers.config when available
+	flags.StringVar(&opts.Uri, "url", registry.DefaultAPIAddress(), "URL to access Podman service (CONTAINER_HOST)")
+	flags.StringSliceVar(&opts.Identities, "identity", []string{}, "path to SSH identity file, (CONTAINER_SSHKEY)")
+	flags.StringVar(&opts.PassPhrase, "passphrase", "", "passphrase for identity file (not secure, CONTAINER_PASSPHRASE), ssh-agent always supported")
 
 	cfg := opts.Config
 	flags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")

@@ -43,14 +43,16 @@ type PodmanConfig struct {
 	EngineMode     EngineMode       // ABI or Tunneling mode
 	Identities     []string         // ssh identities for connecting to server
 	MaxWorks       int              // maximum number of parallel threads
+	PassPhrase     string           // ssh passphrase for identity for connecting to server
 	RegistriesConf string           // allows for specifying a custom registries.conf
+	Remote         bool             // Connection to Podman API Service will use RESTful API
 	RuntimePath    string           // --runtime flag will set Engine.RuntimePath
+	Span           opentracing.Span // tracing object
 	SpanCloser     io.Closer        // Close() for tracing object
 	SpanCtx        context.Context  // context to use when tracing
-	Span           opentracing.Span // tracing object
 	Syslog         bool             // write to StdOut and Syslog, not supported when tunneling
 	Trace          bool             // Hidden: Trace execution
-	Uri            string           // URI to API Service
+	Uri            string           // URI to RESTful API Service
 
 	Runroot       string
 	StorageDriver string

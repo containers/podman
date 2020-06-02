@@ -36,7 +36,7 @@ func SkipIfRootlessV2() {
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
-	var remoteArgs = []string{"--remote", p.RemoteSocket}
+	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
 	remoteArgs = append(remoteArgs, args...)
 	podmanSession := p.PodmanBase(remoteArgs, false, false)
 	return &PodmanSessionIntegration{podmanSession}
@@ -44,7 +44,7 @@ func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration 
 
 // PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
 func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
-	var remoteArgs = []string{"--remote", p.RemoteSocket}
+	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
 	remoteArgs = append(remoteArgs, args...)
 	podmanSession := p.PodmanAsUserBase(remoteArgs, 0, 0, "", nil, false, false, extraFiles)
 	return &PodmanSessionIntegration{podmanSession}
@@ -52,7 +52,7 @@ func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os
 
 // PodmanNoCache calls podman with out adding the imagecache
 func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
-	var remoteArgs = []string{"--remote", p.RemoteSocket}
+	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
 	remoteArgs = append(remoteArgs, args...)
 	podmanSession := p.PodmanBase(remoteArgs, false, true)
 	return &PodmanSessionIntegration{podmanSession}

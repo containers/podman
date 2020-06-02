@@ -61,6 +61,9 @@ Podman and libpod currently support an additional `precreate` state which is cal
 **--identity**=*path*
 Path to SSH identity file
 
+**--passphrase**=*secret*
+pass phrase for SSH identity file
+
 **--log-level**=*level*
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic (default: "error")
@@ -73,18 +76,21 @@ When namespace is set, created containers and pods will join the given namespace
 **--network-cmd-path**=*path*
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
-**--remote**, **-r**=*url*
-URL to access Podman service (default "unix:/run/user/3267/podman/podman.sock")
+**--remote**, **-r**
+Access Podman service will be remote
+
+**--url**=*value*
+URL to access Podman service (default from `containers.conf`, rootless "unix://run/user/$UID/podman/podman.sock" or as root "unix://run/podman/podman.sock).
 
 **--root**=*value*
 
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
-Default root dir is configured in `/etc/containers/storage.conf`.
+Default root dir configured in `/etc/containers/storage.conf`.
 
 **--runroot**=*value*
 
 Storage state directory where all state information is stored (default: "/var/run/containers/storage" for UID 0, "/var/run/user/$UID/run" for other users).
-Default state dir is configured in `/etc/containers/storage.conf`.
+Default state dir configured in `/etc/containers/storage.conf`.
 
 **--runtime**=*value*
 
