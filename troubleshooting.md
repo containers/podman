@@ -553,3 +553,42 @@ this, use the following command before logging out: `loginctl enable-linger`.
 To later revert the linger functionality, use `loginctl disable-linger`.
 
 LOGINCTL(1), SYSTEMD(1)
+
+### 23) Containers default detach keys conflict with shell history navigation
+
+Podman defaults to `ctrl-p,ctrl-q` to detach from a running containers. The
+bash and zsh shells default to ctrl-p for the displaying of the previous
+command.  This causes issues when running a shell inside of a container.
+
+#### Symptom
+
+With the default detach key combo ctrl-p,ctrl-q, shell history navigation
+(tested in bash and zsh) using ctrl-p to access the previous command will not
+display this previous command. Or anything else.  Conmon is waiting for an
+additional character to see if the user wants to detach from the container.
+Adding additional characters to the command will cause it to be displayed along
+with the additonal character. If the user types ctrl-p a second time the shell
+display the 2nd to last command.
+
+#### Solution
+
+The solution to this is to change the default detach_keys. For example in order
+to change the defaults to `ctrl-q,ctrl-q` use the `--detach-keys` option.
+
+```
+podman run -ti --detach-keys ctrl-q,ctrl-q fedora sh
+```
+
+To make this change the default for all containers, users can modify the
+containers.conf file. This can be done simply in your homedir, but adding the
+following lines to users containers.conf
+
+```
+$ cat >> ~/.config/containers/containers.conf < _eof
+[engine]
+detach_keys="ctrl-q,ctrl-q"
+_eof
+```
+
+In order to effect root running containers and all users, modify the system
+wide defaults in /etc/containers/containers.conf
