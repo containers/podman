@@ -20,18 +20,6 @@ var DefaultEnvVariables = map[string]string{
 
 const whiteSpaces = " \t"
 
-// ParseSlice parses the specified slice and transforms it into an environment
-// map.
-func ParseSlice(s []string) (map[string]string, error) {
-	env := make(map[string]string, len(s))
-	for _, e := range s {
-		if err := parseEnv(env, e); err != nil {
-			return nil, err
-		}
-	}
-	return env, nil
-}
-
 // Slice transforms the specified map of environment variables into a
 // slice. If a value is non-empty, the key and value are joined with '='.
 func Slice(m map[string]string) []string {
@@ -96,7 +84,6 @@ func parseEnv(env map[string]string, line string) error {
 	if data[0] == "" {
 		return errors.Errorf("invalid environment variable: %q", line)
 	}
-
 	// trim the front of a variable, but nothing else
 	name := strings.TrimLeft(data[0], whiteSpaces)
 	if strings.ContainsAny(name, whiteSpaces) {
