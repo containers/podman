@@ -25,7 +25,38 @@ import (
 )
 
 func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
-	return ic.Libpod.Info()
+	info, err := ic.Libpod.Info()
+	if err != nil {
+		return nil, err
+	}
+	xdg, err := util.GetRuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+	if len(xdg) == 0 {
+		// If no xdg is returned, assume root socket
+		xdg = "/run"
+	}
+
+	// Glue the socket path together
+	socketPath := filepath.Join(xdg, "podman", "podman.sock")
+	rs := define.RemoteSocket{
+		Path:   socketPath,
+		Exists: false,
+	}
+
+	// Check if the socket exists
+	if fi, err := os.Stat(socketPath); err == nil {
+		if fi.Mode()&os.ModeSocket != 0 {
+			rs.Exists = true
+		}
+	}
+	// TODO
+	// it was suggested future versions of this could perform
+	// a ping on the socket for greater confidence the socket is
+	// actually active.
+	info.Host.RemoteSocket = &rs
+	return info, err
 }
 
 func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {

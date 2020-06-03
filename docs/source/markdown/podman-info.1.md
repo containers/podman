@@ -71,6 +71,9 @@ host:
       commit: 3e425f80a8c931f88e6d94a8c831b9d5aa481657
       spec: 1.0.1-dev
   os: linux
+  remoteSocket:
+    exists: false
+    path: /run/user/1000/podman/podman.sock
   rootless: true
   slirp4netns:
     executable: /bin/slirp4netns
@@ -179,6 +182,10 @@ Run podman info with JSON formatted response:
       "version": "runc version 1.0.0-rc8+dev\ncommit: 3e425f80a8c931f88e6d94a8c831b9d5aa481657\nspec: 1.0.1-dev"
     },
     "os": "linux",
+    "remoteSocket": {
+      "path": "/run/user/1000/podman/podman.sock",
+      "exists": false
+    },
     "rootless": true,
     "slirp4netns": {
       "executable": "/bin/slirp4netns",
