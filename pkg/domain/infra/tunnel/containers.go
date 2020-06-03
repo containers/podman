@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -162,6 +163,14 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	var (
 		reports []*entities.RmReport
 	)
+	for _, cidFile := range options.CIDFiles {
+		content, err := ioutil.ReadFile(cidFile)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading CIDFile %s", cidFile)
+		}
+		id := strings.Split(string(content), "\n")[0]
+		namesOrIds = append(namesOrIds, id)
+	}
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
