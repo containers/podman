@@ -80,8 +80,12 @@ Requires: iptables
 %if 0%{?rhel} <= 7
 Requires: container-selinux
 %else
+%if 0%{?rhel} || 0%{?centos}
+Requires: runc
+%else
 Requires: oci-runtime
 Recommends: crun
+%endif
 Recommends: container-selinux
 Recommends: slirp4netns
 Recommends: fuse-overlayfs
