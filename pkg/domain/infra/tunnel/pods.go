@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/bindings/pods"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
@@ -89,7 +90,7 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 		timeout int = -1
 	)
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
-	if err != nil {
+	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		return nil, err
 	}
 	if options.Timeout != -1 {
@@ -155,7 +156,7 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, options entities.PodRmOptions) ([]*entities.PodRmReport, error) {
 	var reports []*entities.PodRmReport
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
-	if err != nil {
+	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		return nil, err
 	}
 	for _, p := range foundPods {

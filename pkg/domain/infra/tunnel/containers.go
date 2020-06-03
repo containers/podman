@@ -87,7 +87,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		reports []*entities.StopReport
 	)
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
-	if err != nil {
+	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
 	}
 	for _, c := range ctrs {
@@ -172,7 +172,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		namesOrIds = append(namesOrIds, id)
 	}
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
-	if err != nil {
+	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
 	}
 	// TODO there is no endpoint for container eviction.  Need to discuss

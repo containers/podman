@@ -39,7 +39,6 @@ var _ = Describe("Podman pod stop", func() {
 	})
 
 	It("podman pod stop --ignore bogus pod", func() {
-		SkipIfRemote()
 
 		session := podmanTest.Podman([]string{"pod", "stop", "--ignore", "123"})
 		session.WaitWithDefaultTimeout()
@@ -60,7 +59,6 @@ var _ = Describe("Podman pod stop", func() {
 	})
 
 	It("podman stop --ignore bogus pod and a running pod", func() {
-		SkipIfRemote()
 
 		_, ec, podid1 := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
