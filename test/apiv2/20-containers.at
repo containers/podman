@@ -30,4 +30,56 @@ cid=$(jq -r '.[0].Id' <<<"$output")
 
 t DELETE libpod/containers/$cid 204
 
+CNAME=myfoo
+podman run --name $CNAME $IMAGE -td top
+t GET libpod/containers/json?all=true 200 \
+  .[0].Id~[0-9a-f]\\{12\\}
+cid=$(jq -r '.[0].Id' <<<"$output")
+
+# No such container
+t POST "libpod/commit?container=nonesuch" '' 404
+
+# Comment can only be used with docker format, not OCI
+cparam="repo=newrepo&comment=foo&author=bob"
+t POST "libpod/commit?container=$CNAME&$cparam"  '' 500
+
+# Commit a new image from the container
+t POST "libpod/commit?container=$CNAME" '' 200 \
+  .Id~[0-9a-f]\\{12\\}
+iid=$(jq -r '.Id' <<<"$output")
+t GET libpod/images/$iid/json 200 \
+  .RepoTags[0]=null \
+  .Author="" \
+  .Comment=""
+
+# Commit a new image w/o tag
+cparam="repo=newrepo&comment=foo&author=bob&format=docker"
+t POST "libpod/commit?container=$CNAME&$cparam" '' 200
+t GET libpod/images/newrepo:latest/json 200 \
+  .RepoTags[0]=localhost/newrepo:latest	\
+  .Author=bob \
+  .Comment=foo
+
+# Commit a new image w/ specified tag and author
+cparam="repo=newrepo&tag=v1&author=alice"
+t POST "libpod/commit?container=$cid&$cparam&pause=false" '' 200
+t GET libpod/images/newrepo:v1/json 200 \
+  .RepoTags[0]=localhost/newrepo:v1     \
+  .Author=alice
+
+# Commit a new image w/ full parameters
+cparam="repo=newrepo&tag=v2&comment=bar&author=eric"
+cparam="$cparam&format=docker&changes=CMD=/bin/foo"
+t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" '' 200
+t GET libpod/images/newrepo:v2/json 200 \
+  .RepoTags[0]=localhost/newrepo:v2	\
+  .Author=eric \
+  .Comment=bar \
+  .Config.Cmd[-1]="/bin/foo"
+
+t DELETE images/localhost/newrepo:latest?force=true 200
+t DELETE images/localhost/newrepo:v1?force=true 200
+t DELETE images/localhost/newrepo:v2?force=true 200
+t DELETE libpod/containers/$cid 204
+
 # vim: filetype=sh
