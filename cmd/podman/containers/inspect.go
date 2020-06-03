@@ -26,9 +26,15 @@ func init() {
 		Command: inspectCmd,
 		Parent:  containerCmd,
 	})
-	inspectOpts = inspect.AddInspectFlagSet(inspectCmd)
+	inspectOpts = new(entities.InspectOptions)
+	flags := inspectCmd.Flags()
+	flags.BoolVarP(&inspectOpts.Size, "size", "s", false, "Display total file size")
+	flags.StringVarP(&inspectOpts.Format, "format", "f", "json", "Format the output to a Go template or json")
+	flags.BoolVarP(&inspectOpts.Latest, "latest", "l", false, "Act on the latest container Podman is aware of")
 }
 
 func inspectExec(cmd *cobra.Command, args []string) error {
+	// Force container type
+	inspectOpts.Type = inspect.ContainerType
 	return inspect.Inspect(args, *inspectOpts)
 }

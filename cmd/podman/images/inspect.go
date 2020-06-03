@@ -27,11 +27,12 @@ func init() {
 		Command: inspectCmd,
 		Parent:  imageCmd,
 	})
-	inspectOpts = inspect.AddInspectFlagSet(inspectCmd)
+	inspectOpts = new(entities.InspectOptions)
 	flags := inspectCmd.Flags()
-	_ = flags.MarkHidden("latest") // Shared with container-inspect but not wanted here.
+	flags.StringVarP(&inspectOpts.Format, "format", "f", "json", "Format the output to a Go template or json")
 }
 
 func inspectExec(cmd *cobra.Command, args []string) error {
+	inspectOpts.Type = inspect.ImageType
 	return inspect.Inspect(args, *inspectOpts)
 }

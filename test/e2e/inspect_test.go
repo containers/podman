@@ -179,4 +179,49 @@ var _ = Describe("Podman inspect", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
+
+	It("podman [image,container] inspect on image", func() {
+		baseInspect := podmanTest.Podman([]string{"inspect", ALPINE})
+		baseInspect.WaitWithDefaultTimeout()
+		Expect(baseInspect.ExitCode()).To(Equal(0))
+		baseJSON := baseInspect.InspectImageJSON()
+		Expect(len(baseJSON)).To(Equal(1))
+
+		ctrInspect := podmanTest.Podman([]string{"container", "inspect", ALPINE})
+		ctrInspect.WaitWithDefaultTimeout()
+		Expect(ctrInspect.ExitCode()).To(Not(Equal(0)))
+
+		imageInspect := podmanTest.Podman([]string{"image", "inspect", ALPINE})
+		imageInspect.WaitWithDefaultTimeout()
+		Expect(imageInspect.ExitCode()).To(Equal(0))
+		imageJSON := imageInspect.InspectImageJSON()
+		Expect(len(imageJSON)).To(Equal(1))
+
+		Expect(baseJSON[0].ID).To(Equal(imageJSON[0].ID))
+	})
+
+	It("podman [image, container] inspect on container", func() {
+		ctrName := "testCtr"
+		create := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "sh"})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		baseInspect := podmanTest.Podman([]string{"inspect", ctrName})
+		baseInspect.WaitWithDefaultTimeout()
+		Expect(baseInspect.ExitCode()).To(Equal(0))
+		baseJSON := baseInspect.InspectContainerToJSON()
+		Expect(len(baseJSON)).To(Equal(1))
+
+		ctrInspect := podmanTest.Podman([]string{"container", "inspect", ctrName})
+		ctrInspect.WaitWithDefaultTimeout()
+		Expect(ctrInspect.ExitCode()).To(Equal(0))
+		ctrJSON := ctrInspect.InspectContainerToJSON()
+		Expect(len(ctrJSON)).To(Equal(1))
+
+		imageInspect := podmanTest.Podman([]string{"image", "inspect", ctrName})
+		imageInspect.WaitWithDefaultTimeout()
+		Expect(imageInspect.ExitCode()).To(Not(Equal(0)))
+
+		Expect(baseJSON[0].ID).To(Equal(ctrJSON[0].ID))
+	})
 })
