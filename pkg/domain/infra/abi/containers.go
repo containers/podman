@@ -179,6 +179,12 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 			report.Err = err
 			reports = append(reports, &report)
 			continue
+		} else if err := con.Cleanup(ctx); err != nil {
+			// Only if no error, proceed to cleanup to ensure all
+			// mounts are removed before we exit.
+			report.Err = err
+			reports = append(reports, &report)
+			continue
 		}
 		reports = append(reports, &report)
 	}
