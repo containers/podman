@@ -161,23 +161,24 @@ func createInit(c *cobra.Command) error {
 	if c.Flag("no-hosts").Changed && c.Flag("add-host").Changed {
 		return errors.Errorf("--no-hosts and --add-host cannot be set together")
 	}
-	if c.Flag("userns").Changed {
-		cliVals.UserNS = c.Flag("userns").Value.String()
+	cliVals.UserNS = c.Flag("userns").Value.String()
+	// if user did not modify --userns flag and did turn on
+	// uid/gid mappsings, set userns flag to "private"
+	if !c.Flag("userns").Changed && cliVals.UserNS == "host" {
+		if len(cliVals.UIDMap) > 0 ||
+			len(cliVals.GIDMap) > 0 ||
+			cliVals.SubUIDName != "" ||
+			cliVals.SubGIDName != "" {
+			cliVals.UserNS = "private"
+		}
 	}
-	if c.Flag("ipc").Changed {
-		cliVals.IPC = c.Flag("ipc").Value.String()
-	}
-	if c.Flag("uts").Changed {
-		cliVals.UTS = c.Flag("uts").Value.String()
-	}
-	if c.Flag("pid").Changed {
-		cliVals.PID = c.Flag("pid").Value.String()
-	}
+
+	cliVals.IPC = c.Flag("ipc").Value.String()
+	cliVals.UTS = c.Flag("uts").Value.String()
+	cliVals.PID = c.Flag("pid").Value.String()
+	cliVals.CGroupsNS = c.Flag("cgroupns").Value.String()
 	if !c.Flag("pids-limit").Changed {
 		cliVals.PIDsLimit = -1
-	}
-	if c.Flag("cgroupns").Changed {
-		cliVals.CGroupsNS = c.Flag("cgroupns").Value.String()
 	}
 	if c.Flag("entrypoint").Changed {
 		val := c.Flag("entrypoint").Value.String()
