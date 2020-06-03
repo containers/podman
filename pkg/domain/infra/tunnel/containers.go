@@ -86,6 +86,14 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	var (
 		reports []*entities.StopReport
 	)
+	for _, cidFile := range options.CIDFiles {
+		content, err := ioutil.ReadFile(cidFile)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading CIDFile %s", cidFile)
+		}
+		id := strings.Split(string(content), "\n")[0]
+		namesOrIds = append(namesOrIds, id)
+	}
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
