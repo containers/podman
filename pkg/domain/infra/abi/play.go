@@ -446,7 +446,7 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	setupSecurityContext(&securityConfig, &userConfig, containerYAML)
 
 	// Since we prefix the container name with pod name to work-around the uniqueness requirement,
-	// seccom stuff should reference the actual container name from the YAML
+	// the seccom profile should reference the actual container name from the YAML
 	// but apply to the containers with the prefixed name
 	securityConfig.SeccompProfilePath = seccompPaths.findForContainer(containerYAML.Name)
 
