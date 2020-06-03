@@ -171,4 +171,12 @@ var _ = Describe("Podman inspect", func() {
 		Expect(imageData[0].HealthCheck.Interval).To(BeNumerically("==", 60000000000))
 		Expect(imageData[0].HealthCheck.Test).To(Equal([]string{"CMD-SHELL", "curl -f http://localhost/ || exit 1"}))
 	})
+
+	It("podman inspect --latest with no container fails", func() {
+		SkipIfRemote()
+
+		session := podmanTest.Podman([]string{"inspect", "--latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
 })

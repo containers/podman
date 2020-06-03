@@ -44,8 +44,10 @@ func getContainersAndInputByContext(all, latest bool, names []string, runtime *l
 		ctrs, err = runtime.GetAllContainers()
 	case latest:
 		ctr, err = runtime.GetLatestContainer()
-		rawInput = append(rawInput, ctr.ID())
-		ctrs = append(ctrs, ctr)
+		if err == nil {
+			rawInput = append(rawInput, ctr.ID())
+			ctrs = append(ctrs, ctr)
+		}
 	default:
 		for _, n := range names {
 			ctr, e := runtime.LookupContainer(n)
