@@ -362,8 +362,6 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman --pod with a non-empty pod name", func() {
-		SkipIfRemote()
-
 		podName := "testPodName"
 		_, ec, podid := podmanTest.CreatePod(podName)
 		Expect(ec).To(Equal(0))

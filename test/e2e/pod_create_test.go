@@ -238,7 +238,6 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod with IP address", func() {
-		SkipIfRemote()
 		SkipIfRootless()
 		name := "test"
 		ip := GetRandomIPAddress()
