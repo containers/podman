@@ -5,12 +5,12 @@
 declare -A BUILD_TAGS
 # TODO: add systemd tag
 BUILD_TAGS[default]="apparmor,seccomp,selinux"
-BUILD_TAGS[abi]="${BUILD_TAGS[default]},ABISupport,varlink,!remoteclient"
-BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},!ABISupport,varlink,remoteclient"
+BUILD_TAGS[abi]="${BUILD_TAGS[default]},varlink,!remoteclient"
+BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote,varlink,remoteclient"
 
 declare -A SKIP_DIRS
 SKIP_DIRS[abi]=""
-# TODO: add "ABISupport" build tag to pkg/api
+# TODO: add "remote" build tag to pkg/api
 SKIP_DIRS[tunnel]="pkg/api"
 
 [[ $1 == run ]] && shift

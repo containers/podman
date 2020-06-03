@@ -1,4 +1,4 @@
-// +build ABISupport
+// +build !remote
 
 package registry
 
