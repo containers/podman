@@ -1,4 +1,4 @@
-// +build ABISupport,!remote
+// +build linux,!remote
 
 package system
 
