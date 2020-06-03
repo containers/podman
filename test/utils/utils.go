@@ -73,7 +73,7 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 		podmanBinary = p.RemotePodmanBinary
 	}
 	if p.RemoteTest {
-		podmanOptions = append([]string{"--remote", p.RemoteSocket}, podmanOptions...)
+		podmanOptions = append([]string{"--remote", "--url", p.RemoteSocket}, podmanOptions...)
 	}
 	if env == nil {
 		fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(podmanOptions, " "))

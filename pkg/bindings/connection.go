@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blang/semver"
@@ -20,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -29,6 +31,8 @@ var (
 		Host:   "d",
 		Path:   "/v" + APIVersion.String() + "/libpod",
 	}
+	passPhrase []byte
+	phraseSync sync.Once
 )
 
 type APIResponse struct {
@@ -61,6 +65,10 @@ func JoinURL(elements ...string) string {
 	return "/" + strings.Join(elements, "/")
 }
 
+func NewConnection(ctx context.Context, uri string) (context.Context, error) {
+	return NewConnectionWithIdentity(ctx, uri, "")
+}
+
 // NewConnection takes a URI as a string and returns a context with the
 // Connection embedded as a value.  This context needs to be passed to each
 // endpoint to work correctly.
@@ -69,23 +77,28 @@ func JoinURL(elements ...string) string {
 // For example tcp://localhost:<port>
 // or unix:///run/podman/podman.sock
 // or ssh://<user>@<host>[:port]/run/podman/podman.sock?secure=True
-func NewConnection(ctx context.Context, uri string, identity ...string) (context.Context, error) {
+func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase string, identities ...string) (context.Context, error) {
 	var (
 		err    error
 		secure bool
 	)
-	if v, found := os.LookupEnv("PODMAN_HOST"); found {
+	if v, found := os.LookupEnv("CONTAINER_HOST"); found && uri == "" {
 		uri = v
 	}
 
-	if v, found := os.LookupEnv("PODMAN_SSHKEY"); found {
-		identity = []string{v}
+	if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found && len(identities) == 0 {
+		identities = append(identities, v)
+	}
+
+	if v, found := os.LookupEnv("CONTAINER_PASSPHRASE"); found && passPhrase == "" {
+		passPhrase = v
 	}
 
 	_url, err := url.Parse(uri)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Value of PODMAN_HOST is not a valid url: %s", uri)
+		return nil, errors.Wrapf(err, "Value of CONTAINER_HOST is not a valid url: %s", uri)
 	}
+	// TODO Fill in missing defaults for _url...
 
 	// Now we setup the http Client to use the connection above
 	var connection Connection
@@ -95,7 +108,7 @@ func NewConnection(ctx context.Context, uri string, identity ...string) (context
 		if err != nil {
 			secure = false
 		}
-		connection, err = sshClient(_url, identity[0], secure)
+		connection, err = sshClient(_url, secure, passPhrase, identities...)
 	case "unix":
 		if !strings.HasPrefix(uri, "unix:///") {
 			// autofix unix://path_element vs unix:///path_element
@@ -172,10 +185,31 @@ func pingNewConnection(ctx context.Context) error {
 	return errors.Errorf("ping response was %q", response.StatusCode)
 }
 
-func sshClient(_url *url.URL, identity string, secure bool) (Connection, error) {
-	auth, err := publicKey(identity)
-	if err != nil {
-		return Connection{}, errors.Wrapf(err, "Failed to parse identity %s: %v\n", _url.String(), identity)
+func sshClient(_url *url.URL, secure bool, passPhrase string, identities ...string) (Connection, error) {
+	var authMethods []ssh.AuthMethod
+
+	for _, i := range identities {
+		auth, err := publicKey(i, []byte(passPhrase))
+		if err != nil {
+			fmt.Fprint(os.Stderr, errors.Wrapf(err, "failed to parse identity %q", i).Error()+"\n")
+			continue
+		}
+		authMethods = append(authMethods, auth)
+	}
+
+	if sock, found := os.LookupEnv("SSH_AUTH_SOCK"); found {
+		logrus.Debugf("Found SSH_AUTH_SOCK %q, ssh-agent signer enabled", sock)
+
+		c, err := net.Dial("unix", sock)
+		if err != nil {
+			return Connection{}, err
+		}
+		a := agent.NewClient(c)
+		authMethods = append(authMethods, ssh.PublicKeysCallback(a.Signers))
+	}
+
+	if pw, found := _url.User.Password(); found {
+		authMethods = append(authMethods, ssh.Password(pw))
 	}
 
 	callback := ssh.InsecureIgnoreHostKey()
@@ -195,7 +229,7 @@ func sshClient(_url *url.URL, identity string, secure bool) (Connection, error) 
 		net.JoinHostPort(_url.Hostname(), port),
 		&ssh.ClientConfig{
 			User:            _url.User.Username(),
-			Auth:            []ssh.AuthMethod{auth},
+			Auth:            authMethods,
 			HostKeyCallback: callback,
 			HostKeyAlgorithms: []string{
 				ssh.KeyAlgoRSA,
@@ -307,7 +341,7 @@ func (h *APIResponse) IsServerError() bool {
 	return h.Response.StatusCode/100 == 5
 }
 
-func publicKey(path string) (ssh.AuthMethod, error) {
+func publicKey(path string, passphrase []byte) (ssh.AuthMethod, error) {
 	key, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -315,10 +349,28 @@ func publicKey(path string) (ssh.AuthMethod, error) {
 
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
-		return nil, err
+		if _, ok := err.(*ssh.PassphraseMissingError); !ok {
+			return nil, err
+		}
+		if len(passphrase) == 0 {
+			phraseSync.Do(promptPassphrase)
+			passphrase = passPhrase
+		}
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(key, passphrase)
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	return ssh.PublicKeys(signer), nil
+}
+
+func promptPassphrase() {
+	phrase, err := readPassword("Key Passphrase: ")
+	if err != nil {
+		passPhrase = []byte{}
+		return
+	}
+	passPhrase = phrase
 }
 
 func hostKey(host string) ssh.PublicKey {
