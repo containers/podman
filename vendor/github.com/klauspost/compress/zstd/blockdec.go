@@ -461,26 +461,22 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 		if huff == nil {
 			huff = &huff0.Scratch{}
 		}
-		huff.Out = b.literalBuf[:0]
 		huff, literals, err = huff0.ReadTable(literals, huff)
 		if err != nil {
 			println("reading huffman table:", err)
 			return err
 		}
 		// Use our out buffer.
-		huff.Out = b.literalBuf[:0]
-		huff.MaxDecodedSize = litRegenSize
 		if fourStreams {
-			literals, err = huff.Decompress4X(literals, litRegenSize)
+			literals, err = huff.Decoder().Decompress4X(b.literalBuf[:0:litRegenSize], literals)
 		} else {
-			literals, err = huff.Decompress1X(literals)
+			literals, err = huff.Decoder().Decompress1X(b.literalBuf[:0:litRegenSize], literals)
 		}
 		if err != nil {
 			println("decoding compressed literals:", err)
 			return err
 		}
 		// Make sure we don't leak our literals buffer
-		huff.Out = nil
 		if len(literals) != litRegenSize {
 			return fmt.Errorf("literal output size mismatch want %d, got %d", litRegenSize, len(literals))
 		}
@@ -631,15 +627,12 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 		var err error
 		// Use our out buffer.
 		huff = hist.huffTree
-		huff.Out = b.literalBuf[:0]
-		huff.MaxDecodedSize = litRegenSize
 		if fourStreams {
-			literals, err = huff.Decompress4X(literals, litRegenSize)
+			literals, err = huff.Decoder().Decompress4X(b.literalBuf[:0:litRegenSize], literals)
 		} else {
-			literals, err = huff.Decompress1X(literals)
+			literals, err = huff.Decoder().Decompress1X(b.literalBuf[:0:litRegenSize], literals)
 		}
 		// Make sure we don't leak our literals buffer
-		huff.Out = nil
 		if err != nil {
 			println("decompressing literals:", err)
 			return err
@@ -649,12 +642,13 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 		}
 	} else {
 		if hist.huffTree != nil && huff != nil {
-			huffDecoderPool.Put(hist.huffTree)
+			if hist.dict == nil || hist.dict.litDec != hist.huffTree {
+				huffDecoderPool.Put(hist.huffTree)
+			}
 			hist.huffTree = nil
 		}
 	}
 	if huff != nil {
-		huff.Out = nil
 		hist.huffTree = huff
 	}
 	if debug {
@@ -687,14 +681,20 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 	//   If only recent offsets were not transferred, this would be an obvious win.
 	// 	 Also, if first 3 sequences don't reference recent offsets, all sequences can be decoded.
 
+	hbytes := hist.b
+	if len(hbytes) > hist.windowSize {
+		hbytes = hbytes[len(hbytes)-hist.windowSize:]
+		// We do not need history any more.
+		if hist.dict != nil {
+			hist.dict.content = nil
+		}
+	}
+
 	if err := seqs.initialize(br, hist, literals, b.dst); err != nil {
 		println("initializing sequences:", err)
 		return err
 	}
-	hbytes := hist.b
-	if len(hbytes) > hist.windowSize {
-		hbytes = hbytes[len(hbytes)-hist.windowSize:]
-	}
+
 	err = seqs.decode(nSeqs, br, hbytes)
 	if err != nil {
 		return err

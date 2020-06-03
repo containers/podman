@@ -383,6 +383,7 @@ func (e *fastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
 			panic("src too big")
 		}
 	}
+
 	// Protect against e.cur wraparound.
 	if e.cur >= bufferReset {
 		for i := range e.table[:] {
@@ -516,6 +517,9 @@ encodeLoop:
 				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
+				if debugAsserts && t < 0 {
+					panic(fmt.Sprintf("t (%d) < 0, candidate.offset: %d, e.cur: %d, coffset0: %d, e.maxMatchOff: %d", t, candidate.offset, e.cur, coffset0, e.maxMatchOff))
+				}
 				break
 			}
 
@@ -548,6 +552,9 @@ encodeLoop:
 			panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 		}
 
+		if debugAsserts && t < 0 {
+			panic(fmt.Sprintf("t (%d) < 0 ", t))
+		}
 		// Extend the 4-byte match as long as possible.
 		//l := e.matchlenNoHist(s+4, t+4, src) + 4
 		// l := int32(matchLen(src[s+4:], src[t+4:])) + 4
@@ -647,6 +654,10 @@ encodeLoop:
 	if debug {
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
+	// We do not store history, so we must offset e.cur to avoid false matches for next user.
+	if e.cur < bufferReset {
+		e.cur += int32(len(src))
+	}
 }
 
 func (e *fastBase) addBlock(src []byte) int32 {
@@ -714,7 +725,7 @@ func (e *fastBase) matchlen(s, t int32, src []byte) int32 {
 }
 
 // Reset the encoding table.
-func (e *fastBase) Reset() {
+func (e *fastBase) Reset(singleBlock bool) {
 	if e.blk == nil {
 		e.blk = &blockEnc{}
 		e.blk.init()
@@ -727,7 +738,7 @@ func (e *fastBase) Reset() {
 	} else {
 		e.crc.Reset()
 	}
-	if cap(e.hist) < int(e.maxMatchOff*2) {
+	if !singleBlock && cap(e.hist) < int(e.maxMatchOff*2) {
 		l := e.maxMatchOff * 2
 		// Make it at least 1MB.
 		if l < 1<<20 {

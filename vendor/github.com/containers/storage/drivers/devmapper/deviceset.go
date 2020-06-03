@@ -1544,8 +1544,8 @@ func getDeviceMajorMinor(file *os.File) (uint64, uint64, error) {
 	}
 
 	dev := stat.Rdev
-	majorNum := major(dev)
-	minorNum := minor(dev)
+	majorNum := major(uint64(dev))
+	minorNum := minor(uint64(dev))
 
 	logrus.Debugf("devmapper: Major:Minor for device: %s is:%v:%v", file.Name(), majorNum, minorNum)
 	return majorNum, minorNum, nil
