@@ -73,6 +73,12 @@ function teardown() {
     run_podman run -d --pod $podname $IMAGE nc -l -p $port
     cid1="$output"
 
+    # (While we're here, test the 'Pod' field of 'podman ps'. Expect two ctrs)
+    run_podman ps --format '{{.Pod}}'
+    newline="
+"
+    is "$output" "${podid:0:12}${newline}${podid:0:12}" "sdfdsf"
+
     # Talker: send the message via common port on localhost
     message=$(random_string 15)
     run_podman run --rm --pod $podname $IMAGE \

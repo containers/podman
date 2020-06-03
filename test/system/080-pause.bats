@@ -1,0 +1,58 @@
+#!/usr/bin/env bats   -*- bats -*-
+#
+# tests for podman pause/unpause functionality
+#
+
+load helpers
+
+@test "podman pause/unpause" {
+    skip_if_rootless "pause does not work rootless"
+
+    cname=$(random_string 10)
+    run_podman run -d --name $cname $IMAGE \
+               sh -c 'while :;do date +%s;sleep 1;done'
+    cid="$output"
+    # Wait for first time value
+    wait_for_output '[0-9]\{10,\}' $cid
+
+    # Pause container, sleep a bit, unpause, sleep again to give process
+    # time to write a new post-restart time value. Pause by CID, unpause
+    # by name, just to exercise code paths. While paused, check 'ps'
+    # and 'inspect', then check again after restarting.
+    run_podman pause $cid
+    run_podman inspect --format '{{.State.Status}}' $cid
+    is "$output" "paused" "podman inspect .State.Status"
+    sleep 3
+    run_podman ps -a --format '{{.ID}} {{.Names}} {{.Status}}'
+    is "$output" "${cid:0:12} $cname paused" "podman ps on paused container"
+    run_podman unpause $cname
+    run_podman ps -a --format '{{.ID}} {{.Names}} {{.Status}}'
+    is "$output" "${cid:0:12} $cname Up .*" "podman ps on resumed container"
+    sleep 1
+
+    # Get full logs, and iterate through them computing delta_t between entries
+    run_podman logs $cid
+    i=1
+    max_delta=0
+    while [ $i -lt ${#lines[*]} ]; do
+        this_delta=$(( ${lines[$i]} - ${lines[$(($i - 1))]} ))
+        if [ $this_delta -gt $max_delta ]; then
+            max_delta=$this_delta
+        fi
+        i=$(( $i + 1 ))
+    done
+
+    # There should be a 3-4 second gap, *maybe* 5. Never 1 or 2, that
+    # would imply that the container never paused.
+    is "$max_delta" "[3456]" "delta t between paused and restarted"
+
+    run_podman rm -f $cname
+
+    # Pause/unpause on nonexistent name or id - these should all fail
+    run_podman 125 pause $cid
+    run_podman 125 pause $cname
+    run_podman 125 unpause $cid
+    run_podman 125 unpause $cname
+}
+
+# vim: filetype=sh
