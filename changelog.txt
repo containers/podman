@@ -1,3 +1,51 @@
+- Changelog for v2.0.0-rc4 (2020-06-04)
+  * /images/.../json: fix port parsing
+  * BATS and APIv2: more tests and tweaks
+  * Vendor in container/storage v1.20.2
+  * add socket information to podman info
+  * Namespace fields were set with bogus values
+  * When stopping containers locally, ensure cleanup runs
+  * Remove use of ABISupport buildtag
+  * fix remote test --ignore & turn on more tests
+  * Ensure that image/container inspect are specialized
+  * turn on remote stop_test
+  * V2 Add support for ssh authentication methods
+  * Add a few CVE entries to changelog.txt
+  * Add more Remote tests
+  * RHEL8 and Centos8 don't have oci-runtime yet
+  * test.apiv2: add test cases for committing an image from a container
+  * Turn on remote rm_test --cidfile
+  * Properly follow linked namespace container for stats
+  * Fix a segfault in `podman inspect -l` w/ no containers
+  * Remove reference to "upcoming" RHEL 7.7
+  * Bump Conmon in COPR spec
+  * Enable detached exec for remote
+  * check --user range for rootless containers
+  * images --no-trunc: fix ID formatting
+  * make env handling os dependent
+  * Bump github.com/containers/conmon
+  * Bump github.com/onsi/ginkgo from 1.12.2 to 1.12.3
+  * Update vendor containers/psgo
+  * Bump github.com/opencontainers/runc from 1.0.0-rc9 to 1.0.0-rc90
+  * Bump github.com/coreos/go-systemd/v22 from 22.0.0 to 22.1.0
+  * Combine the code of dealing with 'readonly' and 'ro'.
+  * Add bindings for exec and enable attached remote
+  * Add information on detach-keys
+  * system tests : more tests
+  * Add support for format {{.Label}}
+  * turn on remote testing for images.  podman-remote build now works.
+  * Add invalid value to error message
+  * Fix leak of empty tarball
+  * Update man pages for --ip with CNI networks
+  * [CI:DOCS] update httpd location in tutorial
+  * default build without `varlink` tag
+  * Bump to v2.0.0-dev
+  * compat handlers: add X-Registry-Auth header support
+  * Don't build code on remoteclient
+  * v2 copy endpoints
+  * Bump github.com/rootless-containers/rootlesskit from 0.9.4 to 0.9.5
+  * system tests: enable skopeo REGISTRY_AUTH_FILE
+
 - Changelog for v2.0.0-rc3 (2020-05-29)
   * Bump github.com/stretchr/testify from 1.5.1 to 1.6.0
   * V2 verify JSON output is consistent and doesn't drift
