@@ -265,7 +265,7 @@ func GenerateNamespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt 
 	return toReturn, nil
 }
 
-func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt *libpod.Runtime) error {
+func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt *libpod.Runtime, pod *libpod.Pod) error {
 	// PID
 	switch s.PidNS.NSMode {
 	case specgen.Path:
@@ -326,6 +326,8 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	hostname := s.Hostname
 	if hostname == "" {
 		switch {
+		case s.UtsNS.NSMode == specgen.FromPod:
+			hostname = pod.Hostname()
 		case s.UtsNS.NSMode == specgen.FromContainer:
 			utsCtr, err := rt.LookupContainer(s.UtsNS.Value)
 			if err != nil {

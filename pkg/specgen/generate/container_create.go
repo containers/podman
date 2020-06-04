@@ -114,7 +114,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, libpod.WithExitCommand(exitCommandArgs))
 
-	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts)
+	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod)
 	if err != nil {
 		return nil, err
 	}
