@@ -334,16 +334,25 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 func portsToPortSet(input map[string]struct{}) (nat.PortSet, error) {
 	ports := make(nat.PortSet)
 	for k := range input {
-		npTCP, err := nat.NewPort("tcp", k)
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to create tcp port from %s", k)
+		proto, port := nat.SplitProtoPort(k)
+		switch proto {
+		// See the OCI image spec for details:
+		// https://github.com/opencontainers/image-spec/blob/e562b04403929d582d449ae5386ff79dd7961a11/config.md#properties
+		case "tcp", "":
+			p, err := nat.NewPort("tcp", port)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to create tcp port from %s", k)
+			}
+			ports[p] = struct{}{}
+		case "udp":
+			p, err := nat.NewPort("udp", port)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to create tcp port from %s", k)
+			}
+			ports[p] = struct{}{}
+		default:
+			return nil, errors.Errorf("invalid port proto %q in %q", proto, k)
 		}
-		npUDP, err := nat.NewPort("udp", k)
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to create udp port from %s", k)
-		}
-		ports[npTCP] = struct{}{}
-		ports[npUDP] = struct{}{}
 	}
 	return ports, nil
 }
