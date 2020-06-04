@@ -555,7 +555,7 @@
   * podmanv2: implement pod top
   * v2 api: implement pods top endpoint
   * podmanv2 commit
-  * Bump to buildah v1.14.5
+  * Bump to buildah v1.14.5 (Edit 2020-06-03: Addresses CVE-2020-10696)
   * Add support for containers.conf
   * API v2 tests: usability improvements
   * Sanitize port parsing for pods in play kube
@@ -878,7 +878,7 @@
   * rootlessport: drop Pdeathsig in favor of Kill
   * rootlessport: fix potential hang
   * add pkg/seccomp
-  * Do not copy up when volume is not empty
+  * Do not copy up when volume is not empty (Edit 2020-06-03: Addresses CVE-2020-1726)
   * api: pull: fix reference parsing
   * cmd/podman/pull: refactor code
   * stats: add SystemUsage
@@ -1573,7 +1573,7 @@
   * get runtime for podman-remote push earlier
   * rootless: report the correct error
   * Report errors when trying to pause rootless containers
-  * Do not support wildcards on cp
+  * Do not support wildcards on cp (Edit 2020-06-03: Addresses CVE-2019-18466)
   * Podman-remote run should wait for exit code
   * Use exit code constants
   * exec: Register resize func a bit later
