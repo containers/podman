@@ -213,7 +213,6 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman rm --ignore bogus pod and a running pod", func() {
-		SkipIfRemote()
 
 		_, ec, podid1 := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
