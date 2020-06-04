@@ -27,6 +27,7 @@ type HostInfo struct {
 	MemTotal       int64                  `json:"memTotal"`
 	OCIRuntime     *OCIRuntimeInfo        `json:"ociRuntime"`
 	OS             string                 `json:"os"`
+	RemoteSocket   *RemoteSocket          `json:"remoteSocket,omitempty"`
 	Rootless       bool                   `json:"rootless"`
 	RuntimeInfo    map[string]interface{} `json:"runtimeInfo,omitempty"`
 	Slirp4NetNS    SlirpInfo              `json:"slirp4netns,omitempty"`
@@ -34,6 +35,12 @@ type HostInfo struct {
 	SwapTotal      int64                  `json:"swapTotal"`
 	Uptime         string                 `json:"uptime"`
 	Linkmode       string                 `json:"linkmode"`
+}
+
+// RemoteSocket describes information about the API socket
+type RemoteSocket struct {
+	Path   string `json:"path,omitempty"`
+	Exists bool   `json:"exists,omitempty"`
 }
 
 // SlirpInfo describes the slirp exectuable that
