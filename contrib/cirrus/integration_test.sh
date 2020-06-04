@@ -18,7 +18,7 @@ cd "$GOSRC"
 
 case "$SPECIALMODE" in
     in_podman)
-        ${CONTAINER_RUNTIME} run --rm --privileged --net=host \
+        ${CONTAINER_RUNTIME} run --rm --privileged --net=host --cgroupns=host \
             -v $GOSRC:$GOSRC:Z \
             --workdir $GOSRC \
             -e "CGROUP_MANAGER=cgroupfs" \
