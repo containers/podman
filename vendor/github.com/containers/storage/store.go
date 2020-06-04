@@ -3481,6 +3481,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	if config.Storage.Options.MountProgram != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mount_program=%s", config.Storage.Driver, config.Storage.Options.MountProgram))
 	}
+	if config.Storage.Options.SkipMountHome != "" {
+		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.skip_mount_home=%s", config.Storage.Driver, config.Storage.Options.SkipMountHome))
+	}
 	if config.Storage.Options.IgnoreChownErrors != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.ignore_chown_errors=%s", config.Storage.Driver, config.Storage.Options.IgnoreChownErrors))
 	}

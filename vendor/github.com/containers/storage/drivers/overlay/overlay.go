@@ -311,6 +311,9 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				return nil, fmt.Errorf("overlay: can't stat program %s: %v", val, err)
 			}
 			o.mountProgram = val
+		case "overlay2.skip_mount_home", "overlay.skip_mount_home", ".skip_mount_home":
+			logrus.Debugf("overlay: skip_mount_home=%s", val)
+			o.skipMountHome, err = strconv.ParseBool(val)
 		case ".ignore_chown_errors", "overlay2.ignore_chown_errors", "overlay.ignore_chown_errors":
 			logrus.Debugf("overlay: ignore_chown_errors=%s", val)
 			o.ignoreChownErrors, err = strconv.ParseBool(val)

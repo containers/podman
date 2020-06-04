@@ -35,7 +35,7 @@ type encoder interface {
 	AppendCRC([]byte) []byte
 	WindowSize(size int) int32
 	UseBlock(*blockEnc)
-	Reset()
+	Reset(singleBlock bool)
 }
 
 type encoderState struct {
@@ -82,7 +82,10 @@ func (e *Encoder) initialize() {
 	}
 	e.encoders = make(chan encoder, e.o.concurrent)
 	for i := 0; i < e.o.concurrent; i++ {
-		e.encoders <- e.o.encoder()
+		enc := e.o.encoder()
+		// If not single block, history will be allocated on first use.
+		enc.Reset(true)
+		e.encoders <- enc
 	}
 }
 
@@ -112,7 +115,7 @@ func (e *Encoder) Reset(w io.Writer) {
 	s.filling = s.filling[:0]
 	s.current = s.current[:0]
 	s.previous = s.previous[:0]
-	s.encoder.Reset()
+	s.encoder.Reset(false)
 	s.headerWritten = false
 	s.eofWritten = false
 	s.fullFrameWritten = false
@@ -445,11 +448,10 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 	enc := <-e.encoders
 	defer func() {
 		// Release encoder reference to last block.
-		enc.Reset()
+		// If a non-single block is needed the encoder will reset again.
+		enc.Reset(true)
 		e.encoders <- enc
 	}()
-	enc.Reset()
-	blk := enc.Block()
 	// Use single segments when above minimum window and below 1MB.
 	single := len(src) < 1<<20 && len(src) > MinWindowSize
 	if e.o.single != nil {
@@ -472,12 +474,13 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 		panic(err)
 	}
 
-	if len(src) <= e.o.blockSize && len(src) <= maxBlockSize {
+	// If we can do everything in one block, prefer that.
+	if len(src) <= maxCompressedBlockSize {
 		// Slightly faster with no history and everything in one block.
 		if e.o.crc {
 			_, _ = enc.CRC().Write(src)
 		}
-		blk.reset(nil)
+		blk := enc.Block()
 		blk.last = true
 		enc.EncodeNoHist(blk, src)
 
@@ -504,6 +507,8 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 		}
 		blk.output = oldout
 	} else {
+		enc.Reset(false)
+		blk := enc.Block()
 		for len(src) > 0 {
 			todo := src
 			if len(todo) > e.o.blockSize {

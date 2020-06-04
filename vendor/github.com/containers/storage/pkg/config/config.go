@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-
-	"github.com/sirupsen/logrus"
 )
 
 // ThinpoolOptionsConfig represents the "storage.options.thinpool"
@@ -269,11 +267,11 @@ func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
 		} else if options.Size != "" {
 			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
 		}
-
-		if options.Overlay.SkipMountHome != "" || options.SkipMountHome != "" {
-			logrus.Warn("skip_mount_home option is no longer supported, ignoring option")
+		if options.Overlay.SkipMountHome != "" {
+			doptions = append(doptions, fmt.Sprintf("%s.skip_mount_home=%s", driverName, options.Overlay.SkipMountHome))
+		} else if options.SkipMountHome != "" {
+			doptions = append(doptions, fmt.Sprintf("%s.skip_mount_home=%s", driverName, options.SkipMountHome))
 		}
-
 	case "vfs":
 		if options.Vfs.IgnoreChownErrors != "" {
 			doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.Vfs.IgnoreChownErrors))

@@ -19,7 +19,7 @@ const (
 	 *  Increasing memory usage improves compression ratio
 	 *  Reduced memory usage can improve speed, due to cache effect
 	 *  Recommended max value is 14, for 16KB, which nicely fits into Intel x86 L1 cache */
-	maxMemoryUsage = 11
+	maxMemoryUsage = tablelogAbsoluteMax + 2
 
 	maxTableLog    = maxMemoryUsage - 2
 	maxTablesize   = 1 << maxTableLog

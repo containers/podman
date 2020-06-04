@@ -671,4 +671,8 @@ encodeLoop:
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
 
+	// We do not store history, so we must offset e.cur to avoid false matches for next user.
+	if e.cur < bufferReset {
+		e.cur += int32(len(src))
+	}
 }

@@ -13,7 +13,7 @@ COPY . $GOSRC
 # Note: adding conmon and crun so podman command checks will work
 RUN dnf -y install \
    $(grep "^[^#]" $GOSRC/contrib/dependencies.txt) diffutils containers-common fuse-overlayfs conmon crun runc --exclude container-selinux; \
-   sed -i -e 's|^#mount_program|mount_program|g' /etc/containers/storage.conf \
+   sed -i -e 's|^#mount_program|mount_program|g' -e 's/# size.*/skip_mount_home = "true"/g'  /etc/containers/storage.conf \
    && dnf clean all
 
 # Install dependencies
