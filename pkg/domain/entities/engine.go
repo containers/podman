@@ -41,9 +41,8 @@ type PodmanConfig struct {
 	ConmonPath     string           // --conmon flag will set Engine.ConmonPath
 	CPUProfile     string           // Hidden: Should CPU profile be taken
 	EngineMode     EngineMode       // ABI or Tunneling mode
-	Identities     []string         // ssh identities for connecting to server
+	Identity       string           // ssh identity for connecting to server
 	MaxWorks       int              // maximum number of parallel threads
-	PassPhrase     string           // ssh passphrase for identity for connecting to server
 	RegistriesConf string           // allows for specifying a custom registries.conf
 	Remote         bool             // Connection to Podman API Service will use RESTful API
 	RuntimePath    string           // --runtime flag will set Engine.RuntimePath

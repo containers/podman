@@ -35,7 +35,7 @@ func main() {
 				_, found := c.Command.Annotations[registry.ParentNSRequired]
 				if rootless.IsRootless() && found {
 					c.Command.RunE = func(cmd *cobra.Command, args []string) error {
-						return fmt.Errorf("cannot `%s` in rootless mode", cmd.CommandPath())
+						return fmt.Errorf("cannot run command %q in rootless mode", cmd.CommandPath())
 					}
 				}
 
