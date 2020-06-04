@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"runtime"
 	"runtime/pprof"
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/parallel"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/tracing"
 	"github.com/containers/libpod/version"
@@ -137,6 +139,13 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		opentracing.StartSpanFromContext(cfg.SpanCtx, cmd.Name())
 	}
 
+	if cfg.MaxWorks <= 0 {
+		return errors.Errorf("maximum workers must be set to a positive number (got %d)", cfg.MaxWorks)
+	}
+	if err := parallel.SetMaxThreads(uint(cfg.MaxWorks)); err != nil {
+		return err
+	}
+
 	// Setup Rootless environment, IFF:
 	// 1) in ABI mode
 	// 2) running as non-root
@@ -216,7 +225,7 @@ func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	flags.StringVar(&cfg.Containers.DefaultMountsFile, "default-mounts-file", cfg.Containers.DefaultMountsFile, "Path to default mounts file")
 	flags.StringVar(&cfg.Engine.EventsLogger, "events-backend", cfg.Engine.EventsLogger, `Events backend to use ("file"|"journald"|"none")`)
 	flags.StringSliceVar(&cfg.Engine.HooksDir, "hooks-dir", cfg.Engine.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
-	flags.IntVar(&opts.MaxWorks, "max-workers", 0, "The maximum number of workers for parallel operations")
+	flags.IntVar(&opts.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")
 	flags.StringVar(&cfg.Engine.Namespace, "namespace", cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
 	flags.StringVar(&cfg.Engine.StaticDir, "root", "", "Path to the root directory in which data, including images, is stored")
 	flags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")

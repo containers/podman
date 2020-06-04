@@ -23,6 +23,7 @@ import (
 	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra/abi/terminal"
+	"github.com/containers/libpod/pkg/parallel"
 	"github.com/containers/libpod/pkg/ps"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/signal"
@@ -321,21 +322,25 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		return reports, nil
 	}
 
-	for _, c := range ctrs {
-		report := entities.RmReport{Id: c.ID()}
+	errMap, err := parallel.ParallelContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		err := ic.Libpod.RemoveContainer(ctx, c, options.Force, options.Volumes)
 		if err != nil {
 			if options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
 				logrus.Debugf("Ignoring error (--allow-missing): %v", err)
-				reports = append(reports, &report)
-				continue
+				return nil
 			}
 			logrus.Debugf("Failed to remove container %s: %s", c.ID(), err.Error())
-			report.Err = err
-			reports = append(reports, &report)
-			continue
 		}
-		reports = append(reports, &report)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	for ctr, err := range errMap {
+		report := new(entities.RmReport)
+		report.Id = ctr.ID()
+		report.Err = err
+		reports = append(reports, report)
 	}
 	return reports, nil
 }
