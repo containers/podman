@@ -7,6 +7,8 @@
 package seccomp // import "github.com/seccomp/containers-golang"
 
 import (
+	"syscall"
+
 	"golang.org/x/sys/unix"
 )
 
@@ -45,6 +47,8 @@ func arches() []Architecture {
 
 // DefaultProfile defines the whitelist for the default seccomp profile.
 func DefaultProfile() *Seccomp {
+	einval := uint(syscall.EINVAL)
+
 	syscalls := []*Syscall{
 		{
 			Names: []string{
@@ -313,7 +317,6 @@ func DefaultProfile() *Seccomp {
 				"signalfd",
 				"signalfd4",
 				"sigreturn",
-				"socket",
 				"socketcall",
 				"socketpair",
 				"splice",
@@ -650,6 +653,85 @@ func DefaultProfile() *Seccomp {
 			Args:   []*Arg{},
 			Includes: Filter{
 				Caps: []string{"CAP_SYS_TTY_CONFIG"},
+			},
+		},
+		{
+			Names: []string{
+				"socket",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &einval,
+			Args: []*Arg{
+				{
+					Index: 0,
+					Value: syscall.AF_NETLINK,
+					Op:    OpEqualTo,
+				},
+				{
+					Index: 2,
+					Value: syscall.NETLINK_AUDIT,
+					Op:    OpEqualTo,
+				},
+			},
+			Excludes: Filter{
+				Caps: []string{"CAP_AUDIT_WRITE"},
+			},
+		},
+		{
+			Names: []string{
+				"socket",
+			},
+			Action: ActAllow,
+			Args: []*Arg{
+				{
+					Index: 2,
+					Value: syscall.NETLINK_AUDIT,
+					Op:    OpNotEqual,
+				},
+			},
+			Excludes: Filter{
+				Caps: []string{"CAP_AUDIT_WRITE"},
+			},
+		},
+		{
+			Names: []string{
+				"socket",
+			},
+			Action: ActAllow,
+			Args: []*Arg{
+				{
+					Index: 0,
+					Value: syscall.AF_NETLINK,
+					Op:    OpNotEqual,
+				},
+			},
+			Excludes: Filter{
+				Caps: []string{"CAP_AUDIT_WRITE"},
+			},
+		},
+		{
+			Names: []string{
+				"socket",
+			},
+			Action: ActAllow,
+			Args: []*Arg{
+				{
+					Index: 2,
+					Value: syscall.NETLINK_AUDIT,
+					Op:    OpNotEqual,
+				},
+			},
+			Excludes: Filter{
+				Caps: []string{"CAP_AUDIT_WRITE"},
+			},
+		},
+		{
+			Names: []string{
+				"socket",
+			},
+			Action: ActAllow,
+			Includes: Filter{
+				Caps: []string{"CAP_AUDIT_WRITE"},
 			},
 		},
 	}
