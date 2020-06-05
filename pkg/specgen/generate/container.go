@@ -194,7 +194,7 @@ func finishThrottleDevices(s *specgen.SpecGenerator) error {
 			s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice, v)
 		}
 	}
-	if iops := s.ThrottleWriteBpsDevice; len(iops) > 0 {
+	if iops := s.ThrottleWriteIOPSDevice; len(iops) > 0 {
 		for k, v := range iops {
 			statT := unix.Stat_t{}
 			if err := unix.Stat(k, &statT); err != nil {
