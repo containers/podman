@@ -162,32 +162,33 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
 	}
-	for _, con := range ctrs {
-		report := entities.StopReport{Id: con.ID()}
-		err = con.StopWithTimeout(options.Timeout)
-		if err != nil {
-			// These first two are considered non-fatal under the right conditions
-			if errors.Cause(err) == define.ErrCtrStopped {
-				logrus.Debugf("Container %s is already stopped", con.ID())
-				reports = append(reports, &report)
-				continue
-
-			} else if options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
-				logrus.Debugf("Container %s is not running, could not stop", con.ID())
-				reports = append(reports, &report)
-				continue
-			}
-			report.Err = err
-			reports = append(reports, &report)
-			continue
-		} else if err := con.Cleanup(ctx); err != nil {
-			// Only if no error, proceed to cleanup to ensure all
-			// mounts are removed before we exit.
-			report.Err = err
-			reports = append(reports, &report)
-			continue
+	errMap, err := parallel.ParallelContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+		var err error
+		if options.Timeout != nil {
+			err = c.StopWithTimeout(*options.Timeout)
+		} else {
+			err = c.Stop()
 		}
-		reports = append(reports, &report)
+		if err != nil {
+			switch {
+			case errors.Cause(err) == define.ErrCtrStopped:
+				logrus.Debugf("Container %s is already stopped", c.ID())
+			case options.All && errors.Cause(err) == define.ErrCtrStateInvalid:
+				logrus.Debugf("Container %s is not running, could not stop", c.ID())
+			default:
+				return err
+			}
+		}
+		return c.Cleanup(ctx)
+	})
+	if err != nil {
+		return nil, err
+	}
+	for ctr, err := range errMap {
+		report := new(entities.StopReport)
+		report.Id = ctr.ID()
+		report.Err = err
+		reports = append(reports, report)
 	}
 	return reports, nil
 }
