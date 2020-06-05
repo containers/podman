@@ -104,7 +104,7 @@ func kube(cmd *cobra.Command, args []string) error {
 
 		switch len(pod.Containers) {
 		case 0:
-			return nil
+			continue
 		case 1:
 			fmt.Printf("Container:\n")
 		default:
