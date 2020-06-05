@@ -50,7 +50,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"Drop capabilities from the container",
 	)
 	createFlags.String(
-		"cgroupns", containerConfig.CgroupNS(),
+		"cgroupns", "",
 		"cgroup namespace to use",
 	)
 	createFlags.StringVar(
@@ -244,7 +244,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"Keep STDIN open even if not attached",
 	)
 	createFlags.String(
-		"ipc", containerConfig.IPCNS(),
+		"ipc", "",
 		"IPC namespace to use",
 	)
 	createFlags.StringVar(
@@ -325,7 +325,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	// markFlagHidden(createFlags, "override-os")
 	createFlags.String(
-		"pid", containerConfig.PidNS(),
+		"pid", "",
 		"PID namespace to use",
 	)
 	createFlags.Int64Var(
@@ -454,11 +454,11 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
 	createFlags.String(
-		"userns", containerConfig.Containers.UserNS,
+		"userns", "",
 		"User namespace to use",
 	)
 	createFlags.String(
-		"uts", containerConfig.Containers.UTSNS,
+		"uts", "",
 		"UTS namespace to use",
 	)
 	createFlags.StringArrayVar(

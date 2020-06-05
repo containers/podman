@@ -171,6 +171,11 @@ func (p *Pod) SharesCgroup() bool {
 	return p.config.UsePodCgroupNS
 }
 
+// Hostname returns the hostname of the pod.
+func (p *Pod) Hostname() string {
+	return p.config.Hostname
+}
+
 // CgroupPath returns the path to the pod's CGroup
 func (p *Pod) CgroupPath() (string, error) {
 	p.lock.Lock()

@@ -118,7 +118,7 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 	return finalCommand, nil
 }
 
-func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount) (*spec.Spec, error) {
+func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount, pod *libpod.Pod) (*spec.Spec, error) {
 	var (
 		inUserNS bool
 	)
@@ -300,7 +300,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 
 	// NAMESPACES
-	if err := specConfigureNamespaces(s, &g, rt); err != nil {
+	if err := specConfigureNamespaces(s, &g, rt, pod); err != nil {
 		return nil, err
 	}
 	configSpec := g.Config
