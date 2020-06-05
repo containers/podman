@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -285,16 +284,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		s.NetNS = c.Net.Network
 	}
 
-	// STOP SIGNAL
-	signalString := "TERM"
 	if sig := c.StopSignal; len(sig) > 0 {
-		signalString = sig
+		stopSignal, err := util.ParseSignal(sig)
+		if err != nil {
+			return err
+		}
+		s.StopSignal = &stopSignal
 	}
-	stopSignal, err := util.ParseSignal(signalString)
-	if err != nil {
-		return err
-	}
-	s.StopSignal = &stopSignal
 
 	// ENVIRONMENT VARIABLES
 	//
@@ -439,25 +435,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		s.ImageVolumeMode = "anonymous"
 	}
 
-	systemd := c.SystemdD == "always"
-	if !systemd && command != nil {
-		x, err := strconv.ParseBool(c.SystemdD)
-		if err != nil {
-			return errors.Wrapf(err, "cannot parse bool %s", c.SystemdD)
-		}
-		if x && (command[0] == "/usr/sbin/init" || command[0] == "/sbin/init" || (filepath.Base(command[0]) == "systemd")) {
-			systemd = true
-		}
-	}
-	if systemd {
-		if s.StopSignal == nil {
-			stopSignal, err = util.ParseSignal("RTMIN+3")
-			if err != nil {
-				return errors.Wrapf(err, "error parsing systemd signal")
-			}
-			s.StopSignal = &stopSignal
-		}
-	}
+	s.Systemd = c.Systemd
 	if s.ResourceLimits == nil {
 		s.ResourceLimits = &specs.LinuxResources{}
 	}

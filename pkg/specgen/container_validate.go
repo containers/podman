@@ -38,7 +38,7 @@ func (s *SpecGenerator) Validate() error {
 	}
 	// systemd values must be true, false, or always
 	if len(s.ContainerBasicConfig.Systemd) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerBasicConfig.Systemd), SystemDValues) {
-		return errors.Wrapf(ErrInvalidSpecConfig, "SystemD values must be one of %s", strings.Join(SystemDValues, ","))
+		return errors.Wrapf(ErrInvalidSpecConfig, "--systemd values must be one of %q", strings.Join(SystemDValues, ", "))
 	}
 
 	//
