@@ -129,6 +129,12 @@ func (p *Pod) CreatedTime() time.Time {
 	return p.config.CreatedTime
 }
 
+// CreateCommand returns the os.Args of the process with which the pod has been
+// created.
+func (p *Pod) CreateCommand() []string {
+	return p.config.CreateCommand
+}
+
 // CgroupParent returns the pod's CGroup parent
 func (p *Pod) CgroupParent() string {
 	return p.config.CgroupParent
