@@ -2,31 +2,33 @@ package generate
 
 import (
 	"testing"
+
+	"github.com/containers/libpod/pkg/domain/entities"
 )
 
 func TestValidateRestartPolicy(t *testing.T) {
-	type ContainerInfo struct {
+	type containerInfo struct {
 		restart string
 	}
 	tests := []struct {
 		name          string
-		ContainerInfo ContainerInfo
+		containerInfo containerInfo
 		wantErr       bool
 	}{
-		{"good-on", ContainerInfo{restart: "no"}, false},
-		{"good-on-success", ContainerInfo{restart: "on-success"}, false},
-		{"good-on-failure", ContainerInfo{restart: "on-failure"}, false},
-		{"good-on-abnormal", ContainerInfo{restart: "on-abnormal"}, false},
-		{"good-on-watchdog", ContainerInfo{restart: "on-watchdog"}, false},
-		{"good-on-abort", ContainerInfo{restart: "on-abort"}, false},
-		{"good-always", ContainerInfo{restart: "always"}, false},
-		{"fail", ContainerInfo{restart: "foobar"}, true},
-		{"failblank", ContainerInfo{restart: ""}, true},
+		{"good-on", containerInfo{restart: "no"}, false},
+		{"good-on-success", containerInfo{restart: "on-success"}, false},
+		{"good-on-failure", containerInfo{restart: "on-failure"}, false},
+		{"good-on-abnormal", containerInfo{restart: "on-abnormal"}, false},
+		{"good-on-watchdog", containerInfo{restart: "on-watchdog"}, false},
+		{"good-on-abort", containerInfo{restart: "on-abort"}, false},
+		{"good-always", containerInfo{restart: "always"}, false},
+		{"fail", containerInfo{restart: "foobar"}, true},
+		{"failblank", containerInfo{restart: ""}, true},
 	}
 	for _, tt := range tests {
 		test := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateRestartPolicy(test.ContainerInfo.restart); (err != nil) != test.wantErr {
+			if err := validateRestartPolicy(test.containerInfo.restart); (err != nil) != test.wantErr {
 				t.Errorf("ValidateRestartPolicy() error = %v, wantErr %v", err, test.wantErr)
 			}
 		})
@@ -195,67 +197,67 @@ WantedBy=multi-user.target default.target`
 
 	tests := []struct {
 		name    string
-		info    ContainerInfo
+		info    containerInfo
 		want    string
 		wantErr bool
 	}{
 
 		{"good with id",
-			ContainerInfo{
-				Executable:    "/usr/bin/podman",
-				ServiceName:   "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
-				ContainerName: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
-				RestartPolicy: "always",
-				PIDFile:       "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:   10,
-				PodmanVersion: "CI",
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
+				ContainerNameOrID: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
+				RestartPolicy:     "always",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       10,
+				PodmanVersion:     "CI",
 			},
 			goodID,
 			false,
 		},
 		{"good with name",
-			ContainerInfo{
-				Executable:    "/usr/bin/podman",
-				ServiceName:   "container-foobar",
-				ContainerName: "foobar",
-				RestartPolicy: "always",
-				PIDFile:       "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:   10,
-				PodmanVersion: "CI",
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "container-foobar",
+				ContainerNameOrID: "foobar",
+				RestartPolicy:     "always",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       10,
+				PodmanVersion:     "CI",
 			},
 			goodName,
 			false,
 		},
 		{"good with name and bound to",
-			ContainerInfo{
-				Executable:      "/usr/bin/podman",
-				ServiceName:     "container-foobar",
-				ContainerName:   "foobar",
-				RestartPolicy:   "always",
-				PIDFile:         "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:     10,
-				PodmanVersion:   "CI",
-				BoundToServices: []string{"pod", "a", "b", "c"},
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "container-foobar",
+				ContainerNameOrID: "foobar",
+				RestartPolicy:     "always",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       10,
+				PodmanVersion:     "CI",
+				BoundToServices:   []string{"pod", "a", "b", "c"},
 			},
 			goodNameBoundTo,
 			false,
 		},
 		{"pod",
-			ContainerInfo{
-				Executable:       "/usr/bin/podman",
-				ServiceName:      "pod-123abc",
-				ContainerName:    "jadda-jadda-infra",
-				RestartPolicy:    "always",
-				PIDFile:          "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:      10,
-				PodmanVersion:    "CI",
-				RequiredServices: []string{"container-1", "container-2"},
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "pod-123abc",
+				ContainerNameOrID: "jadda-jadda-infra",
+				RestartPolicy:     "always",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       10,
+				PodmanVersion:     "CI",
+				RequiredServices:  []string{"container-1", "container-2"},
 			},
 			podGoodName,
 			false,
 		},
 		{"bad restart policy",
-			ContainerInfo{
+			containerInfo{
 				Executable:    "/usr/bin/podman",
 				ServiceName:   "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				RestartPolicy: "never",
@@ -267,61 +269,61 @@ WantedBy=multi-user.target default.target`
 			true,
 		},
 		{"good with name and generic",
-			ContainerInfo{
-				Executable:    "/usr/bin/podman",
-				ServiceName:   "jadda-jadda",
-				ContainerName: "jadda-jadda",
-				RestartPolicy: "always",
-				PIDFile:       "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:   42,
-				PodmanVersion: "CI",
-				New:           true,
-				CreateCommand: []string{"I'll get stripped", "container", "run", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "jadda-jadda",
+				ContainerNameOrID: "jadda-jadda",
+				RestartPolicy:     "always",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       42,
+				PodmanVersion:     "CI",
+				New:               true,
+				CreateCommand:     []string{"I'll get stripped", "container", "run", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 			},
 			goodNameNew,
 			false,
 		},
 		{"good with explicit short detach param",
-			ContainerInfo{
-				Executable:    "/usr/bin/podman",
-				ServiceName:   "jadda-jadda",
-				ContainerName: "jadda-jadda",
-				RestartPolicy: "always",
-				PIDFile:       "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:   42,
-				PodmanVersion: "CI",
-				New:           true,
-				CreateCommand: []string{"I'll get stripped", "container", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "jadda-jadda",
+				ContainerNameOrID: "jadda-jadda",
+				RestartPolicy:     "always",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       42,
+				PodmanVersion:     "CI",
+				New:               true,
+				CreateCommand:     []string{"I'll get stripped", "container", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 			},
 			goodNameNew,
 			false,
 		},
 		{"good with explicit full detach param",
-			ContainerInfo{
-				Executable:    "/usr/bin/podman",
-				ServiceName:   "jadda-jadda",
-				ContainerName: "jadda-jadda",
-				RestartPolicy: "always",
-				PIDFile:       "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:   42,
-				PodmanVersion: "CI",
-				New:           true,
-				CreateCommand: []string{"I'll get stripped", "container", "run", "--detach", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "jadda-jadda",
+				ContainerNameOrID: "jadda-jadda",
+				RestartPolicy:     "always",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       42,
+				PodmanVersion:     "CI",
+				New:               true,
+				CreateCommand:     []string{"I'll get stripped", "container", "run", "--detach", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 			},
 			goodNameNewDetach,
 			false,
 		},
 		{"good with id and no param",
-			ContainerInfo{
-				Executable:    "/usr/bin/podman",
-				ServiceName:   "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
-				ContainerName: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
-				RestartPolicy: "always",
-				PIDFile:       "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:   10,
-				PodmanVersion: "CI",
-				New:           true,
-				CreateCommand: []string{"I'll get stripped", "container", "run", "awesome-image:latest"},
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
+				ContainerNameOrID: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
+				RestartPolicy:     "always",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       10,
+				PodmanVersion:     "CI",
+				New:               true,
+				CreateCommand:     []string{"I'll get stripped", "container", "run", "awesome-image:latest"},
 			},
 			goodIDNew,
 			false,
@@ -330,11 +332,11 @@ WantedBy=multi-user.target default.target`
 	for _, tt := range tests {
 		test := tt
 		t.Run(tt.name, func(t *testing.T) {
-			opts := Options{
+			opts := entities.GenerateSystemdOptions{
 				Files: false,
 				New:   test.info.New,
 			}
-			got, err := CreateContainerSystemdUnit(&test.info, opts)
+			got, err := createContainerSystemdUnit(&test.info, opts)
 			if (err != nil) != test.wantErr {
 				t.Errorf("CreateContainerSystemdUnit() error = \n%v, wantErr \n%v", err, test.wantErr)
 				return

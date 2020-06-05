@@ -257,6 +257,20 @@ func (p *Pod) InfraContainerID() (string, error) {
 	return p.state.InfraContainerID, nil
 }
 
+// InfraContainer returns the infra container.
+func (p *Pod) InfraContainer() (*Container, error) {
+	if !p.HasInfraContainer() {
+		return nil, errors.New("pod has no infra container")
+	}
+
+	id, err := p.InfraContainerID()
+	if err != nil {
+		return nil, err
+	}
+
+	return p.runtime.state.Container(id)
+}
+
 // TODO add pod batching
 // Lock pod to avoid lock contention
 // Store and lock all containers (no RemoveContainer in batch guarantees cache will not become stale)
