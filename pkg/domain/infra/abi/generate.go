@@ -40,7 +40,7 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	// We're either having a pod or garbage.
 	pod, err := ic.Libpod.LookupPod(nameOrID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("%q does not refer to a container or pod", nameOrID)
 	}
 
 	// Error out if the pod has no infra container, which we require to be the
