@@ -260,7 +260,7 @@ func (p *Pod) InfraContainerID() (string, error) {
 // InfraContainer returns the infra container.
 func (p *Pod) InfraContainer() (*Container, error) {
 	if !p.HasInfraContainer() {
-		return nil, errors.New("pod has no infra container")
+		return nil, errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
 	}
 
 	id, err := p.InfraContainerID()

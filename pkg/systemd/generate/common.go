@@ -34,3 +34,17 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
 `
+
+// filterPodFlags removes --pod and --pod-id-file from the specified command.
+func filterPodFlags(command []string) []string {
+	processed := []string{}
+	for i := 0; i < len(command); i++ {
+		s := command[i]
+		if s == "--pod" || s == "--pod-id-file" {
+			i += 1
+			continue
+		}
+		processed = append(processed, s)
+	}
+	return processed
+}

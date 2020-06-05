@@ -33,14 +33,13 @@ type containerInfo struct {
 	// PIDFile of the service. Required for forking services. Must point to the
 	// PID of the associated conmon process.
 	PIDFile string
+	// ContainerIDFile to be used in the unit.
+	ContainerIDFile string
 	// GenerateTimestamp, if set the generated unit file has a time stamp.
 	GenerateTimestamp bool
 	// BoundToServices are the services this service binds to.  Note that this
 	// service runs after them.
 	BoundToServices []string
-	// RequiredServices are services this service requires. Note that this
-	// service runs before them.
-	RequiredServices []string
 	// PodmanVersion for the header. Will be set internally. Will be auto-filled
 	// if left empty.
 	PodmanVersion string
@@ -49,16 +48,23 @@ type containerInfo struct {
 	Executable string
 	// TimeStamp at the time of creating the unit file. Will be set internally.
 	TimeStamp string
-	// New controls if a new container is created or if an existing one is started.
-	New bool
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string
-	// RunCommand is a post-processed variant of CreateCommand and used for
-	// the ExecStart field in generic unit files.
-	RunCommand string
 	// EnvVariable is generate.EnvVariable and must not be set.
 	EnvVariable string
+	// ExecStartPre of the unit.
+	ExecStartPre string
+	// ExecStart of the unit.
+	ExecStart string
+	// ExecStop of the unit.
+	ExecStop string
+	// ExecStopPost of the unit.
+	ExecStopPost string
+
+	// If not nil, the container is part of the pod.  We can use the
+	// podInfo to extract the relevant data.
+	pod *podInfo
 }
 
 const containerTemplate = headerTemplate + `
@@ -68,25 +74,19 @@ RefuseManualStop=yes
 BindsTo={{- range $index, $value := .BoundToServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
 After={{- range $index, $value := .BoundToServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
 {{- end}}
-{{- if .RequiredServices}}
-Requires={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
-Before={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
-{{- end}}
 
 [Service]
 Environment={{.EnvVariable}}=%n
 Restart={{.RestartPolicy}}
-{{- if .New}}
-ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-ctr-id
-ExecStart={{.RunCommand}}
-ExecStop={{.Executable}} stop --ignore --cidfile %t/%n-ctr-id {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}
-ExecStopPost={{.Executable}} rm --ignore -f --cidfile %t/%n-ctr-id
-PIDFile=%t/%n-pid
-{{- else}}
-ExecStart={{.Executable}} start {{.ContainerNameOrID}}
-ExecStop={{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.ContainerNameOrID}}
-PIDFile={{.PIDFile}}
+{{- if .ExecStartPre}}
+ExecStartPre={{.ExecStartPre}}
 {{- end}}
+ExecStart={{.ExecStart}}
+ExecStop={{.ExecStop}}
+{{- if .ExecStopPost}}
+ExecStopPost={{.ExecStopPost}}
+{{- end}}
+PIDFile={{.PIDFile}}
 KillMode=none
 Type=forking
 
@@ -101,114 +101,7 @@ func ContainerUnit(ctr *libpod.Container, options entities.GenerateSystemdOption
 	if err != nil {
 		return "", err
 	}
-	return createContainerSystemdUnit(info, options)
-}
-
-// createContainerSystemdUnit creates a systemd unit file for a container.
-func createContainerSystemdUnit(info *containerInfo, options entities.GenerateSystemdOptions) (string, error) {
-	if err := validateRestartPolicy(info.RestartPolicy); err != nil {
-		return "", err
-	}
-
-	// Make sure the executable is set.
-	if info.Executable == "" {
-		executable, err := os.Executable()
-		if err != nil {
-			executable = "/usr/bin/podman"
-			logrus.Warnf("Could not obtain podman executable location, using default %s", executable)
-		}
-		info.Executable = executable
-	}
-
-	info.EnvVariable = EnvVariable
-
-	// Assemble the ExecStart command when creating a new container.
-	//
-	// Note that we cannot catch all corner cases here such that users
-	// *must* manually check the generated files.  A container might have
-	// been created via a Python script, which would certainly yield an
-	// invalid `info.CreateCommand`.  Hence, we're doing a best effort unit
-	// generation and don't try aiming at completeness.
-	if options.New {
-		// The create command must at least have three arguments:
-		// 	/usr/bin/podman run $IMAGE
-		index := 2
-		if info.CreateCommand[1] == "container" {
-			index = 3
-		}
-		if len(info.CreateCommand) < index+1 {
-			return "", errors.Errorf("container's create command is too short or invalid: %v", info.CreateCommand)
-		}
-		// We're hard-coding the first five arguments and append the
-		// CreateCommand with a stripped command and subcomand.
-		command := []string{
-			info.Executable,
-			"run",
-			"--conmon-pidfile", "%t/%n-pid",
-			"--cidfile", "%t/%n-ctr-id",
-			"--cgroups=no-conmon",
-		}
-
-		// Enforce detaching
-		//
-		// since we use systemd `Type=forking` service
-		// @see https://www.freedesktop.org/software/systemd/man/systemd.service.html#Type=
-		// when we generated systemd service file with the --new param,
-		// `ExecStart` will have `/usr/bin/podman run ...`
-		// if `info.CreateCommand` has no `-d` or `--detach` param,
-		// podman will run the container in default attached mode,
-		// as a result, `systemd start` will wait the `podman run` command exit until failed with timeout error.
-		hasDetachParam := false
-		for _, p := range info.CreateCommand[index:] {
-			if p == "--detach" || p == "-d" {
-				hasDetachParam = true
-			}
-		}
-		if !hasDetachParam {
-			command = append(command, "-d")
-		}
-
-		command = append(command, info.CreateCommand[index:]...)
-		info.RunCommand = strings.Join(command, " ")
-		info.New = true
-	}
-
-	if info.PodmanVersion == "" {
-		info.PodmanVersion = version.Version
-	}
-	if info.GenerateTimestamp {
-		info.TimeStamp = fmt.Sprintf("%v", time.Now().Format(time.UnixDate))
-	}
-
-	// Sort the slices to assure a deterministic output.
-	sort.Strings(info.RequiredServices)
-	sort.Strings(info.BoundToServices)
-
-	// Generate the template and compile it.
-	templ, err := template.New("systemd_service_file").Parse(containerTemplate)
-	if err != nil {
-		return "", errors.Wrap(err, "error parsing systemd service template")
-	}
-
-	var buf bytes.Buffer
-	if err := templ.Execute(&buf, info); err != nil {
-		return "", err
-	}
-
-	if !options.Files {
-		return buf.String(), nil
-	}
-
-	buf.WriteByte('\n')
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", errors.Wrap(err, "error getting current working directory")
-	}
-	path := filepath.Join(cwd, fmt.Sprintf("%s.service", info.ServiceName))
-	if err := ioutil.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		return "", errors.Wrap(err, "error generating systemd unit")
-	}
-	return path, nil
+	return executeContainerTemplate(info, options)
 }
 
 func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSystemdOptions) (*containerInfo, error) {
@@ -241,6 +134,7 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		GenerateTimestamp: true,
 		CreateCommand:     createCommand,
 	}
+
 	return &info, nil
 }
 
@@ -253,4 +147,143 @@ func containerServiceName(ctr *libpod.Container, options entities.GenerateSystem
 	}
 	serviceName := fmt.Sprintf("%s%s%s", options.ContainerPrefix, options.Separator, nameOrID)
 	return nameOrID, serviceName
+}
+
+// executeContainerTemplate executes the container template on the specified
+// containerInfo.  Note that the containerInfo is also post processed and
+// completed, which allows for an easier unit testing.
+func executeContainerTemplate(info *containerInfo, options entities.GenerateSystemdOptions) (string, error) {
+	if err := validateRestartPolicy(info.RestartPolicy); err != nil {
+		return "", err
+	}
+
+	// Make sure the executable is set.
+	if info.Executable == "" {
+		executable, err := os.Executable()
+		if err != nil {
+			executable = "/usr/bin/podman"
+			logrus.Warnf("Could not obtain podman executable location, using default %s", executable)
+		}
+		info.Executable = executable
+	}
+
+	info.EnvVariable = EnvVariable
+	info.ExecStart = "{{.Executable}} start {{.ContainerNameOrID}}"
+	info.ExecStop = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.ContainerNameOrID}}"
+
+	// Assemble the ExecStart command when creating a new container.
+	//
+	// Note that we cannot catch all corner cases here such that users
+	// *must* manually check the generated files.  A container might have
+	// been created via a Python script, which would certainly yield an
+	// invalid `info.CreateCommand`.  Hence, we're doing a best effort unit
+	// generation and don't try aiming at completeness.
+	if options.New {
+		info.PIDFile = "%t/" + info.ServiceName + ".pid"
+		info.ContainerIDFile = "%t/" + info.ServiceName + ".ctr-id"
+		// The create command must at least have three arguments:
+		// 	/usr/bin/podman run $IMAGE
+		index := 2
+		if info.CreateCommand[1] == "container" {
+			index = 3
+		}
+		if len(info.CreateCommand) < index+1 {
+			return "", errors.Errorf("container's create command is too short or invalid: %v", info.CreateCommand)
+		}
+		// We're hard-coding the first five arguments and append the
+		// CreateCommand with a stripped command and subcomand.
+		startCommand := []string{
+			info.Executable,
+			"run",
+			"--conmon-pidfile", "{{.PIDFile}}",
+			"--cidfile", "{{.ContainerIDFile}}",
+			"--cgroups=no-conmon",
+		}
+		// If the container is in a pod, make sure that the
+		// --pod-id-file is set correctly.
+		if info.pod != nil {
+			podFlags := []string{"--pod-id-file", info.pod.PodIDFile}
+			startCommand = append(startCommand, podFlags...)
+			info.CreateCommand = filterPodFlags(info.CreateCommand)
+		}
+
+		// Enforce detaching
+		//
+		// since we use systemd `Type=forking` service
+		// @see https://www.freedesktop.org/software/systemd/man/systemd.service.html#Type=
+		// when we generated systemd service file with the --new param,
+		// `ExecStart` will have `/usr/bin/podman run ...`
+		// if `info.CreateCommand` has no `-d` or `--detach` param,
+		// podman will run the container in default attached mode,
+		// as a result, `systemd start` will wait the `podman run` command exit until failed with timeout error.
+		hasDetachParam := false
+		for _, p := range info.CreateCommand[index:] {
+			if p == "--detach" || p == "-d" {
+				hasDetachParam = true
+			}
+		}
+		if !hasDetachParam {
+			startCommand = append(startCommand, "-d")
+		}
+		startCommand = append(startCommand, info.CreateCommand[index:]...)
+
+		info.ExecStartPre = "/usr/bin/rm -f {{.PIDFile}} {{.ContainerIDFile}}"
+		info.ExecStart = strings.Join(startCommand, " ")
+		info.ExecStop = "{{.Executable}} stop --ignore --cidfile {{.ContainerIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
+		info.ExecStopPost = "{{.Executable}} rm --ignore -f --cidfile {{.ContainerIDFile}}"
+	}
+
+	if info.PodmanVersion == "" {
+		info.PodmanVersion = version.Version
+	}
+	if info.GenerateTimestamp {
+		info.TimeStamp = fmt.Sprintf("%v", time.Now().Format(time.UnixDate))
+	}
+
+	// Sort the slices to assure a deterministic output.
+	sort.Strings(info.BoundToServices)
+
+	// Generate the template and compile it.
+	//
+	// Note that we need a two-step generation process to allow for fields
+	// embedding other fields.  This way we can replace `A -> B -> C` and
+	// make the code easier to maintain at the cost of a slightly slower
+	// generation.  That's especially needed for embedding the PID and ID
+	// files in other fields which will eventually get replaced in the 2nd
+	// template execution.
+	templ, err := template.New("container_template").Parse(containerTemplate)
+	if err != nil {
+		return "", errors.Wrap(err, "error parsing systemd service template")
+	}
+
+	var buf bytes.Buffer
+	if err := templ.Execute(&buf, info); err != nil {
+		return "", err
+	}
+
+	// Now parse the generated template (i.e., buf) and execute it.
+	templ, err = template.New("container_template").Parse(buf.String())
+	if err != nil {
+		return "", errors.Wrap(err, "error parsing systemd service template")
+	}
+
+	buf = bytes.Buffer{}
+	if err := templ.Execute(&buf, info); err != nil {
+		return "", err
+	}
+
+	if !options.Files {
+		return buf.String(), nil
+	}
+
+	buf.WriteByte('\n')
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", errors.Wrap(err, "error getting current working directory")
+	}
+	path := filepath.Join(cwd, fmt.Sprintf("%s.service", info.ServiceName))
+	if err := ioutil.WriteFile(path, buf.Bytes(), 0644); err != nil {
+		return "", errors.Wrap(err, "error generating systemd unit")
+	}
+	return path, nil
 }
