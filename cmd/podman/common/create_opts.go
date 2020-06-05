@@ -85,7 +85,7 @@ type ContainerCLIOpts struct {
 	SubUIDName        string
 	SubGIDName        string
 	Sysctl            []string
-	SystemdD          string
+	Systemd           string
 	TmpFS             []string
 	TTY               bool
 	UIDMap            []string

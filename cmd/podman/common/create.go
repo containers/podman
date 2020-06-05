@@ -424,7 +424,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"Sysctl options",
 	)
 	createFlags.StringVar(
-		&cf.SystemdD,
+		&cf.Systemd,
 		"systemd", "true",
 		`Run container in systemd mode ("true"|"false"|"always")`,
 	)

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/pkg/cgroups"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -82,13 +81,6 @@ WantedBy=multi-user.target
 	})
 
 	It("podman run container with systemd PID1", func() {
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-		if cgroupsv2 {
-			// TODO: Find a way to enable this for v2
-			Skip("systemd test does not work in cgroups V2 mode yet")
-		}
-
 		systemdImage := "fedora"
 		pull := podmanTest.Podman([]string{"pull", systemdImage})
 		pull.WaitWithDefaultTimeout()

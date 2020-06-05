@@ -3,12 +3,14 @@ package generate
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -128,7 +130,41 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.Stdin {
 		options = append(options, libpod.WithStdin())
 	}
-	if len(s.Systemd) > 0 {
+
+	useSystemd := false
+	switch s.Systemd {
+	case "always":
+		useSystemd = true
+	case "false":
+		break
+	case "", "true":
+		command := s.Command
+		if len(command) == 0 {
+			command, err = img.Cmd(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if len(command) > 0 {
+			if command[0] == "/usr/sbin/init" || command[0] == "/sbin/init" || (filepath.Base(command[0]) == "systemd") {
+				useSystemd = true
+			}
+		}
+	default:
+		return nil, errors.Wrapf(err, "invalid value %q systemd option requires 'true, false, always'", s.Systemd)
+	}
+	if useSystemd {
+		// is StopSignal was not set by the user then set it to systemd
+		// expected StopSigal
+		if s.StopSignal == nil {
+			stopSignal, err := util.ParseSignal("RTMIN+3")
+			if err != nil {
+				return nil, errors.Wrapf(err, "error parsing systemd signal")
+			}
+			s.StopSignal = &stopSignal
+		}
+
 		options = append(options, libpod.WithSystemd())
 	}
 	if len(s.Name) > 0 {
