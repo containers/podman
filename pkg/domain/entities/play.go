@@ -26,8 +26,9 @@ type PlayKubeOptions struct {
 	SeccompProfileRoot string
 }
 
-// PlayKubePods represents a single pod and associated containers created by play kube
+// PlayKubePod represents a single pod and associated containers created by play kube
 type PlayKubePod struct {
+	// ID - ID of the pod created as a result of play kube.
 	ID string
 	// Containers - the IDs of the containers running in the created pod.
 	Containers []string
