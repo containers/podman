@@ -592,3 +592,30 @@ _eof
 
 In order to effect root running containers and all users, modify the system
 wide defaults in /etc/containers/containers.conf
+
+### 24) Error: error creating libpod runtime: error configuring CNI network plugin: could not create new watcher too many open files when running a command.
+
+An unexpected open file error occurs using simple Podman commands when the file size is not set appropriately for the system based on the number of open files that reside on the system.
+
+#### Symptom
+
+When running a Podman command, a runtime error about too many open files is received.
+
+```
+# podman ps
+Error: error creating libpod runtime: error configuring CNI network plugin: could not create new watcher too many open files
+```
+
+#### Solution
+
+The following values in sytemctl need to be raised to higher values, the below values are not set in stone.
+
+```
+fs.inotify.max_queued_events = 1048576
+fs.inotify.max_user_instances = 1048576
+fs.inotify.max_user_watches = 1048576
+```
+
+Use the `sysctl -a` command to determine your current settings and make note of them.  Then use the command `sysctl -w {variable-name=value}` to set the value for each.  Note that these values will be lost at the next system reboot unless you add the above three lines to `/etc/sysctl.conf` and use the command `sysctl -p` to make the change permanent.
+
+SYSCTL(8)
