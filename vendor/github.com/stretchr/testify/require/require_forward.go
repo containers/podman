@@ -7,7 +7,6 @@ package require
 
 import (
 	assert "github.com/stretchr/testify/assert"
-	io "io"
 	http "net/http"
 	url "net/url"
 	time "time"
@@ -387,11 +386,11 @@ func (a *Assertions) Greaterf(e1 interface{}, e2 interface{}, msg string, args .
 //  a.HTTPBodyContains(myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky")
 //
 // Returns whether the assertion was successful (true) or not (false).
-func (a *Assertions) HTTPBodyContains(handler http.HandlerFunc, method string, url string, values url.Values, body io.Reader, str interface{}, msgAndArgs ...interface{}) {
+func (a *Assertions) HTTPBodyContains(handler http.HandlerFunc, method string, url string, values url.Values, str interface{}, msgAndArgs ...interface{}) {
 	if h, ok := a.t.(tHelper); ok {
 		h.Helper()
 	}
-	HTTPBodyContains(a.t, handler, method, url, values, body, str, msgAndArgs...)
+	HTTPBodyContains(a.t, handler, method, url, values, str, msgAndArgs...)
 }
 
 // HTTPBodyContainsf asserts that a specified handler returns a
@@ -400,11 +399,11 @@ func (a *Assertions) HTTPBodyContains(handler http.HandlerFunc, method string, u
 //  a.HTTPBodyContainsf(myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky", "error message %s", "formatted")
 //
 // Returns whether the assertion was successful (true) or not (false).
-func (a *Assertions) HTTPBodyContainsf(handler http.HandlerFunc, method string, url string, values url.Values, body io.Reader, str interface{}, msg string, args ...interface{}) {
+func (a *Assertions) HTTPBodyContainsf(handler http.HandlerFunc, method string, url string, values url.Values, str interface{}, msg string, args ...interface{}) {
 	if h, ok := a.t.(tHelper); ok {
 		h.Helper()
 	}
-	HTTPBodyContainsf(a.t, handler, method, url, values, body, str, msg, args...)
+	HTTPBodyContainsf(a.t, handler, method, url, values, str, msg, args...)
 }
 
 // HTTPBodyNotContains asserts that a specified handler returns a
@@ -413,11 +412,11 @@ func (a *Assertions) HTTPBodyContainsf(handler http.HandlerFunc, method string, 
 //  a.HTTPBodyNotContains(myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky")
 //
 // Returns whether the assertion was successful (true) or not (false).
-func (a *Assertions) HTTPBodyNotContains(handler http.HandlerFunc, method string, url string, values url.Values, body io.Reader, str interface{}, msgAndArgs ...interface{}) {
+func (a *Assertions) HTTPBodyNotContains(handler http.HandlerFunc, method string, url string, values url.Values, str interface{}, msgAndArgs ...interface{}) {
 	if h, ok := a.t.(tHelper); ok {
 		h.Helper()
 	}
-	HTTPBodyNotContains(a.t, handler, method, url, values, body, str, msgAndArgs...)
+	HTTPBodyNotContains(a.t, handler, method, url, values, str, msgAndArgs...)
 }
 
 // HTTPBodyNotContainsf asserts that a specified handler returns a
@@ -426,11 +425,11 @@ func (a *Assertions) HTTPBodyNotContains(handler http.HandlerFunc, method string
 //  a.HTTPBodyNotContainsf(myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky", "error message %s", "formatted")
 //
 // Returns whether the assertion was successful (true) or not (false).
-func (a *Assertions) HTTPBodyNotContainsf(handler http.HandlerFunc, method string, url string, values url.Values, body io.Reader, str interface{}, msg string, args ...interface{}) {
+func (a *Assertions) HTTPBodyNotContainsf(handler http.HandlerFunc, method string, url string, values url.Values, str interface{}, msg string, args ...interface{}) {
 	if h, ok := a.t.(tHelper); ok {
 		h.Helper()
 	}
-	HTTPBodyNotContainsf(a.t, handler, method, url, values, body, str, msg, args...)
+	HTTPBodyNotContainsf(a.t, handler, method, url, values, str, msg, args...)
 }
 
 // HTTPError asserts that a specified handler returns an error status code.
