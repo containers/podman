@@ -167,32 +167,64 @@ env:
 
 ### `docs` Task
 
-Builds swagger API documentation YAML and uploads to google storage for both
-PR's (for testing the process) and after a merge into any branch.  For PR's
+Builds swagger API documentation YAML and uploads to google storage (an online
+service for storing unstructured data) for both
+PR's (for testing the process) and the master branch.  For PR's
 the YAML is uploaded into a [dedicated short-pruning cycle
-bucket.](https://storage.googleapis.com/libpod-pr-releases/)  For branches,
-a [separate bucket is
-used.](https://storage.googleapis.com/libpod-master-releases)
-In both cases the filename includes the source
-PR number or branch name.
+bucket.](https://storage.googleapis.com/libpod-pr-releases/) for testing purposes
+only.  For the master branch, a [separate bucket is
+used](https://storage.googleapis.com/libpod-master-releases) and provides the
+content rendered on [the API Reference page](https://docs.podman.io/en/latest/_static/api.html)
 
-***Note***: [The online documentation](http://docs.podman.io/en/latest/_static/api.html)
-is presented through javascript on the client-side.  This requires CORS to be properly
-configured on the bucket, for the `http://docs.podman.io` origin.  Please see
-[Configuring CORS on a bucket](https://cloud.google.com/storage/docs/configuring-cors#configure-cors-bucket)
-for details.  This may be performed by anybody with admin access to the google storage bucket,
-using the following JSON:
+The online API reference is presented by javascript to the client.  To prevent hijacking
+of the client by malicious data, the [javascript utilises CORS](https://cloud.google.com/storage/docs/cross-origin).
+This CORS metadata is served by `https://storage.googleapis.com` when configured correctly.
+It will appear in [the request and response headers from the
+client](https://cloud.google.com/storage/docs/configuring-cors#troubleshooting) when accessing
+the API reference page.
+
+However, when the CORS metadata is missing or incorrectly configured, clients will receive an
+error-message similar to:
+
+![Javascript Stack Trace Image](swagger_stack_trace.png)
+
+For documentation built by Read The Docs from the master branch, CORS metadata is
+set on the `libpod-master-releases` storage bucket.  Viewing or setting the CORS
+metadata on the bucket requires having locally [installed and
+configured the google-cloud SDK](https://cloud.google.com/sdk/docs).  It also requires having
+admin access to the google-storage bucket.  Contact a project owner for help if you are
+unsure of your permissions or need help resolving an error similar to the picture above.
+
+Assuming the SDK is installed, and you have the required admin access, the following command
+will display the current CORS metadata:
+
+```
+gsutil cors get gs://libpod-master-releases
+```
+
+To function properly (allow client "trust" of content from `storage.googleapis.com`) the followiing
+metadata JSON should be used.  Following the JSON, is an example of the command used to set this
+metadata on the libpod-master-releases bucket.  For additional information about configuring CORS
+please referr to [the google-storage documentation](https://cloud.google.com/storage/docs/configuring-cors).
 
 ```JSON
 [
     {
-      "origin": ["http://docs.podman.io"],
+      "origin": ["http://docs.podman.io", "https://docs.podman.io"],
       "responseHeader": ["Content-Type"],
       "method": ["GET"],
       "maxAgeSeconds": 600
     }
 ]
 ```
+
+```
+gsutil cors set /path/to/file.json gs://libpod-master-releases
+```
+
+***Note:*** The CORS metadata does _NOT_ change after the `docs` task uploads a new swagger YAML
+file.  Therefore, if it is not functioning or misconfigured, a person must have altered it or
+changes were made to the referring site (e.g. `docs.podman.io`).
 
 ## Base-images
 
