@@ -71,14 +71,44 @@ func createPortBindings(ports []string) ([]specgen.PortMapping, error) {
 			return nil, errors.Errorf("invalid port format - protocol can only be specified once")
 		}
 
-		splitPort := strings.Split(splitProto[0], ":")
+		remainder := splitProto[0]
+		haveV6 := false
+
+		// Check for an IPv6 address in brackets
+		splitV6 := strings.Split(remainder, "]")
+		switch len(splitV6) {
+		case 1:
+			// Do nothing, proceed as before
+		case 2:
+			// We potentially have an IPv6 address
+			haveV6 = true
+			if !strings.HasPrefix(splitV6[0], "[") {
+				return nil, errors.Errorf("invalid port format - IPv6 addresses must be enclosed by []")
+			}
+			if !strings.HasPrefix(splitV6[1], ":") {
+				return nil, errors.Errorf("invalid port format - IPv6 address must be followed by a colon (':')")
+			}
+			ipNoPrefix := strings.TrimPrefix(splitV6[0], "[")
+			hostIP = &ipNoPrefix
+			remainder = strings.TrimPrefix(splitV6[1], ":")
+		default:
+			return nil, errors.Errorf("invalid port format - at most one IPv6 address can be specified in a --publish")
+		}
+
+		splitPort := strings.Split(remainder, ":")
 		switch len(splitPort) {
 		case 1:
+			if haveV6 {
+				return nil, errors.Errorf("invalid port format - must provide host and destination port if specifying an IP")
+			}
 			ctrPort = splitPort[0]
 		case 2:
 			hostPort = &(splitPort[0])
 			ctrPort = splitPort[1]
 		case 3:
+			if haveV6 {
+				return nil, errors.Errorf("invalid port format - when v6 address specified, must be [ipv6]:hostPort:ctrPort")
+			}
 			hostIP = &(splitPort[0])
 			hostPort = &(splitPort[1])
 			ctrPort = splitPort[2]

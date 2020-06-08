@@ -36,14 +36,30 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 	var files []*os.File
 	notifySCTP := false
 	for _, i := range ports {
+		isV6 := net.ParseIP(i.HostIP).To4() == nil
+		if i.HostIP == "" {
+			isV6 = false
+		}
 		switch i.Protocol {
 		case "udp":
-			addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
+			var (
+				addr *net.UDPAddr
+				err  error
+			)
+			if isV6 {
+				addr, err = net.ResolveUDPAddr("udp6", fmt.Sprintf("[%s]:%d", i.HostIP, i.HostPort))
+			} else {
+				addr, err = net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
+			}
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot resolve the UDP address")
 			}
 
-			server, err := net.ListenUDP("udp", addr)
+			proto := "udp4"
+			if isV6 {
+				proto = "udp6"
+			}
+			server, err := net.ListenUDP(proto, addr)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot listen on the UDP port")
 			}
@@ -54,12 +70,24 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 			files = append(files, f)
 
 		case "tcp":
-			addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
+			var (
+				addr *net.TCPAddr
+				err  error
+			)
+			if isV6 {
+				addr, err = net.ResolveTCPAddr("tcp6", fmt.Sprintf("[%s]:%d", i.HostIP, i.HostPort))
+			} else {
+				addr, err = net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
+			}
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot resolve the TCP address")
 			}
 
-			server, err := net.ListenTCP("tcp4", addr)
+			proto := "tcp4"
+			if isV6 {
+				proto = "tcp6"
+			}
+			server, err := net.ListenTCP(proto, addr)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot listen on the TCP port")
 			}
