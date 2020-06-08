@@ -84,7 +84,7 @@ type StopOptions struct {
 	CIDFiles []string
 	Ignore   bool
 	Latest   bool
-	Timeout  uint
+	Timeout  *uint
 }
 
 type StopReport struct {

@@ -85,9 +85,8 @@ func stop(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	stopOptions.Timeout = containerConfig.Engine.StopTimeout
 	if cmd.Flag("time").Changed {
-		stopOptions.Timeout = stopTimeout
+		stopOptions.Timeout = &stopTimeout
 	}
 
 	responses, err := registry.ContainerEngine().ContainerStop(context.Background(), args, stopOptions)

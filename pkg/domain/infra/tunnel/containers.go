@@ -100,7 +100,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	}
 	for _, c := range ctrs {
 		report := entities.StopReport{Id: c.ID}
-		if err = containers.Stop(ic.ClientCxt, c.ID, &options.Timeout); err != nil {
+		if err = containers.Stop(ic.ClientCxt, c.ID, options.Timeout); err != nil {
 			// These first two are considered non-fatal under the right conditions
 			if errors.Cause(err).Error() == define.ErrCtrStopped.Error() {
 				logrus.Debugf("Container %s is already stopped", c.ID)
