@@ -11,18 +11,28 @@ client = common.get_client()
 
 class TestImages(unittest.TestCase):
 
+    podman = None
     def setUp(self):
         super().setUp()
         client.pull(constant.ALPINE)
 
     def tearDown(self):
-        allImages = client.images()
-        for image in allImages:
-            client.remove_image(image,force=True)
+        common.remove_all_images()
         return super().tearDown()
 
-# Inspect Image
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        common.enable_sock(cls)
 
+
+    @classmethod
+    def tearDownClass(cls):
+        common.terminate_connection(cls)
+        return super().tearDownClass()
+
+
+# Inspect Image
 
     def test_inspect_image(self):
         # Check for error with wrong image name
@@ -79,8 +89,8 @@ class TestImages(unittest.TestCase):
         for i in response:
             # Alpine found
             if "docker.io/library/alpine" in i["Name"]:
-                self.assertTrue(True, msg="Image found")
-        self.assertFalse(False,msg="Image not found")
+                self.assertTrue
+        self.assertFalse
 
 # Image Exist (No docker-py support yet)
 
@@ -105,19 +115,22 @@ class TestImages(unittest.TestCase):
         alpine_image = client.inspect_image(constant.ALPINE)
         for h in imageHistory:
             if h["Id"] in alpine_image["Id"]:
-                self.assertTrue(True,msg="Image History validated")
-        self.assertFalse(False,msg="Unable to get image history")
+                self.assertTrue
+        self.assertFalse
 
 # Prune Image (No docker-py support yet)
 
 # Export Image
 
     def test_export_image(self):
-        file = "/tmp/alpine-latest.tar"
+        client.pull(constant.BB)
+        file = os.path.join(constant.ImageCacheDir , "busybox.tar")
+        if not os.path.exists(constant.ImageCacheDir):
+            os.makedirs(constant.ImageCacheDir)
         # Check for error with wrong image name
         with self.assertRaises(requests.HTTPError):
             client.get_image("dummy")
-        response = client.get_image(constant.ALPINE)
+        response = client.get_image(constant.BB)
         image_tar = open(file,mode="wb")
         image_tar.write(response.data)
         image_tar.close()
@@ -125,6 +138,13 @@ class TestImages(unittest.TestCase):
 
 # Import|Load Image
 
+    def test_import_image(self):
+        allImages = client.images()
+        self.assertEqual(len(allImages), 1)
+        file = os.path.join(constant.ImageCacheDir , "busybox.tar")
+        client.import_image_from_file(filename=file)
+        allImages = client.images()
+        self.assertEqual(len(allImages), 2)
 
 if __name__ == '__main__':
     # Setup temporary space
