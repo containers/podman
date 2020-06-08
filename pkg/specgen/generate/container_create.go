@@ -7,7 +7,6 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/util"
@@ -251,9 +250,6 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	// Default used if not overridden on command line
 
 	if s.RestartPolicy != "" {
-		if s.RestartPolicy == "unless-stopped" {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "the unless-stopped restart policy is not supported")
-		}
 		if s.RestartRetries != nil {
 			options = append(options, libpod.WithRestartRetries(*s.RestartRetries))
 		}

@@ -97,6 +97,10 @@ const (
 	// RestartPolicyOnFailure restarts the container on non-0 exit code,
 	// with an optional maximum number of retries.
 	RestartPolicyOnFailure = "on-failure"
+	// RestartPolicyUnlessStopped unconditionally restarts unless stopped
+	// by the user. It is identical to Always except with respect to
+	// handling of system restart, which Podman does not yet support.
+	RestartPolicyUnlessStopped = "unless-stopped"
 )
 
 // Container is a single OCI container.

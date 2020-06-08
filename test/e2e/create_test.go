@@ -401,6 +401,20 @@ var _ = Describe("Podman create", func() {
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
 
+	It("podman create with --restart-policy unless-stopped", func() {
+		ctrName := "testctr"
+		unlessStopped := "unless-stopped"
+		session := podmanTest.Podman([]string{"create", "-t", "--restart", unlessStopped, "--name", ctrName, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].HostConfig.RestartPolicy.Name).To(Equal(unlessStopped))
+	})
+
 	It("podman create with -m 1000000 sets swap to 2000000", func() {
 		numMem := 1000000
 		ctrName := "testCtr"
