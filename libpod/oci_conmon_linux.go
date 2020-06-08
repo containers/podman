@@ -669,6 +669,31 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
 }
 
+func (r *ConmonOCIRuntime) CheckConmonRunning(ctr *Container) (bool, error) {
+	if ctr.state.ConmonPID == 0 {
+		// If the container is running or paused, assume Conmon is
+		// running. We didn't record Conmon PID on some old versions, so
+		// that is likely what's going on...
+		// Unusual enough that we should print a warning message though.
+		if ctr.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
+			logrus.Warnf("Conmon PID is not set, but container is running!")
+			return true, nil
+		}
+		// Container's not running, so conmon PID being unset is
+		// expected. Conmon is not running.
+		return false, nil
+	}
+
+	// We have a conmon PID. Ping it with signal 0.
+	if err := unix.Kill(ctr.state.ConmonPID, 0); err != nil {
+		if err == unix.ESRCH {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "error pinging container %s conmon with signal 0", ctr.ID())
+	}
+	return true, nil
+}
+
 // SupportsCheckpoint checks if the OCI runtime supports checkpointing
 // containers.
 func (r *ConmonOCIRuntime) SupportsCheckpoint() bool {

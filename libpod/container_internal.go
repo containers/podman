@@ -1209,13 +1209,35 @@ func (c *Container) stop(timeout uint) error {
 		}
 	}
 
+	// Check if conmon is still alive.
+	// If it is not, we won't be getting an exit file.
+	conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
+	if err != nil {
+		return err
+	}
+
 	if err := c.ociRuntime.StopContainer(c, timeout, all); err != nil {
 		return err
 	}
 
+	c.newContainerEvent(events.Stop)
+
 	c.state.PID = 0
 	c.state.ConmonPID = 0
 	c.state.StoppedByUser = true
+
+	if !conmonAlive {
+		// Conmon is dead, so we can't epect an exit code.
+		c.state.ExitCode = -1
+		c.state.FinishedTime = time.Now()
+		c.state.State = define.ContainerStateStopped
+		if err := c.save(); err != nil {
+			logrus.Errorf("Error saving container %s status: %v", c.ID(), err)
+		}
+
+		return errors.Wrapf(define.ErrConmonDead, "container %s conmon process missing, cannot retrieve exit code", c.ID())
+	}
+
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error saving container %s state after stopping", c.ID())
 	}
@@ -1224,8 +1246,6 @@ func (c *Container) stop(timeout uint) error {
 	if err := c.waitForExitFileAndSync(); err != nil {
 		return err
 	}
-
-	c.newContainerEvent(events.Stop)
 
 	return nil
 }
