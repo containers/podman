@@ -612,7 +612,7 @@ uninstall:
 	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
-install.tools: .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint ## Install needed tools
+install.tools: .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
 
 define go-get
 	env GO111MODULE=off \
@@ -634,6 +634,10 @@ endef
 .PHONY: .install.golangci-lint
 .install.golangci-lint: .gopathok
 	VERSION=1.18.0 GOBIN=$(GOBIN) sh ./hack/install_golangci.sh
+
+.PHONY: .install.bats
+.install.bats: .gopathok
+	VERSION=v1.1.0 ./hack/install_bats.sh
 
 .PHONY: .install.pre-commit
 .install.pre-commit:

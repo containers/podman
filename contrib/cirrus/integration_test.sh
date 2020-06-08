@@ -52,6 +52,7 @@ case "$SPECIALMODE" in
         make
         make install PREFIX=/usr ETCDIR=/etc
         make test-binaries
+        make .install.bats
         if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
         then
             make remote${TESTSUITE} VARLINK_LOG=$VARLINK_LOG
