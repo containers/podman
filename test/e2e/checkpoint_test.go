@@ -232,7 +232,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with established tcp connections", func() {
-		Skip("fails on ubuntu")
+		// Broken on Ubuntu.
+		SkipIfNotFedora()
 		localRunString := getRunString([]string{redis})
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
