@@ -269,6 +269,9 @@ type EngineConfig struct {
 	// RemoteURI containers connection information used to connect to remote system.
 	RemoteURI string `toml:"remote_uri,omitempty"`
 
+	// Identity key file for RemoteURI
+	RemoteIdentity string `toml:"remote_identity,omitempty"`
+
 	// RuntimePath is the path to OCI runtime binary for launching containers.
 	// The first path pointing to a valid file will be used This is used only
 	// when there are no OCIRuntime/OCIRuntimes defined.  It is used only to be
