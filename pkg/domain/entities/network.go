@@ -26,6 +26,19 @@ type NetworkInspectOptions struct {
 // NetworkInspectReport describes the results from inspect networks
 type NetworkInspectReport map[string]interface{}
 
+// NetworkReloadOptions describes options for reloading container network
+// configuration.
+type NetworkReloadOptions struct {
+	All    bool
+	Latest bool
+}
+
+// NetworkReloadReport describes the results of reloading a container network.
+type NetworkReloadReport struct {
+	Id  string
+	Err error
+}
+
 // NetworkRmOptions describes options for removing networks
 type NetworkRmOptions struct {
 	Force bool

@@ -24,6 +24,10 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	return nil, define.ErrNotImplemented
 }
 
+func (r *Runtime) reloadContainerNetwork(ctr *Container) ([]*cnitypes.Result, error) {
+	return nil, define.ErrNotImplemented
+}
+
 func getCNINetworksDir() (string, error) {
 	return "", define.ErrNotImplemented
 }

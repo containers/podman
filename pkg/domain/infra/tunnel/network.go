@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/libpod/pkg/bindings/network"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
@@ -21,6 +22,10 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 		reports = append(reports, report...)
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {

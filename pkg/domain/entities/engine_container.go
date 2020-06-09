@@ -53,6 +53,7 @@ type ContainerEngine interface {
 	NetworkCreate(ctx context.Context, name string, options NetworkCreateOptions) (*NetworkCreateReport, error)
 	NetworkInspect(ctx context.Context, namesOrIds []string, options NetworkInspectOptions) ([]NetworkInspectReport, error)
 	NetworkList(ctx context.Context, options NetworkListOptions) ([]*NetworkListReport, error)
+	NetworkReload(ctx context.Context, names []string, options NetworkReloadOptions) ([]*NetworkReloadReport, error)
 	NetworkRm(ctx context.Context, namesOrIds []string, options NetworkRmOptions) ([]*NetworkRmReport, error)
 	PlayKube(ctx context.Context, path string, opts PlayKubeOptions) (*PlayKubeReport, error)
 	PodCreate(ctx context.Context, opts PodCreateOptions) (*PodCreateReport, error)

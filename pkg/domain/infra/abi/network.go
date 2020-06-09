@@ -11,6 +11,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	cniversion "github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/network"
 	"github.com/containers/libpod/pkg/util"
@@ -65,6 +66,26 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 		rawCNINetworks = append(rawCNINetworks, rawList)
 	}
 	return rawCNINetworks, nil
+}
+
+func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
+	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+
+	reports := make([]*entities.NetworkReloadReport, 0, len(ctrs))
+	for _, ctr := range ctrs {
+		report := new(entities.NetworkReloadReport)
+		report.Id = ctr.ID()
+		report.Err = ctr.ReloadNetwork()
+		if options.All && errors.Cause(report.Err) == define.ErrCtrStateInvalid {
+			report.Err = nil
+		}
+		reports = append(reports, report)
+	}
+
+	return reports, nil
 }
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
