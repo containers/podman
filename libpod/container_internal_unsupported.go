@@ -50,6 +50,10 @@ func (c *Container) cleanupOverlayMounts() error {
 	return nil
 }
 
+func (c *Container) reloadNetwork() error {
+	return define.ErrNotImplemented
+}
+
 func (c *Container) getUserOverrides() *lookup.Overrides {
 	return nil
 }
