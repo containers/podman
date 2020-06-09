@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/pkg/bindings/pods"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 )
 
@@ -19,6 +20,12 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 	var (
 		reports []*entities.PodKillReport
 	)
+
+	_, err := util.ParseSignal(options.Signal)
+	if err != nil {
+		return nil, err
+	}
+
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
