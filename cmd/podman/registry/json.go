@@ -11,8 +11,8 @@ var (
 	jsonSync sync.Once
 )
 
-// JsonLibrary provides a "encoding/json" compatible API
-func JsonLibrary() jsoniter.API {
+// JSONLibrary provides a "encoding/json" compatible API
+func JSONLibrary() jsoniter.API {
 	jsonSync.Do(func() {
 		json = jsoniter.ConfigCompatibleWithStandardLibrary
 	})

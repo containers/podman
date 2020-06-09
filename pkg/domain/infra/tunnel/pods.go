@@ -87,7 +87,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, options entities.PodStopOptions) ([]*entities.PodStopReport, error) {
 	var (
 		reports []*entities.PodStopReport
-		timeout int = -1
+		timeout = -1
 	)
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {

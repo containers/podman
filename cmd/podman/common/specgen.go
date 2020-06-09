@@ -669,7 +669,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	hc.Interval = intervalDuration
 
 	if retries < 1 {
-		return nil, errors.New("healthcheck-retries must be greater than 0.")
+		return nil, errors.New("healthcheck-retries must be greater than 0")
 	}
 	hc.Retries = int(retries)
 	timeoutDuration, err := time.ParseDuration(timeout)

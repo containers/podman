@@ -162,7 +162,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
 	}
-	errMap, err := parallel.ParallelContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+	errMap, err := parallel.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		var err error
 		if options.Timeout != nil {
 			err = c.StopWithTimeout(*options.Timeout)
@@ -323,7 +323,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		return reports, nil
 	}
 
-	errMap, err := parallel.ParallelContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+	errMap, err := parallel.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		err := ic.Libpod.RemoveContainer(ctx, c, options.Force, options.Volumes)
 		if err != nil {
 			if options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {

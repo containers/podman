@@ -338,7 +338,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		}
 		for _, viu := range inUse {
 			if util.StringInSlice(viu, runningContainers) {
-				consInUse += 1
+				consInUse++
 			}
 		}
 		report := entities.SystemDfVolumeReport{
@@ -376,12 +376,12 @@ func (se *SystemEngine) Renumber(ctx context.Context, flags *pflag.FlagSet, conf
 	return nil
 }
 
-func (s SystemEngine) Migrate(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig, options entities.SystemMigrateOptions) error {
+func (se SystemEngine) Migrate(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig, options entities.SystemMigrateOptions) error {
 	return nil
 }
 
-func (s SystemEngine) Shutdown(ctx context.Context) {
-	if err := s.Libpod.Shutdown(false); err != nil {
+func (se SystemEngine) Shutdown(ctx context.Context) {
+	if err := se.Libpod.Shutdown(false); err != nil {
 		logrus.Error(err)
 	}
 }

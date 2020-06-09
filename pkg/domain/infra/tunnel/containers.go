@@ -233,7 +233,7 @@ func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.To
 func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string, options entities.CommitOptions) (*entities.CommitReport, error) {
 	var (
 		repo string
-		tag  string = "latest"
+		tag  = "latest"
 	)
 	if len(options.ImageName) > 0 {
 		ref, err := reference.Parse(options.ImageName)

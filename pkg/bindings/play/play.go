@@ -13,7 +13,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 )
 
-func PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+func Kube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
 	var report entities.PlayKubeReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {

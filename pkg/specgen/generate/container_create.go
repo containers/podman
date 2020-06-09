@@ -230,7 +230,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	options = append(options, libpod.WithPrivileged(s.Privileged))
 
 	// Get namespace related options
-	namespaceOptions, err := GenerateNamespaceOptions(ctx, s, rt, pod, img)
+	namespaceOptions, err := namespaceOptions(ctx, s, rt, pod, img)
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 
 var (
 	// ErrInvalidSpecConfig describes an error that the given SpecGenerator is invalid
-	ErrInvalidSpecConfig error = errors.New("invalid configuration")
+	ErrInvalidSpecConfig = errors.New("invalid configuration")
 	// SystemDValues describes the only values that SystemD can be
 	SystemDValues = []string{"true", "false", "always"}
 	// ImageVolumeModeValues describes the only values that ImageVolumeMode can be

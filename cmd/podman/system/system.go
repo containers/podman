@@ -9,7 +9,7 @@ import (
 
 var (
 	// Pull in configured json library
-	json = registry.JsonLibrary()
+	json = registry.JSONLibrary()
 
 	// Command: podman _system_
 	systemCmd = &cobra.Command{

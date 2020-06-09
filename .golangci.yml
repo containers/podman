@@ -7,6 +7,7 @@ run:
     - contrib
     - dependencies
     - test
+    - pkg/spec
     - pkg/varlink
     - pkg/varlinkapi
   skip-files:
@@ -21,7 +22,6 @@ linters:
     - gochecknoinits
     - goconst
     - gocyclo
-    - golint
     - gosec
     - lll
     - maligned

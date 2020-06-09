@@ -31,11 +31,11 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	pod, err := generate.MakePod(&psg, runtime)
 	if err != nil {
-		http_code := http.StatusInternalServerError
+		httpCode := http.StatusInternalServerError
 		if errors.Cause(err) == define.ErrPodExists {
-			http_code = http.StatusConflict
+			httpCode = http.StatusConflict
 		}
-		utils.Error(w, "Something went wrong.", http_code, err)
+		utils.Error(w, "Something went wrong.", httpCode, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: pod.ID()})

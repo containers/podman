@@ -7,7 +7,7 @@ import (
 
 var (
 	// ErrInvalidPodSpecConfig describes an error given when the podspecgenerator is invalid
-	ErrInvalidPodSpecConfig error = errors.New("invalid pod spec")
+	ErrInvalidPodSpecConfig = errors.New("invalid pod spec")
 	// containerConfig has the default configurations defined in containers.conf
 	containerConfig = util.DefaultContainerConfig()
 )

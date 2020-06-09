@@ -299,7 +299,7 @@ type ShowTrustReport struct {
 	Raw                     []byte
 	SystemRegistriesDirPath string
 	JSONOutput              []byte
-	Policies                []*trust.TrustPolicy
+	Policies                []*trust.Policy
 }
 
 // SetTrustOptions describes the CLI options for setting trust

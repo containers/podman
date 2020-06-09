@@ -399,7 +399,7 @@ func AddPrivilegedDevices(g *generate.Generator) error {
 	return addPrivilegedDevices(g)
 }
 
-func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *CreateConfig, ctx context.Context, pod *libpod.Pod) (*libpod.Container, error) {
+func CreateContainerFromCreateConfig(ctx context.Context, r *libpod.Runtime, createConfig *CreateConfig, pod *libpod.Pod) (*libpod.Container, error) {
 	runtimeSpec, options, err := createConfig.MakeContainerConfig(r, pod)
 	if err != nil {
 		return nil, err

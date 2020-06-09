@@ -34,9 +34,9 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			}
 
 			// TODO: Use r.ConnContext when ported to go 1.13
-			c := context.WithValue(r.Context(), "decoder", s.Decoder)
-			c = context.WithValue(c, "runtime", s.Runtime)
-			c = context.WithValue(c, "shutdownFunc", s.Shutdown)
+			c := context.WithValue(r.Context(), "decoder", s.Decoder) //nolint
+			c = context.WithValue(c, "runtime", s.Runtime)            //nolint
+			c = context.WithValue(c, "shutdownFunc", s.Shutdown)      //nolint
 			r = r.WithContext(c)
 
 			h(w, r)

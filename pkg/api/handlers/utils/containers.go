@@ -62,7 +62,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 
 func CreateContainer(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runtime, cc *createconfig.CreateConfig) {
 	var pod *libpod.Pod
-	ctr, err := createconfig.CreateContainerFromCreateConfig(runtime, cc, ctx, pod)
+	ctr, err := createconfig.CreateContainerFromCreateConfig(ctx, runtime, cc, pod)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
 		return

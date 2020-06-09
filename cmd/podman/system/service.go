@@ -64,7 +64,7 @@ func aliasTimeoutFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 }
 
 func service(cmd *cobra.Command, args []string) error {
-	apiURI, err := resolveApiURI(args)
+	apiURI, err := resolveAPIURI(args)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func service(cmd *cobra.Command, args []string) error {
 	return restService(opts, cmd.Flags(), registry.PodmanConfig())
 }
 
-func resolveApiURI(_url []string) (string, error) {
+func resolveAPIURI(_url []string) (string, error) {
 	// When determining _*THE*_ listening endpoint --
 	// 1) User input wins always
 	// 2) systemd socket activation

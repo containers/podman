@@ -177,7 +177,7 @@ func getContainersState(r *libpod.Runtime) map[define.ContainerStatus]int {
 			if err != nil {
 				continue
 			}
-			states[state] += 1
+			states[state]++
 		}
 	}
 	return states

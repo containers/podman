@@ -100,7 +100,7 @@ func images(cmd *cobra.Command, args []string) error {
 
 	switch {
 	case listFlag.quiet:
-		return writeId(summaries)
+		return writeID(summaries)
 	case cmd.Flag("format").Changed && listFlag.format == "json":
 		return writeJSON(summaries)
 	default:
@@ -108,7 +108,7 @@ func images(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func writeId(imageS []*entities.ImageSummary) error {
+func writeID(imageS []*entities.ImageSummary) error {
 	var ids = map[string]struct{}{}
 	for _, e := range imageS {
 		i := "sha256:" + e.ID
