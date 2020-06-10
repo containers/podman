@@ -300,4 +300,15 @@ var _ = Describe("Podman logs", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results).To(Exit(0))
 	})
+
+	It("podman logs with log-driver=none errors", func() {
+		ctrName := "logsctr"
+		logc := podmanTest.Podman([]string{"run", "--name", ctrName, "-d", "--log-driver", "none", ALPINE, "top"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(Exit(0))
+
+		logs := podmanTest.Podman([]string{"logs", "-f", ctrName})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).To(Not(Exit(0)))
+	})
 })

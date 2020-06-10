@@ -50,6 +50,7 @@ case "${OS_RELEASE_ID}" in
 	    if [[ "$OS_RELEASE_VER" == "20" ]]; then
 		    apt-get install -y python-is-python3
 	    fi
+	    apt-get upgrade -y conmon
         ;;
     fedora)
         # All SELinux distros need this for systemd-in-a-container

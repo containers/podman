@@ -993,7 +993,7 @@ func WithLogDriver(driver string) CtrCreateOption {
 		switch driver {
 		case "":
 			return errors.Wrapf(define.ErrInvalidArg, "log driver must be set")
-		case define.JournaldLogging, define.KubernetesLogging, define.JSONLogging:
+		case define.JournaldLogging, define.KubernetesLogging, define.JSONLogging, define.NoLogging:
 			break
 		default:
 			return errors.Wrapf(define.ErrInvalidArg, "invalid log driver")
