@@ -15,6 +15,8 @@ value to `file`.  Only `file` and `journald` are accepted. A `none` logger is al
 available but this logging mechanism completely disables events; nothing will be reported by
 `podman events`.
 
+By default, streaming mode is used, printing new events as they occur.  Previous events can be listed via `--since` and `--until`.
+
 The *container* event type will report the follow statuses:
  * attach
  * checkpoint
