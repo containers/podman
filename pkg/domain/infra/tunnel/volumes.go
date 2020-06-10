@@ -7,12 +7,12 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 )
 
-func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IdOrNameResponse, error) {
+func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IDOrNameResponse, error) {
 	response, err := volumes.Create(ic.ClientCxt, opts)
 	if err != nil {
 		return nil, err
 	}
-	return &entities.IdOrNameResponse{IdOrName: response.Name}, nil
+	return &entities.IDOrNameResponse{IDOrName: response.Name}, nil
 }
 
 func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, opts entities.VolumeRmOptions) ([]*entities.VolumeRmReport, error) {

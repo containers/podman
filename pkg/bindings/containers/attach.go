@@ -25,7 +25,7 @@ import (
 )
 
 // Attach attaches to a running container
-func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stream *bool, stdin io.Reader, stdout io.Writer, stderr io.Writer, attachReady chan bool) error {
+func Attach(ctx context.Context, nameOrID string, detachKeys *string, logs, stream *bool, stdin io.Reader, stdout io.Writer, stderr io.Writer, attachReady chan bool) error {
 	isSet := struct {
 		stdin  bool
 		stdout bool
@@ -52,7 +52,7 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 	}
 
 	// Do we need to wire in stdin?
-	ctnr, err := Inspect(ctx, nameOrId, bindings.PFalse)
+	ctnr, err := Inspect(ctx, nameOrID, bindings.PFalse)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		IdleConnTimeout: time.Duration(0),
 	}
 	conn.Client.Transport = t
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/attach", params, headers, nameOrId)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/attach", params, headers, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func Attach(ctx context.Context, nameOrId string, detachKeys *string, logs, stre
 		winCtx, winCancel := context.WithCancel(ctx)
 		defer winCancel()
 
-		go attachHandleResize(ctx, winCtx, winChange, false, nameOrId, file)
+		go attachHandleResize(ctx, winCtx, winChange, false, nameOrID, file)
 	}
 
 	// If we are attaching around a start, we need to "signal"
@@ -243,13 +243,13 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 }
 
 // ResizeContainerTTY sets container's TTY height and width in characters
-func ResizeContainerTTY(ctx context.Context, nameOrId string, height *int, width *int) error {
-	return resizeTTY(ctx, bindings.JoinURL("containers", nameOrId, "resize"), height, width)
+func ResizeContainerTTY(ctx context.Context, nameOrID string, height *int, width *int) error {
+	return resizeTTY(ctx, bindings.JoinURL("containers", nameOrID, "resize"), height, width)
 }
 
 // ResizeExecTTY sets session's TTY height and width in characters
-func ResizeExecTTY(ctx context.Context, nameOrId string, height *int, width *int) error {
-	return resizeTTY(ctx, bindings.JoinURL("exec", nameOrId, "resize"), height, width)
+func ResizeExecTTY(ctx context.Context, nameOrID string, height *int, width *int) error {
+	return resizeTTY(ctx, bindings.JoinURL("exec", nameOrID, "resize"), height, width)
 }
 
 // resizeTTY set size of TTY of container

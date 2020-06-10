@@ -80,7 +80,7 @@ func GetImage(ctx context.Context, nameOrID string, size *bool) (*entities.Image
 }
 
 // Tree retrieves a "tree" based representation of the given image
-func Tree(ctx context.Context, nameOrId string, whatRequires *bool) (*entities.ImageTreeReport, error) {
+func Tree(ctx context.Context, nameOrID string, whatRequires *bool) (*entities.ImageTreeReport, error) {
 	var report entities.ImageTreeReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -90,7 +90,7 @@ func Tree(ctx context.Context, nameOrId string, whatRequires *bool) (*entities.I
 	if whatRequires != nil {
 		params.Set("size", strconv.FormatBool(*whatRequires))
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/tree", params, nil, nameOrId)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/tree", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}

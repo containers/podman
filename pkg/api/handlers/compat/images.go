@@ -224,7 +224,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		Status         string            `json:"status"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
-		Id             string            `json:"id"`
+		Id             string            `json:"id"` //nolint
 	}{
 		Status:         iid,
 		ProgressDetail: map[string]string{},
@@ -289,7 +289,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		Error          string            `json:"error"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
-		Id             string            `json:"id"`
+		Id             string            `json:"id"` //nolint
 	}{
 		Status:         fmt.Sprintf("pulling image (%s) from %s", img.Tag, strings.Join(img.Names(), ", ")),
 		ProgressDetail: map[string]string{},

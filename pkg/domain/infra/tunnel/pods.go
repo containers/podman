@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
-	exists, err := pods.Exists(ic.ClientCxt, nameOrId)
+func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	exists, err := pods.Exists(ic.ClientCxt, nameOrID)
 	return &entities.BoolReport{Value: exists}, err
 }
 

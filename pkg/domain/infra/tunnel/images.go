@@ -18,8 +18,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.BoolReport, error) {
-	found, err := images.Exists(ir.ClientCxt, nameOrId)
+func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
+	found, err := images.Exists(ir.ClientCxt, nameOrID)
 	return &entities.BoolReport{Value: found}, err
 }
 
@@ -50,8 +50,8 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 	return is, nil
 }
 
-func (ir *ImageEngine) History(ctx context.Context, nameOrId string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
-	results, err := images.History(ir.ClientCxt, nameOrId)
+func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
+	results, err := images.History(ir.ClientCxt, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	return &entities.ImagePullReport{Images: pulledImages}, nil
 }
 
-func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, options entities.ImageTagOptions) error {
+func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
 	for _, newTag := range tags {
 		var (
 			tag, repo string
@@ -114,19 +114,19 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, 
 			repo = r.Name()
 		}
 		if len(repo) < 1 {
-			return errors.Errorf("invalid image name %q", nameOrId)
+			return errors.Errorf("invalid image name %q", nameOrID)
 		}
-		if err := images.Tag(ir.ClientCxt, nameOrId, tag, repo); err != nil {
+		if err := images.Tag(ir.ClientCxt, nameOrID, tag, repo); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string, options entities.ImageUntagOptions) error {
+func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, options entities.ImageUntagOptions) error {
 	// Remove all tags if none are provided
 	if len(tags) == 0 {
-		newImage, err := images.GetImage(ir.ClientCxt, nameOrId, bindings.PFalse)
+		newImage, err := images.GetImage(ir.ClientCxt, nameOrID, bindings.PFalse)
 		if err != nil {
 			return err
 		}
@@ -148,9 +148,9 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string
 			repo = r.Name()
 		}
 		if len(repo) < 1 {
-			return errors.Errorf("invalid image name %q", nameOrId)
+			return errors.Errorf("invalid image name %q", nameOrID)
 		}
-		if err := images.Untag(ir.ClientCxt, nameOrId, tag, repo); err != nil {
+		if err := images.Untag(ir.ClientCxt, nameOrID, tag, repo); err != nil {
 			return err
 		}
 	}
@@ -199,7 +199,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	return images.Push(ir.ClientCxt, source, destination, options)
 }
 
-func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string, options entities.ImageSaveOptions) error {
+func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, options entities.ImageSaveOptions) error {
 	var (
 		f   *os.File
 		err error
@@ -217,7 +217,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string,
 		return err
 	}
 
-	exErr := images.Export(ir.ClientCxt, nameOrId, f, &options.Format, &options.Compress)
+	exErr := images.Export(ir.ClientCxt, nameOrID, f, &options.Format, &options.Compress)
 	if err := f.Close(); err != nil {
 		return err
 	}
@@ -250,8 +250,8 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string,
 }
 
 // Diff reports the changes to the given image
-func (ir *ImageEngine) Diff(ctx context.Context, nameOrId string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	changes, err := images.Diff(ir.ClientCxt, nameOrId)
+func (ir *ImageEngine) Diff(ctx context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
+	changes, err := images.Diff(ir.ClientCxt, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -277,8 +277,8 @@ func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts 
 	return images.Build(ir.ClientCxt, containerFiles, opts, tarfile)
 }
 
-func (ir *ImageEngine) Tree(ctx context.Context, nameOrId string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
-	return images.Tree(ir.ClientCxt, nameOrId, &opts.WhatRequires)
+func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
+	return images.Tree(ir.ClientCxt, nameOrID, &opts.WhatRequires)
 }
 
 // Shutdown Libpod engine

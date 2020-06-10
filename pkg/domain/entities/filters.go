@@ -20,14 +20,14 @@ type Names interface {
 	Names() []string
 }
 
-// IdOrName interface allows filters to access ID() or Name() of object
-type IdOrNamed interface {
+// IDOrName interface allows filters to access ID() or Name() of object
+type IDOrNamed interface {
 	Identifier
 	Named
 }
 
-// IdOrName interface allows filters to access ID() or Names() of object
-type IdOrNames interface {
+// IDOrName interface allows filters to access ID() or Names() of object
+type IDOrNames interface {
 	Identifier
 	Names
 }
@@ -42,11 +42,11 @@ func CompileImageFilters(filters url.Values) ImageFilter {
 	for name, targets := range filters {
 		switch name {
 		case "id":
-			fns = append(fns, FilterIdFn(targets))
+			fns = append(fns, FilterIDFn(targets))
 		case "name":
 			fns = append(fns, FilterNamesFn(targets))
 		case "idOrName":
-			fns = append(fns, FilterIdOrNameFn(targets))
+			fns = append(fns, FilterIDOrNameFn(targets))
 		}
 	}
 
@@ -66,11 +66,11 @@ func CompileContainerFilters(filters url.Values) ContainerFilter {
 	for name, targets := range filters {
 		switch name {
 		case "id":
-			fns = append(fns, FilterIdFn(targets))
+			fns = append(fns, FilterIDFn(targets))
 		case "name":
 			fns = append(fns, FilterNameFn(targets))
 		case "idOrName":
-			fns = append(fns, FilterIdOrNameFn(targets))
+			fns = append(fns, FilterIDOrNameFn(targets))
 		}
 	}
 
@@ -89,7 +89,7 @@ func CompileVolumeFilters(filters url.Values) VolumeFilter {
 
 	for name, targets := range filters {
 		if name == "id" {
-			fns = append(fns, FilterIdFn(targets))
+			fns = append(fns, FilterIDFn(targets))
 		}
 	}
 
@@ -103,7 +103,7 @@ func CompileVolumeFilters(filters url.Values) VolumeFilter {
 	}
 }
 
-func FilterIdFn(id []string) func(Identifier) bool {
+func FilterIDFn(id []string) func(Identifier) bool {
 	return func(obj Identifier) bool {
 		for _, v := range id {
 			if strings.Contains(obj.Id(), v) {
@@ -138,8 +138,8 @@ func FilterNamesFn(name []string) func(Names) bool {
 	}
 }
 
-func FilterIdOrNameFn(id []string) func(IdOrNamed) bool {
-	return func(obj IdOrNamed) bool {
+func FilterIDOrNameFn(id []string) func(IDOrNamed) bool {
+	return func(obj IDOrNamed) bool {
 		for _, v := range id {
 			if strings.Contains(obj.Id(), v) || strings.Contains(obj.Name(), v) {
 				return true

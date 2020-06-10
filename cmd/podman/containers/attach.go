@@ -18,7 +18,7 @@ var (
 		Short: "Attach to a running container",
 		Long:  attachDescription,
 		RunE:  attach,
-		Args:  validate.IdOrLatestArgs,
+		Args:  validate.IDOrLatestArgs,
 		Example: `podman attach ctrID
   podman attach 1234
   podman attach --no-stdin foobar`,
@@ -29,7 +29,7 @@ var (
 		Short: attachCommand.Short,
 		Long:  attachCommand.Long,
 		RunE:  attachCommand.RunE,
-		Args:  validate.IdOrLatestArgs,
+		Args:  validate.IDOrLatestArgs,
 		Example: `podman container attach ctrID
 	podman container attach 1234
 	podman container attach --no-stdin foobar`,

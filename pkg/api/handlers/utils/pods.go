@@ -54,7 +54,7 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport
 		if err != nil {
 			return nil, err
 		}
-		infraId, err := pod.InfraContainerID()
+		infraID, err := pod.InfraContainerID()
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +65,7 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport
 			Name:      pod.Name(),
 			Namespace: pod.Namespace(),
 			Status:    status,
-			InfraId:   infraId,
+			InfraId:   infraID,
 			Labels:    pod.Labels(),
 		}
 		for _, ctr := range ctrs {

@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IdOrNameResponse, error) {
+func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IDOrNameResponse, error) {
 	var (
 		volumeOptions []libpod.VolumeCreateOption
 	)
@@ -34,7 +34,7 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 	if err != nil {
 		return nil, err
 	}
-	return &entities.IdOrNameResponse{IdOrName: vol.Name()}, nil
+	return &entities.IDOrNameResponse{IDOrName: vol.Name()}, nil
 }
 
 func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, opts entities.VolumeRmOptions) ([]*entities.VolumeRmReport, error) {

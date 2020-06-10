@@ -10,16 +10,16 @@ import (
 	"github.com/containers/libpod/pkg/bindings"
 )
 
-// Commit creates a container image from a container.  The container is defined by nameOrId.  Use
+// Commit creates a container image from a container.  The container is defined by nameOrID.  Use
 // the CommitOptions for finer grain control on characteristics of the resulting image.
-func Commit(ctx context.Context, nameOrId string, options CommitOptions) (handlers.IDResponse, error) {
+func Commit(ctx context.Context, nameOrID string, options CommitOptions) (handlers.IDResponse, error) {
 	id := handlers.IDResponse{}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return id, err
 	}
 	params := url.Values{}
-	params.Set("container", nameOrId)
+	params.Set("container", nameOrID)
 	if options.Author != nil {
 		params.Set("author", *options.Author)
 	}

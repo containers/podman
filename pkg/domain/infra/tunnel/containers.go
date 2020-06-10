@@ -26,8 +26,8 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 	return errors.New("not implemented")
 }
 
-func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
-	exists, err := containers.Exists(ic.ClientCxt, nameOrId)
+func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	exists, err := containers.Exists(ic.ClientCxt, nameOrID)
 	return &entities.BoolReport{Value: exists}, err
 }
 
@@ -230,7 +230,7 @@ func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.To
 	return &entities.StringSliceReport{Value: topOutput}, nil
 }
 
-func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string, options entities.CommitOptions) (*entities.CommitReport, error) {
+func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string, options entities.CommitOptions) (*entities.CommitReport, error) {
 	var (
 		repo string
 		tag  = "latest"
@@ -259,14 +259,14 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string,
 		Repo:    &repo,
 		Tag:     &tag,
 	}
-	response, err := containers.Commit(ic.ClientCxt, nameOrId, commitOpts)
+	response, err := containers.Commit(ic.ClientCxt, nameOrID, commitOpts)
 	if err != nil {
 		return nil, err
 	}
 	return &entities.CommitReport{Id: response.ID}, nil
 }
 
-func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrId string, options entities.ContainerExportOptions) error {
+func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string, options entities.ContainerExportOptions) error {
 	var (
 		err error
 		w   io.Writer
@@ -277,7 +277,7 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrId string,
 			return err
 		}
 	}
-	return containers.Export(ic.ClientCxt, nameOrId, w)
+	return containers.Export(ic.ClientCxt, nameOrID, w)
 }
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, options entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
@@ -357,7 +357,7 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	return &entities.ContainerCreateReport{Id: response.ID}, nil
 }
 
-func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIds []string, options entities.ContainerLogsOptions) error {
+func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, options entities.ContainerLogsOptions) error {
 	since := options.Since.Format(time.RFC3339)
 	tail := strconv.FormatInt(options.Tail, 10)
 	stdout := options.Writer != nil
@@ -375,7 +375,7 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIds []string, 
 	outCh := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		err = containers.Logs(ic.ClientCxt, nameOrIds[0], opts, outCh, outCh)
+		err = containers.Logs(ic.ClientCxt, nameOrIDs[0], opts, outCh, outCh)
 		cancel()
 	}()
 
@@ -389,8 +389,8 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIds []string, 
 	}
 }
 
-func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string, options entities.AttachOptions) error {
-	return containers.Attach(ic.ClientCxt, nameOrId, &options.DetachKeys, nil, bindings.PTrue, options.Stdin, options.Stdout, options.Stderr, nil)
+func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string, options entities.AttachOptions) error {
+	return containers.Attach(ic.ClientCxt, nameOrID, &options.DetachKeys, nil, bindings.PTrue, options.Stdin, options.Stdout, options.Stderr, nil)
 }
 
 func makeExecConfig(options entities.ExecOptions) *handlers.ExecCreateConfig {
@@ -415,10 +415,10 @@ func makeExecConfig(options entities.ExecOptions) *handlers.ExecCreateConfig {
 	return createConfig
 }
 
-func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
+func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
 	createConfig := makeExecConfig(options)
 
-	sessionID, err := containers.ExecCreate(ic.ClientCxt, nameOrId, createConfig)
+	sessionID, err := containers.ExecCreate(ic.ClientCxt, nameOrID, createConfig)
 	if err != nil {
 		return 125, err
 	}
@@ -435,10 +435,10 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, o
 	return inspectOut.ExitCode, nil
 }
 
-func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrId string, options entities.ExecOptions) (string, error) {
+func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID string, options entities.ExecOptions) (string, error) {
 	createConfig := makeExecConfig(options)
 
-	sessionID, err := containers.ExecCreate(ic.ClientCxt, nameOrId, createConfig)
+	sessionID, err := containers.ExecCreate(ic.ClientCxt, nameOrID, createConfig)
 	if err != nil {
 		return "", err
 	}
@@ -525,8 +525,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	return &report, err
 }
 
-func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrId string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	changes, err := containers.Diff(ic.ClientCxt, nameOrId)
+func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
+	changes, err := containers.Diff(ic.ClientCxt, nameOrID)
 	return &entities.DiffReport{Changes: changes}, err
 }
 
@@ -555,11 +555,11 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIds []string, options entities.ContainerMountOptions) ([]*entities.ContainerMountReport, error) {
+func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []string, options entities.ContainerMountOptions) ([]*entities.ContainerMountReport, error) {
 	return nil, errors.New("mounting containers is not supported for remote clients")
 }
 
-func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIds []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
+func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
 	return nil, errors.New("unmounting containers is not supported for remote clients")
 }
 
@@ -567,13 +567,13 @@ func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 	return config.Default()
 }
 
-func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrId string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
+func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
 	var (
 		reports    []*entities.ContainerPortReport
 		namesOrIds []string
 	)
-	if len(nameOrId) > 0 {
-		namesOrIds = append(namesOrIds, nameOrId)
+	if len(nameOrID) > 0 {
+		namesOrIds = append(namesOrIds, nameOrID)
 	}
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {

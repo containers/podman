@@ -11,7 +11,7 @@ import (
 )
 
 type Container struct {
-	IdOrNamed
+	IDOrNamed
 }
 
 type Volume struct {
@@ -19,7 +19,7 @@ type Volume struct {
 }
 
 type Report struct {
-	Id  []string
+	Id  []string //nolint
 	Err map[string]error
 }
 

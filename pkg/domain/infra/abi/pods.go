@@ -45,8 +45,8 @@ func getPodsByContext(all, latest bool, pods []string, runtime *libpod.Runtime) 
 	return outpods, err
 }
 
-func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
-	_, err := ic.Libpod.LookupPod(nameOrId)
+func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	_, err := ic.Libpod.LookupPod(nameOrID)
 	if err != nil && errors.Cause(err) != define.ErrNoSuchPod {
 		return nil, err
 	}
@@ -347,7 +347,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 				Status: state.String(),
 			})
 		}
-		infraId, err := p.InfraContainerID()
+		infraID, err := p.InfraContainerID()
 		if err != nil {
 			return nil, err
 		}
@@ -356,7 +356,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 			Containers: lpcs,
 			Created:    p.CreatedTime(),
 			Id:         p.ID(),
-			InfraId:    infraId,
+			InfraId:    infraID,
 			Name:       p.Name(),
 			Namespace:  p.Namespace(),
 			Status:     status,
