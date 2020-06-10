@@ -30,6 +30,13 @@ func (c *Container) ReadLog(options *logs.LogOptions, logChannel chan *logs.LogL
 }
 
 func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+	state, err := c.State()
+	if err != nil {
+		return err
+	}
+	if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+		options.Follow = false
+	}
 	t, tailLog, err := logs.GetLogFile(c.LogPath(), options)
 	if err != nil {
 		// If the log file does not exist, this is not fatal.
@@ -68,6 +75,14 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 			nll.CName = c.Name()
 			if nll.Since(options.Since) {
 				logChannel <- nll
+			}
+			state, err := c.State()
+			if err != nil {
+				logrus.Error(err)
+				break
+			}
+			if options.Follow && state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+				t.Kill(err)
 			}
 		}
 		options.WaitGroup.Done()
