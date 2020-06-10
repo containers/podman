@@ -373,6 +373,11 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"read-only-tmpfs", true,
 		"When running containers in read-only mode mount a read-write tmpfs on /run, /tmp and /var/tmp",
 	)
+	createFlags.BoolVar(
+		&cf.Replace,
+		"replace", false,
+		`If a container with the same name exists, replace it`,
+	)
 	createFlags.StringVar(
 		&cf.Restart,
 		"restart", "",

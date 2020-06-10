@@ -129,6 +129,12 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if cliVals.Replace {
+		if err := replaceContainer(cliVals.Name); err != nil {
+			return err
+		}
+	}
+
 	// If -i is not set, clear stdin
 	if !cliVals.Interactive {
 		runOpts.InputStream = nil

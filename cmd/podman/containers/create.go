@@ -122,6 +122,12 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if cliVals.Replace {
+		if err := replaceContainer(cliVals.Name); err != nil {
+			return err
+		}
+	}
+
 	report, err := registry.ContainerEngine().ContainerCreate(registry.GetContext(), s)
 	if err != nil {
 		return err
@@ -136,6 +142,17 @@ func create(cmd *cobra.Command, args []string) error {
 
 	fmt.Println(report.Id)
 	return nil
+}
+
+func replaceContainer(name string) error {
+	if len(name) == 0 {
+		return errors.New("cannot replace container without --name being set")
+	}
+	rmOptions := entities.RmOptions{
+		Force:  true, // force stop & removal
+		Ignore: true, // ignore errors when a container doesn't exit
+	}
+	return removeContainers([]string{name}, rmOptions, false)
 }
 
 func createInit(c *cobra.Command) error {
