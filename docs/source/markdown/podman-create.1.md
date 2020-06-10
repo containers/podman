@@ -595,7 +595,7 @@ To make a pod with more granular options, use the `podman pod create` command be
 
 **--pod-id-file**=*path*
 
-Run container in an existing pod and read the pod's ID from the specified file.  If a container is run with a pod, and the pod has an infra-container, the infra-container will be started before the container is.
+Run container in an existing pod and read the pod's ID from the specified file.  If a container is run within a pod, and the pod has an infra-container, the infra-container will be started before the container is.
 
 **--privileged**=*true|false*
 
