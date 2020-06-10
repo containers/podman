@@ -21,6 +21,7 @@ import (
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	ociarchive "github.com/containers/image/v5/oci/archive"
+	"github.com/containers/image/v5/oci/layout"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/tarball"
 	"github.com/containers/image/v5/transports"
@@ -1475,9 +1476,10 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 			return errors.Wrapf(err, "error getting OCI archive ImageReference for (%q, %q)", output, destImageName)
 		}
 	case "oci-dir":
-		destRef, err = directory.NewReference(output)
+		destImageName := imageNameForSaveDestination(i, source)
+		destRef, err = layout.NewReference(output, destImageName)
 		if err != nil {
-			return errors.Wrapf(err, "error getting directory ImageReference for %q", output)
+			return errors.Wrapf(err, "error saving the oci directory ImageReference for (%q, %q)", output, destImageName)
 		}
 		manifestType = imgspecv1.MediaTypeImageManifest
 	case "docker-dir":
