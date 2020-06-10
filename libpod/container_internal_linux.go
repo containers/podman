@@ -392,7 +392,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	for _, i := range c.config.Spec.Linux.Namespaces {
-		if i.Type == spec.UTSNamespace {
+		if i.Type == spec.UTSNamespace && i.Path == "" {
 			hostname := c.Hostname()
 			g.SetHostname(hostname)
 			g.AddProcessEnv("HOSTNAME", hostname)
@@ -591,7 +591,8 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 
 	if specNS == spec.UTSNamespace {
 		hostname := nsCtr.Hostname()
-		g.SetHostname(hostname)
+		// Joining an existing namespace, cannot set the hostname
+		g.SetHostname("")
 		g.AddProcessEnv("HOSTNAME", hostname)
 	}
 
@@ -1170,6 +1171,15 @@ func (c *Container) makeBindMounts() error {
 
 				// finally, save it in the new container
 				c.state.BindMounts["/etc/hosts"] = hostsPath
+			}
+
+			if !hasCurrentUserMapped(c) {
+				if err := makeAccessible(resolvPath, c.RootUID(), c.RootGID()); err != nil {
+					return err
+				}
+				if err := makeAccessible(hostsPath, c.RootUID(), c.RootGID()); err != nil {
+					return err
+				}
 			}
 		} else {
 			if !c.config.UseImageResolvConf {
