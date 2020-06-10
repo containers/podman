@@ -1171,6 +1171,15 @@ func (c *Container) makeBindMounts() error {
 				// finally, save it in the new container
 				c.state.BindMounts["/etc/hosts"] = hostsPath
 			}
+
+			if !hasCurrentUserMapped(c) {
+				if err := makeAccessible(resolvPath, c.RootUID(), c.RootGID()); err != nil {
+					return err
+				}
+				if err := makeAccessible(hostsPath, c.RootUID(), c.RootGID()); err != nil {
+					return err
+				}
+			}
 		} else {
 			if !c.config.UseImageResolvConf {
 				newResolv, err := c.generateResolvConf()
