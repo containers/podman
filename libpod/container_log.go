@@ -19,7 +19,7 @@ func (r *Runtime) Log(containers []*Container, options *logs.LogOptions, logChan
 	return nil
 }
 
-// ReadLog reads a containers log based on the input options and returns loglines over a channel
+// ReadLog reads a containers log based on the input options and returns loglines over a channel.
 func (c *Container) ReadLog(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	// TODO Skip sending logs until journald logs can be read
 	// TODO make this not a magic string
@@ -61,7 +61,7 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 				partial += nll.Msg
 				continue
 			} else if !nll.Partial() && len(partial) > 1 {
-				nll.Msg = partial
+				nll.Msg = partial + nll.Msg
 				partial = ""
 			}
 			nll.CID = c.ID()
