@@ -99,7 +99,7 @@ func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (string,
 	// Error out if the pod has no infra container, which we require to be the
 	// main service.
 	if !pod.HasInfraContainer() {
-		return "", fmt.Errorf("error generating systemd unit files: Pod %q has no infra container", pod.Name())
+		return "", errors.Errorf("error generating systemd unit files: Pod %q has no infra container", pod.Name())
 	}
 
 	podInfo, err := generatePodInfo(pod, options)
@@ -118,7 +118,7 @@ func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (string,
 		return "", err
 	}
 	if len(containers) == 0 {
-		return "", fmt.Errorf("error generating systemd unit files: Pod %q has no containers", pod.Name())
+		return "", errors.Errorf("error generating systemd unit files: Pod %q has no containers", pod.Name())
 	}
 	graph, err := libpod.BuildContainerGraph(containers)
 	if err != nil {

@@ -41,7 +41,7 @@ func filterPodFlags(command []string) []string {
 	for i := 0; i < len(command); i++ {
 		s := command[i]
 		if s == "--pod" || s == "--pod-id-file" {
-			i += 1
+			i++
 			continue
 		}
 		processed = append(processed, s)

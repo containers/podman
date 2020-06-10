@@ -16,8 +16,8 @@ import (
 
 func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string, options entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
 	// First assume it's a container.
-	ctr, err := ic.Libpod.LookupContainer(nameOrID)
-	if err == nil {
+	ctr, ctrErr := ic.Libpod.LookupContainer(nameOrID)
+	if ctrErr == nil {
 		// Generate the unit for the container.
 		s, err := generate.ContainerUnit(ctr, options)
 		if err == nil {
@@ -28,7 +28,8 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	// If it's not a container, we either have a pod or garbage.
 	pod, err := ic.Libpod.LookupPod(nameOrID)
 	if err != nil {
-		return nil, errors.Errorf("%q does not refer to a container or pod", nameOrID)
+		err = errors.Wrap(ctrErr, err.Error())
+		return nil, errors.Wrapf(err, "%s does not refer to a container or pod", nameOrID)
 	}
 
 	// Generate the units for the pod and all its containers.
