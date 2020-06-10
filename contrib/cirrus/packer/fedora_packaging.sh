@@ -11,6 +11,8 @@ echo "Updating/Installing repos and packages for $OS_REL_VER"
 
 source $GOSRC/$SCRIPT_BASE/lib.sh
 
+req_env_var GOSRC SCRIPT_BASE BIGTO INSTALL_AUTOMATION_VERSION FEDORA_BASE_IMAGE PRIOR_FEDORA_BASE_IMAGE
+
 # Pre-req. to install automation tooing
 $LILTO $SUDO dnf install -y git
 
@@ -35,7 +37,7 @@ fi
 
 $BIGTO ooe.sh $SUDO dnf update -y
 
-REMOVE_PACKAGES=()
+REMOVE_PACKAGES=(runc)
 INSTALL_PACKAGES=(\
     autoconf
     automake
@@ -50,8 +52,11 @@ INSTALL_PACKAGES=(\
     containernetworking-plugins
     containers-common
     criu
+    crun
+    curl
     device-mapper-devel
     dnsmasq
+    e2fsprogs-devel
     emacs-nox
     file
     findutils
@@ -60,16 +65,26 @@ INSTALL_PACKAGES=(\
     gcc
     git
     glib2-devel
+    glibc-devel
     glibc-static
     gnupg
     go-md2man
     golang
+    gpgme
     gpgme-devel
+    grubby
+    hostname
     iproute
     iptables
     jq
+    krb5-workstation
+    libassuan
     libassuan-devel
+    libblkid-devel
     libcap-devel
+    libffi-devel
+    libgpg-error-devel
+    libguestfs-tools
     libmsi1
     libnet
     libnet-devel
@@ -79,56 +94,60 @@ INSTALL_PACKAGES=(\
     libselinux-devel
     libtool
     libvarlink-util
+    libxml2-devel
+    libxslt-devel
     lsof
     make
+    mlocate
     msitools
+    nfs-utils
     nmap-ncat
+    openssl
+    openssl-devel
     ostree-devel
     pandoc
+    pkgconfig
     podman
+    policycoreutils
     procps-ng
     protobuf
     protobuf-c
     protobuf-c-devel
     protobuf-devel
-    python
+    python2
+    python3-PyYAML
     python3-dateutil
     python3-psutil
     python3-pytoml
+    python3-libsemanage
+    python3-libselinux
+    python3-libvirt
+    redhat-rpm-config
+    rpcbind
     rsync
+    sed
     selinux-policy-devel
     skopeo
     skopeo-containers
     slirp4netns
+    socat
+    tar
     unzip
     vim
     wget
     which
     xz
     zip
+    zlib-devel
 )
-
-case "$OS_RELEASE_VER" in
-    30)
-        INSTALL_PACKAGES+=(\
-            atomic-registries
-            golang-github-cpuguy83-go-md2man
-            python2-future
-            runc
-        )
-        REMOVE_PACKAGES+=(crun)
-        ;;
-    31)
-        INSTALL_PACKAGES+=(crun)
-        REMOVE_PACKAGES+=(runc)
-        ;;
-    32)
-        INSTALL_PACKAGES+=(crun)
-        REMOVE_PACKAGES+=(runc)
-        ;;
-    *)
-        bad_os_id_ver ;;
-esac
+DOWNLOAD_PACKAGES=(\
+    "cri-o-$(get_kubernetes_version)*"
+    cri-tools
+    "kubernetes-$(get_kubernetes_version)*"
+    runc
+    oci-umount
+    parallel
+)
 
 echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
 $BIGTO ooe.sh $SUDO dnf install -y ${INSTALL_PACKAGES[@]}
@@ -136,6 +155,18 @@ $BIGTO ooe.sh $SUDO dnf install -y ${INSTALL_PACKAGES[@]}
 [[ ${#REMOVE_PACKAGES[@]} -eq 0 ]] || \
     $LILTO ooe.sh $SUDO dnf erase -y ${REMOVE_PACKAGES[@]}
 
-export GOPATH="$(mktemp -d)"
-trap "$SUDO rm -rf $GOPATH" EXIT
-ooe.sh $SUDO $GOSRC/hack/install_catatonit.sh
+if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
+    echo "Downloading packages for optional installation at runtime, as needed."
+    # Required for cri-o
+    ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
+    $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
+    cd "$PACKAGE_DOWNLOAD_DIR"
+    $LILTO ooe.sh $SUDO dnf download -y --resolve ${DOWNLOAD_PACKAGES[@]}
+    ls -la "$PACKAGE_DOWNLOAD_DIR/"
+fi
+
+echo "Installing runtime tooling"
+# Save some runtime by having these already available
+cd $GOSRC
+$SUDO make install.tools
+$SUDO $GOSRC/hack/install_catatonit.sh
