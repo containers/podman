@@ -20,10 +20,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type CompatInspectNetwork struct {
-	types.NetworkResource
-}
-
 func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 

@@ -17,15 +17,15 @@ type PodKillOptions struct {
 
 type PodKillReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type ListPodsReport struct {
 	Cgroup     string
 	Containers []*ListPodContainer
 	Created    time.Time
-	Id         string
-	InfraId    string
+	Id         string //nolint
+	InfraId    string //nolint
 	Name       string
 	Namespace  string
 	Status     string
@@ -33,7 +33,7 @@ type ListPodsReport struct {
 }
 
 type ListPodContainer struct {
-	Id     string
+	Id     string //nolint
 	Names  string
 	Status string
 }
@@ -45,7 +45,7 @@ type PodPauseOptions struct {
 
 type PodPauseReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodunpauseOptions struct {
@@ -55,7 +55,7 @@ type PodunpauseOptions struct {
 
 type PodUnpauseReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodStopOptions struct {
@@ -67,7 +67,7 @@ type PodStopOptions struct {
 
 type PodStopReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodRestartOptions struct {
@@ -77,7 +77,7 @@ type PodRestartOptions struct {
 
 type PodRestartReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodStartOptions struct {
@@ -87,7 +87,7 @@ type PodStartOptions struct {
 
 type PodStartReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodRmOptions struct {
@@ -99,7 +99,7 @@ type PodRmOptions struct {
 
 type PodRmReport struct {
 	Err error
-	Id  string
+	Id  string //nolint
 }
 
 type PodCreateOptions struct {
@@ -115,7 +115,7 @@ type PodCreateOptions struct {
 }
 
 type PodCreateReport struct {
-	Id string
+	Id string //nolint
 }
 
 func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
@@ -155,7 +155,7 @@ type PodPruneOptions struct {
 
 type PodPruneReport struct {
 	Err error
-	Id  string
+	Id  string //nolint
 }
 
 type PodTopOptions struct {

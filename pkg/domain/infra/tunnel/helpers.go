@@ -13,11 +13,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getContainersByContext(contextWithConnection context.Context, all bool, namesOrIds []string) ([]entities.ListContainer, error) {
+func getContainersByContext(contextWithConnection context.Context, all bool, namesOrIDs []string) ([]entities.ListContainer, error) {
 	var (
 		cons []entities.ListContainer
 	)
-	if all && len(namesOrIds) > 0 {
+	if all && len(namesOrIDs) > 0 {
 		return nil, errors.New("cannot lookup containers and all")
 	}
 	c, err := containers.List(contextWithConnection, nil, bindings.PTrue, nil, nil, nil, bindings.PTrue)
@@ -27,7 +27,7 @@ func getContainersByContext(contextWithConnection context.Context, all bool, nam
 	if all {
 		return c, err
 	}
-	for _, id := range namesOrIds {
+	for _, id := range namesOrIDs {
 		var found bool
 		for _, con := range c {
 			if id == con.ID || strings.HasPrefix(con.ID, id) || util.StringInSlice(id, con.Names) {
@@ -43,11 +43,11 @@ func getContainersByContext(contextWithConnection context.Context, all bool, nam
 	return cons, nil
 }
 
-func getPodsByContext(contextWithConnection context.Context, all bool, namesOrIds []string) ([]*entities.ListPodsReport, error) {
+func getPodsByContext(contextWithConnection context.Context, all bool, namesOrIDs []string) ([]*entities.ListPodsReport, error) {
 	var (
 		sPods []*entities.ListPodsReport
 	)
-	if all && len(namesOrIds) > 0 {
+	if all && len(namesOrIDs) > 0 {
 		return nil, errors.New("cannot lookup specific pods and all")
 	}
 
@@ -58,17 +58,17 @@ func getPodsByContext(contextWithConnection context.Context, all bool, namesOrId
 	if all {
 		return fPods, nil
 	}
-	for _, nameOrId := range namesOrIds {
+	for _, nameOrID := range namesOrIDs {
 		var found bool
 		for _, f := range fPods {
-			if f.Name == nameOrId || strings.HasPrefix(f.Id, nameOrId) {
+			if f.Name == nameOrID || strings.HasPrefix(f.Id, nameOrID) {
 				sPods = append(sPods, f)
 				found = true
 				break
 			}
 		}
 		if !found {
-			return nil, errors.Wrapf(define.ErrNoSuchPod, "unable to find pod %q", nameOrId)
+			return nil, errors.Wrapf(define.ErrNoSuchPod, "unable to find pod %q", nameOrID)
 		}
 	}
 	return sPods, nil

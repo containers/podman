@@ -16,9 +16,9 @@ type VolumeCreateOptions struct {
 	Options map[string]string `schema:"opts"`
 }
 
-type IdOrNameResponse struct {
+type IDOrNameResponse struct {
 	// The Id or Name of an object
-	IdOrName string
+	IDOrName string
 }
 
 type VolumeConfigResponse struct {
@@ -63,7 +63,7 @@ type VolumeRmOptions struct {
 
 type VolumeRmReport struct {
 	Err error
-	Id  string
+	Id  string //nolint
 }
 
 type VolumeInspectOptions struct {
@@ -80,7 +80,7 @@ type VolumePruneOptions struct {
 
 type VolumePruneReport struct {
 	Err error
-	Id  string
+	Id  string //nolint
 }
 
 type VolumeListOptions struct {

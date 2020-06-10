@@ -31,7 +31,7 @@ func ToLibpodFilters(f url.Values) (filters []string) {
 	return
 }
 
-func ToUrlValues(f []string) (filters url.Values) {
+func ToURLValues(f []string) (filters url.Values) {
 	filters = make(url.Values)
 	for _, v := range f {
 		t := strings.SplitN(v, "=", 2)

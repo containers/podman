@@ -8,6 +8,6 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 )
 
-func (ic *ContainerEngine) HealthCheckRun(ctx context.Context, nameOrId string, options entities.HealthCheckOptions) (*define.HealthCheckResults, error) {
-	return containers.RunHealthCheck(ic.ClientCxt, nameOrId)
+func (ic *ContainerEngine) HealthCheckRun(ctx context.Context, nameOrID string, options entities.HealthCheckOptions) (*define.HealthCheckResults, error) {
+	return containers.RunHealthCheck(ic.ClientCxt, nameOrID)
 }

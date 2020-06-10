@@ -25,7 +25,7 @@ func (i *VarlinkAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.Vo
 		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(options.Labels))
 	}
 	if len(options.Options) > 0 {
-		parsedOptions, err := parse.ParseVolumeOptions(options.Options)
+		parsedOptions, err := parse.VolumeOptions(options.Options)
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}

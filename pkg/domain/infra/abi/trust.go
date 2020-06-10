@@ -112,8 +112,8 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 	return ioutil.WriteFile(policyPath, data, 0644)
 }
 
-func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistriesDirPath string) ([]*trust.TrustPolicy, error) {
-	var output []*trust.TrustPolicy
+func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistriesDirPath string) ([]*trust.Policy, error) {
+	var output []*trust.Policy
 
 	registryConfigs, err := trust.LoadAndMergeConfig(systemRegistriesDirPath)
 	if err != nil {
@@ -121,7 +121,7 @@ func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistri
 	}
 
 	if len(policyContentStruct.Default) > 0 {
-		defaultPolicyStruct := trust.TrustPolicy{
+		defaultPolicyStruct := trust.Policy{
 			Name:     "* (default)",
 			RepoName: "default",
 			Type:     trustTypeDescription(policyContentStruct.Default[0].Type),
@@ -130,7 +130,7 @@ func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistri
 	}
 	for _, transval := range policyContentStruct.Transports {
 		for repo, repoval := range transval {
-			tempTrustShowOutput := trust.TrustPolicy{
+			tempTrustShowOutput := trust.Policy{
 				Name:     repo,
 				RepoName: repo,
 				Type:     repoval[0].Type,

@@ -220,7 +220,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 
-	ctr, err := CreateContainerFromCreateConfig(runtime, createConfig, ctx, pod)
+	ctr, err := CreateContainerFromCreateConfig(ctx, runtime, createConfig, pod)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -909,7 +909,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	return config, nil
 }
 
-func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateConfig, ctx context.Context, pod *libpod.Pod) (*libpod.Container, error) {
+func CreateContainerFromCreateConfig(ctx context.Context, r *libpod.Runtime, createConfig *cc.CreateConfig, pod *libpod.Pod) (*libpod.Container, error) {
 	runtimeSpec, options, err := createConfig.MakeContainerConfig(r, pod)
 	if err != nil {
 		return nil, err

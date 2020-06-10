@@ -87,13 +87,13 @@ func init() {
 func checkStatOptions(cmd *cobra.Command, args []string) error {
 	opts := 0
 	if statsOptions.All {
-		opts += 1
+		opts++
 	}
 	if statsOptions.Latest {
-		opts += 1
+		opts++
 	}
 	if len(args) > 0 {
-		opts += 1
+		opts++
 	}
 	if opts > 1 {
 		return errors.Errorf("--all, --latest and containers cannot be used together")
@@ -219,9 +219,9 @@ func combineHumanValues(a, b uint64) string {
 
 func outputJSON(stats []*containerStats) error {
 	type jstat struct {
-		Id         string `json:"id"`
+		Id         string `json:"id"` //nolint
 		Name       string `json:"name"`
-		CpuPercent string `json:"cpu_percent"`
+		CpuPercent string `json:"cpu_percent"` //nolint
 		MemUsage   string `json:"mem_usage"`
 		MemPerc    string `json:"mem_percent"`
 		NetIO      string `json:"net_io"`

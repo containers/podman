@@ -243,7 +243,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 		if err != nil {
 			return nil, err
 		}
-		ctr, err := createconfig.CreateContainerFromCreateConfig(ic.Libpod, conf, ctx, pod)
+		ctr, err := createconfig.CreateContainerFromCreateConfig(ctx, ic.Libpod, conf, pod)
 		if err != nil {
 			return nil, err
 		}

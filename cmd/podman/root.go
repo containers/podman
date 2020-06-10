@@ -119,10 +119,10 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flag("cpu-profile").Changed {
-		f, err := os.Create(cfg.CpuProfile)
+		f, err := os.Create(cfg.CPUProfile)
 		if err != nil {
 			return errors.Wrapf(err, "unable to create cpu profiling file %s",
-				cfg.CpuProfile)
+				cfg.CPUProfile)
 		}
 		if err := pprof.StartCPUProfile(f); err != nil {
 			return err
@@ -212,13 +212,13 @@ func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	// V2 flags
 	flags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
 	// TODO Read uri from containers.config when available
-	flags.StringVar(&opts.Uri, "url", registry.DefaultAPIAddress(), "URL to access Podman service (CONTAINER_HOST)")
+	flags.StringVar(&opts.URI, "url", registry.DefaultAPIAddress(), "URL to access Podman service (CONTAINER_HOST)")
 	flags.StringSliceVar(&opts.Identities, "identity", []string{}, "path to SSH identity file, (CONTAINER_SSHKEY)")
 	flags.StringVar(&opts.PassPhrase, "passphrase", "", "passphrase for identity file (not secure, CONTAINER_PASSPHRASE), ssh-agent always supported")
 
 	cfg := opts.Config
 	flags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
-	flags.StringVar(&opts.CpuProfile, "cpu-profile", "", "Path for the cpu profiling results")
+	flags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu profiling results")
 	flags.StringVar(&opts.ConmonPath, "conmon", "", "Path of the conmon binary")
 	flags.StringVar(&cfg.Engine.NetworkCmdPath, "network-cmd-path", cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")
 	flags.StringVar(&cfg.Network.NetworkConfigDir, "cni-config-dir", cfg.Network.NetworkConfigDir, "Path of the configuration directory for CNI networks")

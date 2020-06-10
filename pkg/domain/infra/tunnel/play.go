@@ -8,5 +8,5 @@ import (
 )
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
-	return play.PlayKube(ic.ClientCxt, path, options)
+	return play.Kube(ic.ClientCxt, path, options)
 }

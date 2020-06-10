@@ -75,8 +75,8 @@ func getContainersByContext(all, latest bool, names []string, runtime *libpod.Ru
 }
 
 // TODO: Should return *entities.ContainerExistsReport, error
-func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
-	_, err := ic.Libpod.LookupContainer(nameOrId)
+func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	_, err := ic.Libpod.LookupContainer(nameOrID)
 	if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
 	}
-	errMap, err := parallel.ParallelContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+	errMap, err := parallel.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		var err error
 		if options.Timeout != nil {
 			err = c.StopWithTimeout(*options.Timeout)
@@ -323,7 +323,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		return reports, nil
 	}
 
-	errMap, err := parallel.ParallelContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+	errMap, err := parallel.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		err := ic.Libpod.RemoveContainer(ctx, c, options.Force, options.Volumes)
 		if err != nil {
 			if options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
@@ -384,11 +384,11 @@ func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.To
 	return report, err
 }
 
-func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string, options entities.CommitOptions) (*entities.CommitReport, error) {
+func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string, options entities.CommitOptions) (*entities.CommitReport, error) {
 	var (
 		mimeType string
 	)
-	ctr, err := ic.Libpod.LookupContainer(nameOrId)
+	ctr, err := ic.Libpod.LookupContainer(nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -429,8 +429,8 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string,
 	return &entities.CommitReport{Id: newImage.ID()}, nil
 }
 
-func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrId string, options entities.ContainerExportOptions) error {
-	ctr, err := ic.Libpod.LookupContainer(nameOrId)
+func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string, options entities.ContainerExportOptions) error {
+	ctr, err := ic.Libpod.LookupContainer(nameOrID)
 	if err != nil {
 		return err
 	}
@@ -528,8 +528,8 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	return &entities.ContainerCreateReport{Id: ctr.ID()}, nil
 }
 
-func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrId string, options entities.AttachOptions) error {
-	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrId}, ic.Libpod)
+func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string, options entities.AttachOptions) error {
+	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrID}, ic.Libpod)
 	if err != nil {
 		return err
 	}
@@ -591,12 +591,12 @@ func checkExecPreserveFDs(options entities.ExecOptions) (int, error) {
 	return ec, nil
 }
 
-func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
+func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
 	ec, err := checkExecPreserveFDs(options)
 	if err != nil {
 		return ec, err
 	}
-	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrId}, ic.Libpod)
+	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrID}, ic.Libpod)
 	if err != nil {
 		return ec, err
 	}
@@ -608,12 +608,12 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrId string, o
 	return define.TranslateExecErrorToExitCode(ec, err), err
 }
 
-func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrId string, options entities.ExecOptions) (string, error) {
+func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID string, options entities.ExecOptions) (string, error) {
 	_, err := checkExecPreserveFDs(options)
 	if err != nil {
 		return "", err
 	}
-	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrId}, ic.Libpod)
+	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrID}, ic.Libpod)
 	if err != nil {
 		return "", err
 	}
@@ -767,15 +767,15 @@ func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.C
 }
 
 // ContainerDiff provides changes to given container
-func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrId string, opts entities.DiffOptions) (*entities.DiffReport, error) {
+func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrID string, opts entities.DiffOptions) (*entities.DiffReport, error) {
 	if opts.Latest {
 		ctnr, err := ic.Libpod.GetLatestContainer()
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to get latest container")
 		}
-		nameOrId = ctnr.ID()
+		nameOrID = ctnr.ID()
 	}
-	changes, err := ic.Libpod.GetDiff("", nameOrId)
+	changes, err := ic.Libpod.GetDiff("", nameOrID)
 	return &entities.DiffReport{Changes: changes}, err
 }
 
@@ -977,7 +977,7 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIds []string, options entities.ContainerMountOptions) ([]*entities.ContainerMountReport, error) {
+func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []string, options entities.ContainerMountOptions) ([]*entities.ContainerMountReport, error) {
 	if os.Geteuid() != 0 {
 		if driver := ic.Libpod.StorageConfig().GraphDriverName; driver != "vfs" {
 			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
@@ -994,7 +994,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIds []strin
 		}
 	}
 	var reports []*entities.ContainerMountReport
-	ctrs, err := getContainersByContext(options.All, options.Latest, nameOrIds, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, nameOrIDs, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1029,9 +1029,9 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIds []strin
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIds []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
+func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
 	var reports []*entities.ContainerUnmountReport
-	ctrs, err := getContainersByContext(options.All, options.Latest, nameOrIds, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, nameOrIDs, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1064,9 +1064,9 @@ func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 	return ic.Libpod.GetConfig()
 }
 
-func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrId string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
+func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
 	var reports []*entities.ContainerPortReport
-	ctrs, err := getContainersByContext(options.All, options.Latest, []string{nameOrId}, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, []string{nameOrID}, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
