@@ -5,6 +5,7 @@
 // return values can all change.
 //
 // To start the service and keep it running for 5,000 seconds (-t 0 runs forever):
+//
 //    podman system service -t 5000 &
 //
 // You can then use cURL on the socket using requests documented below.
@@ -15,11 +16,17 @@
 // See podman-service(1) for more information.
 //
 //  Quick Examples:
+//
 //   'podman info'
+//
 //      curl --unix-socket /run/podman/podman.sock http://d/v1.0.0/libpod/info
+//
 //   'podman pull quay.io/containers/podman'
+//
 //      curl -XPOST --unix-socket /run/podman/podman.sock -v 'http://d/v1.0.0/images/create?fromImage=quay.io%2Fcontainers%2Fpodman'
+//
 //   'podman list images'
+//
 //      curl --unix-socket /run/podman/podman.sock -v 'http://d/v1.0.0/libpod/images/json' | jq
 //
 // Terms Of Service:
