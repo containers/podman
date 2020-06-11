@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
@@ -11,7 +12,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// allows for splitting API and CLI-only options
+type podRmOptionsWrapper struct {
+	entities.PodRmOptions
+
+	PodIDFiles []string
+}
+
 var (
+	rmOptions        = podRmOptionsWrapper{}
 	podRmDescription = fmt.Sprintf(`podman rm will remove one or more stopped pods and their containers from the host.
 
   The pod name or ID can be used.  A pod with containers will not be removed without --force. If --force is specified, all containers will be stopped, then removed.`)
@@ -21,16 +30,12 @@ var (
 		Long:  podRmDescription,
 		RunE:  rm,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return parse.CheckAllLatestAndPodIDFile(cmd, args, false, true)
 		},
 		Example: `podman pod rm mywebserverpod
   podman pod rm -f 860a4b23
   podman pod rm -f -a`,
 	}
-)
-
-var (
-	rmOptions = entities.PodRmOptions{}
 )
 
 func init() {
@@ -45,6 +50,7 @@ func init() {
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
 	flags.BoolVarP(&rmOptions.Latest, "latest", "l", false, "Remove the latest pod podman is aware of")
+	flags.StringArrayVarP(&rmOptions.PodIDFiles, "pod-id-file", "", nil, "Read the pod ID from the file")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("ignore")
@@ -55,7 +61,14 @@ func rm(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	responses, err := registry.ContainerEngine().PodRm(context.Background(), args, rmOptions)
+
+	ids, err := common.ReadPodIDFiles(rmOptions.PodIDFiles)
+	if err != nil {
+		return err
+	}
+	args = append(args, ids...)
+
+	responses, err := registry.ContainerEngine().PodRm(context.Background(), args, rmOptions.PodRmOptions)
 	if err != nil {
 		return err
 	}

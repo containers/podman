@@ -68,6 +68,7 @@ type ContainerCLIOpts struct {
 	PID               string
 	PIDsLimit         int64
 	Pod               string
+	PodIDFile         string
 	Privileged        bool
 	PublishAll        bool
 	Pull              string

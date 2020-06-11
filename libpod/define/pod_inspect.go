@@ -18,6 +18,9 @@ type InspectPodData struct {
 	Namespace string `json:"Namespace,omitempty"`
 	// Created is the time when the pod was created.
 	Created time.Time
+	// CreateCommand is the full command plus arguments of the process the
+	// container has been created with.
+	CreateCommand []string `json:"CreateCommand,omitempty"`
 	// State represents the current state of the pod.
 	State string `json:"State"`
 	// Hostname is the hostname that the pod will set.

@@ -254,6 +254,17 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.PublishExposedPorts = c.PublishAll
 	s.Pod = c.Pod
 
+	if len(c.PodIDFile) > 0 {
+		if len(s.Pod) > 0 {
+			return errors.New("Cannot specify both --pod and --pod-id-file")
+		}
+		podID, err := ReadPodIDFile(c.PodIDFile)
+		if err != nil {
+			return err
+		}
+		s.Pod = podID
+	}
+
 	expose, err := createExpose(c.Expose)
 	if err != nil {
 		return err

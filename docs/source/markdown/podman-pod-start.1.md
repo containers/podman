@@ -22,6 +22,10 @@ Instead of providing the pod name or ID, start the last created pod.
 
 The latest option is not supported on the remote client.
 
+**--pod-id-file**
+
+Read pod ID from the specified file and start the pod.  Can be specified multiple times.
+
 ## EXAMPLE
 
 podman pod start mywebserverpod
@@ -32,6 +36,7 @@ podman pod start --latest
 
 podman pod start --all
 
+podman pod start --pod-id-file /path/to/id/file
 
 ## SEE ALSO
 podman-pod(1), podman-pod-stop(1), podman-start(1)

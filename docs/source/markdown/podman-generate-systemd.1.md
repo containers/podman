@@ -26,10 +26,7 @@ Use the name of the container for the start, stop, and description in the unit f
 
 **--new**
 
-Create a new container via podman-run instead of starting an existing one.  This option relies on container configuration files, which may not map directly to podman CLI flags; please review the generated output carefully before placing in production.
-Since we use systemd `Type=forking` service, using this option will force the container run with the detached param `-d`.
-
-Note: Generating systemd unit files with `--new` flag is not yet supported for pods.
+Using this flag will yield unit files that do not expect containers and pods to exist.  Instead, new containers and pods are created based on their configuration files.  The unit files are created best effort and may need to be further edited; please review the generated files carefully before using them in production.
 
 **--time**, **-t**=*value*
 

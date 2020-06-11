@@ -47,6 +47,10 @@ Set a hostname to the pod
 
 Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true.
 
+**--infra-conmon-pidfile**=*file*
+
+Write the pid of the infra container's **conmon** process to a file. As **conmon** runs in a separate process than Podman, this is necessary when using systemd to manage Podman containers and pods.
+
 **--infra-command**=*command*
 
 The command that will be run to start the infra container. Default: "/pause".

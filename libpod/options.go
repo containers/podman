@@ -1538,6 +1538,30 @@ func WithPodHostname(hostname string) PodCreateOption {
 	}
 }
 
+// WithPodCreateCommand adds the full command plus arguments of the current
+// process to the pod config.
+func WithPodCreateCommand() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+		pod.config.CreateCommand = os.Args
+		return nil
+	}
+}
+
+// WithInfraConmonPidFile sets the path to a custom conmon PID file for the
+// infra container.
+func WithInfraConmonPidFile(path string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+		pod.config.InfraContainer.ConmonPidFile = path
+		return nil
+	}
+}
+
 // WithPodLabels sets the labels of a pod.
 func WithPodLabels(labels map[string]string) PodCreateOption {
 	return func(pod *Pod) error {
