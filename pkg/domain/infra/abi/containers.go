@@ -338,20 +338,51 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, error) {
-	ctrs, err := getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
-	if err != nil {
-		return nil, err
-	}
-	reports := make([]*entities.ContainerInspectReport, 0, len(ctrs))
-	for _, c := range ctrs {
-		data, err := c.Inspect(options.Size)
+func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, []error, error) {
+	if options.Latest {
+		ctr, err := ic.Libpod.GetLatestContainer()
 		if err != nil {
-			return nil, err
+			if errors.Cause(err) == define.ErrNoSuchCtr {
+				return nil, []error{errors.Wrapf(err, "no containers to inspect")}, nil
+			}
+			return nil, nil, err
 		}
-		reports = append(reports, &entities.ContainerInspectReport{InspectContainerData: data})
+
+		inspect, err := ctr.Inspect(options.Size)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return []*entities.ContainerInspectReport{
+			{
+				InspectContainerData: inspect,
+			},
+		}, nil, nil
 	}
-	return reports, nil
+	var (
+		reports = make([]*entities.ContainerInspectReport, 0, len(namesOrIds))
+		errs    = []error{}
+	)
+	for _, name := range namesOrIds {
+		ctr, err := ic.Libpod.LookupContainer(name)
+		if err != nil {
+			// ErrNoSuchCtr is non-fatal, other errors will be
+			// treated as fatal.
+			if errors.Cause(err) == define.ErrNoSuchCtr {
+				errs = append(errs, errors.Errorf("no such container %s", name))
+				continue
+			}
+			return nil, nil, err
+		}
+
+		inspect, err := ctr.Inspect(options.Size)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		reports = append(reports, &entities.ContainerInspectReport{InspectContainerData: inspect})
+	}
+	return reports, errs, nil
 }
 
 func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.TopOptions) (*entities.StringSliceReport, error) {

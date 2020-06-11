@@ -223,4 +223,44 @@ var _ = Describe("Podman inspect", func() {
 
 		Expect(baseJSON[0].ID).To(Equal(ctrJSON[0].ID))
 	})
+
+	It("podman inspect always produces a valid array", func() {
+		baseInspect := podmanTest.Podman([]string{"inspect", "doesNotExist"})
+		baseInspect.WaitWithDefaultTimeout()
+		Expect(baseInspect.ExitCode()).To(Not(Equal(0)))
+		emptyJSON := baseInspect.InspectContainerToJSON()
+		Expect(len(emptyJSON)).To(Equal(0))
+	})
+
+	It("podman inspect one container with not exist returns 1-length valid array", func() {
+		ctrName := "testCtr"
+		create := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "sh"})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		baseInspect := podmanTest.Podman([]string{"inspect", ctrName, "doesNotExist"})
+		baseInspect.WaitWithDefaultTimeout()
+		Expect(baseInspect.ExitCode()).To(Not(Equal(0)))
+		baseJSON := baseInspect.InspectContainerToJSON()
+		Expect(len(baseJSON)).To(Equal(1))
+		Expect(baseJSON[0].Name).To(Equal(ctrName))
+	})
+
+	It("podman inspect container + image with same name gives container", func() {
+		ctrName := "testcontainer"
+		create := podmanTest.PodmanNoCache([]string{"create", "--name", ctrName, ALPINE, "sh"})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		tag := podmanTest.PodmanNoCache([]string{"tag", ALPINE, ctrName + ":latest"})
+		tag.WaitWithDefaultTimeout()
+		Expect(tag.ExitCode()).To(Equal(0))
+
+		baseInspect := podmanTest.Podman([]string{"inspect", ctrName})
+		baseInspect.WaitWithDefaultTimeout()
+		Expect(baseInspect.ExitCode()).To(Equal(0))
+		baseJSON := baseInspect.InspectContainerToJSON()
+		Expect(len(baseJSON)).To(Equal(1))
+		Expect(baseJSON[0].Name).To(Equal(ctrName))
+	})
 })

@@ -185,20 +185,27 @@ func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.
 	return containers.Prune(ic.ClientCxt, options.Filters)
 }
 
-func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, false, namesOrIds)
-	if err != nil {
-		return nil, err
-	}
-	reports := make([]*entities.ContainerInspectReport, 0, len(ctrs))
-	for _, con := range ctrs {
-		data, err := containers.Inspect(ic.ClientCxt, con.ID, &options.Size)
+func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, []error, error) {
+	var (
+		reports = make([]*entities.ContainerInspectReport, 0, len(namesOrIds))
+		errs    = []error{}
+	)
+	for _, name := range namesOrIds {
+		inspect, err := containers.Inspect(ic.ClientCxt, name, &options.Size)
 		if err != nil {
-			return nil, err
+			errModel, ok := err.(entities.ErrorModel)
+			if !ok {
+				return nil, nil, err
+			}
+			if errModel.ResponseCode == 404 {
+				errs = append(errs, errors.Errorf("no such container %q", name))
+				continue
+			}
+			return nil, nil, err
 		}
-		reports = append(reports, &entities.ContainerInspectReport{InspectContainerData: data})
+		reports = append(reports, &entities.ContainerInspectReport{InspectContainerData: inspect})
 	}
-	return reports, nil
+	return reports, errs, nil
 }
 
 func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.TopOptions) (*entities.StringSliceReport, error) {

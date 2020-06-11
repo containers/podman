@@ -625,7 +625,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			if retries < 0 {
 				return errors.Errorf("must specify restart policy retry count as a number greater than 0")
 			}
-			var retriesUint uint = uint(retries)
+			var retriesUint = uint(retries)
 			s.RestartRetries = &retriesUint
 		default:
 			return errors.Errorf("invalid restart policy: may specify retries at most once")

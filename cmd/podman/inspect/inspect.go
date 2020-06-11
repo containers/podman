@@ -3,12 +3,14 @@ package inspect
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -78,6 +80,7 @@ func newInspector(options entities.InspectOptions) (*inspector, error) {
 func (i *inspector) inspect(namesOrIDs []string) error {
 	// data - dumping place for inspection results.
 	var data []interface{} //nolint
+	var errs []error
 	ctx := context.Background()
 
 	if len(namesOrIDs) == 0 {
@@ -97,29 +100,37 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	// Inspect - note that AllType requires us to expensively query one-by-one.
 	switch tmpType {
 	case AllType:
-		all, err := i.inspectAll(ctx, namesOrIDs)
+		allData, allErrs, err := i.inspectAll(ctx, namesOrIDs)
 		if err != nil {
 			return err
 		}
-		data = all
+		data = allData
+		errs = allErrs
 	case ImageType:
-		imgData, err := i.imageEngine.Inspect(ctx, namesOrIDs, i.options)
+		imgData, allErrs, err := i.imageEngine.Inspect(ctx, namesOrIDs, i.options)
 		if err != nil {
 			return err
 		}
+		errs = allErrs
 		for i := range imgData {
 			data = append(data, imgData[i])
 		}
 	case ContainerType:
-		ctrData, err := i.containerEngine.ContainerInspect(ctx, namesOrIDs, i.options)
+		ctrData, allErrs, err := i.containerEngine.ContainerInspect(ctx, namesOrIDs, i.options)
 		if err != nil {
 			return err
 		}
+		errs = allErrs
 		for i := range ctrData {
 			data = append(data, ctrData[i])
 		}
 	default:
 		return errors.Errorf("invalid type %q: must be %q, %q or %q", i.options.Type, ImageType, ContainerType, AllType)
+	}
+
+	// Always print an empty array
+	if data == nil {
+		data = []interface{}{}
 	}
 
 	var out formats.Writer
@@ -128,24 +139,43 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	} else {
 		out = formats.StdoutTemplateArray{Output: data, Template: inspectFormat(i.options.Format)}
 	}
-	return out.Out()
+	if err := out.Out(); err != nil {
+		logrus.Errorf("Error printing inspect output: %v", err)
+	}
+	if len(errs) > 0 {
+		if len(errs) > 1 {
+			for _, err := range errs[1:] {
+				fmt.Fprintf(os.Stderr, "error inspecting object: %v\n", err)
+			}
+		}
+		return errors.Errorf("error inspecting object: %v", errs[0])
+	}
+	return nil
 }
 
-func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]interface{}, error) {
+func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]interface{}, []error, error) {
 	var data []interface{} //nolint
+	allErrs := []error{}
 	for _, name := range namesOrIDs {
-		imgData, err := i.imageEngine.Inspect(ctx, []string{name}, i.options)
-		if err == nil {
-			data = append(data, imgData[0])
+		ctrData, errs, err := i.containerEngine.ContainerInspect(ctx, []string{name}, i.options)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(errs) == 0 {
+			data = append(data, ctrData[0])
 			continue
 		}
-		ctrData, err := i.containerEngine.ContainerInspect(ctx, []string{name}, i.options)
+		imgData, errs, err := i.imageEngine.Inspect(ctx, []string{name}, i.options)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		data = append(data, ctrData[0])
+		if len(errs) > 0 {
+			allErrs = append(allErrs, errors.Errorf("no such object: %q", name))
+			continue
+		}
+		data = append(data, imgData[0])
 	}
-	return data, nil
+	return data, allErrs, nil
 }
 
 func inspectFormat(row string) string {
