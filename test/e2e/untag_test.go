@@ -33,6 +33,7 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman untag all", func() {
+		Skip(v2remotefail)
 		tags := []string{ALPINE, "registry.com/foo:bar", "localhost/foo:bar"}
 
 		cmd := []string{"tag"}
