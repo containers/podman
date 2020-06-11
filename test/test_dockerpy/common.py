@@ -23,13 +23,30 @@ def podman():
         binary = "bin/podman"
     return binary
 
-def restore_image_from_cache():
-   client.load_image(constant.ImageCacheDir+alpineDict["tarballName"])
+def restore_image_from_cache(TestClass):
+   alpineImage = os.path.join(constant.ImageCacheDir , alpineDict["tarballName"])
+   if not os.path.exists(alpineImage):
+      os.makedirs(constant.ImageCacheDir)
+      client.pull(constant.ALPINE)
+      response = client.get_image(constant.ALPINE)
+      image_tar = open(alpineImage,mode="wb")
+      image_tar.write(response.data)
+      image_tar.close()
+   else :
+      TestClass.podman = subprocess.run(
+      [
+            podman(), "load", "-i", alpineImage
+      ],
+      shell=False,
+      stdin=subprocess.DEVNULL,
+      stdout=subprocess.DEVNULL,
+      stderr=subprocess.DEVNULL,
+   )
 
 def run_top_container():
-   client.pull(constant.ALPINE)
-   c = client.create_container(constant.ALPINE,name=constant.TOP)
+   c = client.create_container(image=constant.ALPINE,command='/bin/sleep 5',name=constant.TOP)
    client.start(container=c.get("Id"))
+   return c.get("Id")
 
 def enable_sock(TestClass):
    TestClass.podman = subprocess.Popen(

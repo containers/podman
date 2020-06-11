@@ -739,4 +739,23 @@ var _ = Describe("Podman containers ", func() {
 		//Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 	})
 
+	It("List containers with filters", func() {
+		var name = "top"
+		var name2 = "top2"
+		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		_, err = bt.RunTopContainer(&name2, bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		s := specgen.NewSpecGenerator(alpine.name, false)
+		s.Terminal = true
+		s.Command = []string{"date", "-R"}
+		_, err = containers.CreateWithSpec(bt.conn, s)
+		Expect(err).To(BeNil())
+		// Validate list container with id filter
+		filters := make(map[string][]string)
+		filters["id"] = []string{cid}
+		c, err := containers.List(bt.conn, filters, bindings.PTrue, nil, nil, nil, nil)
+		Expect(err).To(BeNil())
+		Expect(len(c)).To(Equal(1))
+	})
 })
