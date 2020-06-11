@@ -107,6 +107,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --entrypoint \"\"", func() {
+		Skip(v2remotefail)
 		session := podmanTest.Podman([]string{"create", "--entrypoint", "", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

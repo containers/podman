@@ -468,6 +468,10 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 	// Remove all containers
 	session := p.Podman([]string{"volume", "rm", "-fa"})
 	session.Wait(90)
+
+	// Stop remove service on volume cleanup
+	p.StopRemoteService()
+
 	// Nuke tempdir
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)

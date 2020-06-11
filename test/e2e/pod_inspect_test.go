@@ -59,6 +59,7 @@ var _ = Describe("Podman pod inspect", func() {
 	})
 
 	It("podman pod inspect (CreateCommand)", func() {
+		Skip(v2remotefail)
 		podName := "myTestPod"
 		createCommand := []string{"pod", "create", "--name", podName, "--hostname", "rudolph", "--share", "net"}
 

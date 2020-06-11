@@ -273,6 +273,7 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("streaming output", func() {
+		Skip(v2remotefail)
 		containerName := "logs-f-rm"
 
 		logc := podmanTest.Podman([]string{"run", "--rm", "--name", containerName, "-dt", ALPINE, "sh", "-c", "echo podman; sleep 1; echo podman"})
@@ -313,6 +314,7 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("follow output stopped container", func() {
+		Skip(v2remotefail)
 		containerName := "logs-f"
 
 		logc := podmanTest.Podman([]string{"run", "--name", containerName, "-d", ALPINE, "true"})
