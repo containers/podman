@@ -13,7 +13,7 @@ import (
 )
 
 // Creates a new, empty pod
-func newPod(runtime *Runtime) (*Pod, error) {
+func newPod(runtime *Runtime) *Pod {
 	pod := new(Pod)
 	pod.config = new(PodConfig)
 	pod.config.ID = stringid.GenerateNonCryptoID()
@@ -23,7 +23,7 @@ func newPod(runtime *Runtime) (*Pod, error) {
 	pod.state = new(podState)
 	pod.runtime = runtime
 
-	return pod, nil
+	return pod
 }
 
 // Update pod state from database

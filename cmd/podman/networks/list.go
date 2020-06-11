@@ -56,10 +56,6 @@ func init() {
 }
 
 func networkList(cmd *cobra.Command, args []string) error {
-	var (
-		nlprs []ListPrintReports
-	)
-
 	// validate the filter pattern.
 	if len(networkListOptions.Filter) > 0 {
 		tokens := strings.Split(networkListOptions.Filter, "=")
@@ -82,6 +78,7 @@ func networkList(cmd *cobra.Command, args []string) error {
 		return jsonOut(responses)
 	}
 
+	nlprs := make([]ListPrintReports, 0, len(responses))
 	for _, r := range responses {
 		nlprs = append(nlprs, ListPrintReports{r})
 	}

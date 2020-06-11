@@ -16,10 +16,6 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 }
 
 func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, opts entities.VolumeRmOptions) ([]*entities.VolumeRmReport, error) {
-	var (
-		reports []*entities.VolumeRmReport
-	)
-
 	if opts.All {
 		vols, err := volumes.List(ic.ClientCxt, nil)
 		if err != nil {
@@ -29,6 +25,7 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 			namesOrIds = append(namesOrIds, v.Name)
 		}
 	}
+	reports := make([]*entities.VolumeRmReport, 0, len(namesOrIds))
 	for _, id := range namesOrIds {
 		reports = append(reports, &entities.VolumeRmReport{
 			Err: volumes.Remove(ic.ClientCxt, id, &opts.Force),
@@ -39,9 +36,6 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 }
 
 func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []string, opts entities.VolumeInspectOptions) ([]*entities.VolumeInspectReport, error) {
-	var (
-		reports []*entities.VolumeInspectReport
-	)
 	if opts.All {
 		vols, err := volumes.List(ic.ClientCxt, nil)
 		if err != nil {
@@ -51,6 +45,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 			namesOrIds = append(namesOrIds, v.Name)
 		}
 	}
+	reports := make([]*entities.VolumeInspectReport, 0, len(namesOrIds))
 	for _, id := range namesOrIds {
 		data, err := volumes.Inspect(ic.ClientCxt, id)
 		if err != nil {

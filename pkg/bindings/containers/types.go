@@ -12,7 +12,7 @@ type LogOptions struct {
 	Until      *string
 }
 
-// CommitOptions describe details about the resulting commited
+// CommitOptions describe details about the resulting committed
 // image as defined by repo and tag. None of these options
 // are required.
 type CommitOptions struct {

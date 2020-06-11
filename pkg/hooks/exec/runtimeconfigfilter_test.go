@@ -12,21 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func pointerInt(value int) *int {
-	return &value
-}
-
-func pointerUInt32(value uint32) *uint32 {
-	return &value
-}
-
-func pointerFileMode(value os.FileMode) *os.FileMode {
-	return &value
-}
-
 func TestRuntimeConfigFilter(t *testing.T) {
 	unexpectedEndOfJSONInput := json.Unmarshal([]byte("{\n"), nil) //nolint
-
+	fileMode := os.FileMode(0600)
+	rootUint32 := uint32(0)
+	binUser := int(1)
 	for _, tt := range []struct {
 		name              string
 		contextTimeout    time.Duration
@@ -77,9 +67,9 @@ func TestRuntimeConfigFilter(t *testing.T) {
 							Type:     "c",
 							Major:    10,
 							Minor:    229,
-							FileMode: pointerFileMode(0600),
-							UID:      pointerUInt32(0),
-							GID:      pointerUInt32(0),
+							FileMode: &fileMode,
+							UID:      &rootUint32,
+							GID:      &rootUint32,
 						},
 					},
 				},
@@ -96,18 +86,18 @@ func TestRuntimeConfigFilter(t *testing.T) {
 							Type:     "c",
 							Major:    10,
 							Minor:    229,
-							FileMode: pointerFileMode(0600),
-							UID:      pointerUInt32(0),
-							GID:      pointerUInt32(0),
+							FileMode: &fileMode,
+							UID:      &rootUint32,
+							GID:      &rootUint32,
 						},
 						{
 							Path:     "/dev/sda",
 							Type:     "b",
 							Major:    8,
 							Minor:    0,
-							FileMode: pointerFileMode(0600),
-							UID:      pointerUInt32(0),
-							GID:      pointerUInt32(0),
+							FileMode: &fileMode,
+							UID:      &rootUint32,
+							GID:      &rootUint32,
 						},
 					},
 				},
@@ -137,9 +127,9 @@ func TestRuntimeConfigFilter(t *testing.T) {
 							Type:     "c",
 							Major:    10,
 							Minor:    229,
-							FileMode: pointerFileMode(0600),
-							UID:      pointerUInt32(0),
-							GID:      pointerUInt32(0),
+							FileMode: &fileMode,
+							UID:      &rootUint32,
+							GID:      &rootUint32,
 						},
 					},
 				},
@@ -156,18 +146,18 @@ func TestRuntimeConfigFilter(t *testing.T) {
 							Type:     "c",
 							Major:    10,
 							Minor:    229,
-							FileMode: pointerFileMode(0600),
-							UID:      pointerUInt32(0),
-							GID:      pointerUInt32(0),
+							FileMode: &fileMode,
+							UID:      &rootUint32,
+							GID:      &rootUint32,
 						},
 						{
 							Path:     "/dev/sdb",
 							Type:     "b",
 							Major:    8,
 							Minor:    0,
-							FileMode: pointerFileMode(0600),
-							UID:      pointerUInt32(0),
-							GID:      pointerUInt32(0),
+							FileMode: &fileMode,
+							UID:      &rootUint32,
+							GID:      &rootUint32,
 						},
 					},
 				},
@@ -203,7 +193,7 @@ func TestRuntimeConfigFilter(t *testing.T) {
 				{
 					Path:    path,
 					Args:    []string{"sh", "-c", "sleep 2"},
-					Timeout: pointerInt(1),
+					Timeout: &binUser,
 				},
 			},
 			input: &spec.Spec{

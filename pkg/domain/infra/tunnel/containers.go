@@ -32,13 +32,11 @@ func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string)
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, options entities.WaitOptions) ([]entities.WaitReport, error) {
-	var (
-		responses []entities.WaitReport
-	)
 	cons, err := getContainersByContext(ic.ClientCxt, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	responses := make([]entities.WaitReport, 0, len(cons))
 	for _, c := range cons {
 		response := entities.WaitReport{Id: c.ID}
 		exitCode, err := containers.Wait(ic.ClientCxt, c.ID, &options.Condition)
@@ -53,13 +51,11 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	var (
-		reports []*entities.PauseUnpauseReport
-	)
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := containers.Pause(ic.ClientCxt, c.ID)
 		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
@@ -68,13 +64,11 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	var (
-		reports []*entities.PauseUnpauseReport
-	)
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := containers.Unpause(ic.ClientCxt, c.ID)
 		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
@@ -83,9 +77,7 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
-	var (
-		reports []*entities.StopReport
-	)
+	reports := []*entities.StopReport{}
 	for _, cidFile := range options.CIDFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
@@ -125,13 +117,11 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {
-	var (
-		reports []*entities.KillReport
-	)
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.KillReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		reports = append(reports, &entities.KillReport{
 			Id:  c.ID,
@@ -143,7 +133,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 
 func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []string, options entities.RestartOptions) ([]*entities.RestartReport, error) {
 	var (
-		reports []*entities.RestartReport
+		reports = []*entities.RestartReport{}
 		timeout *int
 	)
 	if options.Timeout != nil {
@@ -168,9 +158,6 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, options entities.RmOptions) ([]*entities.RmReport, error) {
-	var (
-		reports []*entities.RmReport
-	)
 	for _, cidFile := range options.CIDFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
@@ -184,6 +171,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		return nil, err
 	}
 	// TODO there is no endpoint for container eviction.  Need to discuss
+	reports := make([]*entities.RmReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		reports = append(reports, &entities.RmReport{
 			Id:  c.ID,
@@ -198,13 +186,11 @@ func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.
 }
 
 func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, error) {
-	var (
-		reports []*entities.ContainerInspectReport
-	)
 	ctrs, err := getContainersByContext(ic.ClientCxt, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.ContainerInspectReport, 0, len(ctrs))
 	for _, con := range ctrs {
 		data, err := containers.Inspect(ic.ClientCxt, con.ID, &options.Size)
 		if err != nil {
@@ -282,9 +268,8 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string,
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, options entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
 	var (
-		reports []*entities.CheckpointReport
-		err     error
-		ctrs    []entities.ListContainer
+		err  error
+		ctrs = []entities.ListContainer{}
 	)
 
 	if options.All {
@@ -305,6 +290,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 			return nil, err
 		}
 	}
+	reports := make([]*entities.CheckpointReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		report, err := containers.Checkpoint(ic.ClientCxt, c.ID, &options.Keep, &options.LeaveRunning, &options.TCPEstablished, &options.IgnoreRootFS, &options.Export)
 		if err != nil {
@@ -317,9 +303,8 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 
 func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []string, options entities.RestoreOptions) ([]*entities.RestoreReport, error) {
 	var (
-		reports []*entities.RestoreReport
-		err     error
-		ctrs    []entities.ListContainer
+		err  error
+		ctrs = []entities.ListContainer{}
 	)
 	if options.All {
 		allCtrs, err := getContainersByContext(ic.ClientCxt, true, []string{})
@@ -339,6 +324,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 			return nil, err
 		}
 	}
+	reports := make([]*entities.RestoreReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		report, err := containers.Restore(ic.ClientCxt, c.ID, &options.Keep, &options.TCPEstablished, &options.IgnoreRootFS, &options.IgnoreStaticIP, &options.IgnoreStaticMAC, &options.Name, &options.Import)
 		if err != nil {
@@ -467,7 +453,7 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 }
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
-	var reports []*entities.ContainerStartReport
+	reports := []*entities.ContainerStartReport{}
 	for _, name := range namesOrIds {
 		report := entities.ContainerStartReport{
 			Id:       name,
@@ -535,11 +521,11 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
-	var reports []*entities.ContainerInitReport
 	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.ContainerInitReport, 0, len(ctrs))
 	for _, ctr := range ctrs {
 		err := containers.ContainerInit(ic.ClientCxt, ctr.ID)
 		// When using all, it is NOT considered an error if a container
@@ -569,8 +555,8 @@ func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 
 func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
 	var (
-		reports    []*entities.ContainerPortReport
-		namesOrIds []string
+		reports    = []*entities.ContainerPortReport{}
+		namesOrIds = []string{}
 	)
 	if len(nameOrID) > 0 {
 		namesOrIds = append(namesOrIds, nameOrID)

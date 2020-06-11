@@ -28,10 +28,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 		return nil, define.ErrRuntimeStopped
 	}
 
-	pod, err := newPod(r)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating pod")
-	}
+	pod := newPod(r)
 
 	// Set default namespace to runtime's namespace
 	// Do so before options run so they can override it

@@ -8,17 +8,12 @@ import (
 )
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
-	var (
-		images []*libpodImage.Image
-		err    error
-	)
-
-	images, err = ir.Libpod.ImageRuntime().GetImagesWithFilters(opts.Filter)
+	images, err := ir.Libpod.ImageRuntime().GetImagesWithFilters(opts.Filter)
 	if err != nil {
 		return nil, err
 	}
 
-	var summaries []*entities.ImageSummary
+	summaries := []*entities.ImageSummary{}
 	for _, img := range images {
 		var repoTags []string
 		if opts.All {

@@ -133,7 +133,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 	if err != nil {
 		return nil, errors.Wrapf(err, "read directory %s", cgroupRoot)
 	}
-	var controllers []controller
+	controllers := []controller{}
 	for _, i := range infos {
 		name := i.Name()
 		if _, found := exclude[name]; found {
@@ -505,7 +505,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 		return nil
 	}
 
-	var names []string
+	names := make([]string, 0, len(handlers))
 	for n := range handlers {
 		names = append(names, n)
 	}

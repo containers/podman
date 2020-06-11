@@ -39,7 +39,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		return nil, err
 	}
 
-	is := make([]*entities.ImageSummary, len(images))
+	is := make([]*entities.ImageSummary, 0, len(images))
 	for i, img := range images {
 		hold := entities.ImageSummary{}
 		if err := utils.DeepCopy(&hold, img); err != nil {

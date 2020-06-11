@@ -813,7 +813,7 @@ func (r *Runtime) GetRunningContainers() ([]*Container, error) {
 // GetContainersByList is a helper function for GetContainers
 // which takes a []string of container IDs or names
 func (r *Runtime) GetContainersByList(containers []string) ([]*Container, error) {
-	var ctrs []*Container
+	ctrs := make([]*Container, 0, len(containers))
 	for _, inputContainer := range containers {
 		ctr, err := r.LookupContainer(inputContainer)
 		if err != nil {

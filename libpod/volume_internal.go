@@ -9,7 +9,7 @@ import (
 )
 
 // Creates a new volume
-func newVolume(runtime *Runtime) (*Volume, error) {
+func newVolume(runtime *Runtime) *Volume {
 	volume := new(Volume)
 	volume.config = new(VolumeConfig)
 	volume.state = new(VolumeState)
@@ -17,8 +17,7 @@ func newVolume(runtime *Runtime) (*Volume, error) {
 	volume.config.Labels = make(map[string]string)
 	volume.config.Options = make(map[string]string)
 	volume.state.NeedsCopyUp = true
-
-	return volume, nil
+	return volume
 }
 
 // teardownStorage deletes the volume from volumePath

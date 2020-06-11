@@ -32,7 +32,7 @@ type MissingRuntime struct {
 
 // Get a new MissingRuntime for the given name.
 // Requires a libpod Runtime so we can make a sane path for the exits dir.
-func getMissingRuntime(name string, r *Runtime) (OCIRuntime, error) {
+func getMissingRuntime(name string, r *Runtime) OCIRuntime {
 	missingRuntimesLock.Lock()
 	defer missingRuntimesLock.Unlock()
 
@@ -42,7 +42,7 @@ func getMissingRuntime(name string, r *Runtime) (OCIRuntime, error) {
 
 	runtime, ok := missingRuntimes[name]
 	if ok {
-		return runtime, nil
+		return runtime
 	}
 
 	// Once for each missing runtime, we want to error.
@@ -54,7 +54,7 @@ func getMissingRuntime(name string, r *Runtime) (OCIRuntime, error) {
 
 	missingRuntimes[name] = newRuntime
 
-	return newRuntime, nil
+	return newRuntime
 }
 
 // Name is the name of the missing runtime

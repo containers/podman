@@ -162,9 +162,6 @@ func findPluginByName(plugins []*libcni.NetworkConfig, pluginType string) ([]byt
 }
 
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
-	var (
-		reports []*types.NetworkResource
-	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
@@ -191,6 +188,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+	reports := make([]*types.NetworkResource, 0, len(netNames))
 	for _, name := range netNames {
 		report, err := getNetworkResourceByName(name, runtime)
 		if err != nil {
@@ -215,7 +213,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	if len(networkCreate.Name) > 0 {
 		name = networkCreate.Name
 	}
-	// At present I think we should just suport the bridge driver
+	// At present I think we should just support the bridge driver
 	// and allow demand to make us consider more
 	if networkCreate.Driver != network.DefaultNetworkDriver {
 		utils.InternalServerError(w, errors.New("network create only supports the bridge driver"))

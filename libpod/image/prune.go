@@ -104,10 +104,7 @@ func (ir *Runtime) GetPruneImages(ctx context.Context, all bool, filterFuncs []I
 // PruneImages prunes dangling and optionally all unused images from the local
 // image store
 func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) ([]string, error) {
-	var (
-		prunedCids  []string
-		filterFuncs []ImageFilter
-	)
+	filterFuncs := make([]ImageFilter, 0, len(filter))
 	for _, f := range filter {
 		filterSplit := strings.SplitN(f, "=", 2)
 		if len(filterSplit) < 2 {
@@ -125,6 +122,7 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get images to prune")
 	}
+	prunedCids := make([]string, 0, len(pruneImages))
 	for _, p := range pruneImages {
 		repotags, err := p.RepoTags()
 		if err != nil {

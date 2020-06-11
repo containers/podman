@@ -21,8 +21,8 @@ type storageService struct {
 
 // getStorageService returns a storageService which can create container root
 // filesystems from images
-func getStorageService(store storage.Store) (*storageService, error) {
-	return &storageService{store: store}, nil
+func getStorageService(store storage.Store) *storageService {
+	return &storageService{store: store}
 }
 
 // ContainerInfo wraps a subset of information about a container: the locations

@@ -12,7 +12,7 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.Net
 }
 
 func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.NetworkInspectOptions) ([]entities.NetworkInspectReport, error) {
-	var reports []entities.NetworkInspectReport
+	reports := make([]entities.NetworkInspectReport, 0, len(namesOrIds))
 	for _, name := range namesOrIds {
 		report, err := network.Inspect(ic.ClientCxt, name)
 		if err != nil {
@@ -24,7 +24,7 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
-	var reports []*entities.NetworkRmReport
+	reports := make([]*entities.NetworkRmReport, 0, len(namesOrIds))
 	for _, name := range namesOrIds {
 		report, err := network.Remove(ic.ClientCxt, name, &options.Force)
 		if err != nil {

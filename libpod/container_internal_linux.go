@@ -1313,7 +1313,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		}
 	}
 
-	var dns []net.IP
+	dns := make([]net.IP, 0, len(c.runtime.config.Containers.DNSServers))
 	for _, i := range c.runtime.config.Containers.DNSServers {
 		result := net.ParseIP(i)
 		if result == nil {
@@ -1393,7 +1393,9 @@ func (c *Container) generateHosts(path string) (string, error) {
 // local hosts file. netCtr is the container from which the netNS information is
 // taken.
 // path is the basis of the hosts file, into which netCtr's netNS information will be appended.
-func (c *Container) appendHosts(path string, netCtr *Container) (string, error) {
+// FIXME.  Path should be used by this function,but I am not sure what is correct; remove //lint
+// once this is fixed
+func (c *Container) appendHosts(path string, netCtr *Container) (string, error) { //nolint
 	return c.appendStringToRundir("hosts", netCtr.getHosts())
 }
 

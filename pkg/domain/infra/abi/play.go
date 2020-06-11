@@ -109,9 +109,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 
 func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
 	var (
-		containers    []*libpod.Container
 		pod           *libpod.Pod
-		podOptions    []libpod.PodCreateOption
 		registryCreds *types.DockerAuthConfig
 		writer        io.Writer
 		playKubePod   entities.PlayKubePod
@@ -130,8 +128,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
-	podOptions = append(podOptions, libpod.WithInfraContainer())
-	podOptions = append(podOptions, libpod.WithPodName(podName))
+	podOptions := []libpod.PodCreateOption{
+		libpod.WithInfraContainer(),
+		libpod.WithPodName(podName),
+	}
 	// TODO for now we just used the default kernel namespaces; we need to add/subtract this from yaml
 
 	hostname := podYAML.Spec.Hostname
@@ -271,6 +271,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, err
 	}
 
+	containers := make([]*libpod.Container, 0, len(podYAML.Spec.Containers))
 	for _, container := range podYAML.Spec.Containers {
 		pullPolicy := util.PullImageMissing
 		if len(container.ImagePullPolicy) > 0 {
@@ -293,7 +294,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
-		conf, err := kubeContainerToCreateConfig(ctx, container, ic.Libpod, newImage, namespaces, volumes, pod.ID(), podName, podInfraID, seccompPaths)
+		conf, err := kubeContainerToCreateConfig(ctx, container, newImage, namespaces, volumes, pod.ID(), podName, podInfraID, seccompPaths)
 		if err != nil {
 			return nil, err
 		}
@@ -407,7 +408,7 @@ func setupSecurityContext(securityConfig *createconfig.SecurityConfig, userConfi
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, podName, infraID string, seccompPaths *kubeSeccompPaths) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, podName, infraID string, seccompPaths *kubeSeccompPaths) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		pidConfig       createconfig.PidConfig

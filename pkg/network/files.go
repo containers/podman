@@ -22,13 +22,13 @@ func GetCNIConfDir(config *config.Config) string {
 
 // LoadCNIConfsFromDir loads all the CNI configurations from a dir
 func LoadCNIConfsFromDir(dir string) ([]*libcni.NetworkConfigList, error) {
-	var configs []*libcni.NetworkConfigList
 	files, err := libcni.ConfFiles(dir, []string{".conflist"})
 	if err != nil {
 		return nil, err
 	}
 	sort.Strings(files)
 
+	configs := make([]*libcni.NetworkConfigList, 0, len(files))
 	for _, confFile := range files {
 		conf, err := libcni.ConfListFromFile(confFile)
 		if err != nil {
@@ -72,7 +72,7 @@ func ReadRawCNIConfByName(config *config.Config, name string) ([]byte, error) {
 // GetCNIPlugins returns a list of plugins that a given network
 // has in the form of a string
 func GetCNIPlugins(list *libcni.NetworkConfigList) string {
-	var plugins []string
+	plugins := make([]string, 0, len(list.Plugins))
 	for _, plug := range list.Plugins {
 		plugins = append(plugins, plug.Network.Type)
 	}
@@ -106,12 +106,11 @@ func GetNetworksFromFilesystem(config *config.Config) ([]*allocator.Net, error) 
 // GetNetworkNamesFromFileSystem gets all the names from the cni network
 // configuration files
 func GetNetworkNamesFromFileSystem(config *config.Config) ([]string, error) {
-	var networkNames []string
-
 	networks, err := LoadCNIConfsFromDir(GetCNIConfDir(config))
 	if err != nil {
 		return nil, err
 	}
+	networkNames := []string{}
 	for _, n := range networks {
 		networkNames = append(networkNames, n.Name)
 	}
@@ -144,12 +143,12 @@ func GetInterfaceNameFromConfig(path string) (string, error) {
 // GetBridgeNamesFromFileSystem is a convenience function to get all the bridge
 // names from the configured networks
 func GetBridgeNamesFromFileSystem(config *config.Config) ([]string, error) {
-	var bridgeNames []string
-
 	networks, err := LoadCNIConfsFromDir(GetCNIConfDir(config))
 	if err != nil {
 		return nil, err
 	}
+
+	bridgeNames := []string{}
 	for _, n := range networks {
 		var name string
 		// iterate network conflists

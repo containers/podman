@@ -54,9 +54,7 @@ func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*ent
 }
 
 func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, options entities.PodKillOptions) ([]*entities.PodKillReport, error) {
-	var (
-		reports []*entities.PodKillReport
-	)
+	reports := []*entities.PodKillReport{}
 	sig, err := signal.ParseSignalNameOrNumber(options.Signal)
 	if err != nil {
 		return nil, err
@@ -87,9 +85,7 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 }
 
 func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, options entities.PodPauseOptions) ([]*entities.PodPauseReport, error) {
-	var (
-		reports []*entities.PodPauseReport
-	)
+	reports := []*entities.PodPauseReport{}
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
@@ -114,9 +110,7 @@ func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, op
 }
 
 func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, options entities.PodunpauseOptions) ([]*entities.PodUnpauseReport, error) {
-	var (
-		reports []*entities.PodUnpauseReport
-	)
+	reports := []*entities.PodUnpauseReport{}
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
@@ -141,10 +135,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 }
 
 func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, options entities.PodStopOptions) ([]*entities.PodStopReport, error) {
-	var (
-		reports []*entities.PodStopReport
-	)
-
+	reports := []*entities.PodStopReport{}
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		return nil, err
@@ -169,9 +160,7 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 }
 
 func (ic *ContainerEngine) PodRestart(ctx context.Context, namesOrIds []string, options entities.PodRestartOptions) ([]*entities.PodRestartReport, error) {
-	var (
-		reports []*entities.PodRestartReport
-	)
+	reports := []*entities.PodRestartReport{}
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
@@ -197,10 +186,7 @@ func (ic *ContainerEngine) PodRestart(ctx context.Context, namesOrIds []string, 
 }
 
 func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, options entities.PodStartOptions) ([]*entities.PodStartReport, error) {
-	var (
-		reports []*entities.PodStartReport
-	)
-
+	reports := []*entities.PodStartReport{}
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
@@ -227,14 +213,11 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 }
 
 func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, options entities.PodRmOptions) ([]*entities.PodRmReport, error) {
-	var (
-		reports []*entities.PodRmReport
-	)
-
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		return nil, err
 	}
+	reports := make([]*entities.PodRmReport, 0, len(pods))
 	for _, p := range pods {
 		report := entities.PodRmReport{Id: p.ID()}
 		err := ic.Libpod.RemovePod(ctx, p, true, options.Force)
@@ -251,13 +234,11 @@ func (ic *ContainerEngine) PodPrune(ctx context.Context, options entities.PodPru
 }
 
 func (ic *ContainerEngine) prunePodHelper(ctx context.Context) ([]*entities.PodPruneReport, error) {
-	var (
-		reports []*entities.PodPruneReport
-	)
 	response, err := ic.Libpod.PrunePods(ctx)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PodPruneReport, 0, len(response))
 	for k, v := range response {
 		reports = append(reports, &entities.PodPruneReport{
 			Err: v,
@@ -302,9 +283,8 @@ func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOp
 func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOptions) ([]*entities.ListPodsReport, error) {
 	var (
 		err     error
-		filters []libpod.PodFilter
-		pds     []*libpod.Pod
-		reports []*entities.ListPodsReport
+		filters = []libpod.PodFilter{}
+		pds     = []*libpod.Pod{}
 	)
 
 	for k, v := range options.Filters {
@@ -330,6 +310,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 		}
 	}
 
+	reports := make([]*entities.ListPodsReport, 0, len(pds))
 	for _, p := range pds {
 		var lpcs []*entities.ListPodContainer
 		status, err := p.GetPodStatus()

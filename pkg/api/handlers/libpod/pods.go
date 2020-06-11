@@ -89,7 +89,6 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		runtime   = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder   = r.Context().Value("decoder").(*schema.Decoder)
 		responses map[string]error
-		errs      []error
 	)
 	query := struct {
 		Timeout int `schema:"t"`
@@ -128,6 +127,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
+	var errs []error //nolint
 	for _, err := range responses {
 		errs = append(errs, err)
 	}
@@ -139,9 +139,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodStart(w http.ResponseWriter, r *http.Request) {
-	var (
-		errs []error
-	)
+	var errs []error //nolint
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -206,9 +204,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodRestart(w http.ResponseWriter, r *http.Request) {
-	var (
-		errs []error
-	)
+	var errs []error //nolint
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -243,12 +239,12 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 func PodPruneHelper(w http.ResponseWriter, r *http.Request) ([]*entities.PodPruneReport, error) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		reports []*entities.PodPruneReport
 	)
 	responses, err := runtime.PrunePods(r.Context())
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PodPruneReport, 0, len(responses))
 	for k, v := range responses {
 		reports = append(reports, &entities.PodPruneReport{
 			Err: v,
@@ -259,9 +255,7 @@ func PodPruneHelper(w http.ResponseWriter, r *http.Request) ([]*entities.PodPrun
 }
 
 func PodPause(w http.ResponseWriter, r *http.Request) {
-	var (
-		errs []error
-	)
+	var errs []error //nolint
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -285,9 +279,7 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodUnpause(w http.ResponseWriter, r *http.Request) {
-	var (
-		errs []error
-	)
+	var errs []error //nolint
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -357,7 +349,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
 		signal  = "SIGKILL"
-		errs    []error
+		errs    []error //nolint
 	)
 	query := struct {
 		Signal string `schema:"signal"`

@@ -30,11 +30,11 @@ func IsSupportedDriver(driver string) error {
 // GetLiveNetworks returns a slice of networks representing what the system
 // has defined as network interfaces
 func GetLiveNetworks() ([]*net.IPNet, error) {
-	var nets []*net.IPNet
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, err
 	}
+	nets := make([]*net.IPNet, 0, len(addrs))
 	for _, address := range addrs {
 		_, n, err := net.ParseCIDR(address.String())
 		if err != nil {
@@ -47,11 +47,11 @@ func GetLiveNetworks() ([]*net.IPNet, error) {
 
 // GetLiveNetworkNames returns a list of network interfaces on the system
 func GetLiveNetworkNames() ([]string, error) {
-	var interfaceNames []string
 	liveInterfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
 	}
+	interfaceNames := make([]string, 0, len(liveInterfaces))
 	for _, i := range liveInterfaces {
 		interfaceNames = append(interfaceNames, i.Name)
 	}

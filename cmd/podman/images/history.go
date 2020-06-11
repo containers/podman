@@ -100,7 +100,7 @@ func history(cmd *cobra.Command, args []string) error {
 		}
 		return err
 	}
-	var hr []historyreporter
+	hr := make([]historyreporter, 0, len(results.Layers))
 	for _, l := range results.Layers {
 		hr = append(hr, historyreporter{l})
 	}

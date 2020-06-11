@@ -12,7 +12,6 @@ import (
 func HistoryImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
-	var allHistory []handlers.HistoryResponse
 
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
@@ -25,6 +24,7 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+	allHistory := make([]handlers.HistoryResponse, 0, len(history))
 	for _, h := range history {
 		l := handlers.HistoryResponse{
 			ID:        h.ID,

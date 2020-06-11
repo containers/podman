@@ -172,7 +172,7 @@ func checkInput() error { // nolint:deadcode,unused
 	return nil
 }
 
-// SystemPrune removes unsed data from the system. Pruning pods, containers, volumes and images.
+// SystemPrune removes unused data from the system. Pruning pods, containers, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)
 	podPruneReport, err := ic.prunePodHelper(ctx)
@@ -181,7 +181,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 	}
 	systemPruneReport.PodPruneReport = podPruneReport
 
-	containerPruneReport, err := ic.pruneContainersHelper(ctx, nil)
+	containerPruneReport, err := ic.pruneContainersHelper(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -212,10 +212,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 
 func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
 	var (
-		dfImages          []*entities.SystemDfImageReport
-		dfContainers      []*entities.SystemDfContainerReport
-		dfVolumes         []*entities.SystemDfVolumeReport
-		runningContainers []string
+		dfImages = []*entities.SystemDfImageReport{}
 	)
 
 	// Get Images and iterate them
@@ -282,6 +279,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	if err != nil {
 		return nil, err
 	}
+	dfContainers := make([]*entities.SystemDfContainerReport, 0, len(cons))
 	for _, c := range cons {
 		iid, _ := c.Image()
 		conSize, err := c.RootFsSize()
@@ -320,10 +318,12 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	if err != nil {
 		return nil, err
 	}
+	runningContainers := make([]string, 0, len(running))
 	for _, c := range running {
 		runningContainers = append(runningContainers, c.ID())
 	}
 
+	dfVolumes := make([]*entities.SystemDfVolumeReport, 0, len(vols))
 	for _, v := range vols {
 		var consInUse int
 		volSize, err := sizeOfPath(v.MountPoint())

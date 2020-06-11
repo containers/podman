@@ -92,7 +92,7 @@ func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string,
 
 	if isFromHostToCtr {
 		if isVol, volDestName, volName := isVolumeDestName(destPath, ctr); isVol { //nolint(gocritic)
-			path, err := pathWithVolumeMount(ctr, ic.Libpod, volDestName, volName, destPath)
+			path, err := pathWithVolumeMount(ic.Libpod, volDestName, volName, destPath)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error getting destination path from volume %s", volDestName)
 			}
@@ -126,7 +126,7 @@ func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string,
 	} else {
 		destOwner = idtools.IDPair{UID: os.Getuid(), GID: os.Getgid()}
 		if isVol, volDestName, volName := isVolumeDestName(srcPath, ctr); isVol { //nolint(gocritic)
-			path, err := pathWithVolumeMount(ctr, ic.Libpod, volDestName, volName, srcPath)
+			path, err := pathWithVolumeMount(ic.Libpod, volDestName, volName, srcPath)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error getting source path from volume %s", volDestName)
 			}
@@ -384,7 +384,7 @@ func isVolumeDestName(path string, ctr *libpod.Container) (bool, string, string)
 }
 
 // if SRCPATH or DESTPATH is from volume mount's destination -v or --mount type=volume, generates the path with volume mount point
-func pathWithVolumeMount(ctr *libpod.Container, runtime *libpod.Runtime, volDestName, volName, path string) (string, error) {
+func pathWithVolumeMount(runtime *libpod.Runtime, volDestName, volName, path string) (string, error) {
 	destVolume, err := runtime.GetVolume(volName)
 	if err != nil {
 		return "", errors.Wrapf(err, "error getting volume destination %s", volName)

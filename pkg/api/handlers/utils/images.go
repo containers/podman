@@ -94,7 +94,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 	if query.All {
 		return images, nil
 	}
-	var returnImages []*image.Image
+	returnImages := []*image.Image{}
 	for _, img := range images {
 		if len(img.Names()) == 0 {
 			parent, err := img.IsParent(r.Context())

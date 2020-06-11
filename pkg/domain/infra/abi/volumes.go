@@ -40,9 +40,10 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, opts entities.VolumeRmOptions) ([]*entities.VolumeRmReport, error) {
 	var (
 		err     error
-		reports []*entities.VolumeRmReport
 		vols    []*libpod.Volume
+		reports = []*entities.VolumeRmReport{}
 	)
+
 	if opts.All {
 		vols, err = ic.Libpod.Volumes()
 		if err != nil {
@@ -72,9 +73,8 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 
 func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []string, opts entities.VolumeInspectOptions) ([]*entities.VolumeInspectReport, error) {
 	var (
-		err     error
-		reports []*entities.VolumeInspectReport
-		vols    []*libpod.Volume
+		err  error
+		vols []*libpod.Volume
 	)
 
 	// Note: as with previous implementation, a single failure here
@@ -93,6 +93,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 			vols = append(vols, vol)
 		}
 	}
+	reports := make([]*entities.VolumeInspectReport, 0, len(vols))
 	for _, v := range vols {
 		config := entities.VolumeConfigResponse{
 			Name:       v.Name(),
@@ -115,13 +116,11 @@ func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.Volume
 }
 
 func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context) ([]*entities.VolumePruneReport, error) {
-	var (
-		reports []*entities.VolumePruneReport
-	)
 	pruned, err := ic.Libpod.PruneVolumes(ctx)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.VolumePruneReport, 0, len(pruned))
 	for k, v := range pruned {
 		reports = append(reports, &entities.VolumePruneReport{
 			Err: v,
@@ -132,9 +131,6 @@ func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context) ([]*entities.
 }
 
 func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeListOptions) ([]*entities.VolumeListReport, error) {
-	var (
-		reports []*entities.VolumeListReport
-	)
 	volumeFilters, err := filters.GenerateVolumeFilters(opts.Filter)
 	if err != nil {
 		return nil, err
@@ -143,6 +139,7 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.VolumeListReport, 0, len(vols))
 	for _, v := range vols {
 		config := entities.VolumeConfigResponse{
 			Name:       v.Name(),

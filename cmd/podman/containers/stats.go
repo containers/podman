@@ -134,7 +134,7 @@ func outputStats(reports []*define.ContainerStats) error {
 		tm.MoveCursor(1, 1)
 		tm.Flush()
 	}
-	var stats []*containerStats
+	stats := make([]*containerStats, 0, len(reports))
 	for _, r := range reports {
 		stats = append(stats, &containerStats{r})
 	}
@@ -228,7 +228,7 @@ func outputJSON(stats []*containerStats) error {
 		BlockIO    string `json:"block_io"`
 		Pids       string `json:"pids"`
 	}
-	var jstats []jstat
+	jstats := make([]jstat, 0, len(stats))
 	for _, j := range stats {
 		jstats = append(jstats, jstat{
 			Id:         j.ID(),

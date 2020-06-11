@@ -18,7 +18,7 @@ type GenerateSystemdOptions struct {
 	ContainerPrefix string
 	// PodPrefix - systemd unit name prefix for pods
 	PodPrefix string
-	// Separator - systemd unit name seperator between name/id and prefix
+	// Separator - systemd unit name separator between name/id and prefix
 	Separator string
 }
 

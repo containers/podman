@@ -39,7 +39,7 @@ func (c *Container) Init(ctx context.Context) (err error) {
 	}
 
 	// don't recursively start
-	if err := c.checkDependenciesAndHandleError(ctx); err != nil {
+	if err := c.checkDependenciesAndHandleError(); err != nil {
 		return err
 	}
 
@@ -146,7 +146,7 @@ func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) (err e
 		}
 	}
 
-	if err = c.checkDependenciesAndHandleError(ctx); err != nil {
+	if err = c.checkDependenciesAndHandleError(); err != nil {
 		return err
 	}
 

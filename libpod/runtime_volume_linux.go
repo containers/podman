@@ -29,11 +29,7 @@ func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) 
 
 // newVolume creates a new empty volume
 func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
-	volume, err := newVolume(r)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating volume")
-	}
-
+	volume := newVolume(r)
 	for _, option := range options {
 		if err := option(volume); err != nil {
 			return nil, errors.Wrapf(err, "error running volume create option")

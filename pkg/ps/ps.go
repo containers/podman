@@ -21,7 +21,7 @@ import (
 func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	var (
 		filterFuncs []libpod.ContainerFilter
-		pss         []entities.ListContainer
+		pss         = []entities.ListContainer{}
 	)
 	all := options.All || options.Last > 0
 	if len(options.Filters) > 0 {

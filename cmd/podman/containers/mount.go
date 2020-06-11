@@ -71,7 +71,6 @@ func init() {
 func mount(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
-		mrs  []mountReporter
 	)
 	reports, err := registry.ContainerEngine().ContainerMount(registry.GetContext(), args, mountOpts)
 	if err != nil {
@@ -90,6 +89,7 @@ func mount(cmd *cobra.Command, args []string) error {
 	if mountOpts.Format == "json" {
 		return printJSON(reports)
 	}
+	mrs := make([]mountReporter, 0, len(reports))
 	for _, r := range reports {
 		mrs = append(mrs, mountReporter{r})
 	}
@@ -110,7 +110,7 @@ func printJSON(reports []*entities.ContainerMountReport) error {
 		Names      []string
 		Mountpoint string `json:"mountpoint"`
 	}
-	var jreports []jreport
+	jreports := make([]jreport, 0, len(reports))
 
 	for _, r := range reports {
 		jreports = append(jreports, jreport{

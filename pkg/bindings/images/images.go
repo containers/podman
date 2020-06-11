@@ -394,7 +394,7 @@ func Pull(ctx context.Context, rawImage string, options entities.ImagePullOption
 }
 
 // Push is the binding for libpod's v2 endpoints for push images.  Note that
-// `source` must be a refering to an image in the remote's container storage.
+// `source` must be a referring to an image in the remote's container storage.
 // The destination must be a reference to a registry (i.e., of docker transport
 // or be normalized to one).  Other transports are rejected as they do not make
 // sense in a remote context.
