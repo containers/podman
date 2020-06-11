@@ -1,8 +1,11 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -210,6 +213,21 @@ var _ = Describe("Podman pod start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1)) // infra
+
+		readFirstLine := func(path string) string {
+			content, err := ioutil.ReadFile(path)
+			Expect(err).To(BeNil())
+			return strings.Split(string(content), "\n")[0]
+		}
+
+		// Read the infra-conmon-pidfile and perform some sanity checks
+		// on the pid.
+		infraConmonPID := readFirstLine(tmpFile)
+		_, err = strconv.Atoi(infraConmonPID) // Make sure it's a proper integer
+		Expect(err).To(BeNil())
+
+		cmdline := readFirstLine(fmt.Sprintf("/proc/%s/cmdline", infraConmonPID))
+		Expect(cmdline).To(ContainSubstring("/conmon"))
 	})
 
 })
