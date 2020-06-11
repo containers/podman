@@ -10,11 +10,7 @@ ENV SCRIPT_BASE=./contrib/cirrus
 ENV PACKER_BASE=$SCRIPT_BASE/packer
 
 # Only add minimal tooling necessary to complete setup.
-ADD /$SCRIPT_BASE $GOSRC/$SCRIPT_BASE
-ADD /hack/install_catatonit.sh $GOSRC/hack/
-ADD /cni/*.conflist $GOSRC/cni/
-ADD /test/*.json $GOSRC/test/
-ADD /test/*.conf $GOSRC/test/
+ADD / $GOSRC
 WORKDIR $GOSRC
 
 # Re-use repositories and package setup as in VMs under CI
