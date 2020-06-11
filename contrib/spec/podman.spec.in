@@ -77,8 +77,9 @@ BuildRequires: systemd-devel
 Requires: skopeo-containers
 Requires: containernetworking-plugins >= 0.6.0-3
 Requires: iptables
-%if 0%{?rhel} <= 7
+%if 0%{?rhel} < 8 || 0%{?centos} < 8
 Requires: container-selinux
+Requires: runc
 %else
 %if 0%{?rhel} || 0%{?centos}
 Requires: runc
