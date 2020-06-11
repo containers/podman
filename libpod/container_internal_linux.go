@@ -79,7 +79,8 @@ func (c *Container) prepare() error {
 	go func() {
 		defer wg.Done()
 		// Set up network namespace if not already set up
-		if c.config.CreateNetNS && c.state.NetNS == nil && !c.config.PostConfigureNetNS {
+		noNetNS := c.state.NetNS == nil
+		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
 			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 			if createNetNSErr != nil {
 				return
@@ -94,7 +95,7 @@ func (c *Container) prepare() error {
 		}
 
 		// handle rootless network namespace setup
-		if c.state.NetNS != nil && c.config.NetMode.IsSlirp4netns() && !c.config.PostConfigureNetNS {
+		if noNetNS && c.config.NetMode.IsSlirp4netns() && !c.config.PostConfigureNetNS {
 			createNetNSErr = c.runtime.setupRootlessNetNS(c)
 		}
 	}()
