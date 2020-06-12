@@ -83,7 +83,11 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 					break
 				}
 				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
-					t.StopAtEOF()
+					err := t.Stop()
+					if err != nil {
+						logrus.Error(err)
+						break
+					}
 					break
 				}
 				time.Sleep(1 * time.Second)
