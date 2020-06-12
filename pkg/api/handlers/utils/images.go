@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/storage"
@@ -77,9 +78,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 
 	if len(query.Filters) > 0 {
 		for k, v := range query.Filters {
-			for _, val := range v {
-				filters = append(filters, fmt.Sprintf("%s=%s", k, val))
-			}
+			filters = append(filters, fmt.Sprintf("%s=%s", k, strings.Join(v, "=")))
 		}
 		images, err = runtime.ImageRuntime().GetImagesWithFilters(filters)
 		if err != nil {
