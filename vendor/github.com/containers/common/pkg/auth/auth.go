@@ -232,11 +232,20 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 	}
 
 	err = config.RemoveAuthentication(systemContext, server)
-	switch err {
+	switch errors.Cause(err) {
 	case nil:
 		fmt.Fprintf(opts.Stdout, "Removed login credentials for %s\n", server)
 		return nil
 	case config.ErrNotLoggedIn:
+		authConfig, err := config.GetCredentials(systemContext, server)
+		if err != nil {
+			return errors.Wrapf(err, "error reading auth file")
+		}
+		authInvalid := docker.CheckAuth(context.Background(), systemContext, authConfig.Username, authConfig.Password, server)
+		if authConfig.Username != "" && authConfig.Password != "" && authInvalid == nil {
+			fmt.Printf("Not logged into %s with current tool. Existing credentials were established via docker login. Please use docker logout instead.\n", server)
+			return nil
+		}
 		return errors.Errorf("Not logged into %s\n", server)
 	default:
 		return errors.Wrapf(err, "error logging out of %q", server)
