@@ -36,6 +36,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		if hdr[0] != "application/x-tar" {
 			utils.BadRequest(w, "Content-Type", hdr[0],
 				fmt.Errorf("Content-Type: %s is not supported. Should be \"application/x-tar\"", hdr[0]))
+			return
 		}
 	}
 
@@ -260,8 +261,7 @@ func extractTarFile(r *http.Request, w http.ResponseWriter) (string, error) {
 	r.Body.Close()
 
 	if err != nil {
-		utils.InternalServerError(w,
-			fmt.Errorf("failed Request: Unable to copy tar file from request body %s", r.RequestURI))
+		return "", fmt.Errorf("failed Request: Unable to copy tar file from request body %s", r.RequestURI)
 	}
 
 	_, _ = tarBall.Seek(0, 0)
