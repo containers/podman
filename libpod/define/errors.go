@@ -141,6 +141,9 @@ var (
 	// ErrConmonOutdated indicates the version of conmon found (whether via the configuration or $PATH)
 	// is out of date for the current podman version
 	ErrConmonOutdated = errors.New("outdated conmon version")
+	// ErrConmonDead indicates that the container's conmon process has been
+	// killed, preventing normal operation.
+	ErrConmonDead = errors.New("conmon process killed")
 
 	// ErrImageInUse indicates the requested operation failed because the image was in use
 	ErrImageInUse = errors.New("image is being used")

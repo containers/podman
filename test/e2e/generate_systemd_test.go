@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
@@ -191,7 +192,7 @@ var _ = Describe("Podman generate systemd", func() {
 		found, _ := session.GrepString("# container-foo.service")
 		Expect(found).To(BeTrue())
 
-		found, _ = session.GrepString("stop --ignore --cidfile %t/%n-cid -t 42")
+		found, _ = session.GrepString("stop --ignore --cidfile %t/container-foo.ctr-id -t 42")
 		Expect(found).To(BeTrue())
 	})
 
@@ -230,7 +231,7 @@ var _ = Describe("Podman generate systemd", func() {
 
 		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "42", "--name", "--new", "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman generate systemd --container-prefix con", func() {
@@ -323,6 +324,51 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(found).To(BeTrue())
 
 		found, _ = session.GrepString("BindsTo=p_foo.service")
+		Expect(found).To(BeTrue())
+	})
+
+	It("podman generate systemd pod with containers --new", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile := tmpDir + "podID"
+		defer os.RemoveAll(tmpDir)
+
+		n := podmanTest.Podman([]string{"pod", "create", "--pod-id-file", tmpFile, "--name", "foo"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		n = podmanTest.Podman([]string{"create", "--pod", "foo", "--name", "foo-1", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		n = podmanTest.Podman([]string{"create", "--pod", "foo", "--name", "foo-2", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--new", "--name", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Grepping the output (in addition to unit tests)
+		found, _ := session.GrepString("# pod-foo.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("Requires=container-foo-1.service container-foo-2.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("BindsTo=pod-foo.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("pod create --infra-conmon-pidfile %t/pod-foo.pid --pod-id-file %t/pod-foo.pod-id --name foo")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("ExecStartPre=/usr/bin/rm -f %t/pod-foo.pid %t/pod-foo.pod-id")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("pod stop --ignore --pod-id-file %t/pod-foo.pod-id -t 10")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("pod rm --ignore -f --pod-id-file %t/pod-foo.pod-id")
 		Expect(found).To(BeTrue())
 	})
 })

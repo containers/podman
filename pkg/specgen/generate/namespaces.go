@@ -72,13 +72,13 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 	return toReturn, errors.Wrapf(define.ErrInvalidArg, "invalid namespace type %q passed", nsType)
 }
 
-// GenerateNamespaceOptions generates container creation options for all
+// namespaceOptions generates container creation options for all
 // namespaces in a SpecGenerator.
 // Pod is the pod the container will join. May be nil is the container is not
 // joining a pod.
 // TODO: Consider grouping options that are not directly attached to a namespace
 // elsewhere.
-func GenerateNamespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.Pod, img *image.Image) ([]libpod.CtrCreateOption, error) {
+func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.Pod, img *image.Image) ([]libpod.CtrCreateOption, error) {
 	toReturn := []libpod.CtrCreateOption{}
 
 	// If pod is not nil, get infra container.

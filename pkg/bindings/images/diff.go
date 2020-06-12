@@ -9,13 +9,13 @@ import (
 )
 
 // Diff provides the changes between two container layers
-func Diff(ctx context.Context, nameOrId string) ([]archive.Change, error) {
+func Diff(ctx context.Context, nameOrID string) ([]archive.Change, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/changes", nil, nil, nameOrId)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/changes", nil, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}

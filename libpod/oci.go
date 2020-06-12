@@ -107,6 +107,13 @@ type OCIRuntime interface {
 	// error.
 	CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) error
 
+	// CheckConmonRunning verifies that the given container's Conmon
+	// instance is still running. Runtimes without Conmon, or systems where
+	// the PID of conmon is not available, should mock this as True.
+	// True indicates that Conmon for the instance is running, False
+	// indicates it is not.
+	CheckConmonRunning(ctr *Container) (bool, error)
+
 	// SupportsCheckpoint returns whether this OCI runtime
 	// implementation supports the CheckpointContainer() operation.
 	SupportsCheckpoint() bool

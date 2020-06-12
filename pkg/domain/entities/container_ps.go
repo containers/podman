@@ -85,9 +85,9 @@ func (a psSortedCommand) Less(i, j int) bool {
 	return strings.Join(a.SortListContainers[i].Command, " ") < strings.Join(a.SortListContainers[j].Command, " ")
 }
 
-type psSortedId struct{ SortListContainers }
+type psSortedID struct{ SortListContainers }
 
-func (a psSortedId) Less(i, j int) bool {
+func (a psSortedID) Less(i, j int) bool {
 	return a.SortListContainers[i].ID < a.SortListContainers[j].ID
 }
 
@@ -139,7 +139,7 @@ func (a PsSortedCreateTime) Less(i, j int) bool {
 func SortPsOutput(sortBy string, psOutput SortListContainers) (SortListContainers, error) {
 	switch sortBy {
 	case "id":
-		sort.Sort(psSortedId{psOutput})
+		sort.Sort(psSortedID{psOutput})
 	case "image":
 		sort.Sort(psSortedImage{psOutput})
 	case "command":

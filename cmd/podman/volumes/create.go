@@ -67,6 +67,6 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(response.IdOrName)
+	fmt.Println(response.IDOrName)
 	return nil
 }

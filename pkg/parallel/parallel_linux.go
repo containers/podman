@@ -9,11 +9,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ParallelContainerOp performs the given function on the given set of
+// ContainerOp performs the given function on the given set of
 // containers, using a number of parallel threads.
 // If no error is returned, each container specified in ctrs will have an entry
 // in the resulting map; containers with no error will be set to nil.
-func ParallelContainerOp(ctx context.Context, ctrs []*libpod.Container, applyFunc func(*libpod.Container) error) (map[*libpod.Container]error, error) {
+func ContainerOp(ctx context.Context, ctrs []*libpod.Container, applyFunc func(*libpod.Container) error) (map[*libpod.Container]error, error) {
 	jobControlLock.RLock()
 	defer jobControlLock.RUnlock()
 
@@ -22,7 +22,7 @@ func ParallelContainerOp(ctx context.Context, ctrs []*libpod.Container, applyFun
 	// The expectation is that most of the time is spent in applyFunc
 	// anyways.
 	var (
-		errMap  map[*libpod.Container]error = make(map[*libpod.Container]error)
+		errMap  = make(map[*libpod.Container]error)
 		errLock sync.Mutex
 		allDone sync.WaitGroup
 	)

@@ -33,8 +33,8 @@ var (
 
 var (
 	networkListOptions entities.NetworkListOptions
-	headers            string = "NAME\tVERSION\tPLUGINS\n"
-	defaultListRow     string = "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
+	headers            = "NAME\tVERSION\tPLUGINS\n"
+	defaultListRow     = "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
 )
 
 func networkListFlags(flags *pflag.FlagSet) {
@@ -57,7 +57,7 @@ func init() {
 
 func networkList(cmd *cobra.Command, args []string) error {
 	var (
-		nlprs []NetworkListPrintReports
+		nlprs []ListPrintReports
 	)
 
 	// validate the filter pattern.
@@ -83,7 +83,7 @@ func networkList(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range responses {
-		nlprs = append(nlprs, NetworkListPrintReports{r})
+		nlprs = append(nlprs, ListPrintReports{r})
 	}
 
 	row := networkListOptions.Format
@@ -125,14 +125,14 @@ func jsonOut(responses []*entities.NetworkListReport) error {
 	return nil
 }
 
-type NetworkListPrintReports struct {
+type ListPrintReports struct {
 	*entities.NetworkListReport
 }
 
-func (n NetworkListPrintReports) Version() string {
+func (n ListPrintReports) Version() string {
 	return n.CNIVersion
 }
 
-func (n NetworkListPrintReports) Plugins() string {
+func (n ListPrintReports) Plugins() string {
 	return network.GetCNIPlugins(n.NetworkConfigList)
 }

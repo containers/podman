@@ -163,6 +163,11 @@ func (r *MissingRuntime) CheckpointContainer(ctr *Container, options ContainerCh
 	return r.printError()
 }
 
+// CheckConmonRunning is not available as the runtime is missing
+func (r *MissingRuntime) CheckConmonRunning(ctr *Container) (bool, error) {
+	return false, r.printError()
+}
+
 // SupportsCheckpoint returns false as checkpointing requires a working runtime
 func (r *MissingRuntime) SupportsCheckpoint() bool {
 	return false

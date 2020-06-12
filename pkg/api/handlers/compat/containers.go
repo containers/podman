@@ -348,7 +348,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error) {
-	imageId, imageName := l.Image()
+	imageID, imageName := l.Image()
 
 	var (
 		err        error
@@ -378,7 +378,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		ID:         l.ID(),
 		Names:      []string{fmt.Sprintf("/%s", l.Name())},
 		Image:      imageName,
-		ImageID:    imageId,
+		ImageID:    imageID,
 		Command:    strings.Join(l.Command(), " "),
 		Created:    l.CreatedTime().Unix(),
 		Ports:      nil,

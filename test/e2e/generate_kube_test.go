@@ -254,6 +254,8 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate with user and reimport kube on pod", func() {
+		// This test fails on ubuntu due to https://github.com/seccomp/containers-golang/pull/27
+		SkipIfNotFedora()
 		podName := "toppod"
 		_, rc, _ := podmanTest.CreatePod(podName)
 		Expect(rc).To(Equal(0))
@@ -280,7 +282,8 @@ var _ = Describe("Podman generate kube", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		inspect1 := podmanTest.Podman([]string{"inspect", "--format", "{{.Config.User}}", "test1"})
+		// container name in pod is <podName>-<ctrName>
+		inspect1 := podmanTest.Podman([]string{"inspect", "--format", "{{.Config.User}}", "toppod-test1"})
 		inspect1.WaitWithDefaultTimeout()
 		Expect(inspect1.ExitCode()).To(Equal(0))
 		Expect(inspect1.OutputToString()).To(ContainSubstring(inspect.OutputToString()))
@@ -293,6 +296,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		// we need a container name because IDs don't persist after rm/play
 		ctrName := "test-ctr"
+		ctrNameInKubePod := "test1-test-ctr"
 
 		session1 := podmanTest.Podman([]string{"run", "-d", "--pod", "new:test1", "--name", ctrName, "-v", vol1 + ":/volume/:z", "alpine", "top"})
 		session1.WaitWithDefaultTimeout()
@@ -311,7 +315,7 @@ var _ = Describe("Podman generate kube", func() {
 		play.WaitWithDefaultTimeout()
 		Expect(play.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect := podmanTest.Podman([]string{"inspect", ctrNameInKubePod})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(vol1))

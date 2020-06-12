@@ -11,6 +11,8 @@ echo "Updating/Installing repos and packages for $OS_REL_VER"
 
 source $GOSRC/$SCRIPT_BASE/lib.sh
 
+req_env_var GOSRC SCRIPT_BASE BIGTO SUDOAPTGET INSTALL_AUTOMATION_VERSION
+
 echo "Updating/configuring package repositories."
 $BIGTO $SUDOAPTGET update
 
@@ -99,6 +101,7 @@ INSTALL_PACKAGES=(\
     protobuf-c-compiler
     protobuf-compiler
     python-protobuf
+    python2
     python3-dateutil
     python3-pip
     python3-psutil
@@ -117,6 +120,11 @@ INSTALL_PACKAGES=(\
     xz-utils
     zip
     zlib1g-dev
+)
+DOWNLOAD_PACKAGES=(\
+    cri-o-$(get_kubernetes_version)
+    cri-tools
+    parallel
 )
 
 # These aren't resolvable on Ubuntu 20
@@ -137,16 +145,15 @@ echo "Installing general testing and system dependencies"
 $LILTO ooe.sh $SUDOAPTGET update
 $BIGTO ooe.sh $SUDOAPTGET install ${INSTALL_PACKAGES[@]}
 
-export GOPATH="$(mktemp -d)"
-trap "$SUDO rm -rf $GOPATH" EXIT
-echo "Installing cataonit and libseccomp.sudo"
-cd $GOSRC
-ooe.sh $SUDO hack/install_catatonit.sh
-ooe.sh $SUDO make install.libseccomp.sudo
-
-CRIO_RUNC_PATH="/usr/lib/cri-o-runc/sbin/runc"
-if $SUDO dpkg -L cri-o-runc | grep -m 1 -q "$CRIO_RUNC_PATH"
-then
-    echo "Linking $CRIO_RUNC_PATH to /usr/bin/runc for ease of testing."
-    $SUDO ln -f "$CRIO_RUNC_PATH" "/usr/bin/runc"
+if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
+    echo "Downloading packages for optional installation at runtime, as needed."
+    $SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
+    $LILTO ooe.sh $SUDOAPTGET install --download-only ${DOWNLOAD_PACKAGES[@]}
+    ls -la "$PACKAGE_DOWNLOAD_DIR/"
 fi
+
+echo "Installing runtime tooling"
+cd $GOSRC
+$SUDO hack/install_catatonit.sh
+$SUDO make install.libseccomp.sudo
+$SUDO make install.tools

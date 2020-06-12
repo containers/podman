@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func PodCreate(w http.ResponseWriter, r *http.Request) {
@@ -31,11 +32,11 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	pod, err := generate.MakePod(&psg, runtime)
 	if err != nil {
-		http_code := http.StatusInternalServerError
+		httpCode := http.StatusInternalServerError
 		if errors.Cause(err) == define.ErrPodExists {
-			http_code = http.StatusConflict
+			httpCode = http.StatusConflict
 		}
-		utils.Error(w, "Something went wrong.", http_code, err)
+		utils.Error(w, "Something went wrong.", httpCode, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: pod.ID()})
@@ -375,6 +376,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 	sig, err := util.ParseSignal(signal)
 	if err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "unable to parse signal value"))
+		return
 	}
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -382,6 +384,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		utils.PodNotFound(w, name, err)
 		return
 	}
+	logrus.Debugf("Killing pod %s with signal %d", pod.ID(), sig)
 	podStates, err := pod.Status()
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)

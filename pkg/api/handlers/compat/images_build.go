@@ -59,10 +59,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ForceRm     bool   `schema:"forcerm"`
 		Memory      int64  `schema:"memory"`
 		MemSwap     int64  `schema:"memswap"`
-		CpuShares   uint64 `schema:"cpushares"`
-		CpuSetCpus  string `schema:"cpusetcpus"`
-		CpuPeriod   uint64 `schema:"cpuperiod"`
-		CpuQuota    int64  `schema:"cpuquota"`
+		CpuShares   uint64 `schema:"cpushares"`  //nolint
+		CpuSetCpus  string `schema:"cpusetcpus"` //nolint
+		CpuPeriod   uint64 `schema:"cpuperiod"`  //nolint
+		CpuQuota    int64  `schema:"cpuquota"`   //nolint
 		BuildArgs   string `schema:"buildargs"`
 		ShmSize     int    `schema:"shmsize"`
 		Squash      bool   `schema:"squash"`

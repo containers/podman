@@ -4,12 +4,12 @@ import (
 	"strings"
 )
 
-type stringSet struct {
+type StringSet struct {
 	m map[string]struct{}
 }
 
-func NewStringSet(elem ...string) *stringSet {
-	s := &stringSet{}
+func NewStringSet(elem ...string) *StringSet {
+	s := &StringSet{}
 	s.m = make(map[string]struct{}, len(elem))
 	for _, e := range elem {
 		s.Add(e)
@@ -17,20 +17,20 @@ func NewStringSet(elem ...string) *stringSet {
 	return s
 }
 
-func (s *stringSet) Add(elem string) {
+func (s *StringSet) Add(elem string) {
 	s.m[elem] = struct{}{}
 }
 
-func (s *stringSet) Remove(elem string) {
+func (s *StringSet) Remove(elem string) {
 	delete(s.m, elem)
 }
 
-func (s *stringSet) Contains(elem string) bool {
+func (s *StringSet) Contains(elem string) bool {
 	_, ok := s.m[elem]
 	return ok
 }
 
-func (s *stringSet) Elements() []string {
+func (s *StringSet) Elements() []string {
 	keys := make([]string, len(s.m))
 	i := 0
 	for k := range s.m {
@@ -40,6 +40,6 @@ func (s *stringSet) Elements() []string {
 	return keys
 }
 
-func (s *stringSet) String() string {
+func (s *StringSet) String() string {
 	return strings.Join(s.Elements(), ", ")
 }

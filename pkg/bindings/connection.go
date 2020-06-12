@@ -41,7 +41,7 @@ type APIResponse struct {
 }
 
 type Connection struct {
-	Uri    *url.URL
+	URI    *url.URL
 	Client *http.Client
 }
 
@@ -137,7 +137,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase strin
 
 func tcpClient(_url *url.URL) (Connection, error) {
 	connection := Connection{
-		Uri: _url,
+		URI: _url,
 	}
 	connection.Client = &http.Client{
 		Transport: &http.Transport{
@@ -246,7 +246,7 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identities ...stri
 		return Connection{}, errors.Wrapf(err, "Connection to bastion host (%s) failed.", _url.String())
 	}
 
-	connection := Connection{Uri: _url}
+	connection := Connection{URI: _url}
 	connection.Client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
@@ -257,7 +257,7 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identities ...stri
 }
 
 func unixClient(_url *url.URL) (Connection, error) {
-	connection := Connection{Uri: _url}
+	connection := Connection{URI: _url}
 	connection.Client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {

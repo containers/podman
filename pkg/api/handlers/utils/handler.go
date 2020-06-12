@@ -28,27 +28,27 @@ const (
 	// CompatTree supports Libpod endpoints
 	CompatTree
 
-	// CurrentApiVersion announces what is the current API level
-	CurrentApiVersion = VersionLevel(iota)
-	// MinimalApiVersion announces what is the oldest API level supported
-	MinimalApiVersion
+	// CurrentAPIVersion announces what is the current API level
+	CurrentAPIVersion = VersionLevel(iota)
+	// MinimalAPIVersion announces what is the oldest API level supported
+	MinimalAPIVersion
 )
 
 var (
 	// See https://docs.docker.com/engine/api/v1.40/
 	// libpod compat handlers are expected to honor docker API versions
 
-	// ApiVersion provides the current and minimal API versions for compat and libpod endpoint trees
+	// APIVersion provides the current and minimal API versions for compat and libpod endpoint trees
 	// Note: GET|HEAD /_ping is never versioned and provides the API-Version and Libpod-API-Version headers to allow
 	//       clients to shop for the Version they wish to support
-	ApiVersion = map[VersionTree]map[VersionLevel]semver.Version{
+	APIVersion = map[VersionTree]map[VersionLevel]semver.Version{
 		LibpodTree: {
-			CurrentApiVersion: semver.MustParse("1.0.0"),
-			MinimalApiVersion: semver.MustParse("1.0.0"),
+			CurrentAPIVersion: semver.MustParse("1.0.0"),
+			MinimalAPIVersion: semver.MustParse("1.0.0"),
 		},
 		CompatTree: {
-			CurrentApiVersion: semver.MustParse("1.40.0"),
-			MinimalApiVersion: semver.MustParse("1.24.0"),
+			CurrentAPIVersion: semver.MustParse("1.40.0"),
+			MinimalAPIVersion: semver.MustParse("1.24.0"),
 		},
 	}
 
@@ -103,8 +103,8 @@ func SupportedVersionWithDefaults(r *http.Request) (semver.Version, error) {
 	}
 
 	return SupportedVersion(r,
-		fmt.Sprintf(">=%s <=%s", ApiVersion[tree][MinimalApiVersion].String(),
-			ApiVersion[tree][CurrentApiVersion].String()))
+		fmt.Sprintf(">=%s <=%s", APIVersion[tree][MinimalAPIVersion].String(),
+			APIVersion[tree][CurrentAPIVersion].String()))
 }
 
 // WriteResponse encodes the given value as JSON or string and renders it for http client

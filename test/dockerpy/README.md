@@ -6,11 +6,6 @@ Running tests
 =============
 To run the tests locally in your sandbox:
 
-#### Make sure that the Podman system service is running to do so
-
-```
-sudo podman --log-level=debug system service -t0 unix:/run/podman/podman.sock
-```
 #### Run the entire test
 
 ```

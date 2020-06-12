@@ -102,8 +102,8 @@ func ReferenceFilter(ctx context.Context, referenceFilter string) ResultFilter {
 	}
 }
 
-// IdFilter allows you to filter by image Id
-func IdFilter(idFilter string) ResultFilter {
+// IDFilter allows you to filter by image Id
+func IDFilter(idFilter string) ResultFilter {
 	return func(i *Image) bool {
 		return i.ID() == idFilter
 	}
@@ -172,7 +172,7 @@ func (ir *Runtime) createFilterFuncs(filters []string, img *Image) ([]ResultFilt
 		case "reference":
 			filterFuncs = append(filterFuncs, ReferenceFilter(ctx, splitFilter[1]))
 		case "id":
-			filterFuncs = append(filterFuncs, IdFilter(splitFilter[1]))
+			filterFuncs = append(filterFuncs, IDFilter(splitFilter[1]))
 		default:
 			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
 		}

@@ -57,13 +57,13 @@ func GeneratePodFilterFunc(filter, filterValue string) (
 			return nil, errors.Errorf("%s is not a valid status", filterValue)
 		}
 		return func(p *libpod.Pod) bool {
-			ctr_statuses, err := p.Status()
+			ctrStatuses, err := p.Status()
 			if err != nil {
 				return false
 			}
-			for _, ctr_status := range ctr_statuses {
-				state := ctr_status.String()
-				if ctr_status == define.ContainerStateConfigured {
+			for _, ctrStatus := range ctrStatuses {
+				state := ctrStatus.String()
+				if ctrStatus == define.ContainerStateConfigured {
 					state = "created"
 				}
 				if state == filterValue {

@@ -14,7 +14,7 @@ import (
 )
 
 // DefaultNetworkDriver is the default network type used
-var DefaultNetworkDriver string = "bridge"
+var DefaultNetworkDriver = "bridge"
 
 // SupportedNetworkDrivers describes the list of supported drivers
 var SupportedNetworkDrivers = []string{DefaultNetworkDriver}

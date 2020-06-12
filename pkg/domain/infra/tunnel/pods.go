@@ -7,11 +7,12 @@ import (
 	"github.com/containers/libpod/pkg/bindings/pods"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 )
 
-func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
-	exists, err := pods.Exists(ic.ClientCxt, nameOrId)
+func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	exists, err := pods.Exists(ic.ClientCxt, nameOrID)
 	return &entities.BoolReport{Value: exists}, err
 }
 
@@ -19,6 +20,12 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 	var (
 		reports []*entities.PodKillReport
 	)
+
+	_, err := util.ParseSignal(options.Signal)
+	if err != nil {
+		return nil, err
+	}
+
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
@@ -87,7 +94,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, options entities.PodStopOptions) ([]*entities.PodStopReport, error) {
 	var (
 		reports []*entities.PodStopReport
-		timeout int = -1
+		timeout = -1
 	)
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {

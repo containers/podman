@@ -72,11 +72,9 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 				return err
 			}
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
-			if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
-				if conf.Engine.CgroupManager == config.SystemdCgroupsManager {
+			if conf.Engine.CgroupManager == config.SystemdCgroupsManager {
+				if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
 					logrus.Warnf("Failed to add podman to systemd sandbox cgroup: %v", err)
-				} else {
-					logrus.Debugf("Failed to add podman to systemd sandbox cgroup: %v", err)
 				}
 			}
 		}
@@ -338,7 +336,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		}
 		for _, viu := range inUse {
 			if util.StringInSlice(viu, runningContainers) {
-				consInUse += 1
+				consInUse++
 			}
 		}
 		report := entities.SystemDfVolumeReport{
@@ -376,12 +374,12 @@ func (se *SystemEngine) Renumber(ctx context.Context, flags *pflag.FlagSet, conf
 	return nil
 }
 
-func (s SystemEngine) Migrate(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig, options entities.SystemMigrateOptions) error {
+func (se SystemEngine) Migrate(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig, options entities.SystemMigrateOptions) error {
 	return nil
 }
 
-func (s SystemEngine) Shutdown(ctx context.Context) {
-	if err := s.Libpod.Shutdown(false); err != nil {
+func (se SystemEngine) Shutdown(ctx context.Context) {
+	if err := se.Libpod.Shutdown(false); err != nil {
 		logrus.Error(err)
 	}
 }

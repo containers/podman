@@ -1,3 +1,30 @@
+- Changelog for v2.0.0-rc5 (2020-06-10)
+  * Fix Id->ID where possible for lint
+  * Fixup issues found by golint
+  * podman-events: clarify streaming behaviour
+  * Cirrus: Include packages for containers/conmon CI
+  * Ensure signal validation happens first in pod kill
+  * Bump github.com/json-iterator/go from 1.1.9 to 1.1.10
+  * Bump github.com/containers/common from 0.12.0 to 0.13.0
+  * Improve swagger+CORS metadata docs
+  * Ensure Conmon is alive before waiting for exit file
+  * Bump github.com/stretchr/testify from 1.6.0 to 1.6.1
+  * e2e: disable checkpoint test on Ubuntu
+  * force bats version to v1.1.0
+  * Enable Ubuntu tests in CI
+  * Modify py test to start stop system service for each test
+  * Add parallel operation to `podman stop`
+  * Fix handling of systemd.
+  * Add parallel execution code for container operations
+  * Fix handling of ThrottleWriteIOPSDevice
+  * Bump github.com/seccomp/containers-golang from 0.4.1 to 0.5.0
+  * Strip defaults from namespace flags
+  * Ensure that containers in pods properly set hostname
+  * Adds docker py regression test.
+  * Turn on the podman-commands script to verify man pages
+  * Attempt to turn on special_testing_in_podman tests
+  * Bump to v2.0.0-dev
+
 - Changelog for v2.0.0-rc4 (2020-06-04)
   * /images/.../json: fix port parsing
   * BATS and APIv2: more tests and tweaks

@@ -195,7 +195,7 @@ func (l ListPodReporter) ID() string {
 }
 
 // Id returns the Pod id
-func (l ListPodReporter) Id() string {
+func (l ListPodReporter) Id() string { //nolint
 	if noTrunc {
 		return l.ListPodsReport.Id
 	}
@@ -209,7 +209,7 @@ func (l ListPodReporter) InfraID() string {
 
 // InfraId returns the infra container id for the pod
 // depending on trunc
-func (l ListPodReporter) InfraId() string {
+func (l ListPodReporter) InfraId() string { //nolint
 	if len(l.ListPodsReport.InfraId) == 0 {
 		return ""
 	}
@@ -252,7 +252,7 @@ func sortPodPsOutput(sortBy string, lprs []*entities.ListPodsReport) error {
 	case "created":
 		sort.Sort(podPsSortedCreated{lprs})
 	case "id":
-		sort.Sort(podPsSortedId{lprs})
+		sort.Sort(podPsSortedID{lprs})
 	case "name":
 		sort.Sort(podPsSortedName{lprs})
 	case "number":
@@ -276,9 +276,9 @@ func (a podPsSortedCreated) Less(i, j int) bool {
 	return a.lprSort[i].Created.After(a.lprSort[j].Created)
 }
 
-type podPsSortedId struct{ lprSort }
+type podPsSortedID struct{ lprSort }
 
-func (a podPsSortedId) Less(i, j int) bool { return a.lprSort[i].Id < a.lprSort[j].Id }
+func (a podPsSortedID) Less(i, j int) bool { return a.lprSort[i].Id < a.lprSort[j].Id }
 
 type podPsSortedNumber struct{ lprSort }
 

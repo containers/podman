@@ -17,15 +17,15 @@ type PodKillOptions struct {
 
 type PodKillReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type ListPodsReport struct {
 	Cgroup     string
 	Containers []*ListPodContainer
 	Created    time.Time
-	Id         string
-	InfraId    string
+	Id         string //nolint
+	InfraId    string //nolint
 	Name       string
 	Namespace  string
 	Status     string
@@ -33,7 +33,7 @@ type ListPodsReport struct {
 }
 
 type ListPodContainer struct {
-	Id     string
+	Id     string //nolint
 	Names  string
 	Status string
 }
@@ -45,7 +45,7 @@ type PodPauseOptions struct {
 
 type PodPauseReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodunpauseOptions struct {
@@ -55,7 +55,7 @@ type PodunpauseOptions struct {
 
 type PodUnpauseReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodStopOptions struct {
@@ -67,7 +67,7 @@ type PodStopOptions struct {
 
 type PodStopReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodRestartOptions struct {
@@ -77,7 +77,7 @@ type PodRestartOptions struct {
 
 type PodRestartReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodStartOptions struct {
@@ -87,7 +87,7 @@ type PodStartOptions struct {
 
 type PodStartReport struct {
 	Errs []error
-	Id   string
+	Id   string //nolint
 }
 
 type PodRmOptions struct {
@@ -99,23 +99,24 @@ type PodRmOptions struct {
 
 type PodRmReport struct {
 	Err error
-	Id  string
+	Id  string //nolint
 }
 
 type PodCreateOptions struct {
-	CGroupParent string
-	Hostname     string
-	Infra        bool
-	InfraImage   string
-	InfraCommand string
-	Labels       map[string]string
-	Name         string
-	Net          *NetOptions
-	Share        []string
+	CGroupParent       string
+	Hostname           string
+	Infra              bool
+	InfraImage         string
+	InfraCommand       string
+	InfraConmonPidFile string
+	Labels             map[string]string
+	Name               string
+	Net                *NetOptions
+	Share              []string
 }
 
 type PodCreateReport struct {
-	Id string
+	Id string //nolint
 }
 
 func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
@@ -126,6 +127,9 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 	s.NoInfra = !p.Infra
 	if len(p.InfraCommand) > 0 {
 		s.InfraCommand = strings.Split(p.InfraCommand, " ")
+	}
+	if len(p.InfraConmonPidFile) > 0 {
+		s.InfraConmonPidFile = p.InfraConmonPidFile
 	}
 	s.InfraImage = p.InfraImage
 	s.SharedNamespaces = p.Share
@@ -155,7 +159,7 @@ type PodPruneOptions struct {
 
 type PodPruneReport struct {
 	Err error
-	Id  string
+	Id  string //nolint
 }
 
 type PodTopOptions struct {

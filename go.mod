@@ -11,7 +11,7 @@ require (
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.6
 	github.com/containers/buildah v1.14.9-0.20200523094741-de0f541d9224
-	github.com/containers/common v0.12.0
+	github.com/containers/common v0.13.0
 	github.com/containers/conmon v2.0.17+incompatible
 	github.com/containers/image/v5 v5.4.5-0.20200529084758-46b2ee6aebb0
 	github.com/containers/psgo v1.5.1
@@ -33,7 +33,7 @@ require (
 	github.com/gorilla/schema v1.1.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
-	github.com/json-iterator/go v1.1.9
+	github.com/json-iterator/go v1.1.10
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 	github.com/onsi/ginkgo v1.12.3
 	github.com/onsi/gomega v1.10.1
@@ -51,7 +51,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.6.0
+	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/uber/jaeger-client-go v2.23.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect

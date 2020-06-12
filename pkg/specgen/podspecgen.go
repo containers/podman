@@ -25,6 +25,9 @@ type PodBasicConfig struct {
 	// InfraCommand and InfraImages in this struct.
 	// Optional.
 	NoInfra bool `json:"no_infra,omitempty"`
+	// InfraConmonPidFile is a custom path to store the infra container's
+	// conmon PID.
+	InfraConmonPidFile string `json:"infra_conmon_pid_file,omitempty"`
 	// InfraCommand sets the command that will be used to start the infra
 	// container.
 	// If not set, the default set in the Libpod configuration file will be

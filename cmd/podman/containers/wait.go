@@ -23,7 +23,7 @@ var (
 		Short: "Block on one or more containers",
 		Long:  waitDescription,
 		RunE:  wait,
-		Args:  validate.IdOrLatestArgs,
+		Args:  validate.IDOrLatestArgs,
 		Example: `podman wait --interval 5000 ctrID
   podman wait ctrID1 ctrID2`,
 	}
@@ -33,7 +33,7 @@ var (
 		Short: waitCommand.Short,
 		Long:  waitCommand.Long,
 		RunE:  waitCommand.RunE,
-		Args:  validate.IdOrLatestArgs,
+		Args:  validate.IDOrLatestArgs,
 		Example: `podman container wait --interval 5000 ctrID
   podman container wait ctrID1 ctrID2`,
 	}

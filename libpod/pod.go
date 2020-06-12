@@ -64,6 +64,10 @@ type PodConfig struct {
 	// Time pod was created
 	CreatedTime time.Time `json:"created"`
 
+	// CreateCommand is the full command plus arguments of the process the
+	// container has been created with.
+	CreateCommand []string `json:"CreateCommand,omitempty"`
+
 	// ID of the pod's lock
 	LockID uint32 `json:"lockID"`
 }
@@ -79,6 +83,7 @@ type podState struct {
 
 // InfraContainerConfig is the configuration for the pod's infra container
 type InfraContainerConfig struct {
+	ConmonPidFile      string               `json:"conmonPidFile"`
 	HasInfraContainer  bool                 `json:"makeInfraContainer"`
 	HostNetwork        bool                 `json:"infraHostNetwork,omitempty"`
 	PortBindings       []ocicni.PortMapping `json:"infraPortBindings"`
@@ -122,6 +127,12 @@ func (p *Pod) Labels() map[string]string {
 // CreatedTime gets the time when the pod was created
 func (p *Pod) CreatedTime() time.Time {
 	return p.config.CreatedTime
+}
+
+// CreateCommand returns the os.Args of the process with which the pod has been
+// created.
+func (p *Pod) CreateCommand() []string {
+	return p.config.CreateCommand
 }
 
 // CgroupParent returns the pod's CGroup parent
@@ -244,6 +255,20 @@ func (p *Pod) InfraContainerID() (string, error) {
 	}
 
 	return p.state.InfraContainerID, nil
+}
+
+// InfraContainer returns the infra container.
+func (p *Pod) InfraContainer() (*Container, error) {
+	if !p.HasInfraContainer() {
+		return nil, errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
+	}
+
+	id, err := p.InfraContainerID()
+	if err != nil {
+		return nil, err
+	}
+
+	return p.runtime.state.Container(id)
 }
 
 // TODO add pod batching

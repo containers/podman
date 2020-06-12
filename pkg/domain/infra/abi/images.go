@@ -38,8 +38,8 @@ import (
 // SignatureStoreDir defines default directory to store signatures
 const SignatureStoreDir = "/var/lib/containers/sigstore"
 
-func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.BoolReport, error) {
-	_, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
+	_, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil && errors.Cause(err) != define.ErrNoSuchImage {
 		return nil, err
 	}
@@ -65,8 +65,8 @@ func (ir *ImageEngine) pruneImagesHelper(ctx context.Context, all bool, filters 
 	return &report, nil
 }
 
-func (ir *ImageEngine) History(ctx context.Context, nameOrId string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
-	image, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
+	image, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -261,8 +261,8 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		nil)
 }
 
-// func (r *imageRuntime) Delete(ctx context.Context, nameOrId string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {
-// 	image, err := r.libpod.ImageEngine().NewFromLocal(nameOrId)
+// func (r *imageRuntime) Delete(ctx context.Context, nameOrID string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {
+// 	image, err := r.libpod.ImageEngine().NewFromLocal(nameOrID)
 // 	if err != nil {
 // 		return nil, err
 // 	}
@@ -292,8 +292,8 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 // 	return &report, nil
 // }
 
-func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, options entities.ImageTagOptions) error {
-	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
+	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil {
 		return err
 	}
@@ -305,8 +305,8 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrId string, tags []string, 
 	return nil
 }
 
-func (ir *ImageEngine) Untag(ctx context.Context, nameOrId string, tags []string, options entities.ImageUntagOptions) error {
-	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, options entities.ImageUntagOptions) error {
+	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil {
 		return err
 	}
@@ -356,16 +356,16 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 	return &entities.ImageImportReport{Id: id}, nil
 }
 
-func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string, options entities.ImageSaveOptions) error {
-	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, options entities.ImageSaveOptions) error {
+	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil {
 		return err
 	}
-	return newImage.Save(ctx, nameOrId, options.Format, options.Output, tags, options.Quiet, options.Compress)
+	return newImage.Save(ctx, nameOrID, options.Format, options.Output, tags, options.Quiet, options.Compress)
 }
 
-func (ir *ImageEngine) Diff(_ context.Context, nameOrId string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	changes, err := ir.Libpod.GetDiff("", nameOrId)
+func (ir *ImageEngine) Diff(_ context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
+	changes, err := ir.Libpod.GetDiff("", nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -420,8 +420,8 @@ func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts 
 	return &entities.BuildReport{ID: id}, nil
 }
 
-func (ir *ImageEngine) Tree(ctx context.Context, nameOrId string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
-	img, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
+	img, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil {
 		return nil, err
 	}

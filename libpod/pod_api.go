@@ -489,6 +489,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		Name:             p.Name(),
 		Namespace:        p.Namespace(),
 		Created:          p.CreatedTime(),
+		CreateCommand:    p.config.CreateCommand,
 		State:            podState,
 		Hostname:         p.config.Hostname,
 		Labels:           p.Labels(),

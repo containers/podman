@@ -338,6 +338,11 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"pod", "",
 		"Run container in an existing pod",
 	)
+	createFlags.StringVar(
+		&cf.PodIDFile,
+		"pod-id-file", "",
+		"Read the pod ID from the file",
+	)
 	createFlags.BoolVar(
 		&cf.Privileged,
 		"privileged", false,

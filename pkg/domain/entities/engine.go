@@ -39,7 +39,7 @@ type PodmanConfig struct {
 
 	CGroupUsage    string           // rootless code determines Usage message
 	ConmonPath     string           // --conmon flag will set Engine.ConmonPath
-	CpuProfile     string           // Hidden: Should CPU profile be taken
+	CPUProfile     string           // Hidden: Should CPU profile be taken
 	EngineMode     EngineMode       // ABI or Tunneling mode
 	Identities     []string         // ssh identities for connecting to server
 	MaxWorks       int              // maximum number of parallel threads
@@ -52,7 +52,7 @@ type PodmanConfig struct {
 	SpanCtx        context.Context  // context to use when tracing
 	Syslog         bool             // write to StdOut and Syslog, not supported when tunneling
 	Trace          bool             // Hidden: Trace execution
-	Uri            string           // URI to RESTful API Service
+	URI            string           // URI to RESTful API Service
 
 	Runroot       string
 	StorageDriver string

@@ -12,7 +12,7 @@ import (
 
 // Handle volume options from CLI.
 // Parse "o" option to find UID, GID.
-func ParseVolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) {
+func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) {
 	libpodOptions := []libpod.VolumeCreateOption{}
 	volumeOptions := make(map[string]string)
 

@@ -46,7 +46,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(input.Label))
 	}
 	if len(input.Options) > 0 {
-		parsedOptions, err := parse.ParseVolumeOptions(input.Options)
+		parsedOptions, err := parse.VolumeOptions(input.Options)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return

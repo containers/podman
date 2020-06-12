@@ -79,7 +79,8 @@ func (c *Container) prepare() error {
 	go func() {
 		defer wg.Done()
 		// Set up network namespace if not already set up
-		if c.config.CreateNetNS && c.state.NetNS == nil && !c.config.PostConfigureNetNS {
+		noNetNS := c.state.NetNS == nil
+		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
 			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 			if createNetNSErr != nil {
 				return
@@ -94,7 +95,7 @@ func (c *Container) prepare() error {
 		}
 
 		// handle rootless network namespace setup
-		if c.state.NetNS != nil && c.config.NetMode.IsSlirp4netns() && !c.config.PostConfigureNetNS {
+		if noNetNS && c.config.NetMode.IsSlirp4netns() && !c.config.PostConfigureNetNS {
 			createNetNSErr = c.runtime.setupRootlessNetNS(c)
 		}
 	}()
@@ -392,7 +393,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	for _, i := range c.config.Spec.Linux.Namespaces {
-		if i.Type == spec.UTSNamespace {
+		if i.Type == spec.UTSNamespace && i.Path == "" {
 			hostname := c.Hostname()
 			g.SetHostname(hostname)
 			g.AddProcessEnv("HOSTNAME", hostname)
@@ -591,7 +592,8 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 
 	if specNS == spec.UTSNamespace {
 		hostname := nsCtr.Hostname()
-		g.SetHostname(hostname)
+		// Joining an existing namespace, cannot set the hostname
+		g.SetHostname("")
 		g.AddProcessEnv("HOSTNAME", hostname)
 	}
 
@@ -1170,6 +1172,15 @@ func (c *Container) makeBindMounts() error {
 
 				// finally, save it in the new container
 				c.state.BindMounts["/etc/hosts"] = hostsPath
+			}
+
+			if !hasCurrentUserMapped(c) {
+				if err := makeAccessible(resolvPath, c.RootUID(), c.RootGID()); err != nil {
+					return err
+				}
+				if err := makeAccessible(hostsPath, c.RootUID(), c.RootGID()); err != nil {
+					return err
+				}
 			}
 		} else {
 			if !c.config.UseImageResolvConf {

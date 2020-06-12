@@ -12,12 +12,12 @@ import (
 
 func TestSupportedVersion(t *testing.T) {
 	req, err := http.NewRequest("GET",
-		fmt.Sprintf("/v%s/libpod/testing/versions", ApiVersion[LibpodTree][CurrentApiVersion]),
+		fmt.Sprintf("/v%s/libpod/testing/versions", APIVersion[LibpodTree][CurrentAPIVersion]),
 		nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req = mux.SetURLVars(req, map[string]string{"version": ApiVersion[LibpodTree][CurrentApiVersion].String()})
+	req = mux.SetURLVars(req, map[string]string{"version": APIVersion[LibpodTree][CurrentAPIVersion].String()})
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

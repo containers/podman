@@ -34,14 +34,14 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 		Name:    "Podman Engine",
 		Version: versionInfo.Version,
 		Details: map[string]string{
-			"APIVersion":    utils.ApiVersion[utils.LibpodTree][utils.CurrentApiVersion].String(),
+			"APIVersion":    utils.APIVersion[utils.LibpodTree][utils.CurrentAPIVersion].String(),
 			"Arch":          goRuntime.GOARCH,
 			"BuildTime":     time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
 			"Experimental":  "true",
 			"GitCommit":     versionInfo.GitCommit,
 			"GoVersion":     versionInfo.GoVersion,
 			"KernelVersion": infoData.Host.Kernel,
-			"MinAPIVersion": utils.ApiVersion[utils.LibpodTree][utils.MinimalApiVersion].String(),
+			"MinAPIVersion": utils.APIVersion[utils.LibpodTree][utils.MinimalAPIVersion].String(),
 			"Os":            goRuntime.GOOS,
 		},
 	}}

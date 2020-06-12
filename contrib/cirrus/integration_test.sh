@@ -6,6 +6,11 @@ source $(dirname $0)/lib.sh
 
 req_env_var GOSRC SCRIPT_BASE OS_RELEASE_ID OS_RELEASE_VER CONTAINER_RUNTIME VARLINK_LOG
 
+LOCAL_OR_REMOTE=local
+if [[ "$TEST_REMOTE_CLIENT" = "true" ]]; then
+    LOCAL_OR_REMOTE=remote
+fi
+
 # Our name must be of the form xxxx_test or xxxx_test.sh, where xxxx is
 # the test suite to run; currently (2019-05) the only option is 'integration'
 # but pr2947 intends to add 'system'.
@@ -34,7 +39,7 @@ case "$SPECIALMODE" in
         req_env_var ROOTLESS_USER
         ssh $ROOTLESS_USER@localhost \
                 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-                -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/rootless_test.sh ${TESTSUITE}
+                -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/rootless_test.sh ${TESTSUITE} ${LOCAL_OR_REMOTE}
         ;;
     endpoint)
         make
@@ -52,12 +57,8 @@ case "$SPECIALMODE" in
         make
         make install PREFIX=/usr ETCDIR=/etc
         make test-binaries
-        if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
-        then
-            make remote${TESTSUITE} VARLINK_LOG=$VARLINK_LOG
-        else
-            make local${TESTSUITE}
-        fi
+        make .install.bats
+        make ${LOCAL_OR_REMOTE}${TESTSUITE} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG
         ;;
     *)
         die 110 "Unsupported \$SPECIALMODE: $SPECIALMODE"

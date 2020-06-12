@@ -12,7 +12,9 @@ and password. If the registry is not specified, the first registry under [regist
 from registries.conf will be used. **podman login** reads in the username and password from STDIN.
 The username and password can also be set using the **username** and **password** flags.
 The path of the authentication file can be specified by the user by setting the **authfile**
-flag. The default path used is **${XDG\_RUNTIME\_DIR}/containers/auth.json**.
+flag. The default path used is **${XDG\_RUNTIME\_DIR}/containers/auth.json**. If there is a valid
+username and password in the **authfile** , Podman will use those existing credentials if the user does not pass in a username.
+If those credentials are not present, Podman will then use any existing credentials found in **$HOME/.docker/config.json**.
 
 **podman [GLOBAL OPTIONS]**
 

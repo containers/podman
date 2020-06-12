@@ -10,7 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 )
 
-func GenerateKube(ctx context.Context, nameOrID string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
+func Kube(ctx context.Context, nameOrID string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

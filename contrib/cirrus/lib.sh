@@ -39,6 +39,8 @@ PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 # Important filepaths
 SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
 AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
+# Downloaded, but not installed packages.
+PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
 # Log remote-client system test varlink output here
 export VARLINK_LOG=/var/tmp/varlink.log
@@ -422,7 +424,7 @@ remove_packaged_podman_files() {
     then
         LISTING_CMD="$SUDO dpkg-query -L podman"
     else
-        LISTING_CMD='$SUDO rpm -ql podman'
+        LISTING_CMD="$SUDO rpm -ql podman"
     fi
 
     # yum/dnf/dpkg may list system directories, only remove files
@@ -435,6 +437,14 @@ remove_packaged_podman_files() {
 
     # Be super extra sure and careful vs performant and completely safe
     sync && echo 3 > /proc/sys/vm/drop_caches
+}
+
+# The version of CRI-O and Kubernetes must always match
+get_kubernetes_version(){
+    # TODO: Look up the kube RPM/DEB version installed, or in $PACKAGE_DOWNLOAD_DIR
+    #       and retrieve the major-minor version directly.
+    local KUBERNETES_VERSION="1.15"
+    echo "$KUBERNETES_VERSION"
 }
 
 canonicalize_image_names() {
@@ -479,6 +489,7 @@ _finalize() {
     fi
     echo "Re-initializing so next boot does 'first-boot' setup again."
     cd /
+    $SUDO rm -rf $GOPATH/src  # Actual source will be cloned at runtime
     $SUDO rm -rf /var/lib/cloud/instanc*
     $SUDO rm -rf /root/.ssh/*
     $SUDO rm -rf /etc/ssh/*key*

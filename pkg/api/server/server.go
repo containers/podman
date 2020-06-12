@@ -257,7 +257,7 @@ func (t *IdleTracker) ConnState(conn net.Conn, state http.ConnState) {
 		if oldActive == 0 {
 			t.timer.Stop()
 		}
-		t.total += 1
+		t.total++
 	case http.StateIdle, http.StateClosed:
 		delete(t.active, conn)
 		// Restart the timer if we've become idle

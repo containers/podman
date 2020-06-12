@@ -45,13 +45,13 @@ type Image struct {
 	HealthCheck   *manifest.Schema2HealthConfig `json:",omitempty"`
 }
 
-func (i *Image) Id() string {
+func (i *Image) Id() string { //nolint
 	return i.ID
 }
 
 type ImageSummary struct {
 	ID          string            `json:"Id"`
-	ParentId    string            `json:",omitempty"`
+	ParentId    string            `json:",omitempty"` // nolint
 	RepoTags    []string          `json:",omitempty"`
 	Created     time.Time         `json:",omitempty"`
 	Size        int64             `json:",omitempty"`
@@ -70,7 +70,7 @@ type ImageSummary struct {
 	History      []string `json:",omitempty"`
 }
 
-func (i *ImageSummary) Id() string {
+func (i *ImageSummary) Id() string { //nolint
 	return i.ID
 }
 
@@ -266,7 +266,7 @@ type ImageImportOptions struct {
 }
 
 type ImageImportReport struct {
-	Id string
+	Id string //nolint
 }
 
 type ImageSaveOptions struct {
@@ -299,7 +299,7 @@ type ShowTrustReport struct {
 	Raw                     []byte
 	SystemRegistriesDirPath string
 	JSONOutput              []byte
-	Policies                []*trust.TrustPolicy
+	Policies                []*trust.Policy
 }
 
 // SetTrustOptions describes the CLI options for setting trust

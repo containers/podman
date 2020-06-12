@@ -13,5 +13,5 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrID string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
-	return generate.GenerateKube(ic.ClientCxt, nameOrID, options)
+	return generate.Kube(ic.ClientCxt, nameOrID, options)
 }

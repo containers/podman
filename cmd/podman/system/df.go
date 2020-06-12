@@ -63,7 +63,7 @@ func printSummary(reports *entities.SystemDfReport, userFormat string) error {
 		dfSummaries       []*dfSummary
 		active            int
 		size, reclaimable int64
-		format            string    = "{{.Type}}\t{{.Total}}\t{{.Active}}\t{{.Size}}\t{{.Reclaimable}}\n"
+		format                      = "{{.Type}}\t{{.Total}}\t{{.Active}}\t{{.Size}}\t{{.Reclaimable}}\n"
 		w                 io.Writer = os.Stdout
 	)
 
@@ -74,7 +74,7 @@ func printSummary(reports *entities.SystemDfReport, userFormat string) error {
 
 	for _, i := range reports.Images {
 		if i.Containers > 0 {
-			active += 1
+			active++
 		}
 		size += i.Size
 		if i.Containers < 1 {
@@ -99,7 +99,7 @@ func printSummary(reports *entities.SystemDfReport, userFormat string) error {
 	)
 	for _, c := range reports.Containers {
 		if c.Status == "running" {
-			conActive += 1
+			conActive++
 		} else {
 			conReclaimable += c.RWSize
 		}

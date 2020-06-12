@@ -71,7 +71,7 @@ func stats(cmd *cobra.Command, args []string) error {
 	}
 
 	format := statsOptions.Format
-	doJson := strings.ToLower(format) == formats.JSONString
+	doJSON := strings.ToLower(format) == formats.JSONString
 	header := getPodStatsHeader(format)
 
 	for {
@@ -80,7 +80,7 @@ func stats(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		// Print the stats in the requested format and configuration.
-		if doJson {
+		if doJSON {
 			if err := printJSONPodStats(reports); err != nil {
 				return err
 			}

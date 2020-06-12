@@ -1,7 +1,7 @@
 package trust
 
-// Trust Policy describes a basic trust policy configuration
-type TrustPolicy struct {
+// Policy describes a basic trust policy configuration
+type Policy struct {
 	Name           string   `json:"name"`
 	RepoName       string   `json:"repo_name,omitempty"`
 	Keys           []string `json:"keys,omitempty"`

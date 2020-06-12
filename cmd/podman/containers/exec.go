@@ -84,7 +84,7 @@ func init() {
 }
 
 func exec(cmd *cobra.Command, args []string) error {
-	var nameOrId string
+	var nameOrID string
 
 	if len(args) == 0 && !execOpts.Latest {
 		return errors.New("exec requires the name or ID of a container or the --latest flag")
@@ -92,7 +92,7 @@ func exec(cmd *cobra.Command, args []string) error {
 	execOpts.Cmd = args
 	if !execOpts.Latest {
 		execOpts.Cmd = args[1:]
-		nameOrId = args[0]
+		nameOrID = args[0]
 	}
 	// Validate given environment variables
 	execOpts.Envs = make(map[string]string)
@@ -122,12 +122,12 @@ func exec(cmd *cobra.Command, args []string) error {
 		streams.AttachOutput = true
 		streams.AttachError = true
 
-		exitCode, err := registry.ContainerEngine().ContainerExec(registry.GetContext(), nameOrId, execOpts, streams)
+		exitCode, err := registry.ContainerEngine().ContainerExec(registry.GetContext(), nameOrID, execOpts, streams)
 		registry.SetExitCode(exitCode)
 		return err
 	}
 
-	id, err := registry.ContainerEngine().ContainerExecDetached(registry.GetContext(), nameOrId, execOpts)
+	id, err := registry.ContainerEngine().ContainerExecDetached(registry.GetContext(), nameOrID, execOpts)
 	if err != nil {
 		return err
 	}
