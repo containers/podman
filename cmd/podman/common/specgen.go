@@ -385,11 +385,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	s.Annotations = annotations
 
-	workDir := "/"
-	if wd := c.Workdir; len(wd) > 0 {
-		workDir = wd
-	}
-	s.WorkDir = workDir
+	s.WorkDir = c.Workdir
 	entrypoint := []string{}
 	userCommand := []string{}
 	if c.Entrypoint != nil {

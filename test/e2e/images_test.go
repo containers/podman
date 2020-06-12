@@ -186,6 +186,17 @@ RUN apk update && apk add strace
 		Expect(len(result.OutputToStringArray()) >= 1).To(BeTrue())
 	})
 
+	It("podman images workingdir from  image", func() {
+		dockerfile := `FROM docker.io/library/alpine:latest
+WORKDIR /test
+`
+		podmanTest.BuildImage(dockerfile, "foobar.com/workdir:latest", "false")
+		result := podmanTest.Podman([]string{"run", "foobar.com/workdir:latest", "pwd"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal("/test"))
+	})
+
 	It("podman images filter after image", func() {
 		podmanTest.RestoreAllArtifacts()
 		rmi := podmanTest.PodmanNoCache([]string{"rmi", "busybox"})
