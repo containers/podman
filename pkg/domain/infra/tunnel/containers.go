@@ -445,10 +445,15 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 	}()
 	// Wait for the attach to actually happen before starting
 	// the container.
-	<-attachReady
-	if err := containers.Start(ic.ClientCxt, name, detachKeys); err != nil {
+	select {
+	case <-attachReady:
+		if err := containers.Start(ic.ClientCxt, name, detachKeys); err != nil {
+			return err
+		}
+	case err := <-attachErr:
 		return err
 	}
+	// If attachReady happens first, wait for containers.Attach to complete
 	return <-attachErr
 }
 
