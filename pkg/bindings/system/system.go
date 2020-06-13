@@ -125,6 +125,7 @@ func Version(ctx context.Context) (*entities.SystemVersionReport, error) {
 		Version:    component.Version.Version,
 		GoVersion:  component.GoVersion,
 		GitCommit:  component.GitCommit,
+		BuiltTime:  time.Unix(b.Unix(), 0).Format(time.ANSIC),
 		Built:      b.Unix(),
 		OsArch:     fmt.Sprintf("%s/%s", component.Os, component.Arch),
 	}
