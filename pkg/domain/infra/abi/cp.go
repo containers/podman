@@ -260,7 +260,19 @@ func containerCopy(srcPath, destPath, src, dest string, idMappingOpts storage.ID
 	if srcfi.IsDir() {
 		logrus.Debugf("copying %q to %q", srcPath+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
 		if destDirIsExist && !strings.HasSuffix(src, fmt.Sprintf("%s.", string(os.PathSeparator))) {
-			destPath = filepath.Join(destPath, filepath.Base(srcPath))
+			srcPathBase := filepath.Base(srcPath)
+			if !isFromHostToCtr {
+				pathArr := strings.SplitN(src, ":", 2)
+				if len(pathArr) != 2 {
+					return errors.Errorf("invalid arguments %s, you must specify source path", src)
+				}
+				if pathArr[1] == "/" {
+					// If `srcPath` is the root directory of the container,
+					// `srcPath` will be `.../${sha256_ID}/merged/`, so do not join it
+					srcPathBase = ""
+				}
+			}
+			destPath = filepath.Join(destPath, srcPathBase)
 		}
 		if err = copyWithTar(srcPath, destPath); err != nil {
 			return errors.Wrapf(err, "error copying %q to %q", srcPath, dest)
