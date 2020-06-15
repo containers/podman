@@ -178,25 +178,28 @@ func Attach(ctx context.Context, nameOrID string, detachKeys *string, logs, stre
 			}
 
 			switch {
-			case fd == 0 && isSet.stdout:
-				_, err := stdout.Write(frame[0:l])
-				if err != nil {
-					return err
+			case fd == 0:
+				if isSet.stdout {
+					if _, err := stdout.Write(frame[0:l]); err != nil {
+						return err
+					}
 				}
-			case fd == 1 && isSet.stdout:
-				_, err := stdout.Write(frame[0:l])
-				if err != nil {
-					return err
+			case fd == 1:
+				if isSet.stdout {
+					if _, err := stdout.Write(frame[0:l]); err != nil {
+						return err
+					}
 				}
-			case fd == 2 && isSet.stderr:
-				_, err := stderr.Write(frame[0:l])
-				if err != nil {
-					return err
+			case fd == 2:
+				if isSet.stderr {
+					if _, err := stderr.Write(frame[0:l]); err != nil {
+						return err
+					}
 				}
 			case fd == 3:
 				return fmt.Errorf("error from service from stream: %s", frame)
 			default:
-				return fmt.Errorf("unrecognized channel in header: %d, 0-3 supported", fd)
+				return fmt.Errorf("unrecognized channel '%d' in header, 0-3 supported", fd)
 			}
 		}
 	}
@@ -453,27 +456,30 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, streams *define.A
 			}
 
 			switch {
-			case fd == 0 && streams.AttachOutput:
-				_, err := streams.OutputStream.Write(frame[0:l])
-				if err != nil {
-					return err
+			case fd == 0:
+				if streams.AttachOutput {
+					if _, err := streams.OutputStream.Write(frame[0:l]); err != nil {
+						return err
+					}
 				}
-			case fd == 1 && streams.AttachInput:
-				// Write STDIN to STDOUT (echoing characters
-				// typed by another attach session)
-				_, err := streams.OutputStream.Write(frame[0:l])
-				if err != nil {
-					return err
+			case fd == 1:
+				if streams.AttachInput {
+					// Write STDIN to STDOUT (echoing characters
+					// typed by another attach session)
+					if _, err := streams.OutputStream.Write(frame[0:l]); err != nil {
+						return err
+					}
 				}
-			case fd == 2 && streams.AttachError:
-				_, err := streams.ErrorStream.Write(frame[0:l])
-				if err != nil {
-					return err
+			case fd == 2:
+				if streams.AttachError {
+					if _, err := streams.ErrorStream.Write(frame[0:l]); err != nil {
+						return err
+					}
 				}
 			case fd == 3:
 				return fmt.Errorf("error from service from stream: %s", frame)
 			default:
-				return fmt.Errorf("unrecognized channel in header: %d, 0-3 supported", fd)
+				return fmt.Errorf("unrecognized channel '%d' in header, 0-3 supported", fd)
 			}
 		}
 	}
