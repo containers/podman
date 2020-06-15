@@ -58,24 +58,30 @@ func init() {
 }
 
 func rm(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
-
 	ids, err := common.ReadPodIDFiles(rmOptions.PodIDFiles)
 	if err != nil {
 		return err
 	}
 	args = append(args, ids...)
+	return removePods(args, rmOptions.PodRmOptions, true)
+}
 
-	responses, err := registry.ContainerEngine().PodRm(context.Background(), args, rmOptions.PodRmOptions)
+// removePods removes the specified pods (names or IDs).  Allows for sharing
+// pod-removal logic across commands.
+func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs bool) error {
+	var errs utils.OutputErrors
+
+	responses, err := registry.ContainerEngine().PodRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
 		return err
 	}
+
 	// in the cli, first we print out all the successful attempts
 	for _, r := range responses {
 		if r.Err == nil {
-			fmt.Println(r.Id)
+			if printIDs {
+				fmt.Println(r.Id)
+			}
 		} else {
 			errs = append(errs, r.Err)
 		}

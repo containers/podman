@@ -102,6 +102,10 @@ Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPO
 
 NOTE: This cannot be modified once the pod is created.
 
+**--replace**=**true**|**false**
+
+If another pod with the same name already exists, replace and remove it.  The default is **false**.
+
 **--share**=*namespace*
 
 A comma delimited list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, user, uts.

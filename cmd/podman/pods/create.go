@@ -39,6 +39,7 @@ var (
 	createOptions     entities.PodCreateOptions
 	labels, labelFile []string
 	podIDFile         string
+	replace           bool
 	share             string
 )
 
@@ -61,6 +62,7 @@ func init() {
 	flags.StringVarP(&createOptions.Name, "name", "n", "", "Assign a name to the pod")
 	flags.StringVarP(&createOptions.Hostname, "hostname", "", "", "Set a hostname to the pod")
 	flags.StringVar(&podIDFile, "pod-id-file", "", "Write the pod ID to the file")
+	flags.BoolVar(&replace, "replace", false, "If a pod with the same exists, replace it")
 	flags.StringVar(&share, "share", specgen.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
 	flags.SetNormalizeFunc(aliasNetworkFlag)
 }
@@ -147,6 +149,12 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if replace {
+		if err := replacePod(createOptions.Name); err != nil {
+			return err
+		}
+	}
+
 	response, err := registry.ContainerEngine().PodCreate(context.Background(), createOptions)
 	if err != nil {
 		return err
@@ -158,4 +166,15 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println(response.Id)
 	return nil
+}
+
+func replacePod(name string) error {
+	if len(name) == 0 {
+		return errors.New("cannot replace pod without --name being set")
+	}
+	rmOptions := entities.PodRmOptions{
+		Force:  true, // stop and remove pod
+		Ignore: true, // ignore if pod doesn't exist
+	}
+	return removePods([]string{name}, rmOptions, false)
 }
