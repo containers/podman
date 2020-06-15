@@ -247,6 +247,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 	if err != nil {
 		return nil, err
 	}
+
 	// TODO the rest of these still need wiring!
 	config := dockerContainer.Config{
 		//	Hostname:        "",
@@ -261,17 +262,17 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		//	StdinOnce:       false,
 		Env: info.Config.Env,
 		Cmd: info.Config.Cmd,
-		//	Healthcheck:     nil,
+		//Healthcheck: l.ImageData.HealthCheck,
 		//	ArgsEscaped:     false,
 		//	Image:           "",
-		//	Volumes:         nil,
-		//	WorkingDir:      "",
-		//	Entrypoint:      nil,
+		Volumes:    info.Config.Volumes,
+		WorkingDir: info.Config.WorkingDir,
+		Entrypoint: info.Config.Entrypoint,
 		//	NetworkDisabled: false,
 		//	MacAddress:      "",
-		//	OnBuild:         nil,
-		Labels: info.Labels,
-		//	StopSignal:      "",
+		//OnBuild:    info.Config.OnBuild,
+		Labels:     info.Labels,
+		StopSignal: info.Config.StopSignal,
 		//	StopTimeout:     nil,
 		//	Shell:           nil,
 	}
@@ -285,7 +286,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		Comment:       info.Comment,
 		Config:        &config,
 		Created:       l.Created().Format(time.RFC3339Nano),
-		DockerVersion: "",
+		DockerVersion: info.Version,
 		GraphDriver:   docker.GraphDriverData{},
 		ID:            fmt.Sprintf("sha256:%s", l.ID()),
 		Metadata:      docker.ImageMetadata{},
