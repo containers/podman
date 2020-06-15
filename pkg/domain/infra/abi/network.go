@@ -48,15 +48,12 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.Net
 }
 
 func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.NetworkInspectOptions) ([]entities.NetworkInspectReport, error) {
-	var (
-		rawCNINetworks []entities.NetworkInspectReport
-	)
-
 	config, err := ic.Libpod.GetConfig()
 	if err != nil {
 		return nil, err
 	}
 
+	rawCNINetworks := make([]entities.NetworkInspectReport, 0, len(namesOrIds))
 	for _, name := range namesOrIds {
 		rawList, err := network.InspectNetwork(config, name)
 		if err != nil {
@@ -68,7 +65,7 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
-	var reports []*entities.NetworkRmReport
+	reports := []*entities.NetworkRmReport{}
 
 	config, err := ic.Libpod.GetConfig()
 	if err != nil {

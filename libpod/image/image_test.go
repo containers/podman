@@ -44,7 +44,7 @@ func cleanup(workdir string, ir *Runtime) {
 	}
 }
 
-func makeLocalMatrix(b, bg *Image) ([]localImageTest, error) {
+func makeLocalMatrix(b, bg *Image) []localImageTest {
 	var l []localImageTest
 	// busybox
 	busybox := localImageTest{
@@ -65,7 +65,7 @@ func makeLocalMatrix(b, bg *Image) ([]localImageTest, error) {
 	busyboxGlibc.names = bbGlibcNames
 
 	l = append(l, busybox, busyboxGlibc)
-	return l, nil
+	return l
 
 }
 
@@ -100,9 +100,7 @@ func TestImage_NewFromLocal(t *testing.T) {
 	bbglibc, err := ir.New(context.Background(), "docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing)
 	assert.NoError(t, err)
 
-	tm, err := makeLocalMatrix(bb, bbglibc)
-	assert.NoError(t, err)
-
+	tm := makeLocalMatrix(bb, bbglibc)
 	for _, image := range tm {
 		// tag our images
 		err = image.img.TagImage(image.taggedName)

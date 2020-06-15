@@ -90,7 +90,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 	}
 
 	namedVolumes, mounts := c.sortUserVolumes(ctrSpec)
-	inspectMounts, err := c.getInspectMounts(ctrSpec, namedVolumes, mounts)
+	inspectMounts, err := c.getInspectMounts(namedVolumes, mounts)
 	if err != nil {
 		return nil, err
 	}
@@ -164,10 +164,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 	}
 	data.NetworkSettings = networkConfig
 
-	inspectConfig, err := c.generateInspectContainerConfig(ctrSpec)
-	if err != nil {
-		return nil, err
-	}
+	inspectConfig := c.generateInspectContainerConfig(ctrSpec)
 	data.Config = inspectConfig
 
 	hostConfig, err := c.generateInspectContainerHostConfig(ctrSpec, namedVolumes, mounts)
@@ -195,7 +192,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 // Get inspect-formatted mounts list.
 // Only includes user-specified mounts. Only includes bind mounts and named
 // volumes, not tmpfs volumes.
-func (c *Container) getInspectMounts(ctrSpec *spec.Spec, namedVolumes []*ContainerNamedVolume, mounts []spec.Mount) ([]define.InspectMount, error) {
+func (c *Container) getInspectMounts(namedVolumes []*ContainerNamedVolume, mounts []spec.Mount) ([]define.InspectMount, error) {
 	inspectMounts := []define.InspectMount{}
 
 	// No mounts, return early
@@ -278,7 +275,7 @@ func parseMountOptionsForInspect(options []string, mount *define.InspectMount) {
 }
 
 // Generate the InspectContainerConfig struct for the Config field of Inspect.
-func (c *Container) generateInspectContainerConfig(spec *spec.Spec) (*define.InspectContainerConfig, error) {
+func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.InspectContainerConfig {
 	ctrConfig := new(define.InspectContainerConfig)
 
 	ctrConfig.Hostname = c.Hostname()
@@ -325,7 +322,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) (*define.Ins
 
 	ctrConfig.CreateCommand = c.config.CreateCommand
 
-	return ctrConfig, nil
+	return ctrConfig
 }
 
 // Generate the InspectContainerHostConfig struct for the HostConfig field of

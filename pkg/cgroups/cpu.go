@@ -29,13 +29,12 @@ func readAcct(ctr *CgroupControl, name string) (uint64, error) {
 }
 
 func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
-	var r []uint64
-
 	p := filepath.Join(ctr.getCgroupv1Path(CPUAcct), name)
 	data, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, errors.Wrapf(err, "reading %s", p)
 	}
+	r := []uint64{}
 	for _, s := range strings.Split(string(data), " ") {
 		s = cleanString(s)
 		if s == "" {

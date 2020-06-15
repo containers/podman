@@ -147,15 +147,13 @@ func printSummary(reports *entities.SystemDfReport, userFormat string) error {
 
 func printVerbose(reports *entities.SystemDfReport) error {
 	var (
-		dfImages     []*dfImage
-		dfContainers []*dfContainer
-		dfVolumes    []*dfVolume
-		w            io.Writer = os.Stdout
+		w io.Writer = os.Stdout
 	)
 
 	// Images
 	fmt.Print("\nImages space usage:\n\n")
 	// convert to dfImage for output
+	dfImages := make([]*dfImage, 0, len(reports.Images))
 	for _, d := range reports.Images {
 		dfImages = append(dfImages, &dfImage{SystemDfImageReport: d})
 	}
@@ -170,6 +168,7 @@ func printVerbose(reports *entities.SystemDfReport) error {
 	fmt.Print("\nContainers space usage:\n\n")
 
 	// convert to dfContainers for output
+	dfContainers := make([]*dfContainer, 0, len(reports.Containers))
 	for _, d := range reports.Containers {
 		dfContainers = append(dfContainers, &dfContainer{SystemDfContainerReport: d})
 	}
@@ -183,6 +182,7 @@ func printVerbose(reports *entities.SystemDfReport) error {
 	// Volumes
 	fmt.Print("\nLocal Volumes space usage:\n\n")
 
+	dfVolumes := make([]*dfVolume, 0, len(reports.Volumes))
 	// convert to dfVolume for output
 	for _, d := range reports.Volumes {
 		dfVolumes = append(dfVolumes, &dfVolume{SystemDfVolumeReport: d})

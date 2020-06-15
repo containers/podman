@@ -85,10 +85,7 @@ func (r *Runtime) Events(options events.ReadOptions) error {
 
 // GetEvents reads the event log and returns events based on input filters
 func (r *Runtime) GetEvents(filters []string) ([]*events.Event, error) {
-	var (
-		logEvents []*events.Event
-		readErr   error
-	)
+	var readErr error
 	eventChannel := make(chan *events.Event)
 	options := events.ReadOptions{
 		EventChannel: eventChannel,
@@ -106,6 +103,7 @@ func (r *Runtime) GetEvents(filters []string) ([]*events.Event, error) {
 	if readErr != nil {
 		return nil, readErr
 	}
+	logEvents := make([]*events.Event, 0, len(eventChannel))
 	for e := range eventChannel {
 		logEvents = append(logEvents, e)
 	}

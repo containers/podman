@@ -115,12 +115,12 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase strin
 			_url.Path = JoinURL(_url.Host, _url.Path)
 			_url.Host = ""
 		}
-		connection, err = unixClient(_url)
+		connection = unixClient(_url)
 	case "tcp":
 		if !strings.HasPrefix(uri, "tcp://") {
 			return nil, errors.New("tcp URIs should begin with tcp://")
 		}
-		connection, err = tcpClient(_url)
+		connection = tcpClient(_url)
 	default:
 		return nil, errors.Errorf("'%s' is not a supported schema", _url.Scheme)
 	}
@@ -135,7 +135,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase strin
 	return ctx, nil
 }
 
-func tcpClient(_url *url.URL) (Connection, error) {
+func tcpClient(_url *url.URL) Connection {
 	connection := Connection{
 		URI: _url,
 	}
@@ -147,7 +147,7 @@ func tcpClient(_url *url.URL) (Connection, error) {
 			DisableCompression: true,
 		},
 	}
-	return connection, nil
+	return connection
 }
 
 // pingNewConnection pings to make sure the RESTFUL service is up
@@ -186,8 +186,7 @@ func pingNewConnection(ctx context.Context) error {
 }
 
 func sshClient(_url *url.URL, secure bool, passPhrase string, identities ...string) (Connection, error) {
-	var authMethods []ssh.AuthMethod
-
+	authMethods := []ssh.AuthMethod{}
 	for _, i := range identities {
 		auth, err := publicKey(i, []byte(passPhrase))
 		if err != nil {
@@ -256,7 +255,7 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identities ...stri
 	return connection, nil
 }
 
-func unixClient(_url *url.URL) (Connection, error) {
+func unixClient(_url *url.URL) Connection {
 	connection := Connection{URI: _url}
 	connection.Client = &http.Client{
 		Transport: &http.Transport{
@@ -266,7 +265,7 @@ func unixClient(_url *url.URL) (Connection, error) {
 			DisableCompression: true,
 		},
 	}
-	return connection, nil
+	return connection
 }
 
 // DoRequest assembles the http request and returns the response

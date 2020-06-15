@@ -31,8 +31,8 @@ func (c *Container) GenerateForKube() (*v1.Pod, error) {
 func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
-		servicePorts []v1.ServicePort
-		ports        []v1.ContainerPort
+		ports        []v1.ContainerPort //nolint
+		servicePorts []v1.ServicePort   //nolint
 	)
 
 	allContainers, err := p.allContainers()
@@ -99,7 +99,7 @@ func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) v1
 // containerPortsToServicePorts takes a slice of containerports and generates a
 // slice of service ports
 func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.ServicePort {
-	var sps []v1.ServicePort
+	sps := make([]v1.ServicePort, 0, len(containerPorts))
 	for _, cp := range containerPorts {
 		nodePort := 30000 + rand.Intn(32767-30000+1)
 		servicePort := v1.ServicePort{
@@ -116,11 +116,11 @@ func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.Servic
 // containersToServicePorts takes a slice of v1.Containers and generates an
 // inclusive list of serviceports to expose
 func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
-	var sps []v1.ServicePort
 	// Without the call to rand.Seed, a program will produce the same sequence of pseudo-random numbers
 	// for each execution. Legal nodeport range is 30000-32767
 	rand.Seed(time.Now().UnixNano())
 
+	sps := make([]v1.ServicePort, 0, len(containers))
 	for _, ctr := range containers {
 		sps = append(sps, containerPortsToServicePorts(ctr.Ports)...)
 	}
@@ -128,11 +128,9 @@ func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 }
 
 func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort) (*v1.Pod, error) {
-	var (
-		podContainers []v1.Container
-	)
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
+	podContainers := make([]v1.Container, 0, len(containers))
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
 			ctr, volumes, err := containerToV1Container(ctr)
@@ -201,13 +199,11 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 // simplePodWithV1Container is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
 func simplePodWithV1Container(ctr *Container) (*v1.Pod, error) {
-	var containers []v1.Container
 	kubeCtr, kubeVols, err := containerToV1Container(ctr)
 	if err != nil {
 		return nil, err
 	}
-	containers = append(containers, kubeCtr)
-	return addContainersAndVolumesToPodObject(containers, kubeVols, ctr.Name()), nil
+	return addContainersAndVolumesToPodObject([]v1.Container{kubeCtr}, kubeVols, ctr.Name()), nil
 
 }
 
@@ -223,11 +219,7 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 
 	if len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
-		devices, err := generateKubeVolumeDeviceFromLinuxDevice(c.Spec().Linux.Devices)
-		if err != nil {
-			return kubeContainer, kubeVolumes, err
-		}
-		kubeContainer.VolumeDevices = devices
+		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.Spec().Linux.Devices)
 		return kubeContainer, kubeVolumes, errors.Wrapf(define.ErrNotImplemented, "linux devices")
 	}
 
@@ -283,7 +275,7 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 // ocicniPortMappingToContainerPort takes an ocicni portmapping and converts
 // it to a v1.ContainerPort format for kube output
 func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.ContainerPort, error) {
-	var containerPorts []v1.ContainerPort
+	containerPorts := make([]v1.ContainerPort, 0, len(portMappings))
 	for _, p := range portMappings {
 		var protocol v1.Protocol
 		switch strings.ToUpper(p.Protocol) {
@@ -308,7 +300,7 @@ func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.C
 
 // libpodEnvVarsToKubeEnvVars converts a key=value string slice to []v1.EnvVar
 func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
-	var envVars []v1.EnvVar
+	envVars := make([]v1.EnvVar, 0, len(envs))
 	for _, e := range envs {
 		split := strings.SplitN(e, "=", 2)
 		if len(split) != 2 {
@@ -325,11 +317,10 @@ func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 
 // libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
 func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
-	var vms []v1.VolumeMount
-	var vos []v1.Volume
-
 	// TjDO when named volumes are supported in play kube, also parse named volumes here
 	_, mounts := c.sortUserVolumes(c.config.Spec)
+	vms := make([]v1.VolumeMount, 0, len(mounts))
+	vos := make([]v1.Volume, 0, len(mounts))
 	for _, m := range mounts {
 		vm, vo, err := generateKubeVolumeMount(m)
 		if err != nil {
@@ -404,8 +395,8 @@ func convertVolumePathToName(hostSourcePath string) (string, error) {
 
 func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v1.Capabilities {
 	var (
-		drop []v1.Capability
-		add  []v1.Capability
+		drop = []v1.Capability{}
+		add  = []v1.Capability{}
 	)
 	dedupDrop := make(map[string]bool)
 	dedupAdd := make(map[string]bool)
@@ -518,8 +509,8 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 }
 
 // generateKubeVolumeDeviceFromLinuxDevice takes a list of devices and makes a VolumeDevice struct for kube
-func generateKubeVolumeDeviceFromLinuxDevice(devices []specs.LinuxDevice) ([]v1.VolumeDevice, error) {
-	var volumeDevices []v1.VolumeDevice
+func generateKubeVolumeDeviceFromLinuxDevice(devices []specs.LinuxDevice) []v1.VolumeDevice {
+	volumeDevices := make([]v1.VolumeDevice, 0, len(devices))
 	for _, d := range devices {
 		vd := v1.VolumeDevice{
 			// TBD How are we going to sync up these names
@@ -528,7 +519,7 @@ func generateKubeVolumeDeviceFromLinuxDevice(devices []specs.LinuxDevice) ([]v1.
 		}
 		volumeDevices = append(volumeDevices, vd)
 	}
-	return volumeDevices, nil
+	return volumeDevices
 }
 
 func removeUnderscores(s string) string {

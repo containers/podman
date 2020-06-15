@@ -239,7 +239,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 	logrus.Debugf("Restarting container %s due to restart policy %s", c.ID(), c.config.RestartPolicy)
 
 	// Need to check if dependencies are alive.
-	if err = c.checkDependenciesAndHandleError(ctx); err != nil {
+	if err = c.checkDependenciesAndHandleError(); err != nil {
 		return false, err
 	}
 
@@ -513,7 +513,7 @@ func (c *Container) teardownStorage() error {
 // Reset resets state fields to default values.
 // It is performed before a refresh and clears the state after a reboot.
 // It does not save the results - assumes the database will do that for us.
-func resetState(state *ContainerState) error {
+func resetState(state *ContainerState) {
 	state.PID = 0
 	state.ConmonPID = 0
 	state.Mountpoint = ""
@@ -527,8 +527,6 @@ func resetState(state *ContainerState) error {
 	state.StoppedByUser = false
 	state.RestartPolicyMatch = false
 	state.RestartCount = 0
-
-	return nil
 }
 
 // Refresh refreshes the container's state after a restart.
@@ -756,7 +754,7 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err err
 	}
 
 	if !recursive {
-		if err := c.checkDependenciesAndHandleError(ctx); err != nil {
+		if err := c.checkDependenciesAndHandleError(); err != nil {
 			return err
 		}
 	} else {
@@ -792,7 +790,7 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err err
 }
 
 // checks dependencies are running and prints a helpful message
-func (c *Container) checkDependenciesAndHandleError(ctx context.Context) error {
+func (c *Container) checkDependenciesAndHandleError() error {
 	notRunning, err := c.checkDependenciesRunning()
 	if err != nil {
 		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())

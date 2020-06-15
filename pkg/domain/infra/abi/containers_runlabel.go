@@ -116,7 +116,7 @@ func generateRunlabelCommand(runlabel string, img *image.Image, args []string, o
 		err             error
 		name, imageName string
 		globalOpts      string
-		cmd, env        []string
+		cmd             []string
 	)
 
 	// TODO: How do we get global opts as done in v1?
@@ -149,7 +149,7 @@ func generateRunlabelCommand(runlabel string, img *image.Image, args []string, o
 		return nil, nil, err
 	}
 
-	env = generateRunEnvironment(name, imageName, options)
+	env := generateRunEnvironment(options)
 	env = append(env, "PODMAN_RUNLABEL_NESTED=1")
 	envmap, err := envLib.ParseSlice(env)
 	if err != nil {
@@ -185,9 +185,6 @@ func generateRunlabelCommand(runlabel string, img *image.Image, args []string, o
 
 // generateCommand takes a label (string) and converts it to an executable command
 func generateCommand(command, imageName, name, globalOpts string) ([]string, error) {
-	var (
-		newCommand []string
-	)
 	if name == "" {
 		name = imageName
 	}
@@ -201,8 +198,7 @@ func generateCommand(command, imageName, name, globalOpts string) ([]string, err
 	if err != nil {
 		return nil, err
 	}
-	newCommand = append(newCommand, prog)
-
+	newCommand := []string{prog}
 	for _, arg := range cmd[1:] {
 		var newArg string
 		switch arg {
@@ -234,7 +230,7 @@ func generateCommand(command, imageName, name, globalOpts string) ([]string, err
 
 // GenerateRunEnvironment merges the current environment variables with optional
 // environment variables provided by the user
-func generateRunEnvironment(name, imageName string, options entities.ContainerRunlabelOptions) []string {
+func generateRunEnvironment(options entities.ContainerRunlabelOptions) []string {
 	newEnv := os.Environ()
 	if options.Optional1 != "" {
 		newEnv = append(newEnv, fmt.Sprintf("OPT1=%s", options.Optional1))

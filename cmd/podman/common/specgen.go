@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getCPULimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxCPU, error) {
+func getCPULimits(c *ContainerCLIOpts) *specs.LinuxCPU {
 	cpu := &specs.LinuxCPU{}
 	hasLimits := false
 
@@ -67,12 +67,12 @@ func getCPULimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) 
 	}
 
 	if !hasLimits {
-		return nil, nil
+		return nil
 	}
-	return cpu, nil
+	return cpu
 }
 
-func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxBlockIO, error) {
+func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxBlockIO, error) {
 	var err error
 	io := &specs.LinuxBlockIO{}
 	hasLimits := false
@@ -87,7 +87,7 @@ func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (
 	}
 
 	if len(c.BlkIOWeightDevice) > 0 {
-		if err := parseWeightDevices(c.BlkIOWeightDevice, s); err != nil {
+		if err := parseWeightDevices(s, c.BlkIOWeightDevice); err != nil {
 			return nil, err
 		}
 		hasLimits = true
@@ -127,7 +127,7 @@ func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (
 	return io, nil
 }
 
-func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) *specs.LinuxPids {
+func getPidsLimits(c *ContainerCLIOpts) *specs.LinuxPids {
 	pids := &specs.LinuxPids{}
 	if c.CGroupsMode == "disabled" && c.PIDsLimit != 0 {
 		return nil
@@ -146,7 +146,7 @@ func getPidsLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string)
 	return nil
 }
 
-func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) (*specs.LinuxMemory, error) {
+func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxMemory, error) {
 	var err error
 	memory := &specs.LinuxMemory{}
 	hasLimits := false
@@ -446,19 +446,16 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if s.ResourceLimits == nil {
 		s.ResourceLimits = &specs.LinuxResources{}
 	}
-	s.ResourceLimits.Memory, err = getMemoryLimits(s, c, args)
+	s.ResourceLimits.Memory, err = getMemoryLimits(s, c)
 	if err != nil {
 		return err
 	}
-	s.ResourceLimits.BlockIO, err = getIOLimits(s, c, args)
+	s.ResourceLimits.BlockIO, err = getIOLimits(s, c)
 	if err != nil {
 		return err
 	}
-	s.ResourceLimits.Pids = getPidsLimits(s, c, args)
-	s.ResourceLimits.CPU, err = getCPULimits(s, c, args)
-	if err != nil {
-		return err
-	}
+	s.ResourceLimits.Pids = getPidsLimits(c)
+	s.ResourceLimits.CPU = getCPULimits(c)
 	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil {
 		s.ResourceLimits = nil
 	}
@@ -700,7 +697,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	return &hc, nil
 }
 
-func parseWeightDevices(weightDevs []string, s *specgen.SpecGenerator) error {
+func parseWeightDevices(s *specgen.SpecGenerator, weightDevs []string) error {
 	for _, val := range weightDevs {
 		split := strings.SplitN(val, ":", 2)
 		if len(split) != 2 {

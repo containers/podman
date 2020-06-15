@@ -62,10 +62,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 func makeCreateConfig(containerConfig *config.Config, input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
 	var (
-		err     error
-		init    bool
-		tmpfs   []string
-		volumes []string
+		err  error
+		init bool
 	)
 	env := make(map[string]string)
 	stopSignal := unix.SIGTERM
@@ -137,6 +135,7 @@ func makeCreateConfig(containerConfig *config.Config, input handlers.CreateConta
 		User:       input.User,
 	}
 	pidConfig := createconfig.PidConfig{PidMode: namespaces.PidMode(input.HostConfig.PidMode)}
+	volumes := make([]string, 0, len(input.Volumes))
 	for k := range input.Volumes {
 		volumes = append(volumes, k)
 	}
@@ -158,6 +157,7 @@ func makeCreateConfig(containerConfig *config.Config, input handlers.CreateConta
 	}
 
 	// format the tmpfs mounts into a []string from map
+	tmpfs := make([]string, 0, len(input.HostConfig.Tmpfs))
 	for k, v := range input.HostConfig.Tmpfs {
 		tmpfs = append(tmpfs, fmt.Sprintf("%s:%s", k, v))
 	}

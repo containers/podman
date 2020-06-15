@@ -286,9 +286,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		return errors.Wrapf(err, "error retrieving runtime configuration from database")
 	}
 
-	if err := runtime.mergeDBConfig(dbConfig); err != nil {
-		return errors.Wrapf(err, "error merging database config into runtime config")
-	}
+	runtime.mergeDBConfig(dbConfig)
 
 	logrus.Debugf("Using graph driver %s", runtime.storageConfig.GraphDriverName)
 	logrus.Debugf("Using graph root %s", runtime.storageConfig.GraphRoot)
@@ -696,11 +694,7 @@ func (r *Runtime) configureStore() error {
 
 	// Set up a storage service for creating container root filesystems from
 	// images
-	storageService, err := getStorageService(r.store)
-	if err != nil {
-		return err
-	}
-	r.storageService = storageService
+	r.storageService = getStorageService(r.store)
 
 	ir := image.NewImageRuntimeFromStore(r.store)
 	ir.SignaturePolicyPath = r.config.Engine.SignaturePolicyPath
@@ -751,7 +745,7 @@ type DBConfig struct {
 }
 
 // mergeDBConfig merges the configuration from the database.
-func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) error {
+func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 
 	c := &r.config.Engine
 	if !r.storageSet.RunRootSet && dbConfig.StorageTmp != "" {
@@ -802,7 +796,6 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) error {
 		}
 		c.VolumePath = dbConfig.VolumePath
 	}
-	return nil
 }
 
 func (r *Runtime) EnableLabeling() bool {

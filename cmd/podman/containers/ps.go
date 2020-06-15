@@ -74,7 +74,7 @@ func listFlagSet(flags *pflag.FlagSet) {
 		_ = flags.MarkHidden("latest")
 	}
 }
-func checkFlags(c *cobra.Command, args []string) error {
+func checkFlags(c *cobra.Command) error {
 	// latest, and last are mutually exclusive.
 	if listOpts.Last >= 0 && listOpts.Latest {
 		return errors.Errorf("last and latest are mutually exclusive")
@@ -144,8 +144,7 @@ func getResponses() ([]entities.ListContainer, error) {
 }
 
 func ps(cmd *cobra.Command, args []string) error {
-	var responses []psReporter
-	if err := checkFlags(cmd, args); err != nil {
+	if err := checkFlags(cmd); err != nil {
 		return err
 	}
 	for _, f := range filters {
@@ -172,6 +171,7 @@ func ps(cmd *cobra.Command, args []string) error {
 		return quietOut(listContainers)
 	}
 
+	responses := make([]psReporter, 0, len(listContainers))
 	for _, r := range listContainers {
 		responses = append(responses, psReporter{r})
 	}
@@ -351,7 +351,8 @@ func portsToString(ports []ocicni.PortMapping) string {
 		first int32
 		last  int32
 	}
-	var portDisplay []string
+	portDisplay := []string{}
+
 	if len(ports) == 0 {
 		return ""
 	}

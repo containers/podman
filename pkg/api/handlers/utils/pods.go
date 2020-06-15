@@ -11,7 +11,6 @@ import (
 
 func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport, error) {
 	var (
-		lps     []*entities.ListPodsReport
 		pods    []*libpod.Pod
 		filters []libpod.PodFilter
 	)
@@ -45,6 +44,11 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport
 		return nil, err
 	}
 
+	if len(pods) == 0 {
+		return nil, nil
+	}
+
+	lps := make([]*entities.ListPodsReport, 0, len(pods))
 	for _, pod := range pods {
 		status, err := pod.GetPodStatus()
 		if err != nil {

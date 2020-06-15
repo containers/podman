@@ -172,8 +172,6 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 // LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)
 // This function is needed because it is possible for a tar archive to have multiple tags for one image
 func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
-	var newImages []*Image
-
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
@@ -182,6 +180,7 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}
 
+	newImages := make([]*Image, 0, len(imageNames))
 	for _, name := range imageNames {
 		newImage, err := ir.NewFromLocal(name)
 		if err != nil {
@@ -475,11 +474,11 @@ func (ir *Runtime) GetRWImages() ([]*Image, error) {
 
 // getImages retrieves all images present in storage
 func (ir *Runtime) getImages(rwOnly bool) ([]*Image, error) {
-	var newImages []*Image
 	images, err := ir.store.Images()
 	if err != nil {
 		return nil, err
 	}
+	newImages := make([]*Image, 0, len(images))
 	for _, i := range images {
 		if rwOnly && i.ReadOnly {
 			continue

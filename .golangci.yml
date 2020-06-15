@@ -10,6 +10,7 @@ run:
     - pkg/spec
     - pkg/varlink
     - pkg/varlinkapi
+    - docs/varlink
   skip-files:
     - iopodman.go
     - swagger.go
@@ -25,10 +26,6 @@ linters:
     - gosec
     - lll
     - maligned
-    - misspell
-    - prealloc
-    - unparam
-    - nakedret
 linters-settings:
   errcheck:
     check-blank: false

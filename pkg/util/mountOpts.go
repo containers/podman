@@ -28,8 +28,7 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ bool
 	)
 
-	var newOptions []string
-
+	newOptions := make([]string, 0, len(options))
 	for _, opt := range options {
 		// Some options have parameters - size, mode
 		splitOpt := strings.SplitN(opt, "=", 2)

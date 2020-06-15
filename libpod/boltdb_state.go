@@ -243,9 +243,7 @@ func (s *BoltState) Refresh() error {
 				return errors.Wrapf(err, "error unmarshalling state for container %s", string(id))
 			}
 
-			if err := resetState(state); err != nil {
-				return errors.Wrapf(err, "error resetting state for container %s", string(id))
-			}
+			resetState(state)
 
 			newStateBytes, err := json.Marshal(state)
 			if err != nil {

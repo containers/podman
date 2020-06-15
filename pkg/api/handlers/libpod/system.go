@@ -61,7 +61,7 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 	systemPruneReport.ImagePruneReport = &report
 
 	if query.Volumes {
-		volumePruneReport, err := pruneVolumesHelper(w, r)
+		volumePruneReport, err := pruneVolumesHelper(r)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return

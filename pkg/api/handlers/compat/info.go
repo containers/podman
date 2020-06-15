@@ -129,7 +129,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func getGraphStatus(storeInfo map[string]string) [][2]string {
-	var graphStatus [][2]string
+	graphStatus := make([][2]string, 0, len(storeInfo))
 	for k, v := range storeInfo {
 		graphStatus = append(graphStatus, [2]string{k, v})
 	}

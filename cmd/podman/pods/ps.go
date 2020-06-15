@@ -68,7 +68,6 @@ func pods(cmd *cobra.Command, args []string) error {
 	var (
 		w   io.Writer = os.Stdout
 		row string
-		lpr []ListPodReporter
 	)
 
 	if psInput.Quiet && len(psInput.Format) > 0 {
@@ -102,6 +101,7 @@ func pods(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	lpr := make([]ListPodReporter, 0, len(responses))
 	for _, r := range responses {
 		lpr = append(lpr, ListPodReporter{r})
 	}
@@ -220,7 +220,7 @@ func (l ListPodReporter) InfraId() string { //nolint
 }
 
 func (l ListPodReporter) ContainerIds() string {
-	var ctrids []string
+	ctrids := make([]string, 0, len(l.Containers))
 	for _, c := range l.Containers {
 		id := c.Id
 		if !noTrunc {
@@ -232,7 +232,7 @@ func (l ListPodReporter) ContainerIds() string {
 }
 
 func (l ListPodReporter) ContainerNames() string {
-	var ctrNames []string
+	ctrNames := make([]string, 0, len(l.Containers))
 	for _, c := range l.Containers {
 		ctrNames = append(ctrNames, c.Names)
 	}
@@ -240,7 +240,7 @@ func (l ListPodReporter) ContainerNames() string {
 }
 
 func (l ListPodReporter) ContainerStatuses() string {
-	var statuses []string
+	statuses := make([]string, 0, len(l.Containers))
 	for _, c := range l.Containers {
 		statuses = append(statuses, c.Status)
 	}

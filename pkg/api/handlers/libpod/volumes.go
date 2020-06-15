@@ -102,9 +102,8 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
-		decoder       = r.Context().Value("decoder").(*schema.Decoder)
-		runtime       = r.Context().Value("runtime").(*libpod.Runtime)
-		volumeConfigs []*entities.VolumeListReport
+		decoder = r.Context().Value("decoder").(*schema.Decoder)
+		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 	)
 	query := struct {
 		Filters map[string][]string `schema:"filters"`
@@ -129,6 +128,7 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+	volumeConfigs := make([]*entities.VolumeListReport, 0, len(vols))
 	for _, v := range vols {
 		config := entities.VolumeConfigResponse{
 			Name:       v.Name(),
@@ -147,7 +147,7 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneVolumes(w http.ResponseWriter, r *http.Request) {
-	reports, err := pruneVolumesHelper(w, r)
+	reports, err := pruneVolumesHelper(r)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -155,15 +155,15 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, reports)
 }
 
-func pruneVolumesHelper(w http.ResponseWriter, r *http.Request) ([]*entities.VolumePruneReport, error) {
+func pruneVolumesHelper(r *http.Request) ([]*entities.VolumePruneReport, error) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		reports []*entities.VolumePruneReport
 	)
 	pruned, err := runtime.PruneVolumes(r.Context())
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.VolumePruneReport, 0, len(pruned))
 	for k, v := range pruned {
 		reports = append(reports, &entities.VolumePruneReport{
 			Err: v,

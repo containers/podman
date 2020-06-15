@@ -43,7 +43,7 @@ type RemoteSocket struct {
 	Exists bool   `json:"exists,omitempty"`
 }
 
-// SlirpInfo describes the slirp exectuable that
+// SlirpInfo describes the slirp executable that
 // is being being used.
 type SlirpInfo struct {
 	Executable string `json:"executable"`

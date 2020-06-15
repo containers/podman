@@ -432,10 +432,6 @@ func containerStatusFromContainers(allCtrs []*Container) (map[string]define.Cont
 
 // Inspect returns a PodInspect struct to describe the pod
 func (p *Pod) Inspect() (*define.InspectPodData, error) {
-	var (
-		ctrs []define.InspectPodContainerInfo
-	)
-
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if err := p.updatePod(); err != nil {
@@ -446,6 +442,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	if err != nil {
 		return nil, err
 	}
+	ctrs := make([]define.InspectPodContainerInfo, 0, len(containers))
 	ctrStatuses := make(map[string]define.ContainerStatus, len(containers))
 	for _, c := range containers {
 		containerStatus := "unknown"

@@ -153,7 +153,7 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 	}
 	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(names[0])
 	if err != nil {
-		return "", errors.Wrapf(err, "error retriving local image from image name %s", names[0])
+		return "", errors.Wrapf(err, "error retrieving local image from image name %s", names[0])
 	}
 	updatedListID, err := listImage.RemoveManifest(instanceDigest)
 	if err == nil {
@@ -166,7 +166,7 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts entities.ManifestPushOptions) error {
 	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(names[0])
 	if err != nil {
-		return errors.Wrapf(err, "error retriving local image from image name %s", names[0])
+		return errors.Wrapf(err, "error retrieving local image from image name %s", names[0])
 	}
 	dest, err := alltransports.ParseImageName(names[1])
 	if err != nil {

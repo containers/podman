@@ -366,7 +366,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	if err != nil {
 		return nil, err
 	}
-	var refPairs []pullRefPair
+	refPairs := make([]pullRefPair, 0, len(searchRegistries))
 	for _, registry := range searchRegistries {
 		ref, err := decomposedImage.referenceWithRegistry(registry)
 		if err != nil {

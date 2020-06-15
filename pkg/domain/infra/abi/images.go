@@ -167,7 +167,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 		return nil, errors.Wrapf(err, "error getting repository tags")
 	}
 
-	var foundIDs []string
+	foundIDs := []string{}
 	for _, tag := range tags {
 		name := rawImage + ":" + tag
 		newImage, err := ir.Libpod.ImageRuntime().New(ctx, name, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
@@ -443,7 +443,7 @@ func removeErrorsToExitCode(rmErrors []error) int {
 		// container.
 		inUseErrors bool
 		// otherErrors indicates that at least one error other than the two
-		// above occured.
+		// above occurred.
 		otherErrors bool
 	)
 
@@ -549,8 +549,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 			rmErrors = append(rmErrors, err)
 		}
 	}
-
-	return
+	return //nolint
 }
 
 // Shutdown Libpod engine

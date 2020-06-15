@@ -42,7 +42,7 @@ func Checkpoint(ctx context.Context, nameOrID string, keep, leaveRunning, tcpEst
 }
 
 // Restore restores a checkpointed container to running. The container is identified by the nameOrID option. All
-// additional options are optional and allow finer control of the restore processs.
+// additional options are optional and allow finer control of the restore process.
 func Restore(ctx context.Context, nameOrID string, keep, tcpEstablished, ignoreRootFS, ignoreStaticIP, ignoreStaticMAC *bool, name, importArchive *string) (*entities.RestoreReport, error) {
 	var report entities.RestoreReport
 	conn, err := bindings.GetClient(ctx)

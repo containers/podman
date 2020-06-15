@@ -407,10 +407,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 		ociRuntime, ok := s.runtime.ociRuntimes[runtimeName]
 		if !ok {
 			// Use a MissingRuntime implementation
-			ociRuntime, err = getMissingRuntime(runtimeName, s.runtime)
-			if err != nil {
-				return err
-			}
+			ociRuntime = getMissingRuntime(runtimeName, s.runtime)
 		}
 		ctr.ociRuntime = ociRuntime
 	}

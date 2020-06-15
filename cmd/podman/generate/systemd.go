@@ -41,7 +41,7 @@ func init() {
 	flags.BoolVarP(&systemdOptions.New, "new", "", false, "Create a new container instead of starting an existing one")
 	flags.StringVar(&systemdOptions.ContainerPrefix, "container-prefix", "container", "Systemd unit name prefix for containers")
 	flags.StringVar(&systemdOptions.PodPrefix, "pod-prefix", "pod", "Systemd unit name prefix for pods")
-	flags.StringVar(&systemdOptions.Separator, "separator", "-", "Systemd unit name seperator between name/id and prefix")
+	flags.StringVar(&systemdOptions.Separator, "separator", "-", "Systemd unit name separator between name/id and prefix")
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 

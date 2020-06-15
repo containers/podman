@@ -17,10 +17,6 @@ func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*ent
 }
 
 func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, options entities.PodKillOptions) ([]*entities.PodKillReport, error) {
-	var (
-		reports []*entities.PodKillReport
-	)
-
 	_, err := util.ParseSignal(options.Signal)
 	if err != nil {
 		return nil, err
@@ -30,6 +26,7 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PodKillReport, 0, len(foundPods))
 	for _, p := range foundPods {
 		response, err := pods.Kill(ic.ClientCxt, p.Id, &options.Signal)
 		if err != nil {
@@ -46,13 +43,11 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 }
 
 func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, options entities.PodPauseOptions) ([]*entities.PodPauseReport, error) {
-	var (
-		reports []*entities.PodPauseReport
-	)
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PodPauseReport, 0, len(foundPods))
 	for _, p := range foundPods {
 		response, err := pods.Pause(ic.ClientCxt, p.Id)
 		if err != nil {
@@ -69,13 +64,11 @@ func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, op
 }
 
 func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, options entities.PodunpauseOptions) ([]*entities.PodUnpauseReport, error) {
-	var (
-		reports []*entities.PodUnpauseReport
-	)
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PodUnpauseReport, 0, len(foundPods))
 	for _, p := range foundPods {
 		response, err := pods.Unpause(ic.ClientCxt, p.Id)
 		if err != nil {
@@ -92,10 +85,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 }
 
 func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, options entities.PodStopOptions) ([]*entities.PodStopReport, error) {
-	var (
-		reports []*entities.PodStopReport
-		timeout = -1
-	)
+	timeout := -1
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		return nil, err
@@ -103,6 +93,7 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 	if options.Timeout != -1 {
 		timeout = options.Timeout
 	}
+	reports := make([]*entities.PodStopReport, 0, len(foundPods))
 	for _, p := range foundPods {
 		response, err := pods.Stop(ic.ClientCxt, p.Id, &timeout)
 		if err != nil {
@@ -119,11 +110,11 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 }
 
 func (ic *ContainerEngine) PodRestart(ctx context.Context, namesOrIds []string, options entities.PodRestartOptions) ([]*entities.PodRestartReport, error) {
-	var reports []*entities.PodRestartReport
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PodRestartReport, 0, len(foundPods))
 	for _, p := range foundPods {
 		response, err := pods.Restart(ic.ClientCxt, p.Id)
 		if err != nil {
@@ -140,11 +131,11 @@ func (ic *ContainerEngine) PodRestart(ctx context.Context, namesOrIds []string, 
 }
 
 func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, options entities.PodStartOptions) ([]*entities.PodStartReport, error) {
-	var reports []*entities.PodStartReport
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	reports := make([]*entities.PodStartReport, 0, len(foundPods))
 	for _, p := range foundPods {
 		response, err := pods.Start(ic.ClientCxt, p.Id)
 		if err != nil {
@@ -161,11 +152,11 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 }
 
 func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, options entities.PodRmOptions) ([]*entities.PodRmReport, error) {
-	var reports []*entities.PodRmReport
 	foundPods, err := getPodsByContext(ic.ClientCxt, options.All, namesOrIds)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		return nil, err
 	}
+	reports := make([]*entities.PodRmReport, 0, len(foundPods))
 	for _, p := range foundPods {
 		response, err := pods.Remove(ic.ClientCxt, p.Id, &options.Force)
 		if err != nil {

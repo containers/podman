@@ -93,7 +93,7 @@ var signalMap = map[string]syscall.Signal{
 
 // CatchAll catches all signals and relays them to the specified channel.
 func CatchAll(sigc chan os.Signal) {
-	var handledSigs []os.Signal
+	handledSigs := make([]os.Signal, 0, len(signalMap))
 	for _, s := range signalMap {
 		handledSigs = append(handledSigs, s)
 	}

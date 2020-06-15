@@ -93,8 +93,8 @@ func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
 	searchImageInRegistryHelper := func(index int, registry string) {
 		defer sem.Release(1)
 		defer wg.Done()
-		searchOutput, err := searchImageInRegistry(term, registry, options)
-		data[index] = searchOutputData{data: searchOutput, err: err}
+		searchOutput := searchImageInRegistry(term, registry, options)
+		data[index] = searchOutputData{data: searchOutput}
 	}
 
 	ctx := context.Background()
@@ -131,7 +131,7 @@ func getRegistries(registry string) ([]string, error) {
 	return registries, nil
 }
 
-func searchImageInRegistry(term string, registry string, options SearchOptions) ([]SearchResult, error) {
+func searchImageInRegistry(term string, registry string, options SearchOptions) []SearchResult {
 	// Max number of queries by default is 25
 	limit := maxQueries
 	if options.Limit > 0 {
@@ -147,7 +147,7 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 	results, err := docker.SearchRegistry(context.TODO(), sc, registry, term, limit)
 	if err != nil {
 		logrus.Errorf("error searching registry %q: %v", registry, err)
-		return []SearchResult{}, nil
+		return []SearchResult{}
 	}
 	index := registry
 	arr := strings.Split(registry, ".")
@@ -201,7 +201,7 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 		}
 		paramsArr = append(paramsArr, params)
 	}
-	return paramsArr, nil
+	return paramsArr
 }
 
 // ParseSearchFilter turns the filter into a SearchFilter that can be used for
