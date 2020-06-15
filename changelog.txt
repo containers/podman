@@ -1,3 +1,47 @@
+- Changelog for v2.0.0-rc6 (2020-06-15)
+  * Change Varlink systemd unit to use `system service`
+  * Turn on More linters
+  * Do not default WorkingDir to / on client side
+  * Reassemble filters on the server side
+  * Bump github.com/containers/common from 0.13.0 to 0.13.1
+  * [CI:DOCS] Fix carriage returns in API v2 header
+  * Fix missing code during in_podman build
+  * update document login see config.json as valid
+  * [CI:DOCS] Add quick start directions to APIv2 Dock
+  * Fix builds for RDO
+  * podman: create scope only if --cgroup-manager=systemd
+  * libpod: fix check for slirp4netns netns
+  * e2e: sanity check --infra-conmon-pidfile
+  * generate systemd: wrap pod/ctr lookup errors
+  * docs: create/run fix --pod-id-file description
+  * generate systemd: create pod template
+  * generate systemd: refactor
+  * add (*Pod).CreateCommand()
+  * generate systemd: rename source files
+  * generate systemd: rephrase lookup error
+  * pod create: add `--infra-conmon-pidfile`
+  * generate systemd: rename "cid" to "ctr-id"
+  * container-{create,run}: add `--pod-id-file`
+  * podman-pod{rm,start,stop}: support --pod-id-file
+  * systemd/generate: remove unused infra container field
+  * pod config: add a `CreateCommand` field
+  * Fixed bug where 'podman log <container>' would truncate some lines.
+  * Enable IPv6 port binding
+  * Bump to v2.0.0-dev
+  * container: do not set hostname when joining uts
+  * container: make resolv.conf and hosts accessible in userns
+  * WIP: Enable (and disable) remote testing
+  * fix api fails with 'strconv.ParseUint: parsing "tcp": invalid syntax'
+  * Fix play kube report printing when no containers are created
+  * Fix missing doc for field in PlayKubePod
+  * Update comment related to seccomp profiles in play kube
+  * Consistent Yaml convention througout play kube tests
+  * Fix podman generate tests that relied on play kube
+  * Add tests for Deployment Kind and minor fix for play kube output
+  * Fix existing tests
+  * Modify PlayKubeReport to preserve pod->container mapping
+  * supporting k8s Deployment objects
+
 - Changelog for v2.0.0-rc5 (2020-06-10)
   * Fix Id->ID where possible for lint
   * Fixup issues found by golint
