@@ -88,7 +88,6 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 					err := t.Stop()
 					if err != nil {
 						logrus.Error(err)
-						break
 					}
 					break
 				}
