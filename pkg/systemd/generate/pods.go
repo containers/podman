@@ -265,7 +265,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 			if podCreateIndex == 0 {
 				return "", errors.Errorf("pod does not appear to be created via `podman pod create`: %v", info.CreateCommand)
 			}
-			podRootArgs = info.CreateCommand[1 : podCreateIndex-2]
+			podRootArgs = info.CreateCommand[0 : podCreateIndex-2]
 			podCreateArgs = filterPodFlags(info.CreateCommand[podCreateIndex+1:])
 		}
 		// We're hard-coding the first five arguments and append the
@@ -276,6 +276,21 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 			[]string{"pod", "create",
 				"--infra-conmon-pidfile", "{{.PIDFile}}",
 				"--pod-id-file", "{{.PodIDFile}}"}...)
+
+		// Presence check for certain flags/options.
+		hasNameParam := false
+		hasReplaceParam := false
+		for _, p := range podCreateArgs {
+			switch p {
+			case "--name":
+				hasNameParam = true
+			case "--replace":
+				hasReplaceParam = true
+			}
+		}
+		if hasNameParam && !hasReplaceParam {
+			podCreateArgs = append(podCreateArgs, "--replace")
+		}
 
 		startCommand = append(startCommand, podCreateArgs...)
 

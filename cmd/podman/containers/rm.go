@@ -87,6 +87,14 @@ func init() {
 }
 
 func rm(cmd *cobra.Command, args []string) error {
+	return removeContainers(args, rmOptions, true)
+}
+
+// removeContainers will remove the specified containers (names or IDs).
+// Allows for sharing removal logic across commands. If setExit is set,
+// removeContainers will set the exit code according to the `podman-rm` man
+// page.
+func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit bool) error {
 	var (
 		errs utils.OutputErrors
 	)
@@ -96,9 +104,9 @@ func rm(cmd *cobra.Command, args []string) error {
 			return errors.Errorf("--storage conflicts with --volumes, --all, --latest, --ignore and --cidfile")
 		}
 	}
-	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), args, rmOptions)
+	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
-		if len(args) < 2 {
+		if setExit && len(namesOrIDs) < 2 {
 			setExitCode(err)
 		}
 		return err
@@ -109,7 +117,9 @@ func rm(cmd *cobra.Command, args []string) error {
 			if errors.Cause(err) == define.ErrWillDeadlock {
 				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
 			}
-			setExitCode(r.Err)
+			if setExit {
+				setExitCode(r.Err)
+			}
 			errs = append(errs, r.Err)
 		} else {
 			fmt.Println(r.Id)

@@ -3118,6 +3118,7 @@ _podman_pod_create() {
       --help
       -h
       --infra
+      --replace
   "
   _complete_ "$options_with_args" "$boolean_options"
 }

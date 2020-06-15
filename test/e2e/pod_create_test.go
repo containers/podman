@@ -305,4 +305,19 @@ var _ = Describe("Podman pod create", func() {
 		data := check.InspectPodToJSON()
 		Expect(data.ID).To(Equal(string(id)))
 	})
+
+	It("podman pod create --replace", func() {
+		// Make sure we error out with --name.
+		session := podmanTest.Podman([]string{"pod", "create", "--replace", ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+
+		// Create and replace 5 times in a row the "same" pod.
+		podName := "testCtr"
+		for i := 0; i < 5; i++ {
+			session = podmanTest.Podman([]string{"pod", "create", "--replace", "--name", podName})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+		}
+	})
 })

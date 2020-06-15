@@ -207,23 +207,41 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			info.CreateCommand = filterPodFlags(info.CreateCommand)
 		}
 
-		// Enforce detaching
-		//
-		// since we use systemd `Type=forking` service
-		// @see https://www.freedesktop.org/software/systemd/man/systemd.service.html#Type=
-		// when we generated systemd service file with the --new param,
-		// `ExecStart` will have `/usr/bin/podman run ...`
-		// if `info.CreateCommand` has no `-d` or `--detach` param,
-		// podman will run the container in default attached mode,
-		// as a result, `systemd start` will wait the `podman run` command exit until failed with timeout error.
+		// Presence check for certain flags/options.
 		hasDetachParam := false
+		hasNameParam := false
+		hasReplaceParam := false
 		for _, p := range info.CreateCommand[index:] {
-			if p == "--detach" || p == "-d" {
+			switch p {
+			case "--detach", "-d":
 				hasDetachParam = true
+			case "--name":
+				hasNameParam = true
+			case "--replace":
+				hasReplaceParam = true
 			}
 		}
+
 		if !hasDetachParam {
+			// Enforce detaching
+			//
+			// since we use systemd `Type=forking` service @see
+			// https://www.freedesktop.org/software/systemd/man/systemd.service.html#Type=
+			// when we generated systemd service file with the
+			// --new param, `ExecStart` will have `/usr/bin/podman
+			// run ...` if `info.CreateCommand` has no `-d` or
+			// `--detach` param, podman will run the container in
+			// default attached mode, as a result, `systemd start`
+			// will wait the `podman run` command exit until failed
+			// with timeout error.
 			startCommand = append(startCommand, "-d")
+		}
+		if hasNameParam && !hasReplaceParam {
+			// Enforce --replace for named containers.  This will
+			// make systemd units more robuts as it allows them to
+			// start after system crashes (see
+			// github.com/containers/libpod/issues/5485).
+			startCommand = append(startCommand, "--replace")
 		}
 		startCommand = append(startCommand, info.CreateCommand[index:]...)
 

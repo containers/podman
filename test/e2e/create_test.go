@@ -429,4 +429,19 @@ var _ = Describe("Podman create", func() {
 		Expect(len(data)).To(Equal(1))
 		Expect(data[0].HostConfig.NanoCpus).To(Equal(int64(nanoCPUs)))
 	})
+
+	It("podman create --replace", func() {
+		// Make sure we error out with --name.
+		session := podmanTest.Podman([]string{"create", "--replace", ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+
+		// Create and replace 5 times in a row the "same" container.
+		ctrName := "testCtr"
+		for i := 0; i < 5; i++ {
+			session = podmanTest.Podman([]string{"create", "--replace", "--name", ctrName, ALPINE, "/bin/sh"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+		}
+	})
 })

@@ -931,4 +931,19 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman run --replace", func() {
+		// Make sure we error out with --name.
+		session := podmanTest.Podman([]string{"create", "--replace", ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+
+		// Run and replace 5 times in a row the "same" container.
+		ctrName := "testCtr"
+		for i := 0; i < 5; i++ {
+			session := podmanTest.Podman([]string{"run", "--detach", "--replace", "--name", ctrName, ALPINE, "/bin/sh"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+		}
+	})
 })

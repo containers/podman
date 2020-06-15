@@ -76,6 +76,7 @@ type ContainerCLIOpts struct {
 	ReadOnly          bool
 	ReadOnlyTmpFS     bool
 	Restart           string
+	Replace           bool
 	Rm                bool
 	RootFS            bool
 	SecurityOpt       []string

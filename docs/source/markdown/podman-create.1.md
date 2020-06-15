@@ -662,6 +662,10 @@ its root filesystem mounted as read only prohibiting any writes.
 
 If container is running in --read-only mode, then mount a read-write tmpfs on /run, /tmp, and /var/tmp.  The default is *true*
 
+**--replace**=**true**|**false**
+
+If another container with the same name already exists, replace and remove it.  The default is **false**.
+
 **--restart**=*policy*
 
 Restart policy to follow when containers exit.
