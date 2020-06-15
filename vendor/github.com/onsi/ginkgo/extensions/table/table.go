@@ -42,6 +42,25 @@ Under the hood, `DescribeTable` simply generates a new Ginkgo `Describe`.  Each 
 It's important to understand that the `Describe`s and `It`s are generated at evaluation time (i.e. when Ginkgo constructs the tree of tests and before the tests run).
 
 Individual Entries can be focused (with FEntry) or marked pending (with PEntry or XEntry).  In addition, the entire table can be focused or marked pending with FDescribeTable and PDescribeTable/XDescribeTable.
+
+A description function can be passed to Entry in place of the description. The function is then fed with the entry parameters to generate the description of the It corresponding to that particular Entry.
+
+For example:
+
+	describe := func(desc string) func(int, int, bool) string {
+		return func(x, y int, expected bool) string {
+			return fmt.Sprintf("%s x=%d y=%d expected:%t", desc, x, y, expected)
+		}
+	}
+
+	DescribeTable("a simple table",
+		func(x int, y int, expected bool) {
+			Ω(x > y).Should(Equal(expected))
+		},
+		Entry(describe("x > y"), 1, 0, true),
+		Entry(describe("x == y"), 0, 0, false),
+		Entry(describe("x < y"), 0, 1, false),
+	)
 */
 func DescribeTable(description string, itBody interface{}, entries ...TableEntry) bool {
 	describeTable(description, itBody, entries, types.FlagTypeNone)
