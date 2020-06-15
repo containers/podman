@@ -14,7 +14,7 @@ class TestImages(unittest.TestCase):
     podman = None
     def setUp(self):
         super().setUp()
-        client.pull(constant.ALPINE)
+        common.restore_image_from_cache(self)
 
     def tearDown(self):
         common.remove_all_images()
@@ -73,9 +73,8 @@ class TestImages(unittest.TestCase):
         self.assertEqual(len(allImages), 1)
         # Add more images
         client.pull(constant.BB)
-        client.pull(constant.NGINX)
         allImages = client.images()
-        self.assertEqual(len(allImages) , 3)
+        self.assertEqual(len(allImages) , 2)
 
 
     # List images with filter
