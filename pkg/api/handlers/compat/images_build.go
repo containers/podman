@@ -40,7 +40,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	anchorDir, err := extractTarFile(r, w)
+	anchorDir, err := extractTarFile(r)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -241,7 +241,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func extractTarFile(r *http.Request, w http.ResponseWriter) (string, error) {
+func extractTarFile(r *http.Request) (string, error) {
 	// build a home for the request body
 	anchorDir, err := ioutil.TempDir("", "libpod_builder")
 	if err != nil {

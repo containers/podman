@@ -31,13 +31,8 @@ Run an API listening for 5 seconds using the default socket.
 podman system service --timeout 5000
 ```
 
-Run the podman varlink service with an alternate URI and accept the default timeout.
-```
-$ podman system service --varlink unix:/tmp/io.podman
-```
-
 ## SEE ALSO
-podman(1), podman-varlink(1)
+podman(1), podman-system-service(1), podman-system-connection(1)
 
 ## HISTORY
 January 2020, Originally compiled by Brent Baude<bbaude@redhat.com>
