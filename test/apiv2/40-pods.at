@@ -25,6 +25,16 @@ t POST "libpod/pods/create (dup pod)" name=foo 409 \
 
 #t POST libpod/pods/create a=b 400 .cause='bad parameter'  # FIXME: unimplemented
 
+t POST libpod/pods/foo/start '' 200 \
+  .Errs=null \
+  .Id=$pod_id
+
+t POST libpod/pods/foo/start '' 304 \
+
+t POST libpod/pods/fakename/start '' 404 \
+  .cause="no such pod" \
+  .message="no pod with name or ID fakename found: no such pod"
+
 if root || have_cgroupsv2; then
     t POST libpod/pods/foo/pause   '' 200
 else
@@ -35,12 +45,72 @@ else
 fi
 t POST  libpod/pods/foo/unpause '' 200
 t POST "libpod/pods/foo/unpause (2nd unpause in a row)" '' 200
+t POST "libpod/pods/fakename/unpause" '' 404\
+  .cause="no such pod" \
+  .message="no pod with name or ID fakename found: no such pod"
+
+
+t POST libpod/pods/foo/stop '' 200 \
+  .Errs=null \
+  .Id=$pod_id
+
 t POST "libpod/pods/foo/stop (pod is already stopped)"  '' 304
+t POST "libpod/pods/fakename/stop" '' 404\
+  .cause="no such pod" \
+  .message="no pod with name or ID fakename found: no such pod"
+
 t POST  libpod/pods/foo/restart '' 200 \
   .Errs=null \
   .Id=$pod_id
 
 t POST  "libpod/pods/bar/restart (restart on nonexistent pod)" '' 404
+t POST libpod/pods/create name=bar 201 .Id~[0-9a-f]\\{64\\}
+pod_bar_id=$(jq -r .Id <<<"$output")
+
+t POST  libpod/pods/bar/restart '' 200 \
+  .Errs=null \
+  .Id=$pod_bar_id
+
+t GET  libpod/pods/bar/json        200 \
+  .State=Running
+
+t POST  libpod/pods/bar/restart '' 200 \
+  .Errs=null \
+  .Id=$pod_bar_id
+
+t POST "libpod/pods/bar/stop?t=invalid" '' 400 \
+  .cause="schema: error converting value for \"t\"" \
+  .message~"Failed to parse parameters for"
+
+podman run -d --pod bar busybox sleep 999
+
+t POST libpod/pods/bar/stop?t=1 '' 200 \
+  .Errs=null \
+  .Id=$pod_bar_id
+
+t POST libpod/pods/bar/start '' 200
+
+t GET libpod/pods/stats?all=true 200
+is $(jq '. | length' <<<"$output") 3 "stats?all=true: number of records found"
+
+t GET libpod/pods/stats?namesOrIDs=foo 200
+is $(jq '. | length' <<<"$output") 1 "stats?namesOrIDs=foo: number of records found"
+
+t GET libpod/pods/stats?namesOrIDs=fakename 404 \
+  .cause="no such pod" \
+  .message="unable to get list of pods: no pod with name or ID fakename found: no such pod"
+
+t DELETE  libpod/pods/bar?force=true 200
+
+t GET libpod/pods/foo/top 200 \
+  .Processes[0][-1]="/pause " \
+  .Titles[-1]="COMMAND"
+
+t GET libpod/pods/foo/top?ps_args=args,pid 200 \
+  .Processes[0][0]="/pause " \
+  .Processes[0][1]="1" \
+  .Titles[0]="COMMAND" \
+  .Titles[1]="PID" \
 
 # FIXME: I'm not sure what 'prune' is supposed to do; as of 20200224 it
 # just returns 200 (ok) with empty result list.
