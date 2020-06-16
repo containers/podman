@@ -66,7 +66,7 @@ func (c *Container) validate() error {
 
 	// Rootless has some requirements, compared to networks.
 	if rootless.IsRootless() {
-		if len(c.config.Networks) > 0 {
+		if !c.config.NetMode.IsSlirp4netns() && len(c.config.Networks) > 0 {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot join CNI networks if running rootless")
 		}
 
