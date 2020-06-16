@@ -418,6 +418,11 @@ type ContainerConfig struct {
 
 	// HealthCheckConfig has the health check command and related timings
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
+
+	// PreserveFDs is a number of additional file descriptors (in addition
+	// to 0, 1, 2) that will be passed to the executed process. The total FDs
+	// passed will be 3 + PreserveFDs.
+	PreserveFDs uint `json:"preserveFds,omitempty"`
 }
 
 // ContainerNamedVolume is a named volume that will be mounted into the

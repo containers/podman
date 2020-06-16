@@ -609,6 +609,10 @@ If a container is run with a pod, and the pod has an infra-container, the infra-
 
 Run container in an existing pod and read the pod's ID from the specified file.  If a container is run within a pod, and the pod has an infra-container, the infra-container will be started before the container is.
 
+**--preserve-fds**=*N*
+
+Pass down to the process N additional file descriptors (in addition to 0, 1, 2).  The total FDs will be 3+N.
+
 **--privileged**=**true**|**false**
 
 Give extended privileges to this container. The default is **false**.

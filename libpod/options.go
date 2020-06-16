@@ -1369,6 +1369,18 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 	}
 }
 
+// WithPreserveFDs forwards from the process running Libpod into the container
+// the given number of extra FDs (starting after the standard streams) to the created container
+func WithPreserveFDs(fd uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.PreserveFDs = fd
+		return nil
+	}
+}
+
 // WithCreateCommand adds the full command plus arguments of the current
 // process to the container config.
 func WithCreateCommand() CtrCreateOption {

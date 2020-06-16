@@ -130,6 +130,11 @@ type ContainerBasicConfig struct {
 	// Remove indicates if the container should be removed once it has been started
 	// and exits
 	Remove bool `json:"remove"`
+	// PreserveFDs is a number of additional file descriptors (in addition
+	// to 0, 1, 2) that will be passed to the executed process. The total FDs
+	// passed will be 3 + PreserveFDs.
+	// set tags as `json:"-"` for not supported remote
+	PreserveFDs uint `json:"-"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

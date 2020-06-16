@@ -904,6 +904,10 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
+	if ctr.config.PreserveFDs > 0 {
+		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", ctr.config.PreserveFDs))...)
+	}
+
 	if restoreOptions != nil {
 		args = append(args, "--restore", ctr.CheckpointPath())
 		if restoreOptions.TCPEstablished {
@@ -935,8 +939,16 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return err
 	}
 
+	if ctr.config.PreserveFDs > 0 {
+		for fd := 3; fd < int(3+ctr.config.PreserveFDs); fd++ {
+			cmd.ExtraFiles = append(cmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
+		}
+	}
+
 	cmd.Env = r.conmonEnv
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3), fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
+	// we don't want to step on users fds they asked to preserve
+	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", ctr.config.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", ctr.config.PreserveFDs+4))
 	cmd.Env = append(cmd.Env, conmonEnv...)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childSyncPipe, childStartPipe)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, envFiles...)
@@ -1016,6 +1028,16 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		// conmon not having a pid file is a valid state, so don't set it if we don't have it
 		logrus.Infof("Got Conmon PID as %d", conmonPID)
 		ctr.state.ConmonPID = conmonPID
+	}
+
+	if ctr.config.PreserveFDs > 0 {
+		for fd := 3; fd < int(3+ctr.config.PreserveFDs); fd++ {
+			// These fds were passed down to the runtime.  Close them
+			// and not interfere
+			if err := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close(); err != nil {
+				logrus.Debugf("unable to close file fd-%d", fd)
+			}
+		}
 	}
 
 	return nil

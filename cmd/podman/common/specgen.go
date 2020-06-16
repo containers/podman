@@ -609,6 +609,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	s.LogConfiguration.Options = logOpts
 	s.Name = c.Name
+	s.PreserveFDs = c.PreserveFDs
 
 	s.OOMScoreAdj = &c.OOMScoreAdj
 	if c.Restart != "" {

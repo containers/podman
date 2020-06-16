@@ -1015,4 +1015,16 @@ USER mail`
 			Expect(session.ExitCode()).To(Equal(0))
 		}
 	})
+
+	It("podman run --preserve-fds", func() {
+		devNull, err := os.Open("/dev/null")
+		Expect(err).To(BeNil())
+		defer devNull.Close()
+		files := []*os.File{
+			devNull,
+		}
+		session := podmanTest.PodmanExtraFiles([]string{"run", "--preserve-fds", "1", ALPINE, "ls"}, files)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
