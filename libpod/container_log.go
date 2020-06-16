@@ -88,9 +88,9 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 		go func() {
 			readOpts := events.ReadOptions{
 				EventChannel: eventChannel,
-				Filters: []string{"type=container"},
-				FromStart: false,
-				Stream: true,
+				Filters:      []string{"type=container"},
+				FromStart:    false,
+				Stream:       true,
 			}
 			eventsError := c.runtime.Events(readOpts)
 			if eventsError != nil {
