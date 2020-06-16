@@ -22,7 +22,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	if err := generate.CompleteSpec(r.Context(), runtime, &sg); err != nil {
+	warn, err := generate.CompleteSpec(r.Context(), runtime, &sg)
+	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
@@ -31,6 +32,6 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	response := entities.ContainerCreateResponse{ID: ctr.ID()}
+	response := entities.ContainerCreateResponse{ID: ctr.ID(), Warnings: warn}
 	utils.WriteJSON(w, http.StatusCreated, response)
 }

@@ -511,8 +511,13 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*entities.ContainerCreateReport, error) {
-	if err := generate.CompleteSpec(ctx, ic.Libpod, s); err != nil {
+	warn, err := generate.CompleteSpec(ctx, ic.Libpod, s)
+	if err != nil {
 		return nil, err
+	}
+	// Print warnings
+	for _, w := range warn {
+		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
 	ctr, err := generate.MakeContainer(ctx, ic.Libpod, s)
 	if err != nil {
@@ -773,8 +778,13 @@ func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrID string, o
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
-	if err := generate.CompleteSpec(ctx, ic.Libpod, opts.Spec); err != nil {
+	warn, err := generate.CompleteSpec(ctx, ic.Libpod, opts.Spec)
+	if err != nil {
 		return nil, err
+	}
+	// Print warnings
+	for _, w := range warn {
+		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
 	ctr, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec)
 	if err != nil {

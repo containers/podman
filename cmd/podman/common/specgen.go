@@ -635,8 +635,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Remove = c.Rm
 	s.StopTimeout = &c.StopTimeout
 
-	// TODO where should we do this?
-	// func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, error) {
 	return nil
 }
 
