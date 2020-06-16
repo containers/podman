@@ -48,34 +48,34 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	defer os.RemoveAll(anchorDir)
 
 	query := struct {
-		Dockerfile  string `schema:"dockerfile"`
-		Tag         string `schema:"t"`
-		ExtraHosts  string `schema:"extrahosts"`
-		Remote      string `schema:"remote"`
-		Quiet       bool   `schema:"q"`
-		NoCache     bool   `schema:"nocache"`
-		CacheFrom   string `schema:"cachefrom"`
-		Pull        bool   `schema:"pull"`
-		Rm          bool   `schema:"rm"`
-		ForceRm     bool   `schema:"forcerm"`
-		Memory      int64  `schema:"memory"`
-		MemSwap     int64  `schema:"memswap"`
-		CpuShares   uint64 `schema:"cpushares"`  //nolint
-		CpuSetCpus  string `schema:"cpusetcpus"` //nolint
-		CpuPeriod   uint64 `schema:"cpuperiod"`  //nolint
-		CpuQuota    int64  `schema:"cpuquota"`   //nolint
-		BuildArgs   string `schema:"buildargs"`
-		ShmSize     int    `schema:"shmsize"`
-		Squash      bool   `schema:"squash"`
-		Labels      string `schema:"labels"`
-		NetworkMode string `schema:"networkmode"`
-		Platform    string `schema:"platform"`
-		Target      string `schema:"target"`
-		Outputs     string `schema:"outputs"`
-		Registry    string `schema:"registry"`
+		Dockerfile  string   `schema:"dockerfile"`
+		Tag         []string `schema:"t"`
+		ExtraHosts  string   `schema:"extrahosts"`
+		Remote      string   `schema:"remote"`
+		Quiet       bool     `schema:"q"`
+		NoCache     bool     `schema:"nocache"`
+		CacheFrom   string   `schema:"cachefrom"`
+		Pull        bool     `schema:"pull"`
+		Rm          bool     `schema:"rm"`
+		ForceRm     bool     `schema:"forcerm"`
+		Memory      int64    `schema:"memory"`
+		MemSwap     int64    `schema:"memswap"`
+		CpuShares   uint64   `schema:"cpushares"`  //nolint
+		CpuSetCpus  string   `schema:"cpusetcpus"` //nolint
+		CpuPeriod   uint64   `schema:"cpuperiod"`  //nolint
+		CpuQuota    int64    `schema:"cpuquota"`   //nolint
+		BuildArgs   string   `schema:"buildargs"`
+		ShmSize     int      `schema:"shmsize"`
+		Squash      bool     `schema:"squash"`
+		Labels      string   `schema:"labels"`
+		NetworkMode string   `schema:"networkmode"`
+		Platform    string   `schema:"platform"`
+		Target      string   `schema:"target"`
+		Outputs     string   `schema:"outputs"`
+		Registry    string   `schema:"registry"`
 	}{
 		Dockerfile:  "Dockerfile",
-		Tag:         "",
+		Tag:         []string{},
 		ExtraHosts:  "",
 		Remote:      "",
 		Quiet:       false,
@@ -107,20 +107,19 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		// Tag is the name with optional tag...
-		name = query.Tag
-		tag  = "latest"
+		output          string
+		additionalNames []string
 	)
-	if strings.Contains(query.Tag, ":") {
-		tokens := strings.SplitN(query.Tag, ":", 2)
-		name = tokens[0]
-		tag = tokens[1]
+	if len(query.Tag) > 0 {
+		output = query.Tag[0]
+	}
+	if len(query.Tag) > 1 {
+		additionalNames = query.Tag[1:]
 	}
 
 	if _, found := r.URL.Query()["target"]; found {
-		name = query.Target
+		output = query.Target
 	}
-
 	var buildArgs = map[string]string{}
 	if _, found := r.URL.Query()["buildargs"]; found {
 		if err := json.Unmarshal([]byte(query.BuildArgs), &buildArgs); err != nil {
@@ -168,8 +167,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		TransientMounts:                nil,
 		Compression:                    archive.Gzip,
 		Args:                           buildArgs,
-		Output:                         name,
-		AdditionalTags:                 []string{tag},
+		Output:                         output,
+		AdditionalTags:                 additionalNames,
 		Log: func(format string, args ...interface{}) {
 			buildEvents = append(buildEvents, fmt.Sprintf(format, args...))
 		},

@@ -410,7 +410,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// swagger:operation POST /build compat buildImage
 	// ---
 	// tags:
-	//  - images
+	//  - images (compat)
 	// summary: Create image
 	// description: Build an image from the given Dockerfile(s)
 	// parameters:
@@ -425,7 +425,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: t
 	//    type: string
 	//    default: latest
-	//    description: A name and optional tag to apply to the image in the `name:tag` format.
+	//    description: A name and optional tag to apply to the image in the `name:tag` format. If you omit the tag the default latest value is assumed. You can provide several t parameters.
 	//  - in: query
 	//    name: extrahosts
 	//    type: string
@@ -1211,7 +1211,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: t
 	//    type: string
 	//    default: latest
-	//    description: A name and optional tag to apply to the image in the `name:tag` format.
+	//    description: A name and optional tag to apply to the image in the `name:tag` format.  If you omit the tag the default latest value is assumed. You can provide several t parameters.
 	//  - in: query
 	//    name: extrahosts
 	//    type: string
