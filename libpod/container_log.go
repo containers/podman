@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -85,8 +86,8 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 					break
 				}
 				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
-					err := t.Stop()
-					if err != nil {
+					err := t.StopAtEOF()
+					if err != nil && fmt.Sprintf("%v",err) != "tail: stop at eof" {
 						logrus.Error(err)
 					}
 					break
