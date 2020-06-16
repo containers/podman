@@ -3,12 +3,10 @@ package registries
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/v2/pkg/rootless"
-	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 )
 
@@ -76,18 +74,4 @@ func GetInsecureRegistries() ([]string, error) {
 		}
 	}
 	return insecureRegistries, nil
-}
-
-// GetRegistry returns the registry name from a string if specified
-func GetRegistry(image string) (string, error) {
-	// It is possible to only have the registry name in the format "myregistry/"
-	// if so, just trim the "/" from the end and return the registry name
-	if strings.HasSuffix(image, "/") {
-		return strings.TrimSuffix(image, "/"), nil
-	}
-	imgRef, err := reference.Parse(image)
-	if err != nil {
-		return "", err
-	}
-	return reference.Domain(imgRef.(reference.Named)), nil
 }
