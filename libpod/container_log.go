@@ -87,7 +87,7 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 				}
 				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
 					err := t.StopAtEOF()
-					if err != nil && fmt.Sprintf("%v",err) != "tail: stop at eof" {
+					if err != nil && fmt.Sprintf("%v", err) != "tail: stop at eof" {
 						logrus.Error(err)
 					}
 					break
