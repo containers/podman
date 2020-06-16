@@ -478,7 +478,7 @@ func (ir *Runtime) getImages(rwOnly bool) ([]*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	newImages := make([]*Image, 0, len(images))
+	newImages := []*Image{}
 	for _, i := range images {
 		if rwOnly && i.ReadOnly {
 			continue
