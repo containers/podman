@@ -19,6 +19,7 @@ func (s *APIServer) registerPingHandlers(r *mux.Router) error {
 	//     Return protocol information in response headers.
 	//     `HEAD /libpod/_ping` is also supported.
 	//     `/_ping` is available for compatibility with other engines.
+	//     The '_ping' endpoints are not versioned.
 	//   tags:
 	//   - system (compat)
 	//   - system
