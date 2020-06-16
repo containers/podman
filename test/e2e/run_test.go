@@ -151,12 +151,36 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "--init", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		result := podmanTest.Podman([]string{"inspect", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		conData := result.InspectContainerToJSON()
+		Expect(conData[0].Path).To(Equal("/dev/init"))
+		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("TRUE"))
 	})
 
 	It("podman run a container with --init and --init-path", func() {
 		session := podmanTest.Podman([]string{"run", "--init", "--init-path", "/usr/libexec/podman/catatonit", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		result := podmanTest.Podman([]string{"inspect", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		conData := result.InspectContainerToJSON()
+		Expect(conData[0].Path).To(Equal("/dev/init"))
+		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("TRUE"))
+	})
+
+	It("podman run a container without --init", func() {
+		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		result := podmanTest.Podman([]string{"inspect", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		conData := result.InspectContainerToJSON()
+		Expect(conData[0].Path).To(Equal("ls"))
+		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("FALSE"))
 	})
 
 	It("podman run seccomp test", func() {
