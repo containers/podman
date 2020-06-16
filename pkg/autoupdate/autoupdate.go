@@ -251,8 +251,19 @@ func newerImageAvailable(runtime *libpod.Runtime, img *image.Image, origName str
 		return false, err
 	}
 
+	data, err := img.Inspect(context.Background())
+	if err != nil {
+		return false, err
+	}
+
 	sys := runtime.SystemContext()
 	sys.AuthFilePath = options.Authfile
+
+	// We need to account for the arch that the image uses.  It seems
+	// common on ARM to tweak this option to pull the correct image.  See
+	// github.com/containers/libpod/issues/6613.
+	sys.ArchitectureChoice = data.Architecture
+
 	remoteImg, err := remoteRef.NewImage(context.Background(), sys)
 	if err != nil {
 		return false, err
