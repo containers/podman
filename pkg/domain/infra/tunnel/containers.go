@@ -370,7 +370,7 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, 
 		case <-ctx.Done():
 			return err
 		case line := <-outCh:
-			_, _ = io.WriteString(options.Writer, line)
+			_, _ = io.WriteString(options.Writer, line+"\n")
 		}
 	}
 }
