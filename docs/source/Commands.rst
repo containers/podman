@@ -100,8 +100,6 @@ Commands
 
 :doc:`unshare <markdown/podman-unshare.1>` Run a command in a modified user namespace
 
-:doc:`varlink <markdown/podman-varlink.1>` Run varlink interface
-
 :doc:`version <markdown/podman-version.1>` Display the Podman Version Information
 
 :doc:`volume <volume>` Manage volumes

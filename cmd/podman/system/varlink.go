@@ -16,11 +16,13 @@ var (
   Tools speaking varlink protocol can remotely manage pods, containers and images.
 `
 	varlinkCmd = &cobra.Command{
-		Use:   "varlink [flags] [URI]",
-		Args:  cobra.MinimumNArgs(1),
-		Short: "Run varlink interface",
-		Long:  varlinkDescription,
-		RunE:  varlinkE,
+		Use:        "varlink [flags] [URI]",
+		Args:       cobra.MinimumNArgs(1),
+		Short:      "Run varlink interface",
+		Long:       varlinkDescription,
+		RunE:       varlinkE,
+		Deprecated: "Please see 'podman system service' for RESTful APIs",
+		Hidden:     true,
 		Example: `podman varlink unix:/run/podman/io.podman
   podman varlink --time 5000 unix:/run/podman/io.podman`,
 	}
