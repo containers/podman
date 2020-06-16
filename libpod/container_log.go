@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -81,5 +82,42 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 		}
 		options.WaitGroup.Done()
 	}()
+	// Check if container is still running or paused
+	if options.Follow {
+		eventChannel := make(chan *events.Event)
+		go func() {
+			readOpts := events.ReadOptions{
+				EventChannel: eventChannel,
+				Filters: []string{"type=container"},
+				FromStart: false,
+				Stream: true,
+			}
+			eventsError := c.runtime.Events(readOpts)
+			if eventsError != nil {
+				logrus.Error(eventsError)
+				close(eventChannel)
+			}
+		}()
+		go func() {
+			for {
+				state, err := c.State()
+				if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
+					logrus.Error(err)
+					break
+				} else if err != nil {
+					break
+				}
+				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+					err := t.Stop()
+					if err != nil {
+						logrus.Error(err)
+					}
+					break
+				} else {
+					<-eventChannel
+				}
+			}
+		}()
+	}
 	return nil
 }
