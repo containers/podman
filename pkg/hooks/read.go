@@ -3,12 +3,12 @@ package hooks
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	old "github.com/containers/libpod/pkg/hooks/0.1.0"
 	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -49,7 +49,7 @@ func read(content []byte) (hook *current.Hook, err error) {
 	}
 	reader, ok := Readers[ver.Version]
 	if !ok {
-		return nil, fmt.Errorf("unrecognized hook version: %q", ver.Version)
+		return nil, errors.Errorf("unrecognized hook version: %q", ver.Version)
 	}
 
 	hook, err = reader(content)
@@ -95,4 +95,6 @@ func ReadDir(path string, extensionStages []string, hooks map[string]*current.Ho
 
 func init() {
 	Readers[current.Version] = current.Read
+	Readers[old.Version] = old.Read
+	Readers[""] = old.Read
 }
