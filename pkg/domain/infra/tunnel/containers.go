@@ -347,6 +347,9 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	if err != nil {
 		return nil, err
 	}
+	for _, w := range response.Warnings {
+		fmt.Fprintf(os.Stderr, "%s\n", w)
+	}
 	return &entities.ContainerCreateReport{Id: response.ID}, nil
 }
 
@@ -503,6 +506,9 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	con, err := containers.CreateWithSpec(ic.ClientCxt, opts.Spec)
 	if err != nil {
 		return nil, err
+	}
+	for _, w := range con.Warnings {
+		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
 	report := entities.ContainerRunReport{Id: con.ID}
 	// Attach

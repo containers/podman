@@ -16,7 +16,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// MakeContainer creates a container based on the SpecGenerator
+// MakeContainer creates a container based on the SpecGenerator.
+// Returns the created, container and any warnings resulting from creating the
+// container, or an error.
 func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator) (*libpod.Container, error) {
 	rtc, err := rt.GetConfig()
 	if err != nil {

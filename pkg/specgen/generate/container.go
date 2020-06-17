@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
 	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/signal"
@@ -13,91 +14,103 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) error {
-	// If a rootfs is used, then there is no image data
-	if s.ContainerStorageConfig.Rootfs != "" {
-		return nil
-	}
+// Fill any missing parts of the spec generator (e.g. from the image).
+// Returns a set of warnings or any fatal error that occurred.
+func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) ([]string, error) {
+	var (
+		newImage *image.Image
+		err      error
+	)
 
-	newImage, err := r.ImageRuntime().NewFromLocal(s.Image)
-	if err != nil {
-		return err
-	}
-
-	_, mediaType, err := newImage.Manifest(ctx)
-	if err != nil {
-		return err
-	}
-
-	if s.HealthConfig == nil && mediaType == manifest.DockerV2Schema2MediaType {
-		s.HealthConfig, err = newImage.GetHealthCheck(ctx)
+	// Only add image configuration if we have an image
+	if s.Image != "" {
+		newImage, err = r.ImageRuntime().NewFromLocal(s.Image)
 		if err != nil {
-			return err
+			return nil, err
 		}
-	}
 
-	// Image stop signal
-	if s.StopSignal == nil {
-		stopSignal, err := newImage.StopSignal(ctx)
+		_, mediaType, err := newImage.Manifest(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if stopSignal != "" {
-			sig, err := signal.ParseSignalNameOrNumber(stopSignal)
+
+		if s.HealthConfig == nil && mediaType == manifest.DockerV2Schema2MediaType {
+			s.HealthConfig, err = newImage.GetHealthCheck(ctx)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			s.StopSignal = &sig
+		}
+
+		// Image stop signal
+		if s.StopSignal == nil {
+			stopSignal, err := newImage.StopSignal(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if stopSignal != "" {
+				sig, err := signal.ParseSignalNameOrNumber(stopSignal)
+				if err != nil {
+					return nil, err
+				}
+				s.StopSignal = &sig
+			}
 		}
 	}
 
 	rtc, err := r.GetConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Get Default Environment
 	defaultEnvs, err := envLib.ParseSlice(rtc.Containers.Env)
 	if err != nil {
-		return errors.Wrap(err, "Env fields in containers.conf failed to parse")
+		return nil, errors.Wrap(err, "Env fields in containers.conf failed to parse")
 	}
 
-	// Image envs from the image if they don't exist
-	// already, overriding the default environments
-	imageEnvs, err := newImage.Env(ctx)
-	if err != nil {
-		return err
-	}
+	var envs map[string]string
 
-	envs, err := envLib.ParseSlice(imageEnvs)
-	if err != nil {
-		return errors.Wrap(err, "Env fields from image failed to parse")
-	}
-	s.Env = envLib.Join(envLib.Join(defaultEnvs, envs), s.Env)
+	if newImage != nil {
+		// Image envs from the image if they don't exist
+		// already, overriding the default environments
+		imageEnvs, err := newImage.Env(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	labels, err := newImage.Labels(ctx)
-	if err != nil {
-		return err
-	}
-
-	// labels from the image that dont exist already
-	if len(labels) > 0 && s.Labels == nil {
-		s.Labels = make(map[string]string)
-	}
-	for k, v := range labels {
-		if _, exists := s.Labels[k]; !exists {
-			s.Labels[k] = v
+		envs, err = envLib.ParseSlice(imageEnvs)
+		if err != nil {
+			return nil, errors.Wrap(err, "Env fields from image failed to parse")
 		}
 	}
 
-	// annotations
+	s.Env = envLib.Join(envLib.Join(defaultEnvs, envs), s.Env)
 
-	// Add annotations from the image
-	annotations, err := newImage.Annotations(ctx)
-	if err != nil {
-		return err
-	}
-	for k, v := range annotations {
-		annotations[k] = v
+	// Labels and Annotations
+	annotations := make(map[string]string)
+	if newImage != nil {
+		labels, err := newImage.Labels(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		// labels from the image that dont exist already
+		if len(labels) > 0 && s.Labels == nil {
+			s.Labels = make(map[string]string)
+		}
+		for k, v := range labels {
+			if _, exists := s.Labels[k]; !exists {
+				s.Labels[k] = v
+			}
+		}
+
+		// Add annotations from the image
+		imgAnnotations, err := newImage.Annotations(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range imgAnnotations {
+			annotations[k] = v
+		}
 	}
 
 	// in the event this container is in a pod, and the pod has an infra container
@@ -121,40 +134,42 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	s.Annotations = annotations
 
 	// workdir
-	workingDir, err := newImage.WorkingDir(ctx)
-	if err != nil {
-		return err
-	}
-	if len(s.WorkDir) < 1 && len(workingDir) > 1 {
-		s.WorkDir = workingDir
+	if newImage != nil {
+		workingDir, err := newImage.WorkingDir(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if len(s.WorkDir) < 1 && len(workingDir) > 1 {
+			s.WorkDir = workingDir
+		}
 	}
 
 	if len(s.SeccompProfilePath) < 1 {
 		p, err := libpod.DefaultSeccompPath()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		s.SeccompProfilePath = p
 	}
 
-	if len(s.User) == 0 {
+	if len(s.User) == 0 && newImage != nil {
 		s.User, err = newImage.User(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if err := finishThrottleDevices(s); err != nil {
-		return err
+		return nil, err
 	}
 	// Unless already set via the CLI, check if we need to disable process
 	// labels or set the defaults.
 	if len(s.SelinuxOpts) == 0 {
 		if err := setLabelOpts(s, r, s.PidNS, s.IpcNS); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return verifyContainerResources(s)
 }
 
 // finishThrottleDevices takes the temporary representation of the throttle
