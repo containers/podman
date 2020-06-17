@@ -13,7 +13,7 @@ require (
 	github.com/containers/buildah v1.14.9-0.20200523094741-de0f541d9224
 	github.com/containers/common v0.14.0
 	github.com/containers/conmon v2.0.18+incompatible
-	github.com/containers/image/v5 v5.4.5-0.20200529084758-46b2ee6aebb0
+	github.com/containers/image/v5 v5.5.1
 	github.com/containers/psgo v1.5.1
 	github.com/containers/storage v1.20.2
 	github.com/coreos/go-systemd/v22 v22.1.0
