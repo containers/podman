@@ -83,9 +83,7 @@ ExecStartPre={{.ExecStartPre}}
 {{- end}}
 ExecStart={{.ExecStart}}
 ExecStop={{.ExecStop}}
-{{- if .ExecStopPost}}
 ExecStopPost={{.ExecStopPost}}
-{{- end}}
 PIDFile={{.PIDFile}}
 KillMode=none
 Type=forking
@@ -170,6 +168,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	info.EnvVariable = EnvVariable
 	info.ExecStart = "{{.Executable}} start {{.ContainerNameOrID}}"
 	info.ExecStop = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.ContainerNameOrID}}"
+	info.ExecStopPost = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.ContainerNameOrID}}"
 
 	// Assemble the ExecStart command when creating a new container.
 	//

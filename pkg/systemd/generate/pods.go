@@ -82,9 +82,7 @@ ExecStartPre={{.ExecStartPre2}}
 {{- end}}
 ExecStart={{.ExecStart}}
 ExecStop={{.ExecStop}}
-{{- if .ExecStopPost}}
 ExecStopPost={{.ExecStopPost}}
-{{- end}}
 PIDFile={{.PIDFile}}
 KillMode=none
 Type=forking
@@ -236,6 +234,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	info.EnvVariable = EnvVariable
 	info.ExecStart = "{{.Executable}} start {{.InfraNameOrID}}"
 	info.ExecStop = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.InfraNameOrID}}"
+	info.ExecStopPost = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.InfraNameOrID}}"
 
 	// Assemble the ExecStart command when creating a new pod.
 	//

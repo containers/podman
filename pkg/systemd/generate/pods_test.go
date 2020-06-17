@@ -52,6 +52,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStart=/usr/bin/podman start jadda-jadda-infra
 ExecStop=/usr/bin/podman stop -t 10 jadda-jadda-infra
+ExecStopPost=/usr/bin/podman stop -t 10 jadda-jadda-infra
 PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 KillMode=none
 Type=forking

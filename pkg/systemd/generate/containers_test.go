@@ -50,6 +50,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStart=/usr/bin/podman start 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 ExecStop=/usr/bin/podman stop -t 10 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
+ExecStopPost=/usr/bin/podman stop -t 10 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 KillMode=none
 Type=forking
@@ -71,6 +72,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
+ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 KillMode=none
 Type=forking
@@ -96,6 +98,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
+ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 KillMode=none
 Type=forking
