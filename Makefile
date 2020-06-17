@@ -568,6 +568,7 @@ install.docker: docker-docs
 .PHONY: install.varlink
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 install.varlink:
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${DESTDIR}${SYSTEMDDIR}/io.podman.service
@@ -582,8 +583,7 @@ endif
 
 .PHONY: install.systemd
 install.systemd: install.varlink
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
-	install ${SELINUXOPT} -d ${DESTDIR}${USERSYSTEMDDIR}
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR}
 	# Install APIV2 services
 	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman.socket ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
 	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman.service ${DESTDIR}${USERSYSTEMDDIR}/podman.service
