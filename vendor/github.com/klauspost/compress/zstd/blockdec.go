@@ -83,6 +83,10 @@ type blockDec struct {
 	err         error
 	decWG       sync.WaitGroup
 
+	// Frame to use for singlethreaded decoding.
+	// Should not be used by the decoder itself since parent may be another frame.
+	localFrame *frameDec
+
 	// Block is RLE, this is the size.
 	RLESize uint32
 	tmp     [4]byte

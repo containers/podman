@@ -93,7 +93,7 @@ github.com/containers/common/pkg/config
 github.com/containers/common/pkg/sysinfo
 # github.com/containers/conmon v2.0.18+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.4.5-0.20200529084758-46b2ee6aebb0
+# github.com/containers/image/v5 v5.5.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -324,7 +324,7 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.10.7
+# github.com/klauspost/compress v1.10.8
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0

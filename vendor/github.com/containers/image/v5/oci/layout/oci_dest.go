@@ -279,7 +279,7 @@ func (d *ociImageDestination) addManifest(desc *imgspecv1.Descriptor) {
 	// If it has the same digest as another entry in the index, we already overwrote the file,
 	// so just pick up the other information.
 	for i, manifest := range d.index.Manifests {
-		if manifest.Digest == desc.Digest {
+		if manifest.Digest == desc.Digest && manifest.Annotations[imgspecv1.AnnotationRefName] == "" {
 			// Replace it completely.
 			d.index.Manifests[i] = *desc
 			return

@@ -23,9 +23,6 @@ type Decoder struct {
 	// Unreferenced decoders, ready for use.
 	decoders chan *blockDec
 
-	// Unreferenced decoders, ready for use.
-	frames chan *frameDec
-
 	// Streams ready to be decoded.
 	stream chan decodeStream
 
@@ -90,10 +87,10 @@ func NewReader(r io.Reader, opts ...DOption) (*Decoder, error) {
 
 	// Create decoders
 	d.decoders = make(chan *blockDec, d.o.concurrent)
-	d.frames = make(chan *frameDec, d.o.concurrent)
 	for i := 0; i < d.o.concurrent; i++ {
-		d.frames <- newFrameDec(d.o)
-		d.decoders <- newBlockDec(d.o.lowMem)
+		dec := newBlockDec(d.o.lowMem)
+		dec.localFrame = newFrameDec(d.o)
+		d.decoders <- dec
 	}
 
 	if r == nil {
@@ -283,15 +280,15 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 	}
 
 	// Grab a block decoder and frame decoder.
-	block, frame := <-d.decoders, <-d.frames
+	block := <-d.decoders
+	frame := block.localFrame
 	defer func() {
 		if debug {
 			printf("re-adding decoder: %p", block)
 		}
-		d.decoders <- block
 		frame.rawInput = nil
 		frame.bBuf = nil
-		d.frames <- frame
+		d.decoders <- block
 	}()
 	frame.bBuf = input
 

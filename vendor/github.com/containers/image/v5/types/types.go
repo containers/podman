@@ -604,6 +604,10 @@ const (
 	// ProgressEventDone is fired when the data transfer has been finished for
 	// the specific artifact
 	ProgressEventDone
+
+	// ProgressEventSkipped is fired when the artifact has been skipped because
+	// its already available at the destination
+	ProgressEventSkipped
 )
 
 // ProgressProperties is used to pass information from the copy code to a monitor which
