@@ -676,6 +676,7 @@ Valid values are:
 - `no`                       : Do not restart containers on exit
 - `on-failure[:max_retries]` : Restart containers when they exit with a non-0 exit code, retrying indefinitely or until the optional max_retries count is hit
 - `always`                   : Restart containers when they exit, regardless of status, retrying indefinitely
+- `unless-stopped`           : Identical to **always**
 
 Please note that restart will not restart containers after a system reboot.
 If this functionality is required in your environment, you can invoke Podman from a systemd unit file, or create an init script for whichever init system is in use.
