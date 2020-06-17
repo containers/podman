@@ -67,7 +67,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		g.SetupPrivileged(true)
 		caplist = capabilities.AllCapabilities()
 	} else {
-		caplist, err = rtc.Capabilities(s.User, s.CapAdd, s.CapDrop)
+		caplist, err = capabilities.MergeCapabilities(rtc.Containers.DefaultCapabilities, s.CapAdd, s.CapDrop)
 		if err != nil {
 			return err
 		}
@@ -107,10 +107,18 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	}
 	configSpec := g.Config
 	configSpec.Process.Capabilities.Bounding = caplist
-	configSpec.Process.Capabilities.Permitted = caplist
-	configSpec.Process.Capabilities.Inheritable = caplist
-	configSpec.Process.Capabilities.Effective = caplist
-	configSpec.Process.Capabilities.Ambient = caplist
+
+	if s.User == "" || s.User == "root" || s.User == "0" {
+		configSpec.Process.Capabilities.Effective = caplist
+		configSpec.Process.Capabilities.Permitted = caplist
+		configSpec.Process.Capabilities.Inheritable = caplist
+		configSpec.Process.Capabilities.Ambient = caplist
+	} else {
+		configSpec.Process.Capabilities.Effective = []string{}
+		configSpec.Process.Capabilities.Permitted = []string{}
+		configSpec.Process.Capabilities.Inheritable = []string{}
+		configSpec.Process.Capabilities.Ambient = []string{}
+	}
 	// HANDLE SECCOMP
 	if s.SeccompProfilePath != "unconfined" {
 		seccompConfig, err := getSeccompConfig(s, configSpec, newImage)
