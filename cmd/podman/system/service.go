@@ -3,7 +3,6 @@
 package system
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -96,9 +95,6 @@ func service(cmd *cobra.Command, args []string) error {
 	if srvArgs.Varlink {
 		return registry.ContainerEngine().VarlinkService(registry.GetContext(), opts)
 	}
-
-	logrus.Warn("This function is EXPERIMENTAL")
-	fmt.Fprintf(os.Stderr, "This function is EXPERIMENTAL.\n")
 
 	return restService(opts, cmd.Flags(), registry.PodmanConfig())
 }
