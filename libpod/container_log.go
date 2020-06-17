@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"os"
-	"time"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
@@ -72,28 +71,6 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 			}
 		}
 		options.WaitGroup.Done()
-	}()
-	// Check if container is still running or paused
-	go func() {
-		if options.Follow {
-			for {
-				state, err := c.State()
-				if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
-					logrus.Error(err)
-					break
-				} else if err != nil {
-					break
-				}
-				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
-					err := t.Stop()
-					if err != nil {
-						logrus.Error(err)
-					}
-					break
-				}
-				time.Sleep(1 * time.Second)
-			}
-		}
 	}()
 	return nil
 }
