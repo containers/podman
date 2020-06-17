@@ -92,3 +92,28 @@ func parseOptInterval(f *flag.Flag) (time.Duration, error) {
 	}
 	return d, nil
 }
+
+// makeUserArgs - Package the variables from the Dockerfile defined by
+// the ENV aand the ARG statements into one slice so the values
+// defined by both can later be evaluated when resolving variables
+// such as ${MY_USER}.  If the variable is defined by both ARG and ENV
+// don't include the definition of the ARG variable.
+func makeUserArgs(bEnv []string, bArgs map[string]string) (userArgs []string) {
+
+	userArgs = bEnv
+	envMap := make(map[string]string)
+	for _, envVal := range bEnv {
+		val := strings.Split(envVal, "=")
+		if len(val) > 1 {
+			envMap[val[0]] = val[1]
+		}
+	}
+
+	for key, value := range bArgs {
+		if _, ok := envMap[key]; ok {
+			continue
+		}
+		userArgs = append(userArgs, key+"="+value)
+	}
+	return userArgs
+}
