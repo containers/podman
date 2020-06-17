@@ -74,105 +74,105 @@ type Config struct {
 type ContainersConfig struct {
 
 	// Devices to add to all containers
-	Devices []string `toml:"devices"`
+	Devices []string `toml:"devices,omitempty"`
 
 	// Volumes to add to all containers
-	Volumes []string `toml:"volumes"`
+	Volumes []string `toml:"volumes,omitempty"`
 
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
-	ApparmorProfile string `toml:"apparmor_profile"`
+	ApparmorProfile string `toml:"apparmor_profile,omitempty"`
 
 	// Annotation to add to all containers
-	Annotations []string `toml:"annotations"`
+	Annotations []string `toml:"annotations,omitempty"`
 
 	// Default way to create a cgroup namespace for the container
-	CgroupNS string `toml:"cgroupns"`
+	CgroupNS string `toml:"cgroupns,omitempty"`
 
 	// Default cgroup configuration
-	Cgroups string `toml:"cgroups"`
+	Cgroups string `toml:"cgroups,omitempty"`
 
 	// Capabilities to add to all containers.
-	DefaultCapabilities []string `toml:"default_capabilities"`
+	DefaultCapabilities []string `toml:"default_capabilities,omitempty"`
 
 	// Sysctls to add to all containers.
-	DefaultSysctls []string `toml:"default_sysctls"`
+	DefaultSysctls []string `toml:"default_sysctls,omitempty"`
 
 	// DefaultUlimits specifies the default ulimits to apply to containers
-	DefaultUlimits []string `toml:"default_ulimits"`
+	DefaultUlimits []string `toml:"default_ulimits,omitempty"`
 
 	// DefaultMountsFile is the path to the default mounts file for testing
 	DefaultMountsFile string `toml:"-"`
 
 	// DNSServers set default DNS servers.
-	DNSServers []string `toml:"dns_servers"`
+	DNSServers []string `toml:"dns_servers,omitempty"`
 
 	// DNSOptions set default DNS options.
-	DNSOptions []string `toml:"dns_options"`
+	DNSOptions []string `toml:"dns_options,omitempty"`
 
 	// DNSSearches set default DNS search domains.
-	DNSSearches []string `toml:"dns_searches"`
+	DNSSearches []string `toml:"dns_searches,omitempty"`
 
 	// EnableLabeling tells the container engines whether to use MAC
 	// Labeling to separate containers (SELinux)
-	EnableLabeling bool `toml:"label"`
+	EnableLabeling bool `toml:"label,omitempty"`
 
 	// Env is the environment variable list for container process.
-	Env []string `toml:"env"`
+	Env []string `toml:"env,omitempty"`
 
 	// EnvHost Pass all host environment variables into the container.
-	EnvHost bool `toml:"env_host"`
+	EnvHost bool `toml:"env_host,omitempty"`
 
 	// HTTPProxy is the proxy environment variable list to apply to container process
-	HTTPProxy bool `toml:"http_proxy"`
+	HTTPProxy bool `toml:"http_proxy,omitempty"`
 
 	// Init tells container runtimes whether to run init inside the
 	// container that forwards signals and reaps processes.
-	Init bool `toml:"init"`
+	Init bool `toml:"init,omitempty"`
 
 	// InitPath is the path for init to run if the Init bool is enabled
-	InitPath string `toml:"init_path"`
+	InitPath string `toml:"init_path,omitempty"`
 
 	// IPCNS way to to create a ipc namespace for the container
-	IPCNS string `toml:"ipcns"`
+	IPCNS string `toml:"ipcns,omitempty"`
 
 	// LogDriver  for the container.  For example: k8s-file and journald
-	LogDriver string `toml:"log_driver"`
+	LogDriver string `toml:"log_driver,omitempty"`
 
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
 	// that is parsed to bytes.
 	// Negative values indicate that the log file won't be truncated.
-	LogSizeMax int64 `toml:"log_size_max"`
+	LogSizeMax int64 `toml:"log_size_max,omitempty"`
 
 	// NetNS indicates how to create a network namespace for the container
-	NetNS string `toml:"netns"`
+	NetNS string `toml:"netns,omitempty"`
 
 	// NoHosts tells container engine whether to create its own /etc/hosts
-	NoHosts bool `toml:"no_hosts"`
+	NoHosts bool `toml:"no_hosts,omitempty"`
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
-	PidsLimit int64 `toml:"pids_limit"`
+	PidsLimit int64 `toml:"pids_limit,omitempty"`
 
 	// PidNS indicates how to create a pid namespace for the container
-	PidNS string `toml:"pidns"`
+	PidNS string `toml:"pidns,omitempty"`
 
 	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
-	SeccompProfile string `toml:"seccomp_profile"`
+	SeccompProfile string `toml:"seccomp_profile,omitempty"`
 
 	// ShmSize holds the size of /dev/shm.
-	ShmSize string `toml:"shm_size"`
+	ShmSize string `toml:"shm_size,omitempty"`
 
 	// UTSNS indicates how to create a UTS namespace for the container
-	UTSNS string `toml:"utsns"`
+	UTSNS string `toml:"utsns,omitempty"`
 
 	// UserNS indicates how to create a User namespace for the container
-	UserNS string `toml:"userns"`
+	UserNS string `toml:"userns,omitempty"`
 
 	// UserNSSize how many UIDs to allocate for automatically created UserNS
-	UserNSSize int `toml:"userns_size"`
+	UserNSSize int `toml:"userns_size,omitempty"`
 }
 
 // EngineConfig contains configuration options used to set up a engine runtime
@@ -183,20 +183,20 @@ type EngineConfig struct {
 
 	// CGroupManager is the CGroup Manager to use Valid values are "cgroupfs"
 	// and "systemd".
-	CgroupManager string `toml:"cgroup_manager"`
+	CgroupManager string `toml:"cgroup_manager,omitempty"`
 
 	// NOTE: when changing this struct, make sure to update (*Config).Merge().
 
 	// ConmonEnvVars are environment variables to pass to the Conmon binary
 	// when it is launched.
-	ConmonEnvVars []string `toml:"conmon_env_vars"`
+	ConmonEnvVars []string `toml:"conmon_env_vars,omitempty"`
 
 	// ConmonPath is the path to the Conmon binary used for managing containers.
 	// The first path pointing to a valid file will be used.
-	ConmonPath []string `toml:"conmon_path"`
+	ConmonPath []string `toml:"conmon_path,omitempty"`
 
 	//DetachKeys is the sequence of keys used to detach a container.
-	DetachKeys string `toml:"detach_keys"`
+	DetachKeys string `toml:"detach_keys,omitempty"`
 
 	// EnablePortReservation determines whether engine will reserve ports on the
 	// host when they are forwarded to containers. When enabled, when ports are
@@ -205,32 +205,32 @@ type EngineConfig struct {
 	// programs on the host. However, this can cause significant memory usage if
 	// a container has many ports forwarded to it. Disabling this can save
 	// memory.
-	EnablePortReservation bool `toml:"enable_port_reservation"`
+	EnablePortReservation bool `toml:"enable_port_reservation,omitempty"`
 
 	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:"events_logfile_path"`
+	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
 
 	// EventsLogger determines where events should be logged.
-	EventsLogger string `toml:"events_logger"`
+	EventsLogger string `toml:"events_logger,omitempty"`
 
 	// configuration files. When the same filename is present in in
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
-	HooksDir []string `toml:"hooks_dir"`
+	HooksDir []string `toml:"hooks_dir,omitempty"`
 
 	// ImageDefaultTransport is the default transport method used to fetch
 	// images.
-	ImageDefaultTransport string `toml:"image_default_transport"`
+	ImageDefaultTransport string `toml:"image_default_transport,omitempty"`
 
 	// InfraCommand is the command run to start up a pod infra container.
-	InfraCommand string `toml:"infra_command"`
+	InfraCommand string `toml:"infra_command,omitempty"`
 
 	// InfraImage is the image a pod infra container will use to manage
 	// namespaces.
-	InfraImage string `toml:"infra_image"`
+	InfraImage string `toml:"infra_image,omitempty"`
 
 	// InitPath is the path to the container-init binary.
-	InitPath string `toml:"init_path"`
+	InitPath string `toml:"init_path,omitempty"`
 
 	// LockType is the type of locking to use.
 	LockType string `toml:"lock_type,omitempty"`
@@ -244,27 +244,27 @@ type EngineConfig struct {
 	Namespace string `toml:"namespace,omitempty"`
 
 	// NetworkCmdPath is the path to the slirp4netns binary.
-	NetworkCmdPath string `toml:"network_cmd_path"`
+	NetworkCmdPath string `toml:"network_cmd_path,omitempty"`
 
 	// NoPivotRoot sets whether to set no-pivot-root in the OCI runtime.
-	NoPivotRoot bool `toml:"no_pivot_root"`
+	NoPivotRoot bool `toml:"no_pivot_root,omitempty"`
 
 	// NumLocks is the number of locks to make available for containers and
 	// pods.
 	NumLocks uint32 `toml:"num_locks,omitempty"`
 
 	// OCIRuntime is the OCI runtime to use.
-	OCIRuntime string `toml:"runtime"`
+	OCIRuntime string `toml:"runtime,omitempty"`
 
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
-	OCIRuntimes map[string][]string `toml:"runtimes"`
+	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
 
 	// PullPolicy determines whether to pull image before creating or running a container
 	// default is "missing"
-	PullPolicy string `toml:"pull_policy"`
+	PullPolicy string `toml:"pull_policy,omitempty"`
 
 	// Indicates whether the application should be running in Remote mode
-	Remote bool `toml:"_"`
+	Remote bool `toml:"-"`
 
 	// RemoteURI containers connection information used to connect to remote system.
 	RemoteURI string `toml:"remote_uri,omitempty"`
@@ -280,15 +280,15 @@ type EngineConfig struct {
 
 	// RuntimeSupportsJSON is the list of the OCI runtimes that support
 	// --format=json.
-	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
+	RuntimeSupportsJSON []string `toml:"runtime_supports_json,omitempty"`
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
-	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroupv2"`
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroupv2,omitempty"`
 
 	// RuntimeSupportsKVM is a list of OCI runtimes that support
 	// KVM separation for conatainers.
-	RuntimeSupportsKVM []string `toml:"runtime_supports_kvm"`
+	RuntimeSupportsKVM []string `toml:"runtime_supports_kvm,omitempty"`
 
 	// SetOptions contains a subset of config options. It's used to indicate if
 	// a given option has either been set by the user or by the parsed
@@ -300,11 +300,11 @@ type EngineConfig struct {
 	// SignaturePolicyPath is the path to a signature policy to use for
 	// validating images. If left empty, the containers/image default signature
 	// policy will be used.
-	SignaturePolicyPath string `toml:"_"`
+	SignaturePolicyPath string `toml:"-"`
 
 	// SDNotify tells container engine to allow containers to notify the host systemd of
 	// readiness using the SD_NOTIFY mechanism.
-	SDNotify bool
+	SDNotify bool `toml:"-"`
 
 	// StateType is the type of the backing state store. Avoid using multiple
 	// values for this with the same containers/storage configuration on the
@@ -315,20 +315,20 @@ type EngineConfig struct {
 
 	// StaticDir is the path to a persistent directory to store container
 	// files.
-	StaticDir string `toml:"static_dir"`
+	StaticDir string `toml:"static_dir,omitempty"`
 
 	// StopTimeout is the number of seconds to wait for container to exit
 	// before sending kill signal.
-	StopTimeout uint `toml:"stop_timeout"`
+	StopTimeout uint `toml:"stop_timeout,omitempty"`
 
 	// TmpDir is the path to a temporary directory to store per-boot container
 	// files. Must be stored in a tmpfs.
-	TmpDir string `toml:"tmp_dir"`
+	TmpDir string `toml:"tmp_dir,omitempty"`
 
 	// VolumePath is the default location that named volumes will be created
 	// under. This convention is followed by the default volume driver, but
 	// may not be by other drivers.
-	VolumePath string `toml:"volume_path"`
+	VolumePath string `toml:"volume_path,omitempty"`
 }
 
 // SetOptions contains a subset of options in a Config. It's used to indicate if
@@ -377,14 +377,14 @@ type SetOptions struct {
 // NetworkConfig represents the "network" TOML config table
 type NetworkConfig struct {
 	// CNIPluginDirs is where CNI plugin binaries are stored.
-	CNIPluginDirs []string `toml:"cni_plugin_dirs"`
+	CNIPluginDirs []string `toml:"cni_plugin_dirs,omitempty"`
 
 	// DefaultNetwork is the network name of the default CNI network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
 
 	// NetworkConfigDir is where CNI network configuration files are stored.
-	NetworkConfigDir string `toml:"network_config_dir"`
+	NetworkConfigDir string `toml:"network_config_dir,omitempty"`
 }
 
 // NewConfig creates a new Config. It starts with an empty config and, if
@@ -855,4 +855,78 @@ func Path() string {
 		return "$HOME/" + UserOverrideContainersConfig
 	}
 	return OverrideContainersConfig
+}
+
+func customConfigFile() (string, error) {
+	path := os.Getenv("CONTAINERS_CONF")
+	if path != "" {
+		return path, nil
+	}
+	if unshare.IsRootless() {
+		path, err := rootlessConfigPath()
+		if err != nil {
+			return "", err
+		}
+		return path, nil
+	}
+	return OverrideContainersConfig, nil
+}
+
+//ReadCustomConfig reads the custom config and only generates a config based on it
+//If the custom config file does not exists, function will return an empty config
+func ReadCustomConfig() (*Config, error) {
+	path, err := customConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	// hack since Ommitempty does not seem to work with Write
+	c, err := Default()
+	if err != nil {
+		if os.IsNotExist(errors.Cause(err)) {
+			c, err = DefaultConfig()
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	newConfig := &Config{}
+	if _, err := os.Stat(path); err == nil {
+		newConfig, err = readConfigFromFile(path, newConfig)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+	}
+	newConfig.Containers.LogSizeMax = c.Containers.LogSizeMax
+	newConfig.Containers.PidsLimit = c.Containers.PidsLimit
+	newConfig.Containers.UserNSSize = c.Containers.UserNSSize
+	newConfig.Engine.NumLocks = c.Engine.NumLocks
+	newConfig.Engine.StopTimeout = c.Engine.StopTimeout
+	return newConfig, nil
+}
+
+// Write writes the configuration to the default file
+func (c *Config) Write() error {
+	var err error
+	path, err := customConfigFile()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open %s", path)
+	}
+	defer configFile.Close()
+	enc := toml.NewEncoder(configFile)
+	if err := enc.Encode(c); err != nil {
+		return err
+	}
+	return nil
 }

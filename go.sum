@@ -70,8 +70,8 @@ github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHV
 github.com/containers/buildah v1.14.9-0.20200523094741-de0f541d9224 h1:EqwBZRqyUYvU7JOmmSSPviSaAoUP1wN0cefXXDZ9ATo=
 github.com/containers/buildah v1.14.9-0.20200523094741-de0f541d9224/go.mod h1:5ZkWjOuK90yl55L5R+purJNLfUo0VUr8pstJazNtYck=
 github.com/containers/common v0.11.2/go.mod h1:2w3QE6VUmhltGYW4wV00h4okq1Crs7hNI1ZD2I0QRUY=
-github.com/containers/common v0.13.1 h1:6aE/IIxPPQk8DmND87tsWU1Aop/7mCC0T3dk/fZdm3k=
-github.com/containers/common v0.13.1/go.mod h1:Kg9Enw+WOUa9pwx47fzxEdzOn5+ofYXjBJdCyaCeSSA=
+github.com/containers/common v0.14.0 h1:hiZFDPf6ajKiDmojN5f5X3gboKPO73NLrYb0RXfrQiA=
+github.com/containers/common v0.14.0/go.mod h1:9olhlE+WhYof1npnMJdyRMX14/yIUint6zyHzcyRVAg=
 github.com/containers/conmon v2.0.18+incompatible h1:rjwjNnE756NuXcdE/uUmj4kDbrykslPuBMHI31wh43E=
 github.com/containers/conmon v2.0.18+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.4.3/go.mod h1:pN0tvp3YbDd7BWavK2aE0mvJUqVd2HmhPjekyWSFm0U=
@@ -318,8 +318,6 @@ github.com/onsi/ginkgo v1.10.1/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+
 github.com/onsi/ginkgo v1.11.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0HfGg=
 github.com/onsi/ginkgo v1.12.1/go.mod h1:zj2OWP4+oCPe1qIXoGWkgMRwljMUYCdkwsT2108oapk=
-github.com/onsi/ginkgo v1.12.3 h1:+RYp9QczoWz9zfUyLP/5SLXQVhfr6gZOoKGfQqHuLZQ=
-github.com/onsi/ginkgo v1.12.3/go.mod h1:iSB4RoI2tjJc9BBv4NKIKWKya62Rps+oPG/Lv9klQyY=
 github.com/onsi/ginkgo v1.13.0 h1:M76yO2HkZASFjXL0HSoZJ1AYEmQxNJmY41Jx1zNUq1Y=
 github.com/onsi/ginkgo v1.13.0/go.mod h1:+REjRxOmWfHCjfv9TTWB1jD1Frx4XydAD3zm1lskyM0=
 github.com/onsi/gomega v0.0.0-20151007035656-2152b45fa28a/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
