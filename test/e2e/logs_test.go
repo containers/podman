@@ -283,10 +283,22 @@ var _ = Describe("Podman logs", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results).To(Exit(0))
 
-		// Verify that the cleanup process worked correctly and we can recreate a container with the same name
-		logc = podmanTest.Podman([]string{"run", "--rm", "--name", containerName, "-dt", ALPINE, "true"})
-		logc.WaitWithDefaultTimeout()
-		Expect(logc).To(Exit(0))
+		// TODO: we should actually check for two podman lines,
+		// but as of 2020-06-17 there's a race condition in which
+		// 'logs -f' may not catch all output from a container
+		Expect(results.OutputToString()).To(ContainSubstring("podman"))
+
+		// Container should now be terminatING or terminatED, but we
+		// have no guarantee of which: 'logs -f' does not necessarily
+		// wait for cleanup. Run 'inspect' and accept either state.
+		inspect := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.State.Status}}", containerName})
+		inspect.WaitWithDefaultTimeout()
+		if inspect.ExitCode() == 0 {
+			Expect(inspect.OutputToString()).To(Equal("exited"))
+			// TODO: add 2-second wait loop to confirm cleanup
+		} else {
+			Expect(inspect.ErrorToString()).To(ContainSubstring("no such container"))
+		}
 	})
 
 	It("follow output stopped container", func() {
