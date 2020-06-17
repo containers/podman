@@ -314,8 +314,8 @@ func addContainerInitBinary(s *specgen.SpecGenerator, path string) (spec.Mount, 
 	if !s.PidNS.IsPrivate() {
 		return mount, fmt.Errorf("cannot add init binary as PID 1 (PID namespace isn't private)")
 	}
-	if s.Systemd == "true" || s.Systemd == "always" {
-		return mount, fmt.Errorf("cannot use container-init binary with systemd")
+	if s.Systemd == "always" {
+		return mount, fmt.Errorf("cannot use container-init binary with systemd=always")
 	}
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return mount, errors.Wrap(err, "container-init binary not found on the host")

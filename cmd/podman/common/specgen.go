@@ -563,6 +563,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	// we dont think these are in the spec
 	// init - initbinary
 	// initpath
+	s.Init = c.Init
+	s.InitPath = c.InitPath
 	s.Stdin = c.Interactive
 	// quiet
 	// DeviceCgroupRules: c.StringSlice("device-cgroup-rule"),
