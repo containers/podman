@@ -385,7 +385,7 @@ func (i *VarlinkAPI) InitContainer(call iopodman.VarlinkCall, name string) error
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	if err := ctr.Init(getContext()); err != nil {
+	if err := ctr.Init(getContext(), false); err != nil {
 		if errors.Cause(err) == define.ErrCtrStateInvalid {
 			return call.ReplyInvalidState(ctr.ID(), err.Error())
 		}
@@ -557,7 +557,7 @@ func (i *VarlinkAPI) GetAttachSockets(call iopodman.VarlinkCall, name string) er
 	// If the container hasn't been run, we need to run init
 	// so the conmon sockets get created.
 	if status == define.ContainerStateConfigured || status == define.ContainerStateStopped {
-		if err := ctr.Init(getContext()); err != nil {
+		if err := ctr.Init(getContext(), false); err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
 	}

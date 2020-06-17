@@ -19,8 +19,17 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-// Init creates a container in the OCI runtime
-func (c *Container) Init(ctx context.Context) (err error) {
+// Init creates a container in the OCI runtime, moving a container from
+// ContainerStateConfigured, ContainerStateStopped, or ContainerStateExited to
+// ContainerStateCreated. Once in Created state, Conmon will be running, which
+// allows the container to be attached to. The container can subsequently
+// transition to ContainerStateRunning via Start(), or be transitioned back to
+// ContainerStateConfigured by Cleanup() (which will stop conmon and unmount the
+// container).
+// Init requires that all dependency containers be started (e.g. pod infra
+// containers). The `recursive` parameter will, if set to true, start these
+// dependency containers before initializing this container.
+func (c *Container) Init(ctx context.Context, recursive bool) (err error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "containerInit")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -38,9 +47,14 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has already been created in runtime", c.ID())
 	}
 
-	// don't recursively start
-	if err := c.checkDependenciesAndHandleError(); err != nil {
-		return err
+	if !recursive {
+		if err := c.checkDependenciesAndHandleError(); err != nil {
+			return err
+		}
+	} else {
+		if err := c.startDependencies(ctx); err != nil {
+			return err
+		}
 	}
 
 	if err := c.prepare(); err != nil {
@@ -59,13 +73,18 @@ func (c *Container) Init(ctx context.Context) (err error) {
 	return c.init(ctx, false)
 }
 
-// Start starts a container.
-// Start can start configured, created or stopped containers.
-// For configured containers, the container will be initialized first, then
-// started.
-// Stopped containers will be deleted and re-created in runc, undergoing a fresh
-// Init().
-// If recursive is set, Start will also start all containers this container depends on.
+// Start starts the given container.
+// Start will accept container in ContainerStateConfigured,
+// ContainerStateCreated, ContainerStateStopped, and ContainerStateExited, and
+// transition them to ContainerStateRunning (all containers not in
+// ContainerStateCreated will make an intermediate stop there via the Init API).
+// Once in ContainerStateRunning, the container can be transitioned to
+// ContainerStatePaused via Pause(), or to ContainerStateStopped by the process
+// stopping (either due to exit, or being forced to stop by the Kill or Stop API
+// calls).
+// Start requites that all dependency containers (e.g. pod infra containers) be
+// running before being run. The recursive parameter, if set, will start all
+// dependencies before starting this container.
 func (c *Container) Start(ctx context.Context, recursive bool) (err error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "containerStart")
 	span.SetTag("struct", "container")
@@ -88,16 +107,11 @@ func (c *Container) Start(ctx context.Context, recursive bool) (err error) {
 }
 
 // StartAndAttach starts a container and attaches to it.
-// StartAndAttach can start configured, created or stopped containers.
-// For configured containers, the container will be initialized first, then
-// started.
-// Stopped containers will be deleted and re-created in runc, undergoing a fresh
-// Init().
-// If successful, an error channel will be returned containing the result of the
-// attach call.
-// The channel will be closed automatically after the result of attach has been
-// sent.
-// If recursive is set, StartAndAttach will also start all containers this container depends on.
+// This acts as a combination of the Start and Attach APIs, ensuring proper
+// ordering of the two such that no output from the container is lost (e.g. the
+// Attach call occurs before Start).
+// In overall functionality, it is identical to the Start call, with the added
+// side effect that an attach session will also be started.
 func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, recursive bool) (attachResChan <-chan error, err error) {
 	if !c.batched {
 		c.lock.Lock()
