@@ -157,16 +157,25 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 	return nil
 }
 
-func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, error) {
+func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
 	reports := []*entities.ImageInspectReport{}
+	errs := []error{}
 	for _, i := range namesOrIDs {
 		r, err := images.GetImage(ir.ClientCxt, i, &opts.Size)
 		if err != nil {
-			return nil, err
+			errModel, ok := err.(entities.ErrorModel)
+			if !ok {
+				return nil, nil, err
+			}
+			if errModel.ResponseCode == 404 {
+				errs = append(errs, errors.Wrapf(err, "unable to inspect %q", i))
+				continue
+			}
+			return nil, nil, err
 		}
 		reports = append(reports, r)
 	}
-	return reports, nil
+	return reports, errs, nil
 }
 
 func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {

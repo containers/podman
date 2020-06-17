@@ -24,7 +24,7 @@ type ContainerEngine interface {
 	ContainerExists(ctx context.Context, nameOrID string) (*BoolReport, error)
 	ContainerExport(ctx context.Context, nameOrID string, options ContainerExportOptions) error
 	ContainerInit(ctx context.Context, namesOrIds []string, options ContainerInitOptions) ([]*ContainerInitReport, error)
-	ContainerInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]*ContainerInspectReport, error)
+	ContainerInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]*ContainerInspectReport, []error, error)
 	ContainerKill(ctx context.Context, namesOrIds []string, options KillOptions) ([]*KillReport, error)
 	ContainerList(ctx context.Context, options ContainerListOptions) ([]ListContainer, error)
 	ContainerLogs(ctx context.Context, containers []string, options ContainerLogsOptions) error

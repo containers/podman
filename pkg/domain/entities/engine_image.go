@@ -13,7 +13,7 @@ type ImageEngine interface {
 	Exists(ctx context.Context, nameOrID string) (*BoolReport, error)
 	History(ctx context.Context, nameOrID string, opts ImageHistoryOptions) (*ImageHistoryReport, error)
 	Import(ctx context.Context, opts ImageImportOptions) (*ImageImportReport, error)
-	Inspect(ctx context.Context, namesOrIDs []string, opts InspectOptions) ([]*ImageInspectReport, error)
+	Inspect(ctx context.Context, namesOrIDs []string, opts InspectOptions) ([]*ImageInspectReport, []error, error)
 	List(ctx context.Context, opts ImageListOptions) ([]*ImageSummary, error)
 	Load(ctx context.Context, opts ImageLoadOptions) (*ImageLoadReport, error)
 	Prune(ctx context.Context, opts ImagePruneOptions) (*ImagePruneReport, error)

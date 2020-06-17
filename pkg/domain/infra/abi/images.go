@@ -184,24 +184,28 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	return &entities.ImagePullReport{Images: foundIDs}, nil
 }
 
-func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, error) {
+func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
 	reports := []*entities.ImageInspectReport{}
+	errs := []error{}
 	for _, i := range namesOrIDs {
 		img, err := ir.Libpod.ImageRuntime().NewFromLocal(i)
 		if err != nil {
-			return nil, err
+			// This is probably a no such image, treat as nonfatal.
+			errs = append(errs, err)
+			continue
 		}
 		result, err := img.Inspect(ctx)
 		if err != nil {
-			return nil, err
+			// This is more likely to be fatal.
+			return nil, nil, err
 		}
 		report := entities.ImageInspectReport{}
 		if err := domainUtils.DeepCopy(&report, result); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		reports = append(reports, &report)
 	}
-	return reports, nil
+	return reports, errs, nil
 }
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
