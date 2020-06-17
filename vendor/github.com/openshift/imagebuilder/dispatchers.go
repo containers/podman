@@ -153,8 +153,9 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	var chown string
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
+	userArgs := makeUserArgs(b.Env, b.Args)
 	for _, a := range flagArgs {
-		arg, err := ProcessWord(a, b.Env)
+		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
 			return err
 		}
@@ -181,8 +182,9 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
 	var chown string
 	var from string
+	userArgs := makeUserArgs(b.Env, b.Args)
 	for _, a := range flagArgs {
-		arg, err := ProcessWord(a, b.Env)
+		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
 			return err
 		}

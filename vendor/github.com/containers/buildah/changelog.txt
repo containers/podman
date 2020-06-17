@@ -1,3 +1,65 @@
+- Changelog for v1.15.0 (2020-06-17)
+  * Bump github.com/containers/common from 0.12.0 to 0.13.1
+  * Bump github.com/containers/storage from 1.20.1 to 1.20.2
+  * Bump github.com/seccomp/containers-golang from 0.4.1 to 0.5.0
+  * Bump github.com/stretchr/testify from 1.6.0 to 1.6.1
+  * Bump github.com/opencontainers/runc from 1.0.0-rc9 to 1.0.0-rc90
+  * Add CVE-2020-10696 to CHANGELOG.md and changelog.txt
+  * Bump github.com/stretchr/testify from 1.5.1 to 1.6.0
+  * Bump github.com/onsi/ginkgo from 1.12.2 to 1.12.3
+  * Vendor in containers/common v0.12.0
+  * fix lighttpd example
+  * Vendor in new go.etcd.io/bbolt
+  * Bump github.com/onsi/ginkgo from 1.12.1 to 1.12.2
+  * Bump imagebuilder for ARG fix
+  * Bump github.com/containers/common from 0.11.2 to 0.11.4
+  * remove dependency on openshift struct
+  * Warn on unset build arguments
+  * vendor: update seccomp/containers-golang to v0.4.1
+  * Ammended docs
+  * Updated docs
+  * clean up comments
+  * update exit code for tests
+  * Implement commit for encryption
+  * implementation of encrypt/decrypt push/pull/bud/from
+  * fix resolve docker image name as transport
+  * Bump github.com/opencontainers/go-digest from 1.0.0-rc1 to 1.0.0
+  * Bump github.com/onsi/ginkgo from 1.12.0 to 1.12.1
+  * Bump github.com/containers/storage from 1.19.1 to 1.19.2
+  * Bump github.com/containers/image/v5 from 5.4.3 to 5.4.4
+  * Add preliminary profiling support to the CLI
+  * Bump github.com/containers/common from 0.10.0 to 0.11.2
+  * Evaluate symlinks in build context directory
+  * fix error info about get signatures for containerImageSource
+  * Add Security Policy
+  * Cirrus: Fixes from review feedback
+  * Bump github.com/containers/storage from 1.19.0 to 1.19.1
+  * Bump github.com/sirupsen/logrus from 1.5.0 to 1.6.0
+  * imagebuildah: stages shouldn't count as their base images
+  * Update containers/common v0.10.0
+  * Bump github.com/fsouza/go-dockerclient from 1.6.4 to 1.6.5
+  * Add registry to buildahimage Dockerfiles
+  * Cirrus: Use pre-installed VM packages + F32
+  * Cirrus: Re-enable all distro versions
+  * Cirrus: Update to F31 + Use cache images
+  * golangci-lint: Disable gosimple
+  * Lower number of golangci-lint threads
+  * Fix permissions on containers.conf
+  * Don't force tests to use runc
+  * Bump github.com/containers/common from 0.9.1 to 0.9.5
+  * Return exit code from failed containers
+  * Bump github.com/containers/storage from 1.18.2 to 1.19.0
+  * Bump github.com/containers/common from 0.9.0 to 0.9.1
+  * cgroup_manager should be under [engine]
+  * Use c/common/pkg/auth in login/logout
+  * Cirrus: Temporarily disable Ubuntu 19 testing
+  * Add containers.conf to stablebyhand build
+  * Update gitignore to exclude test Dockerfiles
+  * Bump github.com/fsouza/go-dockerclient from 1.6.3 to 1.6.4
+  * Bump github.com/containers/common from 0.8.1 to 0.9.0
+  * Bump back to v1.15.0-dev
+  * Remove warning for systemd inside of container
+
 - Changelog for v1.14.8 (2020-04-09)
   * Run (make vendor)
   * Run (make -C tests/tools vendor)
@@ -38,7 +100,7 @@
 
 - Changelog for v1.14.4 (2020-03-25)
   * Fix fips-mode check for RHEL8 boxes
-  * Fix potential CVE in tarfile w/ symlink
+  * Fix potential CVE in tarfile w/ symlink (Edit 02-Jun-2020: Addresses CVE-2020-10696)
   * Fix .dockerignore with globs and ! commands
   * update install steps for Amazon Linux 2
   * Bump github.com/openshift/imagebuilder from 1.1.2 to 1.1.3
