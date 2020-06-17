@@ -47,13 +47,13 @@ type VolumeConfigResponse struct {
 	// It is presently not used.
 	Options map[string]string `json:"Options"`
 	// UID is the UID that the volume was created with.
-	UID int `json:"UID,omitempty"`
+	UID int `json:"UID"`
 	// GID is the GID that the volume was created with.
-	GID int `json:"GID,omitempty"`
+	GID int `json:"GID"`
 	// Anonymous indicates that the volume was created as an anonymous
 	// volume for a specific container, and will be be removed when any
 	// container using it is removed.
-	Anonymous bool `json:"Anonymous,omitempty"`
+	Anonymous bool `json:"Anonymous"`
 }
 
 type VolumeRmOptions struct {
