@@ -6,7 +6,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/containers/libpod/pkg/hooks"
 	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -32,8 +31,9 @@ type Hook struct {
 	HasBindMounts *bool `json:"hasbindmounts,omitempty"`
 }
 
-func read(content []byte) (hook *current.Hook, err error) {
+func Read(content []byte) (hook *current.Hook, err error) {
 	var raw Hook
+
 	if err = json.Unmarshal(content, &raw); err != nil {
 		return nil, err
 	}
@@ -85,9 +85,4 @@ func read(content []byte) (hook *current.Hook, err error) {
 	}
 
 	return hook, nil
-}
-
-func init() {
-	hooks.Readers[""] = read
-	hooks.Readers[Version] = read
 }

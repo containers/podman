@@ -9,7 +9,7 @@ import (
 )
 
 func TestGood(t *testing.T) {
-	hook, err := read([]byte("{\"hook\": \"/a/b/c\", \"stages\": [\"prestart\"], \"cmds\": [\"sh\"]}"))
+	hook, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stages\": [\"prestart\"], \"cmds\": [\"sh\"]}"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestGood(t *testing.T) {
 }
 
 func TestInvalidJSON(t *testing.T) {
-	_, err := read([]byte("{"))
+	_, err := Read([]byte("{"))
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -35,7 +35,7 @@ func TestInvalidJSON(t *testing.T) {
 }
 
 func TestArguments(t *testing.T) {
-	hook, err := read([]byte("{\"hook\": \"/a/b/c\", \"arguments\": [\"d\", \"e\"], \"stages\": [\"prestart\"], \"cmds\": [\"sh\"]}"))
+	hook, err := Read([]byte("{\"hook\": \"/a/b/c\", \"arguments\": [\"d\", \"e\"], \"stages\": [\"prestart\"], \"cmds\": [\"sh\"]}"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestArguments(t *testing.T) {
 }
 
 func TestEmptyObject(t *testing.T) {
-	_, err := read([]byte("{}"))
+	_, err := Read([]byte("{}"))
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -62,7 +62,7 @@ func TestEmptyObject(t *testing.T) {
 }
 
 func TestNoStages(t *testing.T) {
-	_, err := read([]byte("{\"hook\": \"/a/b/c\"}"))
+	_, err := Read([]byte("{\"hook\": \"/a/b/c\"}"))
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -70,7 +70,7 @@ func TestNoStages(t *testing.T) {
 }
 
 func TestStage(t *testing.T) {
-	hook, err := read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"]}"))
+	hook, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"]}"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestStage(t *testing.T) {
 }
 
 func TestStagesAndStage(t *testing.T) {
-	_, err := read([]byte("{\"hook\": \"/a/b/c\", \"stages\": [\"prestart\"], \"stage\": [\"prestart\"]}"))
+	_, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stages\": [\"prestart\"], \"stage\": [\"prestart\"]}"))
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -93,7 +93,7 @@ func TestStagesAndStage(t *testing.T) {
 }
 
 func TestCmd(t *testing.T) {
-	hook, err := read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"], \"cmd\": [\"sh\"]}"))
+	hook, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"], \"cmd\": [\"sh\"]}"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestCmd(t *testing.T) {
 }
 
 func TestCmdsAndCmd(t *testing.T) {
-	_, err := read([]byte("{\"hook\": \"/a/b/c\", \"stages\": [\"prestart\"], \"cmds\": [\"sh\"], \"cmd\": [\"true\"]}"))
+	_, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stages\": [\"prestart\"], \"cmds\": [\"sh\"], \"cmd\": [\"true\"]}"))
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -119,7 +119,7 @@ func TestCmdsAndCmd(t *testing.T) {
 }
 
 func TestAnnotations(t *testing.T) {
-	hook, err := read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"], \"annotations\": [\"a\", \"b\"]}"))
+	hook, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"], \"annotations\": [\"a\", \"b\"]}"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestAnnotations(t *testing.T) {
 }
 
 func TestAnnotation(t *testing.T) {
-	hook, err := read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"], \"annotation\": [\"a\", \"b\"]}"))
+	hook, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"], \"annotation\": [\"a\", \"b\"]}"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestAnnotation(t *testing.T) {
 }
 
 func TestAnnotationsAndAnnotation(t *testing.T) {
-	_, err := read([]byte("{\"hook\": \"/a/b/c\", \"stages\": [\"prestart\"], \"annotations\": [\"a\"], \"annotation\": [\"b\"]}"))
+	_, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stages\": [\"prestart\"], \"annotations\": [\"a\"], \"annotation\": [\"b\"]}"))
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -163,7 +163,7 @@ func TestAnnotationsAndAnnotation(t *testing.T) {
 }
 
 func TestHasBindMounts(t *testing.T) {
-	hook, err := read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"], \"hasbindmounts\": true}"))
+	hook, err := Read([]byte("{\"hook\": \"/a/b/c\", \"stage\": [\"prestart\"], \"hasbindmounts\": true}"))
 	if err != nil {
 		t.Fatal(err)
 	}
