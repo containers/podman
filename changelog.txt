@@ -1,3 +1,45 @@
+- Changelog for v2.0.0-rc7 (2020-06-17)
+  * Bump Buildah to v1.15.0
+  * Move logs functionality to separate file for APIv2
+  * generate systemd: `ExecStopPost` for all units
+  * Revert #6591 to fix issue with failed tests
+  * vendor github.com/containers/image/v5@v5.5.1
+  * Add support for the unless-stopped restart policy
+  * fix misc remote build issues
+  * "streaming output" logs test: fix flake
+  * Fix handling of old oci hooks
+  * [CI:DOCS] Fixes #6548
+  * Re-add resource limit warnings to Specgen
+  * Add <return> to lines returen in podman-remote logs
+  * Vendor containers/common v0.14.0
+  * Show Anon, GID, UID in v2 volumes
+  * Fix podman inspect on overlapping/missing objects
+  * Fix --init and --init-path
+  * Fix podman-remote images
+  * Revert "Change Varlink systemd unit to use `system service`"
+  * Bump github.com/containers/conmon
+  * handlers/compat: fix lint error
+  * auto-update: use image's arch
+  * APIv2 tests: Add some tests for podman pods
+  * Add deprecated message to varlink command
+  * Handle errors on attach properly
+  * fix podman cp can create an extra directory level
+  * Remove redundant break in for loop.
+  * Bump to v2.0.0-dev
+  * generate systemd: `--replace` on named containers/pods
+  * pod create --replace
+  * {create,run} --replace
+  * Bump github.com/uber/jaeger-client-go
+  * Bump github.com/onsi/ginkgo from 1.12.3 to 1.13.0
+  * Adds more docker py test
+  * The string field of Built was missing from server
+  * Add some additional fields to imageinspect
+  * Do not print error message when container does not exist
+  * Changed from t.StopAtEOF() to t.Stop() and added error check
+  * Fix -f logs to stop when a container exits
+  * Add the missing return
+  * Fix -f logs follow with stopped container
+
 - Changelog for v2.0.0-rc6 (2020-06-15)
   * Change Varlink systemd unit to use `system service`
   * Turn on More linters
