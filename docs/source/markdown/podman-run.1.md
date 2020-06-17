@@ -432,7 +432,7 @@ Not implemented.
 
 **--log-driver**="*driver*"
 
-Logging driver for the container. Currently available options are **k8s-file** and **journald**, with **json-file** aliased to **k8s-file** for scripting compatibility.
+Logging driver for the container. Currently available options are **k8s-file**, **journald**, and **none**, with **json-file** aliased to **k8s-file** for scripting compatibility.
 
 **--log-opt**=*name*=*value*
 

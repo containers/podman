@@ -21,12 +21,21 @@ func (r *Runtime) Log(containers []*Container, options *logs.LogOptions, logChan
 
 // ReadLog reads a containers log based on the input options and returns loglines over a channel.
 func (c *Container) ReadLog(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
-	// TODO Skip sending logs until journald logs can be read
-	// TODO make this not a magic string
-	if c.LogDriver() == define.JournaldLogging {
+	switch c.LogDriver() {
+	case define.NoLogging:
+		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'none' log driver, cannot read logs")
+	case define.JournaldLogging:
+		// TODO Skip sending logs until journald logs can be read
 		return c.readFromJournal(options, logChannel)
+	case define.JSONLogging:
+		// TODO provide a separate implementation of this when Conmon
+		// has support.
+		fallthrough
+	case define.KubernetesLogging, "":
+		return c.readFromLogFile(options, logChannel)
+	default:
+		return errors.Wrapf(define.ErrInternal, "unrecognized log driver %q, cannot read logs", c.LogDriver())
 	}
-	return c.readFromLogFile(options, logChannel)
 }
 
 func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *logs.LogLine) error {

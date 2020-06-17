@@ -881,7 +881,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return err
 	}
 
-	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog, logTag)
+	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
 
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")
@@ -1137,7 +1137,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*o
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
-func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath, logTag string) []string {
+func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath, logDriver, logTag string) []string {
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{
 		"--api-version", "1",
@@ -1155,12 +1155,14 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		args = append(args, "-s")
 	}
 
-	var logDriver string
-	switch ctr.LogDriver() {
+	var logDriverArg string
+	switch logDriver {
 	case define.JournaldLogging:
-		logDriver = define.JournaldLogging
+		logDriverArg = define.JournaldLogging
 	case define.JSONLogging:
 		fallthrough
+	case define.NoLogging:
+		logDriverArg = define.NoLogging
 	default: //nolint-stylecheck
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
 		logrus.Errorf("%s logging specified but not supported. Choosing k8s-file logging instead", ctr.LogDriver())
@@ -1170,10 +1172,10 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		// since the former case is obscure, and the latter case isn't an error, let's silently fallthrough
 		fallthrough
 	case define.KubernetesLogging:
-		logDriver = fmt.Sprintf("%s:%s", define.KubernetesLogging, logPath)
+		logDriverArg = fmt.Sprintf("%s:%s", define.KubernetesLogging, logPath)
 	}
 
-	args = append(args, "-l", logDriver)
+	args = append(args, "-l", logDriverArg)
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}

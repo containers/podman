@@ -79,6 +79,9 @@ var (
 	// ErrNoCgroups indicates that the container does not have its own
 	// CGroup.
 	ErrNoCgroups = errors.New("this container does not have a cgroup")
+	// ErrNoLogs indicates that this container is not creating a log so log
+	// operations cannot be performed on it
+	ErrNoLogs = errors.New("this container is not logging output")
 
 	// ErrRootless indicates that the given command cannot but run without
 	// root.

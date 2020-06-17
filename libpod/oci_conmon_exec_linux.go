@@ -392,7 +392,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		return nil, nil, err
 	}
 
-	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, "")
+	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, define.NoLogging, "")
 
 	if options.PreserveFDs > 0 {
 		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
