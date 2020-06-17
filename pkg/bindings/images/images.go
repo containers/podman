@@ -229,6 +229,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if t := options.Output; len(t) > 0 {
 		params.Set("t", t)
 	}
+	for _, tag := range options.AdditionalTags {
+		params.Add("t", tag)
+	}
 	//	TODO Remote, Quiet
 	if options.NoCache {
 		params.Set("nocache", "1")
