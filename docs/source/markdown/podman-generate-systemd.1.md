@@ -97,7 +97,7 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
-ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
+ExecStartPre=/bin/rm -f %t/%n-pid %t/%n-cid
 ExecStart=/usr/local/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-cid --cgroups=no-conmon -d -dit alpine
 ExecStop=/usr/local/bin/podman stop --ignore --cidfile %t/%n-cid -t 10
 ExecStopPost=/usr/local/bin/podman rm --ignore -f --cidfile %t/%n-cid

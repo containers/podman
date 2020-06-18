@@ -362,7 +362,7 @@ var _ = Describe("Podman generate systemd", func() {
 		found, _ = session.GrepString("pod create --infra-conmon-pidfile %t/pod-foo.pid --pod-id-file %t/pod-foo.pod-id --name foo")
 		Expect(found).To(BeTrue())
 
-		found, _ = session.GrepString("ExecStartPre=/usr/bin/rm -f %t/pod-foo.pid %t/pod-foo.pod-id")
+		found, _ = session.GrepString("ExecStartPre=/bin/rm -f %t/pod-foo.pid %t/pod-foo.pod-id")
 		Expect(found).To(BeTrue())
 
 		found, _ = session.GrepString("pod stop --ignore --pod-id-file %t/pod-foo.pod-id -t 10")
