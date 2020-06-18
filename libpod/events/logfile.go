@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -40,8 +41,8 @@ func (e EventLogFile) Write(ee Event) error {
 }
 
 // Reads from the log file
-func (e EventLogFile) Read(options ReadOptions) error {
-	defer close(options.EventChannel)
+// Use ctx Cancel() method to shutdown Read()
+func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 	eventOptions, err := generateEventOptions(options.Filters, options.Since, options.Until)
 	if err != nil {
 		return errors.Wrapf(err, "unable to generate event options")
@@ -50,26 +51,33 @@ func (e EventLogFile) Read(options ReadOptions) error {
 	if err != nil {
 		return err
 	}
-	for line := range t.Lines {
-		event, err := newEventFromJSONString(line.Text)
-		if err != nil {
-			return err
-		}
-		switch event.Type {
-		case Image, Volume, Pod, System, Container:
-		//	no-op
-		default:
-			return errors.Errorf("event type %s is not valid in %s", event.Type.String(), e.options.LogFilePath)
-		}
-		include := true
-		for _, filter := range eventOptions {
-			include = include && filter(event)
-		}
-		if include {
-			options.EventChannel <- event
+	for {
+		select {
+		case line := <-t.Lines:
+			if line == nil {
+				return nil
+			}
+			event, err := newEventFromJSONString(line.Text)
+			if err != nil {
+				return err
+			}
+			switch event.Type {
+			case Image, Volume, Pod, System, Container:
+			//	no-op
+			default:
+				return errors.Errorf("event type %s is not valid in %s", event.Type.String(), e.options.LogFilePath)
+			}
+			include := true
+			for _, filter := range eventOptions {
+				include = include && filter(event)
+			}
+			if include {
+				options.EventChannel <- event
+			}
+		case <-ctx.Done():
+			return nil
 		}
 	}
-	return nil
 }
 
 // String returns a string representation of the logger

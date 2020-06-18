@@ -53,9 +53,8 @@ func init() {
 
 func eventsCmd(cmd *cobra.Command, args []string) error {
 	var (
-		err         error
-		eventsError error
-		tmpl        *template.Template
+		err  error
+		tmpl *template.Template
 	)
 	if strings.Join(strings.Fields(eventFormat), "") == "{{json.}}" {
 		eventFormat = formats.JSONString
@@ -69,42 +68,49 @@ func eventsCmd(cmd *cobra.Command, args []string) error {
 	if len(eventOptions.Since) > 0 || len(eventOptions.Until) > 0 {
 		eventOptions.FromStart = true
 	}
+
+	eventContext, eventCancel := context.WithCancel(registry.Context())
 	eventChannel := make(chan *events.Event)
 	eventOptions.EventChan = eventChannel
+	defer close(eventChannel)
+	errChannel := make(chan error)
+	defer close(errChannel)
 
 	go func() {
-		eventsError = registry.ContainerEngine().Events(context.Background(), eventOptions)
+		errChannel <- registry.ContainerEngine().Events(eventContext, eventOptions)
+		eventCancel()
 	}()
-	if eventsError != nil {
-		return eventsError
-	}
 
 	w := bufio.NewWriter(os.Stdout)
-	for event := range eventChannel {
-		switch {
-		case eventFormat == formats.JSONString:
-			jsonStr, err := event.ToJSONString()
-			if err != nil {
-				return errors.Wrapf(err, "unable to format json")
+	for {
+		select {
+		case event := <-eventChannel:
+			switch {
+			case eventFormat == formats.JSONString:
+				jsonStr, err := event.ToJSONString()
+				if err != nil {
+					return errors.Wrapf(err, "unable to format json")
+				}
+				if _, err := w.Write([]byte(jsonStr)); err != nil {
+					return err
+				}
+			case len(eventFormat) > 0:
+				if err := tmpl.Execute(w, event); err != nil {
+					return err
+				}
+			default:
+				if _, err := w.Write([]byte(event.ToHumanReadable())); err != nil {
+					return err
+				}
 			}
-			if _, err := w.Write([]byte(jsonStr)); err != nil {
+			if _, err := w.Write([]byte("\n")); err != nil {
 				return err
 			}
-		case len(eventFormat) > 0:
-			if err := tmpl.Execute(w, event); err != nil {
+			if err := w.Flush(); err != nil {
 				return err
 			}
-		default:
-			if _, err := w.Write([]byte(event.ToHumanReadable())); err != nil {
-				return err
-			}
-		}
-		if _, err := w.Write([]byte("\n")); err != nil {
-			return err
-		}
-		if err := w.Flush(); err != nil {
+		case err := <-errChannel:
 			return err
 		}
 	}
-	return nil
 }
