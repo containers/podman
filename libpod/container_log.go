@@ -102,10 +102,11 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 		go func() {
 			for {
 				state, err := c.State()
-				if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
-					logrus.Error(err)
-					break
-				} else if err != nil {
+				if err != nil {
+					t.Stop()
+					if errors.Cause(err) != define.ErrNoSuchCtr {
+						logrus.Error(err)
+					}
 					break
 				}
 				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
@@ -114,9 +115,8 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 						logrus.Error(err)
 					}
 					break
-				} else {
-					<-eventChannel
 				}
+				<-eventChannel
 			}
 		}()
 	}
