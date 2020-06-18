@@ -244,7 +244,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 		startCommand = append(startCommand, info.CreateCommand[index:]...)
 
-		info.ExecStartPre = "/usr/bin/rm -f {{.PIDFile}} {{.ContainerIDFile}}"
+		info.ExecStartPre = "/bin/rm -f {{.PIDFile}} {{.ContainerIDFile}}"
 		info.ExecStart = strings.Join(startCommand, " ")
 		info.ExecStop = "{{.Executable}} stop --ignore --cidfile {{.ContainerIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
 		info.ExecStopPost = "{{.Executable}} rm --ignore -f --cidfile {{.ContainerIDFile}}"
