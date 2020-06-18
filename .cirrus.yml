@@ -430,12 +430,14 @@ success_task:
 
     depends_on:  # ignores any dependent task conditions
         - "gating"
+        - "vendor"
         - "varlink_api"
         - "vendor"
         - "build_each_commit"
         - "testing"
-        - "rootless_testing"
+        - "special_testing"
         - "optional_testing"
+        - "cache_images"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
