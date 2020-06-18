@@ -79,17 +79,32 @@ function pub_pages() {
         $publisher $f
     done
 
-    # rename podman-remote.ext to podman.ext and copy
-    local remote=$(echo $TARGET/podman-remote.*)
-    local ext=${remote##*.}
-    cp -f $remote $TARGET/podman.$ext
-
     for c in "container" "image" "pod" "volume" ""; do
         local cmd=${c:+-$c}
         for s in $($PODMAN $c --help | sed -n '/^Available Commands:/,/^Flags:/p' | sed -e '1d;$d' -e '/^$/d' | awk '{print $1}'); do
             $publisher $(echo $source/podman$cmd-$s.*)
         done
     done
+}
+
+## rename renames podman-remote.ext to podman.ext, and fixes up contents to reflect change
+function rename (){
+    if [[ "$PLATFORM" != linux ]]; then
+        local remote=$(echo $TARGET/podman-remote.*)
+        local ext=${remote##*.}
+        mv $remote $TARGET/podman.$ext
+
+        $(sed -i "s/podman\\\*-remote/podman/g" $TARGET/podman.$ext)
+        $(sed -i "s/A\ remote\ CLI\ for\ Podman\:\ //g" $TARGET/podman.$ext)
+        case $PLATFORM in
+        darwin|linux)
+            $(sed -i "s/Podman\\\*-remote/Podman\ for\ Mac/g" $TARGET/podman.$ext)
+        ;;
+        windows)
+            $(sed -i "s/Podman\\\*-remote/Podman\ for\ Windows/g" $TARGET/podman.$ext)
+        ;;
+        esac
+    fi
 }
 
 ## walk the SOURCES for markdown sources
@@ -101,3 +116,4 @@ for s in $SOURCES; do
         echo >&2 "Warning: $s does not exist"
     fi
 done
+rename
