@@ -195,4 +195,21 @@ var _ = Describe("Podman build", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman build --http_proxy flag", func() {
+		SkipIfRemote()
+		os.Setenv("http_proxy", "1.2.3.4")
+		podmanTest.RestoreAllArtifacts()
+		dockerfile := `FROM docker.io/library/alpine:latest
+RUN printenv http_proxy`
+
+		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")
+		err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+		Expect(err).To(BeNil())
+		session := podmanTest.PodmanNoCache([]string{"build", "--file", dockerfilePath, podmanTest.TempDir})
+		session.Wait(120)
+		Expect(session.ExitCode()).To(Equal(0))
+		ok, _ := session.GrepString("1.2.3.4")
+		Expect(ok).To(BeTrue())
+		os.Unsetenv("http_proxy")
+	})
 })
