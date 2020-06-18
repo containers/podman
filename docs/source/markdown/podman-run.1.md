@@ -89,14 +89,16 @@ Set the cgroup namespace mode for the container.
 
 If the host uses cgroups v1, the default is set to **host**.  On cgroups v2, the default is **private**.
 
-**--cgroups**=**enabled**|**disabled**|**no-conmon**
+**--cgroups**=**enabled**|**disabled**|**no-conmon**|**split**
 
 Determines whether the container will create CGroups.
 
-Default is **enabled**. The **disabled** option will force the container
-to not create CGroups, and thus conflicts with CGroup options
-(**--cgroupns** and **--cgroup-parent**).
+Default is **enabled**.
+
+The **enabled** option will create a new cgroup under the cgroup-parent.
+The **disabled** option will force the container to not create CGroups, and thus conflicts with CGroup options (**--cgroupns** and **--cgroup-parent**).
 The **no-conmon** option disables a new CGroup only for the **conmon** process.
+The **split** option splits the current cgroup in two sub-cgroups: one for conmon and one for the container payload.  It is not possible to set **--cgroup-parent** with **split**.
 
 **--cgroup-parent**=*path*
 

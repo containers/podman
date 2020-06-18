@@ -34,6 +34,10 @@ func (c *Container) validate() error {
 		return errors.Wrapf(define.ErrInvalidArg, "cannot both create a network namespace and join another container's network namespace")
 	}
 
+	if c.config.CgroupsMode == cgroupSplit && c.config.CgroupParent != "" {
+		return errors.Wrapf(define.ErrInvalidArg, "cannot specify --cgroup-mode=split with a cgroup-parent")
+	}
+
 	// Not creating cgroups has a number of requirements, mostly related to
 	// the PID namespace.
 	if c.config.NoCgroups || c.config.CgroupsMode == "disabled" {

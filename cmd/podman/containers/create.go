@@ -205,6 +205,10 @@ func createInit(c *cobra.Command) error {
 		cliVals.Env = env
 	}
 
+	if c.Flag("cgroups").Changed && cliVals.CGroupsMode == "split" && registry.IsRemote() {
+		return errors.Errorf("the option --cgroups=%q is not supported in remote mode", cliVals.CGroupsMode)
+	}
+
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
 	// the hostname (see https://github.com/containers/libpod/issues/1367).
 

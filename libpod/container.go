@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/utils"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -1089,10 +1090,25 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() (string, error) {
-	switch c.runtime.config.Engine.CgroupManager {
-	case config.CgroupfsCgroupsManager:
+	switch {
+	case c.config.CgroupsMode == cgroupSplit:
+		if c.config.CgroupParent != "" {
+			return "", errors.Errorf("cannot specify cgroup-parent with cgroup-mode %q", cgroupSplit)
+		}
+		cg, err := utils.GetCgroupProcess(c.state.ConmonPID)
+		if err != nil {
+			return "", err
+		}
+		// Use the conmon cgroup for two reasons: we validate the container
+		// delegation was correct, and the conmon cgroup doesn't change at runtime
+		// while we are not sure about the container that can create sub cgroups.
+		if !strings.HasSuffix(cg, "supervisor") {
+			return "", errors.Errorf("invalid cgroup for conmon %q", cg)
+		}
+		return strings.TrimSuffix(cg, "/supervisor") + "/container", nil
+	case c.runtime.config.Engine.CgroupManager == config.CgroupfsCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case config.SystemdCgroupsManager:
+	case c.runtime.config.Engine.CgroupManager == config.SystemdCgroupsManager:
 		if rootless.IsRootless() {
 			uid := rootless.GetRootlessUID()
 			parts := strings.SplitN(c.config.CgroupParent, "/", 2)

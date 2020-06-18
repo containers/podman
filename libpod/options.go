@@ -1049,7 +1049,7 @@ func WithCgroupsMode(mode string) CtrCreateOption {
 		case "disabled":
 			ctr.config.NoCgroups = true
 			ctr.config.CgroupsMode = mode
-		case "enabled", "no-conmon":
+		case "enabled", "no-conmon", cgroupSplit:
 			ctr.config.CgroupsMode = mode
 		default:
 			return errors.Wrapf(define.ErrInvalidArg, "Invalid cgroup mode %q", mode)

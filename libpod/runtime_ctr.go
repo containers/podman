@@ -233,9 +233,9 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 						return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
 					}
 					ctr.config.CgroupParent = podCgroup
-				case rootless.IsRootless():
+				case rootless.IsRootless() && ctr.config.CgroupsMode != cgroupSplit:
 					ctr.config.CgroupParent = SystemdDefaultRootlessCgroupParent
-				default:
+				case ctr.config.CgroupsMode != cgroupSplit:
 					ctr.config.CgroupParent = SystemdDefaultCgroupParent
 				}
 			} else if len(ctr.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
