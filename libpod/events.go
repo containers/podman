@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/containers/libpod/libpod/events"
@@ -75,12 +76,12 @@ func (v *Volume) newVolumeEvent(status events.Status) {
 
 // Events is a wrapper function for everyone to begin tailing the events log
 // with options
-func (r *Runtime) Events(options events.ReadOptions) error {
+func (r *Runtime) Events(ctx context.Context, options events.ReadOptions) error {
 	eventer, err := r.newEventer()
 	if err != nil {
 		return err
 	}
-	return eventer.Read(options)
+	return eventer.Read(ctx, options)
 }
 
 // GetEvents reads the event log and returns events based on input filters
@@ -98,7 +99,7 @@ func (r *Runtime) GetEvents(filters []string) ([]*events.Event, error) {
 		return nil, err
 	}
 	go func() {
-		readErr = eventer.Read(options)
+		readErr = eventer.Read(context.Background(), options)
 	}()
 	if readErr != nil {
 		return nil, readErr
