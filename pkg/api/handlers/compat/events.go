@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -16,10 +17,9 @@ import (
 
 func GetEvents(w http.ResponseWriter, r *http.Request) {
 	var (
-		fromStart   bool
-		eventsError error
-		decoder     = r.Context().Value("decoder").(*schema.Decoder)
-		runtime     = r.Context().Value("runtime").(*libpod.Runtime)
+		fromStart bool
+		decoder   = r.Context().Value("decoder").(*schema.Decoder)
+		runtime   = r.Context().Value("runtime").(*libpod.Runtime)
 	)
 
 	query := struct {
@@ -45,24 +45,26 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		fromStart = true
 	}
 
+	eventCtx, eventCancel := context.WithCancel(r.Context())
 	eventChannel := make(chan *events.Event)
-	go func() {
-		readOpts := events.ReadOptions{FromStart: fromStart, Stream: query.Stream, Filters: libpodFilters, EventChannel: eventChannel, Since: query.Since, Until: query.Until}
-		eventsError = runtime.Events(readOpts)
-	}()
-	if eventsError != nil {
-		utils.InternalServerError(w, eventsError)
-		close(eventChannel)
-		return
-	}
+	defer close(eventChannel)
 
 	// If client disappears we need to stop listening for events
 	go func(done <-chan struct{}) {
 		<-done
 		if _, ok := <-eventChannel; ok {
-			close(eventChannel)
+			eventCancel()
 		}
 	}(r.Context().Done())
+
+	// proxy events from runtime to http response
+	go func() {
+		readOpts := events.ReadOptions{FromStart: fromStart, Stream: query.Stream, Filters: libpodFilters, EventChannel: eventChannel, Since: query.Since, Until: query.Until}
+		if err := runtime.Events(eventCtx, readOpts); err != nil {
+			logrus.Warnf("Failed to process event %q", err.Error())
+		}
+		eventCancel()
+	}()
 
 	// Headers need to be written out before turning Writer() over to json encoder
 	w.Header().Set("Content-Type", "application/json")
@@ -75,13 +77,20 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 
-	for event := range eventChannel {
-		e := entities.ConvertToEntitiesEvent(*event)
-		if err := coder.Encode(e); err != nil {
-			logrus.Errorf("unable to write json: %q", err)
-		}
-		if flusher, ok := w.(http.Flusher); ok {
-			flusher.Flush()
+	for {
+		select {
+		case event := <-eventChannel:
+			// We got an event keep going
+			e := entities.ConvertToEntitiesEvent(*event)
+			if err := coder.Encode(e); err != nil {
+				logrus.Errorf("unable to encode event json %q", err.Error())
+				continue
+			}
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			}
+		case <-eventCtx.Done():
+			return
 		}
 	}
 }
