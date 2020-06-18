@@ -137,12 +137,12 @@ var _ = Describe("Podman rmi", func() {
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 
-		session = podmanTest.PodmanNoCache([]string{"images", "-q", "-a"})
+		session = podmanTest.PodmanNoCache([]string{"images", "--sort", "created", "--format", "{{.Id}}", "--all"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2),
 			"Output from 'podman images -q -a':'%s'", session.Out.Contents())
-		untaggedImg := session.OutputToStringArray()[0]
+		untaggedImg := session.OutputToStringArray()[1]
 
 		session = podmanTest.PodmanNoCache([]string{"rmi", "-f", untaggedImg})
 		session.WaitWithDefaultTimeout()
