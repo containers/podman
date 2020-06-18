@@ -999,7 +999,7 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 	reports := make([]*entities.ContainerInitReport, 0, len(ctrs))
 	for _, ctr := range ctrs {
 		report := entities.ContainerInitReport{Id: ctr.ID()}
-		err := ctr.Init(ctx)
+		err := ctr.Init(ctx, ctr.PodID() != "")
 
 		// If we're initializing all containers, ignore invalid state errors
 		if options.All && errors.Cause(err) == define.ErrCtrStateInvalid {

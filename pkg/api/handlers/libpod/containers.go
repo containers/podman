@@ -294,7 +294,7 @@ func InitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	err = ctr.Init(r.Context())
+	err = ctr.Init(r.Context(), ctr.PodID() != "")
 	if errors.Cause(err) == define.ErrCtrStateInvalid {
 		utils.Error(w, "container already initialized", http.StatusNotModified, err)
 		return

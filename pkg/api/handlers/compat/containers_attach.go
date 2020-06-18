@@ -89,7 +89,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	// For Docker compatibility, we need to re-initialize containers in these states.
 	if state == define.ContainerStateConfigured || state == define.ContainerStateExited {
-		if err := ctr.Init(r.Context()); err != nil {
+		if err := ctr.Init(r.Context(), ctr.PodID() != ""); err != nil {
 			utils.Error(w, "Container in wrong state", http.StatusConflict, errors.Wrapf(err, "error preparing container %s for attach", ctr.ID()))
 			return
 		}
