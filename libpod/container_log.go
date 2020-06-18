@@ -103,16 +103,19 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 			for {
 				state, err := c.State()
 				if err != nil {
-					t.Stop()
+					tailError := t.StopAtEOF()
+					if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
+						logrus.Error(tailError)
+					}
 					if errors.Cause(err) != define.ErrNoSuchCtr {
 						logrus.Error(err)
 					}
 					break
 				}
 				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
-					err := t.StopAtEOF()
-					if err != nil && fmt.Sprintf("%v", err) != "tail: stop at eof" {
-						logrus.Error(err)
+					tailError := t.StopAtEOF()
+					if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
+						logrus.Error(tailError)
 					}
 					break
 				}
