@@ -432,9 +432,9 @@ success_task:
         - "gating"
         - "varlink_api"
         - "vendor"
-        - "build_each_commit_task"
+        - "build_each_commit"
         - "testing"
-        - "rootless_testing_task"
+        - "rootless_testing"
         - "optional_testing"
 
     env:
