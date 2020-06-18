@@ -237,9 +237,6 @@ build_each_commit_task:
 # Update metadata on VM images referenced by this repository state
 meta_task:
 
-    depends_on:
-        - "gating"
-
     container:
         image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
         cpu: 1
