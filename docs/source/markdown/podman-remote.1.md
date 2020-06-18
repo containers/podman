@@ -132,14 +132,3 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-unpause(1)](podman-unpause.1.md)         | Unpause one or more containers.                                             |
 | [podman-version(1)](podman-version.1.md)         | Display the Podman version information.                                     |
 | [podman-volume(1)](podman-volume.1.md)           | Manage Volumes.                                                             |
-
-## FILES
-
-**podman-remote.conf** (`$HOME/.config/containers/podman-remote.conf`)
-
-    The podman-remote.conf file is the default configuration file for the podman
-    remote client.  It is in the TOML format.  It is primarily used to keep track
-    of the user's remote connections.
-
-## SEE ALSO
-`podman-remote.conf(5)`
