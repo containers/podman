@@ -2,6 +2,12 @@
 
 # Podman command to run; may be podman-remote
 PODMAN=${PODMAN:-podman}
+# If it's a relative path, convert to absolute; otherwise tests can't cd out
+if [[ "$PODMAN" =~ / ]]; then
+    if [[ ! "$PODMAN" =~ ^/ ]]; then
+        PODMAN=$(realpath $PODMAN)
+    fi
+fi
 
 # Standard image to use for most tests
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}

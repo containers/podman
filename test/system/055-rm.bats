@@ -21,6 +21,18 @@ load helpers
     run_podman 125 inspect $rand
 }
 
+@test "podman rm - running container, w/o and w/ force" {
+    run_podman run -d $IMAGE sleep 5
+    cid="$output"
+
+    # rm should fail
+    run_podman 2 rm $cid
+    is "$output" "Error: cannot remove container $cid as it is running - running or paused containers cannot be removed without force: container state improper" "error message"
+
+    # rm -f should succeed
+    run_podman rm -f $cid
+}
+
 # I'm sorry! This test takes 13 seconds. There's not much I can do about it,
 # please know that I think it's justified: podman 1.5.0 had a strange bug
 # in with exit status was not preserved on some code paths with 'rm -f'
