@@ -30,6 +30,7 @@ import (
 	"github.com/containers/libpod/v2/utils"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/coreos/go-systemd/v22/activation"
+	"github.com/coreos/go-systemd/v22/daemon"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -365,8 +366,10 @@ func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
 		return err
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
-		env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
+	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer {
+		if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+			env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
+		}
 	}
 	if path, ok := os.LookupEnv("PATH"); ok {
 		env = append(env, fmt.Sprintf("PATH=%s", path))
@@ -887,6 +890,12 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
+	if ctr.config.SdNotifyMode == define.SdNotifyModeIgnore {
+		if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
+			logrus.Warnf("Error unsetting NOTIFY_SOCKET %s", err.Error())
+		}
+	}
+
 	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
 
 	if ctr.config.Spec.Process.Terminal {
@@ -940,7 +949,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	// 0, 1 and 2 are stdin, stdout and stderr
-	conmonEnv, envFiles, err := r.configureConmonEnv(runtimeDir)
+	conmonEnv, envFiles, err := r.configureConmonEnv(ctr, runtimeDir)
 	if err != nil {
 		return err
 	}
@@ -1034,6 +1043,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		// conmon not having a pid file is a valid state, so don't set it if we don't have it
 		logrus.Infof("Got Conmon PID as %d", conmonPID)
 		ctr.state.ConmonPID = conmonPID
+		if ctr.config.SdNotifyMode != define.SdNotifyModeIgnore {
+			if sent, err := daemon.SdNotify(false, fmt.Sprintf("MAINPID=%d", conmonPID)); err != nil {
+				logrus.Errorf("Error notifying systemd of Conmon PID: %s", err.Error())
+			} else if sent {
+				logrus.Debugf("Notify MAINPID sent successfully")
+			}
+		}
 	}
 
 	if ctr.config.PreserveFDs > 0 {
@@ -1137,7 +1153,7 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct
 // TODO this may want to be less hardcoded/more configurable in the future
-func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*os.File, error) {
+func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string) ([]string, []*os.File, error) {
 	env := make([]string, 0, 6)
 	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
@@ -1149,8 +1165,10 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*o
 	env = append(env, fmt.Sprintf("HOME=%s", home))
 
 	extraFiles := make([]*os.File, 0)
-	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
-		env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
+	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer {
+		if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+			env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
+		}
 	}
 	if !r.sdNotify {
 		if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
