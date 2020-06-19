@@ -188,7 +188,7 @@ func writeTemplate(imageS []*entities.ImageSummary) error {
 }
 
 func tokenRepoTag(tag string) (string, string) {
-	tokens := strings.SplitN(tag, ":", 2)
+	tokens := strings.Split(tag, ":")
 	switch len(tokens) {
 	case 0:
 		return tag, ""
@@ -196,6 +196,8 @@ func tokenRepoTag(tag string) (string, string) {
 		return tokens[0], ""
 	case 2:
 		return tokens[0], tokens[1]
+	case 3:
+		return tokens[0] + ":" + tokens[1], tokens[2]
 	default:
 		return "<N/A>", ""
 	}
