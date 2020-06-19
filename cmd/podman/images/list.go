@@ -141,8 +141,12 @@ func writeJSON(imageS []*entities.ImageSummary) error {
 		imgs = append(imgs, h)
 	}
 
-	enc := json.NewEncoder(os.Stdout)
-	return enc.Encode(imgs)
+	prettyJSON, err := json.MarshalIndent(imgs, "", "    ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(prettyJSON))
+	return nil
 }
 
 func writeTemplate(imageS []*entities.ImageSummary) error {
