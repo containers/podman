@@ -130,12 +130,16 @@ func writeJSON(imageS []*entities.ImageSummary) error {
 		CreatedAt string
 	}
 
-	imgs := make([]image, 0, len(imageS))
-	for _, e := range imageS {
+	imgReporters := getImagesReporters(imageS)
+	sort.Slice(imgReporters, sortFunc(listFlag.sort, imgReporters))
+
+	imgs := make([]image, 0, len(imgReporters))
+	for _, e := range imgReporters {
 		var h image
-		h.ImageSummary = *e
-		h.Created = units.HumanDuration(time.Since(e.Created)) + " ago"
-		h.CreatedAt = e.Created.Format(time.RFC3339Nano)
+
+		h.ImageSummary = e.ImageSummary
+		h.Created = e.Created()
+		h.CreatedAt = e.ImageSummary.Created.Format(time.RFC3339Nano)
 		h.RepoTags = nil
 
 		imgs = append(imgs, h)
