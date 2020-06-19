@@ -1,5 +1,55 @@
 # Release Notes
 
+## 2.0.0
+### Features
+- The REST API and `podman system service` are no longer experimental, and ready for use!
+- The Podman command now supports remotely connections via the REST API using the `--remote` flag.
+- The Podman remote client has been entirely rewritten to use the HTTP API instead of Varlink.
+- The `podman system connection` command has been added to allow configuring the endpoint that `podman-remote` and `podman --remote` will connect to.
+- The `podman generate systemd` command now supports the `--new` flag when used with pods, allowing portable services for pods to be created.
+- The `podman play kube` command now supports running Kubernetes Deployment YAML.
+- The `podman exec` command now supports the `--detach` flag to run commands in the container in the background.
+- The `-p` flag to `podman run` and `podman create` now supports forwarding ports to IPv6 addresses.
+- The `podman run`, `podman create` and `podman pod create` command now support a `--replace` flag to remove and replace any existing container (or, for `pod create`, pod) with the same name
+- The `--restart-policy` flag to `podman run` and `podman create` now supports the `unless-stopped` restart policy.
+- The `--log-driver` flag to `podman run` and `podman create` now supports the `none` driver, which does not log the container's output.
+- The `--mount` flag to `podman run` and `podman create` now accepts `readonly` option as an alias to `ro`.
+- The `podman generate systemd` command now supports the `--container-prefix`, `--pod-prefix`, and `--separator` arguments to control the name of generated unit files.
+- The `podman network ls` command now supports the `--filter` flag to filter results.
+- The `podman auto-update` command now supports specifying an authfile to use when pulling new images on a per-container basis using the `io.containers.autoupdate.authfile` label.
+
+### Changes
+- Varlink support, including the `podman varlink` command, is deprecated and will be removed in the next release.
+- As part of the implementation of the REST API, JSON output for some commands (`podman ps`, `podman images` most notably) has changed.
+- Named and anonymous volumes and `tmpfs` filesystems added to containers are no longer mounted `noexec` by default.
+
+### Bugfixes
+- Fixed a bug where the `podman exec` command would log to journald when run in containers loggined to journald ([#6555](https://github.com/containers/libpod/issues/6555)).
+- Fixed a bug where the `podman auto-update` command would not preserve the OS and architecture of the original image when pulling a replacement ([#6613](https://github.com/containers/libpod/issues/6613)).
+- Fixed a bug where the `podman cp` command could create an extra `merged` directory when copying into an existing directory ([#6596](https://github.com/containers/libpod/issues/6596)).
+- Fixed a bug where the `podman pod stats` command would crash on pods run with `--network=host` ([#5652](https://github.com/containers/libpod/issues/5652)).
+- Fixed a bug where containers logs written to journald did not include the name of the container.
+- Fixed a bug where the `podman network inspect` and `podman network rm` commands did not properly handle non-default CNI configuration paths ([#6212](https://github.com/containers/libpod/issues/6212)).
+- Fixed a bug where Podman did not properly remove containers when using the Kata containers OCI runtime.
+- Fixed a bug where `podman inspect` would sometimes incorrectly report the network mode of containers started with `--net=none`.
+- Podman is now better able to deal with cases where `conmon` is killed before the container it is monitoring.
+
+### Misc
+- The default Podman CNI configuration now sets `HairpinMode` to allow communication between containers by connecting to a forwarded port on the host.
+- Updated Buildah to v1.15.0
+- Updated containers/storage to v1.20.2
+- Updated containers/image to v5.5.1
+- Updated containers/common to v0.14.0
+
+## 1.9.3
+### Bugfixes
+- Fixed a bug where, on FIPS enabled hosts, FIPS mode secrets were not properly mounted into containers
+- Fixed a bug where builds run over Varlink would hang ([#6237](https://github.com/containers/libpod/issues/6237))
+
+### Misc
+- Named volumes and tmpfs filesystems will no longer default to mounting `noexec` for improved compatibility with Docker
+- Updated Buildah to v1.14.9
+
 ## 1.9.2
 ### Bugfixes
 - Fixed a bug where `podman save` would fail when the target image was specified by digest ([#5234](https://github.com/containers/libpod/issues/5234))
