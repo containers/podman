@@ -98,44 +98,46 @@ func images(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	imgs := sortImages(summaries)
 	switch {
 	case listFlag.quiet:
-		return writeID(summaries)
+		return writeID(imgs)
 	case cmd.Flag("format").Changed && listFlag.format == "json":
-		return writeJSON(summaries)
+		return writeJSON(imgs)
 	default:
-		return writeTemplate(summaries)
+		return writeTemplate(imgs)
 	}
 }
 
-func writeID(imageS []*entities.ImageSummary) error {
-	var ids = map[string]struct{}{}
-	for _, e := range imageS {
-		i := "sha256:" + e.ID
-		if !listFlag.noTrunc {
-			i = fmt.Sprintf("%12.12s", e.ID)
+func writeID(imgs []imageReporter) error {
+	lookup := make(map[string]struct{}, len(imgs))
+	ids := make([]string, 0)
+
+	for _, e := range imgs {
+		if _, found := lookup[e.ID()]; !found {
+			lookup[e.ID()] = struct{}{}
+			ids = append(ids, e.ID())
 		}
-		ids[i] = struct{}{}
 	}
-	for k := range ids {
-		fmt.Fprint(os.Stdout, k+"\n")
+	for _, k := range ids {
+		fmt.Println(k)
 	}
 	return nil
 }
 
-func writeJSON(imageS []*entities.ImageSummary) error {
+func writeJSON(images []imageReporter) error {
 	type image struct {
 		entities.ImageSummary
 		Created   string
 		CreatedAt string
 	}
 
-	imgs := make([]image, 0, len(imageS))
-	for _, e := range imageS {
+	imgs := make([]image, 0, len(images))
+	for _, e := range images {
 		var h image
-		h.ImageSummary = *e
-		h.Created = units.HumanDuration(time.Since(e.Created)) + " ago"
-		h.CreatedAt = e.Created.Format(time.RFC3339Nano)
+		h.ImageSummary = e.ImageSummary
+		h.Created = units.HumanDuration(time.Since(e.ImageSummary.Created)) + " ago"
+		h.CreatedAt = e.ImageSummary.Created.Format(time.RFC3339Nano)
 		h.RepoTags = nil
 
 		imgs = append(imgs, h)
@@ -149,10 +151,26 @@ func writeJSON(imageS []*entities.ImageSummary) error {
 	return nil
 }
 
-func writeTemplate(imageS []*entities.ImageSummary) error {
+func writeTemplate(imgs []imageReporter) error {
 	var (
 		hdr, row string
 	)
+	if len(listFlag.format) < 1 {
+		hdr, row = imageListFormat(listFlag)
+	} else {
+		row = listFlag.format
+		if !strings.HasSuffix(row, "\n") {
+			row += "\n"
+		}
+	}
+	format := hdr + "{{range . }}" + row + "{{end}}"
+	tmpl := template.Must(template.New("list").Parse(format))
+	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	defer w.Flush()
+	return tmpl.Execute(w, imgs)
+}
+
+func sortImages(imageS []*entities.ImageSummary) []imageReporter {
 	imgs := make([]imageReporter, 0, len(imageS))
 	for _, e := range imageS {
 		var h imageReporter
@@ -171,20 +189,7 @@ func writeTemplate(imageS []*entities.ImageSummary) error {
 	}
 
 	sort.Slice(imgs, sortFunc(listFlag.sort, imgs))
-
-	if len(listFlag.format) < 1 {
-		hdr, row = imageListFormat(listFlag)
-	} else {
-		row = listFlag.format
-		if !strings.HasSuffix(row, "\n") {
-			row += "\n"
-		}
-	}
-	format := hdr + "{{range . }}" + row + "{{end}}"
-	tmpl := template.Must(template.New("list").Parse(format))
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
-	defer w.Flush()
-	return tmpl.Execute(w, imgs)
+	return imgs
 }
 
 func tokenRepoTag(tag string) (string, string) {

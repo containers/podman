@@ -296,6 +296,15 @@ WORKDIR /test
 		sortValueTest("id", 125, "badvalue")
 	})
 
+	It("test for issue #6670", func() {
+		expected := podmanTest.Podman([]string{"images", "--sort", "created", "--format", "{{.ID}}", "-q"})
+		expected.WaitWithDefaultTimeout()
+
+		actual := podmanTest.Podman([]string{"images", "--sort", "created", "-q"})
+		actual.WaitWithDefaultTimeout()
+		Expect(expected.Out).Should(Equal(actual.Out))
+	})
+
 	It("podman images --all flag", func() {
 		podmanTest.RestoreAllArtifacts()
 		dockerfile := `FROM docker.io/library/alpine:latest
