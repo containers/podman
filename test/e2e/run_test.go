@@ -101,6 +101,18 @@ var _ = Describe("Podman run", func() {
 		Expect(match).Should(BeTrue())
 	})
 
+	It("podman create pod with name in /etc/hosts", func() {
+		name := "test_container"
+		hostname := "test_hostname"
+		session := podmanTest.Podman([]string{"run", "-ti", "--rm", "--name", name, "--hostname", hostname, ALPINE, "cat", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString(name)
+		Expect(match).Should(BeTrue())
+		match, _ = session.GrepString(hostname)
+		Expect(match).Should(BeTrue())
+	})
+
 	It("podman run a container based on remote image", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", BB_GLIBC, "ls"})
 		session.WaitWithDefaultTimeout()
