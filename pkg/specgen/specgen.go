@@ -107,6 +107,11 @@ type ContainerBasicConfig struct {
 	// If not specified, "false" will be assumed.
 	// Optional.
 	Systemd string `json:"systemd,omitempty"`
+	// Determine how to handle the NOTIFY_SOCKET - do we participate or pass it through
+	// "container" - let the OCI runtime deal with it, advertise conmon's MAINPID
+	// "conmon-only" - advertise conmon's MAINPID, send READY when started, don't pass to OCI
+	// "ignore" - unset NOTIFY_SOCKET
+	SdNotifyMode string `json:"sdnotifyMode,omitempty"`
 	// Namespace is the libpod namespace the container will be placed in.
 	// Optional.
 	Namespace string `json:"namespace,omitempty"`

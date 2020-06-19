@@ -24,6 +24,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/coreos/go-systemd/v22/daemon"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -1191,6 +1192,19 @@ func (c *Container) start() error {
 	logrus.Debugf("Started container %s", c.ID())
 
 	c.state.State = define.ContainerStateRunning
+
+	if c.config.SdNotifyMode != define.SdNotifyModeIgnore {
+		payload := fmt.Sprintf("MAINPID=%d", c.state.ConmonPID)
+		if c.config.SdNotifyMode == define.SdNotifyModeConmon {
+			payload += "\n"
+			payload += daemon.SdNotifyReady
+		}
+		if sent, err := daemon.SdNotify(false, payload); err != nil {
+			logrus.Errorf("Error notifying systemd of Conmon PID: %s", err.Error())
+		} else if sent {
+			logrus.Debugf("Notify sent successfully")
+		}
+	}
 
 	if c.config.HealthCheckConfig != nil {
 		if err := c.updateHealthStatus(define.HealthCheckStarting); err != nil {

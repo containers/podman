@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/spf13/pflag"
 )
 
@@ -393,6 +394,11 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		&cf.RootFS,
 		"rootfs", false,
 		"The first argument is not an image but the rootfs to the exploded container",
+	)
+	createFlags.StringVar(
+		&cf.SdNotifyMode,
+		"sdnotify", define.SdNotifyModeContainer,
+		`control sd-notify behavior ("container"|"conmon"|"ignore")`,
 	)
 	createFlags.StringArrayVar(
 		&cf.SecurityOpt,

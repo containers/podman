@@ -723,6 +723,17 @@ of the container is assumed to be managed externally.
 Note: On **SELinux** systems, the rootfs needs the correct label, which is by default
 **unconfined_u:object_r:container_file_t**.
 
+**--sdnotify**=**container**|**conmon**|**ignore**
+
+Determines how to use the NOTIFY_SOCKET, as passed with systemd and Type=notify.
+
+Default is **container**, which means allow the OCI runtime to proxy the socket into the
+container to receive ready notification.  Podman will set the MAINPID to conmon's pid.
+The **conmon** option sets MAINPID to conmon's pid, and sends READY when the container
+has started.  The socket is never passed to the runtime or the container.
+The **ignore** option removes NOTIFY_SOCKET from the environment for itself and child processes,
+for the case where some other process above Podman uses NOTIFY_SOCKET and Podman should not use it.
+
 **--seccomp-policy**=*policy*
 
 Specify the policy to select the seccomp profile. If set to *image*, Podman will look for a "io.podman.seccomp.profile" label in the container-image config and use its value as a seccomp profile. Otherwise, Podman will follow the *default* policy by applying the default profile unless specified otherwise via *--security-opt seccomp* as described below.
