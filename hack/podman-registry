@@ -7,7 +7,7 @@ ME=$(basename $0)
 ###############################################################################
 # BEGIN defaults
 
-PODMAN_REGISTRY_IMAGE=docker.io/library/registry:2
+PODMAN_REGISTRY_IMAGE=docker.io/library/registry:2.6
 
 PODMAN_REGISTRY_USER=
 PODMAN_REGISTRY_PASS=
@@ -30,7 +30,7 @@ into a local temporary directory, create an htpasswd, start the
 registry, and dump a series of environment variables to stdout:
 
     \$ $ME start
-    PODMAN_REGISTRY_IMAGE=\"docker.io/library/registry:2\"
+    PODMAN_REGISTRY_IMAGE=\"docker.io/library/registry:2.6\"
     PODMAN_REGISTRY_PORT=\"5050\"
     PODMAN_REGISTRY_USER=\"userZ3RZ\"
     PODMAN_REGISTRY_PASS=\"T8JVJzKrcl4p6uT\"
@@ -201,7 +201,7 @@ function do_start() {
               -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd"           \
               -e "REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt"       \
               -e "REGISTRY_HTTP_TLS_KEY=/auth/domain.key"               \
-              registry:2
+              registry:2.6
 
     # Dump settings. Our caller will use these to access the registry.
     for v in IMAGE PORT USER PASS; do
