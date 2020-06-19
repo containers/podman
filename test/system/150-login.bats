@@ -61,9 +61,9 @@ function setup() {
     mkdir -p ${PODMAN_LOGIN_WORKDIR}/runroot
     PODMAN_LOGIN_ARGS="--root ${PODMAN_LOGIN_WORKDIR}/root --runroot ${PODMAN_LOGIN_WORKDIR}/runroot"
     # Give it three tries, to compensate for flakes
-    run_podman ${PODMAN_LOGIN_ARGS} pull registry:2 ||
-        run_podman ${PODMAN_LOGIN_ARGS} pull registry:2 ||
-        run_podman ${PODMAN_LOGIN_ARGS} pull registry:2
+    run_podman ${PODMAN_LOGIN_ARGS} pull registry:2.6 ||
+        run_podman ${PODMAN_LOGIN_ARGS} pull registry:2.6 ||
+        run_podman ${PODMAN_LOGIN_ARGS} pull registry:2.6
 
     # Registry image needs a cert. Self-signed is good enough.
     CERT=$AUTHDIR/domain.crt
@@ -77,7 +77,7 @@ function setup() {
     # Store credentials where container will see them
     if [ ! -e $AUTHDIR/htpasswd ]; then
         run_podman ${PODMAN_LOGIN_ARGS} run --rm                  \
-                   --entrypoint htpasswd registry:2               \
+                   --entrypoint htpasswd registry:2.6             \
                    -Bbn ${PODMAN_LOGIN_USER} ${PODMAN_LOGIN_PASS} \
                    > $AUTHDIR/htpasswd
 
@@ -97,7 +97,7 @@ function setup() {
                -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
                -e REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt \
                -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
-               registry:2
+               registry:2.6
 }
 
 # END   first "test" - start a registry for use by other tests
