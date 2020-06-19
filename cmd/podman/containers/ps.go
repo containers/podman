@@ -158,12 +158,6 @@ func ps(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(listOpts.Sort) > 0 {
-		listContainers, err = entities.SortPsOutput(listOpts.Sort, listContainers)
-		if err != nil {
-			return err
-		}
-	}
 	if listOpts.Format == "json" {
 		return jsonOut(listContainers)
 	}
