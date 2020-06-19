@@ -1,3 +1,22 @@
+- Changelog for v2.0.0 (2020-06-19):
+  * Update release notes for v2.0.0
+  * Fixes #6670
+  * Correct logic for demux'ing channels
+  * Poll on events for file reading
+  * podman images --format json: pretty print
+  * CI: force registry:2.6
+  * Fix remote docs
+  * Allow recursive dependency start with Init()
+  * Bump k8s.io/apimachinery from 0.18.3 to 0.18.4
+  * unflake rmi tests
+  * Bump k8s.io/api from 0.18.3 to 0.18.4
+  * Bump go.etcd.io/bbolt from 1.3.4 to 1.3.5
+  * Podman system service is no longer experimental
+  * Handle dropping capabilties correctly when running as non root user
+  * Don't ignore --user flag in rootless --userns keepid
+  * Makefile: install.varlink needs to create dirs
+  * Do not share container log driver for exec
+
 - Changelog for v2.0.0-rc7 (2020-06-17)
   * Bump Buildah to v1.15.0
   * Move logs functionality to separate file for APIv2
