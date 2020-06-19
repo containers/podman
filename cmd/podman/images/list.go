@@ -149,24 +149,10 @@ func writeTemplate(imageS []*entities.ImageSummary) error {
 	var (
 		hdr, row string
 	)
-	imgs := make([]imageReporter, 0, len(imageS))
-	for _, e := range imageS {
-		var h imageReporter
-		if len(e.RepoTags) > 0 {
-			for _, tag := range e.RepoTags {
-				h.ImageSummary = *e
-				h.Repository, h.Tag = tokenRepoTag(tag)
-				imgs = append(imgs, h)
-			}
-		} else {
-			h.ImageSummary = *e
-			h.Repository = "<none>"
-			imgs = append(imgs, h)
-		}
-		listFlag.readOnly = e.IsReadOnly()
-	}
 
-	sort.Slice(imgs, sortFunc(listFlag.sort, imgs))
+	imgReporters := getImagesReporters(imageS)
+
+	sort.Slice(imgReporters, sortFunc(listFlag.sort, imgReporters))
 
 	if len(listFlag.format) < 1 {
 		hdr, row = imageListFormat(listFlag)
@@ -180,7 +166,7 @@ func writeTemplate(imageS []*entities.ImageSummary) error {
 	tmpl := template.Must(template.New("list").Parse(format))
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
-	return tmpl.Execute(w, imgs)
+	return tmpl.Execute(w, imgReporters)
 }
 
 func tokenRepoTag(tag string) (string, string) {
@@ -195,6 +181,28 @@ func tokenRepoTag(tag string) (string, string) {
 	default:
 		return "<N/A>", ""
 	}
+}
+
+func getImagesReporters(imageS []*entities.ImageSummary) []imageReporter {
+	imgReporters := make([]imageReporter, 0, len(imageS))
+
+	for _, e := range imageS {
+		var h imageReporter
+		if len(e.RepoTags) > 0 {
+			for _, tag := range e.RepoTags {
+				h.ImageSummary = *e
+				h.Repository, h.Tag = tokenRepoTag(tag)
+				imgReporters = append(imgReporters, h)
+			}
+		} else {
+			h.ImageSummary = *e
+			h.Repository = "<none>"
+			imgReporters = append(imgReporters, h)
+		}
+		listFlag.readOnly = e.IsReadOnly()
+	}
+
+	return imgReporters
 }
 
 func sortFunc(key string, data []imageReporter) func(i, j int) bool {
