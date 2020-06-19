@@ -30,6 +30,7 @@ import (
 	"github.com/containers/libpod/utils"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/coreos/go-systemd/v22/activation"
+	"github.com/coreos/go-systemd/v22/daemon"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1016,6 +1017,11 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		// conmon not having a pid file is a valid state, so don't set it if we don't have it
 		logrus.Infof("Got Conmon PID as %d", conmonPID)
 		ctr.state.ConmonPID = conmonPID
+		if sent, err := daemon.SdNotify(false, fmt.Sprintf("MAINPID=%d\n", conmonPID)); err != nil {
+			logrus.Errorf("Error notifying systemd of Conmon PID: %s", err.Error())
+		} else if sent {
+			logrus.Debugf("Notify MAINPID sent successfully")
+		}
 	}
 
 	return nil
