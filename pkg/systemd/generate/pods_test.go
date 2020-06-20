@@ -74,7 +74,7 @@ Before=container-1.service container-2.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
-ExecStartPre=/usr/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
+ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
 ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10

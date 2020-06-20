@@ -293,7 +293,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 
 		startCommand = append(startCommand, podCreateArgs...)
 
-		info.ExecStartPre1 = "/usr/bin/rm -f {{.PIDFile}} {{.PodIDFile}}"
+		info.ExecStartPre1 = "/bin/rm -f {{.PIDFile}} {{.PodIDFile}}"
 		info.ExecStartPre2 = strings.Join(startCommand, " ")
 		info.ExecStart = "{{.Executable}} pod start --pod-id-file {{.PodIDFile}}"
 		info.ExecStop = "{{.Executable}} pod stop --ignore --pod-id-file {{.PodIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
