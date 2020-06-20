@@ -311,4 +311,16 @@ var _ = Describe("Podman logs", func() {
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).To(Not(Exit(0)))
 	})
+
+	It("follow output stopped container", func() {
+		containerName := "logs-f"
+
+		logc := podmanTest.Podman([]string{"run", "--name", containerName, "-d", ALPINE})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(Exit(0))
+
+		results := podmanTest.Podman([]string{"logs", "-f", containerName})
+		results.WaitWithDefaultTimeout()
+		Expect(results).To(Exit(0))
+	})
 })
