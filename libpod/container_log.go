@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
+	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -88,8 +89,8 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 		go func() {
 			for {
 				state, err := c.State()
+				time.Sleep(watch.POLL_DURATION)
 				if err != nil {
-					time.Sleep(250 * time.Millisecond)
 					tailError := t.StopAtEOF()
 					if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
 						logrus.Error(tailError)
@@ -100,14 +101,12 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 					break
 				}
 				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
-					time.Sleep(250 * time.Millisecond)
 					tailError := t.StopAtEOF()
 					if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
 						logrus.Error(tailError)
 					}
 					break
 				}
-				time.Sleep(250 * time.Millisecond)
 			}
 		}()
 	}
