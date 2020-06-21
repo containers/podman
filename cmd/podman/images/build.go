@@ -9,6 +9,7 @@ import (
 	"github.com/containers/buildah/imagebuildah"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -396,16 +397,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
 
-	// FIXME: the code below needs to be enabled (and adjusted) once the
-	// global/root flags are supported.
-
-	//	conf, err := runtime.GetConfig()
-	//	if err != nil {
-	//		return err
-	//	}
-	//	if conf != nil && conf.Engine.CgroupManager == config.SystemdCgroupsManager {
-	//		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
-	//	}
+	containerConfig := registry.PodmanConfig()
+	if containerConfig.Engine.CgroupManager == config.SystemdCgroupsManager {
+		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
+	}
 
 	opts := imagebuildah.BuildOptions{
 		AddCapabilities: flags.CapAdd,
@@ -418,12 +413,13 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		CNIPluginPath:   flags.CNIPlugInPath,
 		CommonBuildOpts: &buildah.CommonBuildOptions{
 			AddHost:      flags.AddHost,
-			CgroupParent: flags.CgroupParent,
 			CPUPeriod:    flags.CPUPeriod,
 			CPUQuota:     flags.CPUQuota,
-			CPUShares:    flags.CPUShares,
 			CPUSetCPUs:   flags.CPUSetCPUs,
 			CPUSetMems:   flags.CPUSetMems,
+			CPUShares:    flags.CPUShares,
+			CgroupParent: flags.CgroupParent,
+			HTTPProxy:    flags.HTTPProxy,
 			Memory:       memoryLimit,
 			MemorySwap:   memorySwap,
 			ShmSize:      flags.ShmSize,
