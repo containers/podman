@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
@@ -25,7 +25,7 @@ var (
 		Long:  checkpointDescription,
 		RunE:  checkpoint,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman container checkpoint --keep ctrID
   podman container checkpoint --all
@@ -48,12 +48,9 @@ func init() {
 	flags.BoolVarP(&checkpointOptions.LeaveRunning, "leave-running", "R", false, "Leave the container running after writing checkpoint to disk")
 	flags.BoolVar(&checkpointOptions.TCPEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
 	flags.BoolVarP(&checkpointOptions.All, "all", "a", false, "Checkpoint all running containers")
-	flags.BoolVarP(&checkpointOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.StringVarP(&checkpointOptions.Export, "export", "e", "", "Export the checkpoint image to a tar.gz")
 	flags.BoolVar(&checkpointOptions.IgnoreRootFS, "ignore-rootfs", false, "Do not include root file-system changes when exporting")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	validate.AddLatestFlag(checkpointCommand, &checkpointOptions.Latest)
 }
 
 func checkpoint(cmd *cobra.Command, args []string) error {

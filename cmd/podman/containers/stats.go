@@ -10,6 +10,7 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -56,12 +57,8 @@ var (
 func statFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&statsOptions.All, "all", "a", false, "Show all containers. Only running containers are shown by default. The default is false")
 	flags.StringVar(&statsOptions.Format, "format", "", "Pretty-print container statistics to JSON or using a Go template")
-	flags.BoolVarP(&statsOptions.Latest, "latest", "l", false, "Act on the latest container Podman is aware of")
 	flags.BoolVar(&statsOptions.NoReset, "no-reset", false, "Disable resetting the screen between intervals")
 	flags.BoolVar(&statsOptions.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result, default setting is false")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
 }
 
 func init() {
@@ -69,17 +66,16 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: statsCommand,
 	})
-	flags := statsCommand.Flags()
-	statFlags(flags)
+	statFlags(statsCommand.Flags())
+	validate.AddLatestFlag(statsCommand, &statsOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerStatsCommand,
 		Parent:  containerCmd,
 	})
-
-	containerStatsFlags := containerStatsCommand.Flags()
-	statFlags(containerStatsFlags)
+	statFlags(containerStatsCommand.Flags())
+	validate.AddLatestFlag(containerStatsCommand, &statsOptions.Latest)
 }
 
 // stats is different in that it will assume running containers if

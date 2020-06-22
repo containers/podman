@@ -66,6 +66,7 @@ func pause(cmd *cobra.Command, args []string) error {
 	if rootless.IsRootless() && !registry.IsRemote() {
 		return errors.New("pause is not supported for rootless containers")
 	}
+
 	if len(args) < 1 && !pauseOpts.All {
 		return errors.Errorf("you must provide at least one container name or id")
 	}

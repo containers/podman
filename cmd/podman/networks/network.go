@@ -10,11 +10,10 @@ import (
 var (
 	// Command: podman _network_
 	networkCmd = &cobra.Command{
-		Use:              "network",
-		Short:            "Manage networks",
-		Long:             "Manage networks",
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "network",
+		Short: "Manage networks",
+		Long:  "Manage networks",
+		RunE:  validate.SubCommandExists,
 	}
 )
 

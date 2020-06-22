@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ var (
 		Long:  podRestartDescription,
 		RunE:  restart,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod restart podID1 podID2
   podman pod restart --latest
@@ -42,10 +42,7 @@ func init() {
 
 	flags := restartCommand.Flags()
 	flags.BoolVarP(&restartOptions.All, "all", "a", false, "Restart all running pods")
-	flags.BoolVarP(&restartOptions.Latest, "latest", "l", false, "Restart the latest pod podman is aware of")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	validate.AddLatestFlag(restartCommand, &restartOptions.Latest)
 }
 
 func restart(cmd *cobra.Command, args []string) error {

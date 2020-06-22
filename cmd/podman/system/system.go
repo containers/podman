@@ -13,11 +13,10 @@ var (
 
 	// Command: podman _system_
 	systemCmd = &cobra.Command{
-		Use:              "system",
-		Short:            "Manage podman",
-		Long:             "Manage podman",
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "system",
+		Short: "Manage podman",
+		Long:  "Manage podman",
+		RunE:  validate.SubCommandExists,
 	}
 )
 

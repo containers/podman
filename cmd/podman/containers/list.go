@@ -29,4 +29,5 @@ func init() {
 		Parent:  containerCmd,
 	})
 	listFlagSet(listCmd.Flags())
+	validate.AddLatestFlag(listCmd, &listOpts.Latest)
 }

@@ -3,9 +3,9 @@ package containers
 import (
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -25,7 +25,7 @@ var (
 		Long:    description,
 		RunE:    unmount,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman umount ctrID
   podman umount ctrID1 ctrID2 ctrID3
@@ -38,7 +38,7 @@ var (
 		Long:  umountCommand.Long,
 		RunE:  umountCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman container umount ctrID
   podman container umount ctrID1 ctrID2 ctrID3
@@ -53,7 +53,6 @@ var (
 func umountFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&unmountOpts.All, "all", "a", false, "Umount all of the currently mounted containers")
 	flags.BoolVarP(&unmountOpts.Force, "force", "f", false, "Force the complete umount all of the currently mounted containers")
-	flags.BoolVarP(&unmountOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 }
 
 func init() {
@@ -61,17 +60,16 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: umountCommand,
 	})
-	flags := umountCommand.Flags()
-	umountFlags(flags)
+	umountFlags(umountCommand.Flags())
+	validate.AddLatestFlag(umountCommand, &unmountOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: containerUnmountCommand,
 		Parent:  containerCmd,
 	})
-
-	containerUmountFlags := containerUnmountCommand.Flags()
-	umountFlags(containerUmountFlags)
+	umountFlags(containerUnmountCommand.Flags())
+	validate.AddLatestFlag(containerUnmountCommand, &unmountOpts.Latest)
 }
 
 func unmount(cmd *cobra.Command, args []string) error {

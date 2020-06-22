@@ -62,6 +62,7 @@ func runFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&runOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 	flags.BoolVar(&runRmi, "rmi", false, "Remove container image unless used by other containers")
 	flags.UintVar(&runOpts.PreserveFDs, "preserve-fds", 0, "Pass a number of additional file descriptors into the container")
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("env-host")

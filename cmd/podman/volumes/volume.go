@@ -13,11 +13,10 @@ var (
 
 	// Command: podman _volume_
 	volumeCmd = &cobra.Command{
-		Use:              "volume",
-		Short:            "Manage volumes",
-		Long:             "Volumes are created in and can be shared between containers",
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "volume",
+		Short: "Manage volumes",
+		Long:  "Volumes are created in and can be shared between containers",
+		RunE:  validate.SubCommandExists,
 	}
 )
 

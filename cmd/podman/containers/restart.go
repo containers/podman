@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -25,7 +25,7 @@ var (
 		Long:  restartDescription,
 		RunE:  restart,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman restart ctrID
   podman restart --latest
@@ -50,12 +50,9 @@ var (
 
 func restartFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&restartOptions.All, "all", "a", false, "Restart all non-running containers")
-	flags.BoolVarP(&restartOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restartOptions.Running, "running", false, "Restart only running containers when --all is used")
 	flags.UintVarP(&restartTimeout, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
@@ -64,17 +61,16 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: restartCommand,
 	})
-	flags := restartCommand.Flags()
-	restartFlags(flags)
+	restartFlags(restartCommand.Flags())
+	validate.AddLatestFlag(restartCommand, &restartOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerRestartCommand,
 		Parent:  containerCmd,
 	})
-
-	containerRestartFlags := containerRestartCommand.Flags()
-	restartFlags(containerRestartFlags)
+	restartFlags(containerRestartCommand.Flags())
+	validate.AddLatestFlag(containerRestartCommand, &restartOptions.Latest)
 }
 
 func restart(cmd *cobra.Command, args []string) error {

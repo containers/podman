@@ -6,6 +6,7 @@ import (
 	"path"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -20,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // HelpTemplate is the help template for podman commands
@@ -79,7 +79,7 @@ func init() {
 		syslogHook,
 	)
 
-	rootFlags(registry.PodmanConfig(), rootCmd.PersistentFlags())
+	rootFlags(rootCmd, registry.PodmanConfig())
 
 	// "version" is a local flag to avoid collisions with sub-commands that use "-v"
 	var dummyVersion bool
@@ -110,6 +110,15 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	cfg := registry.PodmanConfig()
+
+	// Validate --remote and --latest not given on same command
+	latest := cmd.Flags().Lookup("latest")
+	if latest != nil {
+		value, _ := strconv.ParseBool(latest.Value.String())
+		if cfg.Remote && value {
+			return errors.Errorf("For %s \"--remote\" and \"--latest\", are mutually exclusive flags", cmd.CommandPath())
+		}
+	}
 
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
@@ -193,7 +202,7 @@ func loggingHook() {
 		}
 	}
 	if !found {
-		fmt.Fprintf(os.Stderr, "Log Level \"%s\" is not supported, choose from: %s\n", logLevel, strings.Join(logLevels, ", "))
+		fmt.Fprintf(os.Stderr, "Log Level %q is not supported, choose from: %s\n", logLevel, strings.Join(logLevels, ", "))
 		os.Exit(1)
 	}
 
@@ -209,44 +218,45 @@ func loggingHook() {
 	}
 }
 
-func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
-	// V2 flags
-	flags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
+func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
+	cfg := opts.Config
 
+	lFlags := cmd.Flags()
 	custom, _ := config.ReadCustomConfig()
 	defaultURI := custom.Engine.RemoteURI
 	if defaultURI == "" {
 		defaultURI = registry.DefaultAPIAddress()
 	}
-	flags.StringVar(&opts.URI, "url", defaultURI, "URL to access Podman service (CONTAINER_HOST)")
-	flags.StringVar(&opts.Identity, "identity", custom.Engine.RemoteIdentity, "path to SSH identity file, (CONTAINER_SSHKEY)")
+	lFlags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
+	lFlags.StringVar(&opts.URI, "url", defaultURI, "URL to access Podman service (CONTAINER_HOST)")
+	lFlags.StringVar(&opts.Identity, "identity", custom.Engine.RemoteIdentity, "path to SSH identity file, (CONTAINER_SSHKEY)")
 
-	cfg := opts.Config
-	flags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
-	flags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu profiling results")
-	flags.StringVar(&opts.ConmonPath, "conmon", "", "Path of the conmon binary")
-	flags.StringVar(&cfg.Engine.NetworkCmdPath, "network-cmd-path", cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")
-	flags.StringVar(&cfg.Network.NetworkConfigDir, "cni-config-dir", cfg.Network.NetworkConfigDir, "Path of the configuration directory for CNI networks")
-	flags.StringVar(&cfg.Containers.DefaultMountsFile, "default-mounts-file", cfg.Containers.DefaultMountsFile, "Path to default mounts file")
-	flags.StringVar(&cfg.Engine.EventsLogger, "events-backend", cfg.Engine.EventsLogger, `Events backend to use ("file"|"journald"|"none")`)
-	flags.StringSliceVar(&cfg.Engine.HooksDir, "hooks-dir", cfg.Engine.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
-	flags.IntVar(&opts.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")
-	flags.StringVar(&cfg.Engine.Namespace, "namespace", cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
-	flags.StringVar(&cfg.Engine.StaticDir, "root", "", "Path to the root directory in which data, including images, is stored")
-	flags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
-	flags.StringVar(&opts.Runroot, "runroot", "", "Path to the 'run directory' where all state information is stored")
-	flags.StringVar(&opts.RuntimePath, "runtime", "", "Path to the OCI-compatible binary used to run containers, default is /usr/bin/runc")
+	pFlags := cmd.PersistentFlags()
+	pFlags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
+	pFlags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu profiling results")
+	pFlags.StringVar(&opts.ConmonPath, "conmon", "", "Path of the conmon binary")
+	pFlags.StringVar(&cfg.Engine.NetworkCmdPath, "network-cmd-path", cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")
+	pFlags.StringVar(&cfg.Network.NetworkConfigDir, "cni-config-dir", cfg.Network.NetworkConfigDir, "Path of the configuration directory for CNI networks")
+	pFlags.StringVar(&cfg.Containers.DefaultMountsFile, "default-mounts-file", cfg.Containers.DefaultMountsFile, "Path to default mounts file")
+	pFlags.StringVar(&cfg.Engine.EventsLogger, "events-backend", cfg.Engine.EventsLogger, `Events backend to use ("file"|"journald"|"none")`)
+	pFlags.StringSliceVar(&cfg.Engine.HooksDir, "hooks-dir", cfg.Engine.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
+	pFlags.IntVar(&opts.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")
+	pFlags.StringVar(&cfg.Engine.Namespace, "namespace", cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
+	pFlags.StringVar(&cfg.Engine.StaticDir, "root", "", "Path to the root directory in which data, including images, is stored")
+	pFlags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
+	pFlags.StringVar(&opts.Runroot, "runroot", "", "Path to the 'run directory' where all state information is stored")
+	pFlags.StringVar(&opts.RuntimePath, "runtime", "", "Path to the OCI-compatible binary used to run containers, default is /usr/bin/runc")
 	// -s is deprecated due to conflict with -s on subcommands
-	flags.StringVar(&opts.StorageDriver, "storage-driver", "", "Select which storage driver is used to manage storage of images and containers (default is overlay)")
-	flags.StringArrayVar(&opts.StorageOpts, "storage-opt", []string{}, "Used to pass an option to the storage driver")
+	pFlags.StringVar(&opts.StorageDriver, "storage-driver", "", "Select which storage driver is used to manage storage of images and containers (default is overlay)")
+	pFlags.StringArrayVar(&opts.StorageOpts, "storage-opt", []string{}, "Used to pass an option to the storage driver")
 
-	flags.StringVar(&opts.Engine.TmpDir, "tmpdir", "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
-	flags.BoolVar(&opts.Trace, "trace", false, "Enable opentracing output (default false)")
+	pFlags.StringVar(&opts.Engine.TmpDir, "tmpdir", "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
+	pFlags.BoolVar(&opts.Trace, "trace", false, "Enable opentracing output (default false)")
 
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
-	flags.BoolVar(&dummyHelp, "help", false, "Help for podman")
-	flags.StringVar(&logLevel, "log-level", logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(logLevels, ", ")))
+	pFlags.BoolVar(&dummyHelp, "help", false, "Help for podman")
+	pFlags.StringVar(&logLevel, "log-level", logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(logLevels, ", ")))
 
 	// Hide these flags for both ABI and Tunneling
 	for _, f := range []string{
@@ -256,13 +266,13 @@ func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 		"registries-conf",
 		"trace",
 	} {
-		if err := flags.MarkHidden(f); err != nil {
+		if err := pFlags.MarkHidden(f); err != nil {
 			logrus.Warnf("unable to mark %s flag as hidden: %s", f, err.Error())
 		}
 	}
 
 	// Only create these flags for ABI connections
 	if !registry.IsRemote() {
-		flags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
+		pFlags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
 	}
 }

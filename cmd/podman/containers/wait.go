@@ -47,9 +47,6 @@ var (
 func waitFlags(flags *pflag.FlagSet) {
 	flags.DurationVarP(&waitOptions.Interval, "interval", "i", time.Duration(250), "Milliseconds to wait before polling for completion")
 	flags.StringVar(&waitCondition, "condition", "stopped", "Condition to wait on")
-	if !registry.IsRemote() {
-		flags.BoolVarP(&waitOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	}
 }
 
 func init() {
@@ -57,17 +54,17 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: waitCommand,
 	})
-	flags := waitCommand.Flags()
-	waitFlags(flags)
+	waitFlags(waitCommand.Flags())
+	validate.AddLatestFlag(waitCommand, &waitOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerWaitCommand,
 		Parent:  containerCmd,
 	})
+	waitFlags(containerWaitCommand.Flags())
+	validate.AddLatestFlag(containerWaitCommand, &waitOptions.Latest)
 
-	containerWaitFlags := containerWaitCommand.Flags()
-	waitFlags(containerWaitFlags)
 }
 
 func wait(cmd *cobra.Command, args []string) error {

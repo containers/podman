@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/common"
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +30,7 @@ var (
 		Long:  podRmDescription,
 		RunE:  rm,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndPodIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndPodIDFile(cmd, args, false, true)
 		},
 		Example: `podman pod rm mywebserverpod
   podman pod rm -f 860a4b23
@@ -49,15 +49,15 @@ func init() {
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all running pods")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
-	flags.BoolVarP(&rmOptions.Latest, "latest", "l", false, "Remove the latest pod podman is aware of")
 	flags.StringArrayVarP(&rmOptions.PodIDFiles, "pod-id-file", "", nil, "Read the pod ID from the file")
+	validate.AddLatestFlag(rmCommand, &rmOptions.Latest)
+
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("ignore")
 	}
 }
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	ids, err := common.ReadPodIDFiles(rmOptions.PodIDFiles)
 	if err != nil {
 		return err

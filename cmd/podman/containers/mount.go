@@ -6,9 +6,9 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,7 +28,7 @@ var (
 		Long:  mountDescription,
 		RunE:  mount,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, true, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
 	}
 
@@ -47,7 +47,6 @@ var (
 func mountFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&mountOpts.All, "all", "a", false, "Mount all containers")
 	flags.StringVar(&mountOpts.Format, "format", "", "Change the output format to Go template")
-	flags.BoolVarP(&mountOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&mountOpts.NoTruncate, "notruncate", false, "Do not truncate output")
 }
 
@@ -56,19 +55,19 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: mountCommand,
 	})
-	flags := mountCommand.Flags()
-	mountFlags(flags)
+	mountFlags(mountCommand.Flags())
+	validate.AddLatestFlag(mountCommand, &mountOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: containerMountCommmand,
 		Parent:  containerCmd,
 	})
-	containerMountFlags := containerMountCommmand.Flags()
-	mountFlags(containerMountFlags)
+	mountFlags(containerMountCommmand.Flags())
+	validate.AddLatestFlag(containerMountCommmand, &mountOpts.Latest)
 }
 
-func mount(cmd *cobra.Command, args []string) error {
+func mount(_ *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)

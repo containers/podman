@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -50,15 +51,11 @@ func init() {
 	flags := topCommand.Flags()
 	flags.SetInterspersed(false)
 	flags.BoolVar(&topOptions.ListDescriptors, "list-descriptors", false, "")
-	flags.BoolVarP(&topOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-
 	_ = flags.MarkHidden("list-descriptors") // meant only for bash completion
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	validate.AddLatestFlag(topCommand, &topOptions.Latest)
 }
 
-func top(cmd *cobra.Command, args []string) error {
+func top(_ *cobra.Command, args []string) error {
 	if topOptions.ListDescriptors {
 		descriptors, err := util.GetContainerPidInformationDescriptors()
 		if err != nil {
