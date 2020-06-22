@@ -1018,14 +1018,15 @@ _podman_network_create() {
 	    ;;
     esac
 }
+
 _podman_network_inspect() {
     local options_with_args="
+	--format
+	-f
      "
     local boolean_options="
 	--help
 	-h
-	--format
-	-f
     "
     _complete_ "$options_with_args" "$boolean_options"
 
@@ -1038,15 +1039,15 @@ _podman_network_inspect() {
 
 _podman_network_ls() {
     local options_with_args="
+	--format
+	-f
+	--filter
      "
     local boolean_options="
     --help
     -h
 	--quiet
 	-q
-	--format
-	-f
-	-- filter
     "
     _complete_ "$options_with_args" "$boolean_options"
 
@@ -3564,6 +3565,7 @@ _podman_podman() {
     logs
     manifest
     mount
+    network
     pause
     pod
     port
