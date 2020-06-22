@@ -163,10 +163,10 @@ $ podman generate systemd --files --name systemd-pod
 # Copy all the generated files.
 
 $ sudo cp pod-systemd-pod.service container-great_payne.service /usr/lib/systemd/system
-$ systemctl enable pod-systemd-po.service
-Created symlink /etc/systemd/system/multi-user.target.wants/pod-systemd-po.service → /usr/lib/systemd/system/pod-systemd-po.service.
-Created symlink /etc/systemd/system/default.target.wants/pod-systemd-po.service → /usr/lib/systemd/system/pod-systemd-po.service.
-$ systemctl is-enabled pod-systemd-po.service
+$ systemctl enable pod-systemd-pod.service
+Created symlink /etc/systemd/system/multi-user.target.wants/pod-systemd-pod.service → /usr/lib/systemd/system/pod-systemd-pod.service.
+Created symlink /etc/systemd/system/default.target.wants/pod-systemd-pod.service → /usr/lib/systemd/system/pod-systemd-pod.service.
+$ systemctl is-enabled pod-systemd-pod.service
 enabled
 ```
 To run the user services placed in `$HOME/.config/systemd/user/` on first login of that user, enable the service with --user flag.
