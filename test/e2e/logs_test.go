@@ -315,7 +315,7 @@ var _ = Describe("Podman logs", func() {
 	It("follow output stopped container", func() {
 		containerName := "logs-f"
 
-		logc := podmanTest.Podman([]string{"run", "--name", containerName, "-d", ALPINE})
+		logc := podmanTest.Podman([]string{"run", "--name", containerName, "-d", ALPINE, "true"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
 
