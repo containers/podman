@@ -129,7 +129,7 @@ type ContainerBasicConfig struct {
 	Sysctl map[string]string `json:"sysctl,omitempty"`
 	// Remove indicates if the container should be removed once it has been started
 	// and exits
-	Remove bool `json:"remove"`
+	Remove bool `json:"remove,omitempty"`
 	// PreserveFDs is a number of additional file descriptors (in addition
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.
