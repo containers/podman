@@ -1,10 +1,13 @@
 package libpod
 
 import (
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
+	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -81,5 +84,31 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 		}
 		options.WaitGroup.Done()
 	}()
+	// Check if container is still running or paused
+	if options.Follow {
+		go func() {
+			for {
+				state, err := c.State()
+				time.Sleep(watch.POLL_DURATION)
+				if err != nil {
+					tailError := t.StopAtEOF()
+					if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
+						logrus.Error(tailError)
+					}
+					if errors.Cause(err) != define.ErrNoSuchCtr {
+						logrus.Error(err)
+					}
+					break
+				}
+				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+					tailError := t.StopAtEOF()
+					if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
+						logrus.Error(tailError)
+					}
+					break
+				}
+			}
+		}()
+	}
 	return nil
 }
