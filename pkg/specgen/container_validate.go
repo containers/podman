@@ -61,10 +61,6 @@ func (s *SpecGenerator) Validate() error {
 	//
 	// ContainerSecurityConfig
 	//
-	// groups and privileged are exclusive
-	if len(s.Groups) > 0 && s.Privileged {
-		return exclusiveOptions("Groups", "privileged")
-	}
 	// capadd and privileged are exclusive
 	if len(s.CapAdd) > 0 && s.Privileged {
 		return exclusiveOptions("CapAdd", "privileged")
