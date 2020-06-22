@@ -26,6 +26,27 @@ t GET libpod/containers/json?all=true 200 \
   .[0].ExitCode=0 \
   .[0].IsInfra=false
 
+# Make sure `limit` works.
+t GET libpod/containers/json?limit=1 200 \
+  length=1 \
+  .[0].Id~[0-9a-f]\\{64\\} \
+  .[0].Image=$IMAGE \
+  .[0].Command[0]="true" \
+  .[0].State~\\\(exited\\\|stopped\\\) \
+  .[0].ExitCode=0 \
+  .[0].IsInfra=false
+
+# Make sure `last` works, which is an alias for `limit`.
+# See https://github.com/containers/libpod/issues/6413.
+t GET libpod/containers/json?last=1 200 \
+  length=1 \
+  .[0].Id~[0-9a-f]\\{64\\} \
+  .[0].Image=$IMAGE \
+  .[0].Command[0]="true" \
+  .[0].State~\\\(exited\\\|stopped\\\) \
+  .[0].ExitCode=0 \
+  .[0].IsInfra=false
+
 cid=$(jq -r '.[0].Id' <<<"$output")
 
 t DELETE libpod/containers/$cid 204

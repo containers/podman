@@ -35,7 +35,7 @@ func List(ctx context.Context, filters map[string][]string, all *bool, last *int
 		params.Set("all", strconv.FormatBool(*all))
 	}
 	if last != nil {
-		params.Set("last", strconv.Itoa(*last))
+		params.Set("limit", strconv.Itoa(*last))
 	}
 	if pod != nil {
 		params.Set("pod", strconv.FormatBool(*pod))

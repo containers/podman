@@ -14,6 +14,7 @@ import (
 	"github.com/containers/libpod/pkg/ps"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func ContainerExists(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +37,8 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		All       bool                `schema:"all"`
 		Filters   map[string][]string `schema:"filters"`
-		Last      int                 `schema:"last"`
+		Last      int                 `schema:"last"` // alias for limit
+		Limit     int                 `schema:"limit"`
 		Namespace bool                `schema:"namespace"`
 		Pod       bool                `schema:"pod"`
 		Size      bool                `schema:"size"`
@@ -50,11 +52,22 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
+	limit := query.Limit
+	// Support `last` as an alias for `limit`.  While Podman uses --last in
+	// the CLI, the API is using `limit`.  As we first used `last` in the
+	// API as well, we decided to go with aliasing to prevent any
+	// regression. See github.com/containers/libpod/issues/6413.
+	if _, found := r.URL.Query()["last"]; found {
+		logrus.Info("List containers: received `last` parameter - overwriting `limit`")
+		limit = query.Last
+	}
+
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	opts := entities.ContainerListOptions{
 		All:       query.All,
 		Filters:   query.Filters,
-		Last:      query.Last,
+		Last:      limit,
 		Size:      query.Size,
 		Sort:      "",
 		Namespace: query.Namespace,
