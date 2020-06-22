@@ -156,10 +156,6 @@ func replaceContainer(name string) error {
 }
 
 func createInit(c *cobra.Command) error {
-	if c.Flag("privileged").Changed && c.Flag("security-opt").Changed {
-		logrus.Warn("setting security options with --privileged has no effect")
-	}
-
 	if c.Flag("shm-size").Changed {
 		cliVals.ShmSize = c.Flag("shm-size").Value.String()
 	}
