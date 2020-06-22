@@ -53,18 +53,15 @@ func init() {
 	// TODO should we make this a [] ?
 	flags.StringSliceVarP(&inputFilters, "filter", "f", []string{}, "Filter output based on conditions given")
 	flags.StringVar(&psInput.Format, "format", "", "Pretty-print pods to JSON or using a Go template")
-	flags.BoolVarP(&psInput.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
 	flags.BoolVar(&psInput.Namespace, "namespace", false, "Display namespace information of the pod")
 	flags.BoolVar(&psInput.Namespace, "ns", false, "Display namespace information of the pod")
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Do not truncate pod and container IDs")
 	flags.BoolVarP(&psInput.Quiet, "quiet", "q", false, "Print the numeric IDs of the pods only")
 	flags.StringVar(&psInput.Sort, "sort", "created", "Sort output by created, id, name, or number")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	validate.AddLatestFlag(psCmd, &psInput.Latest)
 }
 
-func pods(cmd *cobra.Command, args []string) error {
+func pods(cmd *cobra.Command, _ []string) error {
 	var (
 		w   io.Writer = os.Stdout
 		row string

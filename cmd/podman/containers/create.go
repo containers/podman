@@ -58,6 +58,7 @@ func createFlags(flags *pflag.FlagSet) {
 	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
 	flags.AddFlagSet(common.GetNetFlags())
 	flags.SetNormalizeFunc(common.AliasFlags)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("env-host")

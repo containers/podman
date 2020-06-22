@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/utils"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -22,7 +22,7 @@ var (
 		Long:  stopDescription,
 		RunE:  stop,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
 		Example: `podman stop ctrID
   podman stop --latest
@@ -35,7 +35,7 @@ var (
 		Long:  stopCommand.Long,
 		RunE:  stopCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
 		Example: `podman container stop ctrID
   podman container stop --latest
@@ -52,11 +52,9 @@ func stopFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&stopOptions.All, "all", "a", false, "Stop all running containers")
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 	flags.StringArrayVarP(&stopOptions.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
-	flags.BoolVarP(&stopOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.UintVarP(&stopTimeout, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("cidfile")
 		_ = flags.MarkHidden("ignore")
 	}
@@ -68,8 +66,8 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: stopCommand,
 	})
-	flags := stopCommand.Flags()
-	stopFlags(flags)
+	stopFlags(stopCommand.Flags())
+	validate.AddLatestFlag(stopCommand, &stopOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
@@ -77,8 +75,8 @@ func init() {
 		Parent:  containerCmd,
 	})
 
-	containerStopFlags := containerStopCommand.Flags()
-	stopFlags(containerStopFlags)
+	stopFlags(containerStopCommand.Flags())
+	validate.AddLatestFlag(containerStopCommand, &stopOptions.Latest)
 }
 
 func stop(cmd *cobra.Command, args []string) error {

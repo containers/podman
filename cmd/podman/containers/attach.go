@@ -44,10 +44,6 @@ func attachFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&attachOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	flags.BoolVar(&attachOpts.NoStdin, "no-stdin", false, "Do not attach STDIN. The default is false")
 	flags.BoolVar(&attachOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
-	flags.BoolVarP(&attachOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
 }
 
 func init() {
@@ -55,22 +51,24 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: attachCommand,
 	})
-	flags := attachCommand.Flags()
-	attachFlags(flags)
+	attachFlags(attachCommand.Flags())
+	validate.AddLatestFlag(attachCommand, &attachOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerAttachCommand,
 		Parent:  containerCmd,
 	})
-	containerAttachFlags := containerAttachCommand.Flags()
-	attachFlags(containerAttachFlags)
+	attachFlags(containerAttachCommand.Flags())
+	validate.AddLatestFlag(containerAttachCommand, &attachOpts.Latest)
+
 }
 
 func attach(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 || (len(args) == 0 && !attachOpts.Latest) {
 		return errors.Errorf("attach requires the name or id of one running container or the latest flag")
 	}
+
 	var name string
 	if len(args) > 0 {
 		name = args[0]

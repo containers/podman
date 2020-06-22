@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
@@ -23,7 +23,7 @@ var (
 		Long:  portDescription,
 		RunE:  port,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, true, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
 		Example: `podman port --all
   podman port ctrID 80/tcp
@@ -36,7 +36,7 @@ var (
 		Long:  portDescription,
 		RunE:  portCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, true, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
 		Example: `podman container port --all
   podman container port --latest 80`,
@@ -49,10 +49,6 @@ var (
 
 func portFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&portOpts.All, "all", "a", false, "Display port information for all containers")
-	flags.BoolVarP(&portOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
 }
 
 func init() {
@@ -60,22 +56,19 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: portCommand,
 	})
-
-	flags := portCommand.Flags()
-	portFlags(flags)
+	portFlags(portCommand.Flags())
+	validate.AddLatestFlag(portCommand, &portOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerPortCommand,
 		Parent:  containerCmd,
 	})
-
-	containerPortflags := containerPortCommand.Flags()
-	portFlags(containerPortflags)
-
+	portFlags(containerPortCommand.Flags())
+	validate.AddLatestFlag(containerPortCommand, &portOpts.Latest)
 }
 
-func port(cmd *cobra.Command, args []string) error {
+func port(_ *cobra.Command, args []string) error {
 	var (
 		container string
 		err       error

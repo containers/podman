@@ -10,11 +10,10 @@ import (
 var (
 	manifestDescription = "Creates, modifies, and pushes manifest lists and image indexes."
 	manifestCmd         = &cobra.Command{
-		Use:              "manifest",
-		Short:            "Manipulate manifest lists and image indexes",
-		Long:             manifestDescription,
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "manifest",
+		Short: "Manipulate manifest lists and image indexes",
+		Long:  manifestDescription,
+		RunE:  validate.SubCommandExists,
 		Example: `podman manifest add mylist:v1.11 image:v1.11-amd64
   podman manifest create localhost/list
   podman manifest inspect localhost/list

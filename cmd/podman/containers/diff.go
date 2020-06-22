@@ -14,8 +14,8 @@ var (
 	diffCmd = &cobra.Command{
 		Use:   "diff [flags] CONTAINER",
 		Args:  validate.IDOrLatestArgs,
-		Short: "Inspect changes on container's file systems",
-		Long:  `Displays changes on a container filesystem.  The container will be compared to its parent layer.`,
+		Short: "Inspect changes to the container's file systems",
+		Long:  `Displays changes to the container filesystem's'.  The container will be compared to its parent layer.`,
 		RunE:  diff,
 		Example: `podman container diff myCtr
   podman container diff -l --format json myCtr`,
@@ -35,10 +35,7 @@ func init() {
 	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
 	_ = flags.MarkHidden("archive")
 	flags.StringVar(&diffOpts.Format, "format", "", "Change the output format")
-
-	if !registry.IsRemote() {
-		flags.BoolVarP(&diffOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	}
+	validate.AddLatestFlag(diffCmd, &diffOpts.Latest)
 }
 
 func diff(cmd *cobra.Command, args []string) error {

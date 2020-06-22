@@ -16,7 +16,7 @@ import (
 	_ "github.com/containers/libpod/v2/cmd/podman/system"
 	_ "github.com/containers/libpod/v2/cmd/podman/volumes"
 	"github.com/containers/libpod/v2/pkg/rootless"
-	"github.com/containers/libpod/pkg/terminal"
+	"github.com/containers/libpod/v2/pkg/terminal"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

@@ -10,11 +10,10 @@ import (
 var (
 	// Command: healthcheck
 	healthCmd = &cobra.Command{
-		Use:              "healthcheck",
-		Short:            "Manage health checks on containers",
-		Long:             "Run health checks on containers",
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "healthcheck",
+		Short: "Manage health checks on containers",
+		Long:  "Run health checks on containers",
+		RunE:  validate.SubCommandExists,
 	}
 )
 

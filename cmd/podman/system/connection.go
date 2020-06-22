@@ -60,7 +60,6 @@ func init() {
 	})
 
 	flags := connectionCmd.Flags()
-	flags.StringVar(&cOpts.Identity, "identity", "", "path to ssh identity file")
 	flags.IntVarP(&cOpts.Port, "port", "p", 22, "port number for destination")
 	flags.StringVar(&cOpts.UDSPath, "socket-path", "", "path to podman socket on remote host. (default '/run/podman/podman.sock' or '/run/user/{uid}/podman/podman.sock)")
 }

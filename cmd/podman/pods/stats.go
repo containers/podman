@@ -13,6 +13,7 @@ import (
 	"github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/containers/libpod/v2/pkg/util/camelcase"
 	"github.com/spf13/cobra"
@@ -55,13 +56,9 @@ func init() {
 	flags := statsCmd.Flags()
 	flags.BoolVarP(&statsOptions.All, "all", "a", false, "Provide stats for all pods")
 	flags.StringVar(&statsOptions.Format, "format", "", "Pretty-print container statistics to JSON or using a Go template")
-	flags.BoolVarP(&statsOptions.Latest, "latest", "l", false, "Provide stats on the latest pod Podman is aware of")
 	flags.BoolVar(&statsOptions.NoReset, "no-reset", false, "Disable resetting the screen when streaming")
 	flags.BoolVar(&statsOptions.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result")
-
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	validate.AddLatestFlag(statsCmd, &statsOptions.Latest)
 }
 
 func stats(cmd *cobra.Command, args []string) error {
