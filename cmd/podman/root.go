@@ -8,6 +8,7 @@ import (
 	"runtime/pprof"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -103,12 +104,12 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPreRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
-	cfg := registry.PodmanConfig()
-
 	// Help is a special case, no need for more setup
 	if cmd.Name() == "help" {
 		return nil
 	}
+
+	cfg := registry.PodmanConfig()
 
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
@@ -211,10 +212,14 @@ func loggingHook() {
 func rootFlags(opts *entities.PodmanConfig, flags *pflag.FlagSet) {
 	// V2 flags
 	flags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
-	// TODO Read uri from containers.config when available
-	flags.StringVar(&opts.URI, "url", registry.DefaultAPIAddress(), "URL to access Podman service (CONTAINER_HOST)")
-	flags.StringSliceVar(&opts.Identities, "identity", []string{}, "path to SSH identity file, (CONTAINER_SSHKEY)")
-	flags.StringVar(&opts.PassPhrase, "passphrase", "", "passphrase for identity file (not secure, CONTAINER_PASSPHRASE), ssh-agent always supported")
+
+	custom, _ := config.ReadCustomConfig()
+	defaultURI := custom.Engine.RemoteURI
+	if defaultURI == "" {
+		defaultURI = registry.DefaultAPIAddress()
+	}
+	flags.StringVar(&opts.URI, "url", defaultURI, "URL to access Podman service (CONTAINER_HOST)")
+	flags.StringVar(&opts.Identity, "identity", custom.Engine.RemoteIdentity, "path to SSH identity file, (CONTAINER_SSHKEY)")
 
 	cfg := opts.Config
 	flags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")

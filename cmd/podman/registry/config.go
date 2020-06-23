@@ -68,7 +68,6 @@ func newPodmanConfig() {
 		}
 	}
 
-	// FIXME: for rootless, add flag to get the path to override configuration
 	cfg, err := config.NewConfig("")
 	if err != nil {
 		fmt.Fprint(os.Stderr, "Failed to obtain podman configuration: "+err.Error())
@@ -83,7 +82,7 @@ func newPodmanConfig() {
 	podmanOptions = entities.PodmanConfig{Config: cfg, EngineMode: mode}
 }
 
-// SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
+// setXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
 // containers/image uses XDG_RUNTIME_DIR to locate the auth file, XDG_CONFIG_HOME is
 // use for the libpod.conf configuration file.
 func setXdgDirs() error {

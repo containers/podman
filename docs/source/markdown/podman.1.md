@@ -59,10 +59,10 @@ Podman and libpod currently support an additional `precreate` state which is cal
 **WARNING**: the `precreate` hook lets you do powerful things, such as adding additional mounts to the runtime configuration.  That power also makes it easy to break things.  Before reporting libpod errors, try running your container with `precreate` hooks disabled to see if the problem is due to one of your hooks.
 
 **--identity**=*path*
-Path to SSH identity file
 
-**--passphrase**=*secret*
-pass phrase for SSH identity file
+Path to ssh identity file. If the identity file has been encrypted, podman prompts the user for the passphrase.
+If no identity file is provided and no user is given, podman defaults to the user running the podman command.
+Podman prompts for the login password on the remote server.
 
 **--log-level**=*level*
 
