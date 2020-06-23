@@ -61,10 +61,12 @@ func runFlags(flags *pflag.FlagSet) {
 	flags.SetNormalizeFunc(common.AliasFlags)
 	flags.BoolVar(&runOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 	flags.BoolVar(&runRmi, "rmi", false, "Remove container image unless used by other containers")
+	flags.UintVar(&runOpts.PreserveFDs, "preserve-fds", 0, "Pass a number of additional file descriptors into the container")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("env-host")
 		_ = flags.MarkHidden("http-proxy")
+		_ = flags.MarkHidden("preserve-fds")
 	}
 	// Not sure we want these exposed yet.  If we do, they need to be documented in man pages
 	_ = flags.MarkHidden("override-arch")
@@ -163,6 +165,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	runOpts.Detach = cliVals.Detach
 	runOpts.DetachKeys = cliVals.DetachKeys
+	cliVals.PreserveFDs = runOpts.PreserveFDs
 	s := specgen.NewSpecGenerator(args[0], cliVals.RootFS)
 	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err

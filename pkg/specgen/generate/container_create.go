@@ -104,6 +104,10 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, err
 	}
 
+	if s.PreserveFDs > 0 {
+		options = append(options, libpod.WithPreserveFDs(s.PreserveFDs))
+	}
+
 	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, newImage)
 	if err != nil {
 		return nil, err

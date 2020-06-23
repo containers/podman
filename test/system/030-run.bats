@@ -61,6 +61,18 @@ echo $rand        |   0 | $rand
     is "$tests_run" "$(grep . <<<$tests | wc -l)" "Ran the full set of tests"
 }
 
+# 'run --preserve-fds' passes a number of additional file descriptors into the container
+@test "podman run --preserve-fds" {
+    skip "enable this once #6653 is fixed"
+    skip_if_remote
+
+    content=$(random_string 20)
+    echo "$content" > $PODMAN_TMPDIR/tempfile
+
+    run_podman run --rm -i --preserve-fds=2 $IMAGE sh -c "cat <&4" 4<$PODMAN_TMPDIR/tempfile
+    is "$output" "$content" "container read input from fd 4"
+}
+
 @test "podman run - uidmapping has no /sys/kernel mounts" {
     skip_if_rootless "cannot umount as rootless"
     skip_if_remote "TODO Fix this for remote case"

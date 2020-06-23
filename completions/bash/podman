@@ -2103,6 +2103,7 @@ _podman_container_run() {
 		--pids-limit
 		--pod
 		--pod-id-file
+		--preserve-fds
 		--publish -p
 		--pull
 		--runtime

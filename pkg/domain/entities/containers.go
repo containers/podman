@@ -294,6 +294,7 @@ type ContainerRunOptions struct {
 	ErrorStream  *os.File
 	InputStream  *os.File
 	OutputStream *os.File
+	PreserveFDs  uint
 	Rm           bool
 	SigProxy     bool
 	Spec         *specgen.SpecGenerator
