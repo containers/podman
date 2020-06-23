@@ -83,6 +83,8 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 			return nil, errors.Wrapf(err, "converting containers.conf ShmSize %s to an int", r.config.Containers.ShmSize)
 		}
 		ctr.config.ShmSize = size
+		ctr.config.StopSignal = 15
+		ctr.config.StopTimeout = r.config.Engine.StopTimeout
 	} else {
 		// This is a restore from an imported checkpoint
 		ctr.restoreFromCheckpoint = true
@@ -106,8 +108,6 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 	ctr.config.CreatedTime = time.Now()
 
 	ctr.state.BindMounts = make(map[string]string)
-
-	ctr.config.StopTimeout = r.config.Engine.StopTimeout
 
 	ctr.config.OCIRuntime = r.defaultOCIRuntime.Name()
 
