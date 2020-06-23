@@ -535,7 +535,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 
 	s.SeccompPolicy = c.SeccompPolicy
 
-	// TODO: should parse out options
 	s.VolumesFrom = c.VolumesFrom
 
 	// Only add read-only tmpfs mounts in case that we are read-only and the
@@ -547,22 +546,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Mounts = mounts
 	s.Volumes = volumes
 
-	// TODO any idea why this was done
-	// devices := rtc.Containers.Devices
-	// TODO conflict on populate?
-	//
-	// if c.Changed("device") {
-	//	devices = append(devices, c.StringSlice("device")...)
-	// }
-
 	for _, dev := range c.Devices {
 		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
 	}
 
-	// TODO things i cannot find in spec
-	// we dont think these are in the spec
-	// init - initbinary
-	// initpath
 	s.Init = c.Init
 	s.InitPath = c.InitPath
 	s.Stdin = c.Interactive
@@ -586,11 +573,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		}
 		s.Rlimits = append(s.Rlimits, rl)
 	}
-
-	// Tmpfs:         c.StringArray("tmpfs"),
-
-	// TODO how to handle this?
-	// Syslog:        c.Bool("syslog"),
 
 	logOpts := make(map[string]string)
 	for _, o := range c.LogOptions {
