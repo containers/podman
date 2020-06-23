@@ -1039,4 +1039,12 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman run --privileged and --group-add", func() {
+		groupName := "kvm"
+		session := podmanTest.Podman([]string{"run", "-t", "-i", "--group-add", groupName, "--privileged", fedoraMinimal, "groups"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(session.OutputToString(), groupName)).To(BeTrue())
+	})
 })

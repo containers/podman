@@ -177,4 +177,13 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(Equal(session1.OutputToString()))
 	})
 
+	It("podman run --privileged and --security-opt SELinux options", func() {
+		session := podmanTest.Podman([]string{"run", "-it", "--privileged", "--security-opt", "label=type:spc_t", "--security-opt", "label=level:s0:c1,c2", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("spc_t")
+		Expect(match).To(BeTrue())
+		match2, _ := session.GrepString("s0:c1,c2")
+		Expect(match2).To(BeTrue())
+	})
 })
