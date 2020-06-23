@@ -67,3 +67,5 @@ require (
 	k8s.io/apimachinery v0.18.4
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace github.com/containers/common v0.14.0 => github.com/openSUSE/containers-common v0.1.4-0.20200623120750-c01f6534bad2

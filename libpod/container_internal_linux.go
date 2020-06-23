@@ -31,6 +31,7 @@ import (
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/version"
 	"github.com/containers/storage/pkg/archive"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -245,6 +246,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Apply AppArmor checks and load the default profile if needed.
 	if !c.config.Privileged {
+		// Default profiles should be suffixed with podmans version number
+		if c.config.Spec.Process.ApparmorProfile == apparmor.Profile {
+			c.config.Spec.Process.ApparmorProfile += "-" + version.Version
+		}
 		updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
 		if err != nil {
 			return nil, err
