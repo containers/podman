@@ -38,7 +38,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 ```
 # Start a container
 $ podman run --label "io.containers.autoupdate=image" \
-    --label "io.containers.autoupdate.autfile=/some/authfile.json" \
+    --label "io.containers.autoupdate.authfile=/some/authfile.json" \
     -d busybox:latest top
 bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
 
