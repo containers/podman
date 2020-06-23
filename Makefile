@@ -352,7 +352,7 @@ remoteintegration: varlink_generate test-binaries ginkgo-remote
 localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	if timeout -v 1 true; then PODMAN=./bin/podman bats test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
+	if timeout -v 1 true; then PODMAN=$(shell pwd)/bin/podman bats test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
 
 .PHONY: remotesystem
 remotesystem:
@@ -379,7 +379,7 @@ remotesystem:
 			echo "Error: ./bin/podman system service did not come up on $$SOCK_FILE" >&2;\
 			exit 1;\
 		fi;\
-		env PODMAN="./bin/podman-remote --url $$PODMAN_SOCKET" bats test/system/ ;\
+		env PODMAN="$(shell pwd)/bin/podman-remote --url $$PODMAN_SOCKET" bats test/system/ ;\
 		rc=$$?;\
 		kill %1;\
 		rm -f $$SOCK_FILE;\

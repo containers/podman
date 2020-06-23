@@ -88,12 +88,16 @@ __END__
 ok 1 hi
 ok 2 bye # skip no reason
 not ok 3 fail
+# $ /path/to/podman foo -bar
+# #| FAIL: exit code is 123; expected 321
 ok 4 blah
 >>>
 1..4
 <span class='bats-passed'><a name='t--00001'>ok 1 hi</a></span>
 <span class='bats-skipped'><a name='t--00002'>ok 2 bye # skip no reason</a></span>
 <span class='bats-failed'><a name='t--00003'>not ok 3 fail</a></span>
+<span class='bats-log'># $ <span title="/path/to/podman">podman</span> foo -bar</span>
+<span class='bats-log-esm'># #| FAIL: exit code is 123; expected 321</span>
 <span class='bats-passed'><a name='t--00004'>ok 4 blah</a></span>
 <hr/><span class='bats-summary'>Summary: <span class='bats-passed'>2 Passed</span>, <span class='bats-failed'>1 Failed</span>, <span class='bats-skipped'>1 Skipped</span>. Total tests: 4</span>
 
