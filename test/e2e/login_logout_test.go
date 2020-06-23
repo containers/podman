@@ -55,7 +55,7 @@ var _ = Describe("Podman login and logout", func() {
 			}
 		}
 
-		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", "registry:2", "-Bbn", "podmantest", "test"})
+		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", "registry:2.6", "-Bbn", "podmantest", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -84,7 +84,7 @@ var _ = Describe("Podman login and logout", func() {
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", "registry:2"})
+			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", "registry:2.6"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -228,7 +228,7 @@ var _ = Describe("Podman login and logout", func() {
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", "registry:2"})
+			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", "registry:2.6"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
