@@ -2,12 +2,6 @@
 
 # Podman command to run; may be podman-remote
 PODMAN=${PODMAN:-podman}
-# If it's a relative path, convert to absolute; otherwise tests can't cd out
-if [[ "$PODMAN" =~ / ]]; then
-    if [[ ! "$PODMAN" =~ ^/ ]]; then
-        PODMAN=$(realpath $PODMAN)
-    fi
-fi
 
 # Standard image to use for most tests
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
@@ -21,6 +15,12 @@ IMAGE=$PODMAN_TEST_IMAGE_FQN
 
 # Default timeout for a podman command.
 PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-60}
+
+# Prompt to display when logging podman commands; distinguish root/rootless
+_LOG_PROMPT='$'
+if [ $(id -u) -eq 0 ]; then
+    _LOG_PROMPT='#'
+fi
 
 ###############################################################################
 # BEGIN setup/teardown tools
@@ -138,7 +138,7 @@ function run_podman() {
     esac
 
     # stdout is only emitted upon error; this echo is to help a debugger
-    echo "\$ $PODMAN $*"
+    echo "$_LOG_PROMPT $PODMAN $*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
     run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@" 3>/dev/null
