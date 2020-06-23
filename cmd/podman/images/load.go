@@ -30,7 +30,7 @@ var (
 	}
 
 	imageLoadCommand = &cobra.Command{
-		Args:  cobra.MinimumNArgs(1),
+		Args:  loadCommand.Args,
 		Use:   loadCommand.Use,
 		Short: loadCommand.Short,
 		Long:  loadCommand.Long,
