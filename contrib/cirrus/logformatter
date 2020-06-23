@@ -231,6 +231,10 @@ END_HTML
         if ($looks_like_bats) {
             my $css;
 
+            # Readability: /long/path/to/podman -> podman (hover for full path)
+            $line =~ s{^(#\s+(#|\$)\s+)(\S+/)(podman\S*)\s}
+                      {$1<span title="$3$4">$4</span> };
+
             if    ($line =~ /^ok\s.*\s# skip/) { $css = 'skipped' }
             elsif ($line =~ /^ok\s/)           { $css = 'passed'  }
             elsif ($line =~ /^not\s+ok\s/)     { $css = 'failed'  }
