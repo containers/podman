@@ -1141,8 +1141,13 @@ func (c *Container) IDMappings() (storage.IDMappingOptions, error) {
 
 // RootUID returns the root user mapping from container
 func (c *Container) RootUID() int {
+	return c.findUID(0)
+}
+
+// findUID returns the UID mapping of the specified uid or 0 if it couldn't be found.
+func (c *Container) findUID(uid int) int {
 	for _, uidmap := range c.config.IDMappings.UIDMap {
-		if uidmap.ContainerID == 0 {
+		if uidmap.ContainerID == uid {
 			return uidmap.HostID
 		}
 	}
@@ -1151,8 +1156,13 @@ func (c *Container) RootUID() int {
 
 // RootGID returns the root user mapping from container
 func (c *Container) RootGID() int {
+	return c.findGID(0)
+}
+
+// findUID returns the GID mapping of the specified gid or 0 if it couldn't be found.
+func (c *Container) findGID(gid int) int {
 	for _, gidmap := range c.config.IDMappings.GIDMap {
-		if gidmap.ContainerID == 0 {
+		if gidmap.ContainerID == gid {
 			return gidmap.HostID
 		}
 	}

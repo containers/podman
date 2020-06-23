@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
@@ -308,8 +309,15 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
+		// Get the uid/gid of the container user to create the volume
+		// with the correct uid/gid. See github.com/containers/libpod/issues/5698.
+		uid, gid, _, err := chrootuser.GetUser(ctr.state.Mountpoint, ctr.config.User)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error created named volume %q", vol.Name)
+		}
+
 		// The volume does not exist, so we need to create it.
-		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
+		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(int(uid)), WithVolumeGID(int(gid))}
 		if isAnonymous {
 			volOptions = append(volOptions, withSetAnon())
 		}

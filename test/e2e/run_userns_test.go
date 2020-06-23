@@ -238,4 +238,31 @@ var _ = Describe("Podman UserNS support", func() {
 		ok, _ := session.GrepString("4998")
 		Expect(ok).To(BeTrue())
 	})
+
+	It("podman --user with volume", func() {
+		tests := []struct {
+			uid, gid, arg, vol string
+		}{
+			{"0", "0", "0:0", "vol-0"},
+			{"1000", "0", "1000", "vol-1"},
+			{"1000", "1000", "1000:1000", "vol-2"},
+		}
+
+		for _, tt := range tests {
+			session := podmanTest.Podman([]string{"run", "-d", "--user", tt.arg, "--mount", "type=volume,src=" + tt.vol + ",dst=/home/user", "alpine", "top"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+
+			inspectUID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .UID }}", tt.vol})
+			inspectUID.WaitWithDefaultTimeout()
+			Expect(inspectUID.ExitCode()).To(Equal(0))
+			Expect(inspectUID.OutputToString()).To(Equal(tt.uid))
+
+			// Make sure we're defaulting to 0.
+			inspectGID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .GID }}", tt.vol})
+			inspectGID.WaitWithDefaultTimeout()
+			Expect(inspectGID.ExitCode()).To(Equal(0))
+			Expect(inspectGID.OutputToString()).To(Equal(tt.gid))
+		}
+	})
 })
