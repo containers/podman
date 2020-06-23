@@ -99,6 +99,84 @@ EOF
 }
 
 
+@test "podman build - workdir, cmd, env, label" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+
+    # Random workdir, and multiple random strings to verify command & env
+    workdir=/$(random_string 10)
+    s_echo=$(random_string 15)
+    s_env1=$(random_string 20)
+    s_env2=$(random_string 25)
+    s_env3=$(random_string 30)
+
+    # Label name: make sure it begins with a letter! jq barfs if you
+    # try to ask it for '.foo.<N>xyz', i.e. any string beginning with digit
+    label_name=l$(random_string 8)
+    label_value=$(random_string 12)
+
+    # Command to run on container startup with no args
+    cat >$tmpdir/mycmd <<EOF
+#!/bin/sh
+pwd
+echo "\$1"
+echo "\$MYENV1"
+echo "\$MYENV2"
+echo "\$MYENV3"
+EOF
+
+    cat >$tmpdir/Containerfile <<EOF
+FROM $IMAGE
+LABEL $label_name=$label_value
+RUN mkdir $workdir
+WORKDIR $workdir
+ENV MYENV1=$s_env1
+ENV MYENV2 $s_env2
+ENV MYENV3 this-should-be-overridden
+ADD mycmd /bin/mydefaultcmd
+RUN chmod 755 /bin/mydefaultcmd
+CMD ["/bin/mydefaultcmd","$s_echo"]
+EOF
+
+    # cd to the dir, so we test relative paths (important for podman-remote)
+    cd $PODMAN_TMPDIR
+    run_podman build -t build_test -f build-test/Containerfile build-test
+
+    # Run without args - should run the above script. Verify its output.
+    run_podman run --rm -e MYENV3="$s_env3" build_test
+    is "${lines[0]}" "$workdir" "container default command: pwd"
+    is "${lines[1]}" "$s_echo"  "container default command: output from echo"
+    is "${lines[2]}" "$s_env1"  "container default command: env1"
+    is "${lines[3]}" "$s_env2"  "container default command: env2"
+    is "${lines[4]}" "$s_env3"  "container default command: env3 (from cmdline)"
+
+    # test that workdir is set for command-line commands also
+    run_podman run --rm build_test pwd
+    is "$output" "$workdir" "pwd command in container"
+
+    # Confirm that 'podman inspect' shows the expected values
+    # FIXME: can we rely on .Env[0] being PATH, and the rest being in order??
+    run_podman image inspect build_test
+    tests="
+Env[1]             | MYENV1=$s_env1
+Env[2]             | MYENV2=$s_env2
+Env[3]             | MYENV3=this-should-be-overridden
+Cmd[0]             | /bin/mydefaultcmd
+Cmd[1]             | $s_echo
+WorkingDir         | $workdir
+Labels.$label_name | $label_value
+"
+
+    parse_table "$tests" | while read field expect; do
+        actual=$(jq -r ".[0].Config.$field" <<<"$output")
+        dprint "# actual=<$actual> expect=<$expect}>"
+        is "$actual" "$expect" "jq .Config.$field"
+    done
+
+    # Clean up
+    run_podman rmi -f build_test
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent
