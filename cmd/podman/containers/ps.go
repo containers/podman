@@ -110,7 +110,12 @@ func checkFlags(c *cobra.Command) error {
 }
 
 func jsonOut(responses []entities.ListContainer) error {
-	b, err := json.MarshalIndent(responses, "", "  ")
+	r := make([]entities.ListContainer, 0)
+	for _, con := range responses {
+		con.CreatedAt = units.HumanDuration(time.Since(time.Unix(con.Created, 0))) + " ago"
+		r = append(r, con)
+	}
+	b, err := json.MarshalIndent(r, "", "  ")
 	if err != nil {
 		return err
 	}
