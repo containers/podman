@@ -15,6 +15,8 @@ type ListContainer struct {
 	Command []string
 	// Container creation time
 	Created int64
+	// Human readable container creation time.
+	CreatedAt string
 	// If container has exited/stopped
 	Exited bool
 	// Time container exited
