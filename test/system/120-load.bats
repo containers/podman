@@ -107,10 +107,4 @@ verify_iid_and_name() {
        "Diagnostic from 'podman load' without redirection or -i"
 }
 
-@test "podman load - at most 1 arg(s)" {
-    run_podman 125 load 1 2 3
-    is "$output" \
-       "Error: accepts at most 1 arg(s), received 3"
-}
-
 # vim: filetype=sh

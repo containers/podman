@@ -22,7 +22,7 @@ var (
 		Short: "Create new image based on the changed container",
 		Long:  commitDescription,
 		RunE:  commit,
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.RangeArgs(1, 2),
 		Example: `podman commit -q --message "committing container to image" reverent_golick image-committed
   podman commit -q --author "firstName lastName" reverent_golick image-committed
   podman commit -q --pause=false containerID image-committed
@@ -30,7 +30,7 @@ var (
 	}
 
 	containerCommitCommand = &cobra.Command{
-		Args:  cobra.MinimumNArgs(1),
+		Args:  commitCommand.Args,
 		Use:   commitCommand.Use,
 		Short: commitCommand.Short,
 		Long:  commitCommand.Long,
@@ -82,7 +82,7 @@ func init() {
 
 func commit(cmd *cobra.Command, args []string) error {
 	container := args[0]
-	if len(args) > 1 {
+	if len(args) == 2 {
 		commitOptions.ImageName = args[1]
 	}
 	if !commitOptions.Quiet {

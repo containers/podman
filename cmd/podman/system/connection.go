@@ -29,7 +29,7 @@ var (
 		return nil
 	}
 	connectionCmd = &cobra.Command{
-		Use:  "connection [flags] destination",
+		Use:  "connection [flags] DESTINATION",
 		Args: cobra.ExactArgs(1),
 		Long: `Store ssh destination information in podman configuration.
   "destination" is of the form [user@]hostname or

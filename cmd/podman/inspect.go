@@ -10,7 +10,7 @@ import (
 var (
 	// Command: podman _inspect_ Object_ID
 	inspectCmd = &cobra.Command{
-		Use:              "inspect [flags] {CONTAINER_ID | IMAGE_ID}",
+		Use:              "inspect [flags] {CONTAINER_ID | IMAGE_ID} [...]",
 		Short:            "Display the configuration of object denoted by ID",
 		Long:             "Displays the low-level information on an object identified by name or ID",
 		TraverseChildren: true,

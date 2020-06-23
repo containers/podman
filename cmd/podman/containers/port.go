@@ -89,6 +89,9 @@ func port(cmd *cobra.Command, args []string) error {
 		container = args[0]
 	}
 	port := ""
+	if len(args) > 2 {
+		return errors.Errorf("`port` accepts at most 2 arguments")
+	}
 	if len(args) > 1 && !portOpts.Latest {
 		port = args[1]
 	}

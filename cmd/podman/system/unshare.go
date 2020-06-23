@@ -13,7 +13,7 @@ import (
 var (
 	unshareDescription = "Runs a command in a modified user namespace."
 	unshareCommand     = &cobra.Command{
-		Use:   "unshare [flags] [COMMAND [ARG]]",
+		Use:   "unshare [flags] [COMMAND [ARG ...]]",
 		Short: "Run a command in a modified user namespace",
 		Long:  unshareDescription,
 		RunE:  unshare,
