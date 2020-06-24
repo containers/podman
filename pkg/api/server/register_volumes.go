@@ -28,7 +28,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// swagger:operation GET /libpod/volumes/json volumes listVolumes
 	// ---
 	// summary: List volumes
-	// description: Returns a list of networks
+	// description: Returns a list of volumes
 	// produces:
 	// - application/json
 	// parameters:
@@ -36,7 +36,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    name: filters
 	//    type: string
 	//    description: |
-	//      JSON encoded value of the filters (a map[string][]string) to process on the networks list. Available filters:
+	//      JSON encoded value of the filters (a map[string][]string) to process on the volumes list. Available filters:
 	//        - driver=<volume-driver-name> Matches volumes based on their driver.
 	//        - label=<key> or label=<key>:<value> Matches volumes based on the presence of a label alone or a label and a value.
 	//        - name=<volume-name> Matches all of volume name.
