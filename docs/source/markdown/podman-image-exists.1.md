@@ -4,7 +4,7 @@
 podman-image-exists - Check if an image exists in local storage
 
 ## SYNOPSIS
-**podman image exists** [*options*] *image*
+**podman image exists** *image*
 
 ## DESCRIPTION
 **podman image exists** checks if an image exists in local storage. The **ID** or **Name**

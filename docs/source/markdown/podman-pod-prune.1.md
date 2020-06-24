@@ -4,7 +4,7 @@
 podman-pod-prune - Remove all stopped pods and their containers
 
 ## SYNOPSIS
-**podman pod prune**
+**podman pod prune** [*options*]
 
 ## DESCRIPTION
 **podman pod prune** removes all stopped pods and their containers from local storage.

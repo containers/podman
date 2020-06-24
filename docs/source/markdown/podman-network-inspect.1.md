@@ -4,7 +4,7 @@
 podman\-network\-inspect - Displays the raw CNI network configuration for one or more networks
 
 ## SYNOPSIS
-**podman network inspect**  [*network* ...]
+**podman network inspect** [*options*] [*network* ...]
 
 ## DESCRIPTION
 Display the raw (JSON format) network configuration. This command is not available for rootless users.

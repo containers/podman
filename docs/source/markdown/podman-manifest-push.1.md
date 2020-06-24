@@ -4,7 +4,7 @@
 podman\-manifest\-push - Push a manifest list or image index to a registry
 
 ## SYNOPSIS
-**podman manifest push** [options...] *listnameorindexname* *transport:details*
+**podman manifest push** [*options*] *listnameorindexname* *transport:details*
 
 ## DESCRIPTION
 Pushes a manifest list or image index to a registry.

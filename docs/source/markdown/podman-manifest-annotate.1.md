@@ -4,7 +4,7 @@
 podman\-manifest\-annotate - Add or update information about an entry in a manifest list or image index
 
 ## SYNOPSIS
-**podman manifest annotate** [options...] *listnameorindexname* *imagemanifestdigest*
+**podman manifest annotate** [*options*] *listnameorindexname* *imagemanifestdigest*
 
 ## DESCRIPTION
 
