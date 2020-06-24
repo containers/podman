@@ -520,7 +520,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			case "label":
 				// TODO selinux opts and label opts are the same thing
 				s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])
-				s.Annotations[define.InspectAnnotationLabel] = con[1]
+				s.Annotations[define.InspectAnnotationLabel] = strings.Join(s.ContainerSecurityConfig.SelinuxOpts, ",label=")
 			case "apparmor":
 				s.ContainerSecurityConfig.ApparmorProfile = con[1]
 				s.Annotations[define.InspectAnnotationApparmor] = con[1]
