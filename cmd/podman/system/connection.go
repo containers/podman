@@ -42,7 +42,7 @@ var (
 		RunE:               connection,
 		Example: `podman system connection server.fubar.com
   podman system connection --identity ~/.ssh/dev_rsa ssh://root@server.fubar.com:2222
-  podman system connection --identity ~/.ssh/dev_rsa -port 22 root@server.fubar.com`,
+  podman system connection --identity ~/.ssh/dev_rsa --port 22 root@server.fubar.com`,
 	}
 
 	cOpts = struct {
@@ -202,7 +202,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 		return "", errors.Wrapf(err, "failed to parse 'podman info' results")
 	}
 
-	if info.Host.RemoteSocket == nil || !info.Host.RemoteSocket.Exists {
+	if info.Host.RemoteSocket == nil || len(info.Host.RemoteSocket.Path) == 0 {
 		return "", fmt.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
 	}
 	return info.Host.RemoteSocket.Path, nil
