@@ -559,15 +559,24 @@ func (i *Image) TagImage(tag string) error {
 	return nil
 }
 
-// UntagImage removes a tag from the given image
+// UntagImage removes the specified tag from the image.
+// If the tag does not exist, ErrNoSuchTag is returned.
 func (i *Image) UntagImage(tag string) error {
 	if err := i.reloadImage(); err != nil {
 		return err
 	}
+
+	// Normalize the tag as we do with TagImage.
+	ref, err := NormalizedTag(tag)
+	if err != nil {
+		return err
+	}
+	tag = ref.String()
+
 	var newTags []string
 	tags := i.Names()
 	if !util.StringInSlice(tag, tags) {
-		return nil
+		return errors.Wrapf(ErrNoSuchTag, "%q", tag)
 	}
 	for _, t := range tags {
 		if tag != t {

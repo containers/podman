@@ -23,13 +23,6 @@ var _ = Describe("Podman untag", func() {
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
-
-		for _, tag := range []string{"test", "foo", "bar"} {
-			session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, tag})
-			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
-		}
-
 	})
 
 	AfterEach(func() {
@@ -40,34 +33,63 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman untag all", func() {
-		session := podmanTest.PodmanNoCache([]string{"untag", ALPINE})
+		tags := []string{ALPINE, "registry.com/foo:bar", "localhost/foo:bar"}
+
+		cmd := []string{"tag"}
+		cmd = append(cmd, tags...)
+		session := podmanTest.PodmanNoCache(cmd)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		results := podmanTest.PodmanNoCache([]string{"images", ALPINE})
-		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
-		Expect(results.OutputToStringArray()).To(HaveLen(1))
-	})
+		// Make sure that all tags exists.
+		for _, t := range tags {
+			session = podmanTest.PodmanNoCache([]string{"image", "exists", t})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+		}
 
-	It("podman untag single", func() {
-		session := podmanTest.PodmanNoCache([]string{"untag", ALPINE, "localhost/test:latest"})
+		// No arguments -> remove all tags.
+		session = podmanTest.PodmanNoCache([]string{"untag", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		results := podmanTest.PodmanNoCache([]string{"images"})
-		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
-		Expect(results.OutputToStringArray()).To(HaveLen(6))
-		Expect(results.LineInOuputStartsWith("docker.io/library/alpine")).To(BeTrue())
-		Expect(results.LineInOuputStartsWith("localhost/foo")).To(BeTrue())
-		Expect(results.LineInOuputStartsWith("localhost/bar")).To(BeTrue())
-		Expect(results.LineInOuputStartsWith("localhost/test")).To(BeFalse())
+		// Make sure that none of tags exists anymore.
+		for _, t := range tags {
+			session = podmanTest.PodmanNoCache([]string{"image", "exists", t})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(1))
+		}
 	})
 
-	It("podman untag not enough arguments", func() {
-		session := podmanTest.PodmanNoCache([]string{"untag"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).NotTo(Equal(0))
+	It("podman tag/untag - tag normalization", func() {
+		tests := []struct {
+			tag, normalized string
+		}{
+			{"registry.com/image:latest", "registry.com/image:latest"},
+			{"registry.com/image", "registry.com/image:latest"},
+			{"image:latest", "localhost/image:latest"},
+			{"image", "localhost/image:latest"},
+		}
+
+		// Make sure that the user input is normalized correctly for
+		// `podman tag` and `podman untag`.
+		for _, tt := range tests {
+			session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, tt.tag})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+
+			session = podmanTest.PodmanNoCache([]string{"image", "exists", tt.normalized})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+
+			session = podmanTest.PodmanNoCache([]string{"untag", ALPINE, tt.tag})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+
+			session = podmanTest.PodmanNoCache([]string{"image", "exists", tt.normalized})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(1))
+		}
 	})
+
 })
