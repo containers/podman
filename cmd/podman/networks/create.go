@@ -8,7 +8,6 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/network"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -20,6 +19,7 @@ var (
 		Short:   "network create",
 		Long:    networkCreateDescription,
 		RunE:    networkCreate,
+		Args:    cobra.MaximumNArgs(1),
 		Example: `podman network create podman1`,
 		Annotations: map[string]string{
 			registry.ParentNSRequired: "",
@@ -62,14 +62,10 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 	if err := network.IsSupportedDriver(networkCreateOptions.Driver); err != nil {
 		return err
 	}
-	if len(args) > 1 {
-		return errors.Errorf("only one network can be created at a time")
-	}
-	if len(args) > 0 && !define.NameRegex.MatchString(args[0]) {
-		return define.RegexError
-	}
-
 	if len(args) > 0 {
+		if !define.NameRegex.MatchString(args[0]) {
+			return define.RegexError
+		}
 		name = args[0]
 	}
 	response, err := registry.ContainerEngine().NetworkCreate(registry.Context(), name, networkCreateOptions)

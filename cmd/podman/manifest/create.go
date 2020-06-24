@@ -20,7 +20,7 @@ var (
 		Example: `podman manifest create mylist:v1.11
   podman manifest create mylist:v1.11 arch-specific-image-to-add
   podman manifest create --all mylist:v1.11 transport:tagged-image-to-add`,
-		Args: cobra.MinimumNArgs(1),
+		Args: cobra.RangeArgs(1, 2),
 	}
 )
 

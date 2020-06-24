@@ -10,7 +10,7 @@ import (
 var (
 	// podman container _inspect_
 	inspectCmd = &cobra.Command{
-		Use:   "inspect [flags] CONTAINER",
+		Use:   "inspect [flags] CONTAINER [CONTAINER...]",
 		Short: "Display the configuration of a container",
 		Long:  `Displays the low-level information on a container identified by name or ID.`,
 		RunE:  inspectExec,

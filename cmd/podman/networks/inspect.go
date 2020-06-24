@@ -16,7 +16,7 @@ import (
 var (
 	networkinspectDescription = `Inspect network`
 	networkinspectCommand     = &cobra.Command{
-		Use:     "inspect NETWORK [NETWORK...] [flags] ",
+		Use:     "inspect [flags] NETWORK [NETWORK...]",
 		Short:   "network inspect",
 		Long:    networkinspectDescription,
 		RunE:    networkInspect,

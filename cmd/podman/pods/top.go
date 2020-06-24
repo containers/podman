@@ -22,7 +22,7 @@ var (
 	topOptions = entities.PodTopOptions{}
 
 	topCommand = &cobra.Command{
-		Use:   "top [flags] POD [FORMAT-DESCRIPTORS|ARGS]",
+		Use:   "top [flags] POD [FORMAT-DESCRIPTORS|ARGS...]",
 		Short: "Display the running processes of containers in a pod",
 		Long:  topDescription,
 		RunE:  top,

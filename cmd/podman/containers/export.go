@@ -28,7 +28,7 @@ var (
 	}
 
 	containerExportCommand = &cobra.Command{
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		Use:   exportCommand.Use,
 		Short: exportCommand.Short,
 		Long:  exportCommand.Long,

@@ -32,7 +32,7 @@ type listFlagType struct {
 var (
 	// Command: podman image _list_
 	listCmd = &cobra.Command{
-		Use:     "list [FLAGS] [IMAGE]",
+		Use:     "list [flags] [IMAGE]",
 		Aliases: []string{"ls"},
 		Args:    cobra.MaximumNArgs(1),
 		Short:   "List images in local storage",

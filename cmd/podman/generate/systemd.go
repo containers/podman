@@ -20,7 +20,7 @@ var (
 		Short: "Generate systemd units.",
 		Long:  systemdDescription,
 		RunE:  systemd,
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		Example: `podman generate systemd CTR
   podman generate systemd --new --time 10 CTR
   podman generate systemd --files --name POD`,

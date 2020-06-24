@@ -45,6 +45,7 @@ var (
 		Long:             buildDescription,
 		TraverseChildren: true,
 		RunE:             build,
+		Args:             cobra.MaximumNArgs(1),
 		Example: `podman build .
   podman build --creds=username:password -t imageName -f Containerfile.simple .
   podman build --layers --force-rm --tag imageName .`,

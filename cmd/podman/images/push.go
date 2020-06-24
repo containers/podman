@@ -29,10 +29,11 @@ var (
 
 	// Command: podman push
 	pushCmd = &cobra.Command{
-		Use:   "push [flags] SOURCE DESTINATION",
+		Use:   "push [flags] SOURCE [DESTINATION]",
 		Short: "Push an image to a specified destination",
 		Long:  pushDescription,
 		RunE:  imagePush,
+		Args:  cobra.RangeArgs(1, 2),
 		Example: `podman push imageID docker://registry.example.com/repository:tag
 		podman push imageID oci-archive:/path/to/layout:image:tag`,
 	}
@@ -45,6 +46,7 @@ var (
 		Short: pushCmd.Short,
 		Long:  pushCmd.Long,
 		RunE:  pushCmd.RunE,
+		Args:  pushCmd.Args,
 		Example: `podman image push imageID docker://registry.example.com/repository:tag
 		podman image push imageID oci-archive:/path/to/layout:image:tag`,
 	}
@@ -96,19 +98,8 @@ func pushFlags(flags *pflag.FlagSet) {
 
 // imagePush is implement the command for pushing images.
 func imagePush(cmd *cobra.Command, args []string) error {
-	var source, destination string
-	switch len(args) {
-	case 1:
-		source = args[0]
-		destination = args[0]
-	case 2:
-		source = args[0]
-		destination = args[1]
-	case 0:
-		fallthrough
-	default:
-		return errors.New("push requires at least one image name, or optionally a second to specify a different destination")
-	}
+	source := args[0]
+	destination := args[len(args)-1]
 
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified

@@ -25,8 +25,11 @@ func SubCommandExists(cmd *cobra.Command, args []string) error {
 
 // IDOrLatestArgs used to validate a nameOrId was provided or the "--latest" flag
 func IDOrLatestArgs(cmd *cobra.Command, args []string) error {
-	if len(args) > 1 || (len(args) == 0 && !cmd.Flag("latest").Changed) {
-		return fmt.Errorf("`%s` requires a name, id  or the \"--latest\" flag", cmd.CommandPath())
+	if len(args) > 1 {
+		return fmt.Errorf("`%s` accepts at most one argument", cmd.CommandPath())
+	}
+	if len(args) == 0 && !cmd.Flag("latest").Changed {
+		return fmt.Errorf("`%s` requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
 	}
 	return nil
 }

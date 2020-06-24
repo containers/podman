@@ -23,7 +23,7 @@ var (
 `
 
 	mountCommand = &cobra.Command{
-		Use:   "mount [flags] [CONTAINER]",
+		Use:   "mount [flags] [CONTAINER...]",
 		Short: "Mount a working container's root filesystem",
 		Long:  mountDescription,
 		RunE:  mount,

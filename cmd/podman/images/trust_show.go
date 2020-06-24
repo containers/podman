@@ -18,6 +18,7 @@ var (
 		Short:   "Display trust policy for the system",
 		Long:    showTrustDescription,
 		RunE:    showTrust,
+		Args:    cobra.MaximumNArgs(1),
 		Example: "",
 	}
 )

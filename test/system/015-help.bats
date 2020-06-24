@@ -25,7 +25,7 @@ function podman_commands() {
 
 function check_help() {
     local count=0
-    local subcommands_found=0
+    local -A found
 
     for cmd in $(podman_commands "$@"); do
         # Human-readable podman command string, with multiple spaces collapsed
@@ -44,24 +44,37 @@ function check_help() {
 
         # If usage ends in '[command]', recurse into subcommands
         if expr "$usage" : '.*\[command\]$' >/dev/null; then
-            subcommands_found=$(expr $subcommands_found + 1)
+            found[subcommands]=1
             check_help "$@" $cmd
             continue
         fi
 
-        # If usage ends in '[flag]', command takes no more arguments.
-        # Confirm that by running with 'invalid-arg' and expecting failure.
-        if expr "$usage" : '.*\[flags\]$' >/dev/null; then
+        # We had someone write upper-case '[FLAGS]' once. Prevent it.
+        if expr "$usage" : '.*\[FLAG' >/dev/null; then
+            die "'flags' string must be lower-case in usage: $usage"
+        fi
+
+        # We had someone do 'podman foo ARG [flags]' one time. Yeah, no.
+        if expr "$usage" : '.*[A-Z].*\[flag' >/dev/null; then
+            die "'flags' must precede arguments in usage: $usage"
+        fi
+
+        # If usage lists no arguments (strings in ALL CAPS), confirm
+        # by running with 'invalid-arg' and expecting failure.
+        if ! expr "$usage" : '.*[A-Z]' >/dev/null; then
             if [ "$cmd" != "help" ]; then
                 dprint "$command_string invalid-arg"
                 run_podman 125 "$@" $cmd invalid-arg
                 is "$output" "Error: .* takes no arguments" \
                    "'$command_string' with extra (invalid) arguments"
             fi
+            found[takes_no_args]=1
         fi
 
-        # If usage has required arguments, try running without them
-        if expr "$usage" : '.*\[flags\] [A-Z]' >/dev/null; then
+        # If usage has required arguments, try running without them.
+        # The expression here is 'first capital letter is not in [BRACKETS]'.
+        # It is intended to handle 'podman foo [flags] ARG' but not ' [ARG]'.
+        if expr "$usage" : '[^A-Z]\+ [A-Z]' >/dev/null; then
             # Exceptions: these commands don't work rootless
             if is_rootless; then
                 # "pause is not supported for rootless containers"
@@ -80,6 +93,31 @@ function check_help() {
             run_podman 125 "$@" $cmd </dev/null
             is "$output" "Error:.* \(require\|specif\|must\|provide\|need\|choose\|accepts\)" \
                "'$command_string' without required arg"
+
+            found[required_args]=1
+        fi
+
+        # Commands with fixed number of arguments (i.e. no ellipsis): count
+        # the required args, then invoke with one extra. We should get a
+        # usage error.
+        if ! expr "$usage" : ".*\.\.\."; then
+            # "podman help" can take infinite args, so skip that one
+            if [ "$cmd" != "help" ]; then
+                # Get the args part of the command line; this should be
+                # everything from the first CAPITAL LETTER onward. We
+                # don't actually care about the letter itself, so just
+                # make it 'X'. And we don't care about [OPTIONAL] brackets
+                # either. What we do care about is stuff like 'IMAGE | CTR'
+                # which is actually one argument; convert to 'IMAGE-or-CTR'
+                local rhs=$(sed -e 's/^[^A-Z]\+[A-Z]/X/' -e 's/ | /-or-/g' <<<"$usage")
+                local n_args=$(wc -w <<<"$rhs")
+
+                run_podman 125 "$@" $cmd $(seq --format='x%g' 0 $n_args)
+                is "$output" "Error:.* \(takes no arguments\|requires exactly $n_args arg\|accepts at most\|too many arguments\|accepts $n_args arg(s), received\|accepts between .* and .* arg(s), received \)" \
+                   "'$command_string' with >$n_args arguments"
+
+                found[fixed_args]=1
+            fi
         fi
 
         count=$(expr $count + 1)
@@ -101,9 +139,14 @@ function check_help() {
     [ $count -gt 0 ] || \
         die "Internal error: no commands found in 'podman help $@' list"
 
-    # At least the top level must have some subcommands
-    if [ -z "$*" -a $subcommands_found -eq 0 ]; then
-        die "Internal error: did not find any podman subcommands"
+    # Sanity check: make sure the special loops above triggered at least once.
+    # (We've had situations where a typo makes the conditional never run)
+    if [ -z "$*" ]; then
+        for i in subcommands required_args takes_no_args fixed_args; do
+            if [[ -z ${found[$i]} ]]; then
+                die "Internal error: '$i' subtest did not trigger"
+            fi
+        done
     fi
 }
 
