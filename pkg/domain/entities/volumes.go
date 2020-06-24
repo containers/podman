@@ -2,6 +2,9 @@ package entities
 
 import (
 	"time"
+
+	docker_api_types "github.com/docker/docker/api/types"
+	docker_api_types_volume "github.com/docker/docker/api/types/volume"
 )
 
 // swagger:model VolumeCreate
@@ -89,4 +92,36 @@ type VolumeListOptions struct {
 
 type VolumeListReport struct {
 	VolumeConfigResponse
+}
+
+/*
+ * Docker API compatibility types
+ */
+// swagger:response DockerVolumeList
+type SwagDockerVolumeListResponse struct {
+	// in:body
+	Body struct {
+		docker_api_types_volume.VolumeListOKBody
+	}
+}
+
+// swagger:model DockerVolumeCreate
+type DockerVolumeCreate docker_api_types_volume.VolumeCreateBody
+
+// This response definition is used for both the create and inspect endpoints
+// swagger:response DockerVolumeInfoResponse
+type SwagDockerVolumeInfoResponse struct {
+	// in:body
+	Body struct {
+		docker_api_types.Volume
+	}
+}
+
+// Volume prune response
+// swagger:response DockerVolumePruneResponse
+type SwagDockerVolumePruneResponse struct {
+	// in:body
+	Body struct {
+		docker_api_types.VolumesPruneReport
+	}
 }
