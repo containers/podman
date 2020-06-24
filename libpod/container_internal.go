@@ -1854,8 +1854,8 @@ func (c *Container) unmount(force bool) error {
 // this should be from chrootarchive.
 // Container MUST be mounted before calling.
 func (c *Container) copyWithTarFromImage(source, dest string) error {
-	a := archive.NewDefaultArchiver()
-
+	mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
+	a := archive.NewArchiver(mappings)
 	if err := c.copyOwnerAndPerms(source, dest); err != nil {
 		return err
 	}
