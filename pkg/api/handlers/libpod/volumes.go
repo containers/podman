@@ -73,7 +73,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		UID:        config.UID,
 		GID:        config.GID,
 	}
-	utils.WriteResponse(w, http.StatusOK, volResponse)
+	utils.WriteResponse(w, http.StatusCreated, volResponse)
 }
 
 func InspectVolume(w http.ResponseWriter, r *http.Request) {
