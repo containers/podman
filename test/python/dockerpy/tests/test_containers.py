@@ -1,18 +1,15 @@
-
-import unittest
-import docker
-import requests
 import os
-from docker import Client
-from . import constant
-from . import common
 import time
+import unittest
+
+import requests
+
+from . import common, constant
 
 client = common.get_client()
 
-class TestContainers(unittest.TestCase):
 
-    podman = None
+class TestContainers(unittest.TestCase):
     topContainerId = ""
 
     def setUp(self):
@@ -33,6 +30,7 @@ class TestContainers(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         common.terminate_connection(cls)
+        common.flush_image_cache(cls)
         return super().tearDownClass()
 
     def test_inspect_container(self):
@@ -42,16 +40,15 @@ class TestContainers(unittest.TestCase):
         self.assertEqual(error.exception.response.status_code, 404)
         # Inspect valid container by name
         container = client.inspect_container(constant.TOP)
-        self.assertIn(TestContainers.topContainerId , container["Id"])
+        self.assertIn(TestContainers.topContainerId, container["Id"])
         # Inspect valid container by Id
         container = client.inspect_container(TestContainers.topContainerId)
-        self.assertIn(constant.TOP , container["Name"])
+        self.assertIn(constant.TOP, container["Name"])
 
     def test_create_container(self):
         # Run a container with detach mode
         container = client.create_container(image="alpine", detach=True)
-        self.assertEqual(len(container),2)
-
+        self.assertEqual(len(container), 2)
 
     def test_start_container(self):
         # Start bogus container
@@ -65,9 +62,9 @@ class TestContainers(unittest.TestCase):
         # self.assertEqual(error.exception.response.status_code, 304)
 
         # Create a new container and validate the count
-        client.create_container(image=constant.ALPINE,name="container2")
-        containers = client.containers(quiet=True,all=True)
-        self.assertEqual(len(containers),2)
+        client.create_container(image=constant.ALPINE, name="container2")
+        containers = client.containers(quiet=True, all=True)
+        self.assertEqual(len(containers), 2)
 
     def test_stop_container(self):
         # Stop bogus container
@@ -82,7 +79,10 @@ class TestContainers(unittest.TestCase):
         # Stop a running container and validate the state
         client.stop(TestContainers.topContainerId)
         container = client.inspect_container(constant.TOP)
-        self.assertIn(container["State"]["Status"],"stopped exited",)
+        self.assertIn(
+            container["State"]["Status"],
+            "stopped exited",
+        )
 
     def test_restart_container(self):
         # Restart bogus container
@@ -109,12 +109,12 @@ class TestContainers(unittest.TestCase):
         # Remove container by ID with force
         client.remove_container(TestContainers.topContainerId, force=True)
         containers = client.containers()
-        self.assertEqual(len(containers),0)
+        self.assertEqual(len(containers), 0)
 
     def test_remove_container_without_force(self):
         # Validate current container count
         containers = client.containers()
-        self.assertTrue(len(containers),1)
+        self.assertTrue(len(containers), 1)
 
         # Remove running container should throw error
         with self.assertRaises(requests.HTTPError) as error:
@@ -125,7 +125,7 @@ class TestContainers(unittest.TestCase):
         client.stop(TestContainers.topContainerId)
         client.remove_container(TestContainers.topContainerId)
         containers = client.containers()
-        self.assertEqual(len(containers),0)
+        self.assertEqual(len(containers), 0)
 
     def test_pause_container(self):
         # Pause bogus container
@@ -151,7 +151,6 @@ class TestContainers(unittest.TestCase):
             client.pause(TestContainers.topContainerId)
         self.assertEqual(error.exception.response.status_code, 500)
 
-
     def test_unpause_container(self):
         # Unpause bogus container
         with self.assertRaises(requests.HTTPError) as error:
@@ -173,7 +172,7 @@ class TestContainers(unittest.TestCase):
         # Add container and validate the count
         client.create_container(image="alpine", detach=True)
         containers = client.containers(all=True)
-        self.assertEqual(len(containers),2)
+        self.assertEqual(len(containers), 2)
 
         # Not working for now......checking
         # # List container with filter by id
