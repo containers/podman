@@ -65,8 +65,15 @@ func (v *Volume) Inspect() (*InspectVolumeData, error) {
 	for k, v := range v.config.Options {
 		data.Options[k] = v
 	}
-	data.UID = v.config.UID
-	data.GID = v.config.GID
+	var err error
+	data.UID, err = v.UID()
+	if err != nil {
+		return nil, err
+	}
+	data.GID, err = v.GID()
+	if err != nil {
+		return nil, err
+	}
 	data.Anonymous = v.config.IsAnon
 
 	return data, nil
