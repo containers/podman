@@ -17,6 +17,9 @@ var (
 	// ErrNoSuchImage indicates the requested image does not exist
 	ErrNoSuchImage = image.ErrNoSuchImage
 
+	// ErrNoSuchTag indicates the requested image tag does not exist
+	ErrNoSuchTag = image.ErrNoSuchTag
+
 	// ErrNoSuchVolume indicates the requested volume does not exist
 	ErrNoSuchVolume = errors.New("no such volume")
 
