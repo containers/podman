@@ -22,6 +22,7 @@ import (
 	"github.com/containers/libpod/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -359,6 +360,25 @@ func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
 				}
 			}
 			dest.AutoUserNsOpts.InitialSize = initialSize + 1
+		}
+	} else if c.config.Spec.Linux != nil {
+		dest.UIDMap = nil
+		for _, r := range c.config.Spec.Linux.UIDMappings {
+			u := idtools.IDMap{
+				ContainerID: int(r.ContainerID),
+				HostID:      int(r.HostID),
+				Size:        int(r.Size),
+			}
+			dest.UIDMap = append(dest.UIDMap, u)
+		}
+		dest.GIDMap = nil
+		for _, r := range c.config.Spec.Linux.GIDMappings {
+			g := idtools.IDMap{
+				ContainerID: int(r.ContainerID),
+				HostID:      int(r.HostID),
+				Size:        int(r.Size),
+			}
+			dest.GIDMap = append(dest.GIDMap, g)
 		}
 	}
 }
