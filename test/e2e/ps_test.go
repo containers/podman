@@ -449,4 +449,21 @@ var _ = Describe("Podman ps", func() {
 		Expect(len(output)).To(Equal(1))
 		Expect(output[0]).To(Equal(ctrName))
 	})
+
+	It("podman ps test with port shared with pod", func() {
+		podName := "testPod"
+		pod := podmanTest.Podman([]string{"pod", "create", "-p", "8080:80", "--name", podName})
+		pod.WaitWithDefaultTimeout()
+		Expect(pod.ExitCode()).To(Equal(0))
+
+		ctrName := "testCtr"
+		session := podmanTest.Podman([]string{"run", "--name", ctrName, "-dt", "--pod", podName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		ps := podmanTest.Podman([]string{"ps", "--filter", fmt.Sprintf("name=%s", ctrName), "--format", "{{.Ports}}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps.ExitCode()).To(Equal(0))
+		Expect(ps.OutputToString()).To(ContainSubstring("0.0.0.0:8080->80/tcp"))
+	})
 })
