@@ -1572,6 +1572,11 @@ _podman_image_tag() {
      _podman_tag
 }
 
+
+_podman_image_untag() {
+     _podman_untag
+}
+
 _podman_image() {
     local boolean_options="
 	--help
@@ -1593,6 +1598,7 @@ _podman_image() {
 	 sign
 	 tag
 	 trust
+	 untag
      "
      local aliases="
 	 list
@@ -2444,6 +2450,23 @@ _podman_stats() {
 }
 
 _podman_tag() {
+    local options_with_args="
+    "
+    local boolean_options="
+	--help
+	-h
+    "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    __podman_complete_images
+	    ;;
+    esac
+}
+
+_podman_untag() {
     local options_with_args="
     "
     local boolean_options="
@@ -3588,6 +3611,7 @@ _podman_podman() {
     umount
     unmount
     unpause
+    untag
     varlink
     version
     volume
