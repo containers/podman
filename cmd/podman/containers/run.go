@@ -123,10 +123,13 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	imageName := args[0]
 	if !cliVals.RootFS {
-		if err := pullImage(args[0]); err != nil {
+		name, err := pullImage(args[0])
+		if err != nil {
 			return err
 		}
+		imageName = name
 	}
 
 	if cliVals.Replace {
@@ -163,7 +166,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	runOpts.Detach = cliVals.Detach
 	runOpts.DetachKeys = cliVals.DetachKeys
-	s := specgen.NewSpecGenerator(args[0], cliVals.RootFS)
+	s := specgen.NewSpecGenerator(imageName, cliVals.RootFS)
 	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}
@@ -193,7 +196,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 	if runRmi {
-		_, rmErrors := registry.ImageEngine().Remove(registry.GetContext(), []string{args[0]}, entities.ImageRemoveOptions{})
+		_, rmErrors := registry.ImageEngine().Remove(registry.GetContext(), []string{imageName}, entities.ImageRemoveOptions{})
 		if len(rmErrors) > 0 {
 			logrus.Errorf("%s", errors.Wrapf(errorhandling.JoinErrors(rmErrors), "failed removing image"))
 		}
