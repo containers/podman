@@ -364,11 +364,6 @@ func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
 		return err
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer {
-		if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
-			env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
-		}
-	}
 	if path, ok := os.LookupEnv("PATH"); ok {
 		env = append(env, fmt.Sprintf("PATH=%s", path))
 	}
@@ -1065,7 +1060,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	// 0, 1 and 2 are stdin, stdout and stderr
-	conmonEnv, envFiles, err := r.configureConmonEnv(ctr, runtimeDir)
+	conmonEnv, envFiles, err := r.configureConmonEnv(runtimeDir)
 	if err != nil {
 		return err
 	}
@@ -1268,7 +1263,7 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct
 // TODO this may want to be less hardcoded/more configurable in the future
-func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string) ([]string, []*os.File, error) {
+func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*os.File, error) {
 	env := make([]string, 0, 6)
 	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
@@ -1280,11 +1275,6 @@ func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string)
 	env = append(env, fmt.Sprintf("HOME=%s", home))
 
 	extraFiles := make([]*os.File, 0)
-	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer {
-		if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
-			env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
-		}
-	}
 	if !r.sdNotify {
 		if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
 			env = append(env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
@@ -1317,6 +1307,12 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 			rFlags = append(rFlags, "--runtime-arg", arg)
 		}
 		args = append(args, rFlags...)
+	}
+
+	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer {
+		if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+			args = append(args, fmt.Sprintf("--sdnotify-socket=%s", notify))
+		}
 	}
 
 	if ctr.CgroupManager() == config.SystemdCgroupsManager && !ctr.config.NoCgroups && ctr.config.CgroupsMode != cgroupSplit {

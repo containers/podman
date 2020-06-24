@@ -444,7 +444,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// 	}
 	// }
 
-	conmonEnv, extraFiles, err := r.configureConmonEnv(c, runtimeDir)
+	conmonEnv, extraFiles, err := r.configureConmonEnv(runtimeDir)
 	if err != nil {
 		return nil, nil, err
 	}
