@@ -95,6 +95,15 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	}
 	reports := make([]*entities.VolumeInspectReport, 0, len(vols))
 	for _, v := range vols {
+		var uid, gid int
+		uid, err = v.UID()
+		if err != nil {
+			return nil, err
+		}
+		gid, err = v.GID()
+		if err != nil {
+			return nil, err
+		}
 		config := entities.VolumeConfigResponse{
 			Name:       v.Name(),
 			Driver:     v.Driver(),
@@ -103,8 +112,8 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 			Labels:     v.Labels(),
 			Scope:      v.Scope(),
 			Options:    v.Options(),
-			UID:        v.UID(),
-			GID:        v.GID(),
+			UID:        uid,
+			GID:        gid,
 		}
 		reports = append(reports, &entities.VolumeInspectReport{VolumeConfigResponse: &config})
 	}
@@ -141,6 +150,15 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 	}
 	reports := make([]*entities.VolumeListReport, 0, len(vols))
 	for _, v := range vols {
+		var uid, gid int
+		uid, err = v.UID()
+		if err != nil {
+			return nil, err
+		}
+		gid, err = v.GID()
+		if err != nil {
+			return nil, err
+		}
 		config := entities.VolumeConfigResponse{
 			Name:       v.Name(),
 			Driver:     v.Driver(),
@@ -149,8 +167,8 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 			Labels:     v.Labels(),
 			Scope:      v.Scope(),
 			Options:    v.Options(),
-			UID:        v.UID(),
-			GID:        v.GID(),
+			UID:        uid,
+			GID:        gid,
 		}
 		reports = append(reports, &entities.VolumeListReport{VolumeConfigResponse: config})
 	}

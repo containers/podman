@@ -1015,6 +1015,12 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 		return err
 	}
 
+	for _, v := range c.config.NamedVolumes {
+		if err := c.chownVolume(v.Name); err != nil {
+			return err
+		}
+	}
+
 	// With the spec complete, do an OCI create
 	if err := c.ociRuntime.CreateContainer(c, nil); err != nil {
 		// Fedora 31 is carrying a patch to display improved error
@@ -1506,6 +1512,48 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		}
 	}
 	return vol, nil
+}
+
+// Chown the specified volume if necessary.
+func (c *Container) chownVolume(volumeName string) error {
+	vol, err := c.runtime.state.Volume(volumeName)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving named volume %s for container %s", volumeName, c.ID())
+	}
+
+	uid := int(c.config.Spec.Process.User.UID)
+	gid := int(c.config.Spec.Process.User.GID)
+
+	vol.lock.Lock()
+	defer vol.lock.Unlock()
+
+	// The volume may need a copy-up. Check the state.
+	if err := vol.update(); err != nil {
+		return err
+	}
+
+	if vol.state.NeedsChown {
+		vol.state.NeedsChown = false
+		vol.state.UIDChowned = uid
+		vol.state.GIDChowned = gid
+
+		if err := vol.save(); err != nil {
+			return err
+		}
+		err := filepath.Walk(vol.MountPoint(), func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if err := os.Chown(path, uid, gid); err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // cleanupStorage unmounts and cleans up the container's root filesystem
