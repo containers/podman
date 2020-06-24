@@ -201,4 +201,17 @@ echo $rand        |   0 | $rand
        "podman will not overwrite existing cidfile"
 }
 
+@test "podman run docker-archive" {
+	tmpdir=$PODMAN_TMPDIR/run-archive
+	mkdir -p $tmpdir
+	archive=$tmpdir/archive.tar
+
+	run_podman save $IMAGE -o $archive
+
+	run_podman run docker-archive:$archive ls
+
+	# Also make sure create eats the archive as well
+	run_podman create docker-archive:$archive ls
+}
+
 # vim: filetype=sh

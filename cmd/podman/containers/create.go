@@ -6,11 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/libpod/libpod/define"
-
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/libpod/cmd/podman/common"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/specgen"
@@ -108,12 +109,15 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	imageName := args[0]
 	if !cliVals.RootFS {
-		if err := pullImage(args[0]); err != nil {
+		name, err := pullImage(args[0])
+		if err != nil {
 			return err
 		}
+		imageName = name
 	}
-	s := specgen.NewSpecGenerator(args[0], cliVals.RootFS)
+	s := specgen.NewSpecGenerator(imageName, cliVals.RootFS)
 	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}
@@ -211,30 +215,44 @@ func createInit(c *cobra.Command) error {
 	return nil
 }
 
-func pullImage(imageName string) error {
-	br, err := registry.ImageEngine().Exists(registry.GetContext(), imageName)
-	if err != nil {
-		return err
-	}
+func pullImage(imageName string) (string, error) {
 	pullPolicy, err := config.ValidatePullPolicy(cliVals.Pull)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if !br.Value || pullPolicy == config.PullImageAlways {
-		if pullPolicy == config.PullImageNever {
-			return errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", imageName)
+
+	// Check if the image is missing and hence if we need to pull it.
+	imageMissing := true
+	imageRef, err := alltransports.ParseImageName(imageName)
+	switch {
+	case err != nil:
+		// Assume we specified a local image withouth the explicit storage transport.
+		fallthrough
+
+	case imageRef.Transport().Name() == storage.Transport.Name():
+		br, err := registry.ImageEngine().Exists(registry.GetContext(), imageName)
+		if err != nil {
+			return "", err
 		}
-		_, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
+		imageMissing = !br.Value
+	}
+
+	if imageMissing || pullPolicy == config.PullImageAlways {
+		if pullPolicy == config.PullImageNever {
+			return "", errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", imageName)
+		}
+		pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
 			Authfile:     cliVals.Authfile,
 			Quiet:        cliVals.Quiet,
 			OverrideArch: cliVals.OverrideArch,
 			OverrideOS:   cliVals.OverrideOS,
 		})
 		if pullErr != nil {
-			return pullErr
+			return "", pullErr
 		}
+		imageName = pullReport.Images[0]
 	}
-	return nil
+	return imageName, nil
 }
 
 func openCidFile(cidfile string) (*os.File, error) {
