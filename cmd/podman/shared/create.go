@@ -796,10 +796,9 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	if config.Privileged {
 		config.LabelOpts = label.DisableSecOpt()
-	} else {
-		if err := parseSecurityOpt(config, c.StringArray("security-opt"), runtime); err != nil {
-			return nil, err
-		}
+	}
+	if err := parseSecurityOpt(config, c.StringArray("security-opt"), runtime); err != nil {
+		return nil, err
 	}
 	config.SecurityOpts = c.StringArray("security-opt")
 	warnings, err := verifyContainerResources(config, false)
