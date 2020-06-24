@@ -419,12 +419,6 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 	if len(uidMapSlice) == 0 && len(gidMapSlice) != 0 {
 		uidMapSlice = gidMapSlice
 	}
-	if len(uidMapSlice) == 0 && subUIDMap == "" && os.Getuid() != 0 {
-		uidMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getuid())}
-	}
-	if len(gidMapSlice) == 0 && subGIDMap == "" && os.Getuid() != 0 {
-		gidMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getgid())}
-	}
 
 	if subUIDMap != "" && subGIDMap != "" {
 		mappings, err := idtools.NewIDMappings(subUIDMap, subGIDMap)
