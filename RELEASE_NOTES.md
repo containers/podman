@@ -1,5 +1,28 @@
 # Release Notes
 
+## 2.0.1
+### Changes
+- The `podman system connection` command was mistakenly omitted from the 2.0 release, and has been included here.
+- The `podman ps --format=json` command once again includes container's creation time in a human-readable format in the `CreatedAt` key.
+- The `podman inspect` commands on containers now displays forwarded ports in a format compatible with `docker inspect`.
+
+### Bugfixes
+- Fixed a bug where `podman build` did not properly handle the `--http-proxy` and `--cgroup-manager` flags.
+- Fixed a bug where error messages related to a missing or inaccessible `/etc/subuid` or `/etc/subgid` file were very unclear ([#6572](https://github.com/containers/libpod/issues/6572)).
+- Fixed a bug where the `podman logs --follow` command would not stop when the container being followed exited.
+- Fixed a bug where the `--privileged` flag had mistakenly been marked as conflicting with `--group-add` and `--security-opt`.
+- Fixed a bug where the `PODMAN_USERNS` environment variable was not being honored ([#6705](https://github.com/containers/libpod/issues/6705)).
+- Fixed a bug where the `podman image load` command would require one argument be passed, when no arguments is also valid ([#6718](https://github.com/containers/libpod/issues/6718)).
+- Fixed a bug where the bash completions did not include the `podman network` command and its subcommands.
+- Fixed a bug where the mount command would not work inside of rootless containers ([#6735](https://github.com/containers/libpod/issues/6735)).
+- Fixed a bug where SSH agent authentication support was not properly working in the `podman-remote` and `podman --remote` commands.
+- Fixed a bug where the `podman untag` command was not erroring when no matching image was found.
+- Fixed a bug where stop signal for containers was not being set properly if not explicitly provided.
+
+### API
+- Fixed a bug where network endpoint URLs in the compatability API were mistakenly suffixed with `/json`.
+- Fixed a bug where the Libpod volume creation endpoint returned 200 instead of 201 on success.
+
 ## 2.0.0
 ### Features
 - The REST API and `podman system service` are no longer experimental, and ready for use!
