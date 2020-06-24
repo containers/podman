@@ -181,12 +181,15 @@ func pingNewConnection(ctx context.Context) error {
 
 func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (Connection, error) {
 	authMethods := []ssh.AuthMethod{}
-	auth, err := terminal.PublicKey(identity, []byte(passPhrase))
-	if err != nil {
-		return Connection{}, errors.Wrapf(err, "failed to parse identity %q", identity)
+
+	if len(identity) > 0 {
+		auth, err := terminal.PublicKey(identity, []byte(passPhrase))
+		if err != nil {
+			return Connection{}, errors.Wrapf(err, "failed to parse identity %q", identity)
+		}
+		logrus.Debugf("public key signer enabled for identity %q", identity)
+		authMethods = append(authMethods, auth)
 	}
-	logrus.Debugf("public key signer enabled for identity %q", identity)
-	authMethods = append(authMethods, auth)
 
 	if sock, found := os.LookupEnv("SSH_AUTH_SOCK"); found {
 		logrus.Debugf("Found SSH_AUTH_SOCK %q, ssh-agent signer enabled", sock)
