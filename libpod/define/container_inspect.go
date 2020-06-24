@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/driver"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 // InspectContainerConfig holds further data about how a container was initially
@@ -571,13 +570,13 @@ type InspectAdditionalNetwork struct {
 type InspectNetworkSettings struct {
 	InspectBasicNetworkConfig
 
-	Bridge                 string               `json:"Bridge"`
-	SandboxID              string               `json:"SandboxID"`
-	HairpinMode            bool                 `json:"HairpinMode"`
-	LinkLocalIPv6Address   string               `json:"LinkLocalIPv6Address"`
-	LinkLocalIPv6PrefixLen int                  `json:"LinkLocalIPv6PrefixLen"`
-	Ports                  []ocicni.PortMapping `json:"Ports"`
-	SandboxKey             string               `json:"SandboxKey"`
+	Bridge                 string                       `json:"Bridge"`
+	SandboxID              string                       `json:"SandboxID"`
+	HairpinMode            bool                         `json:"HairpinMode"`
+	LinkLocalIPv6Address   string                       `json:"LinkLocalIPv6Address"`
+	LinkLocalIPv6PrefixLen int                          `json:"LinkLocalIPv6PrefixLen"`
+	Ports                  map[string][]InspectHostPort `json:"Ports"`
+	SandboxKey             string                       `json:"SandboxKey"`
 	// Networks contains information on non-default CNI networks this
 	// container has joined.
 	// It is a map of network name to network information.

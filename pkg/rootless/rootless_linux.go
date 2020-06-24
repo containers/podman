@@ -166,7 +166,8 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	}
 	mappings, err := idtools.NewIDMappings(username, username)
 	if err != nil {
-		logrus.Errorf("cannot find mappings for user %s: %v", username, err)
+		logrus.Errorf(
+			"cannot find UID/GID for user %s: %v - check rootless mode in man pages.", username, err)
 	} else {
 		uids = mappings.UIDs()
 		gids = mappings.GIDs()

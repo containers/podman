@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/libpod/cmd/podman/registry"
@@ -464,7 +465,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
 	createFlags.String(
-		"userns", "",
+		"userns", os.Getenv("PODMAN_USERNS"),
 		"User namespace to use",
 	)
 	createFlags.String(

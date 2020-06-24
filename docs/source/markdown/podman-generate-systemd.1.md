@@ -97,7 +97,7 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
-ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
+ExecStartPre=/bin/rm -f %t/%n-pid %t/%n-cid
 ExecStart=/usr/local/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-cid --cgroups=no-conmon -d -dit alpine
 ExecStop=/usr/local/bin/podman stop --ignore --cidfile %t/%n-cid -t 10
 ExecStopPost=/usr/local/bin/podman rm --ignore -f --cidfile %t/%n-cid
@@ -163,10 +163,10 @@ $ podman generate systemd --files --name systemd-pod
 # Copy all the generated files.
 
 $ sudo cp pod-systemd-pod.service container-great_payne.service /usr/lib/systemd/system
-$ systemctl enable pod-systemd-po.service
-Created symlink /etc/systemd/system/multi-user.target.wants/pod-systemd-po.service → /usr/lib/systemd/system/pod-systemd-po.service.
-Created symlink /etc/systemd/system/default.target.wants/pod-systemd-po.service → /usr/lib/systemd/system/pod-systemd-po.service.
-$ systemctl is-enabled pod-systemd-po.service
+$ systemctl enable pod-systemd-pod.service
+Created symlink /etc/systemd/system/multi-user.target.wants/pod-systemd-pod.service → /usr/lib/systemd/system/pod-systemd-pod.service.
+Created symlink /etc/systemd/system/default.target.wants/pod-systemd-pod.service → /usr/lib/systemd/system/pod-systemd-pod.service.
+$ systemctl is-enabled pod-systemd-pod.service
 enabled
 ```
 To run the user services placed in `$HOME/.config/systemd/user/` on first login of that user, enable the service with --user flag.

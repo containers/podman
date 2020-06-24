@@ -458,4 +458,17 @@ var _ = Describe("Podman create", func() {
 			Expect(session.ExitCode()).To(Equal(0))
 		}
 	})
+
+	It("podman create sets default stop signal 15", func() {
+		ctrName := "testCtr"
+		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Config.StopSignal).To(Equal(uint(15)))
+	})
 })

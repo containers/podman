@@ -1,28 +1,24 @@
 package bindings
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/containers/libpod/pkg/terminal"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
-	"k8s.io/client-go/util/homedir"
 )
 
 var (
@@ -31,8 +27,6 @@ var (
 		Host:   "d",
 		Path:   "/v" + APIVersion.String() + "/libpod",
 	}
-	passPhrase []byte
-	phraseSync sync.Once
 )
 
 type APIResponse struct {
@@ -77,7 +71,7 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 // For example tcp://localhost:<port>
 // or unix:///run/podman/podman.sock
 // or ssh://<user>@<host>[:port]/run/podman/podman.sock?secure=True
-func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase string, identities ...string) (context.Context, error) {
+func NewConnectionWithIdentity(ctx context.Context, uri string, identity string) (context.Context, error) {
 	var (
 		err    error
 		secure bool
@@ -86,11 +80,12 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase strin
 		uri = v
 	}
 
-	if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found && len(identities) == 0 {
-		identities = append(identities, v)
+	if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found && len(identity) == 0 {
+		identity = v
 	}
 
-	if v, found := os.LookupEnv("CONTAINER_PASSPHRASE"); found && passPhrase == "" {
+	passPhrase := ""
+	if v, found := os.LookupEnv("CONTAINER_PASSPHRASE"); found {
 		passPhrase = v
 	}
 
@@ -98,7 +93,6 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase strin
 	if err != nil {
 		return nil, errors.Wrapf(err, "Value of CONTAINER_HOST is not a valid url: %s", uri)
 	}
-	// TODO Fill in missing defaults for _url...
 
 	// Now we setup the http Client to use the connection above
 	var connection Connection
@@ -108,7 +102,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase strin
 		if err != nil {
 			secure = false
 		}
-		connection, err = sshClient(_url, secure, passPhrase, identities...)
+		connection, err = sshClient(_url, secure, passPhrase, identity)
 	case "unix":
 		if !strings.HasPrefix(uri, "unix:///") {
 			// autofix unix://path_element vs unix:///path_element
@@ -122,7 +116,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, passPhrase strin
 		}
 		connection = tcpClient(_url)
 	default:
-		return nil, errors.Errorf("'%s' is not a supported schema", _url.Scheme)
+		return nil, errors.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create %sClient", _url.Scheme)
@@ -185,14 +179,15 @@ func pingNewConnection(ctx context.Context) error {
 	return errors.Errorf("ping response was %q", response.StatusCode)
 }
 
-func sshClient(_url *url.URL, secure bool, passPhrase string, identities ...string) (Connection, error) {
+func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (Connection, error) {
 	authMethods := []ssh.AuthMethod{}
-	for _, i := range identities {
-		auth, err := publicKey(i, []byte(passPhrase))
+
+	if len(identity) > 0 {
+		auth, err := terminal.PublicKey(identity, []byte(passPhrase))
 		if err != nil {
-			fmt.Fprint(os.Stderr, errors.Wrapf(err, "failed to parse identity %q", i).Error()+"\n")
-			continue
+			return Connection{}, errors.Wrapf(err, "failed to parse identity %q", identity)
 		}
+		logrus.Debugf("public key signer enabled for identity %q", identity)
 		authMethods = append(authMethods, auth)
 	}
 
@@ -213,7 +208,7 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identities ...stri
 
 	callback := ssh.InsecureIgnoreHostKey()
 	if secure {
-		key := hostKey(_url.Hostname())
+		key := terminal.HostKey(_url.Hostname())
 		if key != nil {
 			callback = ssh.FixedHostKey(key)
 		}
@@ -338,64 +333,4 @@ func (h *APIResponse) IsClientError() bool {
 // IsServerError returns true if the response code is 5xx
 func (h *APIResponse) IsServerError() bool {
 	return h.Response.StatusCode/100 == 5
-}
-
-func publicKey(path string, passphrase []byte) (ssh.AuthMethod, error) {
-	key, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	signer, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		if _, ok := err.(*ssh.PassphraseMissingError); !ok {
-			return nil, err
-		}
-		if len(passphrase) == 0 {
-			phraseSync.Do(promptPassphrase)
-			passphrase = passPhrase
-		}
-		signer, err = ssh.ParsePrivateKeyWithPassphrase(key, passphrase)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return ssh.PublicKeys(signer), nil
-}
-
-func promptPassphrase() {
-	phrase, err := readPassword("Key Passphrase: ")
-	if err != nil {
-		passPhrase = []byte{}
-		return
-	}
-	passPhrase = phrase
-}
-
-func hostKey(host string) ssh.PublicKey {
-	// parse OpenSSH known_hosts file
-	// ssh or use ssh-keyscan to get initial key
-	knownHosts := filepath.Join(homedir.HomeDir(), ".ssh", "known_hosts")
-	fd, err := os.Open(knownHosts)
-	if err != nil {
-		logrus.Error(err)
-		return nil
-	}
-
-	scanner := bufio.NewScanner(fd)
-	for scanner.Scan() {
-		_, hosts, key, _, _, err := ssh.ParseKnownHosts(scanner.Bytes())
-		if err != nil {
-			logrus.Errorf("Failed to parse known_hosts: %s", scanner.Text())
-			continue
-		}
-
-		for _, h := range hosts {
-			if h == host {
-				return key
-			}
-		}
-	}
-
-	return nil
 }

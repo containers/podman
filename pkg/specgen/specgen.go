@@ -207,6 +207,7 @@ type ContainerSecurityConfig struct {
 	// - Adds all devices on the system to the container.
 	// - Adds all capabilities to the container.
 	// - Disables Seccomp, SELinux, and Apparmor confinement.
+	//   (Though SELinux can be manually re-enabled).
 	// TODO: this conflicts with things.
 	// TODO: this does more.
 	Privileged bool `json:"privileged,omitempty"`

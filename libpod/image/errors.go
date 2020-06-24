@@ -12,4 +12,6 @@ var (
 	ErrNoSuchPod = errors.New("no such pod")
 	// ErrNoSuchImage indicates the requested image does not exist
 	ErrNoSuchImage = errors.New("no such image")
+	// ErrNoSuchTag indicates the requested image tag does not exist
+	ErrNoSuchTag = errors.New("no such tag")
 )

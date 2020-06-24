@@ -44,6 +44,11 @@ verify_iid_and_name() {
     run_podman load < $archive
     verify_iid_and_name "<none>:<none>"
 
+    # Same as above, using stdin but with `podman image load`
+    run_podman rmi $iid
+    run_podman image load < $archive
+    verify_iid_and_name "<none>:<none>"
+
     # Cleanup: since load-by-iid doesn't preserve name, re-tag it;
     # otherwise our global teardown will rmi and re-pull our standard image.
     run_podman tag $iid $img_name
@@ -57,9 +62,14 @@ verify_iid_and_name() {
     # Load using -i; this time the image should be tagged.
     run_podman load -i $archive
     verify_iid_and_name $img_name
+    run_podman rmi $iid
+
+    # Also make sure that `image load` behaves the same.
+    run_podman image load -i $archive
+    verify_iid_and_name $img_name
+    run_podman rmi $iid
 
     # Same as above, using stdin
-    run_podman rmi $iid
     run_podman load < $archive
     verify_iid_and_name $img_name
 }
@@ -95,6 +105,12 @@ verify_iid_and_name() {
     is "$output" \
        "Error: cannot read from terminal. Use command-line redirection" \
        "Diagnostic from 'podman load' without redirection or -i"
+}
+
+@test "podman load - at most 1 arg(s)" {
+    run_podman 125 load 1 2 3
+    is "$output" \
+       "Error: accepts at most 1 arg(s), received 3"
 }
 
 # vim: filetype=sh
