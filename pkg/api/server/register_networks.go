@@ -32,7 +32,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks/{name}"), s.APIHandler(compat.RemoveNetwork)).Methods(http.MethodDelete)
 	r.HandleFunc("/networks/{name}", s.APIHandler(compat.RemoveNetwork)).Methods(http.MethodDelete)
-	// swagger:operation GET /networks/{name}/json compat compatInspectNetwork
+	// swagger:operation GET /networks/{name} compat compatInspectNetwork
 	// ---
 	// tags:
 	//  - networks (compat)
@@ -53,9 +53,9 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchNetwork"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/networks/{name}/json"), s.APIHandler(compat.InspectNetwork)).Methods(http.MethodGet)
-	r.HandleFunc("/networks/{name}/json", s.APIHandler(compat.InspectNetwork)).Methods(http.MethodGet)
-	// swagger:operation GET /networks/json compat compatListNetwork
+	r.HandleFunc(VersionedPath("/networks/{name}"), s.APIHandler(compat.InspectNetwork)).Methods(http.MethodGet)
+	r.HandleFunc("/networks/{name}", s.APIHandler(compat.InspectNetwork)).Methods(http.MethodGet)
+	// swagger:operation GET /networks compat compatListNetwork
 	// ---
 	// tags:
 	//  - networks (compat)
@@ -68,7 +68,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/CompatNetworkList"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/networks/json"), s.APIHandler(compat.ListNetworks)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/networks"), s.APIHandler(compat.ListNetworks)).Methods(http.MethodGet)
 	r.HandleFunc("/networks", s.APIHandler(compat.ListNetworks)).Methods(http.MethodGet)
 	// swagger:operation POST /networks/create compat compatCreateNetwork
 	// ---
