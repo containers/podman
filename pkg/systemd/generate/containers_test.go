@@ -88,8 +88,6 @@ Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RefuseManualStart=yes
-RefuseManualStop=yes
 BindsTo=a.service b.service c.service pod.service
 After=a.service b.service c.service pod.service
 
