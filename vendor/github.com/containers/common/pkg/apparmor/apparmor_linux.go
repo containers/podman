@@ -255,9 +255,11 @@ func CheckProfileAndLoadDefault(name string) (string, error) {
 		}
 	}
 
-	// If the specified name is not empty or is not a default libpod one,
-	// ignore it and return the name.
-	if name != "" && !strings.HasPrefix(name, ProfilePrefix) {
+	if name == "" {
+		name = Profile
+	} else if !strings.HasPrefix(name, ProfilePrefix) {
+		// If the specified name is not a default one, ignore it and return the
+		// name.
 		isLoaded, err := IsLoaded(name)
 		if err != nil {
 			return "", err
@@ -268,7 +270,6 @@ func CheckProfileAndLoadDefault(name string) (string, error) {
 		return name, nil
 	}
 
-	name = Profile
 	// To avoid expensive redundant loads on each invocation, check
 	// if it's loaded before installing it.
 	isLoaded, err := IsLoaded(name)
