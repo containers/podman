@@ -26,6 +26,7 @@ class TestCaseBase(unittest.TestCase):
 class TestDependsOn(TestCaseBase):
 
     ALL_TASK_NAMES = None
+    SUCCESS_DEPS_EXCLUDE = set(['success', 'release', 'release_test'])
 
     def setUp(self):
         super().setUp()
@@ -33,23 +34,29 @@ class TestDependsOn(TestCaseBase):
                                    for key, _ in self.CIRRUS_YAML.items()
                                    if key.endswith('_task')])
 
-    def test_00_dicts(self):
+    def test_dicts(self):
         """Expected dictionaries are present and non-empty"""
         self.assertIn('success_task', self.CIRRUS_YAML)
         self.assertIn('success_task'.replace('_task', ''), self.ALL_TASK_NAMES)
         self.assertIn('depends_on', self.CIRRUS_YAML['success_task'])
         self.assertGreater(len(self.CIRRUS_YAML['success_task']['depends_on']), 0)
 
-    def test_01_depends(self):
+    def test_task(self):
+        """There is no task named 'task'"""
+        self.assertNotIn('task', self.ALL_TASK_NAMES)
+
+    def test_depends(self):
         """Success task depends on all other tasks"""
         success_deps = set(self.CIRRUS_YAML['success_task']['depends_on'])
-        for task_name in self.ALL_TASK_NAMES - set(['success']):
+        for task_name in self.ALL_TASK_NAMES - self.SUCCESS_DEPS_EXCLUDE:
             with self.subTest(task_name=task_name):
                 msg=('Please add "{0}" to the "depends_on" list in "success_task"'
                      "".format(task_name))
                 self.assertIn(task_name, success_deps, msg=msg)
 
-
+    def not_task(self):
+        """Ensure no task is named 'task'"""
+        self.assertNotIn('task', self.ALL_TASK_NAMES)
 
 if __name__ == "__main__":
     unittest.main()
