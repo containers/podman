@@ -478,6 +478,7 @@ podman-remote-release-%.zip:
 	cp release.txt "$(TMPDIR)/"
 	cp ./bin/podman-remote-$*$(BINSFX) "$(TMPDIR)/$(SUBDIR)/podman$(BINSFX)"
 	cp -r ./docs/build/remote/$* "$(TMPDIR)/$(SUBDIR)/docs/"
+	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
 	cd "$(TMPDIR)/$(SUBDIR)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./release.txt" "./"
 	-rm -rf "$(TMPDIR)"
