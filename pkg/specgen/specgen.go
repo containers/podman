@@ -129,7 +129,7 @@ type ContainerBasicConfig struct {
 	Sysctl map[string]string `json:"sysctl,omitempty"`
 	// Remove indicates if the container should be removed once it has been started
 	// and exits
-	Remove bool `json:"remove"`
+	Remove bool `json:"remove,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

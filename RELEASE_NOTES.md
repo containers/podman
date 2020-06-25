@@ -5,6 +5,7 @@
 - The `podman system connection` command was mistakenly omitted from the 2.0 release, and has been included here.
 - The `podman ps --format=json` command once again includes container's creation time in a human-readable format in the `CreatedAt` key.
 - The `podman inspect` commands on containers now displays forwarded ports in a format compatible with `docker inspect`.
+- The `--log-level=debug` flag to `podman run` and `podman exec` will enable syslog for exit commands, ensuring that debug logs are collected for these otherwise-unlogged commands.
 
 ### Bugfixes
 - Fixed a bug where `podman build` did not properly handle the `--http-proxy` and `--cgroup-manager` flags.
@@ -18,10 +19,18 @@
 - Fixed a bug where SSH agent authentication support was not properly working in the `podman-remote` and `podman --remote` commands.
 - Fixed a bug where the `podman untag` command was not erroring when no matching image was found.
 - Fixed a bug where stop signal for containers was not being set properly if not explicitly provided.
+- Fixed a bug where the `podman ps` command was not showing port mappings for containers which share a network namespace with another container (e.g. are part of a pod).
+- Fixed a bug where the `--remote` flag could unintentionally be forwarded into containers when using `podman-remote`.
+- Fixed a bug where unit files generated for pods by `podman generate systemd` would not allow individual containers to be restarted ([#6770](https://github.com/containers/libpod/issues/6770)).
+- Fixed a bug where the `podman run` and `podman create` commands did not support all transports that `podman pull` does ([#6744](https://github.com/containers/libpod/issues/6744)).
+- Fixed a bug where the `label` option to `--security-opt` would only be shown once in `podman inspect`, even if provided multiple times.
 
 ### API
 - Fixed a bug where network endpoint URLs in the compatability API were mistakenly suffixed with `/json`.
 - Fixed a bug where the Libpod volume creation endpoint returned 200 instead of 201 on success.
+
+### Misc
+- Updated containers/common to v0.14.3
 
 ## 2.0.0
 ### Features

@@ -189,4 +189,45 @@ echo $rand        |   0 | $rand
        "podman will not overwrite existing cidfile"
 }
 
+@test "podman run docker-archive" {
+    # Create an image that, when run, outputs a random magic string
+    expect=$(random_string 20)
+    run_podman run --name myc --entrypoint="[\"/bin/echo\",\"$expect\"]" $IMAGE
+    is "$output" "$expect" "podman run --entrypoint echo-randomstring"
+
+    # Save it as a tar archive
+    run_podman commit myc myi
+    archive=$PODMAN_TMPDIR/archive.tar
+    run_podman save myi -o $archive
+    is "$output" "" "podman save"
+
+    # Clean up image and container from container storage...
+    run_podman rmi myi
+    run_podman rm myc
+
+    # ... then confirm we can run from archive. This re-imports the image
+    # and runs it, producing our random string as the last line.
+    run_podman run docker-archive:$archive
+    is "${lines[0]}" "Getting image source signatures" "podman run docker-archive, first line of output"
+    is "$output" ".*Copying blob"     "podman run docker-archive"
+    is "$output" ".*Copying config"   "podman run docker-archive"
+    is "$output" ".*Writing manifest" "podman run docker-archive"
+    is "${lines[-1]}" "$expect" "podman run docker-archive: expected random string output"
+
+    # Clean up container as well as re-imported image
+    run_podman rm -a
+    run_podman rmi myi
+
+    # Repeat the above, with podman-create and podman-start.
+    run_podman create docker-archive:$archive
+    cid=${lines[-1]}
+
+    run_podman start --attach $cid
+    is "$output" "$expect" "'podman run' of 'podman-create docker-archive'"
+
+    # Clean up.
+    run_podman rm $cid
+    run_podman rmi myi
+}
+
 # vim: filetype=sh

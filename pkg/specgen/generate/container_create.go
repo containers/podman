@@ -110,8 +110,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, opts...)
 
-	// TODO: Enable syslog support - we'll need to put this in SpecGen.
-	exitCommandArgs, err := CreateExitCommandArgs(rt.StorageConfig(), rtc, false, s.Remove, false)
+	exitCommandArgs, err := CreateExitCommandArgs(rt.StorageConfig(), rtc, logrus.IsLevelEnabled(logrus.DebugLevel), s.Remove, false)
 	if err != nil {
 		return nil, err
 	}

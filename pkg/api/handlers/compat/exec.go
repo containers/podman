@@ -62,7 +62,8 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, false, true, true)
+	// Automatically log to syslog if the server has log-level=debug set
+	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), true, true)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
