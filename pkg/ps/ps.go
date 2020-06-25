@@ -145,9 +145,13 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		}
 		return nil
 	})
-
 	if batchErr != nil {
 		return entities.ListContainer{}, batchErr
+	}
+
+	portMappings, err := ctr.PortMappings()
+	if err != nil {
+		return entities.ListContainer{}, err
 	}
 
 	ps := entities.ListContainer{
@@ -165,7 +169,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		Names:     []string{conConfig.Name},
 		Pid:       pid,
 		Pod:       conConfig.Pod,
-		Ports:     conConfig.PortMappings,
+		Ports:     portMappings,
 		Size:      size,
 		StartedAt: startedTime.Unix(),
 		State:     conState.String(),
