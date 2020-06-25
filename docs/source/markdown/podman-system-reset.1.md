@@ -4,7 +4,7 @@
 podman\-system\-reset - Reset storage back to initial state
 
 ## SYNOPSIS
-**podman system reset**
+**podman system reset** [*options*]
 
 ## DESCRIPTION
 **podman system reset** removes all pods, containers, images and volumes.

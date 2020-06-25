@@ -4,9 +4,9 @@
 podman\-mount - Mount a working container's root filesystem
 
 ## SYNOPSIS
-**podman mount** [*container* ...]
+**podman mount** [*options*] [*container* ...]
 
-**podman container mount** [*container* ...]
+**podman container mount** [*options*] [*container* ...]
 
 ## DESCRIPTION
 Mounts the specified containers' root file system in a location which can be

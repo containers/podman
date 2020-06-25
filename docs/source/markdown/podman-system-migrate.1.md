@@ -4,7 +4,7 @@
 podman\-system\-migrate - Migrate existing containers to a new podman version
 
 ## SYNOPSIS
-**podman system migrate**
+**podman system migrate** [*options*]
 
 ## DESCRIPTION
 **podman system migrate** migrates containers to the latest podman version.

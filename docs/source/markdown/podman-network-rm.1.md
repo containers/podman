@@ -4,7 +4,7 @@
 podman\-network\-rm - Remove one or more CNI networks
 
 ## SYNOPSIS
-**podman network rm**  [*network...*]
+**podman network rm** [*options*] [*network...*]
 
 ## DESCRIPTION
 Delete one or more Podman networks.

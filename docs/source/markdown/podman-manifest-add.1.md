@@ -4,7 +4,7 @@
 podman\-manifest\-add - Add an image to a manifest list or image index
 
 ## SYNOPSIS
-**podman manifest add** *listnameorindexname* *imagename*
+**podman manifest add** [*options*] *listnameorindexname* *imagename*
 
 ## DESCRIPTION
 

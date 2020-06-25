@@ -34,13 +34,16 @@ function check_help() {
 
         dprint "$command_string --help"
         run_podman "$@" $cmd --help
+        local full_help="$output"
 
         # The line immediately after 'Usage:' gives us a 1-line synopsis
-        usage=$(echo "$output" | grep -A1 '^Usage:' | tail -1)
+        usage=$(echo "$full_help" | grep -A1 '^Usage:' | tail -1)
         [ -n "$usage" ] || die "podman $cmd: no Usage message found"
 
         # e.g. 'podman ps' should not show 'podman container ps' in usage
-        is "$usage" "  $command_string .*" "Usage string matches command"
+        # Trailing space in usage handles 'podman system renumber' which
+        # has no ' [flags]'
+        is "$usage " "  $command_string .*" "Usage string matches command"
 
         # If usage ends in '[command]', recurse into subcommands
         if expr "$usage" : '.*\[command\]$' >/dev/null; then
@@ -57,6 +60,17 @@ function check_help() {
         # We had someone do 'podman foo ARG [flags]' one time. Yeah, no.
         if expr "$usage" : '.*[A-Z].*\[flag' >/dev/null; then
             die "'flags' must precede arguments in usage: $usage"
+        fi
+
+        # Cross-check: if usage includes '[flags]', there must be a
+        # longer 'Flags:' section in the full --help output; vice-versa,
+        # if 'Flags:' is in full output, usage line must have '[flags]'.
+        if expr "$usage" : '.*\[flag' >/dev/null; then
+            if ! expr "$full_help" : ".*Flags:" >/dev/null; then
+                die "$command_string: Usage includes '[flags]' but has no 'Flags:' subsection"
+            fi
+        elif expr "$full_help" : ".*Flags:" >/dev/null; then
+            die "$command_string: --help has 'Flags:' section but no '[flags]' in synopsis"
         fi
 
         # If usage lists no arguments (strings in ALL CAPS), confirm

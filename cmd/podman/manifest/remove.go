@@ -12,12 +12,13 @@ import (
 
 var (
 	removeCmd = &cobra.Command{
-		Use:     "remove [flags] LIST IMAGE",
-		Short:   "Remove an entry from a manifest list or image index",
-		Long:    "Removes an image from a manifest list or image index.",
-		RunE:    remove,
-		Example: `podman manifest remove mylist:v1.11 sha256:15352d97781ffdf357bf3459c037be3efac4133dc9070c2dce7eca7c05c3e736`,
-		Args:    cobra.ExactArgs(2),
+		Use:                   "remove LIST IMAGE",
+		Short:                 "Remove an entry from a manifest list or image index",
+		Long:                  "Removes an image from a manifest list or image index.",
+		RunE:                  remove,
+		Example:               `podman manifest remove mylist:v1.11 sha256:15352d97781ffdf357bf3459c037be3efac4133dc9070c2dce7eca7c05c3e736`,
+		Args:                  cobra.ExactArgs(2),
+		DisableFlagsInUseLine: true,
 	}
 )
 

@@ -4,7 +4,7 @@
 podman\-healthcheck\-run - Run a container healthcheck
 
 ## SYNOPSIS
-**podman healthcheck run** [*options*] *container*
+**podman healthcheck run** *container*
 
 ## DESCRIPTION
 

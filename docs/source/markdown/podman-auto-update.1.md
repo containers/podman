@@ -4,7 +4,7 @@
 podman-auto-update - Auto update containers according to their auto-update policy
 
 ## SYNOPSIS
-**podman auto-update**
+**podman auto-update** [*options*]
 
 ## DESCRIPTION
 `podman auto-update` looks up containers with a specified "io.containers.autoupdate" label (i.e., the auto-update policy).
