@@ -1,3 +1,42 @@
+- Changelog for v2.0.1 (2020-06-25):
+  * Update release notes with further v2.0.1 changes
+  * Fix inspect to display multiple label: changes
+  * Set syslog for exit commands on log-level=debug
+  * Friendly amendment for pr 6751
+  * podman run/create: support all transports
+  * systemd generate: allow manual restart of container units in pods
+  * Revert sending --remote flag to containers
+  * Print port mappings in `ps` for ctrs sharing network
+  * vendor github.com/containers/common@v0.14.3
+  * Update release notes for v2.0.1
+  * utils: drop default mapping when running uid!=0
+  * Set stop signal to 15 when not explicitly set
+  * podman untag: error if tag doesn't exist
+  * Reformat inspect network settings
+  * APIv2: Return `StatusCreated` from volume creation
+  * APIv2:fix: Remove `/json` from compat network EPs
+  * Fix ssh-agent support
+  * libpod: specify mappings to the storage
+  * APIv2:doc: Fix swagger doc to refer to volumes
+  * Add podman network to bash command completions
+  * Fix typo in manpage for `podman auto update`.
+  * Add JSON output field for ps
+  * V2 podman system connection
+  * wip
+  * image load: no args required
+  * Re-add PODMAN_USERNS environment variable
+  * Fix conflicts between privileged and other flags
+  * Bump required go version to 1.13
+  * Add explicit command to alpine container in test case.
+  * Use POLL_DURATION for timer
+  * Stop following logs using timers
+  * "pod" was being truncated to "po" in the names of the generated systemd unit files.
+  * rootless_linux: improve error message
+  * Fix podman build handling of --http-proxy flag
+  * correct the absolute path of `rm` executable
+  * Makefile: allow customizable GO_BUILD
+  * Cirrus: Change DEST_BRANCH to v2.0
+
 - Changelog for v2.0.0 (2020-06-19):
   * Update release notes for v2.0.0
   * Fixes #6670
