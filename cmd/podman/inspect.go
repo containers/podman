@@ -8,12 +8,22 @@ import (
 )
 
 var (
+	inspectDescription = `Displays the low-level information on an object identified by name or ID.
+  For more inspection options, see:
+
+      podman container inspect
+      podman image inspect
+      podman network inspect
+      podman pod inspect
+      podman volume inspect`
+
 	// Command: podman _inspect_ Object_ID
 	inspectCmd = &cobra.Command{
-		Use:   "inspect [flags] {CONTAINER_ID | IMAGE_ID} [...]",
-		Short: "Display the configuration of object denoted by ID",
-		Long:  "Displays the low-level information on an object identified by name or ID",
-		RunE:  inspectExec,
+		Use:              "inspect [flags] {CONTAINER_ID | IMAGE_ID} [...]",
+		Short:            "Display the configuration of object denoted by ID",
+		RunE:             inspectExec,
+		Long:             inspectDescription,
+		TraverseChildren: true,
 		Example: `podman inspect fedora
   podman inspect --type image fedora
   podman inspect CtrID ImgID
