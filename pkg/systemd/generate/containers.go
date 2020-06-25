@@ -69,8 +69,6 @@ type containerInfo struct {
 
 const containerTemplate = headerTemplate + `
 {{- if .BoundToServices}}
-RefuseManualStart=yes
-RefuseManualStop=yes
 BindsTo={{- range $index, $value := .BoundToServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
 After={{- range $index, $value := .BoundToServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
 {{- end}}
