@@ -1,10 +1,9 @@
 import unittest
-import docker
-from docker import Client
-from . import constant
-from . import common
+
+from . import common, constant
 
 client = common.get_client()
+
 
 class TestInfo_Version(unittest.TestCase):
 
@@ -31,16 +30,15 @@ class TestInfo_Version(unittest.TestCase):
         common.terminate_connection(cls)
         return super().tearDownClass()
 
-
     def test_Info(self):
         self.assertIsNotNone(client.info())
 
     def test_info_container_details(self):
         info = client.info()
-        self.assertEqual(info["Containers"],1)
+        self.assertEqual(info["Containers"], 1)
         client.create_container(image=constant.ALPINE)
         info = client.info()
-        self.assertEqual(info["Containers"],2)
+        self.assertEqual(info["Containers"], 2)
 
     def test_version(self):
         self.assertIsNotNone(client.version())
