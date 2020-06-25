@@ -150,6 +150,18 @@ function random_ip() {
 
     pod_id_file=${PODMAN_TMPDIR}/pod-id-file
 
+    # Randomly-assigned ports in the 5xxx and 6xxx range
+    for port_in in $(shuf -i 5000-5999);do
+        if ! { exec 3<> /dev/tcp/127.0.0.1/$port_in; } &>/dev/null; then
+            break
+        fi
+    done
+    for port_out in $(shuf -i 6000-6999);do
+        if ! { exec 3<> /dev/tcp/127.0.0.1/$port_out; } &>/dev/null; then
+            break
+        fi
+    done
+
     # Create a pod with all the desired options
     # FIXME: --ip=$ip fails:
     #      Error adding network: failed to allocate all requested IPs
@@ -161,6 +173,7 @@ function random_ip() {
                --dns        "$dns_server"                \
                --dns-search "$dns_search"                \
                --dns-opt    "$dns_opt"                   \
+               --publish    "$port_out:$port_in"         \
                --label      "${labelname}=${labelvalue}"
     pod_id="$output"
 
@@ -199,6 +212,34 @@ function random_ip() {
     run_podman pod ps --no-trunc --filter "label=${labelname}=${labelvalue}" --format '{{.ID}}'
     is "$output" "$pod_id" "pod ps --filter label=..."
 
+    # Test local port forwarding, as well as 'ps' output showing ports
+    # Run 'nc' in a container, waiting for input on the published port.
+    c_name=$(random_string 15)
+    run_podman run -d --pod mypod --name $c_name $IMAGE nc -l -p $port_in
+    cid="$output"
+
+    # Try running another container also listening on the same port.
+    run_podman 1 run --pod mypod --name dsfsdfsdf $IMAGE nc -l -p $port_in
+    is "$output" "nc: bind: Address in use" \
+       "two containers cannot bind to same port"
+
+    # While the container is still running, run 'podman ps' (no --format)
+    # and confirm that the output includes the published port
+    run_podman ps --filter id=$cid
+    is "${lines[1]}" "${cid:0:12}  $IMAGE  nc -l -p $port_in .* 0.0.0.0:$port_out->$port_in/tcp  $c_name" \
+       "output of 'podman ps'"
+
+    # send a random string to the container. This will cause the container
+    # to output the string to its logs, then exit.
+    teststring=$(random_string 30)
+    echo "$teststring" | nc 127.0.0.1 $port_out
+
+    # Confirm that the container log output is the string we sent it.
+    run_podman logs $cid
+    is "$output" "$teststring" "test string received on container"
+
+    # Clean up
+    run_podman rm $cid
     run_podman pod rm -f mypod
 }
 
