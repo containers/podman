@@ -822,6 +822,7 @@ func stringsEq(a, b []string) bool {
 
 var (
 	configOnce sync.Once
+	configErr  error
 	config     *Config
 )
 
@@ -837,11 +838,10 @@ var (
 // The system defaults container config files can be overwritten using the
 // CONTAINERS_CONF environment variable.  This is usually done for testing.
 func Default() (*Config, error) {
-	var err error
 	configOnce.Do(func() {
-		config, err = NewConfig("")
+		config, configErr = NewConfig("")
 	})
-	return config, err
+	return config, configErr
 }
 
 func Path() string {
