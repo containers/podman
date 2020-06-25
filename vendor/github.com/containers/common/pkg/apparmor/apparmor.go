@@ -2,14 +2,16 @@ package apparmor
 
 import (
 	"errors"
+
+	"github.com/containers/common/version"
 )
 
 const (
 	// ProfilePrefix is used for version-independent presence checks.
-	ProfilePrefix = "apparmor_profile"
+	ProfilePrefix = "containers-default-"
 
 	// Profile default name
-	Profile = "container-default"
+	Profile = ProfilePrefix + version.Version
 )
 
 var (
