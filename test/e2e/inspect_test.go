@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/selinux/go-selinux"
 )
 
 var _ = Describe("Podman inspect", func() {
@@ -263,4 +264,29 @@ var _ = Describe("Podman inspect", func() {
 		Expect(len(baseJSON)).To(Equal(1))
 		Expect(baseJSON[0].Name).To(Equal(ctrName))
 	})
+
+	It("podman inspect - HostConfig.SecurityOpt ", func() {
+		if !selinux.GetEnabled() {
+			Skip("SELinux not enabled")
+		}
+
+		ctrName := "hugo"
+		create := podmanTest.PodmanNoCache([]string{
+			"create", "--name", ctrName,
+			"--security-opt", "seccomp=unconfined",
+			"--security-opt", "label=type:spc_t",
+			"--security-opt", "label=level:s0",
+			ALPINE, "sh"})
+
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		baseInspect := podmanTest.Podman([]string{"inspect", ctrName})
+		baseInspect.WaitWithDefaultTimeout()
+		Expect(baseInspect.ExitCode()).To(Equal(0))
+		baseJSON := baseInspect.InspectContainerToJSON()
+		Expect(len(baseJSON)).To(Equal(1))
+		Expect(baseJSON[0].HostConfig.SecurityOpt).To(Equal([]string{"label=type:spc_t,label=level:s0", "seccomp=unconfined"}))
+	})
+
 })
