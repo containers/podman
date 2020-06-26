@@ -61,6 +61,29 @@ func GenerateVolumeFilters(filters map[string][]string) ([]libpod.VolumeFilter, 
 					}
 					return false
 				})
+			case "dangling":
+				danglingVal := val
+				invert := false
+				switch strings.ToLower(danglingVal) {
+				case "true", "1":
+					// Do nothing
+				case "false", "0":
+					// Dangling=false requires that we
+					// invert the result of IsDangling.
+					invert = true
+				default:
+					return nil, errors.Errorf("%q is not a valid value for the \"dangling\" filter - must be true or false", danglingVal)
+				}
+				vf = append(vf, func(v *libpod.Volume) bool {
+					dangling, err := v.IsDangling()
+					if err != nil {
+						return false
+					}
+					if invert {
+						return !dangling
+					}
+					return dangling
+				})
 			default:
 				return nil, errors.Errorf("%q is in an invalid volume filter", filter)
 			}

@@ -137,7 +137,7 @@ func (v *Volume) Config() (*VolumeConfig, error) {
 
 // VolumeInUse goes through the container dependencies of a volume
 // and checks if the volume is being used by any container.
-func (v *Volume) VolumesInUse() ([]string, error) {
+func (v *Volume) VolumeInUse() ([]string, error) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
@@ -145,4 +145,14 @@ func (v *Volume) VolumesInUse() ([]string, error) {
 		return nil, define.ErrVolumeRemoved
 	}
 	return v.runtime.state.VolumeInUse(v)
+}
+
+// IsDangling returns whether this volume is dangling (unused by any
+// containers).
+func (v *Volume) IsDangling() (bool, error) {
+	ctrs, err := v.VolumeInUse()
+	if err != nil {
+		return false, err
+	}
+	return len(ctrs) == 0, nil
 }

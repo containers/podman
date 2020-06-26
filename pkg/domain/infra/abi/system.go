@@ -330,7 +330,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		if err != nil {
 			return nil, err
 		}
-		inUse, err := v.VolumesInUse()
+		inUse, err := v.VolumeInUse()
 		if err != nil {
 			return nil, err
 		}
