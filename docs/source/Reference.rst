@@ -3,7 +3,7 @@
 Reference
 =========
 
-To see full screen version please visit: `API documentation <https://docs.podman.io/en/latest/_static/api.html>`_
+To see full screen version please visit: `API documentation <_static/api.html>`_
 
 .. raw:: html
 
