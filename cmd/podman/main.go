@@ -16,7 +16,9 @@ import (
 	_ "github.com/containers/libpod/v2/cmd/podman/system"
 	_ "github.com/containers/libpod/v2/cmd/podman/volumes"
 	"github.com/containers/libpod/v2/pkg/rootless"
+	"github.com/containers/libpod/pkg/terminal"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -57,6 +59,10 @@ func main() {
 				c.Command.SetUsageTemplate(usageTemplate)
 			}
 		}
+	}
+	if err := terminal.SetConsole(); err != nil {
+		logrus.Error(err)
+		os.Exit(1)
 	}
 
 	Execute()
