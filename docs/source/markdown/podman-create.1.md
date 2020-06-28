@@ -623,6 +623,8 @@ When specifying ranges for both, the number of container ports in the range must
 (e.g., `podman run -p 1234-1236:1222-1224 --name thisWorks -t busybox`
 but not `podman run -p 1230-1236:1230-1240 --name RangeContainerPortsBiggerThanRangeHostPorts -t busybox`)
 With ip: `podman run -p 127.0.0.1:$HOSTPORT:$CONTAINERPORT --name CONTAINER -t someimage`
+Host port does not have to be specified (e.g. `podman run -p 127.0.0.1::80`).
+If it is not, the container port will be randomly assigned a port on the host.
 Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
 
 **--publish-all**, **-P**=*true|false*

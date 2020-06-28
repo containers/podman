@@ -430,7 +430,8 @@ type PortMapping struct {
 	ContainerPort uint16 `json:"container_port"`
 	// HostPort is the port number that will be forwarded from the host into
 	// the container.
-	// If omitted, will be assumed to be identical to
+	// If omitted, a random port on the host (guaranteed to be over 1024)
+	// will be assigned.
 	HostPort uint16 `json:"host_port,omitempty"`
 	// Range is the number of ports that will be forwarded, starting at
 	// HostPort and ContainerPort and counting up.
