@@ -31,6 +31,7 @@ import (
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -1505,8 +1506,17 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	switch {
 	case (rootless.IsRootless() && !unified) || c.config.NoCgroups:
 		return "", nil
+	case c.config.CgroupsMode == cgroupSplit:
+		if c.config.CgroupParent != "" {
+			return c.config.CgroupParent, nil
+		}
+		selfCgroup, err := utils.GetOwnCgroup()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(selfCgroup, "container"), nil
 	case c.runtime.config.Engine.CgroupManager == config.SystemdCgroupsManager:
-		// When runc is set to use Systemd as a cgroup manager, it
+		// When the OCI runtime is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())

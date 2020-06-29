@@ -881,6 +881,12 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return err
 	}
 
+	if ctr.config.CgroupsMode == cgroupSplit {
+		if err := utils.MoveUnderCgroupSubtree("supervisor"); err != nil {
+			return err
+		}
+	}
+
 	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
 
 	if ctr.config.Spec.Process.Terminal {
@@ -1173,7 +1179,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		"--socket-dir-path", r.socketsDir,
 	}
 
-	if r.cgroupManager == config.SystemdCgroupsManager && !ctr.config.NoCgroups {
+	if r.cgroupManager == config.SystemdCgroupsManager && !ctr.config.NoCgroups && ctr.config.CgroupsMode != cgroupSplit {
 		args = append(args, "-s")
 	}
 
@@ -1275,7 +1281,7 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 
 	// If cgroup creation is disabled - just signal.
 	switch ctr.config.CgroupsMode {
-	case "disabled", "no-conmon":
+	case "disabled", "no-conmon", cgroupSplit:
 		mustCreateCgroup = false
 	}
 
