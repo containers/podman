@@ -63,4 +63,23 @@ function check_label() {
     check_label "--security-opt label=level:s0:c1,c2" "container_t" "s0:c1,c2"
 }
 
+# pr #6752
+@test "podman selinux: inspect multiple labels" {
+    if [ ! -e /usr/sbin/selinuxenabled ] || ! /usr/sbin/selinuxenabled; then
+        skip "selinux disabled or not available"
+    fi
+
+    run_podman run -d --name myc \
+               --security-opt seccomp=unconfined \
+               --security-opt label=type:spc_t \
+               --security-opt label=level:s0 \
+               $IMAGE sh -c 'while test ! -e /stop; do sleep 0.1; done'
+    run_podman inspect --format='{{ .HostConfig.SecurityOpt }}' myc
+    is "$output" "\[label=type:spc_t,label=level:s0 seccomp=unconfined]" \
+      "'podman inspect' preserves all --security-opts"
+
+    run_podman exec myc touch /stop
+    run_podman rm -f myc
+}
+
 # vim: filetype=sh
