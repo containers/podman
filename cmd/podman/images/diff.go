@@ -14,8 +14,8 @@ var (
 	diffCmd = &cobra.Command{
 		Use:   "diff [flags] IMAGE",
 		Args:  cobra.ExactArgs(1),
-		Short: "Inspect changes on image's file systems",
-		Long:  `Displays changes on a image's filesystem.  The image will be compared to its parent layer.`,
+		Short: "Inspect changes to the image's file systems",
+		Long:  `Displays changes to the image's filesystem.  The image will be compared to its parent layer.`,
 		RunE:  diff,
 		Example: `podman image diff myImage
   podman image diff --format json redis:alpine`,

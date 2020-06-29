@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/containers/common/pkg/config"
@@ -45,7 +44,7 @@ func newPodmanConfig() {
 	case "linux":
 		// Some linux clients might only be compiled without ABI
 		// support (e.g., podman-remote).
-		if abiSupport {
+		if abiSupport && !remoteOverride {
 			mode = entities.ABIMode
 		} else {
 			mode = entities.TunnelMode
@@ -53,19 +52,6 @@ func newPodmanConfig() {
 	default:
 		fmt.Fprintf(os.Stderr, "%s is not a supported OS", runtime.GOOS)
 		os.Exit(1)
-	}
-
-	// Check if need to fallback to the tunnel mode if --remote is used.
-	if abiSupport && mode == entities.ABIMode {
-		// cobra.Execute() may not be called yet, so we peek at os.Args.
-		for _, v := range os.Args {
-			// Prefix checking works because of how default EngineMode's
-			// have been defined.
-			if strings.HasPrefix(v, "--remote") {
-				mode = entities.TunnelMode
-				break
-			}
-		}
 	}
 
 	cfg, err := config.NewConfig("")

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -26,7 +26,7 @@ var (
 		Long:  rmDescription,
 		RunE:  rm,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
 		Example: `podman rm imageID
   podman rm mywebserver myflaskserver 860a4b23
@@ -40,7 +40,7 @@ var (
 		Long:  rmCommand.Long,
 		RunE:  rmCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
 		Example: `podman container rm imageID
   podman container rm mywebserver myflaskserver 860a4b23
@@ -57,12 +57,11 @@ func rmFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all containers")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running or unusable container.  The default is false")
-	flags.BoolVarP(&rmOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&rmOptions.Storage, "storage", false, "Remove container from storage library")
 	flags.BoolVarP(&rmOptions.Volumes, "volumes", "v", false, "Remove anonymous volumes associated with the container")
 	flags.StringArrayVarP(&rmOptions.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
+
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("ignore")
 		_ = flags.MarkHidden("cidfile")
 		_ = flags.MarkHidden("storage")
@@ -75,18 +74,18 @@ func init() {
 		Command: rmCommand,
 	})
 	rmFlags(rmCommand.Flags())
+	validate.AddLatestFlag(rmCommand, &rmOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerRmCommand,
 		Parent:  containerCmd,
 	})
-
-	containerRmFlags := containerRmCommand.Flags()
-	rmFlags(containerRmFlags)
+	rmFlags(containerRmCommand.Flags())
+	validate.AddLatestFlag(containerRmCommand, &rmOptions.Latest)
 }
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	return removeContainers(args, rmOptions, true)
 }
 

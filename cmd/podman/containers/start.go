@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -44,10 +45,9 @@ func startFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&startOptions.Attach, "attach", "a", false, "Attach container's STDOUT and STDERR")
 	flags.StringVar(&startOptions.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	flags.BoolVarP(&startOptions.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
-	flags.BoolVarP(&startOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&startOptions.SigProxy, "sig-proxy", false, "Proxy received signals to the process (default true if attaching, false otherwise)")
+
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("sig-proxy")
 	}
 }
@@ -56,17 +56,17 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: startCommand,
 	})
-	flags := startCommand.Flags()
-	startFlags(flags)
+	startFlags(startCommand.Flags())
+	validate.AddLatestFlag(startCommand, &startOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerStartCommand,
 		Parent:  containerCmd,
 	})
+	startFlags(containerStartCommand.Flags())
+	validate.AddLatestFlag(containerStartCommand, &startOptions.Latest)
 
-	containerStartFlags := containerStartCommand.Flags()
-	startFlags(containerStartFlags)
 }
 
 func start(cmd *cobra.Command, args []string) error {

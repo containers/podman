@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -36,11 +37,8 @@ func init() {
 		Parent:  podCmd,
 	})
 	flags := inspectCmd.Flags()
-	flags.BoolVarP(&inspectOptions.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
 	flags.StringVarP(&inspectOptions.Format, "format", "f", "json", "Format the output to a Go template or json")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	validate.AddLatestFlag(inspectCmd, &inspectOptions.Latest)
 }
 
 func inspect(cmd *cobra.Command, args []string) error {

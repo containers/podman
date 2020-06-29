@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -68,9 +69,8 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: logsCommand,
 	})
-
-	flags := logsCommand.Flags()
-	logsFlags(flags)
+	logsFlags(logsCommand.Flags())
+	validate.AddLatestFlag(logsCommand, &logsOptions.Latest)
 
 	// container logs
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -78,15 +78,13 @@ func init() {
 		Command: containerLogsCommand,
 		Parent:  containerCmd,
 	})
-
-	containerLogsFlags := containerLogsCommand.Flags()
-	logsFlags(containerLogsFlags)
+	logsFlags(containerLogsCommand.Flags())
+	validate.AddLatestFlag(containerLogsCommand, &logsOptions.Latest)
 }
 
 func logsFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&logsOptions.Details, "details", false, "Show extra details provided to the logs")
 	flags.BoolVarP(&logsOptions.Follow, "follow", "f", false, "Follow log output.  The default is false")
-	flags.BoolVarP(&logsOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.StringVar(&logsOptions.SinceRaw, "since", "", "Show logs since TIMESTAMP")
 	flags.Int64Var(&logsOptions.Tail, "tail", -1, "Output the specified number of LINES at the end of the logs.  Defaults to -1, which prints all lines")
 	flags.BoolVarP(&logsOptions.Timestamps, "timestamps", "t", false, "Output the timestamps in the log")
@@ -95,7 +93,7 @@ func logsFlags(flags *pflag.FlagSet) {
 	_ = flags.MarkHidden("details")
 }
 
-func logs(cmd *cobra.Command, args []string) error {
+func logs(_ *cobra.Command, args []string) error {
 	if logsOptions.SinceRaw != "" {
 		// parse time, error out if something is wrong
 		since, err := util.ParseInputTime(logsOptions.SinceRaw)

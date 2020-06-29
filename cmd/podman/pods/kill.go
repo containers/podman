@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/parse"
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/utils"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ var (
 		Long:  podKillDescription,
 		RunE:  kill,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod kill podID
   podman pod kill --signal TERM mywebserver
@@ -41,14 +41,11 @@ func init() {
 	})
 	flags := killCommand.Flags()
 	flags.BoolVarP(&killOpts.All, "all", "a", false, "Kill all containers in all pods")
-	flags.BoolVarP(&killOpts.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
 	flags.StringVarP(&killOpts.Signal, "signal", "s", "KILL", "Signal to send to the containers in the pod")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
-
+	validate.AddLatestFlag(killCommand, &killOpts.Latest)
 }
-func kill(cmd *cobra.Command, args []string) error {
+
+func kill(_ *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)

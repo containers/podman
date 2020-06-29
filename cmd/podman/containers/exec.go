@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	envLib "github.com/containers/libpod/pkg/env"
@@ -53,14 +54,13 @@ func execFlags(flags *pflag.FlagSet) {
 	flags.StringArrayVarP(&envInput, "env", "e", []string{}, "Set environment variables")
 	flags.StringSliceVar(&envFile, "env-file", []string{}, "Read in a file of environment variables")
 	flags.BoolVarP(&execOpts.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
-	flags.BoolVarP(&execOpts.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&execOpts.Privileged, "privileged", false, "Give the process extended Linux capabilities inside the container.  The default is false")
 	flags.BoolVarP(&execOpts.Tty, "tty", "t", false, "Allocate a pseudo-TTY. The default is false")
 	flags.StringVarP(&execOpts.User, "user", "u", "", "Sets the username or UID used and optionally the groupname or GID for the specified command")
 	flags.UintVar(&execOpts.PreserveFDs, "preserve-fds", 0, "Pass N additional file descriptors to the container")
 	flags.StringVarP(&execOpts.WorkDir, "workdir", "w", "", "Working directory inside the container")
+
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("preserve-fds")
 	}
 }
@@ -70,20 +70,19 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: execCommand,
 	})
-	flags := execCommand.Flags()
-	execFlags(flags)
+	execFlags(execCommand.Flags())
+	validate.AddLatestFlag(execCommand, &execOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerExecCommand,
 		Parent:  containerCmd,
 	})
-
-	containerExecFlags := containerExecCommand.Flags()
-	execFlags(containerExecFlags)
+	execFlags(containerExecCommand.Flags())
+	validate.AddLatestFlag(containerExecCommand, &execOpts.Latest)
 }
 
-func exec(cmd *cobra.Command, args []string) error {
+func exec(_ *cobra.Command, args []string) error {
 	var nameOrID string
 
 	if len(args) == 0 && !execOpts.Latest {

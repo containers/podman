@@ -3,6 +3,7 @@ package containers
 import (
 	"github.com/containers/libpod/cmd/podman/inspect"
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +31,7 @@ func init() {
 	flags := inspectCmd.Flags()
 	flags.BoolVarP(&inspectOpts.Size, "size", "s", false, "Display total file size")
 	flags.StringVarP(&inspectOpts.Format, "format", "f", "json", "Format the output to a Go template or json")
-	flags.BoolVarP(&inspectOpts.Latest, "latest", "l", false, "Act on the latest container Podman is aware of")
+	validate.AddLatestFlag(inspectCmd, &inspectOpts.Latest)
 }
 
 func inspectExec(cmd *cobra.Command, args []string) error {

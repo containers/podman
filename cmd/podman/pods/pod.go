@@ -14,11 +14,10 @@ var (
 
 	// Command: podman _pod_
 	podCmd = &cobra.Command{
-		Use:              "pod",
-		Short:            "Manage pods",
-		Long:             "Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.",
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "pod",
+		Short: "Manage pods",
+		Long:  "Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.",
+		RunE:  validate.SubCommandExists,
 	}
 	containerConfig = util.DefaultContainerConfig()
 )

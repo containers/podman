@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -51,11 +52,7 @@ podman container top ctrID -eo user,pid,comm`,
 func topFlags(flags *pflag.FlagSet) {
 	flags.SetInterspersed(false)
 	flags.BoolVar(&topOptions.ListDescriptors, "list-descriptors", false, "")
-	flags.BoolVarP(&topOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	_ = flags.MarkHidden("list-descriptors") // meant only for bash completion
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
 }
 
 func init() {
@@ -63,8 +60,8 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: topCommand,
 	})
-	flags := topCommand.Flags()
-	topFlags(flags)
+	topFlags(topCommand.Flags())
+	validate.AddLatestFlag(topCommand, &topOptions.Latest)
 
 	descriptors, err := util.GetContainerPidInformationDescriptors()
 	if err == nil {
@@ -77,8 +74,8 @@ func init() {
 		Command: containerTopCommand,
 		Parent:  containerCmd,
 	})
-	containerTopFlags := containerTopCommand.Flags()
-	topFlags(containerTopFlags)
+	topFlags(containerTopCommand.Flags())
+	validate.AddLatestFlag(containerTopCommand, &topOptions.Latest)
 }
 
 func top(cmd *cobra.Command, args []string) error {
