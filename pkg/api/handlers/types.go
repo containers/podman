@@ -221,7 +221,7 @@ func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 		ID:           l.ID(),
 		ParentId:     l.Parent,
 		RepoTags:     repoTags,
-		Created:      l.Created(),
+		Created:      l.Created().Unix(),
 		Size:         int64(*size),
 		SharedSize:   0,
 		VirtualSize:  l.VirtualSize,

@@ -128,7 +128,7 @@ func writeID(imgs []imageReporter) error {
 func writeJSON(images []imageReporter) error {
 	type image struct {
 		entities.ImageSummary
-		Created   string
+		Created   int64
 		CreatedAt string
 	}
 
@@ -136,8 +136,8 @@ func writeJSON(images []imageReporter) error {
 	for _, e := range images {
 		var h image
 		h.ImageSummary = e.ImageSummary
-		h.Created = units.HumanDuration(time.Since(e.ImageSummary.Created)) + " ago"
-		h.CreatedAt = e.ImageSummary.Created.Format(time.RFC3339Nano)
+		h.Created = e.ImageSummary.Created
+		h.CreatedAt = e.created().Format(time.RFC3339Nano)
 		h.RepoTags = nil
 
 		imgs = append(imgs, h)
@@ -284,11 +284,11 @@ func (i imageReporter) ID() string {
 }
 
 func (i imageReporter) Created() string {
-	return units.HumanDuration(time.Since(i.ImageSummary.Created)) + " ago"
+	return units.HumanDuration(time.Since(i.created())) + " ago"
 }
 
 func (i imageReporter) created() time.Time {
-	return i.ImageSummary.Created
+	return time.Unix(i.ImageSummary.Created, 0).UTC()
 }
 
 func (i imageReporter) Size() string {
@@ -302,7 +302,7 @@ func (i imageReporter) History() string {
 }
 
 func (i imageReporter) CreatedAt() string {
-	return i.ImageSummary.Created.String()
+	return i.created().String()
 }
 
 func (i imageReporter) CreatedSince() string {
