@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -244,4 +245,27 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman exec preserves --group-add groups", func() {
+		groupName := "group1"
+		gid := "4444"
+		ctrName1 := "ctr1"
+		ctr1 := podmanTest.Podman([]string{"run", "-ti", "--name", ctrName1, fedoraMinimal, "groupadd", "-g", gid, groupName})
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1.ExitCode()).To(Equal(0))
+
+		imgName := "img1"
+		commit := podmanTest.Podman([]string{"commit", ctrName1, imgName})
+		commit.WaitWithDefaultTimeout()
+		Expect(commit.ExitCode()).To(Equal(0))
+
+		ctrName2 := "ctr2"
+		ctr2 := podmanTest.Podman([]string{"run", "-d", "--name", ctrName2, "--group-add", groupName, imgName, "sleep", "300"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2.ExitCode()).To(Equal(0))
+
+		exec := podmanTest.Podman([]string{"exec", "-ti", ctrName2, "id"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(exec.OutputToString(), fmt.Sprintf("%s(%s)", gid, groupName))).To(BeTrue())
+	})
 })
