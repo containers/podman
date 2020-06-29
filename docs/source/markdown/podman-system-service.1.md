@@ -13,6 +13,10 @@ If no endpoint is provided, defaults will be used.  The default endpoint for a r
 service is *unix:/run/podman/podman.sock* and rootless is *unix:/$XDG_RUNTIME_DIR/podman/podman.sock* (for
 example *unix:/run/user/1000/podman/podman.sock*)
 
+The REST API provided by **podman system service** is split into two parts: a compatibility layer offering support for the Docker v1.40 API, and a Podman-native Libpod layer.
+Documentation for the latter is available at *https://docs.podman.io/en/latest/_static/api.html*.
+Both APIs are versioned, but the server will not reject requests with an unsupported version set.
+
 ## OPTIONS
 
 **--time**, **-t**
