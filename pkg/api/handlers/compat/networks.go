@@ -285,7 +285,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !exists {
-		utils.Error(w, "network not found", http.StatusNotFound, err)
+		utils.Error(w, "network not found", http.StatusNotFound, network.ErrNetworkNotFound)
 		return
 	}
 	if err := network.RemoveNetwork(config, name); err != nil {
