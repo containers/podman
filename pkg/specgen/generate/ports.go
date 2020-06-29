@@ -43,6 +43,8 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 		containerPortValidate[proto] = make(map[string]map[uint16]uint16)
 	}
 
+	postAssignHostPort := false
+
 	// Iterate through all port mappings, generating OCICNI PortMapping
 	// structs and validating there is no overlap.
 	for _, port := range portMappings {
@@ -71,9 +73,6 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 			return nil, nil, nil, errors.Errorf("container port number must be non-0")
 		}
 		hostPort := port.HostPort
-		if hostPort == 0 {
-			hostPort = containerPort
-		}
 		if uint32(len-1)+uint32(containerPort) > 65535 {
 			return nil, nil, nil, errors.Errorf("container port range exceeds maximum allowable port number")
 		}
@@ -105,26 +104,42 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 				cPort := containerPort + index
 				hPort := hostPort + index
 
-				if cPort == 0 || hPort == 0 {
-					return nil, nil, nil, errors.Errorf("host and container ports cannot be 0")
+				if cPort == 0 {
+					return nil, nil, nil, errors.Errorf("container port cannot be 0")
 				}
 
-				testCPort := ctrPortMap[cPort]
-				if testCPort != 0 && testCPort != hPort {
-					// This is an attempt to redefine a port
-					return nil, nil, nil, errors.Errorf("conflicting port mappings for container port %d (protocol %s)", cPort, p)
-				}
-				ctrPortMap[cPort] = hPort
+				// Host port is allowed to be 0. If it is, we
+				// select a random port on the host.
+				// This will happen *after* all other ports are
+				// placed, to ensure we don't accidentally
+				// select a port that a later mapping wanted.
+				if hPort == 0 {
+					// If we already have a host port
+					// assigned to their container port -
+					// just use that.
+					if ctrPortMap[cPort] != 0 {
+						hPort = ctrPortMap[cPort]
+					} else {
+						postAssignHostPort = true
+					}
+				} else {
+					testCPort := ctrPortMap[cPort]
+					if testCPort != 0 && testCPort != hPort {
+						// This is an attempt to redefine a port
+						return nil, nil, nil, errors.Errorf("conflicting port mappings for container port %d (protocol %s)", cPort, p)
+					}
+					ctrPortMap[cPort] = hPort
 
-				testHPort := hostPortMap[hPort]
-				if testHPort != 0 && testHPort != cPort {
-					return nil, nil, nil, errors.Errorf("conflicting port mappings for host port %d (protocol %s)", hPort, p)
-				}
-				hostPortMap[hPort] = cPort
+					testHPort := hostPortMap[hPort]
+					if testHPort != 0 && testHPort != cPort {
+						return nil, nil, nil, errors.Errorf("conflicting port mappings for host port %d (protocol %s)", hPort, p)
+					}
+					hostPortMap[hPort] = cPort
 
-				// If we have an exact duplicate, just continue
-				if testCPort == hPort && testHPort == cPort {
-					continue
+					// If we have an exact duplicate, just continue
+					if testCPort == hPort && testHPort == cPort {
+						continue
+					}
 				}
 
 				// We appear to be clear. Make an OCICNI port
@@ -140,6 +155,61 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 				finalMappings = append(finalMappings, cniPort)
 			}
 		}
+	}
+
+	// Handle any 0 host ports now by setting random container ports.
+	if postAssignHostPort {
+		remadeMappings := make([]ocicni.PortMapping, 0, len(finalMappings))
+
+		// Iterate over all
+		for _, p := range finalMappings {
+			if p.HostPort != 0 {
+				remadeMappings = append(remadeMappings, p)
+				continue
+			}
+
+			hostIPMap := hostPortValidate[p.Protocol]
+			ctrIPMap := containerPortValidate[p.Protocol]
+
+			hostPortMap, ok := hostIPMap[p.HostIP]
+			if !ok {
+				hostPortMap = make(map[uint16]uint16)
+				hostIPMap[p.HostIP] = hostPortMap
+			}
+			ctrPortMap, ok := ctrIPMap[p.HostIP]
+			if !ok {
+				ctrPortMap = make(map[uint16]uint16)
+				ctrIPMap[p.HostIP] = ctrPortMap
+			}
+
+			// See if container port has been used elsewhere
+			if ctrPortMap[uint16(p.ContainerPort)] != 0 {
+				// Duplicate definition. Let's not bother
+				// including it.
+				continue
+			}
+
+			// Max retries to ensure we don't loop forever.
+			for i := 0; i < 15; i++ {
+				candidate, err := getRandomPort()
+				if err != nil {
+					return nil, nil, nil, errors.Wrapf(err, "error getting candidate host port for container port %d", p.ContainerPort)
+				}
+
+				if hostPortMap[uint16(candidate)] == 0 {
+					logrus.Debugf("Successfully assigned container port %d to host port %d (IP %s Protocol %s)", p.ContainerPort, candidate, p.HostIP, p.Protocol)
+					hostPortMap[uint16(candidate)] = uint16(p.ContainerPort)
+					ctrPortMap[uint16(p.ContainerPort)] = uint16(candidate)
+					p.HostPort = int32(candidate)
+					break
+				}
+			}
+			if p.HostPort == 0 {
+				return nil, nil, nil, errors.Errorf("could not find open host port to map container port %d to", p.ContainerPort)
+			}
+			remadeMappings = append(remadeMappings, p)
+		}
+		return remadeMappings, containerPortValidate, hostPortValidate, nil
 	}
 
 	return finalMappings, containerPortValidate, hostPortValidate, nil
