@@ -41,7 +41,7 @@ function teardown() {
     fi
 
     cname=$(random_string)
-    run_podman create --name $cname --detach $IMAGE top
+    run_podman create --name $cname --label "io.containers.autoupdate=image" --detach $IMAGE top
 
     run_podman generate systemd --new $cname
     echo "$output" > "$UNIT_FILE"
@@ -63,6 +63,12 @@ function teardown() {
     sleep 2
     run_podman logs $cname
     is "$output" ".*Load average:.*" "running container 'top'-like output"
+
+    # Exercise `podman auto-update`.
+    # TODO: this will at least run auto-update code but won't perform an update
+    #       since the image didn't change.  We need to improve on that and run
+    #       an image from a local registry instead.
+    run_podman auto-update
 
     # All good. Stop service, clean up.
     run $SYSTEMCTL stop "$SERVICE_NAME"
