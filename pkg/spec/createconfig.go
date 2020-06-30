@@ -287,10 +287,11 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithCommand(c.UserCommand))
 	}
 
-	// Add entrypoint unconditionally
-	// If it's empty it's because it was explicitly set to "" or the image
-	// does not have one
-	options = append(options, libpod.WithEntrypoint(c.Entrypoint))
+	// Add entrypoint if it was set
+	// If it's empty it's because it was explicitly set to ""
+	if c.Entrypoint != nil {
+		options = append(options, libpod.WithEntrypoint(c.Entrypoint))
+	}
 
 	// TODO: MNT, USER, CGROUP
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
