@@ -54,6 +54,9 @@ type InspectContainerConfig struct {
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`
+	// Timezone is the timezone inside the container.
+	// Local means it has the same timezone as the host machine
+	Timezone string `json:"Timezone,omitempty"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

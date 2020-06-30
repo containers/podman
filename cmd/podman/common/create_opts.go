@@ -91,6 +91,7 @@ type ContainerCLIOpts struct {
 	Systemd           string
 	TmpFS             []string
 	TTY               bool
+	Timezone          string
 	UIDMap            []string
 	Ulimit            []string
 	User              string
