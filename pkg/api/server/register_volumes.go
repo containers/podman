@@ -186,7 +186,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: force
 	//    type: boolean
-	//    description: force removal
+	//    description: |
+	//      Force removal of the volume. This actually only causes errors due
+	//      to the names volume not being found to be suppressed, which is the
+	//      behaviour Docker implements.
 	// produces:
 	// - application/json
 	// responses:
