@@ -6,14 +6,20 @@ podman\-inspect - Display a container or image's configuration
 ## SYNOPSIS
 **podman inspect** [*options*] *name* [...]
 
-**podman image inspect** [*options*] *image*
-
-**podman container inspect** [*options*] *container*
-
 ## DESCRIPTION
+
 This displays the low-level information on containers and images identified by name or ID. By default, this will render
 all results in a JSON array. If the container and image have the same name, this will return container JSON for
 unspecified type. If a format is specified, the given template will be executed for each result.
+
+For more inspection options, see:
+
+      podman container inspect
+      podman image inspect
+      podman network inspect
+      podman pod inspect
+      podman volume inspect
+
 
 ## OPTIONS
 
