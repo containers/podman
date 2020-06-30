@@ -64,7 +64,7 @@ func getCgroupProcess(procFile string) (string, error) {
 	cgroup := "/"
 	for scanner.Scan() {
 		line := scanner.Text()
-		parts := strings.Split(line, ":")
+		parts := strings.SplitN(line, ":", 3)
 		if len(parts) != 3 {
 			return "", errors.Errorf("cannot parse cgroup line %q", line)
 		}
@@ -116,7 +116,7 @@ func MoveUnderCgroupSubtree(subtree string) error {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		parts := strings.Split(line, ":")
+		parts := strings.SplitN(line, ":", 3)
 		if len(parts) != 3 {
 			return errors.Errorf("cannot parse cgroup line %q", line)
 		}
