@@ -196,9 +196,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 }
 
 func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *libpod.Runtime) error {
-	var (
-		labelOpts []string
-	)
+	var labelOpts []string
 
 	if config.PidMode.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
@@ -794,11 +792,11 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Syslog:        c.Bool("syslog"),
 	}
 
-	if config.Privileged {
-		config.LabelOpts = label.DisableSecOpt()
-	}
 	if err := parseSecurityOpt(config, c.StringArray("security-opt"), runtime); err != nil {
 		return nil, err
+	}
+	if config.Privileged && len(config.LabelOpts) == 0 {
+		config.LabelOpts = label.DisableSecOpt()
 	}
 	config.SecurityOpts = c.StringArray("security-opt")
 	warnings, err := verifyContainerResources(config, false)
