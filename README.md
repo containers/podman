@@ -31,7 +31,7 @@ Podman presently only supports running containers on Linux. However, we are buil
 
 ## Roadmap
 
-1. Complete the Podman REST API and Podman v2, which will be able to connect to remote Podman instances via this API
+1. Further improvements to the REST API, including implementation of copy endpoints and improvement of network endpoints
 1. Integrate libpod into CRI-O to replace its existing container management backend
 1. Further work on the podman pod command
 1. Further improvements on rootless containers
