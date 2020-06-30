@@ -815,6 +815,10 @@ interactive shell. The default is false.
 Note: The **-t** option is incompatible with a redirection of the Podman client
 standard input.
 
+**--tz**=*timezone*
+
+Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
+
 **--uidmap**=*container_uid:host_uid:amount*
 
 UID map for the user namespace.  Using this flag will run the container with user namespace enabled.  It conflicts with the `--userns` and `--subuidname` flags.
@@ -1034,6 +1038,14 @@ the uids and gids from the host.
 
 ```
 $ podman create --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
+```
+
+### Configure timezone in a container
+
+```
+$ podman create --tz=local alpine date
+$ podman create --tz=Asia/Shanghai alpine date
+$ podman create --tz=US/Eastern alpine date
 ```
 
 ### Rootless Containers

@@ -424,6 +424,10 @@ type ContainerConfig struct {
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.
 	PreserveFDs uint `json:"preserveFds,omitempty"`
+
+	// Timezone is the timezone inside the container.
+	// Local means it has the same timezone as the host machine
+	Timezone string `json:"timezone,omitempty"`
 }
 
 // ContainerNamedVolume is a named volume that will be mounted into the
@@ -1247,4 +1251,9 @@ func (c *Container) AutoRemove() bool {
 		return false
 	}
 	return c.Spec().Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
+}
+
+func (c *Container) Timezone() string {
+	return c.config.Timezone
+
 }

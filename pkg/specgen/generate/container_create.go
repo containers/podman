@@ -135,6 +135,10 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		options = append(options, libpod.WithStdin())
 	}
 
+	if s.Timezone != "" {
+		options = append(options, libpod.WithTimezone(s.Timezone))
+	}
+
 	useSystemd := false
 	switch s.Systemd {
 	case "always":

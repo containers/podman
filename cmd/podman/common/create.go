@@ -449,6 +449,11 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"tty", "t", false,
 		"Allocate a pseudo-TTY for container",
 	)
+	createFlags.StringVar(
+		&cf.Timezone,
+		"tz", containerConfig.TZ(),
+		"Set timezone in container",
+	)
 	createFlags.StringSliceVar(
 		&cf.UIDMap,
 		"uidmap", []string{},

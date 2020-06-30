@@ -2120,6 +2120,7 @@ _podman_container_run() {
 		--stop-signal
 		--stop-timeout
 		--tmpfs
+		--tz
 		--subgidname
 		--subuidname
 		--sysctl
