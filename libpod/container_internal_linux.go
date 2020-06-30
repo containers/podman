@@ -19,6 +19,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/config"
@@ -52,10 +53,15 @@ func (c *Container) mountSHM(shmOptions string) error {
 	return nil
 }
 
-func (c *Container) unmountSHM(mount string) error {
+func (c *Container) unmountExtra(mount string) error {
+	if err := overlay.CleanupMount(mount); err != nil {
+		logrus.Warnf("container %s failed to cleanup overlay content %s : %v", c.ID(), mount, err)
+	}
 	if err := unix.Unmount(mount, 0); err != nil {
 		if err != syscall.EINVAL && err != syscall.ENOENT {
-			return errors.Wrapf(err, "error unmounting container %s SHM mount %s", c.ID(), mount)
+			logrus.Warnf("container %s failed to unmount %s : %v", c.ID(), mount, err)
+		} else {
+			logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
 		}
 		// If it's just an EINVAL or ENOENT, debug logs only
 		logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
@@ -122,7 +128,13 @@ func (c *Container) prepare() error {
 	wg.Wait()
 
 	var createErr error
+	if err := c.setupOverlayMounts(); err != nil {
+		createErr = errors.Wrapf(err, "unable to configure overlayMounts")
+	}
 	if createNetNSErr != nil {
+		if createErr != nil {
+			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+		}
 		createErr = createNetNSErr
 	}
 	if mountStorageErr != nil {
@@ -1532,4 +1544,35 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	default:
 		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", c.runtime.config.Engine.CgroupManager)
 	}
+}
+
+func (c *Container) setupOverlayMounts() error {
+	g := generate.Generator{Config: c.config.Spec}
+	// Check if the spec file mounts contain an Overlay mount
+	// If they do, mount the overlay.
+
+	for i := range c.config.Spec.Mounts {
+		m := &g.Config.Mounts[i]
+		for _, o := range m.Options {
+			if o == "O" {
+				contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
+				if err != nil {
+					return errors.Wrapf(err, "failed to create TempDir in the %s directory", c.config.StaticDir)
+				}
+
+				overlayMount, err := overlay.Mount(contentDir, m.Source, m.Destination, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+				if err != nil {
+					return errors.Wrapf(err, "creating overlay failed %q", m.Source)
+				}
+				g.Config.Mounts[i] = overlayMount
+				c.config.Mounts = append(c.config.Mounts, m.Source)
+				break
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Container) cleanupOverlayMounts() error {
+	return overlay.CleanupContent(c.config.StaticDir)
 }

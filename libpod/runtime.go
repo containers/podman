@@ -578,7 +578,7 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	var lastError error
-	// If no store was requested, it can bew nil and there is no need to
+	// If no store was requested, it can be nil and there is no need to
 	// attempt to shut it down
 	if r.store != nil {
 		if _, err := r.store.Shutdown(force); err != nil {

@@ -100,12 +100,12 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'rbind' and 'bind' can be used")
 			}
 			foundBind = true
-		case "z", "Z":
+		case "z", "Z", "O":
 			if isTmpfs {
-				return nil, errors.Wrapf(ErrBadMntOption, "the 'z' and 'Z' options are not allowed with tmpfs mounts")
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'z', 'Z' and 'O' options are not allowed with tmpfs mounts")
 			}
 			if foundZ {
-				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'z' and 'Z' can be used")
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'z', 'Z' or 'O' can be used")
 			}
 			foundZ = true
 		default:

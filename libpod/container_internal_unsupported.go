@@ -14,7 +14,7 @@ func (c *Container) mountSHM(shmOptions string) error {
 	return define.ErrNotImplemented
 }
 
-func (c *Container) unmountSHM(mount string) error {
+func (c *Container) unmountExtra(mount string) error {
 	return define.ErrNotImplemented
 }
 
@@ -44,6 +44,14 @@ func (c *Container) copyOwnerAndPerms(source, dest string) error {
 
 func (c *Container) getOCICgroupPath() (string, error) {
 	return "", define.ErrNotImplemented
+}
+
+func (c *Container) setupOverlayMounts() error {
+	return nil
+}
+
+func (c *Container) cleanupOverlayMounts() error {
+	return nil
 }
 
 func (c *Container) getUserOverrides() *lookup.Overrides {

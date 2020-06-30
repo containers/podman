@@ -1410,8 +1410,8 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		}
 		defer func() {
 			if deferredErr != nil {
-				if err := c.unmountSHM(c.config.ShmDir); err != nil {
-					logrus.Errorf("Error unmounting SHM for container %s after mount error: %v", c.ID(), err)
+				if err := c.unmountExtra(c.config.ShmDir); err != nil {
+					logrus.Errorf(err.Error())
 				}
 			}
 		}()
@@ -1567,12 +1567,14 @@ func (c *Container) cleanupStorage() error {
 	var cleanupErr error
 
 	for _, containerMount := range c.config.Mounts {
-		if err := c.unmountSHM(containerMount); err != nil {
-			if cleanupErr != nil {
-				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
-			}
-			cleanupErr = err
+		if err := c.unmountExtra(containerMount); err != nil {
+			logrus.Errorf(err.Error())
 		}
+	}
+
+	if err := c.cleanupOverlayMounts(); err != nil {
+		// If the container can't remove content report the error
+		logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
 	}
 
 	if c.config.Rootfs != "" {
@@ -1587,9 +1589,6 @@ func (c *Container) cleanupStorage() error {
 		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown || errors.Cause(err) == storage.ErrLayerNotMounted {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
 		} else {
-			if cleanupErr != nil {
-				logrus.Errorf("Error cleaning up container %s storage: %v", c.ID(), cleanupErr)
-			}
 			cleanupErr = err
 		}
 	}
