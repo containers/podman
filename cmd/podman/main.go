@@ -27,6 +27,11 @@ func main() {
 		return
 	}
 
+	// Hard code TMPDIR functions to use /var/tmp, if user did not override
+	if _, ok := os.LookupEnv("TMPDIR"); !ok {
+		os.Setenv("TMPDIR", "/var/tmp")
+	}
+
 	cfg := registry.PodmanConfig()
 	for _, c := range registry.Commands {
 		for _, m := range c.Mode {
