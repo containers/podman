@@ -84,7 +84,7 @@ function like() {
 
     if expr "$actual" : "$expect" &>/dev/null; then
         # On success, include expected value; this helps readers understand
-        _show_ok 1 "$testname~$expect"
+        _show_ok 1 "$testname ('$actual') ~ $expect"
         return
     fi
     _show_ok 0 "$testname" "~ $expect" "$actual"
