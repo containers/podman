@@ -74,6 +74,7 @@ INSTALL_PACKAGES=(\
     gpgme-devel
     grubby
     hostname
+    httpd-tools
     iproute
     iptables
     jq

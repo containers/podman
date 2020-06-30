@@ -36,6 +36,7 @@ ooe.sh curl -L -o /tmp/Release.key "https://download.opensuse.org/repositories/d
 ooe.sh $SUDO apt-key add - < /tmp/Release.key
 
 INSTALL_PACKAGES=(\
+    apache2-utils
     apparmor
     aufs-tools
     autoconf
@@ -153,6 +154,7 @@ if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
 fi
 
 echo "Installing runtime tooling"
+# Save some runtime by having these already available
 cd $GOSRC
 # Required since initially go was not installed
 source $GOSRC/$SCRIPT_BASE/lib.sh

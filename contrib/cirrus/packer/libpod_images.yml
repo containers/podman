@@ -65,7 +65,9 @@ builders:
 provisioners:
     - type: 'shell'
       inline:
-        - mkdir -p '${{user `GOSRC`}}'
+        - 'set -ex'
+        # The 'file' provisioner item (below) will create the final component
+        - 'mkdir -vp $(dirname {{user `GOSRC`}})'
 
     - type: 'file'
       source: '{{user `GOSRC`}}'
