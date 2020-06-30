@@ -64,6 +64,14 @@ type VolumeState struct {
 	// create time, then cleared after the copy up is done and never set
 	// again.
 	NeedsCopyUp bool `json:"notYetMounted,omitempty"`
+	// NeedsChown indicates that the next time the volume is mounted into
+	// a container, the container will chown the volume to the container process
+	// UID/GID.
+	NeedsChown bool `json:"notYetChowned,omitempty"`
+	// UIDChowned is the UID the volume was chowned to.
+	UIDChowned int `json:"uidChowned,omitempty"`
+	// GIDChowned is the GID the volume was chowned to.
+	GIDChowned int `json:"gidChowned,omitempty"`
 }
 
 // Name retrieves the volume's name
@@ -113,13 +121,33 @@ func (v *Volume) Anonymous() bool {
 }
 
 // UID returns the UID the volume will be created as.
-func (v *Volume) UID() int {
-	return v.config.UID
+func (v *Volume) UID() (int, error) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if !v.valid {
+		return -1, define.ErrVolumeRemoved
+	}
+
+	if v.state.UIDChowned > 0 {
+		return v.state.UIDChowned, nil
+	}
+	return v.config.UID, nil
 }
 
 // GID returns the GID the volume will be created as.
-func (v *Volume) GID() int {
-	return v.config.GID
+func (v *Volume) GID() (int, error) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if !v.valid {
+		return -1, define.ErrVolumeRemoved
+	}
+
+	if v.state.GIDChowned > 0 {
+		return v.state.GIDChowned, nil
+	}
+	return v.config.GID, nil
 }
 
 // CreatedTime returns the time the volume was created at. It was not tracked

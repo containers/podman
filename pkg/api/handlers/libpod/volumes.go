@@ -86,6 +86,17 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 		utils.VolumeNotFound(w, name, err)
 		return
 	}
+	var uid, gid int
+	uid, err = vol.UID()
+	if err != nil {
+		utils.Error(w, "Error fetching volume UID", http.StatusInternalServerError, err)
+		return
+	}
+	gid, err = vol.GID()
+	if err != nil {
+		utils.Error(w, "Error fetching volume GID", http.StatusInternalServerError, err)
+		return
+	}
 	volResponse := entities.VolumeConfigResponse{
 		Name:       vol.Name(),
 		Driver:     vol.Driver(),
@@ -94,8 +105,8 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 		Labels:     vol.Labels(),
 		Scope:      vol.Scope(),
 		Options:    vol.Options(),
-		UID:        vol.UID(),
-		GID:        vol.GID(),
+		UID:        uid,
+		GID:        gid,
 	}
 	utils.WriteResponse(w, http.StatusOK, volResponse)
 }
@@ -130,6 +141,17 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 	volumeConfigs := make([]*entities.VolumeListReport, 0, len(vols))
 	for _, v := range vols {
+		var uid, gid int
+		uid, err = v.UID()
+		if err != nil {
+			utils.Error(w, "Error fetching volume UID", http.StatusInternalServerError, err)
+			return
+		}
+		gid, err = v.GID()
+		if err != nil {
+			utils.Error(w, "Error fetching volume GID", http.StatusInternalServerError, err)
+			return
+		}
 		config := entities.VolumeConfigResponse{
 			Name:       v.Name(),
 			Driver:     v.Driver(),
@@ -138,8 +160,8 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 			Labels:     v.Labels(),
 			Scope:      v.Scope(),
 			Options:    v.Options(),
-			UID:        v.UID(),
-			GID:        v.GID(),
+			UID:        uid,
+			GID:        gid,
 		}
 		volumeConfigs = append(volumeConfigs, &entities.VolumeListReport{VolumeConfigResponse: config})
 	}
