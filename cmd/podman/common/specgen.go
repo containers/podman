@@ -241,6 +241,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	// If some mappings are specified, assume a private user namespace
 	if userNS.IsDefaultValue() && (!s.IDMappings.HostUIDMapping || !s.IDMappings.HostGIDMapping) {
 		s.UserNS.NSMode = specgen.Private
+	} else {
+		s.UserNS.NSMode = specgen.NamespaceMode(userNS)
 	}
 
 	s.Terminal = c.TTY
