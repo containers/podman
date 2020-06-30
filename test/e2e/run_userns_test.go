@@ -89,6 +89,16 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(ok).To(BeTrue())
 	})
 
+	It("podman --userns=keep-id check passwd", func() {
+		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "id", "-un"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		u, err := user.Current()
+		Expect(err).To(BeNil())
+		ok, _ := session.GrepString(u.Name)
+		Expect(ok).To(BeTrue())
+	})
+
 	It("podman --userns=keep-id root owns /usr", func() {
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "stat", "-c%u", "/usr"})
 		session.WaitWithDefaultTimeout()

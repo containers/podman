@@ -153,7 +153,9 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	// User
 	switch s.UserNS.NSMode {
 	case specgen.KeepID:
-		if !rootless.IsRootless() {
+		if rootless.IsRootless() {
+			toReturn = append(toReturn, libpod.WithAddCurrentUserPasswdEntry())
+		} else {
 			// keep-id as root doesn't need a user namespace
 			s.UserNS.NSMode = specgen.Host
 		}
