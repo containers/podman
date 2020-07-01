@@ -741,7 +741,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if ecode, err := ctr.Wait(); err != nil {
 				if errors.Cause(err) == define.ErrNoSuchCtr {
 					// Check events
-					event, err := ic.Libpod.GetLastContainerEvent(ctr.ID(), events.Exited)
+					event, err := ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
 					if err != nil {
 						logrus.Errorf("Cannot get exit code: %v", err)
 						exitCode = define.ExecErrorCodeNotFound
@@ -871,7 +871,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	if ecode, err := ctr.Wait(); err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			// Check events
-			event, err := ic.Libpod.GetLastContainerEvent(ctr.ID(), events.Exited)
+			event, err := ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
 			if err != nil {
 				logrus.Errorf("Cannot get exit code: %v", err)
 				report.ExitCode = define.ExecErrorCodeNotFound
