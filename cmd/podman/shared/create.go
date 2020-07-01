@@ -198,34 +198,6 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *libpod.Runtime) error {
 	var labelOpts []string
 
-	if config.PidMode.IsHost() {
-		labelOpts = append(labelOpts, label.DisableSecOpt()...)
-	} else if config.PidMode.IsContainer() {
-		ctr, err := runtime.LookupContainer(config.PidMode.Container())
-		if err != nil {
-			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
-		}
-		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
-		if err != nil {
-			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
-		}
-		labelOpts = append(labelOpts, secopts...)
-	}
-
-	if config.IpcMode.IsHost() {
-		labelOpts = append(labelOpts, label.DisableSecOpt()...)
-	} else if config.IpcMode.IsContainer() {
-		ctr, err := runtime.LookupContainer(config.IpcMode.Container())
-		if err != nil {
-			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
-		}
-		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
-		if err != nil {
-			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
-		}
-		labelOpts = append(labelOpts, secopts...)
-	}
-
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
 			config.NoNewPrivs = true
@@ -246,6 +218,34 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *l
 				return fmt.Errorf("invalid --security-opt 2: %q", opt)
 			}
 		}
+	}
+
+	if config.PidMode.IsHost() && len(labelOpts) == 0 {
+		labelOpts = append(labelOpts, label.DisableSecOpt()...)
+	} else if config.PidMode.IsContainer() {
+		ctr, err := runtime.LookupContainer(config.PidMode.Container())
+		if err != nil {
+			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
+		}
+		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
+		if err != nil {
+			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
+		}
+		labelOpts = append(labelOpts, secopts...)
+	}
+
+	if config.IpcMode.IsHost() && len(labelOpts) == 0 {
+		labelOpts = append(labelOpts, label.DisableSecOpt()...)
+	} else if config.IpcMode.IsContainer() {
+		ctr, err := runtime.LookupContainer(config.IpcMode.Container())
+		if err != nil {
+			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
+		}
+		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
+		if err != nil {
+			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
+		}
+		labelOpts = append(labelOpts, secopts...)
 	}
 
 	if config.SeccompProfilePath == "" {
