@@ -3,6 +3,7 @@ package generate
 import (
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/pkg/errors"
 )
@@ -21,6 +22,25 @@ func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
 
 	if s.ResourceLimits == nil {
 		return warnings, nil
+	}
+
+	if rootless.IsRootless() {
+		// Interpreting 0 as unset - remove any unset limits
+		if s.ResourceLimits.Pids != nil && s.ResourceLimits.Pids.Limit == 0 {
+			s.ResourceLimits.Pids = nil
+		}
+
+		// We are guaranteed to be cgroups v1 + rootless. Resource
+		// limits are not acceptable. But if everything is unset, we can
+		// just remove the block entirely.
+		if s.ResourceLimits.Memory == nil && s.ResourceLimits.Memory == nil &&
+			s.ResourceLimits.CPU == nil && s.ResourceLimits.BlockIO == nil &&
+			s.ResourceLimits.HugepageLimits == nil && s.ResourceLimits.Network == nil &&
+			s.ResourceLimits.Rdma == nil && s.ResourceLimits.Pids == nil {
+			s.ResourceLimits = nil
+			return warnings, nil
+		}
+		return warnings, errors.New("resource limits cannot be set for rootless containers in cgroups v1 mode")
 	}
 
 	// Memory checks
@@ -70,10 +90,7 @@ func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
 
 	// Pids checks
 	if s.ResourceLimits.Pids != nil {
-		pids := s.ResourceLimits.Pids
-		// TODO: Should this be 0, or checking that ResourceLimits.Pids
-		// is set at all?
-		if pids.Limit > 0 && !sysInfo.PidsLimit {
+		if !sysInfo.PidsLimit {
 			warnings = append(warnings, "Your kernel does not support pids limit capabilities or the cgroup is not mounted. PIDs limit discarded.")
 			s.ResourceLimits.Pids = nil
 		}
