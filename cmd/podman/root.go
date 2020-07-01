@@ -128,6 +128,21 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	for _, env := range cfg.Engine.Env {
+		splitEnv := strings.SplitN(env, "=", 2)
+		if len(splitEnv) != 2 {
+			return fmt.Errorf("invalid environment variable for engine %s, valid configuration is KEY=value pair", env)
+		}
+		// skip if the env is already defined
+		if _, ok := os.LookupEnv(splitEnv[0]); ok {
+			logrus.Debugf("environment variable %s is already defined, skip the settings from containers.conf", splitEnv[0])
+			continue
+		}
+		if err := os.Setenv(splitEnv[0], splitEnv[1]); err != nil {
+			return err
+		}
+	}
+
 	if cmd.Flag("cpu-profile").Changed {
 		f, err := os.Create(cfg.CPUProfile)
 		if err != nil {
