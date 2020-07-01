@@ -76,6 +76,18 @@ func (c *ContainersConfig) validateUlimits() error {
 	return nil
 }
 
+func (c *ContainersConfig) validateTZ() error {
+	if c.TZ == "local" {
+		return nil
+	}
+	zonePath := filepath.Join("/usr/share/zoneinfo", c.TZ)
+	_, err := os.Stat(zonePath)
+	if err != nil {
+		return fmt.Errorf("Unrecognized timezone %s", zonePath)
+	}
+	return nil
+}
+
 func isRemote() bool {
 	return false
 }

@@ -23,3 +23,7 @@ func (c *ContainersConfig) validateDevices() error {
 func (c *ContainersConfig) validateUlimits() error {
 	return nil
 }
+
+func (c *ContainersConfig) validateTZ() error {
+	return nil
+}

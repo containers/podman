@@ -191,6 +191,7 @@ func DefaultConfig() (*Config, error) {
 			PidNS:          "private",
 			SeccompProfile: SeccompDefaultPath,
 			ShmSize:        DefaultShmSize,
+			TZ:             "",
 			UTSNS:          "private",
 			UserNS:         "host",
 			UserNSSize:     DefaultUserNSSize,
@@ -497,4 +498,9 @@ func (c *Config) PidsLimit() int64 {
 // DetachKeys returns the default detach keys to detach from a container
 func (c *Config) DetachKeys() string {
 	return c.Engine.DetachKeys
+}
+
+// Tz returns the timezone in the container
+func (c *Config) TZ() string {
+	return c.Containers.TZ
 }
