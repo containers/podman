@@ -165,6 +165,9 @@ type ContainersConfig struct {
 	// ShmSize holds the size of /dev/shm.
 	ShmSize string `toml:"shm_size,omitempty"`
 
+	//TZ sets the timezone inside the container
+	TZ string `toml:"tz,omitempty"`
+
 	// UTSNS indicates how to create a UTS namespace for the container
 	UTSNS string `toml:"utsns,omitempty"`
 
@@ -206,6 +209,9 @@ type EngineConfig struct {
 	// a container has many ports forwarded to it. Disabling this can save
 	// memory.
 	EnablePortReservation bool `toml:"enable_port_reservation,omitempty"`
+
+	// Environment variables to be used when running the container engine (e.g., Podman, Buildah). For example "http_proxy=internal.proxy.company.com"
+	Env []string `toml:"env,omitempty"`
 
 	// EventsLogFilePath is where the events log is stored.
 	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
@@ -416,11 +422,10 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		// Merge changes in later configs with the previous configs.
 		// Each config file that specified fields, will override the
 		// previous fields.
-		config, err := readConfigFromFile(path, config)
-		if err != nil {
+		if err = readConfigFromFile(path, config); err != nil {
 			return nil, errors.Wrapf(err, "error reading system config %q", path)
 		}
-		logrus.Debugf("Merged system config %q: %v", path, config)
+		logrus.Debugf("Merged system config %q: %+v", path, config)
 	}
 
 	// If the caller specified a config path to use, then we read it to
@@ -429,11 +434,10 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		var err error
 		// readConfigFromFile reads in container config in the specified
 		// file and then merge changes with the current default.
-		config, err = readConfigFromFile(userConfigPath, config)
-		if err != nil {
+		if err = readConfigFromFile(userConfigPath, config); err != nil {
 			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
 		}
-		logrus.Debugf("Merged user config %q: %v", userConfigPath, config)
+		logrus.Debugf("Merged user config %q: %+v", userConfigPath, config)
 	}
 	config.addCAPPrefix()
 
@@ -448,13 +452,12 @@ func NewConfig(userConfigPath string) (*Config, error) {
 // unmarshal its content into a Config. The config param specifies the previous
 // default config. If the path, only specifies a few fields in the Toml file
 // the defaults from the config parameter will be used for all other fields.
-func readConfigFromFile(path string, config *Config) (*Config, error) {
+func readConfigFromFile(path string, config *Config) error {
 	logrus.Debugf("Reading configuration file %q", path)
-	_, err := toml.DecodeFile(path, config)
-	if err != nil {
-		return nil, fmt.Errorf("unable to decode configuration %v: %v", path, err)
+	if _, err := toml.DecodeFile(path, config); err != nil {
+		return errors.Wrapf(err, "unable to decode configuration %v", path)
 	}
-	return config, err
+	return nil
 }
 
 // Returns the list of configuration files, if they exist in order of hierarchy.
@@ -465,7 +468,7 @@ func systemConfigs() ([]string, error) {
 	path := os.Getenv("CONTAINERS_CONF")
 	if path != "" {
 		if _, err := os.Stat(path); err != nil {
-			return nil, errors.Wrap(err, "failed to stat of %s from CONTAINERS_CONF environment variable")
+			return nil, errors.Wrapf(err, "failed to stat of %s from CONTAINERS_CONF environment variable", path)
 		}
 		return append(configs, path), nil
 	}
@@ -572,6 +575,10 @@ func (c *ContainersConfig) Validate() error {
 	}
 
 	if err := c.validateDevices(); err != nil {
+		return err
+	}
+
+	if err := c.validateTZ(); err != nil {
 		return err
 	}
 
@@ -892,8 +899,7 @@ func ReadCustomConfig() (*Config, error) {
 
 	newConfig := &Config{}
 	if _, err := os.Stat(path); err == nil {
-		newConfig, err = readConfigFromFile(path, newConfig)
-		if err != nil {
+		if err = readConfigFromFile(path, newConfig); err != nil {
 			return nil, err
 		}
 	} else {
