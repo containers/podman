@@ -52,7 +52,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 			ID: img.ID(),
 
 			ConfigDigest: string(img.ConfigDigest),
-			Created:      img.Created(),
+			Created:      img.Created().Unix(),
 			Dangling:     img.Dangling(),
 			Digest:       string(img.Digest()),
 			Digests:      digests,

@@ -53,7 +53,7 @@ type ImageSummary struct {
 	ID          string            `json:"Id"`
 	ParentId    string            `json:",omitempty"` // nolint
 	RepoTags    []string          `json:",omitempty"`
-	Created     time.Time         `json:",omitempty"`
+	Created     int64             `json:",omitempty"`
 	Size        int64             `json:",omitempty"`
 	SharedSize  int               `json:",omitempty"`
 	VirtualSize int64             `json:",omitempty"`

@@ -112,7 +112,6 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// libpod has additional fields that we need to populate.
-		is.Created = img.Created()
 		is.ReadOnly = img.IsReadOnly()
 		summaries[j] = is
 	}
