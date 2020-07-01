@@ -3,6 +3,7 @@
 package varlinkapi
 
 import (
+	"context"
 	"time"
 
 	"github.com/containers/libpod/libpod/events"
@@ -27,7 +28,7 @@ func (i *VarlinkAPI) GetEvents(call iopodman.VarlinkCall, filter []string, since
 	eventChannel := make(chan *events.Event)
 	go func() {
 		readOpts := events.ReadOptions{FromStart: fromStart, Stream: stream, Filters: filter, EventChannel: eventChannel}
-		eventsError = i.Runtime.Events(readOpts)
+		eventsError = i.Runtime.Events(context.Background(), readOpts)
 	}()
 	if eventsError != nil {
 		return call.ReplyErrorOccurred(eventsError.Error())
