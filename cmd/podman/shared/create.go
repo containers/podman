@@ -198,9 +198,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *libpod.Runtime) error {
 	var labelOpts []string
 
-	if config.PidMode.IsHost() {
-		labelOpts = append(labelOpts, label.DisableSecOpt()...)
-	} else if config.PidMode.IsContainer() {
+	if config.PidMode.IsContainer() {
 		ctr, err := runtime.LookupContainer(config.PidMode.Container())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
@@ -212,9 +210,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *l
 		labelOpts = append(labelOpts, secopts...)
 	}
 
-	if config.IpcMode.IsHost() {
-		labelOpts = append(labelOpts, label.DisableSecOpt()...)
-	} else if config.IpcMode.IsContainer() {
+	if config.IpcMode.IsContainer() {
 		ctr, err := runtime.LookupContainer(config.IpcMode.Container())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
@@ -255,7 +251,14 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *l
 			return err
 		}
 	}
-	config.LabelOpts = labelOpts
+	if len(labelOpts) > 0 {
+		config.LabelOpts = labelOpts
+	} else {
+		if config.Privileged || config.IpcMode.IsHost() || config.PidMode.IsHost() {
+			config.LabelOpts = label.DisableSecOpt()
+		}
+	}
+
 	return nil
 }
 
@@ -794,9 +797,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	if err := parseSecurityOpt(config, c.StringArray("security-opt"), runtime); err != nil {
 		return nil, err
-	}
-	if config.Privileged && len(config.LabelOpts) == 0 {
-		config.LabelOpts = label.DisableSecOpt()
 	}
 	config.SecurityOpts = c.StringArray("security-opt")
 	warnings, err := verifyContainerResources(config, false)
