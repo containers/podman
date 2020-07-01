@@ -4,6 +4,7 @@ package varlinkapi
 
 import (
 	"bufio"
+	"context"
 	"io"
 
 	"github.com/containers/libpod/v2/libpod"
@@ -89,7 +90,7 @@ func (i *VarlinkAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys s
 		if ecode, err := ctr.Wait(); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchCtr {
 				// Check events
-				event, err := i.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
+				event, err := i.Runtime.GetLastContainerEvent(context.Background(), ctr.ID(), events.Exited)
 				if err != nil {
 					logrus.Errorf("Cannot get exit code: %v", err)
 					exitCode = define.ExecErrorCodeNotFound

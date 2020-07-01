@@ -1,5 +1,9 @@
 package events
 
+import (
+	"context"
+)
+
 // EventToNull is an eventer type that only performs write operations
 // and only writes to /dev/null. It is meant for unittests only
 type EventToNull struct{}
@@ -10,7 +14,7 @@ func (e EventToNull) Write(ee Event) error {
 }
 
 // Read does nothing. Do not use it.
-func (e EventToNull) Read(options ReadOptions) error {
+func (e EventToNull) Read(ctx context.Context, options ReadOptions) error {
 	return nil
 }
 
