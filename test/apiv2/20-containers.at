@@ -98,9 +98,41 @@ t GET libpod/images/newrepo:v2/json 200 \
   .Comment=bar \
   .Config.Cmd[-1]="/bin/foo"
 
+# Create a container for testing the container initializing later
+podman create -t -i --name myctr $IMAGE ls
+
+# Check configuration before initializing
+t GET libpod/containers/myctr/json 200 \
+  .Id~[0-9a-f]\\{64\\} \
+  .State.Status="configured" \
+  .State.Pid=0 \
+  .ResolvConfPath="" \
+  .HostnamePath="" \
+  .HostsPath="" \
+  .NetworkSettings.SandboxKey=""
+
+cpid_file=$(jq -r '.ConmonPidFile' <<<"$output")
+userdata_path=$(dirname $cpid_file)
+
+# Initializing the container
+t POST libpod/containers/myctr/init '' 204
+
+# Check configuration after initializing
+t GET libpod/containers/myctr/json 200 \
+  .Id~[0-9a-f]\\{64\\} \
+  .State.Status="created" \
+  .State.Pid~[0-9]\\{1\,8\\} \
+  .ResolvConfPath=$userdata_path/resolv.conf \
+  .HostnamePath=$userdata_path/hostname \
+  .HostsPath=$userdata_path/hosts \
+  .NetworkSettings.SandboxKey~.*/netns/cni- \
+  .OCIConfigPath~.*config\.json \
+  .GraphDriver.Data.MergedDir~.*merged
+
 t DELETE images/localhost/newrepo:latest?force=true 200
 t DELETE images/localhost/newrepo:v1?force=true 200
 t DELETE images/localhost/newrepo:v2?force=true 200
 t DELETE libpod/containers/$cid 204
+t DELETE libpod/containers/myctr 204
 
 # vim: filetype=sh
