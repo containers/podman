@@ -3,6 +3,7 @@
 # All of these are required
 variables:
     BUILT_IMAGE_SUFFIX: '{{env `BUILT_IMAGE_SUFFIX`}}'
+    GOPATH: '{{env `GOPATH`}}'
     GOSRC: '{{env `GOSRC`}}'
     PACKER_BASE: '{{env `PACKER_BASE`}}'
     SCRIPT_BASE: '{{env `SCRIPT_BASE`}}'
@@ -62,15 +63,20 @@ builders:
 
 # The brains of the operation, making actual modifications to the base-image.
 provisioners:
+    - type: 'shell'
+      inline:
+        - mkdir -p '${{user `GOSRC`}}'
+
     - type: 'file'
       source: '{{user `GOSRC`}}'
-      destination: '/tmp/libpod'
+      destination: '{{user `GOSRC`}}'
 
     - type: 'shell'
       script: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{split build_name "-" 0}}_setup.sh'
       environment_vars:
           - 'PACKER_BUILDER_NAME={{build_name}}'
-          - 'GOSRC=/tmp/libpod'
+          - 'GOPATH={{user `GOPATH`}}'
+          - 'GOSRC={{user `GOSRC`}}'
           - 'PACKER_BASE={{user `PACKER_BASE`}}'
           - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
 

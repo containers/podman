@@ -154,6 +154,10 @@ fi
 
 echo "Installing runtime tooling"
 cd $GOSRC
+# Required since initially go was not installed
+source $GOSRC/$SCRIPT_BASE/lib.sh
+echo "Go environment has been setup:"
+go env
 $SUDO hack/install_catatonit.sh
 $SUDO make install.libseccomp.sudo
 $SUDO make install.tools
