@@ -143,6 +143,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	// If running remote, we need to stop the associated podman system service
+	if podman.RemoteTest {
+		podman.StopRemoteService()
+	}
+
 	return []byte(path)
 }, func(data []byte) {
 	LockTmpDir = string(data)
@@ -173,6 +179,10 @@ var _ = SynchronizedAfterSuite(func() {},
 			fmt.Printf("%q\n", err)
 		}
 
+		// If running remote, we need to stop the associated podman system service
+		if podmanTest.RemoteTest {
+			podmanTest.StopRemoteService()
+		}
 		// for localized tests, this removes the image cache dir and for remote tests
 		// this is a no-op
 		removeCache()
