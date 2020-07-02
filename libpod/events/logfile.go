@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -40,7 +41,7 @@ func (e EventLogFile) Write(ee Event) error {
 }
 
 // Reads from the log file
-func (e EventLogFile) Read(options ReadOptions) error {
+func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 	defer close(options.EventChannel)
 	eventOptions, err := generateEventOptions(options.Filters, options.Since, options.Until)
 	if err != nil {
@@ -50,6 +51,17 @@ func (e EventLogFile) Read(options ReadOptions) error {
 	if err != nil {
 		return err
 	}
+	funcDone := make(chan bool)
+	copy := true
+	go func() {
+		select {
+		case <-funcDone:
+			// Do nothing
+		case <-ctx.Done():
+			copy = false
+			t.Kill(errors.New("hangup by client"))
+		}
+	}()
 	for line := range t.Lines {
 		event, err := newEventFromJSONString(line.Text)
 		if err != nil {
@@ -65,10 +77,11 @@ func (e EventLogFile) Read(options ReadOptions) error {
 		for _, filter := range eventOptions {
 			include = include && filter(event)
 		}
-		if include {
+		if include && copy {
 			options.EventChannel <- event
 		}
 	}
+	funcDone <- true
 	return nil
 }
 

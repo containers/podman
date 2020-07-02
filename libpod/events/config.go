@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"time"
 
 	"github.com/pkg/errors"
@@ -52,7 +53,7 @@ type Eventer interface {
 	// Write an event to a backend
 	Write(event Event) error
 	// Read an event from the backend
-	Read(options ReadOptions) error
+	Read(ctx context.Context, options ReadOptions) error
 	// String returns the type of event logger
 	String() string
 }
