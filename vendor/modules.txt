@@ -437,7 +437,7 @@ github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser
 github.com/openshift/imagebuilder/signal
 github.com/openshift/imagebuilder/strslice
-# github.com/opentracing/opentracing-go v1.1.0
+# github.com/opentracing/opentracing-go v1.2.0
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/ext
 github.com/opentracing/opentracing-go/log

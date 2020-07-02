@@ -343,8 +343,8 @@ github.com/opencontainers/selinux v1.5.2 h1:F6DgIsjgBIcDksLW4D5RG9bXok6oqZ3nvMwj
 github.com/opencontainers/selinux v1.5.2/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/openshift/imagebuilder v1.1.5 h1:WAIHV6cGF9e0AcLBA7RIi7XbFoB7R+e/MWu1I+1NUOM=
 github.com/openshift/imagebuilder v1.1.5/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
-github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
-github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
+github.com/opentracing/opentracing-go v1.2.0 h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=
+github.com/opentracing/opentracing-go v1.2.0/go.mod h1:GxEUsuufX4nBwe+T+Wl9TAgYrxe9dPLANfrWvHYVTgc=
 github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913 h1:TnbXhKzrTOyuvWrjI8W6pcoI9XPbLHFXCdN2dtUw7Rw=
 github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
