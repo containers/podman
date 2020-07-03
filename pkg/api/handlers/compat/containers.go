@@ -321,17 +321,17 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 
 	stopTimeout := int(l.StopTimeout())
 
-	ports := make(nat.PortSet)
-	for p := range inspect.HostConfig.PortBindings {
-		splitp := strings.SplitN(p, "/", 2)
+	exposedPorts := make(nat.PortSet)
+	for ep := range inspect.HostConfig.PortBindings {
+		splitp := strings.SplitN(ep, "/", 2)
 		if len(splitp) != 2 {
-			return nil, errors.Errorf("PORT/PROTOCOL Format required for %q", p)
+			return nil, errors.Errorf("PORT/PROTOCOL Format required for %q", ep)
 		}
-		port, err := nat.NewPort(splitp[1], splitp[0])
+		exposedPort, err := nat.NewPort(splitp[1], splitp[0])
 		if err != nil {
 			return nil, err
 		}
-		ports[port] = struct{}{}
+		exposedPorts[exposedPort] = struct{}{}
 	}
 
 	config := container.Config{
@@ -341,7 +341,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		AttachStdin:     inspect.Config.AttachStdin,
 		AttachStdout:    inspect.Config.AttachStdout,
 		AttachStderr:    inspect.Config.AttachStderr,
-		ExposedPorts:    ports,
+		ExposedPorts:    exposedPorts,
 		Tty:             inspect.Config.Tty,
 		OpenStdin:       inspect.Config.OpenStdin,
 		StdinOnce:       inspect.Config.StdinOnce,
@@ -371,6 +371,15 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		return nil, err
 	}
 
+	p, err := json.Marshal(inspect.NetworkSettings.Ports)
+	if err != nil {
+		return nil, err
+	}
+	ports := nat.PortMap{}
+	if err := json.Unmarshal(p, &ports); err != nil {
+		return nil, err
+	}
+
 	networkSettingsDefault := types.DefaultNetworkSettings{
 		EndpointID:          "",
 		Gateway:             "",
@@ -382,8 +391,12 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		MacAddress:          l.Config().StaticMAC.String(),
 	}
 
+	networkSettingsBase := types.NetworkSettingsBase{
+		Ports: ports,
+	}
+
 	networkSettings := types.NetworkSettings{
-		NetworkSettingsBase:    types.NetworkSettingsBase{},
+		NetworkSettingsBase:    networkSettingsBase,
 		DefaultNetworkSettings: networkSettingsDefault,
 		Networks:               nil,
 	}
