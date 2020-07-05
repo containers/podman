@@ -309,7 +309,13 @@ func (l psReporter) Status() string {
 
 // Command returns the container command in string format
 func (l psReporter) Command() string {
-	return strings.Join(l.ListContainer.Command, " ")
+	command := strings.Join(l.ListContainer.Command, " ")
+	if !noTrunc {
+		if len(command) > 17 {
+			return command[0:17] + "..."
+		}
+	}
+	return command
 }
 
 // Size returns the rootfs and virtual sizes in human duration in
