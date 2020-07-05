@@ -2,6 +2,8 @@ module github.com/containers/libpod
 
 go 1.13
 
+replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc90
+
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/blang/semver v3.5.1+incompatible
