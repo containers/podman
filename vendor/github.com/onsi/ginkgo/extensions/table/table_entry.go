@@ -21,12 +21,6 @@ type TableEntry struct {
 }
 
 func (t TableEntry) generateIt(itBody reflect.Value) {
-	if t.codeLocation == (types.CodeLocation{}) {
-		// The user created the TableEntry struct directly instead of having used the (F/P/X)Entry constructors.
-		// Therefore default to the code location of the surrounding DescribeTable.
-		t.codeLocation = codelocation.New(5)
-	}
-
 	var description string
 	descriptionValue := reflect.ValueOf(t.Description)
 	switch descriptionValue.Kind() {
