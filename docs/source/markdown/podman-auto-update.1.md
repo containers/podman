@@ -23,6 +23,9 @@ Note that `podman auto-update` relies on systemd and requires a fully-qualified 
 This enforcement is necessary to know which image to actually check and pull.
 If an image ID was used, Podman would not know which image to check/pull anymore.
 
+Moreover, the systemd units are expected to be generated with `podman-generate-systemd --new`, or similar units that create new containers in order to run the updated images.
+Systemd units that start and stop a container cannot run a new image.
+
 ## OPTIONS
 
 **--authfile**=*path*
