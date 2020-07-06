@@ -70,6 +70,10 @@ var (
 	// ErrInternal indicates an internal library error
 	ErrInternal = errors.New("internal libpod error")
 
+	// ErrPodPartialFail indicates that a pod operation was only partially
+	// successful, and some containers within the pod failed.
+	ErrPodPartialFail = errors.New("some containers failed")
+
 	// ErrDetach indicates that an attach session was manually detached by
 	// the user.
 	ErrDetach = utils.ErrDetach
