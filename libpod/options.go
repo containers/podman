@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/containers/common/pkg/config"
@@ -22,6 +23,10 @@ import (
 )
 
 // Runtime Creation Options
+var (
+	// SdNotifyModeValues describes the only values that SdNotifyMode can be
+	SdNotifyModeValues = []string{define.SdNotifyModeContainer, define.SdNotifyModeConmon, define.SdNotifyModeIgnore}
+)
 
 // WithStorageConfig uses the given configuration to set up container storage.
 // If this is not specified, the system default configuration will be used
@@ -546,6 +551,23 @@ func WithSystemd() CtrCreateOption {
 		}
 
 		ctr.config.Systemd = true
+		return nil
+	}
+}
+
+// WithSdNotifyMode sets the sd-notify method
+func WithSdNotifyMode(mode string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		// verify values
+		if len(mode) > 0 && !util.StringInSlice(strings.ToLower(mode), SdNotifyModeValues) {
+			return errors.Wrapf(define.ErrInvalidArg, "--sdnotify values must be one of %q", strings.Join(SdNotifyModeValues, ", "))
+		}
+
+		ctr.config.SdNotifyMode = mode
 		return nil
 	}
 }

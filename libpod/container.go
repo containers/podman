@@ -414,6 +414,8 @@ type ContainerConfig struct {
 	// sharing kernel namespaces in a pod
 	IsInfra bool `json:"pause"`
 
+	// SdNotifyMode tells libpod what to do with a NOTIFY_SOCKET if passed
+	SdNotifyMode string `json:"sdnotifyMode,omitempty"`
 	// Systemd tells libpod to setup the container in systemd mode
 	Systemd bool `json:"systemd"`
 

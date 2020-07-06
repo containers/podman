@@ -3,6 +3,7 @@ package specgen
 import (
 	"strings"
 
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/pkg/errors"
@@ -13,6 +14,8 @@ var (
 	ErrInvalidSpecConfig = errors.New("invalid configuration")
 	// SystemDValues describes the only values that SystemD can be
 	SystemDValues = []string{"true", "false", "always"}
+	// SdNotifyModeValues describes the only values that SdNotifyMode can be
+	SdNotifyModeValues = []string{define.SdNotifyModeContainer, define.SdNotifyModeConmon, define.SdNotifyModeIgnore}
 	// ImageVolumeModeValues describes the only values that ImageVolumeMode can be
 	ImageVolumeModeValues = []string{"ignore", "tmpfs", "anonymous"}
 )
@@ -39,6 +42,10 @@ func (s *SpecGenerator) Validate() error {
 	// systemd values must be true, false, or always
 	if len(s.ContainerBasicConfig.Systemd) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerBasicConfig.Systemd), SystemDValues) {
 		return errors.Wrapf(ErrInvalidSpecConfig, "--systemd values must be one of %q", strings.Join(SystemDValues, ", "))
+	}
+	// sdnotify values must be container, conmon, or ignore
+	if len(s.ContainerBasicConfig.SdNotifyMode) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerBasicConfig.SdNotifyMode), SdNotifyModeValues) {
+		return errors.Wrapf(ErrInvalidSpecConfig, "--sdnotify values must be one of %q", strings.Join(SdNotifyModeValues, ", "))
 	}
 
 	//

@@ -443,6 +443,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 
 	s.Systemd = c.Systemd
+	s.SdNotifyMode = c.SdNotifyMode
 	if s.ResourceLimits == nil {
 		s.ResourceLimits = &specs.LinuxResources{}
 	}

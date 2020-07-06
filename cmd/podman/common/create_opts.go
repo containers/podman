@@ -81,6 +81,7 @@ type ContainerCLIOpts struct {
 	Rm                bool
 	RootFS            bool
 	SecurityOpt       []string
+	SdNotifyMode      string
 	ShmSize           string
 	StopSignal        string
 	StopTimeout       uint

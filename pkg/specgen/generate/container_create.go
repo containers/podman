@@ -175,6 +175,10 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 
 		options = append(options, libpod.WithSystemd())
 	}
+	if len(s.SdNotifyMode) > 0 {
+		options = append(options, libpod.WithSdNotifyMode(s.SdNotifyMode))
+	}
+
 	if len(s.Name) > 0 {
 		logrus.Debugf("setting container name %s", s.Name)
 		options = append(options, libpod.WithName(s.Name))
