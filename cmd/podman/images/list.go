@@ -193,18 +193,13 @@ func sortImages(imageS []*entities.ImageSummary) []imageReporter {
 }
 
 func tokenRepoTag(tag string) (string, string) {
-	tokens := strings.Split(tag, ":")
-	switch len(tokens) {
-	case 0:
+	tagSplitIndex := strings.LastIndex(tag, ":")
+	if tagSplitIndex == -1 {
 		return tag, ""
-	case 1:
-		return tokens[0], ""
-	case 2:
-		return tokens[0], tokens[1]
-	case 3:
-		return tokens[0] + ":" + tokens[1], tokens[2]
-	default:
-		return "<N/A>", ""
+	} else {
+		repositoryString := tag[:tagSplitIndex]
+		tagString := tag[tagSplitIndex+1:]
+		return repositoryString, tagString
 	}
 }
 
