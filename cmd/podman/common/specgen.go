@@ -7,14 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/libpod/define"
 	ann "github.com/containers/libpod/v2/pkg/annotations"
 	envLib "github.com/containers/libpod/v2/pkg/env"
 	ns "github.com/containers/libpod/v2/pkg/namespaces"
-	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/containers/libpod/v2/pkg/specgen"
 	systemdGen "github.com/containers/libpod/v2/pkg/systemd/generate"
 	"github.com/containers/libpod/v2/pkg/util"
@@ -125,25 +123,6 @@ func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxBlo
 		return nil, nil
 	}
 	return io, nil
-}
-
-func getPidsLimits(c *ContainerCLIOpts) *specs.LinuxPids {
-	pids := &specs.LinuxPids{}
-	if c.CGroupsMode == "disabled" && c.PIDsLimit != 0 {
-		return nil
-	}
-	if c.PIDsLimit < 0 {
-		if rootless.IsRootless() && containerConfig.Engine.CgroupManager != config.SystemdCgroupsManager {
-			return nil
-		}
-		pids.Limit = containerConfig.PidsLimit()
-		return pids
-	}
-	if c.PIDsLimit > 0 {
-		pids.Limit = c.PIDsLimit
-		return pids
-	}
-	return nil
 }
 
 func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxMemory, error) {
@@ -454,7 +433,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if err != nil {
 		return err
 	}
-	s.ResourceLimits.Pids = getPidsLimits(c)
+	if c.PIDsLimit != nil {
+		pids := specs.LinuxPids{
+			Limit: *c.PIDsLimit,
+		}
+
+		s.ResourceLimits.Pids = &pids
+	}
 	s.ResourceLimits.CPU = getCPULimits(c)
 	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil {
 		s.ResourceLimits = nil

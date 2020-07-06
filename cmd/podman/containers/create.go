@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -194,12 +195,17 @@ func createInit(c *cobra.Command) error {
 	cliVals.UTS = c.Flag("uts").Value.String()
 	cliVals.PID = c.Flag("pid").Value.String()
 	cliVals.CGroupsNS = c.Flag("cgroupns").Value.String()
-	if !c.Flag("pids-limit").Changed {
-		cliVals.PIDsLimit = -1
-	}
 	if c.Flag("entrypoint").Changed {
 		val := c.Flag("entrypoint").Value.String()
 		cliVals.Entrypoint = &val
+	}
+	if c.Flags().Changed("pids-limit") {
+		val := c.Flag("pids-limit").Value.String()
+		pidsLimit, err := strconv.ParseInt(val, 0, 10)
+		if err != nil {
+			return err
+		}
+		cliVals.PIDsLimit = &pidsLimit
 	}
 	if c.Flags().Changed("env") {
 		env, err := c.Flags().GetStringArray("env")

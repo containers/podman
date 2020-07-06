@@ -329,8 +329,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"pid", "",
 		"PID namespace to use",
 	)
-	createFlags.Int64Var(
-		&cf.PIDsLimit,
+	createFlags.Int64(
 		"pids-limit", containerConfig.PidsLimit(),
 		"Tune container pids limit (set 0 for unlimited, -1 for server defaults)",
 	)
