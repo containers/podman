@@ -1,4 +1,4 @@
-// +build remoteclient
+// +build remote
 
 package integration
 

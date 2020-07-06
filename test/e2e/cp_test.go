@@ -1,4 +1,4 @@
-// +build !remoteclient
+// +build !remote
 
 package integration
 
@@ -142,7 +142,6 @@ var _ = Describe("Podman cp", func() {
 
 	It("podman cp stdin/stdout", func() {
 		SkipIfRemote()
-		Skip("Looks like SkipIfRemote() is not working")
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
