@@ -3,7 +3,7 @@
 package libpod
 
 import (
-	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/v2/libpod/define"
 )
 
 func (v *Volume) mount() error {

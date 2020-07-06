@@ -12,9 +12,9 @@ import (
 
 	"github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/util/camelcase"
+	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/util/camelcase"
 	"github.com/spf13/cobra"
 )
 

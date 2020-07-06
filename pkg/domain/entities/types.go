@@ -5,8 +5,8 @@ import (
 	"net"
 
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/v2/libpod/events"
+	"github.com/containers/libpod/v2/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
 )
 

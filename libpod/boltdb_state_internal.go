@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

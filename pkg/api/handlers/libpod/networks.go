@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/domain/infra/abi"
-	"github.com/containers/libpod/pkg/network"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/domain/infra/abi"
+	"github.com/containers/libpod/v2/pkg/network"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )

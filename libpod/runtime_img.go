@@ -11,9 +11,9 @@ import (
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/libpod/image"
+	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

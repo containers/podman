@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/containers/libpod/pkg/cgroups"
-	. "github.com/containers/libpod/test/utils"
+	"github.com/containers/libpod/v2/pkg/cgroups"
+	. "github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

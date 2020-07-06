@@ -10,10 +10,10 @@ import (
 
 	"github.com/containernetworking/cni/libcni"
 	cniversion "github.com/containernetworking/cni/pkg/version"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/network"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/network"
+	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/pkg/errors"
 )
 

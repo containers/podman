@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
-	lpfilters "github.com/containers/libpod/libpod/filters"
-	"github.com/containers/libpod/pkg/domain/entities"
-	psdefine "github.com/containers/libpod/pkg/ps/define"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
+	lpfilters "github.com/containers/libpod/v2/libpod/filters"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	psdefine "github.com/containers/libpod/v2/pkg/ps/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

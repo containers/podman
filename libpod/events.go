@@ -3,7 +3,7 @@ package libpod
 import (
 	"fmt"
 
-	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/v2/libpod/events"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

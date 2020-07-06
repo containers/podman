@@ -5,7 +5,7 @@ package createconfig
 import (
 	"io/ioutil"
 
-	"github.com/containers/libpod/pkg/seccomp"
+	"github.com/containers/libpod/v2/pkg/seccomp"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	goSeccomp "github.com/seccomp/containers-golang"

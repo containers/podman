@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
-	"github.com/containers/libpod/libpod/define"
-	iopodman "github.com/containers/libpod/pkg/varlink"
+	"github.com/containers/libpod/v2/libpod/define"
+	iopodman "github.com/containers/libpod/v2/pkg/varlink"
 	"github.com/sirupsen/logrus"
 )
 

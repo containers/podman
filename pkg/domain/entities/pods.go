@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/specgen"
 )
 
 type PodKillOptions struct {

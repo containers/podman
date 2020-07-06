@@ -8,10 +8,10 @@ import (
 	"text/tabwriter"
 
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/cmd/podman/validate"
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 

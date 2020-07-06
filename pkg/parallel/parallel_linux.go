@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/v2/libpod"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

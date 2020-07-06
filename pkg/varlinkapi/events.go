@@ -5,8 +5,8 @@ package varlinkapi
 import (
 	"time"
 
-	"github.com/containers/libpod/libpod/events"
-	iopodman "github.com/containers/libpod/pkg/varlink"
+	"github.com/containers/libpod/v2/libpod/events"
+	iopodman "github.com/containers/libpod/v2/pkg/varlink"
 )
 
 // GetEvents is a remote endpoint to get events from the event log

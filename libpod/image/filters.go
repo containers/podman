@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/v2/pkg/inspect"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

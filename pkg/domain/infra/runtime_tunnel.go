@@ -6,9 +6,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/pkg/bindings"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/domain/infra/tunnel"
+	"github.com/containers/libpod/v2/pkg/bindings"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/domain/infra/tunnel"
 )
 
 func NewContainerEngine(facts *entities.PodmanConfig) (entities.ContainerEngine, error) {
