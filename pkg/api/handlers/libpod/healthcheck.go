@@ -3,9 +3,9 @@ package libpod
 import (
 	"net/http"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
 )
 
 func RunHealthCheck(w http.ResponseWriter, r *http.Request) {

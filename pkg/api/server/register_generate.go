@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/containers/libpod/pkg/api/handlers/libpod"
+	"github.com/containers/libpod/v2/pkg/api/handlers/libpod"
 	"github.com/gorilla/mux"
 )
 

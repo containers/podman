@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/libpod/libpod/driver"
+	"github.com/containers/libpod/v2/libpod/driver"
 )
 
 // InspectContainerConfig holds further data about how a container was initially

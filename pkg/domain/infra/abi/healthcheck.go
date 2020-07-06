@@ -3,8 +3,8 @@ package abi
 import (
 	"context"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 )
 
 func (ic *ContainerEngine) HealthCheckRun(ctx context.Context, nameOrID string, options entities.HealthCheckOptions) (*define.HealthCheckResults, error) {

@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/libpod/pkg/api/handlers"
-	"github.com/containers/libpod/pkg/bindings"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/v2/pkg/api/handlers"
+	"github.com/containers/libpod/v2/pkg/bindings"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/specgen"
 	jsoniter "github.com/json-iterator/go"
 )
 

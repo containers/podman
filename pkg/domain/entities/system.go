@@ -3,7 +3,7 @@ package entities
 import (
 	"time"
 
-	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/docker/docker/api/types"
 	"github.com/spf13/cobra"
 )

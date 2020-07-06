@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/containers/libpod/pkg/api/handlers/compat"
+	"github.com/containers/libpod/v2/pkg/api/handlers/compat"
 	"github.com/gorilla/mux"
 )
 

@@ -1,6 +1,6 @@
 package common
 
-import "github.com/containers/libpod/pkg/domain/entities"
+import "github.com/containers/libpod/v2/pkg/domain/entities"
 
 type ContainerCLIOpts struct {
 	Annotation        []string

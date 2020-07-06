@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
-	iopodman "github.com/containers/libpod/pkg/varlink"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
+	iopodman "github.com/containers/libpod/v2/pkg/varlink"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"

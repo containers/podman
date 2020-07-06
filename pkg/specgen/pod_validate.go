@@ -1,7 +1,7 @@
 package specgen
 
 import (
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/pkg/errors"
 )
 

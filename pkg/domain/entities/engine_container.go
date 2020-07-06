@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/specgen"
 	"github.com/spf13/cobra"
 )
 

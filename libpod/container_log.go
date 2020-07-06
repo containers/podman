@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/libpod/logs"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/libpod/logs"
 	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

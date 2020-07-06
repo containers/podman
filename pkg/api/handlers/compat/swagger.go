@@ -1,7 +1,7 @@
 package compat
 
 import (
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/api/types"
 )

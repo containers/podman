@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/libpod/pkg/resolvconf/dns"
+	"github.com/containers/libpod/v2/pkg/resolvconf/dns"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/sirupsen/logrus"
 )

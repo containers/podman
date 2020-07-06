@@ -5,7 +5,7 @@ package infra
 import (
 	"errors"
 
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 )
 
 // NewSystemEngine factory provides a libpod runtime for specialized system operations
