@@ -211,4 +211,13 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.LineInOuputStartsWith("search")).To(BeFalse())
 	})
+
+	It("podman run containers.conf timezone", func() {
+		//containers.conf timezone set to Pacific/Honolulu
+		session := podmanTest.Podman([]string{"run", ALPINE, "date", "+'%H %Z'"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("HST"))
+
+	})
 })

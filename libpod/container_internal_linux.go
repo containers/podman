@@ -1241,6 +1241,31 @@ func (c *Container) makeBindMounts() error {
 		c.state.BindMounts["/etc/hostname"] = hostnamePath
 	}
 
+	// Make /etc/localtime
+	if c.Timezone() != "" {
+		if _, ok := c.state.BindMounts["/etc/localtime"]; !ok {
+			var zonePath string
+			if c.Timezone() == "local" {
+				zonePath, err = filepath.EvalSymlinks("/etc/localtime")
+				if err != nil {
+					return errors.Wrapf(err, "error finding local timezone for container %s", c.ID())
+				}
+			} else {
+				zone := filepath.Join("/usr/share/zoneinfo", c.Timezone())
+				zonePath, err = filepath.EvalSymlinks(zone)
+				if err != nil {
+					return errors.Wrapf(err, "error setting timezone for container %s", c.ID())
+				}
+			}
+			localtimePath, err := c.copyTimezoneFile(zonePath)
+			if err != nil {
+				return errors.Wrapf(err, "error setting timezone for container %s", c.ID())
+			}
+			c.state.BindMounts["/etc/localtime"] = localtimePath
+
+		}
+	}
+
 	// Make .containerenv
 	// Empty file, so no need to recreate if it exists
 	if _, ok := c.state.BindMounts["/run/.containerenv"]; !ok {
@@ -1532,4 +1557,36 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	default:
 		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", c.runtime.config.Engine.CgroupManager)
 	}
+}
+
+func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
+	var localtimeCopy string = filepath.Join(c.state.RunDir, "localtime")
+	file, err := os.Stat(zonePath)
+	if err != nil {
+		return "", err
+	}
+	if file.IsDir() {
+		return "", errors.New("Invalid timezone: is a directory")
+	}
+	src, err := os.Open(zonePath)
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+	dest, err := os.Create(localtimeCopy)
+	if err != nil {
+		return "", err
+	}
+	defer dest.Close()
+	_, err = io.Copy(dest, src)
+	if err != nil {
+		return "", err
+	}
+	if err := label.Relabel(localtimeCopy, c.config.MountLabel, false); err != nil {
+		return "", err
+	}
+	if err := dest.Chown(c.RootUID(), c.RootGID()); err != nil {
+		return "", err
+	}
+	return localtimeCopy, err
 }

@@ -1525,6 +1525,30 @@ func withSetAnon() VolumeCreateOption {
 	}
 }
 
+// WithTimezone sets the timezone in the container
+func WithTimezone(path string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		if path != "local" {
+			zone := filepath.Join("/usr/share/zoneinfo", path)
+
+			file, err := os.Stat(zone)
+			if err != nil {
+				return err
+			}
+			//We don't want to mount a timezone directory
+			if file.IsDir() {
+				return errors.New("Invalid timezone: is a directory")
+			}
+		}
+
+		ctr.config.Timezone = path
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodName sets the name of the pod.

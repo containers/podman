@@ -856,6 +856,10 @@ interactive shell. The default is **false**.
 **NOTE**: The **-t** option is incompatible with a redirection of the Podman client
 standard input.
 
+**--tz**=*timezone*
+
+Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
+
 **--uidmap**=*container_uid*:*host_uid*:*amount*
 
 Run the container in a new user namespace using the supplied mapping. This option conflicts
@@ -1317,6 +1321,14 @@ using global options.
 
 ```
 podman --log-level=debug --storage-driver overlay --storage-opt "overlay.mount_program=/usr/bin/fuse-overlayfs" run busybox /bin/sh
+```
+
+### Configure timezone in a container
+
+```
+$ podman run --tz=local alpine date
+$ podman run --tz=Asia/Shanghai alpine date
+$ podman run --tz=US/Eastern alpine date
 ```
 
 ### Rootless Containers

@@ -471,4 +471,31 @@ var _ = Describe("Podman create", func() {
 		Expect(len(data)).To(Equal(1))
 		Expect(data[0].Config.StopSignal).To(Equal(uint(15)))
 	})
+
+	It("podman create --tz", func() {
+		session := podmanTest.Podman([]string{"create", "--tz", "foo", "--name", "bad", ALPINE, "date"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"create", "--tz", "America", "--name", "dir", ALPINE, "date"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"create", "--tz", "Pacific/Honolulu", "--name", "zone", ALPINE, "date"})
+		session.WaitWithDefaultTimeout()
+		inspect := podmanTest.Podman([]string{"inspect", "zone"})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Config.Timezone).To(Equal("Pacific/Honolulu"))
+
+		session = podmanTest.Podman([]string{"create", "--tz", "local", "--name", "lcl", ALPINE, "date"})
+		session.WaitWithDefaultTimeout()
+		inspect = podmanTest.Podman([]string{"inspect", "lcl"})
+		inspect.WaitWithDefaultTimeout()
+		data = inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Config.Timezone).To(Equal("local"))
+	})
+
 })

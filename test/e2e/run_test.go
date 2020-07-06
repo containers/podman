@@ -1047,4 +1047,29 @@ USER mail`
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(strings.Contains(session.OutputToString(), groupName)).To(BeTrue())
 	})
+
+	It("podman run --tz", func() {
+		session := podmanTest.Podman([]string{"run", "--tz", "foo", "--rm", ALPINE, "date"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"run", "--tz", "America", "--rm", ALPINE, "date"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"run", "--tz", "Pacific/Honolulu", "--rm", ALPINE, "date", "+'%H %Z'"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("HST"))
+
+		session = podmanTest.Podman([]string{"run", "--tz", "local", "--rm", ALPINE, "date", "+'%H %Z'"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		t := time.Now()
+		z, _ := t.Zone()
+		h := strconv.Itoa(t.Hour())
+		Expect(session.OutputToString()).To(ContainSubstring(z))
+		Expect(session.OutputToString()).To(ContainSubstring(h))
+
+	})
 })

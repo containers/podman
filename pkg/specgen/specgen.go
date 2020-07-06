@@ -135,6 +135,9 @@ type ContainerBasicConfig struct {
 	// passed will be 3 + PreserveFDs.
 	// set tags as `json:"-"` for not supported remote
 	PreserveFDs uint `json:"-"`
+	// Timezone is the timezone inside the container.
+	// Local means it has the same timezone as the host machine
+	Timezone string `json:"timezone,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
