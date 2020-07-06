@@ -3,11 +3,11 @@ package tunnel
 import (
 	"context"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/bindings/pods"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/specgen"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/bindings/pods"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/specgen"
+	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/pkg/errors"
 )
 

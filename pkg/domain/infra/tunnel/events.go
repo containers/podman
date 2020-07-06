@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/containers/libpod/pkg/bindings/system"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/bindings/system"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 

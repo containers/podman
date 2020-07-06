@@ -29,8 +29,8 @@ import (
 	"sync"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/v2/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )

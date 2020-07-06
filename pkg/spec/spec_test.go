@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/containers/common/pkg/sysinfo"
-	"github.com/containers/libpod/pkg/cgroups"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/cgroups"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/go-units"

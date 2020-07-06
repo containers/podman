@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 

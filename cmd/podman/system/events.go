@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/cmd/podman/validate"
-	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
+	"github.com/containers/libpod/v2/libpod/events"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

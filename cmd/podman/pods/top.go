@@ -7,10 +7,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/cmd/podman/validate"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

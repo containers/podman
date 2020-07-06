@@ -5,7 +5,7 @@ package libpod
 import (
 	"context"
 
-	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/v2/libpod/define"
 )
 
 // NewPod makes a new, empty pod

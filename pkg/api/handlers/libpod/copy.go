@@ -3,7 +3,7 @@ package libpod
 import (
 	"net/http"
 
-	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
 	"github.com/pkg/errors"
 )
 

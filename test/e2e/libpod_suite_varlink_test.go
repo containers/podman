@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/rootless"
 
 	"github.com/onsi/ginkgo"
 )

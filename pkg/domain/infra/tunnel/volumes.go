@@ -3,8 +3,8 @@ package tunnel
 import (
 	"context"
 
-	"github.com/containers/libpod/pkg/bindings/volumes"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/bindings/volumes"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 )
 
 func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IDOrNameResponse, error) {

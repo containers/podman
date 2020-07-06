@@ -5,8 +5,8 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/pkg/inspect"
-	"github.com/containers/libpod/pkg/trust"
+	"github.com/containers/libpod/v2/pkg/inspect"
+	"github.com/containers/libpod/v2/pkg/trust"
 	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/opencontainers/go-digest"

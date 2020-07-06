@@ -1,7 +1,7 @@
 package validate
 
 import (
-	"github.com/containers/libpod/cmd/podman/registry"
+	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/spf13/cobra"
 )
 

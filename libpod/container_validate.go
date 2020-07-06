@@ -1,8 +1,8 @@
 package libpod
 
 import (
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )

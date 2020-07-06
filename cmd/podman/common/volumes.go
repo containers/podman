@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/parse"
-	"github.com/containers/libpod/pkg/specgen"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/v2/pkg/specgen"
+	"github.com/containers/libpod/v2/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -3,8 +3,8 @@ package define
 import (
 	"errors"
 
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/utils"
+	"github.com/containers/libpod/v2/libpod/image"
+	"github.com/containers/libpod/v2/utils"
 )
 
 var (

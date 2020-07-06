@@ -3,8 +3,8 @@ package tunnel
 import (
 	"context"
 
-	"github.com/containers/libpod/pkg/bindings/network"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/bindings/network"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 )
 
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {

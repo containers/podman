@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/libpod/lock"
 	"github.com/containers/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

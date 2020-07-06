@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/pkg/api/handlers"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
