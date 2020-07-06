@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

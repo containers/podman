@@ -1,7 +1,7 @@
 package varlinkapi
 
 import (
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/v2/libpod"
 	"github.com/sirupsen/logrus"
 )
 

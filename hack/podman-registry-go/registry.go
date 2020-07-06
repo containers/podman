@@ -3,7 +3,7 @@ package registry
 import (
 	"strings"
 
-	"github.com/containers/libpod/utils"
+	"github.com/containers/libpod/v2/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

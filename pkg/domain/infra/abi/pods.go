@@ -3,13 +3,13 @@ package abi
 import (
 	"context"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
-	lpfilters "github.com/containers/libpod/libpod/filters"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/signal"
-	"github.com/containers/libpod/pkg/specgen"
-	"github.com/containers/libpod/pkg/specgen/generate"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
+	lpfilters "github.com/containers/libpod/v2/libpod/filters"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/signal"
+	"github.com/containers/libpod/v2/pkg/specgen"
+	"github.com/containers/libpod/v2/pkg/specgen/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

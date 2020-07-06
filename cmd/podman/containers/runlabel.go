@@ -6,8 +6,8 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

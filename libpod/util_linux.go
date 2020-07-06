@@ -7,9 +7,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/cgroups"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/cgroups"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

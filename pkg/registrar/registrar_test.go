@@ -3,8 +3,8 @@ package registrar_test
 import (
 	"testing"
 
-	"github.com/containers/libpod/pkg/registrar"
-	. "github.com/containers/libpod/test/framework"
+	"github.com/containers/libpod/v2/pkg/registrar"
+	. "github.com/containers/libpod/v2/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

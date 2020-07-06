@@ -5,7 +5,7 @@ package varlinkapi
 import (
 	"encoding/json"
 
-	iopodman "github.com/containers/libpod/pkg/varlink"
+	iopodman "github.com/containers/libpod/v2/pkg/varlink"
 )
 
 // GenerateKube ...

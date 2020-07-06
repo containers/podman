@@ -5,7 +5,7 @@ package libpod
 import (
 	"os"
 
-	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/v2/libpod/define"
 	"k8s.io/client-go/tools/remotecommand"
 )
 

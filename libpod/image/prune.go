@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/timetype"
+	"github.com/containers/libpod/v2/libpod/events"
+	"github.com/containers/libpod/v2/pkg/timetype"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

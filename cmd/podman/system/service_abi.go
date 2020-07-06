@@ -7,9 +7,9 @@ import (
 	"net"
 	"strings"
 
-	api "github.com/containers/libpod/pkg/api/server"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/domain/infra"
+	api "github.com/containers/libpod/v2/pkg/api/server"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/domain/infra"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod/logs"
+	"github.com/containers/libpod/v2/libpod/logs"
 	journal "github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

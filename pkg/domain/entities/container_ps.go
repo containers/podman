@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containers/libpod/pkg/ps/define"
+	"github.com/containers/libpod/v2/pkg/ps/define"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
