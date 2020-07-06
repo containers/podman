@@ -334,7 +334,7 @@ func ParseFile(path string) (*parser.Node, error) {
 func (b *Builder) Step() *Step {
 	argsMap := make(map[string]string)
 	for _, argsVal := range b.Arguments() {
-		val := strings.Split(argsVal, "=")
+		val := strings.SplitN(argsVal, "=", 2)
 		if len(val) > 1 {
 			argsMap[val[0]] = val[1]
 		}
