@@ -30,13 +30,18 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
+		Annotations: map[string]string{
+			registry.ParentNSRequired: "",
+		},
 	}
 
 	containerMountCommmand = &cobra.Command{
-		Use:   mountCommand.Use,
-		Short: mountCommand.Short,
-		Long:  mountCommand.Long,
-		RunE:  mountCommand.RunE,
+		Use:         mountCommand.Use,
+		Short:       mountCommand.Short,
+		Long:        mountCommand.Long,
+		RunE:        mountCommand.RunE,
+		Args:        mountCommand.Args,
+		Annotations: mountCommand.Annotations,
 	}
 )
 
