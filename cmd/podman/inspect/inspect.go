@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -32,8 +33,8 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 	flags.BoolVarP(&opts.Size, "size", "s", false, "Display total file size")
 	flags.StringVarP(&opts.Format, "format", "f", "json", "Format the output to a Go template or json")
 	flags.StringVarP(&opts.Type, "type", "t", AllType, fmt.Sprintf("Specify inspect-oject type (%q, %q or %q)", ImageType, ContainerType, AllType))
-	flags.BoolVarP(&opts.Latest, "latest", "l", false, "Act on the latest container Podman is aware of")
 
+	validate.AddLatestFlag(cmd, &opts.Latest)
 	return &opts
 }
 

@@ -1,6 +1,8 @@
 package generate
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
@@ -42,6 +44,9 @@ func filterPodFlags(command []string) []string {
 		s := command[i]
 		if s == "--pod" || s == "--pod-id-file" {
 			i++
+			continue
+		}
+		if strings.HasPrefix(s, "--pod=") || strings.HasPrefix(s, "--pod-id-file=") {
 			continue
 		}
 		processed = append(processed, s)

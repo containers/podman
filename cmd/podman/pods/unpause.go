@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/utils"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ var (
 		Long:  podUnpauseDescription,
 		RunE:  unpause,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod unpause podID1 podID2
   podman pod unpause --all
@@ -41,12 +41,10 @@ func init() {
 	})
 	flags := unpauseCommand.Flags()
 	flags.BoolVarP(&unpauseOptions.All, "all", "a", false, "Pause all running pods")
-	flags.BoolVarP(&unpauseOptions.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	validate.AddLatestFlag(unpauseCommand, &unpauseOptions.Latest)
 }
-func unpause(cmd *cobra.Command, args []string) error {
+
+func unpause(_ *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)

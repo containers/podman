@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -45,13 +46,15 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		fromStart = true
 	}
 
+	eventCtx, eventCancel := context.WithCancel(r.Context())
 	eventChannel := make(chan *events.Event)
 	go func() {
 		readOpts := events.ReadOptions{FromStart: fromStart, Stream: query.Stream, Filters: libpodFilters, EventChannel: eventChannel, Since: query.Since, Until: query.Until}
-		eventsError = runtime.Events(readOpts)
+		eventsError = runtime.Events(eventCtx, readOpts)
 	}()
 	if eventsError != nil {
 		utils.InternalServerError(w, eventsError)
+		eventCancel()
 		close(eventChannel)
 		return
 	}
@@ -59,6 +62,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	// If client disappears we need to stop listening for events
 	go func(done <-chan struct{}) {
 		<-done
+		eventCancel()
 		if _, ok := <-eventChannel; ok {
 			close(eventChannel)
 		}

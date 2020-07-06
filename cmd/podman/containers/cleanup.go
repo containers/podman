@@ -3,9 +3,9 @@ package containers
 import (
 	"fmt"
 
-	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/utils"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -24,7 +24,7 @@ var (
 		Long:  cleanupDescription,
 		RunE:  cleanup,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman container cleanup --latest
   podman container cleanup ctrID1 ctrID2 ctrID3
@@ -44,11 +44,10 @@ func init() {
 	})
 	flags := cleanupCommand.Flags()
 	flags.BoolVarP(&cleanupOptions.All, "all", "a", false, "Cleans up all containers")
-	flags.BoolVarP(&cleanupOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.StringVar(&cleanupOptions.Exec, "exec", "", "Clean up the given exec session instead of the container")
 	flags.BoolVar(&cleanupOptions.Remove, "rm", false, "After cleanup, remove the container entirely")
 	flags.BoolVar(&cleanupOptions.RemoveImage, "rmi", false, "After cleanup, remove the image entirely")
-
+	validate.AddLatestFlag(cleanupCommand, &cleanupOptions.Latest)
 }
 
 func cleanup(cmd *cobra.Command, args []string) error {

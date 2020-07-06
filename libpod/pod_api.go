@@ -59,7 +59,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error starting some containers")
+		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error starting some containers")
 	}
 	defer p.newPodEvent(events.Start)
 	return nil, nil
@@ -139,7 +139,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error stopping some containers")
+		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error stopping some containers")
 	}
 	defer p.newPodEvent(events.Stop)
 	return nil, nil
@@ -208,7 +208,7 @@ func (p *Pod) Pause() (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error pausing some containers")
+		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error pausing some containers")
 	}
 	defer p.newPodEvent(events.Pause)
 	return nil, nil
@@ -267,7 +267,7 @@ func (p *Pod) Unpause() (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error unpausing some containers")
+		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error unpausing some containers")
 	}
 
 	defer p.newPodEvent(events.Unpause)
@@ -321,7 +321,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error stopping some containers")
+		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error stopping some containers")
 	}
 	p.newPodEvent(events.Stop)
 	p.newPodEvent(events.Start)
@@ -387,7 +387,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error killing some containers")
+		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error killing some containers")
 	}
 	defer p.newPodEvent(events.Kill)
 	return nil, nil

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/utils"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/containers/libpod/v2/pkg/signal"
 	"github.com/spf13/cobra"
@@ -22,7 +22,7 @@ var (
 		Long:  killDescription,
 		RunE:  kill,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman kill mywebserver
   podman kill 860a4b23
@@ -31,7 +31,7 @@ var (
 
 	containerKillCommand = &cobra.Command{
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Use:   killCommand.Use,
 		Short: killCommand.Short,
@@ -50,10 +50,6 @@ var (
 func killFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&killOptions.All, "all", "a", false, "Signal all running containers")
 	flags.StringVarP(&killOptions.Signal, "signal", "s", "KILL", "Signal to send to the container")
-	flags.BoolVarP(&killOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
 }
 
 func init() {
@@ -61,20 +57,19 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: killCommand,
 	})
-	flags := killCommand.Flags()
-	killFlags(flags)
+	killFlags(killCommand.Flags())
+	validate.AddLatestFlag(killCommand, &killOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerKillCommand,
 		Parent:  containerCmd,
 	})
-
-	containerKillFlags := containerKillCommand.Flags()
-	killFlags(containerKillFlags)
+	killFlags(containerKillCommand.Flags())
+	validate.AddLatestFlag(containerKillCommand, &killOptions.Latest)
 }
 
-func kill(cmd *cobra.Command, args []string) error {
+func kill(_ *cobra.Command, args []string) error {
 	var (
 		err  error
 		errs utils.OutputErrors

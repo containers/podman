@@ -13,11 +13,10 @@ var (
 
 	// Command: podman _image_
 	imageCmd = &cobra.Command{
-		Use:              "image",
-		Short:            "Manage images",
-		Long:             "Manage images",
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "image",
+		Short: "Manage images",
+		Long:  "Manage images",
+		RunE:  validate.SubCommandExists,
 	}
 )
 

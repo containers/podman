@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/utils"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ var (
 		Long:  podPauseDescription,
 		RunE:  pause,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod pause podID1 podID2
   podman pod pause --latest
@@ -41,12 +41,9 @@ func init() {
 	})
 	flags := pauseCommand.Flags()
 	flags.BoolVarP(&pauseOptions.All, "all", "a", false, "Pause all running pods")
-	flags.BoolVarP(&pauseOptions.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
+	validate.AddLatestFlag(pauseCommand, &pauseOptions.Latest)
 }
-func pause(cmd *cobra.Command, args []string) error {
+func pause(_ *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)

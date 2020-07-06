@@ -40,11 +40,11 @@ var (
 	// Command: podman _diff_ Object_ID
 	buildDescription = "Builds an OCI or Docker image using instructions from one or more Containerfiles and a specified build context directory."
 	buildCmd         = &cobra.Command{
-		Use:              "build [flags] [CONTEXT]",
-		Short:            "Build an image using instructions from Containerfiles",
-		Long:             buildDescription,
-		TraverseChildren: true,
-		RunE:             build,
+		Use:   "build [flags] [CONTEXT]",
+		Short: "Build an image using instructions from Containerfiles",
+		Long:  buildDescription,
+		Args:  cobra.MaximumNArgs(1),
+		RunE:  build,
 		Example: `podman build .
   podman build --creds=username:password -t imageName -f Containerfile.simple .
   podman build --layers --force-rm --tag imageName .`,

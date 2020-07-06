@@ -67,14 +67,14 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 	for _, p := range pods {
 		report := entities.PodKillReport{Id: p.ID()}
 		conErrs, err := p.Kill(uint(sig))
-		if err != nil {
+		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			reports = append(reports, &report)
 			continue
 		}
 		if len(conErrs) > 0 {
-			for _, err := range conErrs {
-				report.Errs = append(report.Errs, err)
+			for id, err := range conErrs {
+				report.Errs = append(report.Errs, errors.Wrapf(err, "error killing container %s", id))
 			}
 			reports = append(reports, &report)
 			continue
@@ -93,13 +93,13 @@ func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, op
 	for _, p := range pods {
 		report := entities.PodPauseReport{Id: p.ID()}
 		errs, err := p.Pause()
-		if err != nil {
+		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			continue
 		}
 		if len(errs) > 0 {
-			for _, v := range errs {
-				report.Errs = append(report.Errs, v)
+			for id, v := range errs {
+				report.Errs = append(report.Errs, errors.Wrapf(v, "error pausing container %s", id))
 			}
 			reports = append(reports, &report)
 			continue
@@ -118,13 +118,13 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 	for _, p := range pods {
 		report := entities.PodUnpauseReport{Id: p.ID()}
 		errs, err := p.Unpause()
-		if err != nil {
+		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			continue
 		}
 		if len(errs) > 0 {
-			for _, v := range errs {
-				report.Errs = append(report.Errs, v)
+			for id, v := range errs {
+				report.Errs = append(report.Errs, errors.Wrapf(v, "error unpausing container %s", id))
 			}
 			reports = append(reports, &report)
 			continue
@@ -143,13 +143,13 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 	for _, p := range pods {
 		report := entities.PodStopReport{Id: p.ID()}
 		errs, err := p.StopWithTimeout(ctx, false, options.Timeout)
-		if err != nil {
+		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			continue
 		}
 		if len(errs) > 0 {
-			for _, v := range errs {
-				report.Errs = append(report.Errs, v)
+			for id, v := range errs {
+				report.Errs = append(report.Errs, errors.Wrapf(v, "error stopping container %s", id))
 			}
 			reports = append(reports, &report)
 			continue
@@ -168,14 +168,14 @@ func (ic *ContainerEngine) PodRestart(ctx context.Context, namesOrIds []string, 
 	for _, p := range pods {
 		report := entities.PodRestartReport{Id: p.ID()}
 		errs, err := p.Restart(ctx)
-		if err != nil {
+		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
-			for _, v := range errs {
-				report.Errs = append(report.Errs, v)
+			for id, v := range errs {
+				report.Errs = append(report.Errs, errors.Wrapf(v, "error restarting container %s", id))
 			}
 			reports = append(reports, &report)
 			continue
@@ -195,14 +195,14 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 	for _, p := range pods {
 		report := entities.PodStartReport{Id: p.ID()}
 		errs, err := p.Start(ctx)
-		if err != nil {
+		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
-			for _, v := range errs {
-				report.Errs = append(report.Errs, v)
+			for id, v := range errs {
+				report.Errs = append(report.Errs, errors.Wrapf(v, "error starting container %s", id))
 			}
 			reports = append(reports, &report)
 			continue

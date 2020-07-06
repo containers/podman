@@ -50,6 +50,7 @@ func init() {
 		Command: psCommand,
 	})
 	listFlagSet(psCommand.Flags())
+	validate.AddLatestFlag(psCommand, &listOpts.Latest)
 }
 
 func listFlagSet(flags *pflag.FlagSet) {
@@ -57,7 +58,6 @@ func listFlagSet(flags *pflag.FlagSet) {
 	flags.StringSliceVarP(&filters, "filter", "f", []string{}, "Filter output based on conditions given")
 	flags.StringVar(&listOpts.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
 	flags.IntVarP(&listOpts.Last, "last", "n", -1, "Print the n last created containers (all states)")
-	flags.BoolVarP(&listOpts.Latest, "latest", "l", false, "Show the latest container created (all states)")
 	flags.BoolVar(&listOpts.Namespace, "namespace", false, "Display namespace information")
 	flags.BoolVar(&listOpts.Namespace, "ns", false, "Display namespace information")
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Display the extended information")
@@ -69,10 +69,6 @@ func listFlagSet(flags *pflag.FlagSet) {
 
 	sort := validate.Value(&listOpts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
 	flags.Var(sort, "sort", "Sort output by: "+sort.Choices())
-
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
-	}
 }
 func checkFlags(c *cobra.Command) error {
 	// latest, and last are mutually exclusive.
@@ -313,7 +309,13 @@ func (l psReporter) Status() string {
 
 // Command returns the container command in string format
 func (l psReporter) Command() string {
-	return strings.Join(l.ListContainer.Command, " ")
+	command := strings.Join(l.ListContainer.Command, " ")
+	if !noTrunc {
+		if len(command) > 17 {
+			return command[0:17] + "..."
+		}
+	}
+	return command
 }
 
 // Size returns the rootfs and virtual sizes in human duration in

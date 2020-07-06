@@ -16,7 +16,9 @@ import (
 	_ "github.com/containers/libpod/v2/cmd/podman/system"
 	_ "github.com/containers/libpod/v2/cmd/podman/volumes"
 	"github.com/containers/libpod/v2/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/terminal"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +27,11 @@ func main() {
 		// We were invoked with a different argv[0] indicating that we
 		// had a specific job to do as a subprocess, and it's done.
 		return
+	}
+
+	// Hard code TMPDIR functions to use /var/tmp, if user did not override
+	if _, ok := os.LookupEnv("TMPDIR"); !ok {
+		os.Setenv("TMPDIR", "/var/tmp")
 	}
 
 	cfg := registry.PodmanConfig()
@@ -52,6 +59,10 @@ func main() {
 				c.Command.SetUsageTemplate(usageTemplate)
 			}
 		}
+	}
+	if err := terminal.SetConsole(); err != nil {
+		logrus.Error(err)
+		os.Exit(1)
 	}
 
 	Execute()

@@ -184,22 +184,24 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 	}
 	if hostPort != nil {
 		if *hostPort == "" {
-			return newPort, errors.Errorf("must provide a non-empty container host port to publish")
+			// Set 0 as a placeholder. The server side of Specgen
+			// will find a random, open, unused port to use.
+			newPort.HostPort = 0
+		} else {
+			hostStart, hostLen, err := parseAndValidateRange(*hostPort)
+			if err != nil {
+				return newPort, errors.Wrapf(err, "error parsing host port")
+			}
+			if hostLen != ctrLen {
+				return newPort, errors.Errorf("host and container port ranges have different lengths: %d vs %d", hostLen, ctrLen)
+			}
+			newPort.HostPort = hostStart
 		}
-		hostStart, hostLen, err := parseAndValidateRange(*hostPort)
-		if err != nil {
-			return newPort, errors.Wrapf(err, "error parsing host port")
-		}
-		if hostLen != ctrLen {
-			return newPort, errors.Errorf("host and container port ranges have different lengths: %d vs %d", hostLen, ctrLen)
-		}
-		newPort.HostPort = hostStart
+	} else {
+		newPort.HostPort = newPort.ContainerPort
 	}
 
 	hport := newPort.HostPort
-	if hport == 0 {
-		hport = newPort.ContainerPort
-	}
 	logrus.Debugf("Adding port mapping from %d to %d length %d protocol %q", hport, newPort.ContainerPort, newPort.Range, newPort.Protocol)
 
 	return newPort, nil

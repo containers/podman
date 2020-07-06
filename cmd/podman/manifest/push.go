@@ -49,6 +49,7 @@ func init() {
 	flags.StringVar(&manifestPushOpts.SignBy, "sign-by", "", "sign the image using a GPG key with the specified `FINGERPRINT`")
 	flags.BoolVar(&manifestPushOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	flags.BoolVarP(&manifestPushOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing lists")
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("cert-dir")

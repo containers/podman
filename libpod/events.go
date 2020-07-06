@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/containers/libpod/v2/libpod/events"
@@ -75,16 +76,16 @@ func (v *Volume) newVolumeEvent(status events.Status) {
 
 // Events is a wrapper function for everyone to begin tailing the events log
 // with options
-func (r *Runtime) Events(options events.ReadOptions) error {
+func (r *Runtime) Events(ctx context.Context, options events.ReadOptions) error {
 	eventer, err := r.newEventer()
 	if err != nil {
 		return err
 	}
-	return eventer.Read(options)
+	return eventer.Read(ctx, options)
 }
 
 // GetEvents reads the event log and returns events based on input filters
-func (r *Runtime) GetEvents(filters []string) ([]*events.Event, error) {
+func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Event, error) {
 	var readErr error
 	eventChannel := make(chan *events.Event)
 	options := events.ReadOptions{
@@ -98,7 +99,7 @@ func (r *Runtime) GetEvents(filters []string) ([]*events.Event, error) {
 		return nil, err
 	}
 	go func() {
-		readErr = eventer.Read(options)
+		readErr = eventer.Read(ctx, options)
 	}()
 	if readErr != nil {
 		return nil, readErr
@@ -112,7 +113,7 @@ func (r *Runtime) GetEvents(filters []string) ([]*events.Event, error) {
 
 // GetLastContainerEvent takes a container name or ID and an event status and returns
 // the last occurrence of the container event
-func (r *Runtime) GetLastContainerEvent(nameOrID string, containerEvent events.Status) (*events.Event, error) {
+func (r *Runtime) GetLastContainerEvent(ctx context.Context, nameOrID string, containerEvent events.Status) (*events.Event, error) {
 	// check to make sure the event.Status is valid
 	if _, err := events.StringToStatus(containerEvent.String()); err != nil {
 		return nil, err
@@ -122,7 +123,7 @@ func (r *Runtime) GetLastContainerEvent(nameOrID string, containerEvent events.S
 		fmt.Sprintf("event=%s", containerEvent),
 		"type=container",
 	}
-	containerEvents, err := r.GetEvents(filters)
+	containerEvents, err := r.GetEvents(ctx, filters)
 	if err != nil {
 		return nil, err
 	}

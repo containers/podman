@@ -1485,6 +1485,19 @@ func WithVolumeGID(gid int) VolumeCreateOption {
 	}
 }
 
+// WithVolumeNeedsChown sets the NeedsChown flag for the volume.
+func WithVolumeNeedsChown() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.state.NeedsChown = true
+
+		return nil
+	}
+}
+
 // withSetAnon sets a bool notifying libpod that this volume is anonymous and
 // should be removed when containers using it are removed and volumes are
 // specified for removal.

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/v2/cmd/podman/common"
-	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/utils"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +34,7 @@ var (
 		Long:  podStopDescription,
 		RunE:  stop,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return parse.CheckAllLatestAndPodIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndPodIDFile(cmd, args, false, true)
 		},
 		Example: `podman pod stop mywebserverpod
   podman pod stop --latest
@@ -51,13 +51,14 @@ func init() {
 	flags := stopCommand.Flags()
 	flags.BoolVarP(&stopOptions.All, "all", "a", false, "Stop all running pods")
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
-	flags.BoolVarP(&stopOptions.Latest, "latest", "l", false, "Stop the latest pod podman is aware of")
 	flags.UintVarP(&stopOptions.TimeoutCLI, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for pod stop before killing the container")
 	flags.StringArrayVarP(&stopOptions.PodIDFiles, "pod-id-file", "", nil, "Read the pod ID from the file")
+	validate.AddLatestFlag(stopCommand, &stopOptions.Latest)
+
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("ignore")
 	}
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 

@@ -173,6 +173,10 @@ func (s *APIServer) Serve() error {
 		}()
 	}
 
+	// Before we start serving, ensure umask is properly set for container
+	// creation.
+	_ = syscall.Umask(0022)
+
 	go func() {
 		err := s.Server.Serve(s.Listener)
 		if err != nil && err != http.ErrServerClosed {

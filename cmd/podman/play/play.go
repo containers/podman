@@ -10,11 +10,10 @@ import (
 var (
 	// Command: podman _play_
 	playCmd = &cobra.Command{
-		Use:              "play",
-		Short:            "Play a pod and its containers from a structured file.",
-		Long:             "Play structured data (e.g., Kubernetes pod or service yaml) based on containers and pods.",
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "play",
+		Short: "Play a pod and its containers from a structured file.",
+		Long:  "Play structured data (e.g., Kubernetes pod or service yaml) based on containers and pods.",
+		RunE:  validate.SubCommandExists,
 	}
 )
 
