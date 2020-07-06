@@ -103,7 +103,7 @@ func makeUserArgs(bEnv []string, bArgs map[string]string) (userArgs []string) {
 	userArgs = bEnv
 	envMap := make(map[string]string)
 	for _, envVal := range bEnv {
-		val := strings.Split(envVal, "=")
+		val := strings.SplitN(envVal, "=", 2)
 		if len(val) > 1 {
 			envMap[val[0]] = val[1]
 		}
