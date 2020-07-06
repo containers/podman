@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/coreos/go-systemd/v22/dbus"
 	godbus "github.com/godbus/dbus/v5"
 )

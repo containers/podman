@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/parse"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

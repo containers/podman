@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/image"
-	ann "github.com/containers/libpod/pkg/annotations"
-	envLib "github.com/containers/libpod/pkg/env"
-	"github.com/containers/libpod/pkg/signal"
-	"github.com/containers/libpod/pkg/specgen"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/image"
+	ann "github.com/containers/libpod/v2/pkg/annotations"
+	envLib "github.com/containers/libpod/v2/pkg/env"
+	"github.com/containers/libpod/v2/pkg/signal"
+	"github.com/containers/libpod/v2/pkg/specgen"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

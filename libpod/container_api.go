@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/libpod/logs"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/libpod/events"
+	"github.com/containers/libpod/v2/libpod/logs"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

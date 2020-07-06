@@ -1,4 +1,4 @@
-module github.com/containers/libpod
+module github.com/containers/libpod/v2
 
 go 1.13
 

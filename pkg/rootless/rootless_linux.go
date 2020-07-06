@@ -16,7 +16,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/containers/libpod/pkg/errorhandling"
+	"github.com/containers/libpod/v2/pkg/errorhandling"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

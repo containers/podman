@@ -6,7 +6,7 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
-	podmanVersion "github.com/containers/libpod/version"
+	podmanVersion "github.com/containers/libpod/v2/version"
 )
 
 // DockerRegistryOptions encapsulates settings that affect how we connect or

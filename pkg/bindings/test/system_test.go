@@ -3,12 +3,12 @@ package test_bindings
 import (
 	"time"
 
-	"github.com/containers/libpod/pkg/bindings"
-	"github.com/containers/libpod/pkg/bindings/containers"
-	"github.com/containers/libpod/pkg/bindings/pods"
-	"github.com/containers/libpod/pkg/bindings/system"
-	"github.com/containers/libpod/pkg/bindings/volumes"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/bindings"
+	"github.com/containers/libpod/v2/pkg/bindings/containers"
+	"github.com/containers/libpod/v2/pkg/bindings/pods"
+	"github.com/containers/libpod/v2/pkg/bindings/system"
+	"github.com/containers/libpod/v2/pkg/bindings/volumes"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"

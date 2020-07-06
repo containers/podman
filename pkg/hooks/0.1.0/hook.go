@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	current "github.com/containers/libpod/pkg/hooks/1.0.0"
+	current "github.com/containers/libpod/v2/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
 

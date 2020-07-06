@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/pkg/auth"
-	"github.com/containers/libpod/pkg/bindings"
-	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/auth"
+	"github.com/containers/libpod/v2/pkg/bindings"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
 )
 
 func Kube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {

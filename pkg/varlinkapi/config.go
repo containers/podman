@@ -3,8 +3,8 @@
 package varlinkapi
 
 import (
-	"github.com/containers/libpod/libpod"
-	iopodman "github.com/containers/libpod/pkg/varlink"
+	"github.com/containers/libpod/v2/libpod"
+	iopodman "github.com/containers/libpod/v2/pkg/varlink"
 	"github.com/spf13/cobra"
 )
 

@@ -2,7 +2,7 @@
 
 package libpod
 
-import "github.com/containers/libpod/libpod/define"
+import "github.com/containers/libpod/v2/libpod/define"
 
 // Top gathers statistics about the running processes in a container. It returns a
 // []string for output

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

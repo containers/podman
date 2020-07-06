@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/v2/libpod/image"
 	"github.com/google/shlex"
 	"github.com/pkg/errors"
 )

@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/trust"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/trust"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

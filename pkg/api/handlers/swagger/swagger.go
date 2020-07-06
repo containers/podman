@@ -1,12 +1,12 @@
 package swagger
 
 import (
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/api/handlers"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/libpod/image"
+	"github.com/containers/libpod/v2/pkg/api/handlers"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/inspect"
 	"github.com/docker/docker/api/types"
 )
 

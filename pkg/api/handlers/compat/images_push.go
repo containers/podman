@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/containers/libpod/pkg/auth"
+	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/image"
+	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/libpod/v2/pkg/auth"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )

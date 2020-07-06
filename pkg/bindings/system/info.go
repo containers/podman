@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/bindings"
 )
 
 // Info returns information about the libpod environment and its stores

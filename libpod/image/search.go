@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
-	sysreg "github.com/containers/libpod/pkg/registries"
+	sysreg "github.com/containers/libpod/v2/pkg/registries"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"

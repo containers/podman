@@ -8,10 +8,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/registry"
-	"github.com/containers/libpod/cmd/podman/validate"
-	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/domain/infra"
+	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/cmd/podman/validate"
+	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/libpod/v2/pkg/domain/infra"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

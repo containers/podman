@@ -2,7 +2,7 @@
 
 package libpod
 
-import "github.com/containers/libpod/libpod/define"
+import "github.com/containers/libpod/v2/libpod/define"
 
 // createTimer systemd timers for healthchecks of a container
 func (c *Container) createTimer() error {
