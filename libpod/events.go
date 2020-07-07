@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/containers/libpod/v2/libpod/events"
 	"github.com/pkg/errors"
@@ -86,7 +87,6 @@ func (r *Runtime) Events(ctx context.Context, options events.ReadOptions) error 
 
 // GetEvents reads the event log and returns events based on input filters
 func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Event, error) {
-	var readErr error
 	eventChannel := make(chan *events.Event)
 	options := events.ReadOptions{
 		EventChannel: eventChannel,
@@ -98,17 +98,20 @@ func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Ev
 	if err != nil {
 		return nil, err
 	}
-	go func() {
-		readErr = eventer.Read(ctx, options)
-	}()
-	if readErr != nil {
-		return nil, readErr
-	}
+
 	logEvents := make([]*events.Event, 0, len(eventChannel))
-	for e := range eventChannel {
-		logEvents = append(logEvents, e)
-	}
-	return logEvents, nil
+	readLock := sync.Mutex{}
+	readLock.Lock()
+	go func() {
+		for e := range eventChannel {
+			logEvents = append(logEvents, e)
+		}
+		readLock.Unlock()
+	}()
+
+	readErr := eventer.Read(ctx, options)
+	readLock.Lock() // Wait for the events to be consumed.
+	return logEvents, readErr
 }
 
 // GetLastContainerEvent takes a container name or ID and an event status and returns
