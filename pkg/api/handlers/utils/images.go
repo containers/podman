@@ -60,6 +60,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 		All     bool
 		Filters map[string][]string `schema:"filters"`
 		Digests bool
+		Filter  string // Docker 1.24 compatibility
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -76,8 +77,16 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 		err    error
 	)
 
-	if len(query.Filters) > 0 {
-		for k, v := range query.Filters {
+	queryFilters := query.Filters
+	if len(query.Filter) > 0 { // Docker 1.24 compatibility
+		if (queryFilters == nil) {
+			queryFilters = make(map[string][]string)
+		}
+		queryFilters["reference"] = append(queryFilters["reference"], query.Filter)
+	}
+
+	if len(queryFilters) > 0 {
+		for k, v := range queryFilters {
 			filters = append(filters, fmt.Sprintf("%s=%s", k, strings.Join(v, "=")))
 		}
 		images, err = runtime.ImageRuntime().GetImagesWithFilters(filters)
