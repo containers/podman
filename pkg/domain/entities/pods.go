@@ -104,6 +104,7 @@ type PodRmReport struct {
 
 type PodCreateOptions struct {
 	CGroupParent       string
+	CreateCommand      []string
 	Hostname           string
 	Infra              bool
 	InfraImage         string
@@ -133,6 +134,7 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 	}
 	s.InfraImage = p.InfraImage
 	s.SharedNamespaces = p.Share
+	s.PodCreateCommand = p.CreateCommand
 
 	// Networking config
 	s.NetNS = p.Net.Network

@@ -135,6 +135,13 @@ type ContainerBasicConfig struct {
 	// Remove indicates if the container should be removed once it has been started
 	// and exits
 	Remove bool `json:"remove,omitempty"`
+	// ContainerCreateCommand is the command that was used to create this
+	// container.
+	// This will be shown in the output of Inspect() on the container, and
+	// may also be used by some tools that wish to recreate the container
+	// (e.g. `podman generate systemd --new`).
+	// Optional.
+	ContainerCreateCommand []string `json:"containerCreateCommand,omitempty"`
 	// PreserveFDs is a number of additional file descriptors (in addition
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.
