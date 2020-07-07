@@ -1,23 +1,28 @@
 # Release Notes
 
 ## 2.0.2
+### Changes
+- The `podman system connection` command has been temporarily disabled, as it was not functioning as expected.
+
 ### Bugfixes
 - Fixed a bug where the `podman ps` command would not truncate long container commands, resulting in display issues as the column could become extremely wide (the `--no-trunc` flag can be used to print the full command).
 - Fixed a bug where `podman pod` commands operationg on multiple containers (e.g. `podman pod stop` and `podman pod kill`) would not print errors from individual containers, but only a warning that some containers had failed.
 - Fixed a bug where the `podman system service` command would panic if a connection to the Events endpoint hung up early ([#6805](https://github.com/containers/libpod/issues/6805)).
 - Fixed a bug where rootless Podman would create anonymous and named volumes with the wrong owner for containers run with the `--user` directive.
-- Fixed a bug where the `TMPDIR` environment variable was not being defaulted (if unset) to `/var/tmp`.
+- Fixed a bug where the `TMPDIR` environment variable (used for storing temporary files while pulling images) was not being defaulted (if unset) to `/var/tmp`.
 - Fixed a bug where the `--publish` flag to `podman create` and `podman run` required that a host port be specified if an IP address was given ([#6806](https://github.com/containers/libpod/issues/6806)).
 - Fixed a bug where in `podman-remote` commands performing an attach (`podman run`, `podman attach`, `podman start --attach`, `podman exec`) did not properly configure the terminal on Windows.
 - Fixed a bug where the `--remote` flag to Podman required an argument, despite being a boolean ([#6704](https://github.com/containers/libpod/issues/6704)).
 - Fixed a bug where the `podman generate systemd --new` command could generate incorrect unit files for a pod if a container in the pod was created using the `--pod=...` flag (with an =, instead of a space, before the pod ID) ([#6766](https://github.com/containers/libpod/issues/6766)).
-- Fixed a bug where `NPROC` and `NOFILE` rlimits could be improperly set for rootless Podman containers
+- Fixed a bug where `NPROC` and `NOFILE` rlimits could be improperly set for rootless Podman containers, causing them to fail to start.
+- Fixed a bug where `podman mount` as rootless did not error (the `podman mount` command cannot be run rootless unless it is run inside a `podman unshare` shell).
+- Fixed a bug where in some cases a race in events handling code could cause error messages related to retrieving events to be lost.
 
 ### API
 - Fixed a bug where the timestamp format for Libpod image list endpoint was incorrect - the format has been switched to Unix time.
 - Fixed a bug where the compatability Create endpoint did not handle empty entrypoints properly.
-- Fixed a bug where the compatibility network remove endpoint would improperly handle errors where the network was not found
-- Fixed a bug where containers would be created with improper permissions because of a umask issue ([#6787](https://github.com/containers/libpod/issues/6787))
+- Fixed a bug where the compatibility network remove endpoint would improperly handle errors where the network was not found.
+- Fixed a bug where containers would be created with improper permissions because of a umask issue ([#6787](https://github.com/containers/libpod/issues/6787)).
 
 ## 2.0.1
 ### Changes
