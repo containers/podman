@@ -26,6 +26,14 @@ t GET libpod/images/${iid:0:12}/json 200 \
   .Id=$iid \
   .RepoTags[0]=$IMAGE
 
+# Docker API V1.24 filter parameter compatibility
+t GET images/json?filter=$IMAGE 200 \
+  length=1 \
+  .[0].Names[0]=$IMAGE
+
+# Negative test case
+t GET images/json?filter=nonesuch 200 length=0
+
 # FIXME: docker API incompatibility: libpod returns 'id', docker 'sha256:id'
 t GET images/$iid/json 200 \
   .Id=sha256:$iid \
