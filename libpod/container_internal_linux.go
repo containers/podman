@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -34,7 +35,7 @@ import (
 	"github.com/containers/libpod/v2/utils"
 	"github.com/containers/storage/pkg/archive"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/opencontainers/runc/libcontainer/user"
+	User "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1448,9 +1449,23 @@ func (c *Container) getHosts() string {
 	return hosts
 }
 
-// generatePasswd generates a container specific passwd file,
-// iff g.config.User is a number
-func (c *Container) generatePasswd() (string, error) {
+// generateCurrentUserPasswdEntry generates an /etc/passwd entry for the user
+// running the container engine
+func (c *Container) generateCurrentUserPasswdEntry() (string, error) {
+	uid := rootless.GetRootlessUID()
+	if uid == 0 {
+		return "", nil
+	}
+	u, err := user.LookupId(strconv.Itoa(rootless.GetRootlessUID()))
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get current user")
+	}
+	return fmt.Sprintf("%s:x:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Username, c.WorkingDir()), nil
+}
+
+// generateUserPasswdEntry generates an /etc/passwd entry for the container user
+// to run in the container.
+func (c *Container) generateUserPasswdEntry() (string, error) {
 	var (
 		groupspec string
 		gid       int
@@ -1468,14 +1483,16 @@ func (c *Container) generatePasswd() (string, error) {
 	if err != nil {
 		return "", nil
 	}
+
 	// Lookup the user to see if it exists in the container image
 	_, err = lookup.GetUser(c.state.Mountpoint, userspec)
-	if err != nil && err != user.ErrNoPasswdEntries {
+	if err != nil && err != User.ErrNoPasswdEntries {
 		return "", err
 	}
 	if err == nil {
 		return "", nil
 	}
+
 	if groupspec != "" {
 		ugid, err := strconv.ParseUint(groupspec, 10, 32)
 		if err == nil {
@@ -1488,14 +1505,39 @@ func (c *Container) generatePasswd() (string, error) {
 			gid = group.Gid
 		}
 	}
+	return fmt.Sprintf("%d:x:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), nil
+}
+
+// generatePasswd generates a container specific passwd file,
+// iff g.config.User is a number
+func (c *Container) generatePasswd() (string, error) {
+	if !c.config.AddCurrentUserPasswdEntry && c.config.User == "" {
+		return "", nil
+	}
+	pwd := ""
+	if c.config.User != "" {
+		entry, err := c.generateUserPasswdEntry()
+		if err != nil {
+			return "", err
+		}
+		pwd += entry
+	}
+	if c.config.AddCurrentUserPasswdEntry {
+		entry, err := c.generateCurrentUserPasswdEntry()
+		if err != nil {
+			return "", err
+		}
+		pwd += entry
+	}
+	if pwd == "" {
+		return "", nil
+	}
 	originPasswdFile := filepath.Join(c.state.Mountpoint, "/etc/passwd")
 	orig, err := ioutil.ReadFile(originPasswdFile)
 	if err != nil && !os.IsNotExist(err) {
 		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
 	}
-
-	pwd := fmt.Sprintf("%s%d:x:%d:%d:container user:%s:/bin/sh\n", orig, uid, uid, gid, c.WorkingDir())
-	passwdFile, err := c.writeStringToRundir("passwd", pwd)
+	passwdFile, err := c.writeStringToRundir("passwd", string(orig)+pwd)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to create temporary passwd file")
 	}
