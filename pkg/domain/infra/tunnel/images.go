@@ -128,15 +128,14 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 }
 
 func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, options entities.ImageUntagOptions) error {
+	newImage, err := images.GetImage(ir.ClientCxt, nameOrID, bindings.PFalse)
+	if err != nil {
+		return err
+	}
 	// Remove all tags if none are provided
 	if len(tags) == 0 {
-		newImage, err := images.GetImage(ir.ClientCxt, nameOrID, bindings.PFalse)
-		if err != nil {
-			return err
-		}
-		tags = newImage.NamesHistory
+		tags = newImage.RepoTags
 	}
-
 	for _, newTag := range tags {
 		var (
 			tag, repo string
@@ -154,7 +153,7 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 		if len(repo) < 1 {
 			return errors.Errorf("invalid image name %q", nameOrID)
 		}
-		if err := images.Untag(ir.ClientCxt, nameOrID, tag, repo); err != nil {
+		if err := images.Untag(ir.ClientCxt, newImage.ID, tag, repo); err != nil {
 			return err
 		}
 	}

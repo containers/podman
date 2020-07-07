@@ -107,13 +107,12 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --entrypoint \"\"", func() {
-		Skip(v2remotefail)
-		session := podmanTest.Podman([]string{"create", "--entrypoint", "", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--name", "test", "--entrypoint", "", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		result := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{.Config.Entrypoint}}"})
+		result := podmanTest.Podman([]string{"inspect", "--format", "{{.Config.Entrypoint}}", "test"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.OutputToString()).To(Equal(""))
@@ -133,7 +132,6 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --mount flag with multiple mounts", func() {
-		Skip(v2remotefail)
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).To(BeNil())
@@ -159,7 +157,6 @@ var _ = Describe("Podman create", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("skip failing test on ppc64le")
 		}
-		Skip(v2remotefail)
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 		session := podmanTest.Podman([]string{"create", "--name", "test", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})

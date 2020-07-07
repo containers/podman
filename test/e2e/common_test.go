@@ -249,12 +249,13 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
-			PodmanBinary:  podmanBinary,
-			ArtifactPath:  ARTIFACT_DIR,
-			TempDir:       tempDir,
-			RemoteTest:    remote,
-			ImageCacheFS:  storageFs,
-			ImageCacheDir: ImageCacheDir,
+			PodmanBinary:      podmanBinary,
+			PodmanLocalBinary: podmanBinary,
+			ArtifactPath:      ARTIFACT_DIR,
+			TempDir:           tempDir,
+			RemoteTest:        remote,
+			ImageCacheFS:      storageFs,
+			ImageCacheDir:     ImageCacheDir,
 		},
 		ConmonBinary:        conmonBinary,
 		CrioRoot:            filepath.Join(tempDir, "crio"),

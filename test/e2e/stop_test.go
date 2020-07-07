@@ -41,8 +41,6 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop --ignore bogus container", func() {
-		SkipIfRemote()
-
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -198,14 +196,13 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop all containers with one stopped", func() {
-		Skip(v2remotefail)
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session2 := podmanTest.RunTopContainer("test2")
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
-		session3 := podmanTest.Podman([]string{"stop", "-l", "-t", "1"})
+		session3 := podmanTest.Podman([]string{"stop", "test2", "-t", "1"})
 		session3.WaitWithDefaultTimeout()
 		Expect(session3.ExitCode()).To(Equal(0))
 		session4 := podmanTest.Podman([]string{"stop", "-a", "-t", "1"})

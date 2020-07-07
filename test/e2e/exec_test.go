@@ -67,9 +67,8 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec simple command using latest", func() {
-		// the remote client doesn't use latest
 		SkipIfRemote()
-		setup := podmanTest.RunTopContainer("test1")
+		setup := podmanTest.RunTopContainer("")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
@@ -122,13 +121,12 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec terminal doesn't hang", func() {
-		Skip(v2remotefail)
-		setup := podmanTest.Podman([]string{"run", "-dti", fedoraMinimal, "sleep", "+Inf"})
+		setup := podmanTest.Podman([]string{"run", "--name", "nohang", "-dti", fedoraMinimal, "sleep", "+Inf"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
 		for i := 0; i < 5; i++ {
-			session := podmanTest.Podman([]string{"exec", "-lti", "true"})
+			session := podmanTest.Podman([]string{"exec", "-ti", "nohang", "true"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 		}

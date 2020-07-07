@@ -198,16 +198,33 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	return nil
 }
 
+// .1 .2 .4 .8 1.6
 func (p *PodmanTestIntegration) DelayForService() error {
-	for i := 0; i < 5; i++ {
+	// First we wait for socket to appear in the filesystem
+	for i := 0; i < 20; i++ {
+		_, err := os.Stat(p.RemoteSocket)
+		if err == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+		if i == 19 {
+			return errors.New("test socket not found")
+		}
+	}
+
+	// Now we wait for the service to become active
+	timeout := 100 * time.Millisecond
+	for {
+		if timeout > 1600 {
+			break
+		}
 		session := p.Podman([]string{"info"})
 		session.WaitWithDefaultTimeout()
 		if session.ExitCode() == 0 {
 			return nil
-		} else if i == 4 {
-			break
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(timeout)
+		timeout = timeout * 2
 	}
 	return errors.New("Service not detected")
 }

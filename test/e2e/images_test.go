@@ -90,7 +90,7 @@ var _ = Describe("Podman images", func() {
 		session = podmanTest.PodmanNoCache([]string{"images", "-qn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 3))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", len(RESTORE_IMAGES)))
 	})
 
 	It("podman images with digests", func() {
