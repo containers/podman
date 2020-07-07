@@ -500,6 +500,8 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
+%{_unitdir}/podman-auto-update.service
+%{_unitdir}/podman-auto-update.timer
 %{_unitdir}/podman.service
 %{_unitdir}/podman.socket
 %{_usr}/lib/systemd/user/podman.service
