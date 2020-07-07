@@ -1371,12 +1371,12 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 
 // WithCreateCommand adds the full command plus arguments of the current
 // process to the container config.
-func WithCreateCommand() CtrCreateOption {
+func WithCreateCommand(cmd []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		ctr.config.CreateCommand = os.Args
+		ctr.config.CreateCommand = cmd
 		return nil
 	}
 }
@@ -1553,12 +1553,12 @@ func WithPodHostname(hostname string) PodCreateOption {
 
 // WithPodCreateCommand adds the full command plus arguments of the current
 // process to the pod config.
-func WithPodCreateCommand() PodCreateOption {
+func WithPodCreateCommand(createCmd []string) PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized
 		}
-		pod.config.CreateCommand = os.Args
+		pod.config.CreateCommand = createCmd
 		return nil
 	}
 }

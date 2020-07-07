@@ -378,6 +378,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	var command []string
 
+	// Include the command used to create the container.
+	s.ContainerCreateCommand = os.Args
+
 	// Build the command
 	// If we have an entry point, it goes first
 	if c.Entrypoint != nil {
