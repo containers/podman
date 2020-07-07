@@ -1,3 +1,35 @@
+- Changelog for v2.0.2 (2020-07-07):
+  * Finalize release notes for Podman v2.0.2
+  * fix race condition in `libpod.GetEvents(...)`
+  * Fix bug where `podman mount` didn't error as rootless
+  * remove podman system connection
+  * Fix imports to ensure v2 is used with libpod
+  * Update release notes for v2.0.2
+  * specgen: fix order for setting rlimits
+  * Ensure umask is set appropriately for 'system service'
+  * generate systemd: improve pod-flags filter
+  * Fix a bug with APIv2 compat network remove to log an ErrNetworkNotFound instead of nil
+  * Fixes --remote flag issues
+  * Pids-limit should only be set if the user set it
+  * Set console mode for windows
+  * Allow empty host port in --publish flag
+  * Add a note on the APIs supported by `system service`
+  * fix: Don't override entrypoint if it's `nil`
+  * Set TMPDIR to /var/tmp by default if not set
+  * test: add tests for --user and volumes
+  * container: move volume chown after spec generation
+  * libpod: volume copyup honors namespace mappings
+  * Fix `system service` panic from early hangup in events
+  * stop podman service in e2e tests
+  * Print errors from individual containers in pods
+  * auto-update: clarify systemd-unit requirements
+  * podman ps truncate the command
+  * move go module to v2
+  * Vendor containers/common v0.14.4
+  * Bump to imagebuilder v1.1.6 on v2 branch
+  * Account for non-default port number in image name
+  * [CI:DOCS]Add swagger.yaml to docs/
+
 - Changelog for v2.0.1 (2020-06-25):
   * Update release notes with further v2.0.1 changes
   * Fix inspect to display multiple label: changes
