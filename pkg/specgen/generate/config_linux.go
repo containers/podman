@@ -267,7 +267,7 @@ func addDevice(g *generate.Generator, device string) error {
 		GID:      &dev.Gid,
 	}
 	g.AddDevice(linuxdev)
-	g.AddLinuxResourcesDevice(true, string(dev.Type), &dev.Major, &dev.Minor, dev.Permissions)
+	g.AddLinuxResourcesDevice(true, string(dev.Type), &dev.Major, &dev.Minor, string(dev.Permissions))
 	return nil
 }
 

@@ -139,7 +139,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			GID:      &d.Gid,
 		}
 		g.AddDevice(sDev)
-		g.AddLinuxResourcesDevice(true, string(d.Type), &d.Major, &d.Minor, d.Permissions)
+		g.AddLinuxResourcesDevice(true, string(d.Type), &d.Major, &d.Minor, string(d.Permissions))
 	}
 
 	setupMaskedPaths(g)
