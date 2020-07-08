@@ -1,6 +1,7 @@
 package test_bindings
 
 import (
+	"sync"
 	"time"
 
 	"github.com/containers/libpod/v2/pkg/bindings"
@@ -38,22 +39,28 @@ var _ = Describe("Podman system", func() {
 	})
 
 	It("podman events", func() {
-		eChan := make(chan entities.Event, 1)
-		var messages []entities.Event
-		cancelChan := make(chan bool, 1)
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+
+		filters := make(map[string][]string)
+		filters["container"] = []string{name}
+
+		binChan := make(chan entities.Event)
+		done := sync.Mutex{}
+		done.Lock()
+		eventCounter := 0
 		go func() {
-			for e := range eChan {
-				messages = append(messages, e)
+			defer done.Unlock()
+			for range binChan {
+				eventCounter++
 			}
 		}()
-		go func() {
-			system.Events(bt.conn, eChan, cancelChan, nil, nil, nil, bindings.PFalse)
-		}()
 
-		_, err := bt.RunTopContainer(nil, nil, nil)
+		err = system.Events(bt.conn, binChan, nil, nil, nil, filters, bindings.PFalse)
 		Expect(err).To(BeNil())
-		cancelChan <- true
-		Expect(len(messages)).To(BeNumerically("==", 5))
+		done.Lock()
+		Expect(eventCounter).To(BeNumerically(">", 0))
 	})
 
 	It("podman system prune - pod,container stopped", func() {
