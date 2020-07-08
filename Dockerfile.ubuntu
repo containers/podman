@@ -16,7 +16,6 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
     apt-get -qq autoremove --yes && \
     rm -rf /var/cache/apt
 
-# Only add minimal tooling necessary to complete setup.
 ADD / $GOSRC
 WORKDIR $GOSRC
 

@@ -9,7 +9,6 @@ ENV GOSRC=$GOPATH/src/github.com/containers/libpod
 ENV SCRIPT_BASE=./contrib/cirrus
 ENV PACKER_BASE=$SCRIPT_BASE/packer
 
-# Only add minimal tooling necessary to complete setup.
 ADD / $GOSRC
 WORKDIR $GOSRC
 
