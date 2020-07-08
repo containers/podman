@@ -8,29 +8,18 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/v2/pkg/rootless"
-	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
+var (
+	errNotADevice = errors.New("not a device node")
+)
+
 func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
 func fmPtr(i int64) *os.FileMode { fm := os.FileMode(i); return &fm }
-
-// Device transforms a libcontainer configs.Device to a specs.LinuxDevice object.
-func Device(d *configs.Device) spec.LinuxDevice {
-	return spec.LinuxDevice{
-		Type:     string(d.Type),
-		Path:     d.Path,
-		Major:    d.Major,
-		Minor:    d.Minor,
-		FileMode: fmPtr(int64(d.FileMode)),
-		UID:      u32Ptr(int64(d.Uid)),
-		GID:      u32Ptr(int64(d.Gid)),
-	}
-}
 
 func addPrivilegedDevices(g *generate.Generator) error {
 	hostDevices, err := getDevices("/dev")
@@ -77,7 +66,7 @@ func addPrivilegedDevices(g *generate.Generator) error {
 		}
 	} else {
 		for _, d := range hostDevices {
-			g.AddDevice(Device(d))
+			g.AddDevice(d)
 		}
 		// Add resources device - need to clear the existing one first.
 		if g.Config.Linux.Resources != nil {
@@ -183,7 +172,7 @@ func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.
 }
 
 // based on getDevices from runc (libcontainer/devices/devices.go)
-func getDevices(path string) ([]*configs.Device, error) {
+func getDevices(path string) ([]spec.LinuxDevice, error) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		if rootless.IsRootless() && os.IsPermission(err) {
@@ -191,7 +180,7 @@ func getDevices(path string) ([]*configs.Device, error) {
 		}
 		return nil, err
 	}
-	out := []*configs.Device{}
+	out := []spec.LinuxDevice{}
 	for _, f := range files {
 		switch {
 		case f.IsDir():
@@ -211,10 +200,13 @@ func getDevices(path string) ([]*configs.Device, error) {
 			}
 		case f.Name() == "console":
 			continue
+		case f.Mode()&os.ModeSymlink != 0:
+			continue
 		}
-		device, err := devices.DeviceFromPath(filepath.Join(path, f.Name()), "rwm")
+
+		device, err := deviceFromPath(filepath.Join(path, f.Name()))
 		if err != nil {
-			if err == devices.ErrNotADevice {
+			if err == errNotADevice {
 				continue
 			}
 			if os.IsNotExist(err) {
@@ -222,7 +214,7 @@ func getDevices(path string) ([]*configs.Device, error) {
 			}
 			return nil, err
 		}
-		out = append(out, device)
+		out = append(out, *device)
 	}
 	return out, nil
 }
@@ -232,7 +224,7 @@ func addDevice(g *generate.Generator, device string) error {
 	if err != nil {
 		return err
 	}
-	dev, err := devices.DeviceFromPath(src, permissions)
+	dev, err := deviceFromPath(src)
 	if err != nil {
 		return errors.Wrapf(err, "%s is not a valid device", src)
 	}
@@ -257,17 +249,8 @@ func addDevice(g *generate.Generator, device string) error {
 		return nil
 	}
 	dev.Path = dst
-	linuxdev := spec.LinuxDevice{
-		Path:     dev.Path,
-		Type:     string(dev.Type),
-		Major:    dev.Major,
-		Minor:    dev.Minor,
-		FileMode: &dev.FileMode,
-		UID:      &dev.Uid,
-		GID:      &dev.Gid,
-	}
-	g.AddDevice(linuxdev)
-	g.AddLinuxResourcesDevice(true, string(dev.Type), &dev.Major, &dev.Minor, dev.Permissions)
+	g.AddDevice(*dev)
+	g.AddLinuxResourcesDevice(true, dev.Type, &dev.Major, &dev.Minor, permissions)
 	return nil
 }
 
@@ -324,4 +307,41 @@ func IsValidDeviceMode(mode string) bool {
 		legalDeviceMode[c] = false
 	}
 	return true
+}
+
+// Copied from github.com/opencontainers/runc/libcontainer/devices
+// Given the path to a device look up the information about a linux device
+func deviceFromPath(path string) (*spec.LinuxDevice, error) {
+	var stat unix.Stat_t
+	err := unix.Lstat(path, &stat)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		devType   string
+		mode      = stat.Mode
+		devNumber = uint64(stat.Rdev)
+		m         = os.FileMode(mode)
+	)
+
+	switch {
+	case mode&unix.S_IFBLK == unix.S_IFBLK:
+		devType = "b"
+	case mode&unix.S_IFCHR == unix.S_IFCHR:
+		devType = "c"
+	case mode&unix.S_IFIFO == unix.S_IFIFO:
+		devType = "p"
+	default:
+		return nil, errNotADevice
+	}
+
+	return &spec.LinuxDevice{
+		Type:     devType,
+		Path:     path,
+		FileMode: &m,
+		UID:      &stat.Uid,
+		GID:      &stat.Gid,
+		Major:    int64(unix.Major(devNumber)),
+		Minor:    int64(unix.Minor(devNumber)),
+	}, nil
 }
