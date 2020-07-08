@@ -30,7 +30,7 @@ can easily fail
 * Only other supported driver is VFS.
 * No CNI Support
   * CNI wants to modify IPTables, plus other network manipulation that requires CAP_SYS_ADMIN.
-  * There is potential we could probably do some sort of blacklisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
+  * There is potential we could probably do some sort of denylisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
 * Cannot use ping out of the box.
   * [(Can be fixed by setting sysctl on host)](https://github.com/containers/libpod/blob/master/troubleshooting.md#6-rootless-containers-cannot-ping-hosts)
 * Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release)

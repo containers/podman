@@ -30,8 +30,8 @@ If no configuration is found for any of these scopes, the default value (specifi
 
 Trust **type** provides a way to:
 
-Whitelist ("accept") or
-Blacklist ("reject") registries or
+Allowlist ("accept") or
+Denylist ("reject") registries or
 Require signature (“signedBy”).
 
 Trust may be updated using the command **podman image trust set** for an existing trust scope.
