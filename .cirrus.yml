@@ -1,9 +1,9 @@
 ---
 
 # Only github users with write-access can define or use encrypted variables
-# This credential represents a service account with access to manage both VMs
-# and storage.
-gcp_credentials: ENCRYPTED[885c6e4297dd8d6f67593c42b810353af0c505a7a670e2c6fd830c56e86bbb2debcc3c18f942d0d46ab36b63521061d4]
+# Ref: https://cirrus-ci.org/guide/writing-tasks/#encrypted-variables
+# more specifically: https://cirrus-ci.com/settings/repository/6707778565701632
+gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
 
 # Default timeout for each task
 timeout_in: 120m
@@ -52,6 +52,8 @@ env:
     BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"
     # Special image w/ nested-libvirt + tools for creating new cache and base images
     IMAGE_BUILDER_CACHE_IMAGE_NAME: "image-builder-image-1541772081"
+    # Name where this repositories VM images are stored
+    GCP_PROJECT_ID: libpod-218412
 
     ####
     #### Default to NOT operating in any special-case testing mode
@@ -65,18 +67,15 @@ env:
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
     ####
     # Freenode IRC credentials for posting status messages
-    IRCID: ENCRYPTED[1913f8a4572b6a6d2036232327789c4f6c0d98cde53f0336d860cd219b4cbd83863eefd93471aef8fa1079d4698e382d]
-    # Needed to build GCE images, within a GCE VM
-    SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
-    # User ID for cirrus to ssh into VMs
-    GCE_SSH_USERNAME: cirrus-ci
-    # Name where this repositories cloud resources are located
-    GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-
+    IRCID: ENCRYPTED[0c4a3cc4ecda08bc47cd3d31592be8ae5c2bd0151bf3def00a9afd139ef1ab23a1bd0523319d076c027f9749ddb1f3c8]
+    # Service-account client_email - needed to build images
+    SERVICE_ACCOUNT: ENCRYPTED[702a8e07e27a6faf7988fcddcc068c2ef2bb182a5aa671f5ccb7fbbfb891c823aa4a7856fb17240766845dbd68bd3f90]
+    # Service account username part of client_email - for ssh'ing into VMs
+    GCE_SSH_USERNAME: ENCRYPTED[d579f2d3000bb678c9af37c3615e92bcf3726e9afc47748c129cef23ee799faaafd4baba64048329205d162069d90060]
 
 # Default VM to use unless set or modified by task
 gce_instance:
-    image_project: "libpod-218412"
+    image_project: $GCP_PROJECT_ID
     zone: "us-central1-a"  # Required by Cirrus for the time being
     cpu: 2
     memory: "4Gb"
@@ -335,13 +334,6 @@ build_without_cgo_task:
 # Update metadata on VM images referenced by this repository state
 meta_task:
 
-    depends_on:
-        - "gating"
-        - "vendor"
-        - "varlink_api"
-        - "build_each_commit"
-        - "build_without_cgo"
-
     container:
         image: "quay.io/libpod/imgts:master"  # see contrib/imgts
         cpu: 1
@@ -357,10 +349,10 @@ meta_task:
             ${IMAGE_BUILDER_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
-        GCPJSON: ENCRYPTED[950d9c64ad78f7b1f0c7e499b42dc058d2b23aa67e38b315e68f557f2aba0bf83068d4734f7b1e1bdd22deabe99629df]
+        GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
         # needed for output-masking purposes
-        GCPNAME: ENCRYPTED[b05d469a0dba8cb479cb00cc7c1f6747c91d17622fba260a986b976aa6c817d4077eacffd4613d6d5f23afc4084fab1d]
-        GCPPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
+        GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
+        GCPPROJECT: $GCP_PROJECT_ID
 
     timeout_in: 10m
 
@@ -386,8 +378,8 @@ image_prune_task:
 
     env:
         <<: *meta_env_vars
-        GCPJSON: ENCRYPTED[4c11d8e09c904c30fc70eecb95c73dec0ddf19976f9b981a0f80f3f6599e8f990bcef93c253ac0277f200850d98528e7]
-        GCPNAME: ENCRYPTED[7f54557ba6e5a437f11283a53e71baec9ca546f48a9835538cc54d297f79968eb1337d4596a1025b14f9d1c5723fbd29]
+        GCPJSON: ENCRYPTED[766916fedf780cbc16ac3152f7f73c5d9dcf64768fc6e80b0858c5badd31e7b41f3c864405c814189fd340e5a056ba18]
+        GCPNAME: ENCRYPTED[d6869741209b8cf380adb8a3858cbce4542c9cf115452fcd2024a176b08fce10112e8bf0fbcc2f0033e7b87ef4342b3a]
 
     timeout_in: 10m
 
@@ -644,7 +636,7 @@ test_build_cache_images_task:
     auto_cancellation: $CI != "true"
 
     gce_instance:
-        image_project: "libpod-218412"
+        image_project: $GCP_PROJECT_ID
         zone: "us-central1-a"
         cpu: 4
         memory: "4Gb"
@@ -713,9 +705,9 @@ docs_task:
     depends_on:
         - "gating"
     env:
-        RELEASE_GCPJSON: ENCRYPTED[789d8f7e9a5972ce350fd8e60f1032ccbf4a35c3938b604774b711aad280e12c21faf10e25af1e0ba33597ffb9e39e46]
-        RELEASE_GCPNAME: ENCRYPTED[417d50488a4bd197bcc925ba6574de5823b97e68db1a17e3a5fde4bcf26576987345e75f8d9ea1c15a156b4612c072a1]
-        RELEASE_GCPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
+        RELEASE_GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
+        RELEASE_GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
+        RELEASE_GCPROJECT: $GCP_PROJECT_ID
 
     script:
         - "$SCRIPT_BASE/build_swagger.sh |& ${TIMESTAMP}"
