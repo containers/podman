@@ -49,7 +49,18 @@ class TestDependsOn(TestCaseBase):
                      "".format(task_name))
                 self.assertIn(task_name, success_deps, msg=msg)
 
-
+    def test_02_skips(self):
+        """Every task skips on branches ending with .tmp"""
+        for task_name in self.ALL_TASK_NAMES:
+            task_block_name=task_name + '_task'
+            with self.subTest(task_block_name=task_block_name):
+                skip_val='$CIRRUS_BRANCH =~ ".*\.tmp"'
+                msg=('Please add "skip: {0}" to the "{1}" block'
+                     "".format(skip_val, task_block_name))
+                self.assertIn('skip', self.CIRRUS_YAML[task_block_name], msg=msg)
+                # Tasks can be skipped for other reasons as well
+                self.assertIn(skip_val, self.CIRRUS_YAML[task_block_name].get(
+                    'skip', ''), msg=msg)
 
 if __name__ == "__main__":
     unittest.main()

@@ -92,6 +92,9 @@ gating_task:
     # Only run this on PRs, never during post-merge testing (for speed).
     only_if: $CIRRUS_BRANCH != $DEST_BRANCH
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
         SRCPATH: "$CIRRUS_WORKING_DIR"
@@ -151,6 +154,10 @@ gating_task:
 # Ensure these container images can build
 container_image_build_task:
     alias: 'container_image_build'
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "gating"
 
@@ -183,6 +190,9 @@ rpmbuild_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_BRANCH != $DEST_BRANCH
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "gating"
     env:
@@ -209,6 +219,9 @@ vendor_task:
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     depends_on:
         - "gating"
@@ -241,6 +254,9 @@ varlink_api_task:
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     depends_on:
         - "gating"
@@ -276,6 +292,9 @@ build_each_commit_task:
         - "vendor"
         - "varlink_api"
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
@@ -308,6 +327,9 @@ build_without_cgo_task:
         - "vendor"
         - "varlink_api"
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
@@ -333,6 +355,9 @@ build_without_cgo_task:
 
 # Update metadata on VM images referenced by this repository state
 meta_task:
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     container:
         image: "quay.io/libpod/imgts:master"  # see contrib/imgts
@@ -368,6 +393,9 @@ image_prune_task:
     # as new branches are created.
     only_if: $CIRRUS_BRANCH == "master"
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "meta"
 
@@ -390,6 +418,10 @@ image_prune_task:
 testing_task:
 
     alias: "testing"
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "gating"
         - "vendor"
@@ -455,6 +487,9 @@ testing_task:
 # This task executes tests under unique environments/conditions
 special_testing_rootless_task:
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "gating"
         - "varlink_api"
@@ -491,6 +526,10 @@ special_testing_rootless_task:
 special_testing_in_podman_task:
 
     alias: "special_testing_in_podman"
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "gating"
         - "varlink_api"
@@ -531,6 +570,10 @@ special_testing_in_podman_task:
 special_testing_cross_task:
 
     alias: "special_testing_cross"
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "gating"
         - "varlink_api"
@@ -569,6 +612,9 @@ special_testing_cross_task:
 
 special_testing_bindings_task:
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "gating"
         - "varlink_api"
@@ -596,6 +642,9 @@ special_testing_bindings_task:
 
 special_testing_endpoint_task:
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     depends_on:
         - "gating"
         - "varlink_api"
@@ -622,6 +671,9 @@ special_testing_endpoint_task:
 
 # Test building of new cache-images for future PR testing, in this PR.
 test_build_cache_images_task:
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
@@ -656,6 +708,9 @@ test_build_cache_images_task:
 
 # Test building of new cache-images for future PR testing, in this PR.
 verify_test_built_images_task:
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
@@ -699,6 +754,9 @@ verify_test_built_images_task:
 
 docs_task:
 
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     # Don't run this when building/testing new VM images
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*'
 
@@ -716,6 +774,9 @@ docs_task:
 
 # Post message to IRC if everything passed PR testing
 success_task:
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     # This task is a required-pass in github settings,
     # it blocks PRs from merging if a depends_on task fails
@@ -757,6 +818,10 @@ success_task:
     success_script: '/usr/local/bin/entrypoint.sh ./$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
 
 static_build_task:
+
+    # see bors.toml
+    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+
     container:
         image: quay.io/podman/nix-podman:1.0.0
         cpu: 8
