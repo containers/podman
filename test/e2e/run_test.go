@@ -1015,4 +1015,21 @@ USER mail`
 			Expect(session.ExitCode()).To(Equal(0))
 		}
 	})
+
+	It("podman run verify pids-limit", func() {
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		if !cgroupsv2 {
+			// Need v2 to ensure that cgroupfs looks the way we
+			// expect.
+			Skip("Test requires cgroups v2 to be enabled")
+		}
+
+		limit := "4321"
+		session := podmanTest.Podman([]string{"run", "--pids-limit", limit, "--rm", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(limit))
+	})
 })
