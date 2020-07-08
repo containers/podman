@@ -670,7 +670,6 @@
     Bump back to 1.8-dev
 
 ## v1.7.3 (2019-04-16)
-* Tue Apr 16, 2019 Tom Sweeney <tsweeney@redhat.com> 1.7.3
     imagebuildah: don't leak image structs
     Add Dockerfiles for buildahimages
     Bump to Replace golang 1.10 with 1.12

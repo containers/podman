@@ -11,7 +11,6 @@ import (
 
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
-	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -484,15 +483,16 @@ func (c *Config) Ulimits() []string {
 // PidsLimit returns the default maximum number of pids to use in containers
 func (c *Config) PidsLimit() int64 {
 	if unshare.IsRootless() {
-		if c.Engine.CgroupManager == SystemdCgroupsManager {
-			cgroup2, _ := cgroupv2.Enabled()
-			if cgroup2 {
-				return c.Containers.PidsLimit
-			}
+		if c.Engine.CgroupManager != SystemdCgroupsManager {
+			return 0
+		}
+		cgroup2, _ := cgroupv2.Enabled()
+		if !cgroup2 {
 			return 0
 		}
 	}
-	return sysinfo.GetDefaultPidsLimit()
+
+	return c.Containers.PidsLimit
 }
 
 // DetachKeys returns the default detach keys to detach from a container

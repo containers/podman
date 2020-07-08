@@ -9,21 +9,41 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/onsi/ginkgo"
+	"github.com/containers/libpod/v2/pkg/cgroups"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func SkipIfRemote() {
 }
 
+func SkipIfCgroupV1() {
+	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+	Expect(err).To(BeNil())
+
+	if !cgroupsv2 {
+		Skip("Skip on systems with cgroup V1 systems")
+	}
+}
+
+func SkipIfCgroupV2() {
+	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+	Expect(err).To(BeNil())
+
+	if cgroupsv2 {
+		Skip("Skip on systems with cgroup V2 systems")
+	}
+}
+
 func SkipIfRootless() {
 	if os.Geteuid() != 0 {
-		ginkgo.Skip("This function is not enabled for rootless podman")
+		Skip("This function is not enabled for rootless podman")
 	}
 }
 
 func SkipIfRootlessV2() {
 	if os.Geteuid() != 0 {
-		ginkgo.Skip("This function is not enabled for v2 rootless podman")
+		Skip("This function is not enabled for v2 rootless podman")
 	}
 }
 

@@ -177,6 +177,8 @@ type BuildOptions struct {
 	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
+	// Jobs is the number of stages to run in parallel.  If not specified it defaults to 1.
+	Jobs *int
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
