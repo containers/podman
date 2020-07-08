@@ -1,5 +1,61 @@
 # Release Notes
 
+## 2.0.2
+### Changes
+- The `podman system connection` command has been temporarily disabled, as it was not functioning as expected.
+
+### Bugfixes
+- Fixed a bug where the `podman ps` command would not truncate long container commands, resulting in display issues as the column could become extremely wide (the `--no-trunc` flag can be used to print the full command).
+- Fixed a bug where `podman pod` commands operationg on multiple containers (e.g. `podman pod stop` and `podman pod kill`) would not print errors from individual containers, but only a warning that some containers had failed.
+- Fixed a bug where the `podman system service` command would panic if a connection to the Events endpoint hung up early ([#6805](https://github.com/containers/libpod/issues/6805)).
+- Fixed a bug where rootless Podman would create anonymous and named volumes with the wrong owner for containers run with the `--user` directive.
+- Fixed a bug where the `TMPDIR` environment variable (used for storing temporary files while pulling images) was not being defaulted (if unset) to `/var/tmp`.
+- Fixed a bug where the `--publish` flag to `podman create` and `podman run` required that a host port be specified if an IP address was given ([#6806](https://github.com/containers/libpod/issues/6806)).
+- Fixed a bug where in `podman-remote` commands performing an attach (`podman run`, `podman attach`, `podman start --attach`, `podman exec`) did not properly configure the terminal on Windows.
+- Fixed a bug where the `--remote` flag to Podman required an argument, despite being a boolean ([#6704](https://github.com/containers/libpod/issues/6704)).
+- Fixed a bug where the `podman generate systemd --new` command could generate incorrect unit files for a pod if a container in the pod was created using the `--pod=...` flag (with an =, instead of a space, before the pod ID) ([#6766](https://github.com/containers/libpod/issues/6766)).
+- Fixed a bug where `NPROC` and `NOFILE` rlimits could be improperly set for rootless Podman containers, causing them to fail to start.
+- Fixed a bug where `podman mount` as rootless did not error (the `podman mount` command cannot be run rootless unless it is run inside a `podman unshare` shell).
+- Fixed a bug where in some cases a race in events handling code could cause error messages related to retrieving events to be lost.
+
+### API
+- Fixed a bug where the timestamp format for Libpod image list endpoint was incorrect - the format has been switched to Unix time.
+- Fixed a bug where the compatability Create endpoint did not handle empty entrypoints properly.
+- Fixed a bug where the compatibility network remove endpoint would improperly handle errors where the network was not found.
+- Fixed a bug where containers would be created with improper permissions because of a umask issue ([#6787](https://github.com/containers/libpod/issues/6787)).
+
+## 2.0.1
+### Changes
+- The `podman system connection` command was mistakenly omitted from the 2.0 release, and has been included here.
+- The `podman ps --format=json` command once again includes container's creation time in a human-readable format in the `CreatedAt` key.
+- The `podman inspect` commands on containers now displays forwarded ports in a format compatible with `docker inspect`.
+- The `--log-level=debug` flag to `podman run` and `podman exec` will enable syslog for exit commands, ensuring that debug logs are collected for these otherwise-unlogged commands.
+
+### Bugfixes
+- Fixed a bug where `podman build` did not properly handle the `--http-proxy` and `--cgroup-manager` flags.
+- Fixed a bug where error messages related to a missing or inaccessible `/etc/subuid` or `/etc/subgid` file were very unclear ([#6572](https://github.com/containers/libpod/issues/6572)).
+- Fixed a bug where the `podman logs --follow` command would not stop when the container being followed exited.
+- Fixed a bug where the `--privileged` flag had mistakenly been marked as conflicting with `--group-add` and `--security-opt`.
+- Fixed a bug where the `PODMAN_USERNS` environment variable was not being honored ([#6705](https://github.com/containers/libpod/issues/6705)).
+- Fixed a bug where the `podman image load` command would require one argument be passed, when no arguments is also valid ([#6718](https://github.com/containers/libpod/issues/6718)).
+- Fixed a bug where the bash completions did not include the `podman network` command and its subcommands.
+- Fixed a bug where the mount command would not work inside of rootless containers ([#6735](https://github.com/containers/libpod/issues/6735)).
+- Fixed a bug where SSH agent authentication support was not properly working in the `podman-remote` and `podman --remote` commands.
+- Fixed a bug where the `podman untag` command was not erroring when no matching image was found.
+- Fixed a bug where stop signal for containers was not being set properly if not explicitly provided.
+- Fixed a bug where the `podman ps` command was not showing port mappings for containers which share a network namespace with another container (e.g. are part of a pod).
+- Fixed a bug where the `--remote` flag could unintentionally be forwarded into containers when using `podman-remote`.
+- Fixed a bug where unit files generated for pods by `podman generate systemd` would not allow individual containers to be restarted ([#6770](https://github.com/containers/libpod/issues/6770)).
+- Fixed a bug where the `podman run` and `podman create` commands did not support all transports that `podman pull` does ([#6744](https://github.com/containers/libpod/issues/6744)).
+- Fixed a bug where the `label` option to `--security-opt` would only be shown once in `podman inspect`, even if provided multiple times.
+
+### API
+- Fixed a bug where network endpoint URLs in the compatability API were mistakenly suffixed with `/json`.
+- Fixed a bug where the Libpod volume creation endpoint returned 200 instead of 201 on success.
+
+### Misc
+- Updated containers/common to v0.14.3
+
 ## 2.0.0
 ### Features
 - The REST API and `podman system service` are no longer experimental, and ready for use!
