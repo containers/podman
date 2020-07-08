@@ -90,6 +90,13 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		return err
 	}
 	for {
+		select {
+		case <-ctx.Done():
+			// the consumer has cancelled
+			return nil
+		default:
+			// fallthrough
+		}
 		if _, err := j.Next(); err != nil {
 			return err
 		}
