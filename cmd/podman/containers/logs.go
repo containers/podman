@@ -32,6 +32,8 @@ var (
 		Long:  logsDescription,
 		Args: func(cmd *cobra.Command, args []string) error {
 			switch {
+			case registry.IsRemote() && logsOptions.Latest:
+				return errors.New(cmd.Name() + " does not support 'latest' when run remotely")
 			case registry.IsRemote() && len(args) > 1:
 				return errors.New(cmd.Name() + " does not support multiple containers when run remotely")
 			case logsOptions.Latest && len(args) > 0:

@@ -121,7 +121,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("latest and container name should fail", func() {
-		SkipIfRemote() // -l not supported
 		results := podmanTest.Podman([]string{"logs", "-l", "foobar"})
 		results.WaitWithDefaultTimeout()
 		Expect(results).To(ExitWithError())
@@ -159,7 +158,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald for container with container tag", func() {
-		SkipIfRemote()
 		Skip("need to verify images have correct packages for journald")
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt=tag={{.ImageName}}", "-d", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
 		logc.WaitWithDefaultTimeout()
@@ -178,7 +176,6 @@ var _ = Describe("Podman logs", func() {
 
 	It("using journald for container name", func() {
 		Skip("need to verify images have correct packages for journald")
-		SkipIfRemote()
 		containerName := "inside-journal"
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-d", "--name", containerName, ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
 		logc.WaitWithDefaultTimeout()
@@ -273,7 +270,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("streaming output", func() {
-		Skip(v2remotefail)
 		containerName := "logs-f-rm"
 
 		logc := podmanTest.Podman([]string{"run", "--rm", "--name", containerName, "-dt", ALPINE, "sh", "-c", "echo podman; sleep 1; echo podman"})
@@ -314,7 +310,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("follow output stopped container", func() {
-		Skip(v2remotefail)
 		containerName := "logs-f"
 
 		logc := podmanTest.Podman([]string{"run", "--name", containerName, "-d", ALPINE, "true"})
