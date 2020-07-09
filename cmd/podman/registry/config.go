@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	ParentNSRequired = "ParentNSRequired"
+	ParentNSRequired  = "ParentNSRequired"
+	UnshareNSRequired = "UnshareNSRequired"
 )
 
 var (

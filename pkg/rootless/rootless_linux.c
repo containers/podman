@@ -210,6 +210,13 @@ can_use_shortcut ()
           ret = false;
           break;
         }
+
+      if (argv[argc+1] != NULL && strcmp (argv[argc], "container") == 0 &&
+	   strcmp (argv[argc+1], "mount") == 0)
+        {
+          ret = false;
+          break;
+        }
     }
 
   free (argv[0]);
