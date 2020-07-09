@@ -173,21 +173,11 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hijack the connection
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		utils.InternalServerError(w, errors.Errorf("unable to hijack connection"))
-		return
-	}
-
-	connection, buffer, err := hijacker.Hijack()
+	connection, buffer, err := AttachConnection(w, r)
 	if err != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "error hijacking connection"))
+		utils.InternalServerError(w, err)
 		return
 	}
-
-	fmt.Fprintf(connection, AttachHeader)
-
 	logrus.Debugf("Hijack for attach of container %s exec session %s successful", sessionCtr.ID(), sessionID)
 
 	if err := sessionCtr.ExecHTTPStartAndAttach(sessionID, connection, buffer, nil, nil, nil); err != nil {
