@@ -610,7 +610,7 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) (err error) {
+func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) error {
 	if (len(c.config.NamedVolumes) > 0) || (len(c.Dependencies()) > 0) {
 		return errors.Errorf("Cannot export checkpoints of containers with named volumes or dependencies")
 	}
@@ -721,7 +721,7 @@ func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) (err error)
 	return nil
 }
 
-func (c *Container) checkpointRestoreSupported() (err error) {
+func (c *Container) checkpointRestoreSupported() error {
 	if !criu.CheckForCriu() {
 		return errors.Errorf("Checkpoint/Restore requires at least CRIU %d", criu.MinCriuVersion)
 	}
@@ -731,7 +731,7 @@ func (c *Container) checkpointRestoreSupported() (err error) {
 	return nil
 }
 
-func (c *Container) checkpointRestoreLabelLog(fileName string) (err error) {
+func (c *Container) checkpointRestoreLabelLog(fileName string) error {
 	// Create the CRIU log file and label it
 	dumpLog := filepath.Join(c.bundlePath(), fileName)
 
@@ -748,7 +748,7 @@ func (c *Container) checkpointRestoreLabelLog(fileName string) (err error) {
 	return nil
 }
 
-func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (err error) {
+func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
 	if err := c.checkpointRestoreSupported(); err != nil {
 		return err
 	}
@@ -818,7 +818,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	return c.save()
 }
 
-func (c *Container) importCheckpoint(input string) (err error) {
+func (c *Container) importCheckpoint(input string) error {
 	archiveFile, err := os.Open(input)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to open checkpoint archive %s for import", input)
@@ -847,8 +847,7 @@ func (c *Container) importCheckpoint(input string) (err error) {
 	return nil
 }
 
-func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (err error) {
-
+func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (retErr error) {
 	if err := c.checkpointRestoreSupported(); err != nil {
 		return err
 	}
@@ -858,7 +857,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	if options.TargetFile != "" {
-		if err = c.importCheckpoint(options.TargetFile); err != nil {
+		if err := c.importCheckpoint(options.TargetFile); err != nil {
 			return err
 		}
 	}
@@ -944,9 +943,9 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	defer func() {
-		if err != nil {
-			if err2 := c.cleanup(ctx); err2 != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+		if retErr != nil {
+			if err := c.cleanup(ctx); err != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()

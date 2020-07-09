@@ -34,13 +34,13 @@ var (
 )
 
 // Get an empty BoltDB state for use in tests
-func getEmptyBoltState() (s State, p string, m lock.Manager, err error) {
+func getEmptyBoltState() (_ State, _ string, _ lock.Manager, retErr error) {
 	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	if err != nil {
 		return nil, "", nil, err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			os.RemoveAll(tmpDir)
 		}
 	}()
@@ -66,13 +66,13 @@ func getEmptyBoltState() (s State, p string, m lock.Manager, err error) {
 }
 
 // Get an empty in-memory state for use in tests
-func getEmptyInMemoryState() (s State, p string, m lock.Manager, err error) {
+func getEmptyInMemoryState() (_ State, _ string, _ lock.Manager, retErr error) {
 	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	if err != nil {
 		return nil, "", nil, err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			os.RemoveAll(tmpDir)
 		}
 	}()
