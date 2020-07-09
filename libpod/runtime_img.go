@@ -8,9 +8,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker/reference"
+	ociarchive "github.com/containers/image/v5/oci/archive"
+	"github.com/containers/image/v5/oci/layout"
+	"github.com/containers/image/v5/types"
+
 	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/libpod/image"
 	"github.com/containers/libpod/v2/pkg/util"
@@ -18,9 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/image/v5/directory"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
-	ociarchive "github.com/containers/image/v5/oci/archive"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -256,28 +260,48 @@ func DownloadFromFile(reader *os.File) (string, error) {
 
 // LoadImage loads a container image into local storage
 func (r *Runtime) LoadImage(ctx context.Context, name, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
-	var newImages []*image.Image
-	src, err := dockerarchive.ParseReference(inputFile) // FIXME? We should add dockerarchive.NewReference()
-	if err == nil {
-		newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
-	}
-	if err != nil {
-		// generate full src name with specified image:tag
-		src, err := ociarchive.NewReference(inputFile, name) // imageName may be ""
-		if err == nil {
-			newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
-		}
-		if err != nil {
-			src, err := directory.NewReference(inputFile)
-			if err == nil {
-				newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+	var (
+		newImages []*image.Image
+		err       error
+		src       types.ImageReference
+	)
+
+	for _, referenceFn := range []func() (types.ImageReference, error){
+		func() (types.ImageReference, error) {
+			return dockerarchive.ParseReference(inputFile) // FIXME? We should add dockerarchive.NewReference()
+		},
+		func() (types.ImageReference, error) {
+			return ociarchive.NewReference(inputFile, name) // name may be ""
+		},
+		func() (types.ImageReference, error) {
+			// prepend "localhost/" to support local image saved with this semantics
+			if !strings.Contains(name, "/") {
+				return ociarchive.NewReference(inputFile, fmt.Sprintf("%s/%s", image.DefaultLocalRegistry, name))
 			}
-			if err != nil {
-				return "", errors.Wrapf(err, "error pulling %q", name)
+			return nil, nil
+		},
+		func() (types.ImageReference, error) {
+			return directory.NewReference(inputFile)
+		},
+		func() (types.ImageReference, error) {
+			return layout.NewReference(inputFile, name)
+		},
+		func() (types.ImageReference, error) {
+			// prepend "localhost/" to support local image saved with this semantics
+			if !strings.Contains(name, "/") {
+				return layout.NewReference(inputFile, fmt.Sprintf("%s/%s", image.DefaultLocalRegistry, name))
+			}
+			return nil, nil
+		},
+	} {
+		src, err = referenceFn()
+		if err == nil && src != nil {
+			if newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
+				return getImageNames(newImages), nil
 			}
 		}
 	}
-	return getImageNames(newImages), nil
+	return "", errors.Wrapf(err, "error pulling %q", name)
 }
 
 func getImageNames(images []*image.Image) string {
