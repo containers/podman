@@ -126,7 +126,7 @@ func SetXdgDirs() error {
 
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
-func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime, err error) {
+func NewRuntime(ctx context.Context, options ...RuntimeOption) (*Runtime, error) {
 	conf, err := config.NewConfig("")
 	if err != nil {
 		return nil, err
@@ -140,13 +140,13 @@ func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime
 // functions can be used to mutate this configuration further.
 // An error will be returned if the configuration file at the given path does
 // not exist or cannot be loaded
-func NewRuntimeFromConfig(ctx context.Context, userConfig *config.Config, options ...RuntimeOption) (runtime *Runtime, err error) {
+func NewRuntimeFromConfig(ctx context.Context, userConfig *config.Config, options ...RuntimeOption) (*Runtime, error) {
 
 	return newRuntimeFromConfig(ctx, userConfig, options...)
 }
 
-func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...RuntimeOption) (runtime *Runtime, err error) {
-	runtime = new(Runtime)
+func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...RuntimeOption) (*Runtime, error) {
+	runtime := new(Runtime)
 
 	if conf.Engine.OCIRuntime == "" {
 		conf.Engine.OCIRuntime = "runc"
@@ -236,7 +236,7 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
-func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
+func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// Find a working conmon binary
 	cPath, err := runtime.config.FindConmon()
 	if err != nil {
@@ -316,12 +316,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		return err
 	}
 	defer func() {
-		if err != nil && store != nil {
+		if retErr != nil && store != nil {
 			// Don't forcibly shut down
 			// We could be opening a store in use by another libpod
-			_, err2 := store.Shutdown(false)
-			if err2 != nil {
-				logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
+			if _, err := store.Shutdown(false); err != nil {
+				logrus.Errorf("Error removing store for partially-created runtime: %s", err)
 			}
 		}
 	}()
