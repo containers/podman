@@ -51,6 +51,19 @@ cid=$(jq -r '.[0].Id' <<<"$output")
 
 t DELETE libpod/containers/$cid 204
 
+# Ensure that API does not occur: Create Container creates an invalid and the container fails to start
+# https://github.com/containers/libpod/issues/6799
+CNAME=testArgs
+t POST libpod/containers/create?name=${CNAME} Image=${IMAGE} 201 \
+  .Id~[0-9a-f]\\{64\\}
+t GET libpod/containers/json?limit=1 200 \
+  length=1 \
+  .[0].Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.[0].Id' <<<"$output")
+# This step should start the container properly
+t POST libpod/containers/${cid}/start '' 204
+t DELETE libpod/containers/$cid 204
+
 CNAME=myfoo
 podman run --name $CNAME $IMAGE -td top
 t GET libpod/containers/json?all=true 200 \
