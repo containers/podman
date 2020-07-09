@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/v2/libpod"
 	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/libpod/v2/pkg/api/server/idletracker"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -115,7 +116,21 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	logrus.Debugf("Attach for container %s completed successfully", ctr.ID())
 }
 
+type HijackedConnection struct {
+	net.Conn                             // Connection
+	idleTracker *idletracker.IdleTracker // Connection tracker
+}
+
+func (c HijackedConnection) Close() error {
+	logrus.Debugf("Hijacked connection closed")
+
+	c.idleTracker.TrackHijackedClosed()
+	return c.Conn.Close()
+}
+
 func AttachConnection(w http.ResponseWriter, r *http.Request) (net.Conn, *bufio.ReadWriter, error) {
+	idleTracker := r.Context().Value("idletracker").(*idletracker.IdleTracker)
+
 	// Hijack the connection
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
@@ -126,10 +141,14 @@ func AttachConnection(w http.ResponseWriter, r *http.Request) (net.Conn, *bufio.
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error hijacking connection")
 	}
+	trackedConnection := HijackedConnection{
+		Conn:        connection,
+		idleTracker: idleTracker,
+	}
 
-	WriteAttachHeaders(r, connection)
+	WriteAttachHeaders(r, trackedConnection)
 
-	return connection, buffer, nil
+	return trackedConnection, buffer, nil
 }
 
 func WriteAttachHeaders(r *http.Request, connection io.Writer) {
