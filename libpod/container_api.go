@@ -353,7 +353,7 @@ func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, stre
 			logOpts.WaitGroup.Wait()
 			close(logChan)
 		}()
-		if err := c.ReadLog(logOpts, logChan); err != nil {
+		if err := c.ReadLog(context.Background(), logOpts, logChan); err != nil {
 			return err
 		}
 		logrus.Debugf("Done reading logs for container %s, %d bytes", c.ID(), logSize)

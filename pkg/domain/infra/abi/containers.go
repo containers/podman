@@ -924,7 +924,7 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 	}
 	logChannel := make(chan *logs.LogLine, chSize)
 
-	if err := ic.Libpod.Log(ctrs, logOpts, logChannel); err != nil {
+	if err := ic.Libpod.Log(ctx, ctrs, logOpts, logChannel); err != nil {
 		return err
 	}
 
