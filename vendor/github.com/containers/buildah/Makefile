@@ -33,33 +33,36 @@ CNI_COMMIT := $(shell sed -n 's;\tgithub.com/containernetworking/cni \([^ \n]*\)
 RUNC_COMMIT := v1.0.0-rc8
 LIBSECCOMP_COMMIT := release-2.3
 
-EXTRALDFLAGS :=
-LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT)' $(EXTRALDFLAGS)
+EXTRA_LDFLAGS ?=
+LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
 SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go util/*.go
 
 LINTFLAGS ?=
 
-all: buildah imgtype docs
+all: bin/buildah bin/imgtype docs
 
-.PHONY: static
-static: $(SOURCES)
-	$(MAKE) SECURITYTAGS="$(SECURITYTAGS)" STORAGETAGS=$(STATIC_STORAGETAGS) EXTRALDFLAGS='-ldflags "-extldflags '-static'"' BUILDAH=buildah.static binary
+nixpkgs:
+	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -c nix-prefetch-git \
+		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
 
-.PHONY: binary
-binary:  $(SOURCES)
-	$(GO_BUILD) $(LDFLAGS) -o $(BUILDAH) $(BUILDFLAGS) ./cmd/buildah
+.PHONY: bin/buildah
+bin/buildah:  $(SOURCES)
+	$(GO_BUILD) $(LDFLAGS) -o $@ $(BUILDFLAGS) ./cmd/buildah
 
-buildah: binary
+.PHONY: buildah
+buildah: bin/buildah
 
-darwin:
-	GOOS=darwin $(GO_BUILD) $(LDFLAGS) -o buildah.darwin -tags "containers_image_openpgp" ./cmd/buildah
+.PHONY: bin/buildah.darwin
+bin/buildah.darwin:
+	GOOS=darwin $(GO_BUILD) $(LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
 
-imgtype: *.go docker/*.go util/*.go tests/imgtype/imgtype.go
-	$(GO_BUILD) $(LDFLAGS) -o imgtype $(BUILDFLAGS) ./tests/imgtype/imgtype.go
+.PHONY: bin/imgtype
+bin/imgtype: *.go docker/*.go util/*.go tests/imgtype/imgtype.go
+	$(GO_BUILD) $(LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/imgtype/imgtype.go
 
 .PHONY: clean
 clean:
-	$(RM) -r buildah imgtype build buildah.static buildah.darwin tests/testreport/testreport
+	$(RM) -r bin tests/testreport/testreport
 	$(MAKE) -C docs clean
 
 .PHONY: docs
@@ -105,7 +108,7 @@ install.cni.sudo: gopath
 
 .PHONY: install
 install:
-	install -D -m0755 buildah $(DESTDIR)/$(BINDIR)/buildah
+	install -D -m0755 bin/buildah $(DESTDIR)/$(BINDIR)/buildah
 	$(MAKE) -C docs install
 
 .PHONY: uninstall

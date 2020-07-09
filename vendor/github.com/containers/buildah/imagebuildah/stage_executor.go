@@ -46,7 +46,7 @@ import (
 type StageExecutor struct {
 	executor        *Executor
 	index           int
-	stages          int
+	stages          imagebuilder.Stages
 	name            string
 	builder         *buildah.Builder
 	preserved       int
@@ -753,16 +753,23 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	stage := s.stage
 	ib := stage.Builder
 	checkForLayers := s.executor.layers && s.executor.useCache
-	moreStages := s.index < s.stages-1
+	moreStages := s.index < len(s.stages)-1
 	lastStage := !moreStages
 	imageIsUsedLater := moreStages && (s.executor.baseMap[stage.Name] || s.executor.baseMap[fmt.Sprintf("%d", stage.Position)])
 	rootfsIsUsedLater := moreStages && (s.executor.rootfsMap[stage.Name] || s.executor.rootfsMap[fmt.Sprintf("%d", stage.Position)])
 
 	// If the base image's name corresponds to the result of an earlier
-	// stage, substitute that image's ID for the base image's name here.
-	// If not, then go on assuming that it's just a regular image that's
-	// either in local storage, or one that we have to pull from a
-	// registry.
+	// stage, make sure that stage has finished building an image, and
+	// substitute that image's ID for the base image's name here.  If not,
+	// then go on assuming that it's just a regular image that's either in
+	// local storage, or one that we have to pull from a registry.
+	for _, previousStage := range s.stages[:s.index] {
+		if previousStage.Name == base {
+			if err := s.executor.waitForStage(ctx, previousStage.Name); err != nil {
+				return "", nil, err
+			}
+		}
+	}
 	if stageImage, isPreviousStage := s.executor.imageMap[base]; isPreviousStage {
 		base = stageImage
 	}
@@ -870,6 +877,9 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 					return "", nil, errors.Errorf("%s: invalid --from flag, should be --from=<name|stage>", command)
 				}
 				if otherStage, ok := s.executor.stages[arr[1]]; ok && otherStage.index < s.index {
+					if err := s.executor.waitForStage(ctx, otherStage.name); err != nil {
+						return "", nil, err
+					}
 					mountPoint = otherStage.mountPoint
 				} else if mountPoint, err = s.getImageRootfs(ctx, arr[1]); err != nil {
 					return "", nil, errors.Errorf("%s --from=%s: no stage or image found with that name", command, arr[1])
@@ -1230,8 +1240,12 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	}
 	s.builder.SetHostname(config.Hostname)
 	s.builder.SetDomainname(config.Domainname)
-	s.builder.SetArchitecture(s.executor.architecture)
-	s.builder.SetOS(s.executor.os)
+	if s.executor.architecture != "" {
+		s.builder.SetArchitecture(s.executor.architecture)
+	}
+	if s.executor.os != "" {
+		s.builder.SetOS(s.executor.os)
+	}
 	s.builder.SetUser(config.User)
 	s.builder.ClearPorts()
 	for p := range config.ExposedPorts {

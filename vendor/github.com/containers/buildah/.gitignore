@@ -1,4 +1,5 @@
 docs/buildah*.1
+/bin
 /buildah
 /imgtype
 /build/
@@ -6,3 +7,4 @@ tests/tools/build
 Dockerfile*
 !/tests/bud/*/Dockerfile*
 *.swp
+result

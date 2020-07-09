@@ -283,6 +283,9 @@ chroot(1) than container technology).
 Note: You can also override the default isolation type by setting the
 BUILDAH\_ISOLATION environment variable.  `export BUILDAH_ISOLATION=oci`
 
+**--jobs**=*number*
+How many stages to run in parallel (default 1)
+
 **--label**=*label*
 
 Add an image *label* (e.g. label=*value*) to the image metadata. Can be used multiple times.
@@ -309,7 +312,7 @@ environment variable. `export BUILDAH_LAYERS=true`
 Log output which would be sent to standard output and standard error to the
 specified file instead of to standard output and standard error.
 
-**--loglevel** *number*
+**--loglevel**=*number*
 
 Adjust the logging level up or down.  Valid option values range from -2 to 3,
 with 3 being roughly equivalent to using the global *--debug* option, and

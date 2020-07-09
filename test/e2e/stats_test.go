@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/libpod/v2/pkg/cgroups"
 	. "github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,12 +21,10 @@ var _ = Describe("Podman stats", func() {
 	)
 
 	BeforeEach(func() {
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
-		if os.Geteuid() != 0 && !cgroupsv2 {
-			Skip("This function is not enabled for rootless podman not running on cgroups v2")
+		if os.Geteuid() != 0 {
+			SkipIfCgroupV1()
 		}
+		var err error
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

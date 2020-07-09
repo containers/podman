@@ -66,7 +66,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.15.0
+# github.com/containers/buildah v1.15.1-0.20200708111410-d2ea9429455d
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -84,7 +84,7 @@ github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.15.1
+# github.com/containers/common v0.15.2
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/auth
 github.com/containers/common/pkg/capabilities
@@ -411,7 +411,7 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.0.0-rc90
+# github.com/opencontainers/runc v1.0.0-rc91.0.20200708210054-ce54a9d4d79b
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/configs

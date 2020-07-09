@@ -15,11 +15,11 @@ import (
 var _ = Describe("Podman events", func() {
 	var (
 		tempdir    string
-		err        error
 		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
+		var err error
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

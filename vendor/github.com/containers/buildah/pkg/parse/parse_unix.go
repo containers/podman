@@ -44,7 +44,7 @@ func DeviceFromPath(device string) ([]configs.Device, error) {
 	}
 	for _, d := range srcDevices {
 		d.Path = filepath.Join(dst, filepath.Base(d.Path))
-		d.Permissions = permissions
+		d.Permissions = configs.DevicePermissions(permissions)
 		devs = append(devs, *d)
 	}
 	return devs, nil

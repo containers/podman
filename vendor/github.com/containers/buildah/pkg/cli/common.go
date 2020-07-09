@@ -80,6 +80,7 @@ type BudResults struct {
 	Tag                 []string
 	Target              string
 	TLSVerify           bool
+	Jobs                int
 }
 
 // FromAndBugResults represents the results for common flags
@@ -182,6 +183,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringArrayVarP(&flags.Tag, "tag", "t", []string{}, "tagged `name` to apply to the built image")
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
 	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
+	fs.IntVar(&flags.Jobs, "jobs", 1, "how many stages to run in parallel")
 	return fs
 }
 

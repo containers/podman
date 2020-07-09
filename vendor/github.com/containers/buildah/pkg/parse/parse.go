@@ -126,15 +126,15 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 
 	commonOpts := &buildah.CommonBuildOptions{
 		AddHost:      addHost,
-		CgroupParent: c.Flag("cgroup-parent").Value.String(),
 		CPUPeriod:    cpuPeriod,
 		CPUQuota:     cpuQuota,
 		CPUSetCPUs:   c.Flag("cpuset-cpus").Value.String(),
 		CPUSetMems:   c.Flag("cpuset-mems").Value.String(),
 		CPUShares:    cpuShares,
+		CgroupParent: c.Flag("cgroup-parent").Value.String(),
+		DNSOptions:   dnsOptions,
 		DNSSearch:    dnsSearch,
 		DNSServers:   dnsServers,
-		DNSOptions:   dnsOptions,
 		HTTPProxy:    httpProxy,
 		Memory:       memoryLimit,
 		MemorySwap:   memorySwap,
