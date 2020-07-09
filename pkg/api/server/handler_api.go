@@ -37,6 +37,7 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			c := context.WithValue(r.Context(), "decoder", s.Decoder) //nolint
 			c = context.WithValue(c, "runtime", s.Runtime)            //nolint
 			c = context.WithValue(c, "shutdownFunc", s.Shutdown)      //nolint
+			c = context.WithValue(c, "idletracker", s.idleTracker)    //nolint
 			r = r.WithContext(c)
 
 			h(w, r)
