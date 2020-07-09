@@ -92,7 +92,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	options.WaitGroup = &wg
 
 	logChannel := make(chan *logs.LogLine, tail+1)
-	if err := runtime.Log([]*libpod.Container{ctnr}, options, logChannel); err != nil {
+	if err := runtime.Log(r.Context(), []*libpod.Container{ctnr}, options, logChannel); err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain logs for Container '%s'", name))
 		return
 	}
@@ -105,50 +105,48 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	var frame strings.Builder
 	header := make([]byte, 8)
-	for ok := true; ok; ok = query.Follow {
-		for line := range logChannel {
-			if _, found := r.URL.Query()["until"]; found {
-				if line.Time.After(until) {
-					break
-				}
+	for line := range logChannel {
+		if _, found := r.URL.Query()["until"]; found {
+			if line.Time.After(until) {
+				break
 			}
+		}
 
-			// Reset buffer we're ready to loop again
-			frame.Reset()
-			switch line.Device {
-			case "stdout":
-				if !query.Stdout {
-					continue
-				}
-				header[0] = 1
-			case "stderr":
-				if !query.Stderr {
-					continue
-				}
-				header[0] = 2
-			default:
-				// Logging and moving on is the best we can do here. We may have already sent
-				// a Status and Content-Type to client therefore we can no longer report an error.
-				log.Infof("unknown Device type '%s' in log file from Container %s", line.Device, ctnr.ID())
+		// Reset buffer we're ready to loop again
+		frame.Reset()
+		switch line.Device {
+		case "stdout":
+			if !query.Stdout {
 				continue
 			}
+			header[0] = 1
+		case "stderr":
+			if !query.Stderr {
+				continue
+			}
+			header[0] = 2
+		default:
+			// Logging and moving on is the best we can do here. We may have already sent
+			// a Status and Content-Type to client therefore we can no longer report an error.
+			log.Infof("unknown Device type '%s' in log file from Container %s", line.Device, ctnr.ID())
+			continue
+		}
 
-			if query.Timestamps {
-				frame.WriteString(line.Time.Format(time.RFC3339))
-				frame.WriteString(" ")
-			}
-			frame.WriteString(line.Msg)
+		if query.Timestamps {
+			frame.WriteString(line.Time.Format(time.RFC3339))
+			frame.WriteString(" ")
+		}
+		frame.WriteString(line.Msg)
 
-			binary.BigEndian.PutUint32(header[4:], uint32(frame.Len()))
-			if _, err := w.Write(header[0:8]); err != nil {
-				log.Errorf("unable to write log output header: %q", err)
-			}
-			if _, err := io.WriteString(w, frame.String()); err != nil {
-				log.Errorf("unable to write frame string: %q", err)
-			}
-			if flusher, ok := w.(http.Flusher); ok {
-				flusher.Flush()
-			}
+		binary.BigEndian.PutUint32(header[4:], uint32(frame.Len()))
+		if _, err := w.Write(header[0:8]); err != nil {
+			log.Errorf("unable to write log output header: %q", err)
+		}
+		if _, err := io.WriteString(w, frame.String()); err != nil {
+			log.Errorf("unable to write frame string: %q", err)
+		}
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
 		}
 	}
 }
