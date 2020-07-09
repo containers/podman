@@ -255,14 +255,14 @@ func (t *IdleTracker) ConnState(conn net.Conn, state http.ConnState) {
 	oldActive := len(t.active)
 	logrus.Debugf("IdleTracker %p:%v %d/%d connection(s)", conn, state, t.ActiveConnections(), t.TotalConnections())
 	switch state {
-	case http.StateNew, http.StateActive, http.StateHijacked:
+	case http.StateNew, http.StateActive:
 		t.active[conn] = struct{}{}
 		// stop the timer if we transitioned from idle
 		if oldActive == 0 {
 			t.timer.Stop()
 		}
 		t.total++
-	case http.StateIdle, http.StateClosed:
+	case http.StateIdle, http.StateClosed, http.StateHijacked:
 		delete(t.active, conn)
 		// Restart the timer if we've become idle
 		if oldActive > 0 && len(t.active) == 0 {
