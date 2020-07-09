@@ -1,8 +1,12 @@
 package compat
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
+	"strings"
 
 	"github.com/containers/libpod/v2/libpod"
 	"github.com/containers/libpod/v2/libpod/define"
@@ -11,12 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// AttachHeader is the literal header sent for upgraded/hijacked connections for
-// attach, sourced from Docker at:
-// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
-// Using literally to ensure compatibility with existing clients.
-const AttachHeader = "HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n"
 
 func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
@@ -98,21 +96,11 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hijack the connection
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		utils.InternalServerError(w, errors.Errorf("unable to hijack connection"))
-		return
-	}
-
-	connection, buffer, err := hijacker.Hijack()
+	connection, buffer, err := AttachConnection(w, r)
 	if err != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "error hijacking connection"))
+		utils.InternalServerError(w, err)
 		return
 	}
-
-	fmt.Fprintf(connection, AttachHeader)
-
 	logrus.Debugf("Hijack for attach of container %s successful", ctr.ID())
 
 	// Perform HTTP attach.
@@ -125,4 +113,40 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logrus.Debugf("Attach for container %s completed successfully", ctr.ID())
+}
+
+func AttachConnection(w http.ResponseWriter, r *http.Request) (net.Conn, *bufio.ReadWriter, error) {
+	// Hijack the connection
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.Errorf("unable to hijack connection")
+	}
+
+	connection, buffer, err := hijacker.Hijack()
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error hijacking connection")
+	}
+
+	WriteAttachHeaders(r, connection)
+
+	return connection, buffer, nil
+}
+
+func WriteAttachHeaders(r *http.Request, connection io.Writer) {
+	// AttachHeader is the literal header sent for upgraded/hijacked connections for
+	// attach, sourced from Docker at:
+	// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
+	// Using literally to ensure compatibility with existing clients.
+	c := r.Header.Get("Connection")
+	proto := r.Header.Get("Upgrade")
+	if len(proto) == 0 || !strings.EqualFold(c, "Upgrade") {
+		// OK - can't upgrade if not requested or protocol is not specified
+		fmt.Fprintf(connection,
+			"HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n")
+	} else {
+		// Upraded
+		fmt.Fprintf(connection,
+			"HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: %s\r\n\r\n",
+			proto)
+	}
 }
