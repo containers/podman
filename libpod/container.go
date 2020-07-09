@@ -262,6 +262,8 @@ type ContainerConfig struct {
 	Mounts []string `json:"mounts,omitempty"`
 	// NamedVolumes lists the named volumes to mount into the container.
 	NamedVolumes []*ContainerNamedVolume `json:"namedVolumes,omitempty"`
+	// OverlayVolumes lists the overlay volumes to mount into the container.
+	OverlayVolumes []*ContainerOverlayVolume `json:"overlayVolumes,omitempty"`
 
 	// Security Config
 
@@ -447,6 +449,15 @@ type ContainerNamedVolume struct {
 	Dest string `json:"dest"`
 	// Options are fstab style mount options
 	Options []string `json:"options,omitempty"`
+}
+
+// ContainerOverlayVolume is a overlay volume that will be mounted into the
+// container. Each volume is a libpod Volume present in the state.
+type ContainerOverlayVolume struct {
+	// Destination is the absolute path where the mount will be placed in the container.
+	Dest string `json:"dest"`
+	// Source specifies the source path of the mount.
+	Source string `json:"source,omitempty"`
 }
 
 // Config accessors

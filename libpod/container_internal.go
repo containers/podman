@@ -1588,6 +1588,12 @@ func (c *Container) cleanupStorage() error {
 		}
 	}
 
+	if err := c.cleanupOverlayMounts(); err != nil {
+		// If the container can't remove content report the error
+		logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
+		cleanupErr = err
+	}
+
 	if c.config.Rootfs != "" {
 		return cleanupErr
 	}

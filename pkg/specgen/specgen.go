@@ -198,6 +198,9 @@ type ContainerStorageConfig struct {
 	// there are conflicts.
 	// Optional.
 	Volumes []*NamedVolume `json:"volumes,omitempty"`
+	// Overlay volumes are named volumes that will be added to the container.
+	// Optional.
+	OverlayVolumes []*OverlayVolume `json:"overlay_volumes,omitempty"`
 	// Devices are devices that will be added to the container.
 	// Optional.
 	Devices []spec.LinuxDevice `json:"devices,omitempty"`
@@ -441,6 +444,15 @@ type NamedVolume struct {
 	Dest string
 	// Options are options that the named volume will be mounted with.
 	Options []string
+}
+
+// OverlayVolume holds information about a overlay volume that will be mounted into
+// the container.
+type OverlayVolume struct {
+	// Destination is the absolute path where the mount will be placed in the container.
+	Destination string `json:"destination"`
+	// Source specifies the source path of the mount.
+	Source string `json:"source,omitempty"`
 }
 
 // PortMapping is one or more ports that will be mapped into the container.

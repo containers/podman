@@ -20,6 +20,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/config"
@@ -317,6 +318,19 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		} else {
 			logrus.Warnf("User mount overriding libpod mount at %q", dstPath)
 		}
+	}
+
+	// Add overlay volumes
+	for _, overlayVol := range c.config.OverlayVolumes {
+		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create TempDir in the %s directory", c.config.StaticDir)
+		}
+		overlayMount, err := overlay.Mount(contentDir, overlayVol.Source, overlayVol.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+		if err != nil {
+			return nil, errors.Wrapf(err, "creating overlay failed %q", overlayVol.Source)
+		}
+		g.AddMount(overlayMount)
 	}
 
 	hasHomeSet := false
@@ -1641,4 +1655,8 @@ func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
 		return "", err
 	}
 	return localtimeCopy, err
+}
+
+func (c *Container) cleanupOverlayMounts() error {
+	return overlay.CleanupContent(c.config.StaticDir)
 }

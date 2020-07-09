@@ -46,6 +46,10 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	return "", define.ErrNotImplemented
 }
 
+func (c *Container) cleanupOverlayMounts() error {
+	return nil
+}
+
 func (c *Container) getUserOverrides() *lookup.Overrides {
 	return nil
 }

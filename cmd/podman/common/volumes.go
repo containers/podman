@@ -34,43 +34,43 @@ var (
 // Does not handle image volumes, init, and --volumes-from flags.
 // Can also add tmpfs mounts from read-only tmpfs.
 // TODO: handle options parsing/processing via containers/storage/pkg/mount
-func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bool) ([]spec.Mount, []*specgen.NamedVolume, error) {
+func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bool) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, error) {
 	// Get mounts from the --mounts flag.
 	unifiedMounts, unifiedVolumes, err := getMounts(mountFlag)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Next --volumes flag.
-	volumeMounts, volumeVolumes, err := getVolumeMounts(volumeFlag)
+	volumeMounts, volumeVolumes, overlayVolumes, err := getVolumeMounts(volumeFlag)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Next --tmpfs flag.
 	tmpfsMounts, err := getTmpfsMounts(tmpfsFlag)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Unify mounts from --mount, --volume, --tmpfs.
 	// Start with --volume.
 	for dest, mount := range volumeMounts {
 		if _, ok := unifiedMounts[dest]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, dest)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
 		}
 		unifiedMounts[dest] = mount
 	}
 	for dest, volume := range volumeVolumes {
 		if _, ok := unifiedVolumes[dest]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, dest)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
 		}
 		unifiedVolumes[dest] = volume
 	}
 	// Now --tmpfs
 	for dest, tmpfs := range tmpfsMounts {
 		if _, ok := unifiedMounts[dest]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, dest)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
 		}
 		unifiedMounts[dest] = tmpfs
 	}
@@ -101,15 +101,29 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 		}
 	}
 
-	// Check for conflicts between named volumes and mounts
+	// Check for conflicts between named volumes, overlay volumes, and mounts
 	for dest := range unifiedMounts {
 		if _, ok := unifiedVolumes[dest]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		}
+		if _, ok := overlayVolumes[dest]; ok {
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
 		}
 	}
 	for dest := range unifiedVolumes {
 		if _, ok := unifiedMounts[dest]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		}
+		if _, ok := overlayVolumes[dest]; ok {
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		}
+	}
+	for dest := range overlayVolumes {
+		if _, ok := unifiedMounts[dest]; ok {
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		}
+		if _, ok := unifiedVolumes[dest]; ok {
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
 		}
 	}
 
@@ -119,7 +133,7 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 		if mount.Type == TypeBind {
 			absSrc, err := filepath.Abs(mount.Source)
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
+				return nil, nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
 			}
 			mount.Source = absSrc
 		}
@@ -129,8 +143,12 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 	for _, volume := range unifiedVolumes {
 		finalVolumes = append(finalVolumes, volume)
 	}
+	finalOverlayVolume := make([]*specgen.OverlayVolume, 0)
+	for _, volume := range overlayVolumes {
+		finalOverlayVolume = append(finalOverlayVolume, volume)
+	}
 
-	return finalMounts, finalVolumes, nil
+	return finalMounts, finalVolumes, finalOverlayVolume, nil
 }
 
 // getMounts takes user-provided input from the --mount flag and creates OCI
@@ -465,9 +483,10 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 	return newVolume, nil
 }
 
-func getVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, error) {
+func getVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.OverlayVolume, error) {
 	mounts := make(map[string]spec.Mount)
 	volumes := make(map[string]*specgen.NamedVolume)
+	overlayVolumes := make(map[string]*specgen.OverlayVolume)
 
 	volumeFormatErr := errors.Errorf("incorrect volume format, should be [host-dir:]ctr-dir[:option]")
 
@@ -481,7 +500,7 @@ func getVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*sp
 
 		splitVol := strings.Split(vol, ":")
 		if len(splitVol) > 3 {
-			return nil, nil, errors.Wrapf(volumeFormatErr, vol)
+			return nil, nil, nil, errors.Wrapf(volumeFormatErr, vol)
 		}
 
 		src = splitVol[0]
@@ -496,34 +515,54 @@ func getVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*sp
 		}
 		if len(splitVol) > 2 {
 			if options, err = parse.ValidateVolumeOpts(strings.Split(splitVol[2], ",")); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 
 		// Do not check source dir for anonymous volumes
 		if len(splitVol) > 1 {
 			if err := parse.ValidateVolumeHostDir(src); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 		if err := parse.ValidateVolumeCtrDir(dest); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		cleanDest := filepath.Clean(dest)
 
 		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") {
 			// This is not a named volume
-			newMount := spec.Mount{
-				Destination: cleanDest,
-				Type:        string(TypeBind),
-				Source:      src,
-				Options:     options,
+			overlayFlag := false
+			for _, o := range options {
+				if o == "O" {
+					overlayFlag = true
+					if len(options) > 1 {
+						return nil, nil, nil, errors.New("can't use 'O' with other options")
+					}
+				}
 			}
-			if _, ok := mounts[newMount.Destination]; ok {
-				return nil, nil, errors.Wrapf(errDuplicateDest, newMount.Destination)
+			if overlayFlag {
+				// This is a overlay volume
+				newOverlayVol := new(specgen.OverlayVolume)
+				newOverlayVol.Destination = cleanDest
+				newOverlayVol.Source = src
+				if _, ok := overlayVolumes[newOverlayVol.Destination]; ok {
+					return nil, nil, nil, errors.Wrapf(errDuplicateDest, newOverlayVol.Destination)
+				}
+				overlayVolumes[newOverlayVol.Destination] = newOverlayVol
+			} else {
+				newMount := spec.Mount{
+					Destination: cleanDest,
+					Type:        string(TypeBind),
+					Source:      src,
+					Options:     options,
+				}
+				if _, ok := mounts[newMount.Destination]; ok {
+					return nil, nil, nil, errors.Wrapf(errDuplicateDest, newMount.Destination)
+				}
+				mounts[newMount.Destination] = newMount
 			}
-			mounts[newMount.Destination] = newMount
 		} else {
 			// This is a named volume
 			newNamedVol := new(specgen.NamedVolume)
@@ -532,7 +571,7 @@ func getVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*sp
 			newNamedVol.Options = options
 
 			if _, ok := volumes[newNamedVol.Dest]; ok {
-				return nil, nil, errors.Wrapf(errDuplicateDest, newNamedVol.Dest)
+				return nil, nil, nil, errors.Wrapf(errDuplicateDest, newNamedVol.Dest)
 			}
 			volumes[newNamedVol.Dest] = newNamedVol
 		}
@@ -540,7 +579,7 @@ func getVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*sp
 		logrus.Debugf("User mount %s:%s options %v", src, dest, options)
 	}
 
-	return mounts, volumes, nil
+	return mounts, volumes, overlayVolumes, nil
 }
 
 // GetTmpfsMounts creates spec.Mount structs for user-requested tmpfs mounts
