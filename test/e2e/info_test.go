@@ -11,6 +11,7 @@ import (
 	. "github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman Info", func() {
@@ -35,11 +36,30 @@ var _ = Describe("Podman Info", func() {
 		processTestResult(f)
 	})
 
-	It("podman info json output", func() {
-		session := podmanTest.Podman([]string{"info", "--format=json"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
+	It("podman info --format json", func() {
+		tests := []struct {
+			input    string
+			success  bool
+			exitCode int
+		}{
+			{"json", true, 0},
+			{" json", true, 0},
+			{"json ", true, 0},
+			{"  json   ", true, 0},
+			{"{{json .}}", true, 0},
+			{"{{ json .}}", true, 0},
+			{"{{json .   }}", true, 0},
+			{"  {{  json .    }}   ", true, 0},
+			{"{{json }}", false, 125},
+			{"{{json .", false, 125},
+			{"json . }}", false, 0}, // Note: this does NOT fail but produces garbage
+		}
+		for _, tt := range tests {
+			session := podmanTest.Podman([]string{"info", "--format", tt.input})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(tt.exitCode))
+			Expect(session.IsJSONOutputValid()).To(Equal(tt.success))
+		}
 	})
 
 	It("podman info --format GO template", func() {

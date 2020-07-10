@@ -5,6 +5,7 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
@@ -68,7 +69,7 @@ func info(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if inFormat == "json" {
+	if parse.MatchesJSONFormat(inFormat) {
 		b, err := json.MarshalIndent(info, "", "  ")
 		if err != nil {
 			return err
