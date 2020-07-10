@@ -85,6 +85,13 @@ func NewReader(r io.Reader, opts ...DOption) (*Decoder, error) {
 	d.current.output = make(chan decodeOutput, d.o.concurrent)
 	d.current.flushed = true
 
+	// Transfer option dicts.
+	d.dicts = make(map[uint32]dict, len(d.o.dicts))
+	for _, dc := range d.o.dicts {
+		d.dicts[dc.id] = dc
+	}
+	d.o.dicts = nil
+
 	// Create decoders
 	d.decoders = make(chan *blockDec, d.o.concurrent)
 	for i := 0; i < d.o.concurrent; i++ {
@@ -397,19 +404,6 @@ func (d *Decoder) Close() {
 		d.current.d = nil
 	}
 	d.current.err = ErrDecoderClosed
-}
-
-// RegisterDict will load a dictionary
-func (d *Decoder) RegisterDict(b []byte) error {
-	dc, err := loadDict(b)
-	if err != nil {
-		return err
-	}
-	if d.dicts == nil {
-		d.dicts = make(map[uint32]dict, 1)
-	}
-	d.dicts[dc.id] = *dc
-	return nil
 }
 
 // IOReadCloser returns the decoder as an io.ReadCloser for convenience.

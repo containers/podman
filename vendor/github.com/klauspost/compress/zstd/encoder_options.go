@@ -12,16 +12,18 @@ type EOption func(*encoderOptions) error
 
 // options retains accumulated state of multiple options.
 type encoderOptions struct {
-	concurrent   int
-	level        EncoderLevel
-	single       *bool
-	pad          int
-	blockSize    int
-	windowSize   int
-	crc          bool
-	fullZero     bool
-	noEntropy    bool
-	customWindow bool
+	concurrent      int
+	level           EncoderLevel
+	single          *bool
+	pad             int
+	blockSize       int
+	windowSize      int
+	crc             bool
+	fullZero        bool
+	noEntropy       bool
+	allLitEntropy   bool
+	customWindow    bool
+	customALEntropy bool
 }
 
 func (o *encoderOptions) setDefault() {
@@ -207,6 +209,10 @@ func WithEncoderLevel(l EncoderLevel) EOption {
 				o.windowSize = 16 << 20
 			}
 		}
+		if !o.customALEntropy {
+			o.allLitEntropy = l > SpeedFastest
+		}
+
 		return nil
 	}
 }
@@ -217,6 +223,18 @@ func WithEncoderLevel(l EncoderLevel) EOption {
 func WithZeroFrames(b bool) EOption {
 	return func(o *encoderOptions) error {
 		o.fullZero = b
+		return nil
+	}
+}
+
+// WithAllLitEntropyCompression will apply entropy compression if no matches are found.
+// Disabling this will skip incompressible data faster, but in cases with no matches but
+// skewed character distribution compression is lost.
+// Default value depends on the compression level selected.
+func WithAllLitEntropyCompression(b bool) EOption {
+	return func(o *encoderOptions) error {
+		o.customALEntropy = true
+		o.allLitEntropy = b
 		return nil
 	}
 }

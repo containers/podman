@@ -15,7 +15,7 @@ require (
 	github.com/containers/conmon v2.0.18+incompatible
 	github.com/containers/image/v5 v5.5.1
 	github.com/containers/psgo v1.5.1
-	github.com/containers/storage v1.20.2
+	github.com/containers/storage v1.21.0
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cri-o/ocicni v0.2.0
 	github.com/cyphar/filepath-securejoin v0.2.2
@@ -31,7 +31,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/schema v1.1.0
-	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.10
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
@@ -42,7 +42,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc91.0.20200708210054-ce54a9d4d79b
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2
 	github.com/opencontainers/runtime-tools v0.9.0
-	github.com/opencontainers/selinux v1.5.2
+	github.com/opencontainers/selinux v1.6.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0

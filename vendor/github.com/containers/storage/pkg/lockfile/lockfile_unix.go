@@ -35,9 +35,9 @@ type lockfile struct {
 // necessary.
 func openLock(path string, ro bool) (int, error) {
 	if ro {
-		return unix.Open(path, os.O_RDONLY, 0)
+		return unix.Open(path, os.O_RDONLY|unix.O_CLOEXEC, 0)
 	}
-	return unix.Open(path, os.O_RDWR|os.O_CREATE, unix.S_IRUSR|unix.S_IWUSR)
+	return unix.Open(path, os.O_RDWR|unix.O_CLOEXEC|os.O_CREATE, unix.S_IRUSR|unix.S_IWUSR|unix.S_IRGRP|unix.S_IROTH)
 }
 
 // createLockerForPath returns a Locker object, possibly (depending on the platform)
@@ -106,7 +106,6 @@ func (l *lockfile) lock(lType int16, recursive bool) {
 		if err != nil {
 			panic(fmt.Sprintf("error opening %q: %v", l.file, err))
 		}
-		unix.CloseOnExec(fd)
 		l.fd = uintptr(fd)
 
 		// Optimization: only use the (expensive) fcntl syscall when

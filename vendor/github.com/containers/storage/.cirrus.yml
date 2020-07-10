@@ -19,12 +19,12 @@ env:
     ###
     FEDORA_NAME: "fedora-32"
     PRIOR_FEDORA_NAME: "fedora-31"
-    UBUNTU_NAME: "ubuntu-19"
-    PRIOR_UBUNTU_NAME: "ubuntu-18"
+    UBUNTU_NAME: "ubuntu-20"
+    PRIOR_UBUNTU_NAME: "ubuntu-19"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    _BUILT_IMAGE_SUFFIX: "libpod-6224667180531712"  # From the packer output of 'build_vm_images_script'
+    _BUILT_IMAGE_SUFFIX: "libpod-6508632441356288"
     FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
@@ -104,7 +104,7 @@ lint_task:
     env:
         CIRRUS_WORKING_DIR: "/go/src/github.com/containers/storage"
     container:
-        image: golang:1.12
+        image: golang:1.13
     modules_cache:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod
@@ -140,7 +140,7 @@ meta_task:
 
 vendor_task:
     container:
-        image: golang:1.13
+        image: golang:1.14
     modules_cache:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod

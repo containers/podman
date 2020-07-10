@@ -265,6 +265,15 @@ type Store interface {
 	// Wipe removes all known layers, images, and containers.
 	Wipe() error
 
+	// MountImage mounts an image to temp directory and returns the mount point.
+	// MountImage allows caller to mount an image. Images will always
+	// be mounted read/only
+	MountImage(id string, mountOptions []string, mountLabel string) (string, error)
+
+	// Unmount attempts to unmount an image, given an ID.
+	// Returns whether or not the layer is still mounted.
+	UnmountImage(id string, force bool) (bool, error)
+
 	// Mount attempts to mount a layer, image, or container for access, and
 	// returns the pathname if it succeeds.
 	// Note if the mountLabel == "", the default label for the container
@@ -345,6 +354,9 @@ type Store interface {
 
 	// Names returns the list of names for a layer, image, or container.
 	Names(id string) ([]string, error)
+
+	// Free removes the store from the list of stores
+	Free()
 
 	// SetNames changes the list of names for a layer, image, or container.
 	// Duplicate names are removed from the list automatically.
@@ -2591,25 +2603,11 @@ func (s *store) Version() ([][2]string, error) {
 	return [][2]string{}, nil
 }
 
-func (s *store) Mount(id, mountLabel string) (string, error) {
-	container, err := s.Container(id)
-	var (
-		uidMap, gidMap []idtools.IDMap
-		mountOpts      []string
-	)
-	if err == nil {
-		uidMap, gidMap = container.UIDMap, container.GIDMap
-		id = container.LayerID
-		mountOpts = container.MountOpts()
-	}
+func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 	rlstore, err := s.LayerStore()
 	if err != nil {
 		return "", err
 	}
-
-	s.graphLock.Lock()
-	defer s.graphLock.Unlock()
-
 	rlstore.Lock()
 	defer rlstore.Unlock()
 	if modified, err := rlstore.Modified(); modified || err != nil {
@@ -2630,15 +2628,47 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 	}
 
 	if rlstore.Exists(id) {
-		options := drivers.MountOpts{
-			MountLabel: mountLabel,
-			UidMaps:    uidMap,
-			GidMaps:    gidMap,
-			Options:    mountOpts,
-		}
 		return rlstore.Mount(id, options)
 	}
 	return "", ErrLayerUnknown
+}
+
+func (s *store) MountImage(id string, mountOpts []string, mountLabel string) (string, error) {
+	// Append ReadOnly option to mountOptions
+	img, err := s.Image(id)
+	if err != nil {
+		return "", err
+	}
+
+	if err := validateMountOptions(mountOpts); err != nil {
+		return "", err
+	}
+	options := drivers.MountOpts{
+		MountLabel: mountLabel,
+		Options:    append(mountOpts, "ro"),
+	}
+
+	return s.mount(img.TopLayer, options)
+}
+
+func (s *store) Mount(id, mountLabel string) (string, error) {
+	container, err := s.Container(id)
+	var (
+		uidMap, gidMap []idtools.IDMap
+		mountOpts      []string
+	)
+	if err == nil {
+		uidMap, gidMap = container.UIDMap, container.GIDMap
+		id = container.LayerID
+		mountOpts = container.MountOpts()
+	}
+	options := drivers.MountOpts{
+		MountLabel: mountLabel,
+		UidMaps:    uidMap,
+		GidMaps:    gidMap,
+		Options:    mountOpts,
+	}
+	return s.mount(id, options)
 }
 
 func (s *store) Mounted(id string) (int, error) {
@@ -2658,6 +2688,14 @@ func (s *store) Mounted(id string) (int, error) {
 	}
 
 	return rlstore.Mounted(id)
+}
+
+func (s *store) UnmountImage(id string, force bool) (bool, error) {
+	img, err := s.Image(id)
+	if err != nil {
+		return false, err
+	}
+	return s.Unmount(img.TopLayer, force)
 }
 
 func (s *store) Unmount(id string, force bool) (bool, error) {
@@ -3600,4 +3638,14 @@ func GetMountOptions(driver string, graphDriverOptions []string) ([]string, erro
 		}
 	}
 	return nil, nil
+}
+
+// Free removes the store from the list of stores
+func (s *store) Free() {
+	for i := 0; i < len(stores); i++ {
+		if stores[i] == s {
+			stores = append(stores[:i], stores[i+1:]...)
+			return
+		}
+	}
 }
