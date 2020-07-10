@@ -3,7 +3,7 @@ package libpod
 import (
 	"time"
 
-	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/define"
 )
 
 // InspectVolumeData is the output of Inspect() on a volume. It is matched to

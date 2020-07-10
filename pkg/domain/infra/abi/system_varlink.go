@@ -5,10 +5,10 @@ package abi
 import (
 	"context"
 
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	iopodman "github.com/containers/libpod/v2/pkg/varlink"
-	iopodmanAPI "github.com/containers/libpod/v2/pkg/varlinkapi"
-	"github.com/containers/libpod/v2/version"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	iopodman "github.com/containers/podman/v2/pkg/varlink"
+	iopodmanAPI "github.com/containers/podman/v2/pkg/varlinkapi"
+	"github.com/containers/podman/v2/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/varlink/go/varlink"

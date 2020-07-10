@@ -6,9 +6,9 @@ import (
 	"context"
 	"io/ioutil"
 
-	"github.com/containers/libpod/v2/libpod/image"
-	"github.com/containers/libpod/v2/pkg/seccomp"
-	"github.com/containers/libpod/v2/pkg/specgen"
+	"github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v2/pkg/seccomp"
+	"github.com/containers/podman/v2/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	goSeccomp "github.com/seccomp/containers-golang"

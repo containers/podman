@@ -6,8 +6,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/containers/libpod/v2/libpod/events"
-	iopodman "github.com/containers/libpod/v2/pkg/varlink"
+	"github.com/containers/podman/v2/libpod/events"
+	iopodman "github.com/containers/podman/v2/pkg/varlink"
 )
 
 // GetEvents is a remote endpoint to get events from the event log

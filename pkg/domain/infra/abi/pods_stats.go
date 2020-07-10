@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/pkg/cgroups"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/pkg/rootless"
-	"github.com/containers/libpod/v2/utils"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/pkg/cgroups"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v2/utils"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 )

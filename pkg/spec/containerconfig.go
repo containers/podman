@@ -1,8 +1,8 @@
 package createconfig
 
 import (
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

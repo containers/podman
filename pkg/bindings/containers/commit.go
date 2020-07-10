@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/libpod/v2/pkg/api/handlers"
-	"github.com/containers/libpod/v2/pkg/bindings"
+	"github.com/containers/podman/v2/pkg/api/handlers"
+	"github.com/containers/podman/v2/pkg/bindings"
 )
 
 // Commit creates a container image from a container.  The container is defined by nameOrID.  Use

@@ -3,7 +3,7 @@
 package varlinkapi
 
 import (
-	iopodman "github.com/containers/libpod/v2/pkg/varlink"
+	iopodman "github.com/containers/podman/v2/pkg/varlink"
 )
 
 // CreateContainer ...

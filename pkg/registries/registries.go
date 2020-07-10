@@ -7,7 +7,7 @@ import (
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/v2/pkg/rootless"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 )

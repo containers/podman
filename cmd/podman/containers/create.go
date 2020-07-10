@@ -10,13 +10,13 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/containers/libpod/v2/cmd/podman/common"
-	"github.com/containers/libpod/v2/cmd/podman/registry"
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/pkg/errorhandling"
-	"github.com/containers/libpod/v2/pkg/specgen"
-	"github.com/containers/libpod/v2/pkg/util"
+	"github.com/containers/podman/v2/cmd/podman/common"
+	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/errorhandling"
+	"github.com/containers/podman/v2/pkg/specgen"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -217,7 +217,7 @@ func createInit(c *cobra.Command) error {
 	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
-	// the hostname (see https://github.com/containers/libpod/issues/1367).
+	// the hostname (see https://github.com/containers/podman/issues/1367).
 
 	return nil
 }

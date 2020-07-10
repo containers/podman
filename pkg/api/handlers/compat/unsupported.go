@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 
-	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	log "github.com/sirupsen/logrus"
 )
 

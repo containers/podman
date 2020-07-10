@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	log "github.com/sirupsen/logrus"
 )
 

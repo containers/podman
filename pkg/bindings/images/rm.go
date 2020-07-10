@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/libpod/v2/pkg/api/handlers"
-	"github.com/containers/libpod/v2/pkg/bindings"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/pkg/errorhandling"
+	"github.com/containers/podman/v2/pkg/api/handlers"
+	"github.com/containers/podman/v2/pkg/bindings"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 )
 
 // BachtRemove removes a batch of images from the local storage.

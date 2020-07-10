@@ -3,8 +3,8 @@ package compat
 import (
 	"net/http"
 
-	"github.com/containers/libpod/v2/pkg/api/handlers"
-	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/api/handlers"
+	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	docker "github.com/docker/docker/api/types"
 )
 

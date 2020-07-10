@@ -23,7 +23,7 @@
 %global provider_tld com
 %global project containers
 %global repo libpod
-# https://github.com/containers/libpod
+# https://github.com/containers/podman
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path %{provider_prefix}
 %global git0 https://%{provider}.%{provider_tld}/%{project}/%{repo}

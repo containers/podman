@@ -3,8 +3,8 @@ package libpod
 import (
 	"context"
 
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/libpod/events"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/events"
 	"github.com/pkg/errors"
 )
 

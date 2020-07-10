@@ -3,8 +3,8 @@ package generate
 import (
 	"context"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/pkg/specgen"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

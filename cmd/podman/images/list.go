@@ -11,8 +11,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/containers/libpod/v2/cmd/podman/registry"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

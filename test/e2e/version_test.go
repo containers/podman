@@ -3,8 +3,8 @@ package integration
 import (
 	"os"
 
-	. "github.com/containers/libpod/v2/test/utils"
-	"github.com/containers/libpod/v2/version"
+	. "github.com/containers/podman/v2/test/utils"
+	"github.com/containers/podman/v2/version"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"

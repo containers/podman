@@ -15,7 +15,7 @@ CI configuration file.](../../.cirrus.yml)
 
 # Execution
 
-When working from a clone of [the libpod repository](https://github.com/containers/libpod),
+When working from a clone of [the libpod repository](https://github.com/containers/podman),
 the main entry-point for humans and automation is `make localsystem`.  When operating
 from a packaged version of the system-tests, the entry-point may vary as appropriate.
 Running the packaged system-tests assumes the version of Podman matches the test

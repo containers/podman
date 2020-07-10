@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/util"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 )
 

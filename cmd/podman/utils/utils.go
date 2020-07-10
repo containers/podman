@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 )
 
 // IsDir returns true if the specified path refers to a directory.

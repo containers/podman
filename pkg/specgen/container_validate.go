@@ -3,8 +3,8 @@ package specgen
 import (
 	"strings"
 
-	"github.com/containers/libpod/v2/pkg/rootless"
-	"github.com/containers/libpod/v2/pkg/util"
+	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 )
 

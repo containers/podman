@@ -3,10 +3,10 @@ package libpod
 import (
 	"context"
 
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/libpod/events"
-	"github.com/containers/libpod/v2/pkg/cgroups"
-	"github.com/containers/libpod/v2/pkg/rootless"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/events"
+	"github.com/containers/podman/v2/pkg/cgroups"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

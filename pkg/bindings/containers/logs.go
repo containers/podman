@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/libpod/v2/pkg/bindings"
+	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/pkg/errors"
 )
 

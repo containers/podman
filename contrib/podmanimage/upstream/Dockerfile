@@ -2,7 +2,7 @@
 #
 # Build a Podman container image from the latest
 # upstream version of Podman on GitHub.
-# https://github.com/containers/libpod
+# https://github.com/containers/podman
 # This image can be used to create a secured container
 # that runs safely with privileges within the container.
 # The containers created by this image also come with a
@@ -42,8 +42,8 @@ RUN useradd podman; yum -y update; yum -y reinstall shadow-utils; yum -y install
      fuse3 \
      containers-common; \
      mkdir /root/podman; \
-     git clone https://github.com/containers/libpod /root/podman/src/github.com/containers/libpod; \
-     cd /root/podman/src/github.com/containers/libpod; \
+     git clone https://github.com/containers/podman /root/podman/src/github.com/containers/podman; \
+     cd /root/podman/src/github.com/containers/podman; \
      make BUILDTAGS="selinux seccomp"; \
      make install PREFIX=/usr; \
      cd /root/podman; \
@@ -57,13 +57,13 @@ RUN useradd podman; yum -y update; yum -y reinstall shadow-utils; yum -y install
      mkdir -p /usr/libexec/cni; \
      \cp -fR bin/* /usr/libexec/cni; \
      mkdir -p /etc/cni/net.d; \
-     curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | tee /etc/cni/net.d/99-loopback.conf; \
+     curl -qsSL https://raw.githubusercontent.com/containers/podman/master/cni/87-podman-bridge.conflist | tee /etc/cni/net.d/99-loopback.conf; \
      mkdir -p /usr/share/containers; \
      rm -rf /root/podman/*; \
      yum -y remove git golang go-md2man make; \
      yum clean all;
 
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/
+ADD https://raw.githubusercontent.com/containers/podman/master/contrib/podmanimage/stable/containers.conf /etc/containers/
 
 # chmod containers.conf and adjust storage.conf to enable Fuse storage.
 RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' /etc/containers/storage.conf

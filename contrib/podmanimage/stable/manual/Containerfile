@@ -26,7 +26,7 @@ FROM registry.fedoraproject.org/fedora:latest
 COPY /tmp/podman-1.7.0-3.fc30.x86_64.rpm /tmp
 RUN yum -y install /tmp/podman-1.7.0-3.fc30.x86_64.rpm fuse-overlayfs --exclude container-selinux; rm -rf /var/cache /var/log/dnf* /var/log/yum.* /tmp/podman*.rpm
 
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/
+ADD https://raw.githubusercontent.com/containers/podman/master/contrib/podmanimage/stable/containers.conf /etc/containers/
 
 # chmod containers.conf and adjust storage.conf to enable Fuse storage.
 RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' /etc/containers/storage.conf
