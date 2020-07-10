@@ -457,15 +457,15 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, streams *define.A
 
 			switch {
 			case fd == 0:
-				if streams.AttachOutput {
+				if streams.AttachInput {
+					// Write STDIN to STDOUT (echoing characters
+					// typed by another attach session)
 					if _, err := streams.OutputStream.Write(frame[0:l]); err != nil {
 						return err
 					}
 				}
 			case fd == 1:
-				if streams.AttachInput {
-					// Write STDIN to STDOUT (echoing characters
-					// typed by another attach session)
+				if streams.AttachOutput {
 					if _, err := streams.OutputStream.Write(frame[0:l]); err != nil {
 						return err
 					}
