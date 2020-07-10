@@ -98,7 +98,6 @@ var _ = Describe("Podman exec", func() {
 
 	It("podman exec os.Setenv env", func() {
 		// remote doesn't properly interpret os.Setenv
-		SkipIfRemote()
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
