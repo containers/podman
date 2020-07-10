@@ -66,7 +66,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 
 // CreateContainerStorage creates the storage end of things.  We already have the container spec created
 // TO-DO We should be passing in an Image object in the future.
-func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID string, options storage.ContainerOptions) (cinfo ContainerInfo, err error) {
+func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID string, options storage.ContainerOptions) (_ ContainerInfo, retErr error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "createContainerStorage")
 	span.SetTag("type", "storageService")
 	defer span.Finish()
@@ -132,9 +132,9 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	// If anything fails after this point, we need to delete the incomplete
 	// container before returning.
 	defer func() {
-		if err != nil {
-			if err2 := r.store.DeleteContainer(container.ID); err2 != nil {
-				logrus.Infof("%v deleting partially-created container %q", err2, container.ID)
+		if retErr != nil {
+			if err := r.store.DeleteContainer(container.ID); err != nil {
+				logrus.Infof("%v deleting partially-created container %q", err, container.ID)
 
 				return
 			}

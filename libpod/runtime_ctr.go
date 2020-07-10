@@ -34,7 +34,7 @@ type CtrCreateOption func(*Container) error
 type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config.
-func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
+func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if !r.valid {
@@ -44,7 +44,7 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 }
 
 // RestoreContainer re-creates a container from an imported checkpoint
-func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config *ContainerConfig) (c *Container, err error) {
+func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config *ContainerConfig) (*Container, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if !r.valid {
@@ -68,7 +68,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 	return r.setupContainer(ctx, ctr)
 }
 
-func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConfig) (c *Container, err error) {
+func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConfig) (*Container, error) {
 	if rSpec == nil {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "must provide a valid runtime spec to create container")
 	}
@@ -122,7 +122,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 	return ctr, nil
 }
 
-func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
+func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "newContainer")
 	span.SetTag("type", "runtime")
 	defer span.Finish()
@@ -141,7 +141,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	return r.setupContainer(ctx, ctr)
 }
 
-func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Container, err error) {
+func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Container, retErr error) {
 	// Validate the container
 	if err := ctr.validate(); err != nil {
 		return nil, err
@@ -157,9 +157,9 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	logrus.Debugf("Allocated lock %d for container %s", ctr.lock.ID(), ctr.ID())
 
 	defer func() {
-		if err != nil {
-			if err2 := ctr.lock.Free(); err2 != nil {
-				logrus.Errorf("Error freeing lock for container after creation failed: %v", err2)
+		if retErr != nil {
+			if err := ctr.lock.Free(); err != nil {
+				logrus.Errorf("Error freeing lock for container after creation failed: %v", err)
 			}
 		}
 	}()
@@ -272,9 +272,9 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		return nil, err
 	}
 	defer func() {
-		if err != nil {
-			if err2 := ctr.teardownStorage(); err2 != nil {
-				logrus.Errorf("Error removing partially-created container root filesystem: %s", err2)
+		if retErr != nil {
+			if err := ctr.teardownStorage(); err != nil {
+				logrus.Errorf("Error removing partially-created container root filesystem: %s", err)
 			}
 		}
 	}()
