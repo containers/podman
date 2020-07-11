@@ -101,6 +101,7 @@ type DeviceSet struct {
 
 	// Options
 	dataLoopbackSize      int64
+	metaDataSize          string
 	metaDataLoopbackSize  int64
 	baseFsSize            uint64
 	filesystem            string
@@ -2708,6 +2709,8 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 			devices.mountOptions = joinMountOptions(devices.mountOptions, val)
 		case "dm.metadatadev":
 			devices.metadataDevice = val
+		case "dm.metadata_size":
+			devices.metaDataSize = val
 		case "dm.datadev":
 			devices.dataDevice = val
 		case "dm.thinpooldev":
@@ -2743,6 +2746,8 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 				return nil, err
 			}
 
+		case "dm.metaDataSize":
+			lvmSetupConfig.MetaDataSize = val
 		case "dm.min_free_space":
 			if !strings.HasSuffix(val, "%") {
 				return nil, fmt.Errorf("devmapper: Option dm.min_free_space requires %% suffix")

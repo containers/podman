@@ -39,6 +39,10 @@ type ThinpoolOptionsConfig struct {
 	// log_level sets the log level of devicemapper.
 	LogLevel string `toml:"log_level"`
 
+	// MetadataSize specifies the size of the metadata for the thinpool
+	// It will be used with the `pvcreate --metadata` option.
+	MetadataSize string `toml:"metadatasize"`
+
 	// MinFreeSpace specifies the min free space percent in a thin pool
 	// require for new device creation to
 	MinFreeSpace string `toml:"min_free_space"`
@@ -217,6 +221,9 @@ func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
 		}
 		if options.Thinpool.LogLevel != "" {
 			doptions = append(doptions, fmt.Sprintf("dm.libdm_log_level=%s", options.Thinpool.LogLevel))
+		}
+		if options.Thinpool.MetadataSize != "" {
+			doptions = append(doptions, fmt.Sprintf("dm.metadata_size=%s", options.Thinpool.MetadataSize))
 		}
 		if options.Thinpool.MinFreeSpace != "" {
 			doptions = append(doptions, fmt.Sprintf("dm.min_free_space=%s", options.Thinpool.MinFreeSpace))
