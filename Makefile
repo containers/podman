@@ -443,7 +443,7 @@ swagger-check:
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
+	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
 
 # When publishing releases include critical build-time details
 .PHONY: release.txt
@@ -539,12 +539,6 @@ install.man-nobuild:
 
 .PHONY: install.man
 install.man: docs install.man-nobuild
-
-.PHONY: install.seccomp
-install.seccomp:
-	# TODO: we should really be using the upstream one from github.com/seccomp
-	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SHAREDIR_CONTAINERS)
-	install ${SELINUXOPT} -m 644 seccomp.json $(DESTDIR)$(SHAREDIR_CONTAINERS)/seccomp.json
 
 .PHONY: install.completions
 install.completions:
