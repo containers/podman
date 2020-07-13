@@ -612,22 +612,11 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 
 	// Port bindings.
 	// Only populate if we're using CNI to configure the network.
-	portBindings := make(map[string][]define.InspectHostPort)
 	if c.config.CreateNetNS {
-		for _, port := range c.config.PortMappings {
-			key := fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)
-			hostPorts := portBindings[key]
-			if hostPorts == nil {
-				hostPorts = []define.InspectHostPort{}
-			}
-			hostPorts = append(hostPorts, define.InspectHostPort{
-				HostIP:   port.HostIP,
-				HostPort: fmt.Sprintf("%d", port.HostPort),
-			})
-			portBindings[key] = hostPorts
-		}
+		hostConfig.PortBindings = makeInspectPortBindings(c.config.PortMappings)
+	} else {
+		hostConfig.PortBindings = make(map[string][]define.InspectHostPort)
 	}
-	hostConfig.PortBindings = portBindings
 
 	// Cap add and cap drop.
 	// We need a default set of capabilities to compare against.

@@ -3,8 +3,6 @@ package define
 import (
 	"net"
 	"time"
-
-	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 // InspectPodData contains detailed information on a pod's configuration and
@@ -60,7 +58,7 @@ type InspectPodData struct {
 type InspectPodInfraConfig struct {
 	// PortBindings are ports that will be forwarded to the infra container
 	// and then shared with the pod.
-	PortBindings []ocicni.PortMapping
+	PortBindings map[string][]InspectHostPort
 	// HostNetwork is whether the infra container (and thus the whole pod)
 	// will use the host's network and not create a network namespace.
 	HostNetwork bool
@@ -89,6 +87,8 @@ type InspectPodInfraConfig struct {
 	// HostAdd adds a number of hosts to the infra container's resolv.conf
 	// which will be shared with the rest of the pod.
 	HostAdd []string
+	// Networks is a list of CNI networks te pod will join.
+	Networks []string
 }
 
 // InspectPodContainerInfo contains information on a container in a pod.

@@ -3,6 +3,8 @@ package integration
 import (
 	"os"
 
+	"github.com/containers/libpod/v2/libpod/define"
+
 	. "github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -78,5 +80,23 @@ var _ = Describe("Podman pod inspect", func() {
 		inspectCreateCommand := podData.CreateCommand
 		index := len(inspectCreateCommand) - len(createCommand)
 		Expect(inspectCreateCommand[index:]).To(Equal(createCommand))
+	})
+
+	It("podman pod inspect outputs port bindings", func() {
+		podName := "testPod"
+		create := podmanTest.Podman([]string{"pod", "create", "--name", testPod, "-p", "8080:80"})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspectOut := podmanTest.Podman([]string{"pod", "inspect", podName})
+		inspectOut.WaitWithDefaultTimeout()
+		Expect(inspectOut.ExitCode()).To(Equal(0))
+
+		inspectJSON := new(define.InspectPodData)
+		err := json.Unmarshal(inspectOut.Out.Contents(), inspectJSON)
+		Expect(err).To(BeNil())
+		Expect(inspectJSON.InfraConfig).To(Not(BeNil()))
+		Expect(len(inspectJSON.PortBindings["80/tcp"])).To(Equal(1))
+		Expect(inspectJSON.PortBindings["80/tcp"].HostPort).To(Equal("8080"))
 	})
 })
