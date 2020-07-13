@@ -81,13 +81,8 @@ WantedBy=multi-user.target
 	})
 
 	It("podman run container with systemd PID1", func() {
-		systemdImage := "fedora"
-		pull := podmanTest.Podman([]string{"pull", systemdImage})
-		pull.WaitWithDefaultTimeout()
-		Expect(pull.ExitCode()).To(Equal(0))
-
 		ctrName := "testSystemd"
-		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", systemdImage, "/usr/sbin/init"})
+		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", ubi_init, "/sbin/init"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 		ctrID := run.OutputToString()
