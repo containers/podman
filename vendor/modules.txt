@@ -135,6 +135,10 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
+# github.com/containers/libpod/v2 v2.0.2
+github.com/containers/libpod/v2/pkg/cgroups
+github.com/containers/libpod/v2/pkg/errorhandling
+github.com/containers/libpod/v2/pkg/rootless
 # github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b
 github.com/containers/libtrust
 # github.com/containers/ocicrypt v1.0.2
@@ -421,7 +425,7 @@ github.com/opencontainers/runc/libcontainer/user
 github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.0
+# github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
 github.com/opencontainers/runtime-tools/error
 github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/generate

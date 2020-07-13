@@ -103,6 +103,7 @@ type ContainerCLIOpts struct {
 	VolumesFrom       []string
 	Workdir           string
 	SeccompPolicy     string
+	Umask             *uint32
 
 	Net *entities.NetOptions
 }

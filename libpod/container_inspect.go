@@ -324,6 +324,8 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 
 	ctrConfig.Timezone = c.config.Timezone
 
+	ctrConfig.Umask = c.config.Umask
+
 	return ctrConfig
 }
 

@@ -7,13 +7,13 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
-	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.6
 	github.com/containers/buildah v1.15.1-0.20200708111410-d2ea9429455d
 	github.com/containers/common v0.15.2
 	github.com/containers/conmon v2.0.18+incompatible
 	github.com/containers/image/v5 v5.5.1
+	github.com/containers/libpod/v2 v2.0.2
 	github.com/containers/psgo v1.5.1
 	github.com/containers/storage v1.21.0
 	github.com/coreos/go-systemd/v22 v22.1.0
@@ -41,7 +41,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/opencontainers/runc v1.0.0-rc91.0.20200708210054-ce54a9d4d79b
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2
-	github.com/opencontainers/runtime-tools v0.9.0
+	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
 	github.com/opencontainers/selinux v1.6.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -54,7 +54,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/uber/jaeger-client-go v2.24.0+incompatible
-	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
 	github.com/vishvananda/netlink v1.1.0
 	go.etcd.io/bbolt v1.3.5

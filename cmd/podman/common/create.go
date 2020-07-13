@@ -460,6 +460,10 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"tz", containerConfig.TZ(),
 		"Set timezone in container",
 	)
+	createFlags.Uint32(
+		"umask", 022, //containerConfig.Umask(),
+		"Set umask in container",
+	)
 	createFlags.StringSliceVar(
 		&cf.UIDMap,
 		"uidmap", []string{},

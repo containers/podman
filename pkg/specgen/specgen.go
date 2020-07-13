@@ -276,6 +276,8 @@ type ContainerSecurityConfig struct {
 	// ReadOnlyFilesystem indicates that everything will be mounted
 	// as read-only
 	ReadOnlyFilesystem bool `json:"read_only_filesystem,omittempty"`
+	// Umask is the umask the init process of the container will be run with.
+	Umask *uint32 `json:"umask,omitempty"`
 }
 
 // ContainerCgroupConfig contains configuration information about a container's

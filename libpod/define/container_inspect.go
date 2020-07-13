@@ -57,6 +57,8 @@ type InspectContainerConfig struct {
 	// Timezone is the timezone inside the container.
 	// Local means it has the same timezone as the host machine
 	Timezone string `json:"Timezone,omitempty"`
+	// Umask is the umask inside the container.
+	Umask *uint32 `json:"Umask,omitempty"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

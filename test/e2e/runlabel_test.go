@@ -49,7 +49,6 @@ var _ = Describe("podman container runlabel", func() {
 
 	It("podman container runlabel (podman --version)", func() {
 		image := "podman-runlabel-test:podman"
-		podmanTest.BuildImage(PodmanDockerfile, image, "false")
 
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", image})
 		result.WaitWithDefaultTimeout()

@@ -433,6 +433,9 @@ type ContainerConfig struct {
 	// Timezone is the timezone inside the container.
 	// Local means it has the same timezone as the host machine
 	Timezone string `json:"timezone,omitempty"`
+
+	// Umask is the umask inside the container.
+	Umask *uint32 `json:"umask,omitempty"`
 }
 
 // ContainerNamedVolume is a named volume that will be mounted into the
@@ -1263,5 +1266,8 @@ func (c *Container) AutoRemove() bool {
 
 func (c *Container) Timezone() string {
 	return c.config.Timezone
+}
 
+func (c *Container) Umask() *uint32 {
+	return c.config.Umask
 }

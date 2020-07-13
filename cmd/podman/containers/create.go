@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -217,6 +218,14 @@ func createInit(c *cobra.Command) error {
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
 	// the hostname (see https://github.com/containers/libpod/issues/1367).
 
+	if c.Flag("umask").Changed {
+		val, err := strconv.ParseUint(c.Flag("umask").Value.String(), 10, 32)
+		if err == nil {
+			return err
+		}
+		umask := uint32(val)
+		cliVals.Umask = &umask
+	}
 	return nil
 }
 

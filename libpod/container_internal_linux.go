@@ -338,6 +338,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.SetProcessGID(uint32(execUser.Gid))
 	}
 
+	if c.config.Umask != nil {
+		g.SetProcessUmask(*c.config.Umask)
+	}
+
 	// Add addition groups if c.config.GroupAdd is not empty
 	if len(c.config.Groups) > 0 {
 		gids, err := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, overrides)
