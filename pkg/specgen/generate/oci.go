@@ -125,7 +125,7 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 	return finalCommand, nil
 }
 
-func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount, pod *libpod.Pod) (*spec.Spec, error) {
+func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string) (*spec.Spec, error) {
 	var (
 		inUserNS bool
 	)
@@ -251,10 +251,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 	g.SetProcessCwd(s.WorkDir)
 
-	finalCmd, err := makeCommand(ctx, s, newImage, rtc)
-	if err != nil {
-		return nil, err
-	}
 	g.SetProcessArgs(finalCmd)
 
 	g.SetProcessTerminal(s.Terminal)

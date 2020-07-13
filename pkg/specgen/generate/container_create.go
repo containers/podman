@@ -104,7 +104,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, err
 	}
 
-	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, newImage)
+	command, err := makeCommand(ctx, s, newImage, rtc)
+	if err != nil {
+		return nil, err
+	}
+
+	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, newImage, command)
 	if err != nil {
 		return nil, err
 	}
@@ -116,14 +121,14 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, libpod.WithExitCommand(exitCommandArgs))
 
-	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod)
+	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command)
 	if err != nil {
 		return nil, err
 	}
 	return rt.NewContainer(ctx, runtimeSpec, options...)
 }
 
-func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, img *image.Image) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, img *image.Image, command []string) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -138,7 +143,6 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	case "false":
 		break
 	case "", "true":
-		command := s.Command
 		if len(command) == 0 {
 			command, err = img.Cmd(ctx)
 			if err != nil {
