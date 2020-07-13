@@ -78,7 +78,9 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 
 	options := []libpod.CtrCreateOption{}
-	options = append(options, libpod.WithCreateCommand())
+	if s.ContainerCreateCommand != nil {
+		options = append(options, libpod.WithCreateCommand(s.ContainerCreateCommand))
+	}
 
 	var newImage *image.Image
 	if s.Rootfs != "" {
