@@ -392,7 +392,6 @@ install_test_configs() {
     # as the default).  This config prevents allocation of network address space used
     # by default in google cloud.  https://cloud.google.com/vpc/docs/vpc#ip-ranges
     install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist /etc/cni/net.d/
-    install -v -D -m 644 ./test/policy.json /etc/containers/
     install -v -D -m 644 ./test/registries.conf /etc/containers/
 }
 
