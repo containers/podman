@@ -89,12 +89,13 @@ A little configuration by an administrator is required before rootless Podman ca
 ## OCI Projects Plans
 
 The plan is to use OCI projects and best of breed libraries for different aspects:
-- Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI compliant runtime) and [OCI runtime tools](https://github.com/opencontainers/runtime-tools) to generate the spec
-- Images: Image management using [containers/image](https://github.com/containers/image)
-- Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage)
-- Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
+- Runtime: We use the [OCI runtime tools](https://github.com/opencontainers/runtime-tools) to generate OCI runtime configurations that can be used with any OCI-compliant runtime, like [crun](https://github.com/containers/crun/) and [runc](https://github.com/opencontainers/runc/).
+- Images: Image management uses the [containers/image](https://github.com/containers/image) library.
+- Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage).
+- Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni).
 - Builds: Builds are supported via [Buildah](https://github.com/containers/buildah).
-- Conmon: [Conmon](https://github.com/containers/conmon) is a tool for monitoring OCI runtimes.
+- Conmon: [Conmon](https://github.com/containers/conmon) is a tool for monitoring OCI runtimes, used by both Podman and CRI-O.
+- Seccomp: A unified [Seccomp](https://github.com/seccomp/containers-golang) policy for Podman, Buildah, and CRI-O.
 
 ## Podman Information for Developers
 
