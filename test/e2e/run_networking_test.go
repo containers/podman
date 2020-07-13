@@ -88,6 +88,20 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
 	})
 
+	It("podman run -p 8080:80/TCP", func() {
+		name := "testctr"
+		// "TCP" in upper characters
+		session := podmanTest.Podman([]string{"create", "-t", "-p", "8080:80/TCP", "--name", name, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(len(inspectOut)).To(Equal(1))
+		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(1))
+		// "tcp" in lower characters
+		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("8080"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+	})
+
 	It("podman run -p 80/udp", func() {
 		name := "testctr"
 		session := podmanTest.Podman([]string{"create", "-t", "-p", "80/udp", "--name", name, ALPINE, "/bin/sh"})
