@@ -481,6 +481,51 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		}
 	}
 
+	// Infra config contains detailed information on the pod's infra
+	// container.
+	var infraConfig *define.InspectPodInfraConfig
+	if p.config.InfraContainer != nil && p.config.InfraContainer.HasInfraContainer {
+		infraConfig = new(define.InspectPodInfraConfig)
+		infraConfig.HostNetwork = p.config.InfraContainer.HostNetwork
+		infraConfig.StaticIP = p.config.InfraContainer.StaticIP
+		infraConfig.StaticMAC = p.config.InfraContainer.StaticMAC
+		infraConfig.NoManageResolvConf = p.config.InfraContainer.UseImageResolvConf
+		infraConfig.NoManageHosts = p.config.InfraContainer.UseImageHosts
+
+		if len(p.config.InfraContainer.DNSServer) > 0 {
+			infraConfig.DNSServer = make([]string, 0, len(p.config.InfraContainer.DNSServer))
+			for _, i := range p.config.InfraContainer.DNSServer {
+				infraConfig.DNSServer = append(infraConfig.DNSServer, i)
+			}
+		}
+		if len(p.config.InfraContainer.DNSSearch) > 0 {
+			infraConfig.DNSSearch = make([]string, 0, len(p.config.InfraContainer.DNSSearch))
+			for _, i := range p.config.InfraContainer.DNSSearch {
+				infraConfig.DNSSearch = append(infraConfig.DNSSearch, i)
+			}
+		}
+		if len(p.config.InfraContainer.DNSOption) > 0 {
+			infraConfig.DNSOption = make([]string, 0, len(p.config.InfraContainer.DNSOption))
+			for _, i := range p.config.InfraContainer.DNSOption {
+				infraConfig.DNSOption = append(infraConfig.DNSOption, i)
+			}
+		}
+		if len(p.config.InfraContainer.HostAdd) > 0 {
+			infraConfig.HostAdd = make([]string, 0, len(p.config.InfraContainer.HostAdd))
+			for _, i := range p.config.InfraContainer.HostAdd {
+				infraConfig.HostAdd = append(infraConfig.HostAdd, i)
+			}
+		}
+		if len(p.config.InfraContainer.Networks) > 0 {
+			infraConfig.Networks = make([]string, 0, len(p.config.InfraContainer.Networks))
+			for _, i := range p.config.InfraContainer.Networks {
+				infraConfig.Networks = append(infraConfig.Networks, i)
+			}
+		}
+
+		infraConfig.PortBindings = makeInspectPortBindings(p.config.InfraContainer.PortBindings)
+	}
+
 	inspectData := define.InspectPodData{
 		ID:               p.ID(),
 		Name:             p.Name(),
@@ -495,7 +540,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		CgroupPath:       p.state.CgroupPath,
 		CreateInfra:      false,
 		InfraContainerID: p.state.InfraContainerID,
-		InfraConfig:      nil,
+		InfraConfig:      infraConfig,
 		SharedNamespaces: sharesNS,
 		NumContainers:    uint(len(containers)),
 		Containers:       ctrs,
