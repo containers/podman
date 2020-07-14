@@ -86,7 +86,7 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 	finalCommand := []string{}
 
 	entrypoint := s.Entrypoint
-	if len(entrypoint) == 0 && img != nil {
+	if entrypoint == nil && img != nil {
 		newEntry, err := img.Entrypoint(ctx)
 		if err != nil {
 			return nil, err
