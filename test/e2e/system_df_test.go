@@ -56,7 +56,7 @@ var _ = Describe("podman system df", func() {
 		images := strings.Fields(session.OutputToStringArray()[1])
 		containers := strings.Fields(session.OutputToStringArray()[2])
 		volumes := strings.Fields(session.OutputToStringArray()[3])
-		Expect(images[1]).To(Equal("9"))
+		Expect(images[1]).To(Equal("11"))
 		Expect(containers[1]).To(Equal("2"))
 		Expect(volumes[2]).To(Equal("1"))
 	})
