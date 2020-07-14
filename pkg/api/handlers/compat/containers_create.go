@@ -81,7 +81,7 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		workDir = input.WorkingDir
 	}
 
-	if len(input.Entrypoint) == 0 {
+	if input.Entrypoint == nil {
 		entrypointSlice, err := newImage.Entrypoint(ctx)
 		if err != nil {
 			return createconfig.CreateConfig{}, err
