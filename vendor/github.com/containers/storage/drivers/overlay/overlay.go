@@ -892,19 +892,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}
 
-	// If the lowers list is still empty, use an empty lower so that we can still force an
-	// SELinux context for the mount.
-
-	// if we are doing a readOnly mount, and there is only one lower
-	// We should just return the lower directory, no reason to mount.
-	if !readWrite && d.options.mountProgram == "" {
-		if len(absLowers) == 0 {
-			return path.Join(dir, "empty"), nil
-		}
-		if len(absLowers) == 1 {
-			return absLowers[0], nil
-		}
-	}
 	if len(absLowers) == 0 {
 		absLowers = append(absLowers, path.Join(dir, "empty"))
 		relLowers = append(relLowers, path.Join(id, "empty"))
