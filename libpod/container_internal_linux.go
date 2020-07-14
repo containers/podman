@@ -238,6 +238,9 @@ func (c *Container) getUserOverrides() *lookup.Overrides {
 			}
 		}
 	}
+	if path, ok := c.state.BindMounts["/etc/passwd"]; ok {
+		overrides.ContainerEtcPasswdPath = path
+	}
 	return &overrides
 }
 
@@ -1523,6 +1526,14 @@ func (c *Container) generatePasswd() (string, error) {
 	if !c.config.AddCurrentUserPasswdEntry && c.config.User == "" {
 		return "", nil
 	}
+	if MountExists(c.config.Spec.Mounts, "/etc/passwd") {
+		return "", nil
+	}
+	// Re-use passwd if possible
+	passwdPath := filepath.Join(c.config.StaticDir, "passwd")
+	if _, err := os.Stat(passwdPath); err == nil {
+		return passwdPath, nil
+	}
 	pwd := ""
 	if c.config.User != "" {
 		entry, err := c.generateUserPasswdEntry()
@@ -1572,7 +1583,7 @@ func (c *Container) generatePasswd() (string, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
 	}
-	passwdFile, err := c.writeStringToRundir("passwd", string(orig)+pwd)
+	passwdFile, err := c.writeStringToStaticDir("passwd", string(orig)+pwd)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to create temporary passwd file")
 	}

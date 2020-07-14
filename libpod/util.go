@@ -18,6 +18,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -272,4 +273,29 @@ func makeInspectPortBindings(bindings []ocicni.PortMapping) map[string][]define.
 		portBindings[key] = hostPorts
 	}
 	return portBindings
+}
+
+// Write a given string to a new file at a given path.
+// Will error if a file with the given name already exists.
+// Will be chown'd to the UID/GID provided and have the provided SELinux label
+// set.
+func writeStringToPath(path, contents, mountLabel string, uid, gid int) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create %s", path)
+	}
+	defer f.Close()
+	if err := f.Chown(uid, gid); err != nil {
+		return err
+	}
+
+	if _, err := f.WriteString(contents); err != nil {
+		return errors.Wrapf(err, "unable to write %s", path)
+	}
+	// Relabel runDirResolv for the container
+	if err := label.Relabel(path, mountLabel, false); err != nil {
+		return err
+	}
+
+	return nil
 }

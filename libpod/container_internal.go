@@ -27,7 +27,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1754,32 +1753,40 @@ func (c *Container) postDeleteHooks(ctx context.Context) error {
 	return nil
 }
 
-// writeStringToRundir copies the provided file to the runtimedir
-func (c *Container) writeStringToRundir(destFile, output string) (string, error) {
+// writeStringToRundir writes the given string to a file with the given name in
+// the container's temporary files directory. The file will be chown'd to the
+// container's root user and have an appropriate SELinux label set.
+// If a file with the same name already exists, it will be deleted and recreated
+// with the new contents.
+// Returns the full path to the new file.
+func (c *Container) writeStringToRundir(destFile, contents string) (string, error) {
 	destFileName := filepath.Join(c.state.RunDir, destFile)
 
 	if err := os.Remove(destFileName); err != nil && !os.IsNotExist(err) {
 		return "", errors.Wrapf(err, "error removing %s for container %s", destFile, c.ID())
 	}
 
-	f, err := os.Create(destFileName)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to create %s", destFileName)
-	}
-	defer f.Close()
-	if err := f.Chown(c.RootUID(), c.RootGID()); err != nil {
+	if err := writeStringToPath(destFileName, contents, c.config.MountLabel, c.RootUID(), c.RootGID()); err != nil {
 		return "", err
 	}
 
-	if _, err := f.WriteString(output); err != nil {
-		return "", errors.Wrapf(err, "unable to write %s", destFileName)
-	}
-	// Relabel runDirResolv for the container
-	if err := label.Relabel(destFileName, c.config.MountLabel, false); err != nil {
+	return destFileName, nil
+}
+
+// writeStringToStaticDir writes the given string to a file with the given name
+// in the container's permanent files directory. The file will be chown'd to the
+// container's root user and have an appropriate SELinux label set.
+// Unlike writeStringToRundir, will *not* delete and re-create if the file
+// already exists (will instead error).
+// Returns the full path to the new file.
+func (c *Container) writeStringToStaticDir(filename, contents string) (string, error) {
+	destFileName := filepath.Join(c.config.StaticDir, filename)
+
+	if err := writeStringToPath(destFileName, contents, c.config.MountLabel, c.RootUID(), c.RootGID()); err != nil {
 		return "", err
 	}
 
-	return filepath.Join(c.state.RunDir, destFile), nil
+	return destFileName, nil
 }
 
 // appendStringToRundir appends the provided string to the runtimedir file
