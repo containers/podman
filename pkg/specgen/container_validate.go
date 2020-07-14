@@ -28,6 +28,15 @@ func exclusiveOptions(opt1, opt2 string) error {
 // input for creating a container.
 func (s *SpecGenerator) Validate() error {
 
+	if rootless.IsRootless() {
+		if s.StaticIP != nil || s.StaticIPv6 != nil {
+			return ErrNoStaticIPRootless
+		}
+		if s.StaticMAC != nil {
+			return ErrNoStaticMACRootless
+		}
+	}
+
 	//
 	// ContainerBasicConfig
 	//
