@@ -153,9 +153,13 @@ function random_ip() {
     # Create a pod with all the desired options
     # FIXME: --ip=$ip fails:
     #      Error adding network: failed to allocate all requested IPs
+    local mac_option="--mac-address=$mac"
+    if is_rootless; then
+        mac_option=
+    fi
     run_podman pod create --name=mypod                   \
                --pod-id-file=$pod_id_file                \
-               --mac-address=$mac                        \
+               $mac_option                               \
                --hostname=$hostname                      \
                --add-host   "$add_host_n:$add_host_ip"   \
                --dns        "$dns_server"                \
@@ -168,7 +172,7 @@ function random_ip() {
     is "$(<$pod_id_file)" "$pod_id" "contents of pod-id-file"
 
     # Check each of the options
-    if ! is_rootless; then
+    if [ -n "$mac_option" ]; then
         run_podman run --rm --pod mypod $IMAGE ip link show
         # 'ip' outputs hex in lower-case, ${expr,,} converts UC to lc
         is "$output" ".* link/ether ${mac,,} " "requested MAC address was set"

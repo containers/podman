@@ -1,6 +1,7 @@
 package specgen
 
 import (
+	"errors"
 	"net"
 	"syscall"
 
@@ -448,6 +449,15 @@ type PortMapping struct {
 	// If unset, assumed to be TCP.
 	Protocol string `json:"protocol,omitempty"`
 }
+
+var (
+	// ErrNoStaticIPRootless is used when a rootless user requests to assign a static IP address
+	// to a pod or container
+	ErrNoStaticIPRootless error = errors.New("rootless containers and pods cannot be assigned static IP addresses")
+	// ErrNoStaticMACRootless is used when a rootless user requests to assign a static MAC address
+	// to a pod or container
+	ErrNoStaticMACRootless error = errors.New("rootless containers and pods cannot be assigned static MAC addresses")
+)
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
 func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {

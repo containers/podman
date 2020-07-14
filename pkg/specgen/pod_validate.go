@@ -1,6 +1,7 @@
 package specgen
 
 import (
+	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -18,6 +19,16 @@ func exclusivePodOptions(opt1, opt2 string) error {
 
 // Validate verifies the input is valid
 func (p *PodSpecGenerator) Validate() error {
+
+	if rootless.IsRootless() {
+		if p.StaticIP != nil {
+			return ErrNoStaticIPRootless
+		}
+		if p.StaticMAC != nil {
+			return ErrNoStaticMACRootless
+		}
+	}
+
 	// PodBasicConfig
 	if p.NoInfra {
 		if len(p.InfraCommand) > 0 {
