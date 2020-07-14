@@ -82,6 +82,7 @@ func start(cmd *cobra.Command, args []string) error {
 	if cmd.Flag("sig-proxy").Changed {
 		sigProxy = startOptions.SigProxy
 	}
+	startOptions.SigProxy = sigProxy
 
 	if sigProxy && !startOptions.Attach {
 		return errors.Wrapf(define.ErrInvalidArg, "you cannot use sig-proxy without --attach")
