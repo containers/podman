@@ -289,6 +289,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 
 	ctrConfig.OpenStdin = c.config.Stdin
 	ctrConfig.Image = c.config.RootfsImageName
+	ctrConfig.SystemdMode = c.config.Systemd
 
 	// Leave empty is not explicitly overwritten by user
 	if len(c.config.Command) != 0 {
