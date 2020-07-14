@@ -555,7 +555,7 @@ func ValidatePullType(pullType string) (PullType, error) {
 	switch pullType {
 	case "always":
 		return PullImageAlways, nil
-	case "missing":
+	case "missing", "IfNotPresent":
 		return PullImageMissing, nil
 	case "never":
 		return PullImageNever, nil
