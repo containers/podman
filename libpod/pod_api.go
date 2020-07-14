@@ -494,33 +494,23 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 
 		if len(p.config.InfraContainer.DNSServer) > 0 {
 			infraConfig.DNSServer = make([]string, 0, len(p.config.InfraContainer.DNSServer))
-			for _, i := range p.config.InfraContainer.DNSServer {
-				infraConfig.DNSServer = append(infraConfig.DNSServer, i)
-			}
+			infraConfig.DNSServer = append(infraConfig.DNSServer, p.config.InfraContainer.DNSServer...)
 		}
 		if len(p.config.InfraContainer.DNSSearch) > 0 {
 			infraConfig.DNSSearch = make([]string, 0, len(p.config.InfraContainer.DNSSearch))
-			for _, i := range p.config.InfraContainer.DNSSearch {
-				infraConfig.DNSSearch = append(infraConfig.DNSSearch, i)
-			}
+			infraConfig.DNSSearch = append(infraConfig.DNSSearch, p.config.InfraContainer.DNSSearch...)
 		}
 		if len(p.config.InfraContainer.DNSOption) > 0 {
 			infraConfig.DNSOption = make([]string, 0, len(p.config.InfraContainer.DNSOption))
-			for _, i := range p.config.InfraContainer.DNSOption {
-				infraConfig.DNSOption = append(infraConfig.DNSOption, i)
-			}
+			infraConfig.DNSOption = append(infraConfig.DNSOption, p.config.InfraContainer.DNSOption...)
 		}
 		if len(p.config.InfraContainer.HostAdd) > 0 {
 			infraConfig.HostAdd = make([]string, 0, len(p.config.InfraContainer.HostAdd))
-			for _, i := range p.config.InfraContainer.HostAdd {
-				infraConfig.HostAdd = append(infraConfig.HostAdd, i)
-			}
+			infraConfig.HostAdd = append(infraConfig.HostAdd, p.config.InfraContainer.HostAdd...)
 		}
 		if len(p.config.InfraContainer.Networks) > 0 {
 			infraConfig.Networks = make([]string, 0, len(p.config.InfraContainer.Networks))
-			for _, i := range p.config.InfraContainer.Networks {
-				infraConfig.Networks = append(infraConfig.Networks, i)
-			}
+			infraConfig.Networks = append(infraConfig.Networks, p.config.InfraContainer.Networks...)
 		}
 
 		infraConfig.PortBindings = makeInspectPortBindings(p.config.InfraContainer.PortBindings)
