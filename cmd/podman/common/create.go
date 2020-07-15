@@ -395,7 +395,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringArrayVar(
 		&cf.SecurityOpt,
-		"security-opt", containerConfig.SecurityOptions(),
+		"security-opt", []string{},
 		"Security Options",
 	)
 	createFlags.String(

@@ -290,13 +290,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 	}
 
-	// SECURITY OPTS
-	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
-
-	if !s.Privileged {
-		g.SetProcessApparmorProfile(s.ApparmorProfile)
-	}
-
 	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), &g)
 
 	for name, val := range s.Env {

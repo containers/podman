@@ -3,6 +3,7 @@ package generate
 import (
 	"strings"
 
+	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/v2/libpod"
@@ -56,6 +57,28 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 	return nil
 }
 
+func setupApparmor(s *specgen.SpecGenerator, rtc *config.Config, g *generate.Generator) error {
+	hasProfile := len(s.ApparmorProfile) > 0
+	if !apparmor.IsEnabled() {
+		if hasProfile {
+			return errors.Errorf("Apparmor profile %q specified, but Apparmor is not enabled on this system", s.ApparmorProfile)
+		}
+		return nil
+	}
+	// If privileged and caller did not specify apparmor profiles return
+	if s.Privileged && !hasProfile {
+		return nil
+	}
+	if !hasProfile {
+		s.ApparmorProfile = rtc.Containers.ApparmorProfile
+	}
+	if len(s.ApparmorProfile) > 0 {
+		g.SetProcessApparmorProfile(s.ApparmorProfile)
+	}
+
+	return nil
+}
+
 func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator, newImage *image.Image, rtc *config.Config) error {
 	var (
 		caplist []string
@@ -105,6 +128,13 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			}
 		}
 	}
+
+	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
+
+	if err := setupApparmor(s, rtc, g); err != nil {
+		return err
+	}
+
 	configSpec := g.Config
 	configSpec.Process.Capabilities.Bounding = caplist
 

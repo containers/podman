@@ -244,7 +244,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	// Apply AppArmor checks and load the default profile if needed.
-	if !c.config.Privileged {
+	if len(c.config.Spec.Process.ApparmorProfile) > 0 {
 		updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
 		if err != nil {
 			return nil, err

@@ -41,7 +41,6 @@ case "${OS_RELEASE_ID}" in
     ubuntu)
 	    apt-get update
 	    apt-get install -y containers-common
-	    sed -ie 's/^\(# \)\?apparmor_profile =.*/apparmor_profile = ""/' /etc/containers/containers.conf
 	    if [[ "$OS_RELEASE_VER" == "19" ]]; then
 		    apt-get purge -y --auto-remove golang*
 		    apt-get install -y golang-1.13
