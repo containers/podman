@@ -1428,11 +1428,26 @@ func (c *Container) generateCurrentUserPasswdEntry() (string, error) {
 	if uid == 0 {
 		return "", nil
 	}
+
 	u, err := user.LookupId(strconv.Itoa(rootless.GetRootlessUID()))
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get current user")
 	}
-	return fmt.Sprintf("%s:x:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Username, c.WorkingDir()), nil
+
+	// Lookup the user to see if it exists in the container image.
+	_, err = lookup.GetUser(c.state.Mountpoint, u.Username)
+	if err != User.ErrNoPasswdEntries {
+		return "", err
+	}
+
+	// If the user's actual home directory exists, or was mounted in - use
+	// that.
+	homeDir := c.WorkingDir()
+	if MountExists(c.config.Spec.Mounts, u.HomeDir) {
+		homeDir = u.HomeDir
+	}
+
+	return fmt.Sprintf("%s:x:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Username, homeDir), nil
 }
 
 // generateUserPasswdEntry generates an /etc/passwd entry for the container user
@@ -1458,11 +1473,8 @@ func (c *Container) generateUserPasswdEntry() (string, error) {
 
 	// Lookup the user to see if it exists in the container image
 	_, err = lookup.GetUser(c.state.Mountpoint, userspec)
-	if err != nil && err != User.ErrNoPasswdEntries {
+	if err != User.ErrNoPasswdEntries {
 		return "", err
-	}
-	if err == nil {
-		return "", nil
 	}
 
 	if groupspec != "" {
@@ -1504,6 +1516,32 @@ func (c *Container) generatePasswd() (string, error) {
 	if pwd == "" {
 		return "", nil
 	}
+
+	// If we are *not* read-only - edit /etc/passwd in the container.
+	// This is *gross* (shows up in changes to the container, will be
+	// committed to images based on the container) but it actually allows us
+	// to add users to the container (a bind mount breaks useradd).
+	// We should never get here twice, because generateUserPasswdEntry will
+	// not return anything if the user already exists in /etc/passwd.
+	if !c.IsReadOnly() {
+		containerPasswd, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd")
+		if err != nil {
+			return "", errors.Wrapf(err, "error looking up location of container %s /etc/passwd", c.ID())
+		}
+
+		f, err := os.OpenFile(containerPasswd, os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			return "", errors.Wrapf(err, "error opening container %s /etc/passwd", c.ID())
+		}
+		defer f.Close()
+
+		if _, err := f.WriteString(pwd); err != nil {
+			return "", errors.Wrapf(err, "unable to append to container %s /etc/passwd", c.ID())
+		}
+
+		return "", nil
+	}
+
 	originPasswdFile := filepath.Join(c.state.Mountpoint, "/etc/passwd")
 	orig, err := ioutil.ReadFile(originPasswdFile)
 	if err != nil && !os.IsNotExist(err) {
