@@ -1,8 +1,9 @@
 %global with_devel 0
 %global with_bundled 1
-%global with_debug 1
 %global with_check 0
 %global with_unit_test 0
+%bcond_without doc
+%bcond_without debug
 
 %if 0%{?fedora} >= 28
 %bcond_without varlink
@@ -10,7 +11,7 @@
 %bcond_with varlink
 %endif
 
-%if 0%{?with_debug}
+%if %{with debug}
 %global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0
 %else
@@ -52,12 +53,13 @@ ExclusiveArch: aarch64 %{arm} ppc64le s390x x86_64
 # The COPR process will uncomment this
 #BuildRequires: golang-bin
 #
-BuildRequires: btrfs-progs-devel
 BuildRequires: glib2-devel
 BuildRequires: glibc-devel
 BuildRequires: glibc-static
 BuildRequires: git
+%if %{with doc}
 BuildRequires: go-md2man
+%endif
 BuildRequires: gpgme-devel
 BuildRequires: libassuan-devel
 BuildRequires: libgpg-error-devel
@@ -349,6 +351,15 @@ This package contains unit tests for project
 providing packages with %{import_path} prefix.
 %endif
 
+%if %{with doc}
+%package manpages
+Summary: Man pages for the %{name} commands
+BuildArch: noarch
+
+%description manpages
+Man pages for the %{name} commands
+%endif
+
 %prep
 %autosetup -Sgit -n %{repo}-%{shortcommit0}
 
@@ -373,7 +384,12 @@ export GOPATH=$(pwd)/_build:$(pwd):%{gopath}
 export BUILDTAGS="varlink selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
-BUILDTAGS=$BUILDTAGS GOMD2MAN=go-md2man make binaries docs
+
+%if %{with doc}
+BUILDTAGS=$BUILDTAGS make binaries docs
+%else
+BUILDTAGS=$BUILDTAGS make binaries
+%endif
 
 # build conmon
 pushd conmon
@@ -394,7 +410,9 @@ install -dp %{buildroot}%{_usr}/lib/systemd/user
 PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
         install.bin \
         install.remote \
+%if %{with doc}
         install.man \
+%endif
         install.cni \
         install.systemd \
         install.completions
@@ -480,8 +498,6 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %license LICENSE
 %doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}
-%{_mandir}/man1/*.1*
-%{_mandir}/man5/*.5*
 %{_datadir}/bash-completion/completions/*
 %{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon
@@ -510,6 +526,12 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %license LICENSE
 %doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}-remote
+
+%if %{with doc}
+%files manpages
+%{_mandir}/man1/*.1*
+%{_mandir}/man5/*.5*
+%endif
 
 %changelog
 * Sat Aug 4 2018 Dan Walsh <dwalsh@redhat.com> - 0.8.1-1.git6b4ab2a

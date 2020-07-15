@@ -4,9 +4,10 @@
 # a script allows uniform behavior across multiple environments and
 # distributions.  The script expects a single argument, as reflected below.
 
-set -e
+set -euo pipefail
 
-cd "${GOSRC:-$(dirname $0)/../}"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd "${GOSRC:-${DIR}/../}"
 
 valid_args() {
     REGEX='^\s+[[:upper:]]+\*[)]'
