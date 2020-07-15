@@ -495,7 +495,7 @@ Tune a container's memory swappiness behavior. Accepts an integer between *0* an
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPEs are **bind**, **volume**, and **tmpfs**.
+Current supported mount TYPEs are **bind**, **volume**, and **tmpfs**. <sup>[[1]](#Footnote1)</sup>
 
        e.g.
 
@@ -754,7 +754,7 @@ Security Options
 - **label=disable**: Turn off label separation for the container
 - **no-new-privileges**: Disable container processes from gaining additional privileges
 - **seccomp=unconfined**: Turn off seccomp confinement for the container
-- **seccomp**=_profile.json_:  Whitelisted syscalls seccomp JSON file to be used as a seccomp filter
+- **seccomp**=_profile.json_:  Allowed syscall list seccomp JSON file to be used as a seccomp filter
 
 Note: Labeling can be disabled for all containers by setting **label=false** in the **libpod.conf**(5) file.
 
@@ -924,7 +924,7 @@ container. Similarly, _source-volume_:_/container-dir_ will mount the volume
 in the host to the container. If no such named volume exists, Podman will
 create one.
 
-The _options_ is a comma delimited list and can be:
+The _options_ is a comma delimited list and can be: <sup>[[1]](#Footnote1)</sup>
 
 * **rw**|**ro**
 * **z**|**Z**
@@ -974,7 +974,7 @@ this behavior by specifying a volume mount propagation property. Making a
 volume shared mounts done under that volume inside container will be
 visible on host and vice versa. Making a volume **slave** enables only one
 way mount propagation and that is mounts done on host under that volume
-will be visible inside container but not the other way around.
+will be visible inside container but not the other way around. <sup>[[1]](#Footnote1)</sup>
 
 To control mount propagation property of volume one can use [**r**]**shared**,
 [**r**]**slave** or [**r**]**private** propagation flag. Propagation property can
@@ -982,7 +982,7 @@ be specified only for bind mounted volumes and not for internal volumes or
 named volumes. For mount propagation to work source mount point (mount point
 where source dir is mounted on) has to have right propagation properties. For
 shared volumes, source mount point has to be shared. And for slave volumes,
-source mount has to be either shared or slave.
+source mount has to be either shared or slave. <sup>[[1]](#Footnote1)</sup>
 
 If you want to recursively mount a volume and all of its submounts into a
 container, then you can use the **rbind** option.  By default the bind option is
@@ -1009,7 +1009,7 @@ properties of source mount. If **findmnt**(1) utility is not available, then one
 can look at mount entry for source mount point in _/proc/self/mountinfo_. Look
 at the "optional fields" and see if any propagation properties are specified.
 In there, **shared:N** means the mount is shared, **master:N** means mount
-is slave, and if nothing is there, the mount is private.
+is slave, and if nothing is there, the mount is private. <sup>[[1]](#Footnote1)</sup>
 
 To change propagation properties of a mount point, use **mount**(8) command. For
 example, if one wants to bind mount source directory _/foo_, one can do
@@ -1400,3 +1400,6 @@ July 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 June 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 
 April 2014, Originally compiled by William Henry <whenry@redhat.com> based on docker.com source material and internal work.
+
+## FOOTNOTES
+<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.
