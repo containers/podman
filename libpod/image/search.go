@@ -64,13 +64,16 @@ type SearchFilter struct {
 // SearchImages searches images based on term and the specified SearchOptions
 // in all registries.
 func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
-	// Check if search term has a registry in it
-	registry, err := sysreg.GetRegistry(term)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registry from %q", term)
-	}
-	if registry != "" {
-		term = term[len(registry)+1:]
+	registry := ""
+
+	// Try to extract a registry from the specified search term.  We
+	// consider everything before the first slash to be the registry.  Note
+	// that we cannot use the reference parser from the containers/image
+	// library as the search term may container arbitrary input such as
+	// wildcards.  See bugzilla.redhat.com/show_bug.cgi?id=1846629.
+	if spl := strings.SplitN(term, "/", 2); len(spl) > 1 {
+		registry = spl[0]
+		term = spl[1]
 	}
 
 	registries, err := getRegistries(registry)

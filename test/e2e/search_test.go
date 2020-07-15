@@ -400,4 +400,16 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Not(Equal(0)))
 	})
+
+	It("podman search with wildcards", func() {
+		search := podmanTest.Podman([]string{"search", "--limit", "30", "registry.redhat.io/*"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(len(search.OutputToStringArray())).To(Equal(31))
+
+		search = podmanTest.Podman([]string{"search", "registry.redhat.io/*openshift*"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(len(search.OutputToStringArray()) > 1).To(BeTrue())
+	})
 })
