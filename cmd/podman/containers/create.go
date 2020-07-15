@@ -202,7 +202,7 @@ func createInit(c *cobra.Command) error {
 	}
 	if c.Flags().Changed("pids-limit") {
 		val := c.Flag("pids-limit").Value.String()
-		pidsLimit, err := strconv.ParseInt(val, 0, 10)
+		pidsLimit, err := strconv.ParseInt(val, 10, 32)
 		if err != nil {
 			return err
 		}
