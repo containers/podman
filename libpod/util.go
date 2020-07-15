@@ -15,6 +15,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/utils"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -253,4 +254,22 @@ func makeHTTPAttachHeader(stream byte, length uint32) []byte {
 	header[0] = stream
 	binary.BigEndian.PutUint32(header[4:], length)
 	return header
+}
+
+// Convert OCICNI port bindings into Inspect-formatted port bindings.
+func makeInspectPortBindings(bindings []ocicni.PortMapping) map[string][]define.InspectHostPort {
+	portBindings := make(map[string][]define.InspectHostPort)
+	for _, port := range bindings {
+		key := fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)
+		hostPorts := portBindings[key]
+		if hostPorts == nil {
+			hostPorts = []define.InspectHostPort{}
+		}
+		hostPorts = append(hostPorts, define.InspectHostPort{
+			HostIP:   port.HostIP,
+			HostPort: fmt.Sprintf("%d", port.HostPort),
+		})
+		portBindings[key] = hostPorts
+	}
+	return portBindings
 }

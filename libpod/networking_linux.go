@@ -587,21 +587,7 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 // network.
 func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, error) {
 	settings := new(define.InspectNetworkSettings)
-	settings.Ports = make(map[string][]define.InspectHostPort)
-	if c.config.PortMappings != nil {
-		for _, port := range c.config.PortMappings {
-			key := fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)
-			mapping := settings.Ports[key]
-			if mapping == nil {
-				mapping = []define.InspectHostPort{}
-			}
-			mapping = append(mapping, define.InspectHostPort{
-				HostIP:   port.HostIP,
-				HostPort: fmt.Sprintf("%d", port.HostPort),
-			})
-			settings.Ports[key] = mapping
-		}
-	}
+	settings.Ports = makeInspectPortBindings(c.config.PortMappings)
 
 	// We can't do more if the network is down.
 	if c.state.NetNS == nil {
