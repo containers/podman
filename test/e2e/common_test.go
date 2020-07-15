@@ -595,3 +595,7 @@ func SkipIfNotFedora() {
 		ginkgo.Skip("Test can only run on Fedora")
 	}
 }
+
+func isRootless() bool {
+	return os.Geteuid() != 0
+}
