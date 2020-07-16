@@ -224,6 +224,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	isSlirpHostForward := false
+	disableHostLoopback := true
 	if ctr.config.NetworkOptions != nil {
 		slirpOptions := ctr.config.NetworkOptions["slirp4netns"]
 		for _, o := range slirpOptions {
@@ -232,6 +233,10 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 				isSlirpHostForward = true
 			case "port_handler=rootlesskit":
 				isSlirpHostForward = false
+			case "allow_host_loopback=true":
+				disableHostLoopback = false
+			case "allow_host_loopback=false":
+				disableHostLoopback = true
 			default:
 				return errors.Errorf("unknown option for slirp4netns: %q", o)
 
@@ -244,7 +249,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
 	}
-	if slirpFeatures.HasDisableHostLoopback {
+	if disableHostLoopback && slirpFeatures.HasDisableHostLoopback {
 		cmdArgs = append(cmdArgs, "--disable-host-loopback")
 	}
 	if slirpFeatures.HasMTU {

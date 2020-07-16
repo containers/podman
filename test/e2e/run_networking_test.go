@@ -244,6 +244,12 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
 
+	It("podman run slirp4netns network with host loopback", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:allow_host_loopback=true", ALPINE, "ping", "-c1", "10.0.2.2"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run network expose ports in image metadata", func() {
 		session := podmanTest.Podman([]string{"create", "-dt", "-P", nginx})
 		session.Wait(90)
