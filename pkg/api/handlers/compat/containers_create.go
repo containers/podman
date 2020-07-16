@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
 	image2 "github.com/containers/libpod/v2/libpod/image"
 	"github.com/containers/libpod/v2/pkg/api/handlers"
 	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
@@ -45,6 +46,11 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
 	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchImage {
+			utils.Error(w, "No such image", http.StatusNotFound, err)
+			return
+		}
+
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
 		return
 	}
