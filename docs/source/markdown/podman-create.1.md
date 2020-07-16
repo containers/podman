@@ -553,7 +553,10 @@ Valid values are:
 - `<network-name>|<network-id>`: connect to a user-defined network, multiple networks should be comma separated
 - `ns:<path>`: path to a network namespace to join
 - `private`: create a new namespace for the container (default)
-- `slirp4netns`: use slirp4netns to create a user network stack.  This is the default for rootless containers
+- `slirp4netns[:OPTIONS,...]`: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
+  **port_handler=rootlesskit**: Use rootlesskit for port forwarding.  Default.
+  **port_handler=slirp4netns**: Use the slirp4netns port forwarding.
+  **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`).  Default to false.
 
 **--network-alias**=*alias*
 
