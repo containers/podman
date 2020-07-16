@@ -191,6 +191,7 @@ func DefaultConfig() (*Config, error) {
 			SeccompProfile: SeccompDefaultPath,
 			ShmSize:        DefaultShmSize,
 			TZ:             "",
+			Umask:          "0022",
 			UTSNS:          "private",
 			UserNS:         "host",
 			UserNSSize:     DefaultUserNSSize,
@@ -503,4 +504,8 @@ func (c *Config) DetachKeys() string {
 // Tz returns the timezone in the container
 func (c *Config) TZ() string {
 	return c.Containers.TZ
+}
+
+func (c *Config) Umask() string {
+	return c.Containers.Umask
 }
