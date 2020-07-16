@@ -2,6 +2,7 @@ package common
 
 import (
 	"net"
+	"strings"
 
 	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/libpod/define"
@@ -164,11 +165,18 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 			return nil, err
 		}
 
+		parts := strings.SplitN(network, ":", 2)
+
 		ns, cniNets, err := specgen.ParseNetworkNamespace(network)
 		if err != nil {
 			return nil, err
 		}
 
+		if len(parts) > 1 {
+			opts.NetworkOptions = make(map[string][]string)
+			opts.NetworkOptions[parts[0]] = strings.Split(parts[1], ",")
+			cniNets = nil
+		}
 		opts.Network = ns
 		opts.CNINetworks = cniNets
 	}

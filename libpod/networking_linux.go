@@ -223,6 +223,22 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
+	isSlirpHostForward := false
+	if ctr.config.NetworkOptions != nil {
+		slirpOptions := ctr.config.NetworkOptions["slirp4netns"]
+		for _, o := range slirpOptions {
+			switch o {
+			case "port_handler=slirp4netns":
+				isSlirpHostForward = true
+			case "port_handler=rootlesskit":
+				isSlirpHostForward = false
+			default:
+				return errors.Errorf("unknown option for slirp4netns: %q", o)
+
+			}
+		}
+	}
+
 	cmdArgs := []string{}
 	slirpFeatures, err := checkSlirpFlags(path)
 	if err != nil {
@@ -242,7 +258,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	}
 
 	var apiSocket string
-	if havePortMapping && ctr.config.NetMode.IsPortForwardViaSlirpHostFwd() {
+	if havePortMapping && isSlirpHostForward {
 		apiSocket = filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
 		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
 	}
@@ -310,7 +326,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	}
 
 	if havePortMapping {
-		if ctr.config.NetMode.IsPortForwardViaSlirpHostFwd() {
+		if isSlirpHostForward {
 			return r.setupRootlessPortMappingViaSlirp(ctr, cmd, apiSocket)
 		} else {
 			return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)

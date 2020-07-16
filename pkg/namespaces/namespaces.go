@@ -17,9 +17,7 @@ const (
 	nsType        = "ns"
 	podType       = "pod"
 	privateType   = "private"
-	rlkFwdType    = "port_handler=rootlesskit"
 	shareableType = "shareable"
-	slirpFwdType  = "port_handler=slirp4netns"
 	slirpType     = "slirp4netns"
 )
 
@@ -388,28 +386,6 @@ func (n NetworkMode) IsBridge() bool {
 // IsSlirp4netns indicates if we are running a rootless network stack
 func (n NetworkMode) IsSlirp4netns() bool {
 	return n == slirpType || strings.HasPrefix(string(n), slirpType+":")
-}
-
-// IsPortForwardViaRootlessKit indicates if we are doing rootless port-forwarding via rootlesskit/rootlessport
-func (n NetworkMode) IsPortForwardViaRootlessKit() bool {
-	if !n.IsSlirp4netns() {
-		return false
-	}
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) == 2 {
-		return parts[1] == rlkFwdType
-	}
-	return true
-}
-
-// IsPortForwardViaSlirpHostFwd indicates if we are doing rootless port-forwarding via slirp4netns add_hostfwd()
-func (n NetworkMode) IsPortForwardViaSlirpHostFwd() bool {
-	if !n.IsSlirp4netns() {
-		return false
-	}
-	// below here, implied IsSlirp4netns() == true
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[1] == slirpFwdType
 }
 
 // IsNS indicates a network namespace passed in by path (ns:<path>)

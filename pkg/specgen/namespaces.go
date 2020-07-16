@@ -109,16 +109,6 @@ func validateNetNS(n *Namespace) error {
 	}
 	switch n.NSMode {
 	case Slirp:
-		if n.Value != "" {
-			parts := strings.Split(n.Value, ",")
-			for _, p := range parts {
-				switch p {
-				case "port_handler=slirp4netns", "port_handler=rootlesskit":
-				default:
-					return errors.Errorf("invalid value for slirp %q", n.Value)
-				}
-			}
-		}
 		break
 	case "", Default, Host, Path, FromContainer, FromPod, Private, NoNetwork, Bridge:
 		break
@@ -263,11 +253,7 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 	// Net defaults to Slirp on rootless
 	switch {
 	case ns == "slirp4netns", strings.HasPrefix(ns, "slirp4netns:"):
-		split := strings.SplitN(ns, ":", 2)
 		toReturn.NSMode = Slirp
-		if len(split) > 1 {
-			toReturn.Value = split[1]
-		}
 	case ns == "pod":
 		toReturn.NSMode = FromPod
 	case ns == "":

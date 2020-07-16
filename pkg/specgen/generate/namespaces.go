@@ -266,6 +266,9 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	if s.StaticMAC != nil {
 		toReturn = append(toReturn, libpod.WithStaticMAC(*s.StaticMAC))
 	}
+	if s.NetworkOptions != nil {
+		toReturn = append(toReturn, libpod.WithNetworkOptions(s.NetworkOptions))
+	}
 
 	return toReturn, nil
 }
@@ -470,7 +473,7 @@ func GetNamespaceOptions(ns []string) ([]libpod.PodCreateOption, error) {
 		case "pid":
 			options = append(options, libpod.WithPodPID())
 		case "user":
-			return erroredOptions, errors.Errorf("User sharing functionality not supported on pod level")
+			continue
 		case "ipc":
 			options = append(options, libpod.WithPodIPC())
 		case "uts":

@@ -42,6 +42,8 @@ type NetOptions struct {
 	PublishPorts       []specgen.PortMapping
 	StaticIP           *net.IP
 	StaticMAC          *net.HardwareAddr
+	// NetworkOptions are additional options for each network
+	NetworkOptions map[string][]string
 }
 
 // All CLI inspect commands and inspect sub-commands use the same options

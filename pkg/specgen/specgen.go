@@ -378,6 +378,9 @@ type ContainerNetworkConfig struct {
 	// Conflicts with UseImageHosts.
 	// Optional.
 	HostAdd []string `json:"hostadd,omitempty"`
+	// NetworkOptions are additional options for each network
+	// Optional.
+	NetworkOptions map[string][]string `json:"network_options,omitempty"`
 }
 
 // ContainerResourceConfig contains information on container resource limits.

@@ -341,6 +341,8 @@ type ContainerConfig struct {
 	Networks []string `json:"networks,omitempty"`
 	// Network mode specified for the default network.
 	NetMode namespaces.NetworkMode `json:"networkMode,omitempty"`
+	// NetworkOptions are additional options for each network
+	NetworkOptions map[string][]string `json:"network_options,omitempty"`
 
 	// Image Config
 

@@ -1003,6 +1003,19 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 	}
 }
 
+// WithNetworkOptions sets additional options for the networks.
+func WithNetworkOptions(options map[string][]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.NetworkOptions = options
+
+		return nil
+	}
+}
+
 // WithStaticMAC indicates that the container should request a static MAC from
 // the CNI plugins.
 // It cannot be set unless WithNetNS has already been passed.
