@@ -64,7 +64,7 @@ require (
 	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
 	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	k8s.io/api v0.18.5
+	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.6
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
