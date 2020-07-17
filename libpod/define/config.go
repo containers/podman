@@ -82,3 +82,6 @@ const (
 	SdNotifyModeConmon    = "conmon"
 	SdNotifyModeIgnore    = "ignore"
 )
+
+// DefaultRlimitValue is the value set by default for nofile and nproc
+const RLimitDefaultValue = uint64(1048576)
