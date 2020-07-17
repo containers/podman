@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"syscall"
 
 	units "github.com/docker/go-units"
@@ -84,6 +85,14 @@ func (c *ContainersConfig) validateTZ() error {
 	_, err := os.Stat(zonePath)
 	if err != nil {
 		return fmt.Errorf("Unrecognized timezone %s", zonePath)
+	}
+	return nil
+}
+
+func (c *ContainersConfig) validateUmask() error {
+	validUmask := regexp.MustCompile(`^[0-7]{1,4}$`)
+	if !validUmask.MatchString(c.Umask) {
+		return fmt.Errorf("Not a valid Umask %s", c.Umask)
 	}
 	return nil
 }

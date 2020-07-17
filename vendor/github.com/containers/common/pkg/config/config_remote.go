@@ -27,3 +27,7 @@ func (c *ContainersConfig) validateUlimits() error {
 func (c *ContainersConfig) validateTZ() error {
 	return nil
 }
+
+func (c *ContainersConfig) validateUmask() error {
+	return nil
+}
