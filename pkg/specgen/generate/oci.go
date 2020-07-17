@@ -20,10 +20,9 @@ import (
 
 func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 	var (
-		kernelMax  uint64 = 1048576
-		isRootless        = rootless.IsRootless()
-		nofileSet         = false
-		nprocSet          = false
+		isRootless = rootless.IsRootless()
+		nofileSet  = false
+		nprocSet   = false
 	)
 
 	if s.Rlimits == nil {
@@ -45,8 +44,8 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 	// files and number of processes to the maximum they can be set to
 	// (without overriding a sysctl)
 	if !nofileSet {
-		max := kernelMax
-		current := kernelMax
+		max := define.RLimitDefaultValue
+		current := define.RLimitDefaultValue
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
@@ -62,8 +61,8 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 		g.AddProcessRlimits("RLIMIT_NOFILE", max, current)
 	}
 	if !nprocSet {
-		max := kernelMax
-		current := kernelMax
+		max := define.RLimitDefaultValue
+		current := define.RLimitDefaultValue
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {

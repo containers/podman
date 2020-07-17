@@ -77,6 +77,7 @@ func init() {
 	cobra.OnInitialize(
 		loggingHook,
 		syslogHook,
+		earlyInitHook,
 	)
 
 	rootFlags(rootCmd, registry.PodmanConfig())

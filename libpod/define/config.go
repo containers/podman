@@ -75,3 +75,13 @@ const JSONLogging = "json-file"
 
 // NoLogging is the string conmon expects when specifying to use no log driver whatsoever
 const NoLogging = "none"
+
+// Strings used for --sdnotify option to podman
+const (
+	SdNotifyModeContainer = "container"
+	SdNotifyModeConmon    = "conmon"
+	SdNotifyModeIgnore    = "ignore"
+)
+
+// DefaultRlimitValue is the value set by default for nofile and nproc
+const RLimitDefaultValue = uint64(1048576)
