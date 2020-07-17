@@ -235,6 +235,35 @@ var _ = Describe("Podman run networking", func() {
 		Expect(ncBusy).To(ExitWithError())
 	})
 
+	It("podman run network expose host port 8081 to container port 8000 using rootlesskit port handler", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=rootlesskit", "-dt", "-p", "8081:8000", ALPINE, "/bin/sh"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+
+		ncBusy := SystemExec("nc", []string{"-l", "-p", "8081"})
+		Expect(ncBusy).To(ExitWithError())
+	})
+
+	It("podman run network expose host port 8082 to container port 8000 using slirp4netns port handler", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=slirp4netns", "-dt", "-p", "8082:8000", ALPINE, "/bin/sh"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+		ncBusy := SystemExec("nc", []string{"-l", "-p", "8082"})
+		Expect(ncBusy).To(ExitWithError())
+	})
+
+	It("podman run network expose host port 8080 to container port 8000 using invalid port handler", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=invalid", "-dt", "-p", "8080:8000", ALPINE, "/bin/sh"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman run slirp4netns network with host loopback", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:allow_host_loopback=true", ALPINE, "ping", "-c1", "10.0.2.2"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run network expose ports in image metadata", func() {
 		session := podmanTest.Podman([]string{"create", "-dt", "-P", nginx})
 		session.Wait(90)

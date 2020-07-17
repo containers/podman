@@ -417,6 +417,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.DNSOptions = c.Net.DNSOptions
 	s.StaticIP = c.Net.StaticIP
 	s.StaticMAC = c.Net.StaticMAC
+	s.NetworkOptions = c.Net.NetworkOptions
 	s.UseImageHosts = c.Net.NoHosts
 
 	s.ImageVolumeMode = c.ImageVolume

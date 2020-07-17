@@ -173,6 +173,19 @@ type slirpFeatures struct {
 	HasEnableSeccomp       bool
 }
 
+type slirp4netnsCmdArg struct {
+	Proto     string `json:"proto,omitempty"`
+	HostAddr  string `json:"host_addr"`
+	HostPort  int32  `json:"host_port"`
+	GuestAddr string `json:"guest_addr"`
+	GuestPort int32  `json:"guest_port"`
+}
+
+type slirp4netnsCmd struct {
+	Execute string            `json:"execute"`
+	Args    slirp4netnsCmdArg `json:"arguments"`
+}
+
 func checkSlirpFlags(path string) (*slirpFeatures, error) {
 	cmd := exec.Command(path, "--help")
 	out, err := cmd.CombinedOutput()
@@ -210,12 +223,33 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
+	isSlirpHostForward := false
+	disableHostLoopback := true
+	if ctr.config.NetworkOptions != nil {
+		slirpOptions := ctr.config.NetworkOptions["slirp4netns"]
+		for _, o := range slirpOptions {
+			switch o {
+			case "port_handler=slirp4netns":
+				isSlirpHostForward = true
+			case "port_handler=rootlesskit":
+				isSlirpHostForward = false
+			case "allow_host_loopback=true":
+				disableHostLoopback = false
+			case "allow_host_loopback=false":
+				disableHostLoopback = true
+			default:
+				return errors.Errorf("unknown option for slirp4netns: %q", o)
+
+			}
+		}
+	}
+
 	cmdArgs := []string{}
 	slirpFeatures, err := checkSlirpFlags(path)
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
 	}
-	if slirpFeatures.HasDisableHostLoopback {
+	if disableHostLoopback && slirpFeatures.HasDisableHostLoopback {
 		cmdArgs = append(cmdArgs, "--disable-host-loopback")
 	}
 	if slirpFeatures.HasMTU {
@@ -226,6 +260,12 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	}
 	if slirpFeatures.HasEnableSeccomp {
 		cmdArgs = append(cmdArgs, "--enable-seccomp")
+	}
+
+	var apiSocket string
+	if havePortMapping && isSlirpHostForward {
+		apiSocket = filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
+		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
 	}
 
 	// the slirp4netns arguments being passed are describes as follows:
@@ -291,7 +331,11 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	}
 
 	if havePortMapping {
-		return r.setupRootlessPortMapping(ctr, netnsPath)
+		if isSlirpHostForward {
+			return r.setupRootlessPortMappingViaSlirp(ctr, cmd, apiSocket)
+		} else {
+			return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
+		}
 	}
 	return nil
 }
@@ -342,7 +386,7 @@ func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout t
 	return nil
 }
 
-func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) error {
+func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string) error {
 	syncR, syncW, err := os.Pipe()
 	if err != nil {
 		return errors.Wrapf(err, "failed to open pipe")
@@ -416,6 +460,90 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) err
 		return err
 	}
 	logrus.Debug("rootlessport is ready")
+	return nil
+}
+
+func (r *Runtime) setupRootlessPortMappingViaSlirp(ctr *Container, cmd *exec.Cmd, apiSocket string) (err error) {
+	const pidWaitTimeout = 60 * time.Second
+	chWait := make(chan error)
+	go func() {
+		interval := 25 * time.Millisecond
+		for i := time.Duration(0); i < pidWaitTimeout; i += interval {
+			// Check if the process is still running.
+			var status syscall.WaitStatus
+			pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
+			if err != nil {
+				break
+			}
+			if pid != cmd.Process.Pid {
+				continue
+			}
+			if status.Exited() || status.Signaled() {
+				chWait <- fmt.Errorf("slirp4netns exited with status %d", status.ExitStatus())
+			}
+			time.Sleep(interval)
+		}
+	}()
+	defer close(chWait)
+
+	// wait that API socket file appears before trying to use it.
+	if _, err := WaitForFile(apiSocket, chWait, pidWaitTimeout); err != nil {
+		return errors.Wrapf(err, "waiting for slirp4nets to create the api socket file %s", apiSocket)
+	}
+
+	// for each port we want to add we need to open a connection to the slirp4netns control socket
+	// and send the add_hostfwd command.
+	for _, i := range ctr.config.PortMappings {
+		conn, err := net.Dial("unix", apiSocket)
+		if err != nil {
+			return errors.Wrapf(err, "cannot open connection to %s", apiSocket)
+		}
+		defer func() {
+			if err := conn.Close(); err != nil {
+				logrus.Errorf("unable to close connection: %q", err)
+			}
+		}()
+		hostIP := i.HostIP
+		if hostIP == "" {
+			hostIP = "0.0.0.0"
+		}
+		apiCmd := slirp4netnsCmd{
+			Execute: "add_hostfwd",
+			Args: slirp4netnsCmdArg{
+				Proto:     i.Protocol,
+				HostAddr:  hostIP,
+				HostPort:  i.HostPort,
+				GuestPort: i.ContainerPort,
+			},
+		}
+		// create the JSON payload and send it.  Mark the end of request shutting down writes
+		// to the socket, as requested by slirp4netns.
+		data, err := json.Marshal(&apiCmd)
+		if err != nil {
+			return errors.Wrapf(err, "cannot marshal JSON for slirp4netns")
+		}
+		if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", data))); err != nil {
+			return errors.Wrapf(err, "cannot write to control socket %s", apiSocket)
+		}
+		if err := conn.(*net.UnixConn).CloseWrite(); err != nil {
+			return errors.Wrapf(err, "cannot shutdown the socket %s", apiSocket)
+		}
+		buf := make([]byte, 2048)
+		readLength, err := conn.Read(buf)
+		if err != nil {
+			return errors.Wrapf(err, "cannot read from control socket %s", apiSocket)
+		}
+		// if there is no 'error' key in the received JSON data, then the operation was
+		// successful.
+		var y map[string]interface{}
+		if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
+			return errors.Wrapf(err, "error parsing error status from slirp4netns")
+		}
+		if e, found := y["error"]; found {
+			return errors.Errorf("error from slirp4netns while setting up port redirection: %v", e)
+		}
+	}
+	logrus.Debug("slirp4netns port-forwarding setup via add_hostfwd is ready")
 	return nil
 }
 

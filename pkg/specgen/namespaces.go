@@ -108,7 +108,9 @@ func validateNetNS(n *Namespace) error {
 		return nil
 	}
 	switch n.NSMode {
-	case "", Default, Host, Path, FromContainer, FromPod, Private, NoNetwork, Bridge, Slirp:
+	case Slirp:
+		break
+	case "", Default, Host, Path, FromContainer, FromPod, Private, NoNetwork, Bridge:
 		break
 	default:
 		return errors.Errorf("invalid network %q", n.NSMode)
@@ -119,8 +121,8 @@ func validateNetNS(n *Namespace) error {
 		if len(n.Value) < 1 {
 			return errors.Errorf("namespace mode %s requires a value", n.NSMode)
 		}
-	} else {
-		// All others must NOT set a string value
+	} else if n.NSMode != Slirp {
+		// All others except must NOT set a string value
 		if len(n.Value) > 0 {
 			return errors.Errorf("namespace value %s cannot be provided with namespace mode %s", n.Value, n.NSMode)
 		}
@@ -250,7 +252,7 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 	var cniNetworks []string
 	// Net defaults to Slirp on rootless
 	switch {
-	case ns == "slirp4netns":
+	case ns == "slirp4netns", strings.HasPrefix(ns, "slirp4netns:"):
 		toReturn.NSMode = Slirp
 	case ns == "pod":
 		toReturn.NSMode = FromPod
