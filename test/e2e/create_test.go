@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -499,4 +500,46 @@ var _ = Describe("Podman create", func() {
 		Expect(data[0].Config.Timezone).To(Equal("local"))
 	})
 
+	It("podman create --umask", func() {
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test only works on crun")
+		}
+
+		session := podmanTest.Podman([]string{"create", "--name", "default", ALPINE})
+		session.WaitWithDefaultTimeout()
+		inspect := podmanTest.Podman([]string{"inspect", "default"})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Config.Umask).To(Equal("0022"))
+
+		session = podmanTest.Podman([]string{"create", "--umask", "0002", "--name", "umask", ALPINE})
+		session.WaitWithDefaultTimeout()
+		inspect = podmanTest.Podman([]string{"inspect", "umask"})
+		inspect.WaitWithDefaultTimeout()
+		data = inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Config.Umask).To(Equal("0002"))
+
+		session = podmanTest.Podman([]string{"create", "--umask", "0077", "--name", "fedora", fedoraMinimal})
+		session.WaitWithDefaultTimeout()
+		inspect = podmanTest.Podman([]string{"inspect", "fedora"})
+		inspect.WaitWithDefaultTimeout()
+		data = inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Config.Umask).To(Equal("0077"))
+
+		session = podmanTest.Podman([]string{"create", "--umask", "22", "--name", "umask-short", ALPINE})
+		session.WaitWithDefaultTimeout()
+		inspect = podmanTest.Podman([]string{"inspect", "umask-short"})
+		inspect.WaitWithDefaultTimeout()
+		data = inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Config.Umask).To(Equal("0022"))
+
+		session = podmanTest.Podman([]string{"create", "--umask", "9999", "--name", "bad", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ErrorToString()).To(ContainSubstring("Invalid umask"))
+	})
 })

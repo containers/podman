@@ -833,6 +833,10 @@ standard input.
 
 Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
 
+**--umask**=*umask*
+
+Set the umask inside the container. Defaults to `0022`.
+
 **--uidmap**=*container_uid:host_uid:amount*
 
 UID map for the user namespace.  Using this flag will run the container with user namespace enabled.  It conflicts with the `--userns` and `--subuidname` flags.

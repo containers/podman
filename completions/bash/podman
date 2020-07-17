@@ -2119,12 +2119,13 @@ _podman_container_run() {
 		--shm-size
 		--stop-signal
 		--stop-timeout
-		--tmpfs
-		--tz
 		--subgidname
 		--subuidname
 		--sysctl
 		--systemd
+		--tmpfs
+		--tz
+		--umask
 		--uidmap
 		--ulimit
 		--user -u

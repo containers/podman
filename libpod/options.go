@@ -1607,6 +1607,20 @@ func WithTimezone(path string) CtrCreateOption {
 	}
 }
 
+// WithUmask sets the umask in the container
+func WithUmask(umask string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		if !define.UmaskRegex.MatchString(umask) {
+			return errors.Wrapf(define.ErrInvalidArg, "Invalid umask string %s", umask)
+		}
+		ctr.config.Umask = umask
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodName sets the name of the pod.

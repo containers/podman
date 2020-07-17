@@ -61,6 +61,8 @@ type InspectContainerConfig struct {
 	// systemd mode, the container configuration is customized to optimize
 	// running systemd in the container.
 	SystemdMode bool `json:"SystemdMode,omitempty"`
+	// Umask is the umask inside the container.
+	Umask string `json:"Umask,omitempty"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

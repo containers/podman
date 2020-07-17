@@ -29,6 +29,9 @@ var (
 type Generator struct {
 	Config       *rspec.Spec
 	HostSpecific bool
+	// This is used to keep a cache of the ENVs added to improve
+	// performance when adding a huge number of ENV variables
+	envMap map[string]int
 }
 
 // ExportOptions have toggles for exporting only certain parts of the specification
@@ -236,7 +239,12 @@ func New(os string) (generator Generator, err error) {
 		}
 	}
 
-	return Generator{Config: &config}, nil
+	envCache := map[string]int{}
+	if config.Process != nil {
+		envCache = createEnvCacheMap(config.Process.Env)
+	}
+
+	return Generator{Config: &config, envMap: envCache}, nil
 }
 
 // NewFromSpec creates a configuration Generator from a given
@@ -246,8 +254,14 @@ func New(os string) (generator Generator, err error) {
 //
 //   generator := Generator{Config: config}
 func NewFromSpec(config *rspec.Spec) Generator {
+	envCache := map[string]int{}
+	if config != nil && config.Process != nil {
+		envCache = createEnvCacheMap(config.Process.Env)
+	}
+
 	return Generator{
 		Config: config,
+		envMap: envCache,
 	}
 }
 
@@ -273,9 +287,25 @@ func NewFromTemplate(r io.Reader) (Generator, error) {
 	if err := json.NewDecoder(r).Decode(&config); err != nil {
 		return Generator{}, err
 	}
+
+	envCache := map[string]int{}
+	if config.Process != nil {
+		envCache = createEnvCacheMap(config.Process.Env)
+	}
+
 	return Generator{
 		Config: &config,
+		envMap: envCache,
 	}, nil
+}
+
+// createEnvCacheMap creates a hash map with the ENV variables given by the config
+func createEnvCacheMap(env []string) map[string]int {
+	envMap := make(map[string]int, len(env))
+	for i, val := range env {
+		envMap[val] = i
+	}
+	return envMap
 }
 
 // SetSpec sets the configuration in the Generator g.
@@ -414,6 +444,12 @@ func (g *Generator) SetProcessUsername(username string) {
 	g.Config.Process.User.Username = username
 }
 
+// SetProcessUmask sets g.Config.Process.User.Umask.
+func (g *Generator) SetProcessUmask(umask uint32) {
+	g.initConfigProcess()
+	g.Config.Process.User.Umask = umask
+}
+
 // SetProcessGID sets g.Config.Process.User.GID.
 func (g *Generator) SetProcessGID(gid uint32) {
 	g.initConfigProcess()
@@ -456,21 +492,44 @@ func (g *Generator) ClearProcessEnv() {
 		return
 	}
 	g.Config.Process.Env = []string{}
+	// Clear out the env cache map as well
+	g.envMap = map[string]int{}
 }
 
 // AddProcessEnv adds name=value into g.Config.Process.Env, or replaces an
 // existing entry with the given name.
 func (g *Generator) AddProcessEnv(name, value string) {
+	if name == "" {
+		return
+	}
+
+	g.initConfigProcess()
+	g.addEnv(fmt.Sprintf("%s=%s", name, value), name)
+}
+
+// AddMultipleProcessEnv adds multiple name=value into g.Config.Process.Env, or replaces
+// existing entries with the given name.
+func (g *Generator) AddMultipleProcessEnv(envs []string) {
 	g.initConfigProcess()
 
-	env := fmt.Sprintf("%s=%s", name, value)
-	for idx := range g.Config.Process.Env {
-		if strings.HasPrefix(g.Config.Process.Env[idx], name+"=") {
-			g.Config.Process.Env[idx] = env
-			return
-		}
+	for _, val := range envs {
+		split := strings.SplitN(val, "=", 2)
+		g.addEnv(val, split[0])
 	}
-	g.Config.Process.Env = append(g.Config.Process.Env, env)
+}
+
+// addEnv looks through adds ENV to the Process and checks envMap for
+// any duplicates
+// This is called by both AddMultipleProcessEnv and AddProcessEnv
+func (g *Generator) addEnv(env, key string) {
+	if idx, ok := g.envMap[key]; ok {
+		// The ENV exists in the cache, so change its value in g.Config.Process.Env
+		g.Config.Process.Env[idx] = env
+	} else {
+		// else the env doesn't exist, so add it and add it's index to g.envMap
+		g.Config.Process.Env = append(g.Config.Process.Env, env)
+		g.envMap[key] = len(g.Config.Process.Env) - 1
+	}
 }
 
 // AddProcessRlimits adds rlimit into g.Config.Process.Rlimits.
@@ -1443,7 +1502,7 @@ func (g *Generator) AddDevice(device rspec.LinuxDevice) {
 			return
 		}
 		if dev.Type == device.Type && dev.Major == device.Major && dev.Minor == device.Minor {
-			fmt.Fprintln(os.Stderr, "WARNING: The same type, major and minor should not be used for multiple devices.")
+			fmt.Fprintf(os.Stderr, "WARNING: Creating device %q with same type, major and minor as existing %q.\n", device.Path, dev.Path)
 		}
 	}
 

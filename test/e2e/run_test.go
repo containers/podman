@@ -1081,4 +1081,35 @@ USER mail`
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(limit))
 	})
+
+	It("podman run umask", func() {
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test only works on crun")
+		}
+
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "umask"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("0022"))
+
+		session = podmanTest.Podman([]string{"run", "--umask", "0002", "--rm", ALPINE, "sh", "-c", "umask"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("0002"))
+
+		session = podmanTest.Podman([]string{"run", "--umask", "0077", "--rm", fedoraMinimal, "umask"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("0077"))
+
+		session = podmanTest.Podman([]string{"run", "--umask", "22", "--rm", ALPINE, "sh", "-c", "umask"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("0022"))
+
+		session = podmanTest.Podman([]string{"run", "--umask", "9999", "--rm", ALPINE, "sh", "-c", "umask"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ErrorToString()).To(ContainSubstring("Invalid umask"))
+	})
 })

@@ -613,6 +613,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Remove = c.Rm
 	s.StopTimeout = &c.StopTimeout
 	s.Timezone = c.Timezone
+	s.Umask = c.Umask
 
 	return nil
 }
