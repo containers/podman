@@ -1,7 +1,6 @@
 package images
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -11,9 +10,11 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -98,7 +99,10 @@ func images(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	imgs := sortImages(summaries)
+	imgs, err := sortImages(summaries)
+	if err != nil {
+		return err
+	}
 	switch {
 	case listFlag.quiet:
 		return writeID(imgs)
@@ -170,14 +174,18 @@ func writeTemplate(imgs []imageReporter) error {
 	return tmpl.Execute(w, imgs)
 }
 
-func sortImages(imageS []*entities.ImageSummary) []imageReporter {
+func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
 	imgs := make([]imageReporter, 0, len(imageS))
+	var err error
 	for _, e := range imageS {
 		var h imageReporter
 		if len(e.RepoTags) > 0 {
 			for _, tag := range e.RepoTags {
 				h.ImageSummary = *e
-				h.Repository, h.Tag = tokenRepoTag(tag)
+				h.Repository, h.Tag, err = tokenRepoTag(tag)
+				if err != nil {
+					return nil, errors.Wrapf(err, "error parsing repository tag %q:", tag)
+				}
 				imgs = append(imgs, h)
 			}
 		} else {
@@ -189,23 +197,32 @@ func sortImages(imageS []*entities.ImageSummary) []imageReporter {
 	}
 
 	sort.Slice(imgs, sortFunc(listFlag.sort, imgs))
-	return imgs
+	return imgs, err
 }
 
-func tokenRepoTag(tag string) (string, string) {
-	tokens := strings.Split(tag, ":")
-	switch len(tokens) {
-	case 0:
-		return tag, ""
-	case 1:
-		return tokens[0], ""
-	case 2:
-		return tokens[0], tokens[1]
-	case 3:
-		return tokens[0] + ":" + tokens[1], tokens[2]
-	default:
-		return "<N/A>", ""
+func tokenRepoTag(ref string) (string, string, error) {
+
+	if ref == "<none>:<none>" {
+		return "<none>", "<none>", nil
 	}
+
+	repo, err := reference.Parse(ref)
+	if err != nil {
+		return "", "", err
+	}
+
+	named, ok := repo.(reference.Named)
+	if !ok {
+		return ref, "", nil
+	}
+
+	tagged, ok := repo.(reference.Tagged)
+	if !ok {
+		return named.Name(), "", nil
+	}
+
+	return named.Name(), tagged.Tag(), nil
+
 }
 
 func sortFunc(key string, data []imageReporter) func(i, j int) bool {
