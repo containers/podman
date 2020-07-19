@@ -230,13 +230,18 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			}
 		}
 
-		named, err := reference.ParseNormalizedNamed(name)
-		if err != nil {
-			return nil, err
-		}
-		repository = named.Name()
-		if tagged, isTagged := named.(reference.NamedTagged); isTagged {
-			tag = tagged.Tag()
+		if len(name) > 0 {
+			named, err := reference.ParseNormalizedNamed(name)
+			if err != nil {
+				return nil, err
+			}
+			repository = named.Name()
+			if tagged, isTagged := named.(reference.NamedTagged); isTagged {
+				tag = tagged.Tag()
+			}
+		} else {
+			repository = "<none>"
+			tag = "<none>"
 		}
 
 		report := entities.SystemDfImageReport{
