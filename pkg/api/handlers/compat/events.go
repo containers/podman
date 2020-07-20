@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -15,6 +16,49 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// filtersFromRequests extracts the "filters" parameter from the specified
+// http.Request.  The paramater can either be a `map[string][]string` as done
+// in new versions of Docker and libpod, or a `map[string]map[string]bool` as
+// done in older versions of Docker.  We have to do a bit of Yoga to support
+// both - just as Docker does as well.
+//
+// Please refer to https://github.com/containers/podman/issues/6899 for some
+// background.
+func filtersFromRequest(r *http.Request) ([]string, error) {
+	var (
+		compatFilters map[string]map[string]bool
+		filters       map[string][]string
+		libpodFilters []string
+	)
+	raw := []byte(r.Form.Get("filters"))
+
+	// Backwards compat with older versions of Docker.
+	if err := json.Unmarshal(raw, &compatFilters); err == nil {
+		for filterKey, filterMap := range compatFilters {
+			for filterValue, toAdd := range filterMap {
+				if toAdd {
+					libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", filterKey, filterValue))
+				}
+			}
+		}
+		return libpodFilters, nil
+	}
+
+	if err := json.Unmarshal(raw, &filters); err != nil {
+		return nil, err
+	}
+
+	for filterKey, filterSlice := range filters {
+		for _, filterValue := range filterSlice {
+			libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", filterKey, filterValue))
+		}
+	}
+
+	return libpodFilters, nil
+}
+
+// NOTE: this endpoint serves both the docker-compatible one and the new libpod
+// one.
 func GetEvents(w http.ResponseWriter, r *http.Request) {
 	var (
 		fromStart bool
@@ -23,11 +67,12 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		json      = jsoniter.ConfigCompatibleWithStandardLibrary // FIXME: this should happen on the package level
 	)
 
+	// NOTE: the "filters" parameter is extracted separately for backwards
+	// compat via `fitlerFromRequest()`.
 	query := struct {
-		Since   string              `schema:"since"`
-		Until   string              `schema:"until"`
-		Filters map[string][]string `schema:"filters"`
-		Stream  bool                `schema:"stream"`
+		Since  string `schema:"since"`
+		Until  string `schema:"until"`
+		Stream bool   `schema:"stream"`
 	}{
 		Stream: true,
 	}
@@ -36,19 +81,14 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var libpodFilters = []string{}
-	if _, found := r.URL.Query()["filters"]; found {
-		for k, v := range query.Filters {
-			if len(v) == 0 {
-				utils.Error(w, "Failed to parse parameters", http.StatusBadRequest, errors.Errorf("empty value for filter %q", k))
-				return
-			}
-			libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", k, v[0]))
-		}
-	}
-
 	if len(query.Since) > 0 || len(query.Until) > 0 {
 		fromStart = true
+	}
+
+	libpodFilters, err := filtersFromRequest(r)
+	if err != nil {
+		utils.Error(w, "Failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
 	}
 
 	eventChannel := make(chan *events.Event)
