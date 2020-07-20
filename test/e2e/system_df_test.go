@@ -60,4 +60,18 @@ var _ = Describe("podman system df", func() {
 		Expect(containers[1]).To(Equal("2"))
 		Expect(volumes[2]).To(Equal("1"))
 	})
+
+	It("podman system df image with no tag", func() {
+		session := podmanTest.PodmanNoCache([]string{"create", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.PodmanNoCache([]string{"image", "untag", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.PodmanNoCache([]string{"system", "df"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
