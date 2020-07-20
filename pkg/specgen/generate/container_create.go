@@ -201,6 +201,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	for _, volume := range volumes {
 		destinations = append(destinations, volume.Dest)
 	}
+	for _, overlayVolume := range s.OverlayVolumes {
+		destinations = append(destinations, overlayVolume.Destination)
+	}
 	options = append(options, libpod.WithUserVolumes(destinations))
 
 	if len(volumes) != 0 {
@@ -213,6 +216,17 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 			})
 		}
 		options = append(options, libpod.WithNamedVolumes(vols))
+	}
+
+	if len(s.OverlayVolumes) != 0 {
+		var vols []*libpod.ContainerOverlayVolume
+		for _, v := range s.OverlayVolumes {
+			vols = append(vols, &libpod.ContainerOverlayVolume{
+				Dest:   v.Destination,
+				Source: v.Source,
+			})
+		}
+		options = append(options, libpod.WithOverlayVolumes(vols))
 	}
 
 	if s.Command != nil {

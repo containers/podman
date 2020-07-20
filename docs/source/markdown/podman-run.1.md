@@ -936,6 +936,7 @@ The _options_ is a comma delimited list and can be: <sup>[[1]](#Footnote1)</sup>
 * [**no**]**exec**
 * [**no**]**dev**
 * [**no**]**suid**
+* [**O**]
 
 The _container-dir_ must be an absolute path.
 
@@ -947,7 +948,7 @@ the container is removed via the **--rm** flag or **podman rm --volumes**.
 If a volume source is specified, it must be a path on the host or the name of a
 named volume. Host paths are allowed to be absolute or relative; relative paths
 are resolved relative to the directory Podman is run in. Any source that does
-not begin with a **.** or **/** it will be treated as the name of a named volume.
+not begin with a **.** or **/** will be treated as the name of a named volume.
 If a volume with that name does not exist, it will be created. Volumes created
 with names are not anonymous and are not removed by **--rm** and
 **podman rm --volumes**.
@@ -957,6 +958,8 @@ container.
 
 You can add **:ro** or **:rw** option to mount a volume in read-only or
 read-write mode, respectively. By default, the volumes are mounted read-write.
+
+  `Labeling Volume Mounts`
 
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
@@ -969,9 +972,41 @@ objects on the shared volumes. The **z** option tells Podman that two containers
 share the volume content. As a result, Podman labels the content with a shared
 content label. Shared volume labels allow all containers to read/write content.
 The **Z** option tells Podman to label the content with a private unshared label.
+
+  `Overlay Volume Mounts`
+
+   The `:O` flag tells Podman to mount the directory from the host as a
+temporary storage using the `overlay file system`. The container processes
+can modify content within the mountpoint which is stored in the
+container storage in a separate directory.  In overlay terms, the source
+directory will be the lower, and the container storage directory will be the
+upper. Modifications to the mount point are destroyed when the container
+finishes executing, similar to a tmpfs mount point being unmounted.
+
+  Subsequent executions of the container will see the original source directory
+content, any changes from previous container executions no longer exists.
+
+  One use case of the overlay mount is sharing the package cache from the
+host into the container to allow speeding up builds.
+
+  Note:
+
+     - The `O` flag conflicts with other options listed above.
+Content mounted into the container is labeled with the private label.
+       On SELinux systems, labels in the source directory must be readable
+by the container label. Usually containers can read/execute `container_share_t`
+and can read/write `container_file_t`. If you can not change the labels on a
+source volume, SELinux container separation must be disabled for the container
+to work.
+     - The source directory mounted into the container with an overlay mount
+should not be modified, it can cause unexpected failures.  It is recommended
+that you do not modify the directory until the container finishes running.
+
 Only the current container can use a private volume.
 
-By default bind mounted volumes are **private**. That means any mounts done
+  `Mounts propagation`
+
+By default bind mounted volumes are `private`. That means any mounts done
 inside container will not be visible on host and vice versa. One can change
 this behavior by specifying a volume mount propagation property. Making a
 volume shared mounts done under that volume inside container will be
@@ -1228,6 +1263,8 @@ considered as an orphan and wiped if you execute **podman volume prune**:
 $ podman run -v /var/db:/data1 -i -t fedora bash
 
 $ podman run -v data:/data2 -i -t fedora bash
+
+$ podman run -v /var/cache/dnf:/var/cache/dnf:O -ti fedora dnf -y update
 ```
 
 Using **--mount** flags to mount a host directory as a container folder, specify
@@ -1397,8 +1434,6 @@ September 2018, updated by Kunal Kushwaha <kushwaha_kunal_v7@lab.ntt.co.jp>
 October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman <dwalsh@redhat.com>
 
 November 2015, updated by Sally O'Malley <somalley@redhat.com>
-
-July 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 
 June 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 
