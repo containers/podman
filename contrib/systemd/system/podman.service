@@ -6,7 +6,7 @@ Documentation=man:podman-system-service(1)
 StartLimitIntervalSec=0
 
 [Service]
-Type=oneshot
+Type=simple
 ExecStart=/usr/bin/podman system service
 
 [Install]
