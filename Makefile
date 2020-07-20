@@ -274,6 +274,7 @@ clean: ## Clean artifacts
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
 		docs/build
+	make -C docs clean
 
 .PHONY: libpodimage
 libpodimage: ## Build the libpod image

@@ -10,7 +10,7 @@ podman\-events - Monitor Podman events
 
 Monitor and print events that occur in Podman. Each event will include a timestamp,
 a type, a status, name (if applicable), and image (if applicable).  The default logging
-mechanism is *journald*. This can be changed in libpod.conf by changing the `events_logger`
+mechanism is *journald*. This can be changed in containers.conf by changing the `events_logger`
 value to `file`.  Only `file` and `journald` are accepted. A `none` logger is also
 available but this logging mechanism completely disables events; nothing will be reported by
 `podman events`.
@@ -150,7 +150,7 @@ $ podman events --format json
 ```
 
 ## SEE ALSO
-podman(1)
+podman(1), containers.conf(5)
 
 ## HISTORY
 March 2019, Originally compiled by Brent Baude <bbaude@redhat.com>
