@@ -404,7 +404,13 @@ function find_exec_pid_files() {
 #
 # This obviously screws us up when we look at output results.
 #
-# This function removes the warning from $output and $lines
+# This function removes the warning from $output and $lines. We don't
+# do a full string match because there's another variant of that message:
+#
+#    WARNING: Creating device "/dev/null" with same type, major and minor as existing "/dev/foodevdir/null".
+#
+# (We should never again see that precise error ever again, but we could
+# see variants of it).
 #
 function remove_same_dev_warning() {
     # No input arguments. We operate in-place on $output and $lines
@@ -412,7 +418,7 @@ function remove_same_dev_warning() {
     local i=0
     local -a new_lines=()
     while [[ $i -lt ${#lines[@]} ]]; do
-        if expr "${lines[$i]}" : 'WARNING: .* same type, major.* multiple' >/dev/null; then
+        if expr "${lines[$i]}" : 'WARNING: .* same type, major' >/dev/null; then
             :
         else
             new_lines+=("${lines[$i]}")
