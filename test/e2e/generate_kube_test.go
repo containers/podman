@@ -254,8 +254,6 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate with user and reimport kube on pod", func() {
-		// This test fails on ubuntu due to https://github.com/seccomp/containers-golang/pull/27
-		SkipIfNotFedora()
 		podName := "toppod"
 		_, rc, _ := podmanTest.CreatePod(podName)
 		Expect(rc).To(Equal(0))
