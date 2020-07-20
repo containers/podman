@@ -19,33 +19,41 @@ import (
 func getTestContainer(id, name string, manager lock.Manager) (*Container, error) {
 	ctr := &Container{
 		config: &ContainerConfig{
-			ID:              id,
-			Name:            name,
-			RootfsImageID:   id,
-			RootfsImageName: "testimg",
-			StaticDir:       "/does/not/exist/",
-			LogPath:         "/does/not/exist/",
-			Stdin:           true,
-			Labels:          map[string]string{"a": "b", "c": "d"},
-			StopSignal:      0,
-			StopTimeout:     0,
-			CreatedTime:     time.Now(),
-			Privileged:      true,
-			Mounts:          []string{"/does/not/exist"},
-			DNSServer:       []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.2.2")},
-			DNSSearch:       []string{"example.com", "example.example.com"},
-			PortMappings: []ocicni.PortMapping{
-				{
-					HostPort:      80,
-					ContainerPort: 90,
-					Protocol:      "tcp",
-					HostIP:        "192.168.3.3",
-				},
-				{
-					HostPort:      100,
-					ContainerPort: 110,
-					Protocol:      "udp",
-					HostIP:        "192.168.4.4",
+			ID:   id,
+			Name: name,
+			ContainerRootFSConfig: ContainerRootFSConfig{
+				RootfsImageID:   id,
+				RootfsImageName: "testimg",
+				StaticDir:       "/does/not/exist/",
+				Mounts:          []string{"/does/not/exist"},
+			},
+			ContainerMiscConfig: ContainerMiscConfig{
+				LogPath:     "/does/not/exist/",
+				Stdin:       true,
+				Labels:      map[string]string{"a": "b", "c": "d"},
+				StopSignal:  0,
+				StopTimeout: 0,
+				CreatedTime: time.Now(),
+			},
+			ContainerSecurityConfig: ContainerSecurityConfig{
+				Privileged: true,
+			},
+			ContainerNetworkConfig: ContainerNetworkConfig{
+				DNSServer: []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.2.2")},
+				DNSSearch: []string{"example.com", "example.example.com"},
+				PortMappings: []ocicni.PortMapping{
+					{
+						HostPort:      80,
+						ContainerPort: 90,
+						Protocol:      "tcp",
+						HostIP:        "192.168.3.3",
+					},
+					{
+						HostPort:      100,
+						ContainerPort: 110,
+						Protocol:      "udp",
+						HostIP:        "192.168.4.4",
+					},
 				},
 			},
 		},
