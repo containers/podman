@@ -7,7 +7,6 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
-Environment=REGISTRIES_CONFIG_PATH=/etc/containers/registries.conf
 ExecStart=/usr/bin/podman system service
 
 [Install]
