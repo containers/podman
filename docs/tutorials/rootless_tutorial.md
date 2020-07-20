@@ -13,7 +13,7 @@ The alternative OCI runtime support for cgroup V2 can  be turned on at the comma
 ```
 sudo podman --runtime /usr/bin/crun
 ```
-or by changing the value for the "Default OCI runtime" in the libpod.conf file either at the system level or at the [user level](#user-configuration-files) from `runtime = "runc"` to `runtime = "crun"`.
+or by changing the value for the "Default OCI runtime" in the containers.conf file either at the system level or at the [user level](#user-configuration-files) from `runtime = "runc"` to `runtime = "crun"`.
 
 ## Administrator Actions
 
@@ -106,7 +106,7 @@ Once the Administrator has completed the setup on the machine and then the confi
 
 ### User Configuration Files
 
-The Podman configuration files for root reside in `/usr/share/containers` with overrides in `/etc/containers`.  In the rootless environment they reside in `${XDG_CONFIG_HOME}/containers` (usually `~/.config/containers`) and are owned by each individual user.  The main files are `libpod.conf` and `storage.conf` and the user can modify these files as they wish.
+The Podman configuration files for root reside in `/usr/share/containers` with overrides in `/etc/containers`.  In the rootless environment they reside in `${XDG_CONFIG_HOME}/containers` (usually `~/.config/containers`) and are owned by each individual user.  The main files are `containers.conf` and `storage.conf` and the user can modify these files as they wish.
 
 The default authorization file used by the `podman login` and `podman logout` commands reside in `${XDG_RUNTIME_DIR}/containers/auth.json`.
 

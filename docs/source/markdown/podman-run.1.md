@@ -208,7 +208,7 @@ Specify the key sequence for detaching a container; _sequence_ is a comma-delimi
 in which each item can be a single character from the [a-Z] range,
 or **ctrl**-_value_, where _value_ is one of: **a-z** or **@^[,_**.
 
-This option can also be set in **libpod.conf**(5) file.
+This option can also be set in **containers.conf**(5) file.
 
 Specifying "" will disable this feature. The default is **ctrl-p,ctrl-q**.
 
@@ -759,7 +759,7 @@ Security Options
 - **seccomp=unconfined**: Turn off seccomp confinement for the container
 - **seccomp**=_profile.json_:  Allowed syscall list seccomp JSON file to be used as a seccomp filter
 
-Note: Labeling can be disabled for all containers by setting **label=false** in the **libpod.conf**(5) file.
+Note: Labeling can be disabled for all containers by setting **label=false** in the **containers.conf**(5) file.
 
 **--shm-size**=_number_[_unit_]
 
@@ -1255,8 +1255,8 @@ $ podman run -p 8080:80 -d -i -t fedora/httpd
 
 To mount a host directory as a container volume, specify the absolute path to
 the directory and the absolute path for the container directory separated by a
-colon. If the source is a named volume maintained by Podman, it's recommended to
-use it's name rather than the path to the volume. Otherwise the volume will be
+colon. If the source is a named volume maintained by Podman, it is recommended to
+use its name rather than the path to the volume. Otherwise the volume will be
 considered as an orphan and wiped if you execute **podman volume prune**:
 
 ```
@@ -1426,7 +1426,7 @@ b
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-**subgid**(5), **subuid**(5), **libpod.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1).
+**subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1).
 
 ## HISTORY
 September 2018, updated by Kunal Kushwaha <kushwaha_kunal_v7@lab.ntt.co.jp>
