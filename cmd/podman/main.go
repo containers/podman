@@ -14,6 +14,7 @@ import (
 	_ "github.com/containers/libpod/v2/cmd/podman/pods"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	_ "github.com/containers/libpod/v2/cmd/podman/system"
+	_ "github.com/containers/libpod/v2/cmd/podman/system/connection"
 	_ "github.com/containers/libpod/v2/cmd/podman/volumes"
 	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/containers/libpod/v2/pkg/terminal"
