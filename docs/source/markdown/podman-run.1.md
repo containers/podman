@@ -1399,9 +1399,10 @@ required for VPN, without it containers need to be run with the **--network=host
 ## ENVIRONMENT
 
 Environment variables within containers can be set using multiple different options,
-in the following order of precedence:
+in the following order of precedence (later entries override earlier entries):
 
 - **--env-host**: Host environment of the process executing Podman is added.
+- **--http-proxy**: By default, several environment variables will be passed in from the host, such as **http_proxy** and **no_proxy**. See **--http-proxy** for details.
 - Container image: Any environment variables specified in the container image.
 - **--env-file**: Any environment variables specified via env-files.  If multiple files specified, then they override each other in order of entry.
 - **--env**: Any environment variables specified will override previous settings.
