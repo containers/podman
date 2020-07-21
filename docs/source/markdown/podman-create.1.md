@@ -1121,13 +1121,11 @@ required for VPN, without it containers need to be run with the --network=host f
 Environment variables within containers can be set using multiple different options:  This section describes the precedence.
 
 Precedence Order:
-	   **--env-host** : Host environment of the process executing Podman is added.
 
-	   Container image : Any environment variables specified in the container image.
-
-	   **--env-file** : Any environment variables specified via env-files.  If multiple files specified, then they override each other in order of entry.
-
-	   **--env** : Any environment variables specified will override previous settings.
+- **--env-host** : Host environment of the process executing Podman is added.
+- Container image : Any environment variables specified in the container image.
+- **--env-file** : Any environment variables specified via env-files.  If multiple files specified, then they override each other in order of entry.
+- **--env** : Any environment variables specified will override previous settings.
 
 Create containers and set the environment ending with a __*__ and a *****
 
