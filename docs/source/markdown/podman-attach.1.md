@@ -15,7 +15,7 @@ or name, either to view its ongoing output or to control it interactively.
 You can detach from the container (and leave it running) using a configurable key sequence. The default
 sequence is `ctrl-p,ctrl-q`.
 Configure the keys sequence using the **--detach-keys** option, or specifying
-it in the **libpod.conf** file: see **libpod.conf(5)** for more information.
+it in the **containers.conf** file: see **containers.conf(5)** for more information.
 
 ## OPTIONS
 **--detach-keys**=*sequence*
@@ -55,4 +55,4 @@ $ podman attach 1234
 $ podman attach --no-stdin foobar
 ```
 ## SEE ALSO
-podman(1), podman-exec(1), podman-run(1)
+podman(1), podman-exec(1), podman-run(1), containers.conf(5)

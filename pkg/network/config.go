@@ -6,8 +6,8 @@ import (
 	"net"
 )
 
-// TODO once the libpod.conf file stuff is worked out, this should be modified
-// to honor defines in the libpod.conf as well as overrides?
+// TODO once the containers.conf file stuff is worked out, this should be modified
+// to honor defines in the containers.conf as well as overrides?
 
 const (
 	// CNIConfigDir is the path where CNI config files exist

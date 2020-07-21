@@ -190,7 +190,7 @@ detached container with **podman attach**.
 When attached in the tty mode, you can detach from the container (and leave it
 running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`.
 Configure the keys sequence using the **--detach-keys** option, or specifying
-it in the **libpod.conf** file: see **libpod.conf(5)** for more information.
+it in the **containers.conf** file: see **containers.conf(5)** for more information.
 
 **--detach-keys**=*sequence*
 
@@ -741,7 +741,7 @@ Security Options
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
 - `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
 
-Note: Labeling can be disabled for all containers by setting label=false in the **libpod.conf** (`/etc/containers/libpod.conf`) file.
+Note: Labeling can be disabled for all containers by setting label=false in the **containers.conf** (`/etc/containers/containers.conf` or `$HOME/.config/containers/containers.conf`) file.
 
 **--shm-size**=*size*
 
@@ -989,7 +989,7 @@ where source dir is mounted on) has to have right propagation properties. For
 shared volumes, source mount point has to be shared. And for slave volumes,
 source mount has to be either shared or slave. <sup>[[1]](#Footnote1)</sup>
 
-If you want to recursively mount a volume and all of it's submounts into a
+If you want to recursively mount a volume and all of its submounts into a
 container, then you can use the `rbind` option.  By default the bind option is
 used, and submounts of the source directory will not be mounted into the
 container.
@@ -1150,7 +1150,7 @@ b
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-**subgid**(5), **subuid**(5), **libpod.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1).
+**subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1).
 
 ## HISTORY
 October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman <dwalsh@redhat.com>

@@ -61,7 +61,7 @@ env:
     SPECIALMODE: "none"  # don't do anything special
     TEST_REMOTE_CLIENT: 'false'  # don't test remote client by default
     ADD_SECOND_PARTITION: 'false'  # will certainly fail inside containers
-    MOD_LIBPOD_CONF: 'true'  # Update libpod.conf runtime if required by OS environment
+    MOD_CONTAINERS_CONF: 'true'  # Update containers.conf runtime if required by OS environment
 
     ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
@@ -286,7 +286,7 @@ build_each_commit_task:
         memory: "8Gb"
 
     env:
-        MOD_LIBPOD_CONF: 'false'
+        MOD_CONTAINERS_CONF: 'false'
 
     timeout_in: 30m
 
@@ -318,7 +318,7 @@ build_without_cgo_task:
         memory: "8Gb"
 
     env:
-        MOD_LIBPOD_CONF: 'false'
+        MOD_CONTAINERS_CONF: 'false'
 
     timeout_in: 30m
 
@@ -512,7 +512,7 @@ special_testing_in_podman_task:
 
     env:
         ADD_SECOND_PARTITION: 'true'
-        MOD_LIBPOD_CONF: 'false'  # Use existing/native setup
+        MOD_CONTAINERS_CONF: 'false'  # Use existing/native setup
         SPECIALMODE: 'in_podman'  # See docs
 
     timeout_in: 60m

@@ -23,7 +23,7 @@ created by the other.
 
 **--cgroup-manager**=*manager*
 
-CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd. Default is systemd unless overridden in the libpod.conf file.
+The CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd. Default is systemd unless overridden in the containers.conf file.
 
 Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
 Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
@@ -32,7 +32,7 @@ Note: CGroup manager is not supported in rootless mode when using CGroups Versio
 Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d`)
 
 **--conmon**
-Path of the conmon binary (Default path is configured in `libpod.conf`)
+Path of the conmon binary (Default path is configured in `containers.conf`)
 
 **--events-backend**=*type*
 
@@ -94,7 +94,7 @@ Default state dir configured in `/etc/containers/storage.conf`.
 
 **--runtime**=*value*
 
-Name of the OCI runtime as specified in libpod.conf or absolute path to the OCI compatible binary used to run containers.
+Name of the OCI runtime as specified in containers.conf or absolute path to the OCI compatible binary used to run containers.
 
 **--storage-driver**=*value*
 
@@ -217,11 +217,13 @@ the exit codes follow the `chroot` standard, see below:
 
 ## FILES
 
-**libpod.conf** (`/usr/share/containers/libpod.conf`)
+**containers.conf** (`/usr/share/containers/containers.conf`)
 
-    libpod.conf is the configuration file for all tools using libpod to manage containers, when run as root.  Administrators can override the defaults file by creating `/etc/containers/libpod.conf`.  When Podman runs in rootless mode, the file `$HOME/.config/containers/libpod.conf` is created and replaces some fields in the system configuration file.
+    Podman has builtin defaults for command line options. These defaults can be overridden using the containers.conf configuration files.
 
-    Podman uses builtin defaults if no libpod.conf file is found.
+Distributions ship the `/usr/share/containers/containers.conf` file with their default settings. Administrators can override fields in this file by creating the `/etc/containers/containers.conf` file.  Users can further modify defaults by creating the `$HOME/.config/containers/containers.conf` file. Podman merges its builtin defaults with the specified fields from these files, if they exist. Fields specified in the users file override the administrator's file, which overrides the distribution's file, which override the built-in defaults.
+
+Podman uses builtin defaults if no containers.conf file is found.
 
 **mounts.conf** (`/usr/share/containers/mounts.conf`)
 
@@ -280,7 +282,7 @@ The Network File System (NFS) and other distributed file systems (for example: L
 For more information, please refer to the [Podman Troubleshooting Page](https://github.com/containers/libpod/blob/master/troubleshooting.md).
 
 ## SEE ALSO
-`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `buildah(1)`, `libpod.conf(5)`, `oci-hooks(5)`, `containers-policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
+`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `buildah(1)`, `containers.conf(5)`, `oci-hooks(5)`, `containers-policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
