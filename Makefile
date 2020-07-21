@@ -307,6 +307,7 @@ testunit: libpodimage ## Run unittest on the built image
 
 .PHONY: localunit
 localunit: test/goecho/goecho varlink_generate
+	hack/check_root.sh make localunit
 	ginkgo \
 		-r \
 		$(TESTFLAGS) \
