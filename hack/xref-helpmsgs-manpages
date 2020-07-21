@@ -16,6 +16,9 @@ our $VERSION = '0.1';
 # For debugging, show data structures using DumpTree($var)
 #use Data::TreeDumper; $Data::TreeDumper::Displayaddress = 0;
 
+# unbuffer output
+$| = 1;
+
 ###############################################################################
 # BEGIN user-customizable section
 
@@ -266,12 +269,16 @@ sub podman_man {
         elsif ($section eq 'commands') {
             # In podman.1.md
             if ($line =~ /^\|\s*\[podman-(\S+?)\(\d\)\]/) {
-                $man{$1} = podman_man("podman-$1");
+                # $1 will be changed by recursion _*BEFORE*_ left-hand assignment
+                my $subcmd = $1;
+                $man{$subcmd} = podman_man("podman-$1");
             }
 
             # In podman-<subcommand>.1.md
             elsif ($line =~ /^\|\s+(\S+)\s+\|\s+\[\S+\]\((\S+)\.1\.md\)/) {
-                $man{$1} = podman_man($2);
+                # $1 will be changed by recursion _*BEFORE*_ left-hand assignment
+                my $subcmd = $1;
+                $man{$subcmd} = podman_man($2);
             }
         }
 

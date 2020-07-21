@@ -236,16 +236,12 @@ func loggingHook() {
 
 func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	cfg := opts.Config
+	uri, ident := resolveDestination()
 
 	lFlags := cmd.Flags()
-	custom, _ := config.ReadCustomConfig()
-	defaultURI := custom.Engine.RemoteURI
-	if defaultURI == "" {
-		defaultURI = registry.DefaultAPIAddress()
-	}
 	lFlags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
-	lFlags.StringVar(&opts.URI, "url", defaultURI, "URL to access Podman service (CONTAINER_HOST)")
-	lFlags.StringVar(&opts.Identity, "identity", custom.Engine.RemoteIdentity, "path to SSH identity file, (CONTAINER_SSHKEY)")
+	lFlags.StringVar(&opts.URI, "url", uri, "URL to access Podman service (CONTAINER_HOST)")
+	lFlags.StringVar(&opts.Identity, "identity", ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
 
 	pFlags := cmd.PersistentFlags()
 	pFlags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
@@ -291,4 +287,25 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	if !registry.IsRemote() {
 		pFlags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
 	}
+}
+
+func resolveDestination() (string, string) {
+	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
+		var ident string
+		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
+			ident = v
+		}
+		return uri, ident
+	}
+
+	cfg, err := config.ReadCustomConfig()
+	if err != nil {
+		return registry.DefaultAPIAddress(), ""
+	}
+
+	uri, ident, err := cfg.ActiveDestination()
+	if err != nil {
+		return registry.DefaultAPIAddress(), ""
+	}
+	return uri, ident
 }
