@@ -10,3 +10,5 @@ System
 :doc:`prune <markdown/podman-system-prune.1>` Remove unused data
 
 :doc:`renumber <markdown/podman-system-renumber.1>` Migrate lock numbers
+
+:doc:`reset <markdown/podman-system-reset.1>` Reset podman storage
