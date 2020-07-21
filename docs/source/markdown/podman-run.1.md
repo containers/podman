@@ -247,6 +247,12 @@ Limit write rate (in bytes per second) to a device (e.g. **--device-write-bps=/d
 
 Limit write rate (in IO operations per second) to a device (e.g. **--device-write-iops=/dev/sda:1000**).
 
+**--disable-content-trust**
+
+This is a Docker specific option to disable image verification to a Docker
+registry and is not supported by Podman.  This flag is a NOOP and provided
+solely for scripting compatibility.
+
 **--dns**=*ipaddr*
 
 Set custom DNS servers. Invalid if using **--dns** with **--network** that is set to **none** or **container:**_id_.
