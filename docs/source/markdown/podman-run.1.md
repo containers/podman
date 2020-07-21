@@ -1399,7 +1399,7 @@ required for VPN, without it containers need to be run with the **--network=host
 ## ENVIRONMENT
 
 Environment variables within containers can be set using multiple different options,
-in the following order of precedence:
+in the following order of precedence (later entries override earlier entries):
 
 - **--env-host**: Host environment of the process executing Podman is added.
 - Container image: Any environment variables specified in the container image.

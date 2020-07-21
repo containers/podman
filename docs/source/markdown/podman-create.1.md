@@ -1120,7 +1120,7 @@ required for VPN, without it containers need to be run with the --network=host f
 
 Environment variables within containers can be set using multiple different options:  This section describes the precedence.
 
-Precedence Order:
+Precedence order (later entries override earlier entries):
 
 - **--env-host** : Host environment of the process executing Podman is added.
 - Container image : Any environment variables specified in the container image.
