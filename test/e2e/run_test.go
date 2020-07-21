@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -160,10 +158,10 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container with --init", func() {
-		session := podmanTest.Podman([]string{"run", "--init", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--name", "test", "--init", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		result := podmanTest.Podman([]string{"inspect", "-l"})
+		result := podmanTest.Podman([]string{"inspect", "test"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		conData := result.InspectContainerToJSON()
@@ -172,10 +170,10 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container with --init and --init-path", func() {
-		session := podmanTest.Podman([]string{"run", "--init", "--init-path", "/usr/libexec/podman/catatonit", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--name", "test", "--init", "--init-path", "/usr/libexec/podman/catatonit", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		result := podmanTest.Podman([]string{"inspect", "-l"})
+		result := podmanTest.Podman([]string{"inspect", "test"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		conData := result.InspectContainerToJSON()
@@ -184,10 +182,10 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container without --init", func() {
-		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--name", "test", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		result := podmanTest.Podman([]string{"inspect", "-l"})
+		result := podmanTest.Podman([]string{"inspect", "test"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		conData := result.InspectContainerToJSON()
@@ -259,11 +257,14 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+	})
 
+	It("podman run user capabilities test with image", func() {
+		SkipIfRemote()
 		dockerfile := `FROM busybox
 USER bin`
 		podmanTest.BuildImage(dockerfile, "test", "false")
-		session = podmanTest.Podman([]string{"run", "--rm", "--user", "bin", "test", "grep", "CapBnd", "/proc/self/status"})
+		session := podmanTest.Podman([]string{"run", "--rm", "--user", "bin", "test", "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
@@ -510,6 +511,7 @@ USER bin`
 	})
 
 	It("podman run with secrets", func() {
+		SkipIfRemote()
 		containersDir := filepath.Join(podmanTest.TempDir, "containers")
 		err := os.MkdirAll(containersDir, 0755)
 		Expect(err).To(BeNil())
@@ -674,6 +676,7 @@ USER bin`
 	})
 
 	It("podman run with built-in volume image", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"run", "--rm", redis, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -820,16 +823,22 @@ USER mail`
 	})
 
 	It("podman run --rm should work", func() {
-		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--name", "test", "--rm", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"wait", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
 
 		numContainers := podmanTest.NumberOfContainers()
 		Expect(numContainers).To(Equal(0))
 	})
 
 	It("podman run --rm failed container should delete itself", func() {
-		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "foo"})
+		session := podmanTest.Podman([]string{"run", "--name", "test", "--rm", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		session = podmanTest.Podman([]string{"wait", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 
@@ -839,6 +848,10 @@ USER mail`
 
 	It("podman run failed container should NOT delete itself", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		// If remote we could have a race condition
+		session = podmanTest.Podman([]string{"wait", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 
@@ -881,7 +894,7 @@ USER mail`
 	})
 
 	It("podman run with restart-policy always restarts containers", func() {
-
+		SkipIfRemote()
 		testDir := filepath.Join(podmanTest.RunRoot, "restart-test")
 		err := os.MkdirAll(testDir, 0755)
 		Expect(err).To(BeNil())
@@ -995,14 +1008,12 @@ USER mail`
 	})
 
 	It("podman run should fail with nonexist authfile", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"run", "--authfile", "/tmp/nonexist", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
 
 	It("podman run --device-cgroup-rule", func() {
-		SkipIfRemote()
 		SkipIfRootless()
 		deviceCgroupRule := "c 42:* rwm"
 		session := podmanTest.Podman([]string{"run", "--name", "test", "-d", "--device-cgroup-rule", deviceCgroupRule, ALPINE, "top"})
