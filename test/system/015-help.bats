@@ -78,7 +78,8 @@ function check_help() {
         if ! expr "$usage" : '.*[A-Z]' >/dev/null; then
             if [ "$cmd" != "help" ]; then
                 dprint "$command_string invalid-arg"
-                run_podman 125 "$@" $cmd invalid-arg
+                run_podman '?' "$@" $cmd invalid-arg
+                is "$status" 125 "'$command_string invalid-arg' - exit status"
                 is "$output" "Error: .* takes no arguments" \
                    "'$command_string' with extra (invalid) arguments"
             fi
@@ -104,7 +105,8 @@ function check_help() {
             # The </dev/null protects us from 'podman login' which will
             # try to read username/password from stdin.
             dprint "$command_string (without required args)"
-            run_podman 125 "$@" $cmd </dev/null
+            run_podman '?' "$@" $cmd </dev/null
+            is "$status" 125 "'$command_string' with no arguments - exit status"
             is "$output" "Error:.* \(require\|specif\|must\|provide\|need\|choose\|accepts\)" \
                "'$command_string' without required arg"
 
@@ -126,7 +128,8 @@ function check_help() {
                 local rhs=$(sed -e 's/^[^A-Z]\+[A-Z]/X/' -e 's/ | /-or-/g' <<<"$usage")
                 local n_args=$(wc -w <<<"$rhs")
 
-                run_podman 125 "$@" $cmd $(seq --format='x%g' 0 $n_args)
+                run_podman '?' "$@" $cmd $(seq --format='x%g' 0 $n_args)
+                is "$status" 125 "'$command_string' with >$n_args arguments - exit status"
                 is "$output" "Error:.* \(takes no arguments\|requires exactly $n_args arg\|accepts at most\|too many arguments\|accepts $n_args arg(s), received\|accepts between .* and .* arg(s), received \)" \
                    "'$command_string' with >$n_args arguments"
 
@@ -140,13 +143,17 @@ function check_help() {
     # Any command that takes subcommands, must throw error if called
     # without one.
     dprint "podman $@"
-    run_podman 125 "$@"
-    is "$output" "Error: missing command .*$@ COMMAND"
+    run_podman '?' "$@"
+    is "$status" 125 "'podman $*' without any subcommand - exit status"
+    is "$output" "Error: missing command .*$@ COMMAND" \
+       "'podman $*' without any subcommand - expected error message"
 
     # Assume that 'NoSuchCommand' is not a command
     dprint "podman $@ NoSuchCommand"
-    run_podman 125 "$@" NoSuchCommand
-    is "$output" "Error: unrecognized command .*$@ NoSuchCommand"
+    run_podman '?' "$@" NoSuchCommand
+    is "$status" 125 "'podman $* NoSuchCommand' - exit status"
+    is "$output" "Error: unrecognized command .*$@ NoSuchCommand" \
+       "'podman $* NoSuchCommand' - expected error message"
 
     # This can happen if the output of --help changes, such as between
     # the old command parser and cobra.
