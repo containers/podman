@@ -622,9 +622,17 @@ func (c *ContainersConfig) Validate() error {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *NetworkConfig) Validate() error {
-	if c.NetworkConfigDir != _cniConfigDir {
-		err := isDirectory(c.NetworkConfigDir)
+	expectedConfigDir := _cniConfigDir
+	if unshare.IsRootless() {
+		home, err := unshare.HomeDir()
 		if err != nil {
+			return err
+		}
+		expectedConfigDir = filepath.Join(home, _cniConfigDirRootless)
+	}
+	if c.NetworkConfigDir != expectedConfigDir {
+		err := isDirectory(c.NetworkConfigDir)
+		if err != nil && !os.IsNotExist(err) {
 			return errors.Wrapf(err, "invalid network_config_dir: %s", c.NetworkConfigDir)
 		}
 	}
@@ -874,6 +882,10 @@ func Default() (*Config, error) {
 	if config != nil || configErr != nil {
 		return config, configErr
 	}
+	return defConfig()
+}
+
+func defConfig() (*Config, error) {
 	config, configErr = NewConfig("")
 	return config, configErr
 }
@@ -969,13 +981,11 @@ func (c *Config) Write() error {
 // the cached containers.conf files.
 func Reload() (*Config, error) {
 	configMutex.Lock()
-	configErr = nil
-	config = nil
-	configMutex.Unlock()
-	return Default()
+	defer configMutex.Unlock()
+	return defConfig()
 }
 
-func (c *Config) ActiveDestination() (string, string, error){
+func (c *Config) ActiveDestination() (string, string, error) {
 	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
 		var ident string
 		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
