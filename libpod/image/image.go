@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/retry"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/directory"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
@@ -74,6 +75,8 @@ type InfoImage struct {
 	// Layers stores all layers of image.
 	Layers []LayerInfo
 }
+
+const maxRetry = 3
 
 // ImageFilter is a function to determine whether a image is included
 // in command output. Images to be outputted are tested using the function.
@@ -158,7 +161,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
+	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, &retry.RetryOptions{MaxRetry: maxRetry}, label)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
@@ -176,7 +179,7 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{})
+	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, &retry.RetryOptions{MaxRetry: maxRetry})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}
