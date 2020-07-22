@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -227,6 +225,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman pod container can override pod pid NS", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"pod", "create", "--share", "pid"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -258,6 +257,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman pod container can override pod not sharing pid", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"pod", "create", "--share", "net"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -283,6 +283,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman pod container can override pod ipc NS", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"pod", "create", "--share", "ipc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

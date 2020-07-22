@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -265,10 +263,10 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network expose ports in image metadata", func() {
-		session := podmanTest.Podman([]string{"create", "-dt", "-P", nginx})
+		session := podmanTest.Podman([]string{"create", "--name", "test", "-dt", "-P", nginx})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
-		results := podmanTest.Podman([]string{"inspect", "-l"})
+		results := podmanTest.Podman([]string{"inspect", "test"})
 		results.Wait(30)
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring(`"80/tcp":`))
@@ -277,11 +275,11 @@ var _ = Describe("Podman run networking", func() {
 	It("podman run network expose duplicate host port results in error", func() {
 		SkipIfRootless()
 
-		session := podmanTest.Podman([]string{"run", "-dt", "-p", "80", ALPINE, "/bin/sh"})
+		session := podmanTest.Podman([]string{"run", "--name", "test", "-dt", "-p", "80", ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", "-l"})
+		inspect := podmanTest.Podman([]string{"inspect", "test"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 
@@ -436,6 +434,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {
+		SkipIfRemote()
 		SkipIfRootless()
 		netName := "podmantestnetwork"
 		ipAddr := "10.20.30.128"

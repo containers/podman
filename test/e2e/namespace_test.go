@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -35,6 +33,7 @@ var _ = Describe("Podman namespaces", func() {
 	})
 
 	It("podman namespace test", func() {
+		SkipIfRemote()
 		podman1 := podmanTest.Podman([]string{"--namespace", "test1", "run", "-d", ALPINE, "echo", "hello"})
 		podman1.WaitWithDefaultTimeout()
 		Expect(podman1.ExitCode()).To(Equal(0))

@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -140,6 +138,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and subnet", func() {
+		SkipIfRemote()
 		var (
 			results []network.NcList
 		)

@@ -46,12 +46,6 @@ func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionInte
 	return &PodmanSessionIntegration{podmanSession}
 }
 
-// PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
-func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false, false, nil)
-	return &PodmanSessionIntegration{podmanSession}
-}
-
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := filepath.Join(INTEGRATION_ROOT, "test/registries.conf")
 	os.Setenv("REGISTRIES_CONFIG_PATH", defaultFile)

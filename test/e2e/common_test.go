@@ -618,3 +618,9 @@ func SkipIfCgroupV2() {
 		Skip("Skip on systems with cgroup V2 systems")
 	}
 }
+
+// PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
+func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false, false, nil)
+	return &PodmanSessionIntegration{podmanSession}
+}
