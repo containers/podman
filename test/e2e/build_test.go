@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -40,6 +38,7 @@ var _ = Describe("Podman build", func() {
 	// Let's first do the most simple build possible to make sure stuff is
 	// happy and then clean up after ourselves to make sure that works too.
 	It("podman build and remove basic alpine", func() {
+		SkipIfRemote()
 		session := podmanTest.PodmanNoCache([]string{"build", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -69,6 +68,7 @@ var _ = Describe("Podman build", func() {
 	// Check that builds with different values for the squash options
 	// create the appropriate number of layers, then clean up after.
 	It("podman build basic alpine with squash", func() {
+		SkipIfRemote()
 		session := podmanTest.PodmanNoCache([]string{"build", "-f", "build/squash/Dockerfile.squash-a", "-t", "test-squash-a:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -154,6 +154,7 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build basic alpine and print id to external file", func() {
+		SkipIfRemote()
 
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()

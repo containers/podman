@@ -214,5 +214,3 @@ func (p *PodmanTestIntegration) DelayForService() error {
 
 func populateCache(podman *PodmanTestIntegration) {}
 func removeCache()                                {}
-func SkipIfCgroupV1()                             {}
-func SkipIfCgroupV2()                             {}

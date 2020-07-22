@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -229,6 +227,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {
+		SkipIfRemote()
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -269,6 +268,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if force secure is true", func() {
+		SkipIfRemote()
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -307,6 +307,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if registry is not listed as insecure", func() {
+		SkipIfRemote()
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -345,6 +346,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
+		SkipIfRemote()
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}

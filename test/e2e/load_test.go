@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -125,6 +123,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load directory", func() {
+		SkipIfRemote()
 		outdir := filepath.Join(podmanTest.TempDir, "alpine")
 
 		save := podmanTest.PodmanNoCache([]string{"save", "--format", "oci-dir", "-o", outdir, ALPINE})
@@ -228,6 +227,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load localhost registry from dir", func() {
+		SkipIfRemote()
 		outfile := filepath.Join(podmanTest.TempDir, "load")
 
 		setup := podmanTest.PodmanNoCache([]string{"tag", BB, "hello:world"})

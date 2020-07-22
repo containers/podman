@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/cgroups"
 	"github.com/containers/libpod/v2/pkg/inspect"
 	"github.com/containers/libpod/v2/pkg/rootless"
 	. "github.com/containers/libpod/v2/test/utils"
@@ -598,4 +599,22 @@ func SkipIfNotFedora() {
 
 func isRootless() bool {
 	return os.Geteuid() != 0
+}
+
+func SkipIfCgroupV1() {
+	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+	Expect(err).To(BeNil())
+
+	if !cgroupsv2 {
+		Skip("Skip on systems with cgroup V1 systems")
+	}
+}
+
+func SkipIfCgroupV2() {
+	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+	Expect(err).To(BeNil())
+
+	if cgroupsv2 {
+		Skip("Skip on systems with cgroup V2 systems")
+	}
 }
