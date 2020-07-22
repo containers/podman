@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -35,6 +33,7 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run -d mount cleanup test", func() {
+		SkipIfRemote()
 		SkipIfRootless()
 
 		result := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})

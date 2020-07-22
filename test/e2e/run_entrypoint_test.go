@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -46,6 +44,7 @@ CMD []
 	})
 
 	It("podman run entrypoint", func() {
+		SkipIfRemote()
 		dockerfile := `FROM docker.io/library/alpine:latest
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
@@ -57,6 +56,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run entrypoint with cmd", func() {
+		SkipIfRemote()
 		dockerfile := `FROM docker.io/library/alpine:latest
 CMD [ "-v"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
@@ -69,6 +69,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run entrypoint with user cmd overrides image cmd", func() {
+		SkipIfRemote()
 		dockerfile := `FROM docker.io/library/alpine:latest
 CMD [ "-v"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
@@ -81,6 +82,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run entrypoint with user cmd no image cmd", func() {
+		SkipIfRemote()
 		dockerfile := `FROM docker.io/library/alpine:latest
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
@@ -92,6 +94,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run user entrypoint overrides image entrypoint and image cmd", func() {
+		SkipIfRemote()
 		dockerfile := `FROM docker.io/library/alpine:latest
 CMD ["-i"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
@@ -109,6 +112,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run user entrypoint with command overrides image entrypoint and image cmd", func() {
+		SkipIfRemote()
 		dockerfile := `FROM docker.io/library/alpine:latest
 CMD ["-i"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]

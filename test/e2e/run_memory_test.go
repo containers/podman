@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (

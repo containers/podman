@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -35,11 +33,12 @@ var _ = Describe("Podman run restart containers", func() {
 	})
 
 	It("Podman start after successful run", func() {
-		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"run", "--name", "test", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session2 := podmanTest.Podman([]string{"start", "--attach", "--latest"})
+		session2 := podmanTest.Podman([]string{"start", "--attach", "test"})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 	})

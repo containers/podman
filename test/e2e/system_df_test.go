@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -37,6 +35,7 @@ var _ = Describe("podman system df", func() {
 	})
 
 	It("podman system df", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
