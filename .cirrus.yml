@@ -71,7 +71,7 @@ env:
     # Service-account client_email - needed to build images
     SERVICE_ACCOUNT: ENCRYPTED[702a8e07e27a6faf7988fcddcc068c2ef2bb182a5aa671f5ccb7fbbfb891c823aa4a7856fb17240766845dbd68bd3f90]
     # Service account username part of client_email - for ssh'ing into VMs
-    GCE_SSH_USERNAME: ENCRYPTED[d579f2d3000bb678c9af37c3615e92bcf3726e9afc47748c129cef23ee799faaafd4baba64048329205d162069d90060]
+    GCE_SSH_USERNAME: 'cirrus-ci'
 
 # Default VM to use unless set or modified by task
 gce_instance:
