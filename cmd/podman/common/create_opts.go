@@ -93,6 +93,7 @@ type ContainerCLIOpts struct {
 	TmpFS             []string
 	TTY               bool
 	Timezone          string
+	Umask             string
 	UIDMap            []string
 	Ulimit            []string
 	User              string

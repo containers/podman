@@ -218,6 +218,17 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("HST"))
-
 	})
+	It("podman run containers.conf umask", func() {
+		//containers.conf umask set to 0002
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test only works on crun")
+		}
+
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "umask"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("0002"))
+	})
+
 })
