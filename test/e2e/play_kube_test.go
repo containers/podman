@@ -87,6 +87,11 @@ spec:
       {{ end }}
       privileged: false
       readOnlyRootFilesystem: false
+    ports:
+    - containerPort: {{ .Port }}
+      hostIP: {{ .HostIP }}
+      hostPort: {{ .Port }}
+      protocol: TCP
     workingDir: /
     {{ end }}
   {{ end }}
@@ -338,12 +343,14 @@ type Ctr struct {
 	CapAdd          []string
 	CapDrop         []string
 	PullPolicy      string
+	HostIP          string
+	Port            string
 }
 
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
 // and the configured options
 func getCtr(options ...ctrOption) *Ctr {
-	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, defaultCtrArg, true, false, nil, nil, ""}
+	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, defaultCtrArg, true, false, nil, nil, "", "", ""}
 	for _, option := range options {
 		option(&c)
 	}
@@ -393,6 +400,13 @@ func withCapDrop(caps []string) ctrOption {
 func withPullPolicy(policy string) ctrOption {
 	return func(c *Ctr) {
 		c.PullPolicy = policy
+	}
+}
+
+func withHostIP(ip string, port string) ctrOption {
+	return func(c *Ctr) {
+		c.HostIP = ip
+		c.Port = port
 	}
 }
 
@@ -814,5 +828,24 @@ spec:
 			Expect(inspect.ExitCode()).To(Equal(0))
 			Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
 		}
+	})
+
+	It("podman play kube test with network portbindings", func() {
+		ip := "127.0.0.100"
+		port := "5000"
+		ctr := getCtr(withHostIP(ip, port), withImage(BB))
+
+		pod := getPod(withCtr(ctr))
+		err := generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"port", getCtrNameInPod(pod)})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(Equal("5000/tcp -> 127.0.0.100:5000"))
 	})
 })
