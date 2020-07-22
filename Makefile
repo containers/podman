@@ -2,6 +2,7 @@ export GO111MODULE=off
 export GOPROXY=https://proxy.golang.org
 
 GO ?= go
+COVERAGE_PATH ?= .coverage
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-master} HEAD)
 HEAD ?= HEAD
@@ -308,14 +309,20 @@ testunit: libpodimage ## Run unittest on the built image
 .PHONY: localunit
 localunit: test/goecho/goecho varlink_generate
 	hack/check_root.sh make localunit
+	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	ginkgo \
 		-r \
 		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings,hack \
 		--cover \
 		--covermode atomic \
+		--coverprofile coverprofile \
+		--outputdir ${COVERAGE_PATH} \
 		--tags "$(BUILDTAGS)" \
 		--succinct
+	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
+	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile > ${COVERAGE_PATH}/functions
+	cat ${COVERAGE_PATH}/functions | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
 
 .PHONY: ginkgo
 ginkgo:
