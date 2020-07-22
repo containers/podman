@@ -63,6 +63,14 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 		}
 	}()
 	for line := range t.Lines {
+		select {
+		case <-ctx.Done():
+			// the consumer has cancelled
+			return nil
+		default:
+			// fallthrough
+		}
+
 		event, err := newEventFromJSONString(line.Text)
 		if err != nil {
 			return err
