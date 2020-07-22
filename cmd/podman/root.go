@@ -98,7 +98,12 @@ func Execute() {
 		// otherwise command exited correctly.
 		registry.SetExitCode(0)
 	}
-	os.Exit(registry.GetExitCode())
+	if exitCode := registry.GetExitCode(); exitCode != 0 {
+		// Only `os.Exit` for non-zero exit codes.  Early exit causes
+		// troubles for collecting coverage data which relies on a
+		// graceful return of `main()`.
+		os.Exit(registry.GetExitCode())
+	}
 }
 
 func persistentPreRunE(cmd *cobra.Command, args []string) error {

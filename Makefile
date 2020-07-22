@@ -197,6 +197,29 @@ podman-remote-static: bin/podman-remote-static
 .PHONY: podman-remote
 podman-remote: bin/podman-remote
 
+.PHONY: binaries.coverage
+binaries.coverage: varlink_generate podman.coverage podman-remote.coverage
+
+.PHONY: podman.coverage
+podman.coverage:
+	$(GO) test \
+		-coverprofile coverprofile -covermode=count \
+		-coverpkg=./... \
+		-gcflags '$(GCFLAGS)' \
+		-asmflags '$(ASMFLAGS)' \
+		-ldflags '$(LDFLAGS_PODMAN)' \
+		-tags "$(BUILDTAGS)" -c -o ./bin/$@ $(PROJECT)/cmd/podman
+
+.PHONY: podman-remote.coverage
+podman-remote.coverage:
+	$(GO) test \
+		-coverprofile coverprofile -covermode=count \
+		-coverpkg=./... \
+		-gcflags '$(GCFLAGS)' \
+		-asmflags '$(ASMFLAGS)' \
+		-ldflags '$(LDFLAGS_PODMAN)' \
+		-tags "$(REMOTETAGS)" -c -o ./bin/$@ $(PROJECT)/cmd/podman
+
 .PHONY: podman.msi
 podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
 	$(eval DOCFILE := docs/build/remote/windows)
