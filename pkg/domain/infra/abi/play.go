@@ -453,11 +453,16 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 
 	containerConfig.Command = []string{}
 	if imageData != nil && imageData.Config != nil {
-		containerConfig.Command = append(containerConfig.Command, imageData.Config.Entrypoint...)
+		containerConfig.Command = imageData.Config.Entrypoint
 	}
 	if len(containerYAML.Command) != 0 {
-		containerConfig.Command = append(containerConfig.Command, containerYAML.Command...)
-	} else if imageData != nil && imageData.Config != nil {
+		containerConfig.Command = containerYAML.Command
+	}
+	// doc https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
+	if len(containerYAML.Args) != 0 {
+		containerConfig.Command = append(containerConfig.Command, containerYAML.Args...)
+	} else if len(containerYAML.Command) == 0 {
+		// Add the Cmd from the image config only if containerYAML.Command and containerYAML.Args are empty
 		containerConfig.Command = append(containerConfig.Command, imageData.Config.Cmd...)
 	}
 	if imageData != nil && len(containerConfig.Command) == 0 {
