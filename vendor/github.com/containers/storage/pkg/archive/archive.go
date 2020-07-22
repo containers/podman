@@ -393,13 +393,15 @@ func fillGo18FileTypeBits(mode int64, fi os.FileInfo) int64 {
 // ReadSecurityXattrToTarHeader reads security.capability, security,image
 // xattrs from filesystem to a tar header
 func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
+	if hdr.Xattrs == nil {
+		hdr.Xattrs = make(map[string]string)
+	}
 	for _, xattr := range []string{"security.capability", "security.ima"} {
 		capability, err := system.Lgetxattr(path, xattr)
 		if err != nil && err != system.EOPNOTSUPP && err != system.ErrNotSupportedPlatform {
 			return errors.Wrapf(err, "failed to read %q attribute from %q", xattr, path)
 		}
 		if capability != nil {
-			hdr.Xattrs = make(map[string]string)
 			hdr.Xattrs[xattr] = string(capability)
 		}
 	}

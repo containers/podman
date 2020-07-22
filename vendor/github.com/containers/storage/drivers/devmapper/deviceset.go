@@ -1749,7 +1749,7 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 	//	- Managed by container storage
 	//	- The target of this device is at major <maj> and minor <min>
 	//	- If <inode> is defined, use that file inside the device as a loopback image. Otherwise use the device itself.
-	devices.devicePrefix = fmt.Sprintf("container-%d:%d-%d", major(st.Dev), minor(st.Dev), st.Ino)
+	devices.devicePrefix = fmt.Sprintf("container-%d:%d-%d", major(uint64(st.Dev)), minor(uint64(st.Dev)), st.Ino)
 	logrus.Debugf("devmapper: Generated prefix: %s", devices.devicePrefix)
 
 	// Check for the existence of the thin-pool device
