@@ -92,8 +92,10 @@ const (
 	// InstallPrefix is the prefix where podman will be installed.
 	// It can be overridden at build time.
 	_installPrefix = "/usr"
-	// _cniConfigDir is the directory where cni plugins are found
+	// _cniConfigDir is the directory where cni configuration is found
 	_cniConfigDir = "/etc/cni/net.d/"
+	// _cniConfigDirRootless is the directory where cni plugins are found
+	_cniConfigDirRootless = ".config/cni/net.d/"
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
@@ -138,6 +140,8 @@ func DefaultConfig() (*Config, error) {
 
 	netns := "bridge"
 
+	cniConfig := _cniConfigDir
+
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 	if unshare.IsRootless() {
 		home, err := unshare.HomeDir()
@@ -152,6 +156,7 @@ func DefaultConfig() (*Config, error) {
 			}
 		}
 		netns = "slirp4netns"
+		cniConfig = filepath.Join(home, _cniConfigDirRootless)
 	}
 
 	cgroupNS := "host"
@@ -198,7 +203,7 @@ func DefaultConfig() (*Config, error) {
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:   "podman",
-			NetworkConfigDir: _cniConfigDir,
+			NetworkConfigDir: cniConfig,
 			CNIPluginDirs:    cniBinDir,
 		},
 		Engine: *defaultEngineConfig,
