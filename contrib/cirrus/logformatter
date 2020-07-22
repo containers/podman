@@ -303,14 +303,15 @@ END_HTML
         # (bindings test sometimes emits 'Running' with leading bullet char)
         elsif ($line =~ /^•?Running:/) {
             # Highlight the important (non-boilerplate) podman command.
+            $line =~ s/\s+--remote\s+/ /g;      # --remote takes no args
             # Strip out the global podman options, but show them on hover
-            $line =~ s{(\S+\/podman)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|cni-config-dir|storage-driver|events-backend) \S+)*)(.*)}{
-                my ($full_path, $options, $args) = ($1, $2, $5);
+            $line =~ s{(\S+\/podman(-remote)?)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|cni-config-dir|storage-driver|events-backend|url) \S+)*)(.*)}{
+                my ($full_path, $remote, $options, $args) = ($1, $2||'', $3, $6);
 
                 $options =~ s/^\s+//;
                 # Separate each '--foo bar' with newlines for readability
                 $options =~ s/ --/\n--/g;
-                qq{<span title="$full_path"><b>podman</b></span> <span class=\"boring\" title=\"$options\">[options]</span><b>$args</b>};
+                qq{<span title="$full_path"><b>podman$remote</b></span> <span class=\"boring\" title=\"$options\">[options]</span><b>$args</b>};
             }e;
             $current_output = '';
         }
