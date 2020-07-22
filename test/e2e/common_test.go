@@ -152,6 +152,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	return []byte(path)
 }, func(data []byte) {
+	cwd, _ := os.Getwd()
+	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 	LockTmpDir = string(data)
 })
 
