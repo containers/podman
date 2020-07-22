@@ -5,7 +5,8 @@ PACKER_DIST_FILENAME := packer_${PACKER_VER}_linux_${GOARCH}.zip
 
 # Only needed for libpod_base_images target
 TIMESTAMP := $(shell date +%s)
-GOSRC ?= $(shell realpath "./../../../")
+GOPATH ?= /var/tmp/go
+GOSRC ?= $(GOPATH)/src/github.com/containers/libpod
 PACKER_BASE ?= contrib/cirrus/packer
 SCRIPT_BASE ?= contrib/cirrus
 POST_MERGE_BUCKET_SUFFIX ?=
@@ -54,6 +55,7 @@ libpod_images: guard-PACKER_BUILDS libpod_images.json packer
 	./packer build \
 		-force \
 		$(shell test -z "${PACKER_BUILDS}" || echo "-only=${PACKER_BUILDS}") \
+		-var GOPATH=$(GOPATH) \
 		-var GOSRC=$(GOSRC) \
 		-var PACKER_BASE=$(PACKER_BASE) \
 		-var SCRIPT_BASE=$(SCRIPT_BASE) \
