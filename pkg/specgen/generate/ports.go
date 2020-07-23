@@ -123,18 +123,19 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 						postAssignHostPort = true
 					}
 				} else {
-					testCPort := ctrPortMap[cPort]
-					if testCPort != 0 && testCPort != hPort {
-						// This is an attempt to redefine a port
-						return nil, nil, nil, errors.Errorf("conflicting port mappings for container port %d (protocol %s)", cPort, p)
-					}
-					ctrPortMap[cPort] = hPort
-
 					testHPort := hostPortMap[hPort]
 					if testHPort != 0 && testHPort != cPort {
 						return nil, nil, nil, errors.Errorf("conflicting port mappings for host port %d (protocol %s)", hPort, p)
 					}
 					hostPortMap[hPort] = cPort
+
+					// Mapping a container port to multiple
+					// host ports is allowed.
+					// We only store the latest of these in
+					// the container port map - we don't
+					// need to know all of them, just one.
+					testCPort := ctrPortMap[cPort]
+					ctrPortMap[cPort] = hPort
 
 					// If we have an exact duplicate, just continue
 					if testCPort == hPort && testHPort == cPort {
