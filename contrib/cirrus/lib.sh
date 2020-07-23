@@ -299,13 +299,13 @@ is_release() {
 }
 
 setup_rootless() {
-    req_env_var ROOTLESS_USER GOSRC SECRET_ENV_RE ROOTLESS_ENV_RE
+    req_env_var ROOTLESS_USER GOPATH GOSRC SECRET_ENV_RE ROOTLESS_ENV_RE
 
     # Only do this once
     if passwd --status $ROOTLESS_USER
     then
         echo "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
-        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOSRC"
+        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
         return 0
     fi
 
@@ -316,7 +316,7 @@ setup_rootless() {
     echo "creating $ROOTLESS_UID:$ROOTLESS_GID $ROOTLESS_USER user"
     groupadd -g $ROOTLESS_GID $ROOTLESS_USER
     useradd -g $ROOTLESS_GID -u $ROOTLESS_UID --no-user-group --create-home $ROOTLESS_USER
-    chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOSRC"
+    chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
 
     echo "creating ssh keypair for $USER"
     [[ -r "$HOME/.ssh/id_rsa" ]] || \
