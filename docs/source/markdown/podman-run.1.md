@@ -905,20 +905,22 @@ Ulimit options. You can use **host** to copy the current configuration from the 
 
 Sets the username or UID used and optionally the groupname or GID for the specified command.
 
-Without this argument the command will be run as root in the container.
+Without this argument, the command will run as the user specified in the container image. Unless overridden by a `USER` command in the Containerfile or by a value passed to this option, this user generally defaults to root.
+
+When a user namespace is not in use, the UID and GID used within the container and on the host will match. When user namespaces are in use, however, the UID and GID in the container may correspond to another UID and GID on the host. In rootless containers, for example, a user namespace is always used, and root in the container will by default correspond to the UID and GID of the user invoking Podman.
 
 **--userns**=**auto**|**host**|**keep-id**|**container:**_id_|**ns:**_namespace_
 
-Set the user namespace mode for the container.  It defaults to the **PODMAN_USERNS** environment variable.  An empty value means user namespaces are disabled.
+Set the user namespace mode for the container.  It defaults to the **PODMAN_USERNS** environment variable.  An empty value ("") means user namespaces are disabled unless an explicit mapping is set with they `--uidmapping` and `--gidmapping` options.
 
 - **auto**: automatically create a namespace.  It is possible to specify other options to `auto`.  The supported options are
   **size=SIZE** to specify an explicit size for the automatic user namespace.  e.g. `--userns=auto:size=8192`.  If `size` is not specified, `auto` will guess a size for the user namespace.
   **uidmapping=HOST_UID:CONTAINER_UID:SIZE** to force a UID mapping to be present in the user namespace.
   **gidmapping=HOST_UID:CONTAINER_UID:SIZE** to force a GID mapping to be present in the user namespace.
-- **host**: run in the user namespace of the caller. This is the default if no user namespace options are set. The processes running in the container will have the same privileges on the host as any other process launched by the calling user.
+- **host**: run in the user namespace of the caller. The processes running in the container will have the same privileges on the host as any other process launched by the calling user (default).
 - **keep-id**: creates a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This option is ignored for containers created by the root user.
 - **ns**: run the container in the given existing user namespace.
-- **private**: create a new namespace for the container (default)
+- **private**: create a new namespace for the container.
 - **container**: join the user namespace of the specified container.
 
 This option is incompatible with **--gidmap**, **--uidmap**, **--subuid** and **--subgid**.
