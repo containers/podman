@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/containers/storage/pkg/parsers/kernel"
@@ -58,6 +60,32 @@ type HostOS struct {
 	Arch         string
 }
 
+var (
+	// Required to look up the COVERAGE env variable only once.
+	isCoverageRunBool bool
+	isCoverageRunCall sync.Once
+)
+
+// IsCoverageRun returns true if the "COVERAGE" environment variable is set in
+// the current context.
+func IsCoverageRun() bool {
+	isCoverageRunCall.Do(func() {
+		// Look if $COVERAGE is set. We don't care about the value.
+		coverageEnv := os.Getenv("COVERAGE")
+		isCoverageRunBool = len(coverageEnv) > 0
+	})
+	return isCoverageRunBool
+}
+
+// CoverageArgs returns the mandatory _first_ arguments for a
+// coverage-instrumented Podman binary.
+func CoverageArgs() []string {
+	// We need the first arguments to be the obligatory coverprofile
+	// followed by the dummy value "COVERAGE" to silence the `go test`
+	// parser.
+	return []string{fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()), "COVERAGE"}
+}
+
 // MakeOptions assembles all podman options
 func (p *PodmanTest) MakeOptions(args []string, noEvents, noCache bool) []string {
 	return p.PodmanMakeOptions(args, noEvents, noCache)
@@ -67,13 +95,14 @@ func (p *PodmanTest) MakeOptions(args []string, noEvents, noCache bool) []string
 // to record the env for debugging
 func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string, noEvents, noCache bool, extraFiles []*os.File) *PodmanSession {
 	var command *exec.Cmd
+
 	podmanOptions := p.MakeOptions(args, noEvents, noCache)
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
 	}
 	if p.RemoteTest {
-		podmanOptions = append([]string{"--remote", "--url", p.RemoteSocket}, podmanOptions...)
+		podmanOptions = append(podmanOptions, []string{"--remote", "--url", p.RemoteSocket}...)
 	}
 	if env == nil {
 		fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(podmanOptions, " "))
