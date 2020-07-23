@@ -1,5 +1,43 @@
 # Release Notes
 
+## 2.0.3
+### Features
+- The `podman search` command now allows wildcards in search terms.
+- The `podman play kube` command now supports the `IfNotPresent` pull type.
+
+### Changes
+- The `--disable-content-trust` flag has been added to Podman for Docker compatibility. This is a Docker-specific option and has no effect in Podman; it is provided only to ensure command line compatibility for scripts ([#7034](https://github.com/containers/podman/issues/7034)).
+- Setting a static IP address or MAC address for rootless containers and pods now causes an error; previously, they were silently ignored.
+- The `/sys/dev` folder is now masked in containers to prevent a potential information leak from the host.
+
+### Bugfixes
+- Fixed a bug where rootless Podman would select the wrong cgroup manager on cgroups v1 systems where the user in question had an active systemd user session ([#6982](https://github.com/containers/podman/issues/6982)).
+- Fixed a bug where systems with Apparmor could not run privileged containers ([#6933](https://github.com/containers/podman/issues/6933)).
+- Fixed a bug where ENTRYPOINT and CMD from images were improperly handled by `podman play kube` ([#6995](https://github.com/containers/podman/issues/6995)).
+- Fixed a bug where the `--pids-limit` flag to `podman create` and `podman run` was parsed incorrectly and was unusable ([#6908](https://github.com/containers/podman/issues/6908)).
+- Fixed a bug where the `podman system df` command would error if untagged images were present ([#7015](https://github.com/containers/podman/issues/7015)).
+- Fixed a bug where the `podman images` command would display incorrect tags if a port number was included in the repository.
+- Fixed a bug where Podman did not set a default umask and default rlimits ([#6989](https://github.com/containers/podman/issues/6989)).
+- Fixed a bug where protocols in port mappings were not recognized unless they were lower-case ([#6948](https://github.com/containers/podman/issues/6948)).
+- Fixed a bug where information on pod infra containers was not included in the output of `podman pod inspect`.
+- Fixed a bug where Podman's systemd detection (activated by the enabled-by-default `--systemd=true` flag) would not flag a container for systemd mode if systemd was part of the entrypoint, not the command ([#6920](https://github.com/containers/podman/issues/6920)).
+- Fixed a bug where `podman start --attach` was not defaulting `--sig-proxy` to true ([#6928](https://github.com/containers/podman/issues/6928)).
+- Fixed a bug where `podman inspect` would show an incorrect command (`podman system service`, the command used to start the server) for containers created by a remote Podman client.
+- Fixed a bug where the `podman exec` command with the remote client would not print output if the `-t` or `-i` flags where not provided.
+- Fixed a bug where some variations of the `--format {{ json . }}` to `podman info` (involving added or removed whitespace) would not be accepted ([#6927](https://github.com/containers/podman/issues/6927)).
+- Fixed a bug where Entrypoint could not be cleared at the command line (if unset via `--entrypoint=""`, it would be reset to the image's entrypoint) ([#6935](https://github.com/containers/podman/issues/6935)).
+
+### API
+- Fixed a bug where the events endpoints (both libpod and compat) could potentially panic on parsing filters.
+- Fixed a bug where the compat Create endpoint for containers did not properly handle Entrypoint and Command.
+- Fixed a bug where the Logs endpoint for containers (both libpod and compat) would not properly handle client disconnect, resulting in high CPU usage.
+- The type of filters on the compat events endpoint has been adjusted to match Docker's implementation ([#6899](https://github.com/containers/podman/issues/6899)).
+- The idle connection counter now properly handles hijacked connections.
+- All endpoints that hijack will now properly print headers per RFC 7230 standards.
+
+### Misc
+- Updated containers/common to v0.14.6
+
 ## 2.0.2
 ### Changes
 - The `podman system connection` command has been temporarily disabled, as it was not functioning as expected.

@@ -149,6 +149,8 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	createOptions.CreateCommand = os.Args
+
 	if replace {
 		if err := replacePod(createOptions.Name); err != nil {
 			return err

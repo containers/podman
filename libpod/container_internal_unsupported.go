@@ -18,7 +18,7 @@ func (c *Container) unmountSHM(mount string) error {
 	return define.ErrNotImplemented
 }
 
-func (c *Container) prepare() (err error) {
+func (c *Container) prepare() error {
 	return define.ErrNotImplemented
 }
 

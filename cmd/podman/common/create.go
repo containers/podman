@@ -154,6 +154,10 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"device-write-iops", []string{},
 		"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
 	)
+	createFlags.Bool(
+		"disable-content-trust", false,
+		"This is a Docker specific option and is a NOOP",
+	)
 	createFlags.String("entrypoint", "",
 		"Overwrite the default ENTRYPOINT of the image",
 	)
@@ -395,7 +399,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringArrayVar(
 		&cf.SecurityOpt,
-		"security-opt", containerConfig.SecurityOptions(),
+		"security-opt", []string{},
 		"Security Options",
 	)
 	createFlags.String(

@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -13,9 +14,9 @@ import (
 )
 
 // Log is a runtime function that can read one or more container logs.
-func (r *Runtime) Log(containers []*Container, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+func (r *Runtime) Log(ctx context.Context, containers []*Container, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	for _, ctr := range containers {
-		if err := ctr.ReadLog(options, logChannel); err != nil {
+		if err := ctr.ReadLog(ctx, options, logChannel); err != nil {
 			return err
 		}
 	}
@@ -23,25 +24,25 @@ func (r *Runtime) Log(containers []*Container, options *logs.LogOptions, logChan
 }
 
 // ReadLog reads a containers log based on the input options and returns loglines over a channel.
-func (c *Container) ReadLog(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	switch c.LogDriver() {
 	case define.NoLogging:
 		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'none' log driver, cannot read logs")
 	case define.JournaldLogging:
 		// TODO Skip sending logs until journald logs can be read
-		return c.readFromJournal(options, logChannel)
+		return c.readFromJournal(ctx, options, logChannel)
 	case define.JSONLogging:
 		// TODO provide a separate implementation of this when Conmon
 		// has support.
 		fallthrough
 	case define.KubernetesLogging, "":
-		return c.readFromLogFile(options, logChannel)
+		return c.readFromLogFile(ctx, options, logChannel)
 	default:
 		return errors.Wrapf(define.ErrInternal, "unrecognized log driver %q, cannot read logs", c.LogDriver())
 	}
 }
 
-func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	t, tailLog, err := logs.GetLogFile(c.LogPath(), options)
 	if err != nil {
 		// If the log file does not exist, this is not fatal.
@@ -62,8 +63,17 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 	}
 
 	go func() {
+		defer options.WaitGroup.Done()
+
 		var partial string
 		for line := range t.Lines {
+			select {
+			case <-ctx.Done():
+				// the consumer has cancelled
+				return
+			default:
+				// fallthrough
+			}
 			nll, err := logs.NewLogLine(line.Text)
 			if err != nil {
 				logrus.Error(err)
@@ -82,7 +92,6 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 				logChannel <- nll
 			}
 		}
-		options.WaitGroup.Done()
 	}()
 	// Check if container is still running or paused
 	if options.Follow {

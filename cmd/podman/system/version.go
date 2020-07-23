@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/libpod/define"
@@ -41,7 +42,7 @@ func version(cmd *cobra.Command, args []string) error {
 	}
 
 	switch {
-	case versionFormat == "json", versionFormat == "{{ json .}}":
+	case parse.MatchesJSONFormat(versionFormat):
 		s, err := json.MarshalToString(versions)
 		if err != nil {
 			return err

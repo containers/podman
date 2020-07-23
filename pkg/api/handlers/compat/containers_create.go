@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -40,6 +41,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(input.HostConfig.Links) > 0 {
 		utils.Error(w, utils.ErrLinkNotSupport.Error(), http.StatusBadRequest, errors.Wrapf(utils.ErrLinkNotSupport, "bad parameter"))
+		return
 	}
 	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
 	if err != nil {
@@ -51,7 +53,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "GetConfig()"))
 		return
 	}
-	cc, err := makeCreateConfig(containerConfig, input, newImage)
+	cc, err := makeCreateConfig(r.Context(), containerConfig, input, newImage)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "makeCreatConfig()"))
 		return
@@ -60,7 +62,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	utils.CreateContainer(r.Context(), w, runtime, &cc)
 }
 
-func makeCreateConfig(containerConfig *config.Config, input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
+func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
 	var (
 		err  error
 		init bool
@@ -77,6 +79,22 @@ func makeCreateConfig(containerConfig *config.Config, input handlers.CreateConta
 	workDir := "/"
 	if len(input.WorkingDir) > 0 {
 		workDir = input.WorkingDir
+	}
+
+	if input.Entrypoint == nil {
+		entrypointSlice, err := newImage.Entrypoint(ctx)
+		if err != nil {
+			return createconfig.CreateConfig{}, err
+		}
+		input.Entrypoint = entrypointSlice
+	}
+
+	if len(input.Cmd) == 0 {
+		cmdSlice, err := newImage.Cmd(ctx)
+		if err != nil {
+			return createconfig.CreateConfig{}, err
+		}
+		input.Cmd = cmdSlice
 	}
 
 	stopTimeout := containerConfig.Engine.StopTimeout
@@ -217,5 +235,16 @@ func makeCreateConfig(containerConfig *config.Config, input handlers.CreateConta
 
 		Pid: pidConfig,
 	}
+
+	fullCmd := append(input.Entrypoint, input.Cmd...)
+	if len(fullCmd) > 0 {
+		m.PodmanPath = fullCmd[0]
+		if len(fullCmd) == 1 {
+			m.Args = fullCmd
+		} else {
+			m.Args = fullCmd[1:]
+		}
+	}
+
 	return m, nil
 }

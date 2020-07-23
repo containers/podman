@@ -77,6 +77,7 @@ func pushFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&pushOptions.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
 	flags.StringVar(&pushOptions.CredentialsCLI, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVar(&pushOptions.DigestFile, "digestfile", "", "Write the digest of the pushed image to the specified file")
+	flags.Bool("disable-content-trust", false, "This is a Docker specific option and is a NOOP")
 	flags.StringVarP(&pushOptions.Format, "format", "f", "", "Manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir' transport (default is manifest type of source)")
 	flags.BoolVarP(&pushOptions.Quiet, "quiet", "q", false, "Suppress output information when pushing images")
 	flags.BoolVar(&pushOptions.RemoveSignatures, "remove-signatures", false, "Discard any pre-existing signatures in the image")

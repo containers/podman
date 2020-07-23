@@ -25,6 +25,15 @@ func exclusiveOptions(opt1, opt2 string) error {
 // input for creating a container.
 func (s *SpecGenerator) Validate() error {
 
+	if rootless.IsRootless() {
+		if s.StaticIP != nil || s.StaticIPv6 != nil {
+			return ErrNoStaticIPRootless
+		}
+		if s.StaticMAC != nil {
+			return ErrNoStaticMACRootless
+		}
+	}
+
 	//
 	// ContainerBasicConfig
 	//
@@ -64,10 +73,6 @@ func (s *SpecGenerator) Validate() error {
 	// capadd and privileged are exclusive
 	if len(s.CapAdd) > 0 && s.Privileged {
 		return exclusiveOptions("CapAdd", "privileged")
-	}
-	// apparmor and privileged are exclusive
-	if len(s.ApparmorProfile) > 0 && s.Privileged {
-		return exclusiveOptions("AppArmorProfile", "privileged")
 	}
 	// userns and idmappings conflict
 	if s.UserNS.IsPrivate() && s.IDMappings == nil {

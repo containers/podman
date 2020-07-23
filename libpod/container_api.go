@@ -29,7 +29,7 @@ import (
 // Init requires that all dependency containers be started (e.g. pod infra
 // containers). The `recursive` parameter will, if set to true, start these
 // dependency containers before initializing this container.
-func (c *Container) Init(ctx context.Context, recursive bool) (err error) {
+func (c *Container) Init(ctx context.Context, recursive bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "containerInit")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -85,7 +85,7 @@ func (c *Container) Init(ctx context.Context, recursive bool) (err error) {
 // Start requites that all dependency containers (e.g. pod infra containers) be
 // running before being run. The recursive parameter, if set, will start all
 // dependencies before starting this container.
-func (c *Container) Start(ctx context.Context, recursive bool) (err error) {
+func (c *Container) Start(ctx context.Context, recursive bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "containerStart")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -112,7 +112,7 @@ func (c *Container) Start(ctx context.Context, recursive bool) (err error) {
 // Attach call occurs before Start).
 // In overall functionality, it is identical to the Start call, with the added
 // side effect that an attach session will also be started.
-func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, recursive bool) (attachResChan <-chan error, err error) {
+func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, recursive bool) (<-chan error, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -150,7 +150,7 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachSt
 }
 
 // RestartWithTimeout restarts a running container and takes a given timeout in uint
-func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) (err error) {
+func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -160,7 +160,7 @@ func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) (err e
 		}
 	}
 
-	if err = c.checkDependenciesAndHandleError(); err != nil {
+	if err := c.checkDependenciesAndHandleError(); err != nil {
 		return err
 	}
 
@@ -353,7 +353,7 @@ func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, stre
 			logOpts.WaitGroup.Wait()
 			close(logChan)
 		}()
-		if err := c.ReadLog(logOpts, logChan); err != nil {
+		if err := c.ReadLog(context.Background(), logOpts, logChan); err != nil {
 			return err
 		}
 		logrus.Debugf("Done reading logs for container %s, %d bytes", c.ID(), logSize)
@@ -760,7 +760,7 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 }
 
 // Restore restores a container
-func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) (err error) {
+func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) error {
 	logrus.Debugf("Trying to restore container %s", c.ID())
 	if !c.batched {
 		c.lock.Lock()

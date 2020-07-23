@@ -10,12 +10,12 @@ import (
 	"runtime"
 	goRuntime "runtime"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/containers/libpod/v2/libpod"
 	"github.com/containers/libpod/v2/pkg/api/handlers"
+	"github.com/containers/libpod/v2/pkg/api/server/idletracker"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -24,14 +24,14 @@ import (
 )
 
 type APIServer struct {
-	http.Server                     // The  HTTP work happens here
-	*schema.Decoder                 // Decoder for Query parameters to structs
-	context.Context                 // Context to carry objects to handlers
-	*libpod.Runtime                 // Where the real work happens
-	net.Listener                    // mux for routing HTTP API calls to libpod routines
-	context.CancelFunc              // Stop APIServer
-	idleTracker        *IdleTracker // Track connections to support idle shutdown
-	pprof              *http.Server // Sidecar http server for providing performance data
+	http.Server                                 // The  HTTP work happens here
+	*schema.Decoder                             // Decoder for Query parameters to structs
+	context.Context                             // Context to carry objects to handlers
+	*libpod.Runtime                             // Where the real work happens
+	net.Listener                                // mux for routing HTTP API calls to libpod routines
+	context.CancelFunc                          // Stop APIServer
+	idleTracker        *idletracker.IdleTracker // Track connections to support idle shutdown
+	pprof              *http.Server             // Sidecar http server for providing performance data
 }
 
 // Number of seconds to wait for next request, if exceeded shutdown server
@@ -68,7 +68,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 	}
 
 	router := mux.NewRouter().UseEncodedPath()
-	idle := NewIdleTracker(duration)
+	idle := idletracker.NewIdleTracker(duration)
 
 	server := APIServer{
 		Server: http.Server{
@@ -230,56 +230,4 @@ func (s *APIServer) Shutdown() error {
 // Close immediately stops responding to clients and exits
 func (s *APIServer) Close() error {
 	return s.Server.Close()
-}
-
-type IdleTracker struct {
-	active   map[net.Conn]struct{}
-	total    int
-	mux      sync.Mutex
-	timer    *time.Timer
-	Duration time.Duration
-}
-
-func NewIdleTracker(idle time.Duration) *IdleTracker {
-	return &IdleTracker{
-		active:   make(map[net.Conn]struct{}),
-		Duration: idle,
-		timer:    time.NewTimer(idle),
-	}
-}
-
-func (t *IdleTracker) ConnState(conn net.Conn, state http.ConnState) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
-
-	oldActive := len(t.active)
-	logrus.Debugf("IdleTracker %p:%v %d/%d connection(s)", conn, state, t.ActiveConnections(), t.TotalConnections())
-	switch state {
-	case http.StateNew, http.StateActive, http.StateHijacked:
-		t.active[conn] = struct{}{}
-		// stop the timer if we transitioned from idle
-		if oldActive == 0 {
-			t.timer.Stop()
-		}
-		t.total++
-	case http.StateIdle, http.StateClosed:
-		delete(t.active, conn)
-		// Restart the timer if we've become idle
-		if oldActive > 0 && len(t.active) == 0 {
-			t.timer.Stop()
-			t.timer.Reset(t.Duration)
-		}
-	}
-}
-
-func (t *IdleTracker) ActiveConnections() int {
-	return len(t.active)
-}
-
-func (t *IdleTracker) TotalConnections() int {
-	return t.total
-}
-
-func (t *IdleTracker) Done() <-chan time.Time {
-	return t.timer.C
 }

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	. "github.com/containers/libpod/v2/test/utils"
@@ -48,6 +49,10 @@ spec:
   {{ range . }}
   - command:
     {{ range .Cmd }}
+    - {{.}}
+    {{ end }}
+    args:
+    {{ range .Arg }}
     - {{.}}
     {{ end }}
     env:
@@ -129,6 +134,10 @@ spec:
         {{ range .Cmd }}
         - {{.}}
         {{ end }}
+        args:
+        {{ range .Arg }}
+        - {{.}}
+        {{ end }}
         env:
         - name: PATH
           value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -171,6 +180,7 @@ spec:
 var (
 	defaultCtrName        = "testCtr"
 	defaultCtrCmd         = []string{"top"}
+	defaultCtrArg         = []string{"-d", "1.5"}
 	defaultCtrImage       = ALPINE
 	defaultPodName        = "testPod"
 	defaultDeploymentName = "testDeployment"
@@ -322,6 +332,7 @@ type Ctr struct {
 	Name            string
 	Image           string
 	Cmd             []string
+	Arg             []string
 	SecurityContext bool
 	Caps            bool
 	CapAdd          []string
@@ -332,7 +343,7 @@ type Ctr struct {
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
 // and the configured options
 func getCtr(options ...ctrOption) *Ctr {
-	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, true, false, nil, nil, ""}
+	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, defaultCtrArg, true, false, nil, nil, ""}
 	for _, option := range options {
 		option(&c)
 	}
@@ -344,6 +355,12 @@ type ctrOption func(*Ctr)
 func withCmd(cmd []string) ctrOption {
 	return func(c *Ctr) {
 		c.Cmd = cmd
+	}
+}
+
+func withArg(arg []string) ctrOption {
+	return func(c *Ctr) {
+		c.Arg = arg
 	}
 }
 
@@ -438,14 +455,50 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(defaultCtrCmd[0]))
+		// Use the defined command to override the image's command
+		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
+		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
+	})
+
+	It("podman play kube test correct command with only set command in yaml file", func() {
+		pod := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg(nil))))
+		err := generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		// Use the defined command to override the image's command, and don't set the args
+		// so the full command in result should not contains the image's command
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
+	})
+
+	It("podman play kube test correct command with only set args in yaml file", func() {
+		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(nil), withArg([]string{"echo", "hello"}))))
+		err := generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		// this image's ENTRYPOINT is called `docker-entrypoint.sh`
+		// so result should be `docker-entrypoint.sh + withArg(...)`
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[docker-entrypoint.sh echo hello]`))
 	})
 
 	It("podman play kube test correct output", func() {
-		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}))))
+		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
 
 		err := generatePodKubeYaml(p, kubeYaml)
 		Expect(err).To(BeNil())
@@ -457,12 +510,12 @@ var _ = Describe("Podman generate kube", func() {
 		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(p)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
-		Expect(logs.OutputToString()).To(ContainSubstring("hello"))
+		Expect(logs.OutputToString()).To(ContainSubstring("hello world"))
 
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(p), "--format", "'{{ .Config.Cmd }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring("hello"))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello world]`))
 	})
 
 	It("podman play kube test hostname", func() {
@@ -498,7 +551,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube cap add", func() {
 		capAdd := "CAP_SYS_ADMIN"
-		ctr := getCtr(withCapAdd([]string{capAdd}), withCmd([]string{"cat", "/proc/self/status"}))
+		ctr := getCtr(withCapAdd([]string{capAdd}), withCmd([]string{"cat", "/proc/self/status"}), withArg(nil))
 
 		pod := getPod(withCtr(ctr))
 		err := generatePodKubeYaml(pod, kubeYaml)
@@ -556,7 +609,7 @@ var _ = Describe("Podman generate kube", func() {
 		}
 
 		ctrAnnotation := "container.seccomp.security.alpha.kubernetes.io/" + defaultCtrName
-		ctr := getCtr(withCmd([]string{"pwd"}))
+		ctr := getCtr(withCmd([]string{"pwd"}), withArg(nil))
 
 		pod := getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost/"+filepath.Base(jsonFile)))
 		err = generatePodKubeYaml(pod, kubeYaml)
@@ -582,7 +635,7 @@ var _ = Describe("Podman generate kube", func() {
 		}
 		defer os.Remove(jsonFile)
 
-		ctr := getCtr(withCmd([]string{"pwd"}))
+		ctr := getCtr(withCmd([]string{"pwd"}), withArg(nil))
 
 		pod := getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost/"+filepath.Base(jsonFile)))
 		err = generatePodKubeYaml(pod, kubeYaml)
@@ -734,10 +787,12 @@ spec:
 		Expect(kube.ExitCode()).To(Equal(0))
 
 		podNames := getPodNamesInDeployment(deployment)
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[0])})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[0]), "--format", "'{{ .Config.Cmd }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(defaultCtrCmd[0]))
+		// yaml's command shuold override the image's Entrypoint
+		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
+		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
 	})
 
 	It("podman play kube deployment more than 1 replica test correct command", func() {
@@ -752,11 +807,12 @@ spec:
 		Expect(kube.ExitCode()).To(Equal(0))
 
 		podNames := getPodNamesInDeployment(deployment)
+		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
 		for i = 0; i < numReplicas; i++ {
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i])})
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "'{{ .Config.Cmd }}'"})
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect.ExitCode()).To(Equal(0))
-			Expect(inspect.OutputToString()).To(ContainSubstring(defaultCtrCmd[0]))
+			Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
 		}
 	})
 })

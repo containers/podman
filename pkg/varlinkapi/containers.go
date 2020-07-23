@@ -754,7 +754,7 @@ func (i *VarlinkAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	if err := i.Runtime.Log(containers, &options, logChannel); err != nil {
+	if err := i.Runtime.Log(getContext(), containers, &options, logChannel); err != nil {
 		return err
 	}
 	go func() {

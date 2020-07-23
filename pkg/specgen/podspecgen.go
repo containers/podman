@@ -49,6 +49,12 @@ type PodBasicConfig struct {
 	// Conflicts with NoInfra=true.
 	// Optional.
 	SharedNamespaces []string `json:"shared_namespaces,omitempty"`
+	// PodCreateCommand is the command used to create this pod.
+	// This will be shown in the output of Inspect() on the pod, and may
+	// also be used by some tools that wish to recreate the pod
+	// (e.g. `podman generate systemd --new`).
+	// Optional.
+	PodCreateCommand []string `json:"pod_create_command,omitempty"`
 }
 
 // PodNetworkConfig contains networking configuration for a pod.

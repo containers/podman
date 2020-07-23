@@ -365,9 +365,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Annotations = annotations
 
 	s.WorkDir = c.Workdir
-	entrypoint := []string{}
 	userCommand := []string{}
+	var command []string
 	if c.Entrypoint != nil {
+		entrypoint := []string{}
 		if ep := *c.Entrypoint; len(ep) > 0 {
 			// Check if entrypoint specified is json
 			if err := json.Unmarshal([]byte(*c.Entrypoint), &entrypoint); err != nil {
@@ -375,14 +376,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			}
 		}
 		s.Entrypoint = entrypoint
-	}
-	var command []string
-
-	// Build the command
-	// If we have an entry point, it goes first
-	if c.Entrypoint != nil {
+		// Build the command
+		// If we have an entry point, it goes first
 		command = entrypoint
 	}
+
+	// Include the command used to create the container.
+	s.ContainerCreateCommand = os.Args
+
 	if len(inputCommand) > 0 {
 		// User command overrides data CMD
 		command = append(command, inputCommand...)

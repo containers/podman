@@ -13,8 +13,8 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	// tags:
 	//  - containers
 	//  - pods
-	// summary: Play a Kubernetes YAML file.
-	// description: Create and run pods based on a Kubernetes YAML file (pod or service kind).
+	// summary: Generate a Kubernetes YAML file.
+	// description: Generate Kubernetes YAML based on a pod or container.
 	// parameters:
 	//  - in: path
 	//    name: name:.*

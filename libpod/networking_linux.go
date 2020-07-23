@@ -141,18 +141,18 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result, err error) {
+func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result, retErr error) {
 	ctrNS, err := netns.NewNS()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
 	}
 	defer func() {
-		if err != nil {
-			if err2 := netns.UnmountNS(ctrNS); err2 != nil {
-				logrus.Errorf("Error unmounting partially created network namespace for container %s: %v", ctr.ID(), err2)
+		if retErr != nil {
+			if err := netns.UnmountNS(ctrNS); err != nil {
+				logrus.Errorf("Error unmounting partially created network namespace for container %s: %v", ctr.ID(), err)
 			}
-			if err2 := ctrNS.Close(); err2 != nil {
-				logrus.Errorf("Error closing partially created network namespace for container %s: %v", ctr.ID(), err2)
+			if err := ctrNS.Close(); err != nil {
+				logrus.Errorf("Error closing partially created network namespace for container %s: %v", ctr.ID(), err)
 			}
 		}
 	}()
@@ -188,7 +188,7 @@ func checkSlirpFlags(path string) (*slirpFeatures, error) {
 }
 
 // Configure the network namespace for a rootless container
-func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
+func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	path := r.config.Engine.NetworkCmdPath
 
 	if path == "" {
@@ -342,7 +342,7 @@ func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout t
 	return nil
 }
 
-func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (err error) {
+func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) error {
 	syncR, syncW, err := os.Pipe()
 	if err != nil {
 		return errors.Wrapf(err, "failed to open pipe")
@@ -420,7 +420,7 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (er
 }
 
 // Configure the network namespace using the container process
-func (r *Runtime) setupNetNS(ctr *Container) (err error) {
+func (r *Runtime) setupNetNS(ctr *Container) error {
 	nsProcess := fmt.Sprintf("/proc/%d/ns/net", ctr.state.PID)
 
 	b := make([]byte, 16)
@@ -587,21 +587,7 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 // network.
 func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, error) {
 	settings := new(define.InspectNetworkSettings)
-	settings.Ports = make(map[string][]define.InspectHostPort)
-	if c.config.PortMappings != nil {
-		for _, port := range c.config.PortMappings {
-			key := fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)
-			mapping := settings.Ports[key]
-			if mapping == nil {
-				mapping = []define.InspectHostPort{}
-			}
-			mapping = append(mapping, define.InspectHostPort{
-				HostIP:   port.HostIP,
-				HostPort: fmt.Sprintf("%d", port.HostPort),
-			})
-			settings.Ports[key] = mapping
-		}
-	}
+	settings.Ports = makeInspectPortBindings(c.config.PortMappings)
 
 	// We can't do more if the network is down.
 	if c.state.NetNS == nil {

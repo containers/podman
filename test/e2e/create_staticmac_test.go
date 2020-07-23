@@ -1,10 +1,9 @@
-// +build !remoteclient
-
 package integration
 
 import (
 	"os"
 
+	"github.com/containers/libpod/v2/pkg/rootless"
 	. "github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,7 +17,6 @@ var _ = Describe("Podman run with --mac-address flag", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -40,7 +38,11 @@ var _ = Describe("Podman run with --mac-address flag", func() {
 	It("Podman run --mac-address", func() {
 		result := podmanTest.Podman([]string{"run", "--mac-address", "92:d0:c6:0a:29:34", ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
-		Expect(result.OutputToString()).To(ContainSubstring("92:d0:c6:0a:29:34"))
+		if rootless.IsRootless() {
+			Expect(result.ExitCode()).To(Equal(125))
+		} else {
+			Expect(result.ExitCode()).To(Equal(0))
+			Expect(result.OutputToString()).To(ContainSubstring("92:d0:c6:0a:29:34"))
+		}
 	})
 })

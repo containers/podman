@@ -231,6 +231,12 @@ Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sd
 
 Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)
 
+**--disable-content-trust**
+
+This is a Docker specific option to disable image verification to a Docker
+registry and is not supported by Podman.  This flag is a NOOP and provided
+solely for scripting compatibility.
+
 **--dns**=*dns*
 
 Set custom DNS servers. Invalid if using **--dns** and **--network** that is set to 'none' or 'container:<name|id>'.
@@ -485,7 +491,7 @@ Tune a container's memory swappiness behavior. Accepts an integer between 0 and 
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPES are `bind`, `volume`, and `tmpfs`.
+Current supported mount TYPES are `bind`, `volume`, and `tmpfs`. <sup>[[1]](#Footnote1)</sup>
 
        e.g.
 
@@ -866,7 +872,7 @@ Set the UTS mode for the container
 
 Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the podman
-container. The `OPTIONS` are a comma delimited list and can be:
+container. The `OPTIONS` are a comma delimited list and can be: <sup>[[1]](#Footnote1)</sup>
 
 * [rw|ro]
 * [z|Z]
@@ -918,7 +924,7 @@ this behavior by specifying a volume mount propagation property. Making a
 volume `shared` mounts done under that volume inside container will be
 visible on host and vice versa. Making a volume `slave` enables only one
 way mount propagation and that is mounts done on host under that volume
-will be visible inside container but not the other way around.
+will be visible inside container but not the other way around. <sup>[[1]](#Footnote1)</sup>
 
 To control mount propagation property of volume one can use `:[r]shared`,
 `:[r]slave` or `:[r]private` propagation flag. Propagation property can
@@ -926,7 +932,7 @@ be specified only for bind mounted volumes and not for internal volumes or
 named volumes. For mount propagation to work source mount point (mount point
 where source dir is mounted on) has to have right propagation properties. For
 shared volumes, source mount point has to be shared. And for slave volumes,
-source mount has to be either shared or slave.
+source mount has to be either shared or slave. <sup>[[1]](#Footnote1)</sup>
 
 If you want to recursively mount a volume and all of its submounts into a
 container, then you can use the `rbind` option.  By default the bind option is
@@ -953,7 +959,7 @@ properties of source mount. If `findmnt` utility is not available, then one
 can look at mount entry for source mount point in `/proc/self/mountinfo`. Look
 at `optional fields` and see if any propagation properties are specified.
 `shared:X` means mount is `shared`, `master:X` means mount is `slave` and if
-nothing is there that means mount is `private`.
+nothing is there that means mount is `private`. <sup>[[1]](#Footnote1)</sup>
 
 To change propagation properties of a mount point use `mount` command. For
 example, if one wants to bind mount source directory `/foo` one can do
@@ -1091,3 +1097,6 @@ November 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 September 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 
 August 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
+
+## FOOTNOTES
+<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.

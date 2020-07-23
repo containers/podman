@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/v2/pkg/rootless"
 	. "github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -238,17 +239,20 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod with IP address", func() {
-		SkipIfRootless()
 		name := "test"
 		ip := GetRandomIPAddress()
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", name})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate.ExitCode()).To(Equal(0))
-
-		podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "ip", "addr"})
-		podResolvConf.WaitWithDefaultTimeout()
-		Expect(podResolvConf.ExitCode()).To(Equal(0))
-		Expect(strings.Contains(podResolvConf.OutputToString(), ip)).To(BeTrue())
+		// Rootless should error
+		if rootless.IsRootless() {
+			Expect(podCreate.ExitCode()).To(Equal(125))
+		} else {
+			Expect(podCreate.ExitCode()).To(Equal(0))
+			podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "ip", "addr"})
+			podResolvConf.WaitWithDefaultTimeout()
+			Expect(podResolvConf.ExitCode()).To(Equal(0))
+			Expect(strings.Contains(podResolvConf.OutputToString(), ip)).To(BeTrue())
+		}
 	})
 
 	It("podman create pod with IP address and no infra should fail", func() {
@@ -262,17 +266,20 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with MAC address", func() {
 		SkipIfRemote()
-		SkipIfRootless()
 		name := "test"
 		mac := "92:d0:c6:0a:29:35"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--mac-address", mac, "--name", name})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate.ExitCode()).To(Equal(0))
-
-		podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "ip", "addr"})
-		podResolvConf.WaitWithDefaultTimeout()
-		Expect(podResolvConf.ExitCode()).To(Equal(0))
-		Expect(strings.Contains(podResolvConf.OutputToString(), mac)).To(BeTrue())
+		// Rootless should error
+		if rootless.IsRootless() {
+			Expect(podCreate.ExitCode()).To(Equal(125))
+		} else {
+			Expect(podCreate.ExitCode()).To(Equal(0))
+			podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "ip", "addr"})
+			podResolvConf.WaitWithDefaultTimeout()
+			Expect(podResolvConf.ExitCode()).To(Equal(0))
+			Expect(strings.Contains(podResolvConf.OutputToString(), mac)).To(BeTrue())
+		}
 	})
 
 	It("podman create pod with MAC address and no infra should fail", func() {

@@ -73,6 +73,12 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+**--disable-content-trust**
+
+This is a Docker specific option to disable image verification to a Docker
+registry and is not supported by Podman.  This flag is a NOOP and provided
+solely for scripting compatibility.
+
 **--override-os**=*OS*
 Use OS instead of the running OS for choosing images
 

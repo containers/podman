@@ -915,10 +915,6 @@ func CreateContainerFromCreateConfig(ctx context.Context, r *libpod.Runtime, cre
 		return nil, err
 	}
 
-	// Set the CreateCommand explicitly.  Some (future) consumers of libpod
-	// might not want to set it.
-	options = append(options, libpod.WithCreateCommand())
-
 	ctr, err := r.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
 		return nil, err

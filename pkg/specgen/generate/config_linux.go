@@ -161,6 +161,7 @@ func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.
 			"/proc/scsi",
 			"/sys/firmware",
 			"/sys/fs/selinux",
+			"/sys/dev",
 		} {
 			g.AddLinuxMaskedPaths(mp)
 		}

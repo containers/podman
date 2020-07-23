@@ -779,25 +779,25 @@ func (c *Container) execOCILog(sessionID string) string {
 }
 
 // create a bundle path and associated files for an exec session
-func (c *Container) createExecBundle(sessionID string) (err error) {
+func (c *Container) createExecBundle(sessionID string) (retErr error) {
 	bundlePath := c.execBundlePath(sessionID)
-	if createErr := os.MkdirAll(bundlePath, execDirPermission); createErr != nil {
-		return createErr
+	if err := os.MkdirAll(bundlePath, execDirPermission); err != nil {
+		return err
 	}
 	defer func() {
-		if err != nil {
-			if err2 := os.RemoveAll(bundlePath); err != nil {
-				logrus.Warnf("error removing exec bundle after creation caused another error: %v", err2)
+		if retErr != nil {
+			if err := os.RemoveAll(bundlePath); err != nil {
+				logrus.Warnf("error removing exec bundle after creation caused another error: %v", err)
 			}
 		}
 	}()
-	if err2 := os.MkdirAll(c.execExitFileDir(sessionID), execDirPermission); err2 != nil {
+	if err := os.MkdirAll(c.execExitFileDir(sessionID), execDirPermission); err != nil {
 		// The directory is allowed to exist
-		if !os.IsExist(err2) {
-			err = errors.Wrapf(err2, "error creating OCI runtime exit file path %s", c.execExitFileDir(sessionID))
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating OCI runtime exit file path %s", c.execExitFileDir(sessionID))
 		}
 	}
-	return
+	return nil
 }
 
 // readExecExitCode reads the exit file for an exec session and returns

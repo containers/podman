@@ -4,6 +4,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"math"
@@ -29,7 +30,7 @@ const (
 	bufLen = 16384
 )
 
-func (c *Container) readFromJournal(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	var config journal.JournalReaderConfig
 	if options.Tail < 0 {
 		config.NumFromTail = math.MaxUint64
@@ -65,13 +66,24 @@ func (c *Container) readFromJournal(options *logs.LogOptions, logChannel chan *l
 
 	if options.Follow {
 		go func() {
+			done := make(chan bool)
+			until := make(chan time.Time)
+			go func() {
+				select {
+				case <-ctx.Done():
+					until <- time.Time{}
+				case <-done:
+					// nothing to do anymore
+				}
+			}()
 			follower := FollowBuffer{logChannel}
-			err := r.Follow(nil, follower)
+			err := r.Follow(until, follower)
 			if err != nil {
 				logrus.Debugf(err.Error())
 			}
 			r.Close()
 			options.WaitGroup.Done()
+			done <- true
 			return
 		}()
 		return nil

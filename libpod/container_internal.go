@@ -209,7 +209,7 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 // Handle container restart policy.
 // This is called when a container has exited, and was not explicitly stopped by
 // an API call to stop the container or pod it is in.
-func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, err error) {
+func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr error) {
 	// If we did not get a restart policy match, exit immediately.
 	// Do the same if we're not a policy that restarts.
 	if !c.state.RestartPolicyMatch ||
@@ -240,7 +240,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 	logrus.Debugf("Restarting container %s due to restart policy %s", c.ID(), c.config.RestartPolicy)
 
 	// Need to check if dependencies are alive.
-	if err = c.checkDependenciesAndHandleError(); err != nil {
+	if err := c.checkDependenciesAndHandleError(); err != nil {
 		return false, err
 	}
 
@@ -262,9 +262,9 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 	}
 
 	defer func() {
-		if err != nil {
-			if err2 := c.cleanup(ctx); err2 != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+		if retErr != nil {
+			if err := c.cleanup(ctx); err != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -767,7 +767,7 @@ func (c *Container) save() error {
 // Checks the container is in the right state, then initializes the container in preparation to start the container.
 // If recursive is true, each of the containers dependencies will be started.
 // Otherwise, this function will return with error if there are dependencies of this container that aren't running.
-func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err error) {
+func (c *Container) prepareToStart(ctx context.Context, recursive bool) (retErr error) {
 	// Container must be created or stopped to be started
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
@@ -784,9 +784,9 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err err
 	}
 
 	defer func() {
-		if err != nil {
-			if err2 := c.cleanup(ctx); err2 != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+		if retErr != nil {
+			if err := c.cleanup(ctx); err != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -1132,7 +1132,7 @@ func (c *Container) reinit(ctx context.Context, retainRetries bool) error {
 // Initialize (if necessary) and start a container
 // Performs all necessary steps to start a container that is not running
 // Does not lock or check validity
-func (c *Container) initAndStart(ctx context.Context) (err error) {
+func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 	// If we are ContainerStateUnknown, throw an error
 	if c.state.State == define.ContainerStateUnknown {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
@@ -1150,9 +1150,9 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	}
 
 	defer func() {
-		if err != nil {
-			if err2 := c.cleanup(ctx); err2 != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+		if retErr != nil {
+			if err := c.cleanup(ctx); err != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -1321,7 +1321,7 @@ func (c *Container) unpause() error {
 }
 
 // Internal, non-locking function to restart a container
-func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err error) {
+func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retErr error) {
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
 	}
@@ -1358,9 +1358,9 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 		}
 	}
 	defer func() {
-		if err != nil {
-			if err2 := c.cleanup(ctx); err2 != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+		if retErr != nil {
+			if err := c.cleanup(ctx); err != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -1682,7 +1682,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 // delete deletes the container and runs any configured poststop
 // hooks.
-func (c *Container) delete(ctx context.Context) (err error) {
+func (c *Container) delete(ctx context.Context) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "delete")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -1701,7 +1701,7 @@ func (c *Container) delete(ctx context.Context) (err error) {
 // postDeleteHooks runs the poststop hooks (if any) as specified by
 // the OCI Runtime Specification (which requires them to run
 // post-delete, despite the stage name).
-func (c *Container) postDeleteHooks(ctx context.Context) (err error) {
+func (c *Container) postDeleteHooks(ctx context.Context) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "postDeleteHooks")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -1824,7 +1824,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 }
 
 // Warning: precreate hooks may alter 'config' in place.
-func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
+func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[string][]spec.Hook, error) {
 	allHooks := make(map[string][]spec.Hook)
 	if c.runtime.config.Engine.HooksDir == nil {
 		if rootless.IsRootless() {
@@ -1938,7 +1938,7 @@ func (c *Container) checkReadyForRemoval() error {
 
 // writeJSONFile marshalls and writes the given data to a JSON file
 // in the bundle path
-func (c *Container) writeJSONFile(v interface{}, file string) (err error) {
+func (c *Container) writeJSONFile(v interface{}, file string) error {
 	fileJSON, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return errors.Wrapf(err, "error writing JSON to %s for container %s", file, c.ID())
@@ -1953,7 +1953,7 @@ func (c *Container) writeJSONFile(v interface{}, file string) (err error) {
 
 // prepareCheckpointExport writes the config and spec to
 // JSON files for later export
-func (c *Container) prepareCheckpointExport() (err error) {
+func (c *Container) prepareCheckpointExport() error {
 	// save live config
 	if err := c.writeJSONFile(c.Config(), "config.dump"); err != nil {
 		return err

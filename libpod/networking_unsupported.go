@@ -4,11 +4,11 @@ package libpod
 
 import "github.com/containers/libpod/v2/libpod/define"
 
-func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
+func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	return define.ErrNotImplemented
 }
 
-func (r *Runtime) setupNetNS(ctr *Container) (err error) {
+func (r *Runtime) setupNetNS(ctr *Container) error {
 	return define.ErrNotImplemented
 }
 
@@ -16,7 +16,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	return define.ErrNotImplemented
 }
 
-func (r *Runtime) createNetNS(ctr *Container) (err error) {
+func (r *Runtime) createNetNS(ctr *Container) error {
 	return define.ErrNotImplemented
 }
 

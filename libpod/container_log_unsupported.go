@@ -3,11 +3,13 @@
 package libpod
 
 import (
+	"context"
+
 	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/libpod/logs"
 	"github.com/pkg/errors"
 )
 
-func (c *Container) readFromJournal(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+func (c *Container) readFromJournal(_ context.Context, _ *logs.LogOptions, _ chan *logs.LogLine) error {
 	return errors.Wrapf(define.ErrOSNotSupported, "Journald logging only enabled with systemd on linux")
 }
