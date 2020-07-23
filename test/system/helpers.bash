@@ -137,11 +137,16 @@ function run_podman() {
         '?')             expected_rc=  ; shift;;  # ignore exit code
     esac
 
+    local BIN=$PODMAN
+    if [[ -n "$COVERAGE" ]]; then
+        BIN="$PODMAN -test.coverprofile=coverprofile.system.$(random_string 20) COVERAGE"
+    fi
+
     # stdout is only emitted upon error; this echo is to help a debugger
-    echo "$_LOG_PROMPT $PODMAN $*"
+    echo "$_LOG_PROMPT $BIN $*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
-    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@" 3>/dev/null
+    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $BIN "$@" 3>/dev/null
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
         echo "$output"
