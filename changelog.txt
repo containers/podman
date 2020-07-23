@@ -1,3 +1,52 @@
+- Changelog for v2.0.3 (2020-07-23):
+  * Drop a nonfunctional test in test/apiv2
+  * Update release notes for v2.0.3
+  * Fix handling of entrypoint
+  * log API: add context to allow for cancelling
+  * fix API: Create container with an invalid configuration
+  * Remove all instances of named return "err" from Libpod
+  * Fix: Correct connection counters for hijacked connections
+  * Fix: Hijacking v2 endpoints to follow rfc 7230 semantics
+  * Remove hijacked connections from active connections list
+  * version/info: format: allow more json variants
+  * Correctly print STDOUT on non-terminal remote exec
+  * Fix container and pod create commands for remote create
+  * Mask out /sys/dev to prevent information leak from the host
+  * Ensure sig-proxy default is propagated in start
+  * Add SystemdMode to inspect for containers
+  * When determining systemd mode, use full command
+  * Fix lint
+  * Populate remaining unused fields in `pod inspect`
+  * Include infra container information in `pod inspect`
+  * play-kube: add suport for "IfNotPresent" pull type
+  * docs: user namespace can't be shared in pods
+  * Fix "Error: unrecognized protocol \"TCP\" in port mapping"
+  * Error on rootless mac and ip addresses
+  * Fix & add notes regarding problematic language in codebase
+  * abi: set default umask and rlimits
+  * Used reference package with errors for parsing tag
+  * fix: system df error when an image has no name
+  * Fix Generate API title/description
+  * Add noop function disable-content-trust
+  * fix play kube doesn't override dockerfile ENTRYPOINT
+  * Support default profile for apparmor
+  * Bump github.com/containers/common to v0.14.6
+  * events endpoint: backwards compat to old type
+  * events endpoint: fix panic and race condition
+  * Switch references from libpod.conf to containers.conf
+  * podman.service: set type to simple
+  * podman.service: set doc to podman-system-service
+  * podman.service: use default registries.conf
+  * podman.service: use default killmode
+  * podman.service: remove stop timeout
+  * systemd: symlink user->system
+  * vendor golang.org/x/text@v0.3.3
+  * Fix a bug where --pids-limit was parsed incorrectly
+  * search: allow wildcards
+  * [CI:DOCS]Do not copy policy.json into gating image
+  * Fix systemd pid 1 test
+  * Cirrus: Rotate keys post repo. rename
+
 - Changelog for v2.0.2 (2020-07-07):
   * Finalize release notes for Podman v2.0.2
   * fix race condition in `libpod.GetEvents(...)`
