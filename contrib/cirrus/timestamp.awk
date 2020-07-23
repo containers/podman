@@ -7,7 +7,7 @@
 BEGIN {
     STARTTIME=systime()
     printf "[%s] START", strftime("%T")
-    printf " - All [+xxxx] lines that follow are relative to right now.\n"
+    printf " - All [+xxxx] lines that follow are relative to %s.\n", strftime("%FT%T")
 }
 
 {
@@ -16,5 +16,5 @@ BEGIN {
 
 END {
     printf "[%s] END", strftime("%T")
-    printf " - [%+05ds] total duration since START\n", systime()-STARTTIME
+    printf " - [%+05ds] total duration since %s\n", systime()-STARTTIME, strftime("%FT%T")
 }

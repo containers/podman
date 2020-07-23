@@ -153,6 +153,15 @@ DOWNLOAD_PACKAGES=(\
 echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
 $BIGTO ooe.sh $SUDO dnf install -y ${INSTALL_PACKAGES[@]}
 
+# AD-HOC CODE FOR SPECIAL-CASE SITUATIONS!
+# On 2020-07-23 we needed this code to upgrade crun on f31, a build
+# that is not yet in stable. Since CI:IMG PRs are a two-step process,
+# the key part is that we UN-COMMENT-THIS-OUT during the first step,
+# then re-comment it on the second (once we have the built images).
+# That way this will be dead code in future CI:IMG PRs but will
+# serve as an example for anyone in a similar future situation.
+#   $BIGTO ooe.sh $SUDO dnf --enablerepo=updates-testing -y upgrade crun
+
 [[ ${#REMOVE_PACKAGES[@]} -eq 0 ]] || \
     $LILTO ooe.sh $SUDO dnf erase -y ${REMOVE_PACKAGES[@]}
 

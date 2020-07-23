@@ -1,0 +1,89 @@
+This document briefly describes how to update VMs on Cirrus.
+
+Examples of when you need to do this:
+
+  - to update crun, conmon, or some other package(s)
+  - to add and/or remove an OS (eg drop f31, add f33)
+  - to change system config (eg containers.conf or other /etc files)
+  - to change kernel command-line (boot time) options
+
+This is a TWO-STEP process: you need to submit a PR with a magic [CI:IMG]
+description string, wait for it to finish, grab a magic string from the
+results, then resubmit without [CI:IMG].
+
+Procedure, Part One of Two:
+
+  1) Create a working branch:
+
+     $ git co -b my_branch_name
+
+  2) Make your changes. Typically, zero or more of the following files:
+
+         .cirrus.yml
+         contrib/cirrus/packer/*_packaging.sh
+
+     I said zero because sometimes you just want to update VMs
+     with the latest in dnf or ubuntu repos. That doesn't require
+     changing anything here, simply running new dnf/apt installs.
+
+  3) Commit your changes. Be sure to include the magic [CI:IMG] string:
+
+     $ git commit -asm'[CI:IMG] this is my commit message'
+
+  4) Submit your PR:
+
+     $ gh pr create --fill --web
+
+
+  --------------------------  INTERMISSION  --------------------------
+  ...in which we wait for CI to turn green. In particular, although
+  we only really need 'test_build_cache_images' (45 minutes or so)
+  to get the required magic number strings, please be a decent
+  human being and wait for 'verify_test_built_images' (another hour)
+  so we can all have confidence in our process. Thank you.
+  --------------------------  INTERMISSION  --------------------------
+
+
+Procedure, Part Two of Two:
+
+  1) When 'test_build_cache_images' completes, click it, then click
+     'View more details on Cirrus CI', then expand the 'Run build_vm_image'
+     accordion. This gives you a garishly colorful display of lines.
+     Each color is a different VM.
+
+  2) Verify that each VM has the packages you require. (The garish log
+     doesn't actually list this for all packages, so you may need to
+     look in the 'verify_test_built_images' log for each individual
+     VM. Click the 'package_versions' accordion.)
+
+  3) At the bottom of this log you will see a block like:
+
+       Builds finished. The artifacts of successful builds are:
+       ubuntu-19: A disk image was created: ubuntu-19-podman-6439450735542272
+       fedora-31: A disk image was created: fedora-31-podman-6439450735542272
+       .....
+
+     The long numbers at the end should (MUST!) be all identical.
+
+  4) Edit .cirrus.yml locally. Find '_BUILT_IMAGE_SUFFIX' near the
+     top. Copy that long number ("6439450735542272", above) and paste
+     it here, replacing the previous long number.
+
+  5) Wait for CI to turn green. I know you might have skipped that,
+     because 'test_build_cache_images' finishes long before 'verify',
+     and maybe you're in a hurry, but come on. Be responsible.
+
+  6) Edit the PR description in github: remove '[CI:IMG]' from the
+     title. Again, *in github*, in the web UI, use the 'Edit' button
+     at top right next to the PR title. Remove the '[CI:IMG]' string
+     from the PR title, press Save. If you forget to do this, the
+     VM-building steps will run again (taking a long time) but it
+     will be a waste of time.
+
+  7) Update your PR:
+
+       $ git add .cirrus.yml  (to get the new magic IMAGE_SUFFIX string)
+       $ git commit --amend   (remove [CI:IMG] for consistency with 6)
+       $ git push --force
+
+You can probably take it from here.
