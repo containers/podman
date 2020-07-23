@@ -1,0 +1,47 @@
+package images
+
+import (
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
+)
+
+// setupPipe for fixing https://github.com/containers/podman/issues/7017
+// uses named pipe since containers/image EvalSymlinks fails with /dev/stdout
+// the caller should use the returned function to clean up the pipeDir
+func setupPipe() (string, func() <-chan error, error) {
+	errc := make(chan error)
+	pipeDir, err := ioutil.TempDir(os.TempDir(), "pipeDir")
+	if err != nil {
+		return "", nil, err
+	}
+	pipePath := filepath.Join(pipeDir, "saveio")
+	err = unix.Mkfifo(pipePath, 0600)
+	if err != nil {
+		if e := os.RemoveAll(pipeDir); e != nil {
+			logrus.Errorf("error removing named pipe: %q", e)
+		}
+		return "", nil, errors.Wrapf(err, "error creating named pipe")
+	}
+	go func() {
+		fpipe, err := os.Open(pipePath)
+		if err != nil {
+			errc <- err
+			return
+		}
+		_, err = io.Copy(os.Stdout, fpipe)
+		fpipe.Close()
+		errc <- err
+	}()
+	return pipePath, func() <-chan error {
+		if e := os.RemoveAll(pipeDir); e != nil {
+			logrus.Errorf("error removing named pipe: %q", e)
+		}
+		return errc
+	}, nil
+}

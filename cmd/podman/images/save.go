@@ -5,10 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/libpod/v2/libpod/define"
-
 	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/pkg/errors"
@@ -83,9 +82,10 @@ func saveFlags(flags *pflag.FlagSet) {
 
 }
 
-func save(cmd *cobra.Command, args []string) error {
+func save(cmd *cobra.Command, args []string) (finalErr error) {
 	var (
-		tags []string
+		tags      []string
+		succeeded = false
 	)
 	if cmd.Flag("compress").Changed && (saveOpts.Format != define.OCIManifestDir && saveOpts.Format != define.V2s2ManifestDir && saveOpts.Format == "") {
 		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
@@ -95,7 +95,22 @@ func save(cmd *cobra.Command, args []string) error {
 		if terminal.IsTerminal(int(fi.Fd())) {
 			return errors.Errorf("refusing to save to terminal. Use -o flag or redirect")
 		}
-		saveOpts.Output = "/dev/stdout"
+		pipePath, cleanup, err := setupPipe()
+		if err != nil {
+			return err
+		}
+		if cleanup != nil {
+			defer func() {
+				errc := cleanup()
+				if succeeded {
+					writeErr := <-errc
+					if writeErr != nil && finalErr == nil {
+						finalErr = writeErr
+					}
+				}
+			}()
+		}
+		saveOpts.Output = pipePath
 	}
 	if err := parse.ValidateFileName(saveOpts.Output); err != nil {
 		return err
@@ -103,5 +118,9 @@ func save(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 {
 		tags = args[1:]
 	}
-	return registry.ImageEngine().Save(context.Background(), args[0], tags, saveOpts)
+	err := registry.ImageEngine().Save(context.Background(), args[0], tags, saveOpts)
+	if err == nil {
+		succeeded = true
+	}
+	return err
 }
