@@ -91,7 +91,7 @@ func (n UsernsMode) IsHost() bool {
 	return n == hostType
 }
 
-// IsKeepID indicates whether container uses a mapping where the (uid, gid) on the host is lept inside of the namespace.
+// IsKeepID indicates whether container uses a mapping where the (uid, gid) on the host is kept inside of the namespace.
 func (n UsernsMode) IsKeepID() bool {
 	return n == "keep-id"
 }
