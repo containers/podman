@@ -26,6 +26,16 @@ verify_iid_and_name() {
     is "$new_img_name" "$1"   "Name & tag of restored image"
 }
 
+@test "podman save to pipe and load" {
+    # We can't use run_podman because that uses the BATS 'run' function
+    # which redirects stdout and stderr. Here we need to guarantee
+    # that podman's stdout is a pipe, not any other form of redirection
+    $PODMAN save --format oci-archive $IMAGE | cat >$PODMAN_TMPDIR/test.tar
+    [ $status -eq 0 ]
+
+    run_podman load -i $PODMAN_TMPDIR/test.tar
+}
+
 
 @test "podman load - by image ID" {
     # FIXME: how to build a simple archive instead?
