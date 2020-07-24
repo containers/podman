@@ -1,3 +1,5 @@
+// +build coverage
+
 package main
 
 import (

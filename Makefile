@@ -208,7 +208,7 @@ podman.coverage:
 		-gcflags '$(GCFLAGS)' \
 		-asmflags '$(ASMFLAGS)' \
 		-ldflags '$(LDFLAGS_PODMAN)' \
-		-tags "$(BUILDTAGS)" -c -o ./bin/podman $(PROJECT)/cmd/podman
+		-tags "coverage $(BUILDTAGS)" -c -o ./bin/podman $(PROJECT)/cmd/podman
 
 .PHONY: podman-remote.coverage
 podman-remote.coverage:
@@ -218,7 +218,7 @@ podman-remote.coverage:
 		-gcflags '$(GCFLAGS)' \
 		-asmflags '$(ASMFLAGS)' \
 		-ldflags '$(LDFLAGS_PODMAN)' \
-		-tags "$(REMOTETAGS)" -c -o ./bin/podman-remote $(PROJECT)/cmd/podman
+		-tags "coverage $(REMOTETAGS)" -c -o ./bin/podman-remote $(PROJECT)/cmd/podman
 
 .PHONY: podman.msi
 podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
