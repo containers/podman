@@ -99,7 +99,7 @@ func start(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range responses {
-		if r.Err == nil {
+		if r.Err == nil && !startOptions.Attach {
 			fmt.Println(r.RawInput)
 		} else {
 			errs = append(errs, r.Err)
