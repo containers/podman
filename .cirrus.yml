@@ -760,21 +760,33 @@ success_task:
 static_build_task:
     depends_on:
         - "gating"
+
     gce_instance:
         image_name: "${FEDORA_CACHE_IMAGE_NAME}"
         cpu: 8
         memory: 12
         disk: 200
-    script: |
+
+    init_script: |
         set -ex
         setenforce 0
         growpart /dev/sda 1 || true
         resize2fs /dev/sda1 || true
         yum -y install podman
+
+    nix_cache:
+      folder: '.cache'
+      fingerprint_script: |
+        echo "nix-v1-$(sha1sum nix/nixpkgs.json | head -c 40)"
+
+    build_script: |
+        set -ex
         mkdir -p /nix
-        podman run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix
+        mkdir -p .cache
+        mount --bind .cache /nix
+        if [[ -z $(ls -A /nix) ]]; then podman run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
         podman run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
+        chown -Rf $(whoami) .cache
+
     binaries_artifacts:
         path: "result/bin/podman"
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
