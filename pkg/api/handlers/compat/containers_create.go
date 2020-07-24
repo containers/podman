@@ -159,10 +159,10 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		User:       input.User,
 	}
 	pidConfig := createconfig.PidConfig{PidMode: namespaces.PidMode(input.HostConfig.PidMode)}
-	volumes := make([]string, 0, len(input.Volumes))
-	for k := range input.Volumes {
-		volumes = append(volumes, k)
-	}
+	// TODO: We should check that these binds are all listed in the `Volumes`
+	// key since it doesn't make sense to define a `Binds` element for a
+	// container path which isn't defined as a volume
+	volumes := input.HostConfig.Binds
 
 	// Docker is more flexible about its input where podman throws
 	// away incorrectly formatted variables so we cannot reuse the
