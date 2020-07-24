@@ -45,8 +45,8 @@ func getMissingRuntime(name string, r *Runtime) OCIRuntime {
 		return runtime
 	}
 
-	// Once for each missing runtime, we want to error.
-	logrus.Errorf("OCI Runtime %s is in use by a container, but is not available (not in configuration file or not installed)", name)
+	// Once for each missing runtime, we want to print info.
+	logrus.Infof("OCI Runtime %s is in use by a container, but is not available (not in configuration file or not installed)", name)
 
 	newRuntime := new(MissingRuntime)
 	newRuntime.name = name
