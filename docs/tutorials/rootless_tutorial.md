@@ -106,9 +106,50 @@ Once the Administrator has completed the setup on the machine and then the confi
 
 ### User Configuration Files
 
-The Podman configuration files for root reside in `/usr/share/containers` with overrides in `/etc/containers`.  In the rootless environment they reside in `${XDG_CONFIG_HOME}/containers` (usually `~/.config/containers`) and are owned by each individual user.  The main files are `containers.conf` and `storage.conf` and the user can modify these files as they wish.
+The Podman configuration files for root reside in `/usr/share/containers` with overrides in `/etc/containers`.  In the rootless environment they reside in `${XDG_CONFIG_HOME}/containers` (usually `~/.config/containers`) and are owned by each individual user.
 
-The default authorization file used by the `podman login` and `podman logout` commands reside in `${XDG_RUNTIME_DIR}/containers/auth.json`.
+The three main configuration files are [containers.conf](https://github.com/containers/common/blob/master/docs/containers.conf.5.md), [storage.conf](https://github.com/containers/storage/blob/master/docs/containers-storage.conf.5.md) and [registries.conf](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md). The user can modify these files as they wish.
+
+#### containers.conf
+Podman reads
+1. `/usr/share/containers/containers.conf`
+2. `/etc/containers/containers.conf`
+3. `$HOME/.config/containers/containers.conf`
+
+if they exist in that order. Each file can override the previous for particular fields.
+
+#### storage.conf
+For `storage.conf` the order is
+1. `/etc/containers/storage.conf`
+2. `$HOME/.config/containers/storage.conf`
+
+In rootless podman certain fields in `/etc/containers/storage.conf` are ignored. These fields are:
+```
+graphroot=""
+ container storage graph dir (default: "/var/lib/containers/storage")
+ Default directory to store all writable content created by container storage programs.
+
+runroot=""
+ container storage run dir (default: "/var/run/containers/storage")
+ Default directory to store all temporary writable content created by container storage programs.
+```
+In rootless podman these fields default to
+```
+graphroot="$HOME/.local/share/containers/storage"
+runroot="$XDG_RUNTIME_DIR/containers"
+```
+[$XDG_RUNTIME_DIR](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables) defaults on most systems to `/run/user/$UID`.
+
+#### registries
+Registry configuration is read in by this order
+1. `/etc/containers/registries.conf`
+2. `/etc/containers/registries.d/*`
+3. `HOME/.config/containers/registries.conf`
+
+The files in the home directory should be used to configure rootless podman for personal needs. These files are not created by default. Users can copy the files from `/usr/share/containers` or `/etc/containers` and modify them.
+
+#### Authorization files
+ The default authorization file used by the `podman login` and `podman logout` commands reside in `${XDG_RUNTIME_DIR}/containers/auth.json`.
 
 ### Using volumes
 
