@@ -29,6 +29,7 @@ var _ = Describe("podman container runlabel", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfCoverage()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

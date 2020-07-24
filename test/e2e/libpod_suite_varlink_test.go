@@ -29,6 +29,12 @@ func SkipIfRootless() {
 	}
 }
 
+func SkipIfCoverage() {
+	if utils.IsCoverageRun() {
+		Skip("This test does not work for coverage tests")
+	}
+}
+
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
 	podmanSession := p.PodmanBase(args, false, false)

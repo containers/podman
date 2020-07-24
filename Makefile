@@ -333,7 +333,7 @@ localunit: test/goecho/goecho varlink_generate
 		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings,hack \
 		--cover \
-		--covermode atomic \
+		--covermode=count \
 		--coverprofile coverprofile \
 		--outputdir ${COVERAGE_PATH} \
 		--tags "$(BUILDTAGS)" \

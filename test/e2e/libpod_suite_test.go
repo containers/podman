@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 )
 
@@ -78,14 +77,8 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 		eventsType = "none"
 	}
 
-	var podmanOptions []string
-
-	if utils.IsCoverageRun() {
-		podmanOptions = utils.CoverageArgs()
-	}
-
-	podmanOptions = append(podmanOptions, strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
-		debug, p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")...)
+	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
+		debug, p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
 	if os.Getenv("HOOK_OPTION") != "" {
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
 	}
@@ -94,7 +87,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 	if !noCache {
 		cacheOptions := []string{"--storage-opt",
 			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
-		podmanOptions = append(podmanOptions, cacheOptions...)
+		podmanOptions = append(cacheOptions, podmanOptions...)
 	}
 	podmanOptions = append(podmanOptions, args...)
 	return podmanOptions

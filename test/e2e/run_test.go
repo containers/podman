@@ -907,6 +907,7 @@ USER mail`
 
 	It("podman run with restart-policy always restarts containers", func() {
 		SkipIfRemote()
+		SkipIfCoverage()
 		testDir := filepath.Join(podmanTest.RunRoot, "restart-test")
 		err := os.MkdirAll(testDir, 0755)
 		Expect(err).To(BeNil())

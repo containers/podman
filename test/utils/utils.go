@@ -77,13 +77,17 @@ func IsCoverageRun() bool {
 	return isCoverageRunBool
 }
 
-// CoverageArgs returns the mandatory _first_ arguments for a
-// coverage-instrumented Podman binary.
-func CoverageArgs() []string {
+// CoverageArgs appends the mandatory _first_ arguments for a
+// coverage-instrumented Podman binary.  It will return `args`
+// as is we're not running with COVERAGE being set.
+func CoverageArgs(args []string) []string {
+	if !IsCoverageRun() {
+		return args
+	}
 	// We need the first arguments to be the obligatory coverprofile
 	// followed by the dummy value "COVERAGE" to silence the `go test`
 	// parser.
-	return []string{fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()), "COVERAGE"}
+	return append([]string{fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()), "COVERAGE"}, args...)
 }
 
 // MakeOptions assembles all podman options
@@ -100,10 +104,9 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
+		podmanOptions = append([]string{"--remote", "--url", p.RemoteSocket}, podmanOptions...)
 	}
-	if p.RemoteTest {
-		podmanOptions = append(podmanOptions, []string{"--remote", "--url", p.RemoteSocket}...)
-	}
+	podmanOptions = CoverageArgs(podmanOptions)
 	if env == nil {
 		fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(podmanOptions, " "))
 	} else {

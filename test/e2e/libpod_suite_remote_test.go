@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v2/test/utils"
 	"github.com/onsi/ginkgo"
 )
 
@@ -26,6 +27,12 @@ func SkipIfRemote() {
 func SkipIfRootless() {
 	if os.Geteuid() != 0 {
 		ginkgo.Skip("This function is not enabled for rootless podman")
+	}
+}
+
+func SkipIfCoverage() {
+	if utils.IsCoverageRun() {
+		ginkgo.Skip("This test does not work for coverage tests")
 	}
 }
 
@@ -91,7 +98,7 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 	}
 	remoteSocket := p.RemoteSocket
 	args = append(args, "system", "service", "--time", "0", remoteSocket)
-	podmanOptions := getRemoteOptions(p, args)
+	podmanOptions := utils.CoverageArgs(getRemoteOptions(p, args))
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
