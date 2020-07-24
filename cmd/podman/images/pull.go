@@ -82,6 +82,7 @@ func pullFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&pullOptions.CredentialsCLI, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVar(&pullOptions.OverrideArch, "override-arch", "", "Use `ARCH` instead of the architecture of the machine for choosing images")
 	flags.StringVar(&pullOptions.OverrideOS, "override-os", "", "Use `OS` instead of the running OS for choosing images")
+	flags.Bool("disable-content-trust", false, "This is a Docker specific option and is a NOOP")
 	flags.BoolVarP(&pullOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.StringVar(&pullOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 	flags.BoolVar(&pullOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")

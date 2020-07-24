@@ -9,41 +9,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/v2/pkg/cgroups"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 func SkipIfRemote() {
 }
 
-func SkipIfCgroupV1() {
-	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-	Expect(err).To(BeNil())
-
-	if !cgroupsv2 {
-		Skip("Skip on systems with cgroup V1 systems")
-	}
-}
-
-func SkipIfCgroupV2() {
-	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-	Expect(err).To(BeNil())
-
-	if cgroupsv2 {
-		Skip("Skip on systems with cgroup V2 systems")
-	}
-}
-
 func SkipIfRootless() {
 	if os.Geteuid() != 0 {
 		Skip("This function is not enabled for rootless podman")
-	}
-}
-
-func SkipIfRootlessV2() {
-	if os.Geteuid() != 0 {
-		Skip("This function is not enabled for v2 rootless podman")
 	}
 }
 
@@ -69,12 +43,6 @@ func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionInteg
 // events backend. It is used mostly for caching and uncaching images.
 func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionIntegration {
 	podmanSession := p.PodmanBase(args, true, true)
-	return &PodmanSessionIntegration{podmanSession}
-}
-
-// PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
-func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false, false, nil)
 	return &PodmanSessionIntegration{podmanSession}
 }
 

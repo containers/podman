@@ -1,11 +1,11 @@
 ![PODMAN logo](logo/podman-logo-source.svg)
 
-# Library and tool for running OCI-based containers in Pods
+# Podman: A tool for managing OCI containers and pods
 
-Libpod provides a library for applications looking to use the Container Pod concept,
-popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`. Podman manages pods, containers, container images, and container volumes.
+Podman (the POD MANager) is a tool for managing containers and images, volumes mounted into those containers, and pods made from groups of containers.
+Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
 
-* [Latest Version: 2.0.2](https://github.com/containers/libpod/releases/latest)
+* [Latest Version: 2.0.3](https://github.com/containers/libpod/releases/latest)
   * Latest Remote client for Windows
   * Latest Remote client for MacOs
   * Latest Static Remote client for Linux
@@ -15,26 +15,24 @@ popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`
 
 ## Overview and scope
 
-At a high level, the scope of libpod and Podman is the following:
+At a high level, the scope of Podman and libpod is the following:
 
-* Support multiple image formats including the OCI and Docker image formats.
-* Support for multiple means to download images including trust & image verification.
-* Container image management (managing image layers, overlay filesystems, etc).
-* Full management of container lifecycle.
-* Support for pods to manage groups of containers together.
+* Support for multiple container image formats, including OCI and Docker images.
+* Full management of those images, including pulling from various sources (including trust and verification), creating (built via Containerfile or Dockerfile or committed from a container), and pushing to registries and other storage backends.
+* Full management of container lifecycle, including creation (both from an image and from an exploded root filesystem), running, checkpointing and restoring (via CRIU), and removal.
+* Support for pods, groups of containers that share resources and are managed together.
 * Resource isolation of containers and pods.
-* Support for a Docker-compatible CLI interface through Podman.
+* Support for a Docker-compatible CLI interface.
 * Support for a REST API providing both a Docker-compatible interface and an improved interface exposing advanced Podman functionality.
-* Integration with CRI-O to share containers and backend code.
+* In the future, integration with [CRI-O](https://github.com/cri-o/cri-o) to share containers and backend code.
 
 Podman presently only supports running containers on Linux. However, we are building a remote client which can run on Windows and OS X and manage Podman containers on a Linux system via the REST API using SSH tunneling.
 
 ## Roadmap
 
-1. Complete the Podman REST API and Podman v2, which will be able to connect to remote Podman instances via this API
-1. Integrate libpod into CRI-O to replace its existing container management backend
-1. Further work on the podman pod command
-1. Further improvements on rootless containers
+1. Further improvements to the REST API, with a focus on bugfixes and implementing missing functionality
+1. Integrate libpod into [CRI-O](https://github.com/cri-o/cri-o) to replace its existing container management backend
+1. Improvements on rootless containers, with a focus on improving the user experience and exposing presently-unavailable features when possible
 
 ## Communications
 
@@ -67,10 +65,10 @@ A little configuration by an administrator is required before rootless Podman ca
 
 ## Out of scope
 
-* Specializing in signing and pushing images to various storage backends.
+* Specialized signing and pushing of images to various storage backends.
   See [Skopeo](https://github.com/containers/skopeo/) for those tasks.
-* Container runtimes daemons for working with the Kubernetes CRI interface.
-  [CRI-O](https://github.com/cri-o/cri-o) specializes in that.
+* Support for the Kubernetes CRI interface for container management.
+  The [CRI-O](https://github.com/cri-o/cri-o) daemon specializes in that.
 * Supporting `docker-compose`.  We believe that Kubernetes is the defacto
   standard for composing Pods and for orchestrating containers, making
   Kubernetes YAML a defacto standard file format. Hence, Podman allows the
@@ -89,12 +87,13 @@ A little configuration by an administrator is required before rootless Podman ca
 ## OCI Projects Plans
 
 The plan is to use OCI projects and best of breed libraries for different aspects:
-- Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI compliant runtime) and [OCI runtime tools](https://github.com/opencontainers/runtime-tools) to generate the spec
-- Images: Image management using [containers/image](https://github.com/containers/image)
-- Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage)
-- Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
+- Runtime: We use the [OCI runtime tools](https://github.com/opencontainers/runtime-tools) to generate OCI runtime configurations that can be used with any OCI-compliant runtime, like [crun](https://github.com/containers/crun/) and [runc](https://github.com/opencontainers/runc/).
+- Images: Image management uses the [containers/image](https://github.com/containers/image) library.
+- Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage).
+- Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni).
 - Builds: Builds are supported via [Buildah](https://github.com/containers/buildah).
-- Conmon: [Conmon](https://github.com/containers/conmon) is a tool for monitoring OCI runtimes.
+- Conmon: [Conmon](https://github.com/containers/conmon) is a tool for monitoring OCI runtimes, used by both Podman and CRI-O.
+- Seccomp: A unified [Seccomp](https://github.com/seccomp/containers-golang) policy for Podman, Buildah, and CRI-O.
 
 ## Podman Information for Developers
 

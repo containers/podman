@@ -1,6 +1,7 @@
 package specgen
 
 import (
+	"errors"
 	"net"
 	"syscall"
 
@@ -197,6 +198,9 @@ type ContainerStorageConfig struct {
 	// there are conflicts.
 	// Optional.
 	Volumes []*NamedVolume `json:"volumes,omitempty"`
+	// Overlay volumes are named volumes that will be added to the container.
+	// Optional.
+	OverlayVolumes []*OverlayVolume `json:"overlay_volumes,omitempty"`
 	// Devices are devices that will be added to the container.
 	// Optional.
 	Devices []spec.LinuxDevice `json:"devices,omitempty"`
@@ -283,6 +287,8 @@ type ContainerSecurityConfig struct {
 	// ReadOnlyFilesystem indicates that everything will be mounted
 	// as read-only
 	ReadOnlyFilesystem bool `json:"read_only_filesystem,omittempty"`
+	// Umask is the umask the init process of the container will be run with.
+	Umask string `json:"umask,omitempty"`
 }
 
 // ContainerCgroupConfig contains configuration information about a container's
@@ -378,6 +384,9 @@ type ContainerNetworkConfig struct {
 	// Conflicts with UseImageHosts.
 	// Optional.
 	HostAdd []string `json:"hostadd,omitempty"`
+	// NetworkOptions are additional options for each network
+	// Optional.
+	NetworkOptions map[string][]string `json:"network_options,omitempty"`
 }
 
 // ContainerResourceConfig contains information on container resource limits.
@@ -439,6 +448,15 @@ type NamedVolume struct {
 	Options []string
 }
 
+// OverlayVolume holds information about a overlay volume that will be mounted into
+// the container.
+type OverlayVolume struct {
+	// Destination is the absolute path where the mount will be placed in the container.
+	Destination string `json:"destination"`
+	// Source specifies the source path of the mount.
+	Source string `json:"source,omitempty"`
+}
+
 // PortMapping is one or more ports that will be mapped into the container.
 type PortMapping struct {
 	// HostIP is the IP that we will bind to on the host.
@@ -468,6 +486,15 @@ type PortMapping struct {
 	// If unset, assumed to be TCP.
 	Protocol string `json:"protocol,omitempty"`
 }
+
+var (
+	// ErrNoStaticIPRootless is used when a rootless user requests to assign a static IP address
+	// to a pod or container
+	ErrNoStaticIPRootless error = errors.New("rootless containers and pods cannot be assigned static IP addresses")
+	// ErrNoStaticMACRootless is used when a rootless user requests to assign a static MAC address
+	// to a pod or container
+	ErrNoStaticMACRootless error = errors.New("rootless containers and pods cannot be assigned static MAC addresses")
+)
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
 func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {

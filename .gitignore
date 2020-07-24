@@ -7,6 +7,8 @@
 /conmon/
 contrib/spec/podman.spec
 *.coverprofile
+coverprofile
+/.coverage
 /docs/*.[158]
 /docs/*.[158].gz
 /docs/build/
@@ -31,4 +33,4 @@ release.txt
 /test/copyimg/copyimg
 /test/goecho/goecho
 .vscode*
-result-bin
+result

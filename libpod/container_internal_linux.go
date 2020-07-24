@@ -20,6 +20,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/config"
@@ -214,6 +215,9 @@ func (c *Container) getUserOverrides() *lookup.Overrides {
 			}
 		}
 	}
+	if path, ok := c.state.BindMounts["/etc/passwd"]; ok {
+		overrides.ContainerEtcPasswdPath = path
+	}
 	return &overrides
 }
 
@@ -246,7 +250,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	// Apply AppArmor checks and load the default profile if needed.
-	if !c.config.Privileged {
+	if len(c.config.Spec.Process.ApparmorProfile) > 0 {
 		updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
 		if err != nil {
 			return nil, err
@@ -316,6 +320,19 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	// Add overlay volumes
+	for _, overlayVol := range c.config.OverlayVolumes {
+		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create TempDir in the %s directory", c.config.StaticDir)
+		}
+		overlayMount, err := overlay.Mount(contentDir, overlayVol.Source, overlayVol.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+		if err != nil {
+			return nil, errors.Wrapf(err, "creating overlay failed %q", overlayVol.Source)
+		}
+		g.AddMount(overlayMount)
+	}
+
 	hasHomeSet := false
 	for _, s := range c.config.Spec.Process.Env {
 		if strings.HasPrefix(s, "HOME=") {
@@ -336,6 +353,14 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		// User and Group must go together
 		g.SetProcessUID(uint32(execUser.Uid))
 		g.SetProcessGID(uint32(execUser.Gid))
+	}
+
+	if c.config.Umask != "" {
+		decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Invalid Umask Value")
+		}
+		g.SetProcessUmask(uint32(decVal))
 	}
 
 	// Add addition groups if c.config.GroupAdd is not empty
@@ -1513,6 +1538,14 @@ func (c *Container) generatePasswd() (string, error) {
 	if !c.config.AddCurrentUserPasswdEntry && c.config.User == "" {
 		return "", nil
 	}
+	if MountExists(c.config.Spec.Mounts, "/etc/passwd") {
+		return "", nil
+	}
+	// Re-use passwd if possible
+	passwdPath := filepath.Join(c.config.StaticDir, "passwd")
+	if _, err := os.Stat(passwdPath); err == nil {
+		return passwdPath, nil
+	}
 	pwd := ""
 	if c.config.User != "" {
 		entry, err := c.generateUserPasswdEntry()
@@ -1536,7 +1569,7 @@ func (c *Container) generatePasswd() (string, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
 	}
-	passwdFile, err := c.writeStringToRundir("passwd", string(orig)+pwd)
+	passwdFile, err := c.writeStringToStaticDir("passwd", string(orig)+pwd)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to create temporary passwd file")
 	}
@@ -1630,4 +1663,8 @@ func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
 		return "", err
 	}
 	return localtimeCopy, err
+}
+
+func (c *Container) cleanupOverlayMounts() error {
+	return overlay.CleanupContent(c.config.StaticDir)
 }

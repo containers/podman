@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/pkg/cgroups"
 	"github.com/containers/libpod/v2/pkg/inspect"
 	"github.com/containers/libpod/v2/pkg/rootless"
 	. "github.com/containers/libpod/v2/test/utils"
@@ -151,6 +152,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	return []byte(path)
 }, func(data []byte) {
+	cwd, _ := os.Getwd()
+	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 	LockTmpDir = string(data)
 })
 
@@ -594,4 +597,32 @@ func SkipIfNotFedora() {
 	if info.Distribution != "fedora" {
 		ginkgo.Skip("Test can only run on Fedora")
 	}
+}
+
+func isRootless() bool {
+	return os.Geteuid() != 0
+}
+
+func SkipIfCgroupV1() {
+	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+	Expect(err).To(BeNil())
+
+	if !cgroupsv2 {
+		Skip("Skip on systems with cgroup V1 systems")
+	}
+}
+
+func SkipIfCgroupV2() {
+	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+	Expect(err).To(BeNil())
+
+	if cgroupsv2 {
+		Skip("Skip on systems with cgroup V2 systems")
+	}
+}
+
+// PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
+func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false, false, nil)
+	return &PodmanSessionIntegration{podmanSession}
 }

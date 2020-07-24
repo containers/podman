@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -63,6 +61,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman pod container dontshare PIDNS", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

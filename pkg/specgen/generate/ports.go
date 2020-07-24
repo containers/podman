@@ -356,6 +356,7 @@ func checkProtocol(protocol string, allowSCTP bool) ([]string, error) {
 	splitProto := strings.Split(protocol, ",")
 	// Don't error on duplicates - just deduplicate
 	for _, p := range splitProto {
+		p = strings.ToLower(p)
 		switch p {
 		case protoTCP, "":
 			protocols[protoTCP] = struct{}{}

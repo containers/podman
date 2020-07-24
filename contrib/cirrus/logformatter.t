@@ -132,6 +132,8 @@ $SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
 [+0103s]   /var/tmp/go/src/github.com/containers/libpod/test/e2e/pod_restart_test.go:28
 [+0103s] Running: /var/tmp/go/src/github.com/containers/libpod/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --cni-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod rm -fa
 [+0103s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
+[+0104s] Running: /var/tmp/go/src/github.com/containers/libpod/bin/podman-remote --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --cni-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs --remote --url unix:/run/user/12345/podman-xyz.sock pod rm -fa
+[+0104s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 again
 [+0107s] •
 [+0107s] ------------------------------
 [+0107s] podman system reset
@@ -186,6 +188,21 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 --events-backend file
 --storage-driver vfs">[options]</span><b> pod rm -fa</b>
 <span class="timestamp">         </span>4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
+
+<span class="timestamp">[+0104s] </span>Running: <span title="/var/tmp/go/src/github.com/containers/libpod/bin/podman-remote"><b>podman-remote</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
+--root /tmp/podman_test553496330/crio
+--runroot /tmp/podman_test553496330/crio-run
+--runtime /usr/bin/runc
+--conmon /usr/bin/conmon
+--cni-config-dir /etc/cni/net.d
+--cgroup-manager systemd
+--tmpdir /tmp/podman_test553496330
+--events-backend file
+--storage-driver vfs
+--url unix:/run/user/12345/podman-xyz.sock">[options]</span><b> pod rm -fa</b>
+<span class="timestamp">         </span>4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 again
+
+
 <span class="timestamp">[+0107s] </span>•
 </pre>
 <hr />

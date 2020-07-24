@@ -20,6 +20,8 @@ var (
 	NameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
 	// RegexError is thrown in presence of an invalid container/pod name.
 	RegexError = errors.Wrapf(ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
+	// UmaskRegex is a regular expression to validate Umask.
+	UmaskRegex = regexp.MustCompile(`^[0-7]{1,4}$`)
 )
 
 const (
@@ -82,3 +84,6 @@ const (
 	SdNotifyModeConmon    = "conmon"
 	SdNotifyModeIgnore    = "ignore"
 )
+
+// DefaultRlimitValue is the value set by default for nofile and nproc
+const RLimitDefaultValue = uint64(1048576)

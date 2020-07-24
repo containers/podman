@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -129,6 +127,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman container runlabel (podman --version)", func() {
+		SkipIfRemote()
 		PodmanDockerfile := `
 FROM  alpine:latest
 LABEL io.containers.capabilities=chown,mknod`

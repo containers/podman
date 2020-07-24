@@ -44,11 +44,12 @@ func newPodmanConfig() {
 	case "linux":
 		// Some linux clients might only be compiled without ABI
 		// support (e.g., podman-remote).
-		if abiSupport && !remoteOverride {
+		if abiSupport && !IsRemote() {
 			mode = entities.ABIMode
 		} else {
 			mode = entities.TunnelMode
 		}
+
 	default:
 		fmt.Fprintf(os.Stderr, "%s is not a supported OS", runtime.GOOS)
 		os.Exit(1)
@@ -70,7 +71,7 @@ func newPodmanConfig() {
 
 // setXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
 // containers/image uses XDG_RUNTIME_DIR to locate the auth file, XDG_CONFIG_HOME is
-// use for the libpod.conf configuration file.
+// use for the containers.conf configuration file.
 func setXdgDirs() error {
 	if !rootless.IsRootless() {
 		return nil

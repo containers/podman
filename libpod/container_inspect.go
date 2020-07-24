@@ -289,6 +289,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 
 	ctrConfig.OpenStdin = c.config.Stdin
 	ctrConfig.Image = c.config.RootfsImageName
+	ctrConfig.SystemdMode = c.config.Systemd
 
 	// Leave empty is not explicitly overwritten by user
 	if len(c.config.Command) != 0 {
@@ -323,6 +324,14 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	ctrConfig.CreateCommand = c.config.CreateCommand
 
 	ctrConfig.Timezone = c.config.Timezone
+
+	// Pad Umask to 4 characters
+	if len(c.config.Umask) < 4 {
+		pad := strings.Repeat("0", 4-len(c.config.Umask))
+		ctrConfig.Umask = pad + c.config.Umask
+	} else {
+		ctrConfig.Umask = c.config.Umask
+	}
 
 	return ctrConfig
 }
@@ -612,22 +621,11 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 
 	// Port bindings.
 	// Only populate if we're using CNI to configure the network.
-	portBindings := make(map[string][]define.InspectHostPort)
 	if c.config.CreateNetNS {
-		for _, port := range c.config.PortMappings {
-			key := fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)
-			hostPorts := portBindings[key]
-			if hostPorts == nil {
-				hostPorts = []define.InspectHostPort{}
-			}
-			hostPorts = append(hostPorts, define.InspectHostPort{
-				HostIP:   port.HostIP,
-				HostPort: fmt.Sprintf("%d", port.HostPort),
-			})
-			portBindings[key] = hostPorts
-		}
+		hostConfig.PortBindings = makeInspectPortBindings(c.config.PortMappings)
+	} else {
+		hostConfig.PortBindings = make(map[string][]define.InspectHostPort)
 	}
-	hostConfig.PortBindings = portBindings
 
 	// Cap add and cap drop.
 	// We need a default set of capabilities to compare against.

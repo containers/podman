@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -226,7 +227,11 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if err != nil {
 			return nil, err
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, "slirp4netns", nil))
+		val := "slirp4netns"
+		if s.NetNS.Value != "" {
+			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
+		}
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, val, nil))
 	case specgen.Bridge:
 		portMappings, err := createPortMappings(ctx, s, img)
 		if err != nil {
@@ -260,6 +265,9 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	}
 	if s.StaticMAC != nil {
 		toReturn = append(toReturn, libpod.WithStaticMAC(*s.StaticMAC))
+	}
+	if s.NetworkOptions != nil {
+		toReturn = append(toReturn, libpod.WithNetworkOptions(s.NetworkOptions))
 	}
 
 	return toReturn, nil
@@ -465,7 +473,7 @@ func GetNamespaceOptions(ns []string) ([]libpod.PodCreateOption, error) {
 		case "pid":
 			options = append(options, libpod.WithPodPID())
 		case "user":
-			return erroredOptions, errors.Errorf("User sharing functionality not supported on pod level")
+			continue
 		case "ipc":
 			options = append(options, libpod.WithPodIPC())
 		case "uts":

@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
 	image2 "github.com/containers/libpod/v2/libpod/image"
 	"github.com/containers/libpod/v2/pkg/api/handlers"
 	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
@@ -45,6 +46,11 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
 	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchImage {
+			utils.Error(w, "No such image", http.StatusNotFound, err)
+			return
+		}
+
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
 		return
 	}
@@ -81,7 +87,7 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		workDir = input.WorkingDir
 	}
 
-	if len(input.Entrypoint) == 0 {
+	if input.Entrypoint == nil {
 		entrypointSlice, err := newImage.Entrypoint(ctx)
 		if err != nil {
 			return createconfig.CreateConfig{}, err
@@ -153,10 +159,10 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		User:       input.User,
 	}
 	pidConfig := createconfig.PidConfig{PidMode: namespaces.PidMode(input.HostConfig.PidMode)}
-	volumes := make([]string, 0, len(input.Volumes))
-	for k := range input.Volumes {
-		volumes = append(volumes, k)
-	}
+	// TODO: We should check that these binds are all listed in the `Volumes`
+	// key since it doesn't make sense to define a `Binds` element for a
+	// container path which isn't defined as a volume
+	volumes := input.HostConfig.Binds
 
 	// Docker is more flexible about its input where podman throws
 	// away incorrectly formatted variables so we cannot reuse the

@@ -2,6 +2,7 @@ export GO111MODULE=off
 export GOPROXY=https://proxy.golang.org
 
 GO ?= go
+COVERAGE_PATH ?= .coverage
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-master} HEAD)
 HEAD ?= HEAD
@@ -220,29 +221,18 @@ bin/podman.cross.%: .gopathok
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
 
-# Update nix/nixpkgs.json its latest master commit
+# Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
 nixpkgs:
-	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -c nix-prefetch-git \
+	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
 
-NIX_IMAGE ?= quay.io/podman/nix-podman:1.0.0
-
-# Build the nix image as base for static builds
-.PHONY: nix-image
-nix-image:
-	$(CONTAINER_RUNTIME) build -t $(NIX_IMAGE) -f Containerfile-nix .
-
-# Build podman statically linked based on the default nix container image
-.PHONY: build-static
-build-static:
-	$(CONTAINER_RUNTIME) run \
-		--rm -it \
-		-v $(shell pwd):/work \
-		-w /work $(NIX_IMAGE) \
-		sh -c "nix build -f nix && \
-			   mkdir -p bin && \
-			   cp result-*bin/bin/podman bin/podman-static"
+# Build statically linked binary
+.PHONY: static
+static:
+	@nix build -f nix/
+	mkdir -p ./bin
+	cp -rfp ./result/bin/* ./bin/
 
 .PHONY: run-docker-py-tests
 run-docker-py-tests:
@@ -274,6 +264,7 @@ clean: ## Clean artifacts
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
 		docs/build
+	make -C docs clean
 
 .PHONY: libpodimage
 libpodimage: ## Build the libpod image
@@ -317,14 +308,21 @@ testunit: libpodimage ## Run unittest on the built image
 
 .PHONY: localunit
 localunit: test/goecho/goecho varlink_generate
+	hack/check_root.sh make localunit
+	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	ginkgo \
 		-r \
 		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings,hack \
 		--cover \
 		--covermode atomic \
+		--coverprofile coverprofile \
+		--outputdir ${COVERAGE_PATH} \
 		--tags "$(BUILDTAGS)" \
 		--succinct
+	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
+	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile > ${COVERAGE_PATH}/functions
+	cat ${COVERAGE_PATH}/functions | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
 
 .PHONY: ginkgo
 ginkgo:
@@ -443,7 +441,7 @@ swagger-check:
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
+	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
 
 # When publishing releases include critical build-time details
 .PHONY: release.txt
@@ -539,12 +537,6 @@ install.man-nobuild:
 
 .PHONY: install.man
 install.man: docs install.man-nobuild
-
-.PHONY: install.seccomp
-install.seccomp:
-	# TODO: we should really be using the upstream one from github.com/seccomp
-	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SHAREDIR_CONTAINERS)
-	install ${SELINUXOPT} -m 644 seccomp.json $(DESTDIR)$(SHAREDIR_CONTAINERS)/seccomp.json
 
 .PHONY: install.completions
 install.completions:

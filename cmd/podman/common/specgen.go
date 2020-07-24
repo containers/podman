@@ -7,14 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/v2/cmd/podman/parse"
 	"github.com/containers/libpod/v2/libpod/define"
 	ann "github.com/containers/libpod/v2/pkg/annotations"
 	envLib "github.com/containers/libpod/v2/pkg/env"
 	ns "github.com/containers/libpod/v2/pkg/namespaces"
-	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/containers/libpod/v2/pkg/specgen"
 	systemdGen "github.com/containers/libpod/v2/pkg/systemd/generate"
 	"github.com/containers/libpod/v2/pkg/util"
@@ -125,25 +123,6 @@ func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxBlo
 		return nil, nil
 	}
 	return io, nil
-}
-
-func getPidsLimits(c *ContainerCLIOpts) *specs.LinuxPids {
-	pids := &specs.LinuxPids{}
-	if c.CGroupsMode == "disabled" && c.PIDsLimit != 0 {
-		return nil
-	}
-	if c.PIDsLimit < 0 {
-		if rootless.IsRootless() && containerConfig.Engine.CgroupManager != config.SystemdCgroupsManager {
-			return nil
-		}
-		pids.Limit = containerConfig.PidsLimit()
-		return pids
-	}
-	if c.PIDsLimit > 0 {
-		pids.Limit = c.PIDsLimit
-		return pids
-	}
-	return nil
 }
 
 func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxMemory, error) {
@@ -388,9 +367,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Annotations = annotations
 
 	s.WorkDir = c.Workdir
-	entrypoint := []string{}
 	userCommand := []string{}
+	var command []string
 	if c.Entrypoint != nil {
+		entrypoint := []string{}
 		if ep := *c.Entrypoint; len(ep) > 0 {
 			// Check if entrypoint specified is json
 			if err := json.Unmarshal([]byte(*c.Entrypoint), &entrypoint); err != nil {
@@ -398,17 +378,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			}
 		}
 		s.Entrypoint = entrypoint
+		// Build the command
+		// If we have an entry point, it goes first
+		command = entrypoint
 	}
-	var command []string
 
 	// Include the command used to create the container.
 	s.ContainerCreateCommand = os.Args
 
-	// Build the command
-	// If we have an entry point, it goes first
-	if c.Entrypoint != nil {
-		command = entrypoint
-	}
 	if len(inputCommand) > 0 {
 		// User command overrides data CMD
 		command = append(command, inputCommand...)
@@ -440,6 +417,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.DNSOptions = c.Net.DNSOptions
 	s.StaticIP = c.Net.StaticIP
 	s.StaticMAC = c.Net.StaticMAC
+	s.NetworkOptions = c.Net.NetworkOptions
 	s.UseImageHosts = c.Net.NoHosts
 
 	s.ImageVolumeMode = c.ImageVolume
@@ -460,7 +438,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if err != nil {
 		return err
 	}
-	s.ResourceLimits.Pids = getPidsLimits(c)
+	if c.PIDsLimit != nil {
+		pids := specs.LinuxPids{
+			Limit: *c.PIDsLimit,
+		}
+
+		s.ResourceLimits.Pids = &pids
+	}
 	s.ResourceLimits.CPU = getCPULimits(c)
 	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil {
 		s.ResourceLimits = nil
@@ -528,10 +512,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 				s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])
 				s.Annotations[define.InspectAnnotationLabel] = strings.Join(s.ContainerSecurityConfig.SelinuxOpts, ",label=")
 			case "apparmor":
-				if !c.Privileged {
-					s.ContainerSecurityConfig.ApparmorProfile = con[1]
-					s.Annotations[define.InspectAnnotationApparmor] = con[1]
-				}
+				s.ContainerSecurityConfig.ApparmorProfile = con[1]
+				s.Annotations[define.InspectAnnotationApparmor] = con[1]
 			case "seccomp":
 				s.SeccompProfilePath = con[1]
 				s.Annotations[define.InspectAnnotationSeccomp] = con[1]
@@ -547,12 +529,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 
 	// Only add read-only tmpfs mounts in case that we are read-only and the
 	// read-only tmpfs flag has been set.
-	mounts, volumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS, c.ReadOnlyTmpFS && c.ReadOnly)
+	mounts, volumes, overlayVolumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS, c.ReadOnlyTmpFS && c.ReadOnly)
 	if err != nil {
 		return err
 	}
 	s.Mounts = mounts
 	s.Volumes = volumes
+	s.OverlayVolumes = overlayVolumes
 
 	for _, dev := range c.Devices {
 		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
@@ -628,6 +611,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Remove = c.Rm
 	s.StopTimeout = &c.StopTimeout
 	s.Timezone = c.Timezone
+	s.Umask = c.Umask
 
 	return nil
 }

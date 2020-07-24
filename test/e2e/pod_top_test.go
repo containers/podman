@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -58,6 +56,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman pod top on pod", func() {
+		SkipIfRemote()
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 

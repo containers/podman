@@ -27,7 +27,6 @@ RUN set -x && \
 # Install cni config
 COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
 # Make sure we have some policy for pulling images
-COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
 WORKDIR "$GOSRC"

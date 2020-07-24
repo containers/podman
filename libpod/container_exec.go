@@ -729,10 +729,6 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 		return -1, err
 	}
 
-	if exitCode != 0 {
-		return exitCode, errors.Wrapf(define.ErrOCIRuntime, "exec session exited with non-zero exit code %d", exitCode)
-	}
-
 	return exitCode, nil
 }
 

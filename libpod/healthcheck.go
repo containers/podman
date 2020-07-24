@@ -92,7 +92,7 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	hcResult := define.HealthCheckSuccess
 	config := new(ExecConfig)
 	config.Command = newCommand
-	_, hcErr := c.Exec(config, streams, nil)
+	exitCode, hcErr := c.Exec(config, streams, nil)
 	if hcErr != nil {
 		errCause := errors.Cause(hcErr)
 		hcResult = define.HealthCheckFailure
@@ -104,6 +104,9 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 		} else {
 			returnCode = 125
 		}
+	} else if exitCode != 0 {
+		hcResult = define.HealthCheckFailure
+		returnCode = 1
 	}
 	timeEnd := time.Now()
 	if c.HealthCheckConfig().StartPeriod > 0 {

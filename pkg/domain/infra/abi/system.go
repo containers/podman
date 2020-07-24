@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"syscall"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/v2/libpod/define"
@@ -146,27 +145,6 @@ func movePauseProcessToScope() error {
 	return utils.RunUnderSystemdScope(int(pid), "user.slice", "podman-pause.scope")
 }
 
-func setRLimits() error { // nolint:deadcode,unused
-	rlimits := new(syscall.Rlimit)
-	rlimits.Cur = 1048576
-	rlimits.Max = 1048576
-	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return errors.Wrapf(err, "error getting rlimits")
-		}
-		rlimits.Cur = rlimits.Max
-		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return errors.Wrapf(err, "error setting new rlimits")
-		}
-	}
-	return nil
-}
-
-func setUMask() { // nolint:deadcode,unused
-	// Be sure we can create directories with 0755 mode.
-	syscall.Umask(0022)
-}
-
 // checkInput can be used to verify any of the globalopt values
 func checkInput() error { // nolint:deadcode,unused
 	return nil
@@ -252,13 +230,18 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			}
 		}
 
-		named, err := reference.ParseNormalizedNamed(name)
-		if err != nil {
-			return nil, err
-		}
-		repository = named.Name()
-		if tagged, isTagged := named.(reference.NamedTagged); isTagged {
-			tag = tagged.Tag()
+		if len(name) > 0 {
+			named, err := reference.ParseNormalizedNamed(name)
+			if err != nil {
+				return nil, err
+			}
+			repository = named.Name()
+			if tagged, isTagged := named.(reference.NamedTagged); isTagged {
+				tag = tagged.Tag()
+			}
+		} else {
+			repository = "<none>"
+			tag = "<none>"
 		}
 
 		report := entities.SystemDfImageReport{

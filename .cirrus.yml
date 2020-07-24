@@ -39,7 +39,7 @@ env:
     UBUNTU_NAME: "ubuntu-20"
     PRIOR_UBUNTU_NAME: "ubuntu-19"
 
-    _BUILT_IMAGE_SUFFIX: "libpod-6508632441356288"
+    _BUILT_IMAGE_SUFFIX: "podman-5869602141896704"
     FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
@@ -61,7 +61,7 @@ env:
     SPECIALMODE: "none"  # don't do anything special
     TEST_REMOTE_CLIENT: 'false'  # don't test remote client by default
     ADD_SECOND_PARTITION: 'false'  # will certainly fail inside containers
-    MOD_LIBPOD_CONF: 'true'  # Update libpod.conf runtime if required by OS environment
+    MOD_CONTAINERS_CONF: 'true'  # Update containers.conf runtime if required by OS environment
 
     ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
@@ -71,7 +71,7 @@ env:
     # Service-account client_email - needed to build images
     SERVICE_ACCOUNT: ENCRYPTED[702a8e07e27a6faf7988fcddcc068c2ef2bb182a5aa671f5ccb7fbbfb891c823aa4a7856fb17240766845dbd68bd3f90]
     # Service account username part of client_email - for ssh'ing into VMs
-    GCE_SSH_USERNAME: ENCRYPTED[d579f2d3000bb678c9af37c3615e92bcf3726e9afc47748c129cef23ee799faaafd4baba64048329205d162069d90060]
+    GCE_SSH_USERNAME: 'cirrus-ci'
 
 # Default VM to use unless set or modified by task
 gce_instance:
@@ -286,7 +286,7 @@ build_each_commit_task:
         memory: "8Gb"
 
     env:
-        MOD_LIBPOD_CONF: 'false'
+        MOD_CONTAINERS_CONF: 'false'
 
     timeout_in: 30m
 
@@ -318,7 +318,7 @@ build_without_cgo_task:
         memory: "8Gb"
 
     env:
-        MOD_LIBPOD_CONF: 'false'
+        MOD_CONTAINERS_CONF: 'false'
 
     timeout_in: 30m
 
@@ -512,7 +512,7 @@ special_testing_in_podman_task:
 
     env:
         ADD_SECOND_PARTITION: 'true'
-        MOD_LIBPOD_CONF: 'false'  # Use existing/native setup
+        MOD_CONTAINERS_CONF: 'false'  # Use existing/native setup
         SPECIALMODE: 'in_podman'  # See docs
 
     timeout_in: 60m
@@ -756,17 +756,25 @@ success_task:
 
     success_script: '/usr/local/bin/entrypoint.sh ./$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
 
+# Build the static binary
 static_build_task:
-    container:
-        image: quay.io/podman/nix-podman:1.0.0
-        cpu: 8
-        memory: 12
-    timeout_in: 20m
     depends_on:
         - "gating"
-    build_script:
-        - nix build -f nix
+    gce_instance:
+        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+        cpu: 8
+        memory: 12
+        disk: 200
+    script: |
+        set -ex
+        setenforce 0
+        growpart /dev/sda 1 || true
+        resize2fs /dev/sda1 || true
+        yum -y install podman
+        mkdir -p /nix
+        podman run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix
+        podman run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
     binaries_artifacts:
-        path: "result-bin/bin/podman"
+        path: "result/bin/podman"
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'

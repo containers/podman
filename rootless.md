@@ -17,7 +17,7 @@ can easily fail
   * As of Fedora 31 defaults to cgroup V2, which has full support of rootless cgroup management.  Note this requires the --cgroup-manager within rootless containers to use systemd, which new containers will get by default.
 * Some system unit configuration options do not work in the rootless container
   * systemd fails to apply several options and failures are silently ignored (e.g. CPUShares, MemoryLimit). Should work on cgroup V2.
-  * Use of certain options will cause service startup failures (e.g. PrivateNetwork).
+  * Use of certain options will cause service startup failures (e.g. PrivateNetwork).  The systemd services requiring `PrivateNetwork` can be made to work by passing `--cap-add SYS_ADMIN`, but the security implications should be carefully evaluated.  In most cases, it's better to create an override.conf drop-in that sets `PrivateNetwork=no`.  This also applies to containers run by root.
 * Can not share container images with CRI-O or other rootfull users
 * Difficult to use additional stores for sharing content
 * Does not work on NFS or parallel filesystem homedirs (e.g. [GPFS](https://www.ibm.com/support/knowledgecenter/en/SSFKCN/gpfs_welcome.html))
@@ -30,7 +30,7 @@ can easily fail
 * Only other supported driver is VFS.
 * No CNI Support
   * CNI wants to modify IPTables, plus other network manipulation that requires CAP_SYS_ADMIN.
-  * There is potential we could probably do some sort of blacklisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
+  * There is potential we could probably do some sort of denylisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
 * Cannot use ping out of the box.
   * [(Can be fixed by setting sysctl on host)](https://github.com/containers/libpod/blob/master/troubleshooting.md#6-rootless-containers-cannot-ping-hosts)
 * Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release)

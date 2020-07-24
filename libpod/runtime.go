@@ -84,7 +84,7 @@ type Runtime struct {
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
 // containers/image uses XDG_RUNTIME_DIR to locate the auth file, XDG_CONFIG_HOME is
-// use for the libpod.conf configuration file.
+// use for the containers.conf configuration file.
 func SetXdgDirs() error {
 	if !rootless.IsRootless() {
 		return nil
@@ -577,7 +577,7 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	var lastError error
-	// If no store was requested, it can bew nil and there is no need to
+	// If no store was requested, it can be nil and there is no need to
 	// attempt to shut it down
 	if r.store != nil {
 		if _, err := r.store.Shutdown(force); err != nil {

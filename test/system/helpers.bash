@@ -392,5 +392,43 @@ function find_exec_pid_files() {
         find $storage_path -type f -iname 'exec_pid_*'
     fi
 }
+
+
+#############################
+#  remove_same_dev_warning  #  Filter out useless warning from output
+#############################
+#
+# On some CI systems, 'podman run --privileged' emits a useless warning:
+#
+#    WARNING: The same type, major and minor should not be used for multiple devices.
+#
+# This obviously screws us up when we look at output results.
+#
+# This function removes the warning from $output and $lines. We don't
+# do a full string match because there's another variant of that message:
+#
+#    WARNING: Creating device "/dev/null" with same type, major and minor as existing "/dev/foodevdir/null".
+#
+# (We should never again see that precise error ever again, but we could
+# see variants of it).
+#
+function remove_same_dev_warning() {
+    # No input arguments. We operate in-place on $output and $lines
+
+    local i=0
+    local -a new_lines=()
+    while [[ $i -lt ${#lines[@]} ]]; do
+        if expr "${lines[$i]}" : 'WARNING: .* same type, major' >/dev/null; then
+            :
+        else
+            new_lines+=("${lines[$i]}")
+        fi
+        i=$(( i + 1 ))
+    done
+
+    lines=("${new_lines[@]}")
+    output=$(printf '%s\n' "${lines[@]}")
+}
+
 # END   miscellaneous tools
 ###############################################################################

@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -81,13 +79,8 @@ WantedBy=multi-user.target
 	})
 
 	It("podman run container with systemd PID1", func() {
-		systemdImage := "fedora"
-		pull := podmanTest.Podman([]string{"pull", systemdImage})
-		pull.WaitWithDefaultTimeout()
-		Expect(pull.ExitCode()).To(Equal(0))
-
 		ctrName := "testSystemd"
-		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", systemdImage, "/usr/sbin/init"})
+		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", ubi_init, "/sbin/init"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 		ctrID := run.OutputToString()
@@ -117,5 +110,40 @@ WantedBy=multi-user.target
 		systemctl.WaitWithDefaultTimeout()
 		Expect(systemctl.ExitCode()).To(Equal(0))
 		Expect(strings.Contains(systemctl.OutputToString(), "State:")).To(BeTrue())
+
+		result := podmanTest.Podman([]string{"inspect", ctrName})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		conData := result.InspectContainerToJSON()
+		Expect(len(conData)).To(Equal(1))
+		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+	})
+
+	It("podman create container with systemd entrypoint triggers systemd mode", func() {
+		ctrName := "testCtr"
+		run := podmanTest.Podman([]string{"create", "--name", ctrName, "--entrypoint", "/sbin/init", ubi_init})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"inspect", ctrName})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		conData := result.InspectContainerToJSON()
+		Expect(len(conData)).To(Equal(1))
+		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+	})
+
+	It("podman create container with systemd=always triggers systemd mode", func() {
+		ctrName := "testCtr"
+		run := podmanTest.Podman([]string{"create", "--name", ctrName, "--systemd", "always", ALPINE})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"inspect", ctrName})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		conData := result.InspectContainerToJSON()
+		Expect(len(conData)).To(Equal(1))
+		Expect(conData[0].Config.SystemdMode).To(BeTrue())
 	})
 })

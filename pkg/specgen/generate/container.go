@@ -10,6 +10,7 @@ import (
 	envLib "github.com/containers/libpod/v2/pkg/env"
 	"github.com/containers/libpod/v2/pkg/signal"
 	"github.com/containers/libpod/v2/pkg/specgen"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -166,6 +167,21 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if len(s.SelinuxOpts) == 0 {
 		if err := setLabelOpts(s, r, s.PidNS, s.IpcNS); err != nil {
 			return nil, err
+		}
+	}
+
+	// If caller did not specify Pids Limits load default
+	if s.ResourceLimits == nil || s.ResourceLimits.Pids == nil {
+		if s.CgroupsMode != "disabled" {
+			limit := rtc.PidsLimit()
+			if limit != 0 {
+				if s.ResourceLimits == nil {
+					s.ResourceLimits = &spec.LinuxResources{}
+				}
+				s.ResourceLimits.Pids = &spec.LinuxPids{
+					Limit: limit,
+				}
+			}
 		}
 	}
 

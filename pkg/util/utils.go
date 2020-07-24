@@ -555,7 +555,7 @@ func ValidatePullType(pullType string) (PullType, error) {
 	switch pullType {
 	case "always":
 		return PullImageAlways, nil
-	case "missing":
+	case "missing", "IfNotPresent":
 		return PullImageMissing, nil
 	case "never":
 		return PullImageNever, nil
@@ -641,7 +641,7 @@ func ValidateSysctls(strSlice []string) (map[string]string, error) {
 			}
 		}
 		if !foundMatch {
-			return nil, errors.Errorf("sysctl '%s' is not whitelisted", arr[0])
+			return nil, errors.Errorf("sysctl '%s' is not allowed", arr[0])
 		}
 	}
 	return sysctl, nil

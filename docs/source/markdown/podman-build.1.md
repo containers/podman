@@ -580,7 +580,7 @@ process.
 
    Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
    bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
-   container. The `OPTIONS` are a comma delimited list and can be:
+   container. The `OPTIONS` are a comma delimited list and can be: <sup>[[1]](#Footnote1)</sup>
 
    * [rw|ro]
    * [z|Z|O]
@@ -643,7 +643,7 @@ be specified only for bind mounted volumes and not for internal volumes or
 named volumes. For mount propagation to work on the source mount point (mount point
 where source dir is mounted on) has to have the right propagation properties. For
 shared volumes, the source mount point has to be shared. And for slave volumes,
-the source mount has to be either shared or slave.
+the source mount has to be either shared or slave. <sup>[[1]](#Footnote1)</sup>
 
 Use `df <source-dir>` to determine the source mount and then use
 `findmnt -o TARGET,PROPAGATION <source-mount-dir>` to determine propagation
@@ -651,7 +651,7 @@ properties of source mount, if `findmnt` utility is not available, the source mo
 can be determined by looking at the mount entry in `/proc/self/mountinfo`. Look
 at `optional fields` and see if any propagation properties are specified.
 `shared:X` means the mount is `shared`, `master:X` means the mount is `slave` and if
-nothing is there that means the mount is `private`.
+nothing is there that means the mount is `private`. <sup>[[1]](#Footnote1)</sup>
 
 To change propagation properties of a mount point use the `mount` command. For
 example, to bind mount the source directory `/foo` do
@@ -755,3 +755,6 @@ podman(1), buildah(1), containers-registries.conf(5), crun(8), runc(8), useradd(
 May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
 
 December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>
+
+## FOOTNOTES
+<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.

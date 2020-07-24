@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -83,6 +81,20 @@ var _ = Describe("Podman run networking", func() {
 		inspectOut := podmanTest.InspectContainer(name)
 		Expect(len(inspectOut)).To(Equal(1))
 		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(1))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("8080"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+	})
+
+	It("podman run -p 8080:80/TCP", func() {
+		name := "testctr"
+		// "TCP" in upper characters
+		session := podmanTest.Podman([]string{"create", "-t", "-p", "8080:80/TCP", "--name", name, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(len(inspectOut)).To(Equal(1))
+		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(1))
+		// "tcp" in lower characters
 		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("8080"))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
@@ -221,11 +233,40 @@ var _ = Describe("Podman run networking", func() {
 		Expect(ncBusy).To(ExitWithError())
 	})
 
+	It("podman run network expose host port 8081 to container port 8000 using rootlesskit port handler", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=rootlesskit", "-dt", "-p", "8081:8000", ALPINE, "/bin/sh"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+
+		ncBusy := SystemExec("nc", []string{"-l", "-p", "8081"})
+		Expect(ncBusy).To(ExitWithError())
+	})
+
+	It("podman run network expose host port 8082 to container port 8000 using slirp4netns port handler", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=slirp4netns", "-dt", "-p", "8082:8000", ALPINE, "/bin/sh"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+		ncBusy := SystemExec("nc", []string{"-l", "-p", "8082"})
+		Expect(ncBusy).To(ExitWithError())
+	})
+
+	It("podman run network expose host port 8080 to container port 8000 using invalid port handler", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=invalid", "-dt", "-p", "8080:8000", ALPINE, "/bin/sh"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman run slirp4netns network with host loopback", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:allow_host_loopback=true", ALPINE, "ping", "-c1", "10.0.2.2"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run network expose ports in image metadata", func() {
-		session := podmanTest.Podman([]string{"create", "-dt", "-P", nginx})
+		session := podmanTest.Podman([]string{"create", "--name", "test", "-dt", "-P", nginx})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
-		results := podmanTest.Podman([]string{"inspect", "-l"})
+		results := podmanTest.Podman([]string{"inspect", "test"})
 		results.Wait(30)
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring(`"80/tcp":`))
@@ -234,11 +275,11 @@ var _ = Describe("Podman run networking", func() {
 	It("podman run network expose duplicate host port results in error", func() {
 		SkipIfRootless()
 
-		session := podmanTest.Podman([]string{"run", "-dt", "-p", "80", ALPINE, "/bin/sh"})
+		session := podmanTest.Podman([]string{"run", "--name", "test", "-dt", "-p", "80", ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", "-l"})
+		inspect := podmanTest.Podman([]string{"inspect", "test"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 
@@ -393,6 +434,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {
+		SkipIfRemote()
 		SkipIfRootless()
 		netName := "podmantestnetwork"
 		ipAddr := "10.20.30.128"

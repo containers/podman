@@ -1003,6 +1003,19 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 	}
 }
 
+// WithNetworkOptions sets additional options for the networks.
+func WithNetworkOptions(options map[string][]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.NetworkOptions = options
+
+		return nil
+	}
+}
+
 // WithStaticMAC indicates that the container should request a static MAC from
 // the CNI plugins.
 // It cannot be set unless WithNetNS has already been passed.
@@ -1367,17 +1380,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		destinations := make(map[string]bool)
-
 		for _, vol := range volumes {
-			// Don't check if they already exist.
-			// If they don't we will automatically create them.
-
-			if _, ok := destinations[vol.Dest]; ok {
-				return errors.Wrapf(define.ErrInvalidArg, "two volumes found with destination %s", vol.Dest)
-			}
-			destinations[vol.Dest] = true
-
 			mountOpts, err := util.ProcessOptions(vol.Options, false, "")
 			if err != nil {
 				return errors.Wrapf(err, "error processing options for named volume %q mounted at %q", vol.Name, vol.Dest)
@@ -1387,6 +1390,25 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 				Name:    vol.Name,
 				Dest:    vol.Dest,
 				Options: mountOpts,
+			})
+		}
+
+		return nil
+	}
+}
+
+// WithOverlayVolumes adds the given overlay volumes to the container.
+func WithOverlayVolumes(volumes []*ContainerOverlayVolume) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		for _, vol := range volumes {
+
+			ctr.config.OverlayVolumes = append(ctr.config.OverlayVolumes, &ContainerOverlayVolume{
+				Dest:   vol.Dest,
+				Source: vol.Source,
 			})
 		}
 
@@ -1581,6 +1603,20 @@ func WithTimezone(path string) CtrCreateOption {
 		}
 
 		ctr.config.Timezone = path
+		return nil
+	}
+}
+
+// WithUmask sets the umask in the container
+func WithUmask(umask string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		if !define.UmaskRegex.MatchString(umask) {
+			return errors.Wrapf(define.ErrInvalidArg, "Invalid umask string %s", umask)
+		}
+		ctr.config.Umask = umask
 		return nil
 	}
 }

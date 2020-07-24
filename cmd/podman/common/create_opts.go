@@ -66,7 +66,7 @@ type ContainerCLIOpts struct {
 	OverrideArch      string
 	OverrideOS        string
 	PID               string
-	PIDsLimit         int64
+	PIDsLimit         *int64
 	Pod               string
 	PodIDFile         string
 	PreserveFDs       uint
@@ -93,6 +93,7 @@ type ContainerCLIOpts struct {
 	TmpFS             []string
 	TTY               bool
 	Timezone          string
+	Umask             string
 	UIDMap            []string
 	Ulimit            []string
 	User              string

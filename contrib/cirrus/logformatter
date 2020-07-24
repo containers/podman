@@ -303,14 +303,15 @@ END_HTML
         # (bindings test sometimes emits 'Running' with leading bullet char)
         elsif ($line =~ /^•?Running:/) {
             # Highlight the important (non-boilerplate) podman command.
+            $line =~ s/\s+--remote\s+/ /g;      # --remote takes no args
             # Strip out the global podman options, but show them on hover
-            $line =~ s{(\S+\/podman)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|cni-config-dir|storage-driver|events-backend) \S+)*)(.*)}{
-                my ($full_path, $options, $args) = ($1, $2, $5);
+            $line =~ s{(\S+\/podman(-remote)?)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|cni-config-dir|storage-driver|events-backend|url) \S+)*)(.*)}{
+                my ($full_path, $remote, $options, $args) = ($1, $2||'', $3, $6);
 
                 $options =~ s/^\s+//;
                 # Separate each '--foo bar' with newlines for readability
                 $options =~ s/ --/\n--/g;
-                qq{<span title="$full_path"><b>podman</b></span> <span class=\"boring\" title=\"$options\">[options]</span><b>$args</b>};
+                qq{<span title="$full_path"><b>podman$remote</b></span> <span class=\"boring\" title=\"$options\">[options]</span><b>$args</b>};
             }e;
             $current_output = '';
         }
@@ -418,10 +419,27 @@ END_HTML
         }
     }
 
-    # FIXME: if Cirrus magic envariables are available, write a link to results
+    # If Cirrus magic envariables are available, write a link to results.
+    # FIXME: it'd be so nice to make this a clickable live link.
+    #
+    # STATIC_MAGIC_BLOB is the name of a google-storage bucket. It is
+    # unlikely to change often, but if it does you will suddenly start
+    # seeing errors when trying to view formatted logs:
+    #
+    #    AccessDeniedAccess denied.Anonymous caller does not have storage.objects.get access to the Google Cloud Storage object.
+    #
+    # This happened in July 2020 when github.com/containers/libpod was
+    # renamed to podman. If something like that ever happens again, you
+    # will need to get the new magic blob value from:
+    #
+    #   https://console.cloud.google.com/storage/browser?project=libpod-218412
+    #
+    # You will also probably need to set the bucket Public by clicking on
+    # the bucket name, then the Permissions tab. This is safe, since this
+    # project is fully open-source.
     if ($have_formatted_log && $ENV{CIRRUS_TASK_ID}) {
         my $URL_BASE          = "https://storage.googleapis.com";
-        my $STATIC_MAGIC_BLOB = "cirrus-ci-5385732420009984-fcae48";
+        my $STATIC_MAGIC_BLOB = "cirrus-ci-6707778565701632-fcae48";
         my $ARTIFACT_NAME     = "html";
 
         my $URL = "${URL_BASE}/${STATIC_MAGIC_BLOB}/artifacts/$ENV{CIRRUS_REPO_FULL_NAME}/$ENV{CIRRUS_TASK_ID}/${ARTIFACT_NAME}/${outfile}";

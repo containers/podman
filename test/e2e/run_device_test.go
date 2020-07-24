@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -75,11 +73,17 @@ var _ = Describe("Podman run device", func() {
 
 	It("podman run device host device and container device parameter are directories", func() {
 		SkipIfRootless()
-		SystemExec("mkdir", []string{"/dev/foodevdir"})
-		SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
-		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/foodevdir:/dev/bar", ALPINE, "ls", "/dev/bar/null"})
+		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
+		defer os.RemoveAll("/dev/foodevdir")
+
+		mknod := SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
+		mknod.WaitWithDefaultTimeout()
+		Expect(mknod.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/foodevdir:/dev/bar", ALPINE, "stat", "-c%t:%T", "/dev/bar/null"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("1:3"))
 	})
 
 	It("podman run device host device with --privileged", func() {

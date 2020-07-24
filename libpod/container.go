@@ -262,6 +262,8 @@ type ContainerConfig struct {
 	Mounts []string `json:"mounts,omitempty"`
 	// NamedVolumes lists the named volumes to mount into the container.
 	NamedVolumes []*ContainerNamedVolume `json:"namedVolumes,omitempty"`
+	// OverlayVolumes lists the overlay volumes to mount into the container.
+	OverlayVolumes []*ContainerOverlayVolume `json:"overlayVolumes,omitempty"`
 
 	// Security Config
 
@@ -341,6 +343,8 @@ type ContainerConfig struct {
 	Networks []string `json:"networks,omitempty"`
 	// Network mode specified for the default network.
 	NetMode namespaces.NetworkMode `json:"networkMode,omitempty"`
+	// NetworkOptions are additional options for each network
+	NetworkOptions map[string][]string `json:"network_options,omitempty"`
 
 	// Image Config
 
@@ -433,6 +437,9 @@ type ContainerConfig struct {
 	// Timezone is the timezone inside the container.
 	// Local means it has the same timezone as the host machine
 	Timezone string `json:"timezone,omitempty"`
+
+	// Umask is the umask inside the container.
+	Umask string `json:"umask,omitempty"`
 }
 
 // ContainerNamedVolume is a named volume that will be mounted into the
@@ -445,6 +452,15 @@ type ContainerNamedVolume struct {
 	Dest string `json:"dest"`
 	// Options are fstab style mount options
 	Options []string `json:"options,omitempty"`
+}
+
+// ContainerOverlayVolume is a overlay volume that will be mounted into the
+// container. Each volume is a libpod Volume present in the state.
+type ContainerOverlayVolume struct {
+	// Destination is the absolute path where the mount will be placed in the container.
+	Dest string `json:"dest"`
+	// Source specifies the source path of the mount.
+	Source string `json:"source,omitempty"`
 }
 
 // Config accessors
@@ -1263,5 +1279,8 @@ func (c *Container) AutoRemove() bool {
 
 func (c *Container) Timezone() string {
 	return c.config.Timezone
+}
 
+func (c *Container) Umask() string {
+	return c.config.Umask
 }

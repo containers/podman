@@ -18,7 +18,7 @@ var (
         podman system renumber
 
         Migrate lock numbers to handle a change in maximum number of locks.
-        Mandatory after the number of locks in libpod.conf is changed.
+        Mandatory after the number of locks in containers.conf is changed.
 `
 
 	renumberCommand = &cobra.Command{

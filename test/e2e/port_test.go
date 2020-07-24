@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -49,6 +47,7 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -l nginx", func() {
+		SkipIfRemote()
 		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -64,6 +63,7 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman container port  -l nginx", func() {
+		SkipIfRemote()
 		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -79,6 +79,7 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -l port nginx", func() {
+		SkipIfRemote()
 		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -127,18 +128,18 @@ var _ = Describe("Podman port", func() {
 		lock2 := GetPortLock("5001")
 		defer lock2.Unlock()
 
-		setup := podmanTest.Podman([]string{"run", "-dt", "-p", "5000:5000", "-p", "5001:5001", ALPINE, "top"})
+		setup := podmanTest.Podman([]string{"run", "--name", "test", "-dt", "-p", "5000:5000", "-p", "5001:5001", ALPINE, "top"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(BeZero())
 
 		// Check that the first port was honored
-		result1 := podmanTest.Podman([]string{"port", "-l", "5000"})
+		result1 := podmanTest.Podman([]string{"port", "test", "5000"})
 		result1.WaitWithDefaultTimeout()
 		Expect(result1.ExitCode()).To(BeZero())
 		Expect(result1.LineInOuputStartsWith("0.0.0.0:5000")).To(BeTrue())
 
 		// Check that the second port was honored
-		result2 := podmanTest.Podman([]string{"port", "-l", "5001"})
+		result2 := podmanTest.Podman([]string{"port", "test", "5001"})
 		result2.WaitWithDefaultTimeout()
 		Expect(result2.ExitCode()).To(BeZero())
 		Expect(result2.LineInOuputStartsWith("0.0.0.0:5001")).To(BeTrue())

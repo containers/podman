@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -48,6 +46,7 @@ var _ = Describe("podman container runlabel", func() {
 	})
 
 	It("podman container runlabel (podman --version)", func() {
+		SkipIfRemote()
 		image := "podman-runlabel-test:podman"
 		podmanTest.BuildImage(PodmanDockerfile, image, "false")
 
@@ -61,6 +60,7 @@ var _ = Describe("podman container runlabel", func() {
 	})
 
 	It("podman container runlabel (ls -la)", func() {
+		SkipIfRemote()
 		image := "podman-runlabel-test:ls"
 		podmanTest.BuildImage(LsDockerfile, image, "false")
 

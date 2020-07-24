@@ -20,10 +20,9 @@ import (
 
 func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 	var (
-		kernelMax  uint64 = 1048576
-		isRootless        = rootless.IsRootless()
-		nofileSet         = false
-		nprocSet          = false
+		isRootless = rootless.IsRootless()
+		nofileSet  = false
+		nprocSet   = false
 	)
 
 	if s.Rlimits == nil {
@@ -45,8 +44,8 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 	// files and number of processes to the maximum they can be set to
 	// (without overriding a sysctl)
 	if !nofileSet {
-		max := kernelMax
-		current := kernelMax
+		max := define.RLimitDefaultValue
+		current := define.RLimitDefaultValue
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
@@ -62,8 +61,8 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 		g.AddProcessRlimits("RLIMIT_NOFILE", max, current)
 	}
 	if !nprocSet {
-		max := kernelMax
-		current := kernelMax
+		max := define.RLimitDefaultValue
+		current := define.RLimitDefaultValue
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
@@ -87,7 +86,7 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 	finalCommand := []string{}
 
 	entrypoint := s.Entrypoint
-	if len(entrypoint) == 0 && img != nil {
+	if entrypoint == nil && img != nil {
 		newEntry, err := img.Entrypoint(ctx)
 		if err != nil {
 			return nil, err
@@ -126,7 +125,7 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 	return finalCommand, nil
 }
 
-func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount, pod *libpod.Pod) (*spec.Spec, error) {
+func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string) (*spec.Spec, error) {
 	var (
 		inUserNS bool
 	)
@@ -252,10 +251,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 	g.SetProcessCwd(s.WorkDir)
 
-	finalCmd, err := makeCommand(ctx, s, newImage, rtc)
-	if err != nil {
-		return nil, err
-	}
 	g.SetProcessArgs(finalCmd)
 
 	g.SetProcessTerminal(s.Terminal)
@@ -288,13 +283,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 				return nil, err
 			}
 		}
-	}
-
-	// SECURITY OPTS
-	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
-
-	if !s.Privileged {
-		g.SetProcessApparmorProfile(s.ApparmorProfile)
 	}
 
 	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), &g)

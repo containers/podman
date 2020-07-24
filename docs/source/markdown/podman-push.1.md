@@ -71,6 +71,12 @@ Note: This flag can only be set when using the **dir** transport
 
 After copying the image, write the digest of the resulting image to the file.  (Not available for remote commands)
 
+**--disable-content-trust**
+
+This is a Docker specific option to disable image verification to a Docker
+registry and is not supported by Podman.  This flag is a NOOP and provided
+solely for scripting compatibility.
+
 **--format**, **-f**=*format*
 
 Manifest Type (oci, v2s1, or v2s2) to use when pushing an image to a directory using the 'dir:' transport (default is manifest type of source)

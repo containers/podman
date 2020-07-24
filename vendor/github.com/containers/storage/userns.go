@@ -229,7 +229,7 @@ func subtractHostIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDMap {
 	case used.HostID <= avail.HostID && used.HostID+used.Size >= avail.HostID+avail.Size:
 		return nil
 	case used.HostID <= avail.HostID && used.HostID+used.Size > avail.HostID && used.HostID+used.Size < avail.HostID+avail.Size:
-		newContainerID := used.HostID + used.Size
+		newContainerID := avail.ContainerID + used.Size
 		newHostID := used.HostID + used.Size
 		r := idtools.IDMap{
 			ContainerID: newContainerID,
@@ -275,7 +275,7 @@ func subtractContainerIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDM
 		return nil
 	case used.ContainerID <= avail.ContainerID && used.ContainerID+used.Size > avail.ContainerID && used.ContainerID+used.Size < avail.ContainerID+avail.Size:
 		newContainerID := used.ContainerID + used.Size
-		newHostID := used.HostID + used.Size
+		newHostID := avail.HostID + used.Size
 		r := idtools.IDMap{
 			ContainerID: newContainerID,
 			HostID:      newHostID,
@@ -297,7 +297,7 @@ func subtractContainerIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDM
 		}
 		r2 := idtools.IDMap{
 			ContainerID: used.ContainerID + used.Size,
-			HostID:      used.HostID + used.Size,
+			HostID:      avail.HostID + used.Size,
 			Size:        avail.ContainerID + avail.Size - used.ContainerID - used.Size,
 		}
 		return []idtools.IDMap{r1, r2}

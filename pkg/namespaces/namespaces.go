@@ -385,7 +385,7 @@ func (n NetworkMode) IsBridge() bool {
 
 // IsSlirp4netns indicates if we are running a rootless network stack
 func (n NetworkMode) IsSlirp4netns() bool {
-	return n == slirpType
+	return n == slirpType || strings.HasPrefix(string(n), slirpType+":")
 }
 
 // IsNS indicates a network namespace passed in by path (ns:<path>)

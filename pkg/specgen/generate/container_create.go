@@ -106,11 +106,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, err
 	}
 
-	if s.PreserveFDs > 0 {
-		options = append(options, libpod.WithPreserveFDs(s.PreserveFDs))
+	command, err := makeCommand(ctx, s, newImage, rtc)
+	if err != nil {
+		return nil, err
 	}
 
-	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, newImage)
+	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, newImage, command)
 	if err != nil {
 		return nil, err
 	}
@@ -122,16 +123,20 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, libpod.WithExitCommand(exitCommandArgs))
 
-	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod)
+	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command)
 	if err != nil {
 		return nil, err
 	}
 	return rt.NewContainer(ctx, runtimeSpec, options...)
 }
 
-func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, img *image.Image) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, img *image.Image, command []string) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
+
+	if s.PreserveFDs > 0 {
+		options = append(options, libpod.WithPreserveFDs(s.PreserveFDs))
+	}
 
 	if s.Stdin {
 		options = append(options, libpod.WithStdin())
@@ -139,6 +144,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 
 	if s.Timezone != "" {
 		options = append(options, libpod.WithTimezone(s.Timezone))
+	}
+	if s.Umask != "" {
+		options = append(options, libpod.WithUmask(s.Umask))
 	}
 
 	useSystemd := false
@@ -148,7 +156,6 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	case "false":
 		break
 	case "", "true":
-		command := s.Command
 		if len(command) == 0 {
 			command, err = img.Cmd(ctx)
 			if err != nil {
@@ -197,6 +204,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	for _, volume := range volumes {
 		destinations = append(destinations, volume.Dest)
 	}
+	for _, overlayVolume := range s.OverlayVolumes {
+		destinations = append(destinations, overlayVolume.Destination)
+	}
 	options = append(options, libpod.WithUserVolumes(destinations))
 
 	if len(volumes) != 0 {
@@ -209,6 +219,17 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 			})
 		}
 		options = append(options, libpod.WithNamedVolumes(vols))
+	}
+
+	if len(s.OverlayVolumes) != 0 {
+		var vols []*libpod.ContainerOverlayVolume
+		for _, v := range s.OverlayVolumes {
+			vols = append(vols, &libpod.ContainerOverlayVolume{
+				Dest:   v.Destination,
+				Source: v.Source,
+			})
+		}
+		options = append(options, libpod.WithOverlayVolumes(vols))
 	}
 
 	if s.Command != nil {

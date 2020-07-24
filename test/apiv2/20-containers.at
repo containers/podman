@@ -51,17 +51,19 @@ cid=$(jq -r '.[0].Id' <<<"$output")
 
 t DELETE libpod/containers/$cid 204
 
-# Ensure that API does not occur: Create Container creates an invalid and the container fails to start
-# https://github.com/containers/libpod/issues/6799
-CNAME=testArgs
-t POST libpod/containers/create?name=${CNAME} Image=${IMAGE} 201 \
+# Issue #6799: it should be possible to start a container, even w/o args.
+t POST libpod/containers/create?name=test_noargs Image=${IMAGE} 201 \
   .Id~[0-9a-f]\\{64\\}
-t GET libpod/containers/json?limit=1 200 \
-  length=1 \
-  .[0].Id~[0-9a-f]\\{64\\}
-cid=$(jq -r '.[0].Id' <<<"$output")
-# This step should start the container properly
-t POST libpod/containers/${cid}/start '' 204
+cid=$(jq -r '.Id' <<<"$output")
+# Prior to the fix in #6835, this would fail 500 "args must not be empty"
+t POST   libpod/containers/${cid}/start '' 204
+# Container should exit almost immediately. Wait for it, confirm successful run
+t POST   libpod/containers/${cid}/wait  '' 200 '0'
+t GET    libpod/containers/${cid}/json 200 \
+  .Id=$cid \
+  .State.Status~\\\(exited\\\|stopped\\\) \
+  .State.Running=false \
+  .State.ExitCode=0
 t DELETE libpod/containers/$cid 204
 
 CNAME=myfoo
@@ -75,7 +77,8 @@ t POST "libpod/commit?container=nonesuch" '' 404
 
 # Comment can only be used with docker format, not OCI
 cparam="repo=newrepo&comment=foo&author=bob"
-t POST "libpod/commit?container=$CNAME&$cparam"  '' 500
+t POST "libpod/commit?container=$CNAME&$cparam"  '' 500 \
+  .cause="messages are only compatible with the docker image format (-f docker)"
 
 # Commit a new image from the container
 t POST "libpod/commit?container=$CNAME" '' 200 \

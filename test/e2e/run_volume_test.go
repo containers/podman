@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -9,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/v2/pkg/rootless"
 	. "github.com/containers/libpod/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -198,6 +197,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with volumes and suid/dev/exec options", func() {
+		SkipIfRemote()
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 
@@ -227,6 +227,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with tmpfs named volume mounts and unmounts", func() {
+		SkipIfRemote()
 		SkipIfRootless()
 		volName := "testvol"
 		mkVolume := podmanTest.Podman([]string{"volume", "create", "--opt", "type=tmpfs", "--opt", "device=tmpfs", "--opt", "o=nodev", "testvol"})
@@ -314,6 +315,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with anonymous volume", func() {
+		SkipIfRemote()
 		list1 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
 		list1.WaitWithDefaultTimeout()
 		Expect(list1.ExitCode()).To(Equal(0))
@@ -332,6 +334,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman rm -v removes anonymous volume", func() {
+		SkipIfRemote()
 		list1 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
 		list1.WaitWithDefaultTimeout()
 		Expect(list1.ExitCode()).To(Equal(0))
@@ -433,6 +436,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("Podman mount over image volume with trailing /", func() {
+		SkipIfRemote()
 		image := "podman-volume-test:trailing"
 		dockerfile := `
 FROM alpine:latest
@@ -449,5 +453,94 @@ VOLUME /test/`
 		Expect(len(data[0].Mounts)).To(Equal(1))
 		Expect(data[0].Mounts[0].Source).To(Equal("/tmp"))
 		Expect(data[0].Mounts[0].Destination).To(Equal("/test"))
+	})
+
+	It("podman run with overlay volume flag", func() {
+		SkipIfRemote()
+		if os.Getenv("container") != "" {
+			Skip("Overlay mounts not supported when running in a container")
+		}
+		if rootless.IsRootless() {
+			if _, err := exec.LookPath("fuse_overlay"); err != nil {
+				Skip("Fuse-Overlayfs required for rootless overlay mount test")
+			}
+		}
+		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+		testFile := filepath.Join(mountPath, "test1")
+		f, err := os.Create(testFile)
+		f.Close()
+
+		// Make sure host directory gets mounted in to container as overlay
+		session := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:O", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		found, matches := session.GrepString("/run/test")
+		Expect(found).Should(BeTrue())
+		Expect(matches[0]).To(ContainSubstring("overlay"))
+
+		// Make sure host files show up in the container
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:O", mountPath), ALPINE, "ls", "/run/test/test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Make sure modifications in container do not show up on host
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:O", mountPath), ALPINE, "touch", "/run/test/container"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		_, err = os.Stat(filepath.Join(mountPath, "container"))
+		Expect(err).To(Not(BeNil()))
+
+		// Make sure modifications in container disappear when container is stopped
+		session = podmanTest.Podman([]string{"create", "-d", "-v", fmt.Sprintf("%s:/run/test:O", mountPath), ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "-l"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "-l", "touch", "/run/test/container"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "-l", "ls", "/run/test/container"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"stop", "-l"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "-l"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "-l", "ls", "/run/test/container"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("overlay volume conflicts with named volume and mounts", func() {
+		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+		testFile := filepath.Join(mountPath, "test1")
+		f, err := os.Create(testFile)
+		Expect(err).To(BeNil())
+		f.Close()
+		mountSrc := filepath.Join(podmanTest.TempDir, "vol-test1")
+		err = os.MkdirAll(mountSrc, 0755)
+		Expect(err).To(BeNil())
+		mountDest := "/run/test"
+		volName := "myvol"
+
+		session := podmanTest.Podman([]string{"volume", "create", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// overlay and named volume destinations conflict
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:%s:O", mountPath, mountDest), "-v", fmt.Sprintf("%s:%s", volName, mountDest), ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		// overlay and bind mount destinations conflict
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:%s:O", mountPath, mountDest), "--mount", fmt.Sprintf("type=bind,src=%s,target=%s", mountSrc, mountDest), ALPINE})
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		// overlay and tmpfs mount destinations conflict
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:%s:O", mountPath, mountDest), "--mount", fmt.Sprintf("type=tmpfs,target=%s", mountDest), ALPINE})
+		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
 })

@@ -23,7 +23,8 @@ rc=0
 function check_result {
     testnum=$(expr $testnum + 1)
     if [ "$1" = "$2" ]; then
-        echo "ok $testnum $3 = $1"
+        # Multi-level echo flattens newlines, makes success messages readable
+        echo $(echo "ok $testnum $3 = $1")
     else
         echo "not ok $testnum $3"
         echo "#  expected: $2"
@@ -140,6 +141,73 @@ while read var expect name; do
 done < <(parse_table "$table")
 
 # END   dprint
+###############################################################################
+# BEGIN remove_same_dev_warning
+
+# Test-helper function: runs remove_same_dev_warning, compares resulting
+# value of $lines and $output to expected values given on command line
+function check_same_dev() {
+    local testname="$1"; shift
+    local -a expect_lines=("$@")
+    local nl="
+"
+
+    remove_same_dev_warning
+
+    # After processing, check the expected number of lines
+    check_result "${#lines[@]}" "${#@}" "$testname: expected # of lines"
+
+    # ...and each expected line
+    local expect_output=""
+    local i=0
+    while [ $i -lt ${#expect_lines[@]} ]; do
+        check_result "${lines[$i]}" "${expect_lines[$i]}" "$testname: line $i"
+        expect_output+="${expect_lines[$i]}$nl"
+        i=$(( i + 1 ))
+    done
+
+    # ...and the possibly-multi-line $output
+    check_result "$output" "${expect_output%%$nl}"  "$testname: output"
+}
+
+# Simplest case: nothing removed.
+declare -a lines=("a b c" "d" "e f")
+check_same_dev "abc" "a b c" "d" "e f"
+
+# Confirm that the warning message is removed from the beginning
+declare -a lines=(
+    "WARNING: The same type, major and minor should not be used for multiple devices."
+    "a"
+    "b"
+    "c"
+)
+check_same_dev "warning is removed" a b c
+
+# ...and from the middle (we do not expect to see this)
+declare -a lines=(
+    "WARNING: The same type, major and minor should not be used for multiple devices."
+    "a"
+    "b"
+    "WARNING: The same type, major and minor should not be used for multiple devices."
+    "c"
+)
+check_same_dev "multiple warnings removed" a b c
+
+# Corner case: two lines of output, only one of which we care about
+declare -a lines=(
+    "WARNING: The same type, major and minor should not be used for multiple devices."
+    "this is the only line we care about"
+)
+check_same_dev "one-line output" "this is the only line we care about"
+
+# Corner case: one line of output, but we expect zero.
+declare -a lines=(
+    "WARNING: The same type, major and minor should not be used for multiple devices."
+)
+check_same_dev "zero-line output"
+
+
+# END   remove_same_dev_warning
 ###############################################################################
 
 exit $rc
