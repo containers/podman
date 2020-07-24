@@ -12,9 +12,9 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/types"
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 // PolicyContent struct for policy.json file
@@ -157,7 +157,7 @@ func HaveMatchRegistry(key string, registryConfigs *RegistryConfiguration) *Regi
 			searchKey = searchKey[:strings.LastIndex(searchKey, "/")]
 		}
 	}
-	return nil
+	return registryConfigs.DefaultDocker
 }
 
 // CreateTmpFile creates a temp file under dir and writes the content into it
