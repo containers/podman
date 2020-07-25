@@ -1,8 +1,10 @@
-// Package api Provides a container compatible interface. (Experimental)
+// Package api Provides a container compatible interface.
 //
-// This documentation describes the HTTP Libpod interface.  It is to be considered
-// only as experimental as this point.  The endpoints, parameters, inputs, and
-// return values can all change.
+// This documentation describes the Podman v2.0 RESTful API.
+// It replaces the Podman v1.0 API and was initially delivered
+// along with Podman v2.0.  It consists of a Docker-compatible
+// API and a Libpod API providing support for Podman’s unique
+// features such as pods.
 //
 // To start the service and keep it running for 5,000 seconds (-t 0 runs forever):
 //
