@@ -3,11 +3,11 @@ package volumes
 import (
 	"context"
 	"fmt"
-	"html/template"
 	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
+	"text/template"
 
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/cmd/podman/validate"
