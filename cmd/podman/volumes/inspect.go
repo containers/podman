@@ -2,9 +2,9 @@ package volumes
 
 import (
 	"fmt"
-	"html/template"
 	"os"
 	"strings"
+	"text/template"
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/v2/cmd/podman/registry"
