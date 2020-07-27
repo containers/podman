@@ -294,7 +294,7 @@ function start_service() {
     # the `go test` backend.
     local args="--root $WORKDIR system service --time 0 tcp:127.0.0.1:$PORT"
     if [[ -n "$COVERAGE" ]]; then
-        args="-test.coverprofile=coverprofile.apiv2.service.$(random_string 20) COVERAGE $args"
+        args="-test.coverprofile=coverprofile.apiv2.service.$(random_string 20) -test.outputdir=${COVERAGE_PATH} COVERAGE $args"
     fi
 
     echo "$PODMAN_BIN $args"
@@ -318,7 +318,7 @@ function start_service() {
 function podman() {
     local args="--root $WORKDIR $*"
     if [[ -n "$COVERAGE" ]]; then
-        args="-test.coverprofile=coverprofile.apiv2.$(random_string 20) COVERAGE $args"
+        args="-test.coverprofile=coverprofile.apiv2.$(random_string 20) -test.outputdir=${COVERAGE_PATH} COVERAGE $args"
     fi
 
     echo "\$ $PODMAN_BIN $args"           >>$WORKDIR/output.log

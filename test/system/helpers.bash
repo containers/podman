@@ -139,7 +139,7 @@ function run_podman() {
 
     local BIN=$PODMAN
     if [[ -n "$COVERAGE" ]]; then
-        BIN="$PODMAN -test.coverprofile=coverprofile.system.$(random_string 20) COVERAGE"
+        BIN="$PODMAN -test.coverprofile=coverprofile.system.$(random_string 20) -test.outputdir=${COVERAGE_PATH} COVERAGE"
     fi
 
     # stdout is only emitted upon error; this echo is to help a debugger

@@ -87,7 +87,11 @@ func CoverageArgs(args []string) []string {
 	// We need the first arguments to be the obligatory coverprofile
 	// followed by the dummy value "COVERAGE" to silence the `go test`
 	// parser.
-	return append([]string{fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()), "COVERAGE"}, args...)
+	return append([]string{
+		fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()),
+		fmt.Sprintf("-test.outputdir=%q", os.Getenv("COVERAGE_PATH")),
+		"COVERAGE",
+	}, args...)
 }
 
 // MakeOptions assembles all podman options

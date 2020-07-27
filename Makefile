@@ -1,7 +1,6 @@
 export GOPROXY=https://proxy.golang.org
 
 GO ?= go
-COVERAGE_PATH ?= .coverage
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-master} HEAD)
 HEAD ?= HEAD
@@ -35,6 +34,10 @@ PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
+
+COVERAGE_PATH ?= $(shell pwd)/.coverage
+export COVERAGE_PATH
+$(shell mkdir -p ${COVERAGE_PATH})
 
 SOURCES = $(shell find . -path './.*' -prune -o -name "*.go")
 
@@ -197,13 +200,17 @@ podman-remote-static: bin/podman-remote-static
 .PHONY: podman-remote
 podman-remote: bin/podman-remote
 
+.PHONY: coverage
+coverage:
+	./hack/collect-coverage-profiles.sh
+
 .PHONY: binaries.coverage
 binaries.coverage: varlink_generate podman.coverage podman-remote.coverage
 
 .PHONY: podman.coverage
 podman.coverage:
 	$(GO) test \
-		-coverprofile coverprofile -covermode=count \
+		-covermode=count \
 		-coverpkg=./... \
 		-gcflags '$(GCFLAGS)' \
 		-asmflags '$(ASMFLAGS)' \
@@ -213,7 +220,7 @@ podman.coverage:
 .PHONY: podman-remote.coverage
 podman-remote.coverage:
 	$(GO) test \
-		-coverprofile coverprofile -covermode=count \
+		-covermode=count \
 		-coverpkg=./... \
 		-gcflags '$(GCFLAGS)' \
 		-asmflags '$(ASMFLAGS)' \
@@ -334,13 +341,10 @@ localunit: test/goecho/goecho varlink_generate
 		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings,hack \
 		--cover \
 		--covermode=count \
-		--coverprofile coverprofile \
+		--coverprofile coverprofile.unit \
 		--outputdir ${COVERAGE_PATH} \
 		--tags "$(BUILDTAGS)" \
 		--succinct
-	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
-	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile > ${COVERAGE_PATH}/functions
-	cat ${COVERAGE_PATH}/functions | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
 
 .PHONY: ginkgo
 ginkgo:
