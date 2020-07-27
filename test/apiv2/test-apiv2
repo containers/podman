@@ -50,6 +50,15 @@ PODMAN_BIN=${PODMAN:-${TESTS_DIR}/../../bin/podman}
 ###############################################################################
 # BEGIN infrastructure code - the helper functions used in tests themselves
 
+###################
+#  random_string  #  Generate a random string
+###################
+function random_string() {
+    local length=${1:-10}
+
+    head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
+}
+
 #########
 #  die  #  Exit error with a message to stderr
 #########
@@ -279,8 +288,18 @@ function start_service() {
         die "Cannot start service on non-localhost ($HOST)"
     fi
 
-    $PODMAN_BIN --root $WORKDIR system service --time 15 tcp:127.0.0.1:$PORT \
-        &> $WORKDIR/server.log &
+    # NOTE: we need to set `--time` to 0.  Otherwise, we have to wait for the
+    # specified amount of time until the profile is generated.  This will
+    # likely be related to the way the coverage binaries are instrumented via
+    # the `go test` backend.
+    local args="--root $WORKDIR system service --time 0 tcp:127.0.0.1:$PORT"
+    if [[ -n "$COVERAGE" ]]; then
+        args="-test.coverprofile=coverprofile.apiv2.service.$(random_string 20) COVERAGE $args"
+    fi
+
+    echo "$PODMAN_BIN $args"
+    $PODMAN_BIN $args &> $WORKDIR/server.log &
+
     service_pid=$!
 
     # Wait
@@ -297,8 +316,13 @@ function start_service() {
 #  podman  #  Needed by some test scripts to invoke the actual podman binary
 ############
 function podman() {
-    echo "\$ $PODMAN_BIN $*"           >>$WORKDIR/output.log
-    $PODMAN_BIN --root $WORKDIR "$@"   >>$WORKDIR/output.log 2>&1
+    local args="--root $WORKDIR $*"
+    if [[ -n "$COVERAGE" ]]; then
+        args="-test.coverprofile=coverprofile.apiv2.$(random_string 20) COVERAGE $args"
+    fi
+
+    echo "\$ $PODMAN_BIN $args"           >>$WORKDIR/output.log
+    $PODMAN_BIN $args   >>$WORKDIR/output.log 2>&1
 }
 
 ####################
@@ -363,8 +387,8 @@ done
 # Clean up
 
 if [ -n "$service_pid" ]; then
-    kill $service_pid
-    wait $service_pid
+    kill -SIGTERM $service_pid
+    wait -f $service_pid
 fi
 
 test_count=$(<$testcounter_file)
