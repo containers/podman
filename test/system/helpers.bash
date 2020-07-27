@@ -281,6 +281,15 @@ function skip_if_remote() {
     fi
 }
 
+######################
+#  skip_if_coverage  #  ...with an optional message
+######################
+function skip_if_coverage() {
+    if [[ -n "$COVERAGE" ]]; then
+        skip "${1:-test does not work with a COVERAGE binary}"
+    fi
+}
+
 #########
 #  die  #  Abort with helpful message
 #########

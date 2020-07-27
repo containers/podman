@@ -173,6 +173,13 @@ echo $rand        |   0 | $rand
 # 'run --conmon-pidfile --cid-file' makes sure we don't regress on these flags.
 # Both are critical for systemd units.
 @test "podman run --conmon-pidfile --cidfile" {
+    # For yet unknown reasons, this is the only system test that does not work
+    # with a coverage binary.  The symptom is that the pid in the pidfile does
+    # not exit.  Manual reproducers (even scripted ones) did not fail.
+    #
+    # TODO: enable the test for coverage.
+    skip_if_coverage
+
     pidfile=${PODMAN_TMPDIR}/pidfile
     cidfile=${PODMAN_TMPDIR}/cidfile
 
