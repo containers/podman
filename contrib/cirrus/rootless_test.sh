@@ -2,11 +2,13 @@
 
 set -e
 
+echo "$(date --rfc-3339=seconds) $(basename $0) started with '$*'"
+
 source $(dirname $0)/lib.sh
 
 if [[ "$UID" == "0" ]]
 then
-    echo "Error: Expected to be running as a regular user"
+    echo "$(basename $0): Error: Expected to be running as a regular user"
     exit 1
 fi
 

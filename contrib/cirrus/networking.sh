@@ -10,7 +10,7 @@ while read host port
 do
     if [[ "$port" -eq "443" ]]
     then
-        item_test "SSL/TLS to $host:$port" "$(echo -n '' | openssl s_client -quiet -no_ign_eof -connect $host:$port &> /dev/null; echo $?)" -eq "0"
+        item_test "SSL/TLS to $host:$port" "$(echo -n '' | timeout 60 openssl s_client -quiet -no_ign_eof -connect $host:$port &> /dev/null; echo $?)" -eq "0"
     else
         item_test "Connect to $host:$port" "$(nc -zv -w 13 $host $port &> /dev/null; echo $?)" -eq 0
     fi

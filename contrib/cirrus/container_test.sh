@@ -18,6 +18,8 @@ if [ "${ID}" != "fedora" ] || [ "${CONTAINER_RUNTIME}" != "" ]; then
     INTEGRATION_TEST_ENVS="SKIP_USERNS=1"
 fi
 
+echo "$(date --rfc-3339=seconds) $(basename $0) started with '$*' and TEST_REMOTE_CLIENT='${TEST_REMOTE_CLIENT}'"
+
 pwd
 
 # -i install

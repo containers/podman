@@ -16,7 +16,7 @@ fi
 # but pr2947 intends to add 'system'.
 TESTSUITE=$(expr $(basename $0) : '\(.*\)_test')
 if [[ -z $TESTSUITE ]]; then
-    die 1 "Script name is not of the form xxxx_test.sh"
+    die 1 "Script name ($basename $0) is not of the form xxxx_test.sh"
 fi
 
 cd "$GOSRC"
