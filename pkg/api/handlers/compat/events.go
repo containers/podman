@@ -29,8 +29,14 @@ func filtersFromRequest(r *http.Request) ([]string, error) {
 		compatFilters map[string]map[string]bool
 		filters       map[string][]string
 		libpodFilters []string
+		raw           []byte
 	)
-	raw := []byte(r.Form.Get("filters"))
+
+	if _, found := r.URL.Query()["filters"]; found {
+		raw = []byte(r.Form.Get("filters"))
+	} else {
+		return []string{}, nil
+	}
 
 	// Backwards compat with older versions of Docker.
 	if err := json.Unmarshal(raw, &compatFilters); err == nil {
