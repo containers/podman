@@ -2,11 +2,11 @@ package system
 
 import (
 	"fmt"
-	"html/template"
 	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
+	"text/template"
 	"time"
 
 	"github.com/containers/libpod/v2/cmd/podman/registry"
