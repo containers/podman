@@ -59,6 +59,42 @@ type VolumeConfigResponse struct {
 	Anonymous bool `json:"Anonymous"`
 }
 
+// VolumeInfo Volume list response
+// swagger:model VolumeInfo
+type VolumeInfo struct {
+
+	// Date/Time the volume was created.
+	CreatedAt string `json:"CreatedAt,omitempty"`
+
+	// Name of the volume driver used by the volume. Only supports local driver
+	// Required: true
+	Driver string `json:"Driver"`
+
+	// User-defined key/value metadata.
+	// Always included
+	Labels map[string]string `json:"Labels"`
+
+	// Mount path of the volume on the host.
+	// Required: true
+	Mountpoint string `json:"Mountpoint"`
+
+	// Name of the volume.
+	// Required: true
+	Name string `json:"Name"`
+
+	// The driver specific options used when creating the volume.
+	// Required: true
+	Options map[string]string `json:"Options"`
+
+	// The level at which the volume exists.
+	// Libpod does not implement volume scoping, and this is provided solely for
+	// Docker compatibility. The value is only "local".
+	// Required: true
+	Scope string `json:"Scope"`
+
+	// TODO: We don't include the volume `Status` for now
+}
+
 type VolumeRmOptions struct {
 	All   bool
 	Force bool
@@ -94,16 +130,24 @@ type VolumeListReport struct {
 	VolumeConfigResponse
 }
 
+// VolumeListBody Volume list response
+// swagger:model VolumeListBody
+type VolumeListBody struct {
+	Volumes []*VolumeInfo
+}
+
+// Volume list response
+// swagger:response VolumeListResponse
+type SwagVolumeListResponse struct {
+	// in:body
+	Body struct {
+		VolumeListBody
+	}
+}
+
 /*
  * Docker API compatibility types
  */
-// swagger:response DockerVolumeList
-type SwagDockerVolumeListResponse struct {
-	// in:body
-	Body struct {
-		docker_api_types_volume.VolumeListOKBody
-	}
-}
 
 // swagger:model DockerVolumeCreate
 type DockerVolumeCreate docker_api_types_volume.VolumeCreateBody
