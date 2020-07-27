@@ -63,6 +63,7 @@ type HostOS struct {
 var (
 	// Required to look up the COVERAGE env variable only once.
 	isCoverageRunBool bool
+	isCoverageRunPath string
 	isCoverageRunCall sync.Once
 )
 
@@ -73,6 +74,7 @@ func IsCoverageRun() bool {
 		// Look if $COVERAGE is set. We don't care about the value.
 		coverageEnv := os.Getenv("COVERAGE")
 		isCoverageRunBool = len(coverageEnv) > 0
+		isCoverageRunPath = os.Getenv("COVERAGE_PATH")
 	})
 	return isCoverageRunBool
 }
@@ -89,7 +91,7 @@ func CoverageArgs(args []string) []string {
 	// parser.
 	return append([]string{
 		fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()),
-		fmt.Sprintf("-test.outputdir=%q", os.Getenv("COVERAGE_PATH")),
+		fmt.Sprintf("-test.outputdir=%q", isCoverageRunPath),
 		"COVERAGE",
 	}, args...)
 }
