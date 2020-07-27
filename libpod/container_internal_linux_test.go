@@ -20,8 +20,10 @@ func TestGenerateUserPasswdEntry(t *testing.T) {
 
 	c := Container{
 		config: &ContainerConfig{
-			User: "123:456",
 			Spec: &spec.Spec{},
+			ContainerSecurityConfig: ContainerSecurityConfig{
+				User: "123:456",
+			},
 		},
 		state: &ContainerState{
 			Mountpoint: "/does/not/exist/tmp/",

@@ -35,7 +35,9 @@ func TestPostDeleteHooks(t *testing.T) {
 					"a": "b",
 				},
 			},
-			StaticDir: dir, // not the bundle, but good enough for this test
+			ContainerRootFSConfig: ContainerRootFSConfig{
+				StaticDir: dir, // not the bundle, but good enough for this test
+			},
 		},
 		state: &ContainerState{
 			ExtensionStageHooks: map[string][]rspec.Hook{
