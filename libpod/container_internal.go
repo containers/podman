@@ -1557,7 +1557,7 @@ func (c *Container) chownVolume(volumeName string) error {
 			if err != nil {
 				return err
 			}
-			if err := os.Chown(path, uid, gid); err != nil {
+			if err := os.Lchown(path, uid, gid); err != nil {
 				return err
 			}
 			return nil
