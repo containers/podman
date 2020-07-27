@@ -54,6 +54,10 @@ There are other equivalents for these tools
 | `docker load`    | [`podman load`](./docs/source/markdown/podman-load.1.md)        |
 | `docker login`   | [`podman login`](./docs/source/markdown/podman-login.1.md)      |
 | `docker logout`  | [`podman logout`](./docs/source/markdown/podman-logout.1.md)    |
+| `docker network create`  | [`podman network create`](./docs/source/markdown/podman-network-create.1.md)   |
+| `docker network inspect` | [`podman network inspect`](./docs/source/markdown/podman-network-inspect.1.md) |
+| `docker network ls`      | [`podman network ls`](./docs/source/markdown/podman-network-ls.1.md)           |
+| `docker network rm`      | [`podman network rm`](./docs.source/markdown/podman-network-rm.1.md)           |
 | `docker pause`   | [`podman pause`](./docs/source/markdown/podman-pause.1.md)      |
 | `docker ps`      | [`podman ps`](./docs/source/markdown/podman-ps.1.md)            |
 | `docker pull`    | [`podman pull`](./docs/source/markdown/podman-pull.1.md)        |
@@ -93,14 +97,12 @@ Those Docker commands currently do not have equivalents in `podman`:
 | :--- | :--- |
 | `docker container update`  | podman does not support altering running containers. We recommend recreating containers with the correct arguments.|
 | `docker container rename`   | podman does not support `container rename` - or the `rename` shorthand. We recommend using `podman rm` and  `podman create` to create a container with a specific name.|
-| `docker network`  ||
 | `docker node`     ||
 | `docker plugin`   | podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behavior of podman.|
 | `docker secret`   ||
 | `docker service`  ||
 | `docker stack`    ||
 | `docker swarm`    | podman does not support swarm.  We support Kubernetes for orchestration using [CRI-O](https://github.com/cri-o/cri-o).|
-| `docker volume`   | podman currently supports file volumes.  Future enhancement planned to support Docker Volumes Plugins
 
 ## Missing commands in Docker
 
@@ -134,5 +136,4 @@ The following podman commands do not have a Docker equivalent:
 * [`podman pod stop`](./docs/source/markdown/podman-pod-stop.1.md)
 * [`podman pod top`](./docs/source/markdown/podman-pod-top.1.md)
 * [`podman pod unpause`](./docs/source/markdown/podman-pod-unpause.1.md)
-* [`podman varlink`](./docs/source/markdown/podman-varlink.1.md)
 * [`podman umount`](./docs/source/markdown/podman-umount.1.md)
