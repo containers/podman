@@ -68,4 +68,8 @@ else
     _show_ok 0 "Time for ten /info requests" "<= 5 seconds" "$delta_t seconds"
 fi
 
+# Simple events test (see #7078)
+t GET "events?stream=false"  200
+t GET "libpod/events?stream=false"  200
+
 # vim: filetype=sh
