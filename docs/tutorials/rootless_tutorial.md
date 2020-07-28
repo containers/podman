@@ -58,7 +58,7 @@ The number of user namespaces that are allowed on the system is specified in the
 
 ### /etc/subuid and /etc/subgid configuration
 
-Rootless Podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid files.  The `shadows-utils` or `newuid` package provides these files on different distributions and  they must be installed on the system.  These files will need someone with root privileges on the system to add or update the entries within them.  The following is a summarization from the [How does rootless Podman work?](https://opensource.com/article/19/2/how-does-rootless-podman-work) article by Dan Walsh on [opensource.com](https://opensource.com)
+Rootless Podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid files.  The `shadow-utils` or `newuid` package provides these files on different distributions and  they must be installed on the system.  These files will need someone with root privileges on the system to add or update the entries within them.  The following is a summarization from the [How does rootless Podman work?](https://opensource.com/article/19/2/how-does-rootless-podman-work) article by Dan Walsh on [opensource.com](https://opensource.com)
 
 Update the /etc/subuid and /etc/subgid with fields for each user that will be allowed to create containers that look like the following.  Note that the values for each user must be unique and without any overlap.  If there is an overlap, there is a potential for a user to use another’s namespace and they could corrupt it.
 
