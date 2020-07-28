@@ -6,7 +6,7 @@
 # anything if we have to mess with them.
 #
 
-source $(dirname $0)/helpers.bash
+source "$(dirname $0)"/helpers.bash
 
 die() {
     echo "$(basename $0): $*" >&2
