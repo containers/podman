@@ -18,31 +18,32 @@ var (
 
   An unmount can be forced with the --force flag.
 `
-	umountCommand = &cobra.Command{
-		Use:     "umount [flags] CONTAINER [CONTAINER...]",
-		Aliases: []string{"unmount"},
+	unmountCommand = &cobra.Command{
+		Use:     "unmount [flags] CONTAINER [CONTAINER...]",
+		Aliases: []string{"umount"},
 		Short:   "Unmounts working container's root filesystem",
 		Long:    description,
 		RunE:    unmount,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
-		Example: `podman umount ctrID
-  podman umount ctrID1 ctrID2 ctrID3
-  podman umount --all`,
+		Example: `podman unmount ctrID
+  podman unmount ctrID1 ctrID2 ctrID3
+  podman unmount --all`,
 	}
 
 	containerUnmountCommand = &cobra.Command{
-		Use:   umountCommand.Use,
-		Short: umountCommand.Short,
-		Long:  umountCommand.Long,
-		RunE:  umountCommand.RunE,
+		Use:     unmountCommand.Use,
+		Short:   unmountCommand.Short,
+		Aliases: unmountCommand.Aliases,
+		Long:    unmountCommand.Long,
+		RunE:    unmountCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
-		Example: `podman container umount ctrID
-  podman container umount ctrID1 ctrID2 ctrID3
-  podman container umount --all`,
+		Example: `podman container unmount ctrID
+  podman container unmount ctrID1 ctrID2 ctrID3
+  podman container unmount --all`,
 	}
 )
 
@@ -50,25 +51,25 @@ var (
 	unmountOpts entities.ContainerUnmountOptions
 )
 
-func umountFlags(flags *pflag.FlagSet) {
-	flags.BoolVarP(&unmountOpts.All, "all", "a", false, "Umount all of the currently mounted containers")
-	flags.BoolVarP(&unmountOpts.Force, "force", "f", false, "Force the complete umount all of the currently mounted containers")
+func unmountFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&unmountOpts.All, "all", "a", false, "Unmount all of the currently mounted containers")
+	flags.BoolVarP(&unmountOpts.Force, "force", "f", false, "Force the complete unmount of the specified mounted containers")
 }
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: umountCommand,
+		Command: unmountCommand,
 	})
-	umountFlags(umountCommand.Flags())
-	validate.AddLatestFlag(umountCommand, &unmountOpts.Latest)
+	unmountFlags(unmountCommand.Flags())
+	validate.AddLatestFlag(unmountCommand, &unmountOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: containerUnmountCommand,
 		Parent:  containerCmd,
 	})
-	umountFlags(containerUnmountCommand.Flags())
+	unmountFlags(containerUnmountCommand.Flags())
 	validate.AddLatestFlag(containerUnmountCommand, &unmountOpts.Latest)
 }
 

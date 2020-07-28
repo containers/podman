@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/v2/cmd/podman/utils"
 	"github.com/containers/libpod/v2/cmd/podman/validate"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -31,7 +32,8 @@ var (
 			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
 		Annotations: map[string]string{
-			registry.ParentNSRequired: "",
+			registry.UnshareNSRequired: "",
+			registry.ParentNSRequired:  "",
 		},
 	}
 
@@ -51,7 +53,7 @@ var (
 
 func mountFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&mountOpts.All, "all", "a", false, "Mount all containers")
-	flags.StringVar(&mountOpts.Format, "format", "", "Change the output format to Go template")
+	flags.StringVar(&mountOpts.Format, "format", "", "Print the mounted containers in specified format (json)")
 	flags.BoolVar(&mountOpts.NoTruncate, "notruncate", false, "Do not truncate output")
 }
 
@@ -90,14 +92,21 @@ func mount(_ *cobra.Command, args []string) error {
 		}
 		return errs.PrintErrors()
 	}
-	if mountOpts.Format == "json" {
+
+	switch mountOpts.Format {
+	case "json":
 		return printJSON(reports)
+	case "":
+		// do nothing
+	default:
+		return errors.Errorf("unknown --format argument: %s", mountOpts.Format)
 	}
+
 	mrs := make([]mountReporter, 0, len(reports))
 	for _, r := range reports {
 		mrs = append(mrs, mountReporter{r})
 	}
-	row := "{{.ID}} {{.Path}}"
+	row := "{{.ID}} {{.Path}}\n"
 	format := "{{range . }}" + row + "{{end}}"
 	tmpl, err := template.New("mounts").Parse(format)
 	if err != nil {
