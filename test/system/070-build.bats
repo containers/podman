@@ -98,6 +98,26 @@ EOF
     is "$output" ".*error building at STEP .*: source can't be a URL for COPY"
 }
 
+@test "podman build - stdin test" {
+    if is_remote && is_rootless; then
+        skip "unreliable with podman-remote and rootless; #2972"
+    fi
+
+    # Random workdir, and multiple random strings to verify command & env
+    workdir=/$(random_string 10)
+    PODMAN_TIMEOUT=240 run_podman build -t build_test - << EOF
+FROM  $IMAGE
+RUN mkdir $workdir
+WORKDIR $workdir
+RUN /bin/echo 'Test'
+EOF
+    is "$output" ".*STEP 5: COMMIT" "COMMIT seen in log"
+
+    run_podman run --rm build_test pwd
+    is "$output" "$workdir" "pwd command in container"
+
+    run_podman rmi -f build_test
+}
 
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
