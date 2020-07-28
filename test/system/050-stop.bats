@@ -12,9 +12,12 @@ load helpers
     run_podman stop $cid
     t1=$SECONDS
 
-    # Confirm that container is stopped
+    # Confirm that container is stopped. Podman-remote unfortunately
+    # cannot tell the difference between "stopped" and "exited", and
+    # spits them out interchangeably, so we need to recognize either.
     run_podman inspect --format '{{.State.Status}} {{.State.ExitCode}}' $cid
-    is "$output" "exited \+137" "Status and exit code of stopped container"
+    is "$output" "\\(stopped\|exited\\) \+137" \
+       "Status and exit code of stopped container"
 
     # The initial SIGTERM is ignored, so this operation should take
     # exactly 10 seconds. Give it some leeway.

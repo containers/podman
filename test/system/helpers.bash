@@ -234,12 +234,29 @@ function is_remote() {
     [[ "$PODMAN" =~ -remote ]]
 }
 
+###########################
+#  _add_label_if_missing  #  make sure skip messages include rootless/remote
+###########################
+function _add_label_if_missing() {
+    local msg="$1"
+    local want="$2"
+
+    if [ -z "$msg" ]; then
+        echo
+    elif expr "$msg" : ".*$want" &>/dev/null; then
+        echo "$msg"
+    else
+        echo "[$want] $msg"
+    fi
+}
+
 ######################
 #  skip_if_rootless  #  ...with an optional message
 ######################
 function skip_if_rootless() {
     if is_rootless; then
-        skip "${1:-not applicable under rootless podman}"
+        local msg=$(_add_label_if_missing "$1" "rootless")
+        skip "${msg:-not applicable under rootless podman}"
     fi
 }
 
@@ -248,7 +265,8 @@ function skip_if_rootless() {
 ####################
 function skip_if_remote() {
     if is_remote; then
-        skip "${1:-test does not work with podman-remote}"
+        local msg=$(_add_label_if_missing "$1" "remote")
+        skip "${msg:-test does not work with podman-remote}"
     fi
 }
 
