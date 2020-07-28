@@ -119,7 +119,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		BuildahVersion:     infoData.Host.BuildahVersion,
 		CPURealtimePeriod:  sysInfo.CPURealtimePeriod,
 		CPURealtimeRuntime: sysInfo.CPURealtimeRuntime,
-		CgroupVersion:      infoData.Host.CGroupsVersion,
+		CgroupVersion:      strings.TrimPrefix(infoData.Host.CGroupsVersion, "v"),
 		Rootless:           rootless.IsRootless(),
 		SwapFree:           infoData.Host.SwapFree,
 		SwapTotal:          infoData.Host.SwapTotal,
