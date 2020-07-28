@@ -139,6 +139,13 @@ func build(cmd *cobra.Command, args []string) error {
 	}
 
 	contextDir, containerFiles, err := extractContextAndFiles(args, buildOpts.File)
+	if len(args) > 0 && args[0] == "-" && contextDir != "" {
+		defer func() {
+			if err = os.RemoveAll(contextDir); err != nil {
+				logrus.Errorf("error removing temporary directory %q: %v", contextDir, err)
+			}
+		}()
+	}
 	if err != nil {
 		return err
 	}
@@ -184,13 +191,16 @@ func extractContextAndFiles(args, files []string) (string, []string, error) {
 			return "", nil, errors.Wrapf(err, "error prepping temporary context directory")
 		}
 		if tempDir != "" {
-			// We had to download it to a temporary directory.
-			// Delete it later.
-			defer func() {
-				if err = os.RemoveAll(tempDir); err != nil {
-					logrus.Errorf("error removing temporary directory %q: %v", contextDir, err)
-				}
-			}()
+			if args[0] != "-" {
+				// We had to download it to a temporary directory.
+				// Delete it later
+				// if args[0] is stdin, will not delete at here.
+				defer func() {
+					if err = os.RemoveAll(tempDir); err != nil {
+						logrus.Errorf("error removing temporary directory %q: %v", contextDir, err)
+					}
+				}()
+			}
 			contextDir = filepath.Join(tempDir, subDir)
 		} else {
 			// Nope, it was local.  Use it as is.
@@ -229,7 +239,11 @@ func extractContextAndFiles(args, files []string) (string, []string, error) {
 		if utils.FileExists(filepath.Join(contextDir, "Containerfile")) {
 			containerFiles = append(containerFiles, filepath.Join(contextDir, "Containerfile"))
 		} else {
-			containerFiles = append(containerFiles, filepath.Join(contextDir, "Dockerfile"))
+			tmpDir := contextDir
+			if len(args) > 0 && args[0] == "-" {
+				tmpDir = ""
+			}
+			containerFiles = append(containerFiles, filepath.Join(tmpDir, "Dockerfile"))
 		}
 	}
 
