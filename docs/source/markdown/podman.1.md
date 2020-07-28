@@ -64,6 +64,13 @@ Path to ssh identity file. If the identity file has been encrypted, podman promp
 If no identity file is provided and no user is given, podman defaults to the user running the podman command.
 Podman prompts for the login password on the remote server.
 
+Identity value resolution precedence:
+ - command line value
+ - environment variable `DOCKER_CERT_PATH`, if `DOCKER_HOST` is found
+ - environment variable `CONTAINER_SSHKEY`, if `CONTAINER_HOST` is found
+ - `containers.conf`
+ - `""`
+
 **--log-level**=*level*
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic (default: "error")
@@ -80,7 +87,27 @@ Path to the command binary to use for setting up a network.  It is currently onl
 Access Podman service will be remote
 
 **--url**=*value*
-URL to access Podman service (default from `containers.conf`, rootless "unix://run/user/$UID/podman/podman.sock" or as root "unix://run/podman/podman.sock).
+URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
+
+The `CONTAINER_HOST` or `DOCKER_HOST` environment variables override the default.
+ - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
+ - `DOCKER_HOST` is of the format `<schema>://<host>[:<port>]`
+
+Details:
+ - `user` will default to either `root` or current running user
+ - `password` has no default
+ - `host` must be provided and is either the IP or name of the machine hosting the Podman service
+ - `port` defaults to 22
+ - `path` defaults to either `/run/podman/podman.sock`, or `/run/user/<uid>/podman/podman.sock` if running rootless.
+
+URL value resolution precedence:
+ - command line value
+ - environment variable `DOCKER_HOST`
+ - environment variable `CONTAINER_HOST`
+ - `containers.conf`
+ - `unix://run/podman/podman.sock`
+
+When using `DOCKER_HOST` and the schema is `ssh`, `/run/podman/podman.sock`  will be appended if not provided.
 
 **--root**=*value*
 

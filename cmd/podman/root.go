@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"runtime"
@@ -236,7 +237,7 @@ func loggingHook() {
 
 func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	cfg := opts.Config
-	uri, ident := resolveDestination()
+	uri, ident := activeDestination()
 
 	lFlags := cmd.Flags()
 	lFlags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
@@ -289,13 +290,19 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	}
 }
 
-func resolveDestination() (string, string) {
-	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
-		var ident string
-		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
-			ident = v
+func activeDestination() (string, string) {
+	if uri, found := os.LookupEnv("DOCKER_HOST"); found {
+		u, err := url.Parse(uri)
+		if err != nil {
+			return registry.DefaultAPIAddress(), ""
 		}
-		return uri, ident
+
+		// To handle rootless would require querying the service.
+		// `podman system connection add` already has all that code.
+		if u.Scheme == "ssh" && u.Path == "" {
+			u.Path = "/run/podman/podman.sock"
+		}
+		return u.String(), os.Getenv("DOCKER_CERT_PATH")
 	}
 
 	cfg, err := config.ReadCustomConfig()
