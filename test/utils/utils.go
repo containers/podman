@@ -46,6 +46,11 @@ type PodmanTest struct {
 	RemoteCommand      *exec.Cmd
 	ImageCacheDir      string
 	ImageCacheFS       string
+
+	// Allows to **opt out** from collecting coverage data. The e2e tests
+	// generate a huge amount of data, so we need a way to opt out from
+	// certain infra tasks that run before and after each test.
+	coverageDisabled bool
 }
 
 // PodmanSession wraps the gexec.session so we can extend it
@@ -82,18 +87,34 @@ func IsCoverageRun() bool {
 // CoverageArgs appends the mandatory _first_ arguments for a
 // coverage-instrumented Podman binary.  It will return `args`
 // as is we're not running with COVERAGE being set.
-func CoverageArgs(args []string) []string {
+func (p *PodmanTest) CoverageArgs(args []string) []string {
 	if !IsCoverageRun() {
 		return args
 	}
-	// We need the first arguments to be the obligatory coverprofile
-	// followed by the dummy value "COVERAGE" to silence the `go test`
+
+	var coverageArgs []string
+	// We run with COVERAGE set but shouldn't collect coverage just yet.
+	if !p.coverageDisabled {
+		coverageArgs = []string{
+			fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()),
+			fmt.Sprintf("-test.outputdir=%s", isCoverageRunPath),
+		}
+	}
+	// Now add the dummy "COVERAGE" argument to silence the `go test`
 	// parser.
-	return append([]string{
-		fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()),
-		fmt.Sprintf("-test.outputdir=%s", isCoverageRunPath),
-		"COVERAGE",
-	}, args...)
+	coverageArgs = append(coverageArgs, "COVERAGE")
+
+	return append(coverageArgs, args...)
+}
+
+// EnableCoverge enables collecting coverage data if possible.
+func (p *PodmanTest) EnableCoverage() {
+	p.coverageDisabled = false
+}
+
+// DisableCoverge disabled collecting coverage data.
+func (p *PodmanTest) DisableCoverage() {
+	p.coverageDisabled = true
 }
 
 // MakeOptions assembles all podman options
@@ -112,7 +133,7 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 		podmanBinary = p.RemotePodmanBinary
 		podmanOptions = append([]string{"--remote", "--url", p.RemoteSocket}, podmanOptions...)
 	}
-	podmanOptions = CoverageArgs(podmanOptions)
+	podmanOptions = p.CoverageArgs(podmanOptions)
 	if env == nil {
 		fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(podmanOptions, " "))
 	} else {

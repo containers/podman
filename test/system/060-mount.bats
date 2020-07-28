@@ -7,6 +7,7 @@ load helpers
     # Only works with root (FIXME: does it work with rootless + vfs?)
     skip_if_rootless "mount does not work rootless"
     skip_if_remote
+    skip_if_coverage "mount is still in use for a COVERAGE binary"
 
     f_path=/tmp/tmpfile_$(random_string 8)
     f_content=$(random_string 30)

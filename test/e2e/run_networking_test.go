@@ -514,6 +514,10 @@ var _ = Describe("Podman run networking", func() {
 	It("podman run in custom CNI network with --static-ip", func() {
 		SkipIfRemote()
 		SkipIfRootless()
+		// Coverage fails with:
+		//     Error: network 10.20.30.0/24 is already being used by a cni configuration
+		SkipIfCoverage()
+
 		netName := "podmantestnetwork"
 		ipAddr := "10.20.30.128"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.20.30.0/24", netName})

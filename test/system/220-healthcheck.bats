@@ -26,6 +26,7 @@ function _check_health {
 
 @test "podman healthcheck" {
     skip_if_remote "FIXME: pending #7137"
+    skip_if_coverage "health checks don't work with a coverage binary"
 
     # Create an image with a healthcheck script; said script will
     # pass until the file /uh-oh gets created (by us, via exec)

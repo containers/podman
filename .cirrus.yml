@@ -452,6 +452,68 @@ testing_task:
             path: "*.log.html"
             type: "text/html"
 
+# This task does the unit and integration testing for every platform.
+# Collects coverage data.
+coverage_task:
+
+    alias: "coverage"
+    depends_on:
+            - "gating"
+            - "vendor"
+            - "varlink_api"
+            - "build_each_commit"
+            - "build_without_cgo"
+            - "container_image_build"
+
+    # Only test build cache-images, if that's what's requested
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+
+    matrix:
+        - name: "test ${FEDORA_NAME}"
+          gce_instance:
+              image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+
+    timeout_in: 120m
+
+    env:
+        CODECOV_TOKEN: ENCRYPTED[ee0ef4e130c6a9c5590eec2887f8f0ba538138c0a167a0a732d2e7660636557f157877a39520bc2a6d8b7f785c4c8c71]
+        COVERAGE: 'true'
+        ADD_SECOND_PARTITION: 'true'
+        matrix:
+# TODO: enable remote tests once the local ones are passing (or later :^).
+#          - TEST_REMOTE_CLIENT: 'true'
+          - TEST_REMOTE_CLIENT: 'false'
+
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
+    #    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
+    #    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} system_test'
+    #    apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} apiv2_test'
+    coverage_script: '$SCRIPT_BASE/coverage.sh |& ${TIMESTAMP}'
+
+    # When examining a particular run, provide convenient access to release files.
+    tar_artifacts:
+        path: "*.tar.gz"
+        type: "application/x-tar"
+
+    on_failure:
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
+
+    always:
+        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
+        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
+        df_script: '$SCRIPT_BASE/logcollector.sh df'
+        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        varlink_script: '$SCRIPT_BASE/logcollector.sh varlink'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+        html_artifacts:
+            path: "*.log.html"
+            type: "text/html"
+
 # This task executes tests under unique environments/conditions
 special_testing_rootless_task:
 
@@ -732,6 +794,7 @@ success_task:
         - "meta"
         - "image_prune"
         - "testing"
+        - "coverage"
         - "rpmbuild"
         - "special_testing_rootless"
         - "special_testing_in_podman"

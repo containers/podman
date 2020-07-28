@@ -55,7 +55,9 @@ case "$SPECIALMODE" in
 	;;
     none)
         make
-        make install PREFIX=/usr ETCDIR=/etc
+        make_coverage
+        make install.bin-nobuild PREFIX=/usr ETCDIR=/etc
+	make install.remote-nobuild PREFIX=/usr ETCDIR=/etc
         make test-binaries
         make .install.bats
         make ${LOCAL_OR_REMOTE}${TESTSUITE} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG

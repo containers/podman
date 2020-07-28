@@ -292,6 +292,9 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 
 // RestoreAllArtifacts unpacks all cached images
 func (p *PodmanTestIntegration) RestoreAllArtifacts() error {
+	p.DisableCoverage()
+	defer p.EnableCoverage()
+
 	if os.Getenv("NO_TEST_CACHE") != "" {
 		return nil
 	}

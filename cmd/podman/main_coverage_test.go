@@ -4,6 +4,7 @@ package main
 
 import (
 	"os"
+	"os/signal"
 	"strings"
 	"testing"
 )
@@ -27,6 +28,7 @@ func TestCoverageMain(_ *testing.T) {
 		}
 	}
 
+	signal.Reset()
 	os.Args = args
 	main() // "run" Podman
 

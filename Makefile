@@ -36,7 +36,9 @@ PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
 
 COVERAGE_PATH ?= $(shell pwd)/.coverage
+COVERAGE_PROFILE ?= $(shell pwd)/coverage.txt
 export COVERAGE_PATH
+export COVERAGE_PROFILE
 $(shell mkdir -p ${COVERAGE_PATH})
 
 SOURCES = $(shell find . -path './.*' -prune -o -name "*.go")
@@ -200,9 +202,12 @@ podman-remote-static: bin/podman-remote-static
 .PHONY: podman-remote
 podman-remote: bin/podman-remote
 
-.PHONY: coverage
-coverage:
-	./hack/collect-coverage-profiles.sh
+.PHONY: codecov
+codecov: SHELL := $(shell which bash)
+codecov:
+	$(GO) run hack/coverage/coverage.go -dir $(COVERAGE_PATH) -profile $(COVERAGE_PROFILE)
+	# -v (verbose), -Z (exit 1 on error), -f (use the file)
+	bash <(curl -s https://codecov.io/bash) -Z -v -f $(COVERAGE_PROFILE)
 
 .PHONY: binaries.coverage
 binaries.coverage: varlink_generate podman.coverage podman-remote.coverage
@@ -215,7 +220,7 @@ podman.coverage:
 		-gcflags '$(GCFLAGS)' \
 		-asmflags '$(ASMFLAGS)' \
 		-ldflags '$(LDFLAGS_PODMAN)' \
-		-tags "coverage $(BUILDTAGS)" -c -o ./bin/podman $(PROJECT)/cmd/podman
+		-tags "coverage $(BUILDTAGS)" -c -o ./bin/podman ./cmd/podman
 
 .PHONY: podman-remote.coverage
 podman-remote.coverage:
@@ -225,7 +230,7 @@ podman-remote.coverage:
 		-gcflags '$(GCFLAGS)' \
 		-asmflags '$(ASMFLAGS)' \
 		-ldflags '$(LDFLAGS_PODMAN)' \
-		-tags "coverage $(REMOTETAGS)" -c -o ./bin/podman-remote $(PROJECT)/cmd/podman
+		-tags "coverage $(REMOTETAGS)" -c -o ./bin/podman-remote ./cmd/podman
 
 .PHONY: podman.msi
 podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
@@ -335,16 +340,16 @@ testunit: libpodimage ## Run unittest on the built image
 localunit: test/goecho/goecho varlink_generate
 	hack/check_root.sh make localunit
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
-	ginkgo \
-		-r \
-		$(TESTFLAGS) \
+	unset COVERAGE && PATH=${PATH}:`pwd`/hack \
+		ginkgo -r $(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings,hack \
-		--cover \
 		--covermode=count \
-		--coverprofile coverprofile.unit \
-		--outputdir ${COVERAGE_PATH} \
+		--coverprofile=coverprofile.unit \
+		--outputdir=${COVERAGE_PATH} \
 		--tags "$(BUILDTAGS)" \
 		--succinct
+	# `ginkgo -r` does NOT place all coverprofiles in the --outputdir, so let's collect them.
+	find . -type f -name "coverprofile.unit" -exec mv --force --backup=t {} ${COVERAGE_PATH} \;
 
 .PHONY: ginkgo
 ginkgo:

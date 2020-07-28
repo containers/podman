@@ -520,3 +520,10 @@ ubuntu_finalize() {
     $SUDO rm -rf /var/cache/apt
     _finalize
 }
+
+# Build coverage binaries if the COVERAGE env var is set.
+make_coverage() {
+    if [[ -n "$COVERAGE" ]]; then
+        make binaries.coverage
+    fi
+}

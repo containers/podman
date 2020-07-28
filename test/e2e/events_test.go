@@ -19,6 +19,7 @@ var _ = Describe("Podman events", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfCoverage() // Running into 90 sec timeouts even with --stream=false.
 		var err error
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
