@@ -3,7 +3,7 @@ set -xeo pipefail
 
 export GOPATH=/var/tmp/go
 export PATH=$HOME/gopath/bin:$PATH:$GOPATH/bin
-export GOSRC=$GOPATH/src/github.com/containers/libpod
+export GOSRC=$GOPATH/src/github.com/containers/podman
 
 DIST=${DIST:=""}
 CONTAINER_RUNTIME=${DIST:=""}

@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/libpod/v2/pkg/bindings"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/bindings"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 )
 
 // Checkpoint checkpoints the given container (identified by nameOrID).  All additional

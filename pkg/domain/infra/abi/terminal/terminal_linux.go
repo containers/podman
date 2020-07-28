@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"

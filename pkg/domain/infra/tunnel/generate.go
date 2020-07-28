@@ -3,8 +3,8 @@ package tunnel
 import (
 	"context"
 
-	"github.com/containers/libpod/v2/pkg/bindings/generate"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/bindings/generate"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 

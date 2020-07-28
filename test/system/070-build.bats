@@ -86,7 +86,7 @@ EOF
 
     cat >$tmpdir/Dockerfile <<EOF
 FROM $IMAGE
-ADD https://github.com/containers/libpod/blob/master/README.md /tmp/
+ADD https://github.com/containers/podman/blob/master/README.md /tmp/
 EOF
     run_podman build -t add_url $tmpdir
     run_podman run --rm add_url stat /tmp/README.md

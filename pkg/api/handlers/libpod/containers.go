@@ -6,12 +6,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/api/handlers/compat"
-	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/pkg/ps"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/api/handlers/compat"
+	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/ps"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -57,7 +57,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	// Support `last` as an alias for `limit`.  While Podman uses --last in
 	// the CLI, the API is using `limit`.  As we first used `last` in the
 	// API as well, we decided to go with aliasing to prevent any
-	// regression. See github.com/containers/libpod/issues/6413.
+	// regression. See github.com/containers/podman/issues/6413.
 	if _, found := r.URL.Query()["last"]; found {
 		logrus.Info("List containers: received `last` parameter - overwriting `limit`")
 		limit = query.Last

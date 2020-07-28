@@ -16,14 +16,14 @@
 %define gobuild(o:) go build -tags="$BUILDTAGS" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n')" -a -v -x %{?**};
 #% endif
 
-# libpod hack directory
+# podman hack directory
 %define hackdir %{_builddir}/%{repo}-%{shortcommit0}
 
 %global provider github
 %global provider_tld com
 %global project containers
-%global repo libpod
-# https://github.com/containers/libpod
+%global repo podman
+# https://github.com/containers/podman
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path %{provider_prefix}
 %global git0 https://%{provider}.%{provider_tld}/%{project}/%{repo}
@@ -384,7 +384,7 @@ mkdir -p src/%{provider}.%{provider_tld}/%{project}
 ln -s ../../../../ src/%{import_path}
 popd
 ln -s vendor src
-export GO111MODULE=off
+export GO111MODULE=on
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
 export BUILDTAGS="selinux seccomp systemd $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/pkg/errors"
 )
 

@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/v2/pkg/util"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 )

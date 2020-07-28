@@ -6,9 +6,9 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/v2/cmd/podman/registry"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/pkg/registries"
+	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/registries"
 	"github.com/spf13/cobra"
 )
 

@@ -3821,7 +3821,7 @@
   * volume: resolve symlinks in paths
   * volume: write the correct ID of the container in error messages
   * vendor: update containers/buildah
-  * papr: relabel GOPATH/github.com/containers/libpod
+  * papr: relabel GOPATH/github.com/containers/podman
   * tests: do not fail in the cleanup phase
   * tests: do not make assumptions on the mount output
   * papr_prepare: remove double process for starting up .papr.sh

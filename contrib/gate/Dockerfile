@@ -4,7 +4,7 @@ ENV GOPATH="/var/tmp/go" \
     GOBIN="/var/tmp/go/bin" \
     PATH="/var/tmp/go/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin" \
     SRCPATH="/usr/src/libpod" \
-    GOSRC="/var/tmp/go/src/github.com/containers/libpod"
+    GOSRC="/var/tmp/go/src/github.com/containers/podman"
 
 # Only needed for installing build-time dependencies, then will be removed
 COPY . $GOSRC

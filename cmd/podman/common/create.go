@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/auth"
-	"github.com/containers/libpod/v2/cmd/podman/registry"
-	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/spf13/pflag"
 )
 

@@ -3,9 +3,9 @@ package utils
 import (
 	"net/http"
 
-	"github.com/containers/libpod/v2/libpod"
-	lpfilters "github.com/containers/libpod/v2/libpod/filters"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/libpod"
+	lpfilters "github.com/containers/podman/v2/libpod/filters"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/gorilla/schema"
 )
 

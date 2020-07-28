@@ -12,16 +12,16 @@ See items below for details on building, installing, contributing to Podman:
 
 ## Adding a new command `podman manifest`
 ```shell script
-$ mkdir -p $GOPATH/src/github.com/containers/libpod/cmd/podmanV2/manifests
+$ mkdir -p $GOPATH/src/github.com/containers/podman/cmd/podmanV2/manifests
 ```
-Create the file ```$GOPATH/src/github.com/containers/libpod/cmd/podmanV2/manifests/manifest.go```
+Create the file ```$GOPATH/src/github.com/containers/podman/cmd/podmanV2/manifests/manifest.go```
 ```go
 package manifests
 
 import (
-    "github.com/containers/libpod/cmd/podman/registry"
-    "github.com/containers/libpod/cmd/podman/validate"
-    "github.com/containers/libpod/pkg/domain/entities"
+    "github.com/containers/podman/cmd/podman/registry"
+    "github.com/containers/podman/cmd/podman/validate"
+    "github.com/containers/podman/pkg/domain/entities"
     "github.com/spf13/cobra"
 )
 
@@ -47,21 +47,21 @@ func init() {
     })
 }
 ```
-To "wire" in the `manifest` command, edit the file ```$GOPATH/src/github.com/containers/libpod/cmd/podmanV2/main.go``` to add:
+To "wire" in the `manifest` command, edit the file ```$GOPATH/src/github.com/containers/podman/cmd/podmanV2/main.go``` to add:
 ```go
 package main
 
-import	_ "github.com/containers/libpod/cmd/podman/manifests"
+import	_ "github.com/containers/podman/cmd/podman/manifests"
 ```
 
 ## Adding a new sub command `podman manifests list`
-Create the file ```$GOPATH/src/github.com/containers/libpod/cmd/podmanV2/manifests/inspect.go```
+Create the file ```$GOPATH/src/github.com/containers/podman/cmd/podmanV2/manifests/inspect.go```
 ```go
 package manifests
 
 import (
-    "github.com/containers/libpod/cmd/podman/registry"
-    "github.com/containers/libpod/pkg/domain/entities"
+    "github.com/containers/podman/cmd/podman/registry"
+    "github.com/containers/podman/pkg/domain/entities"
     "github.com/spf13/cobra"
 )
 

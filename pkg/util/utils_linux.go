@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/containers/libpod/v2/pkg/rootless"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/psgo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

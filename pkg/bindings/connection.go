@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/containers/libpod/v2/pkg/terminal"
+	"github.com/containers/podman/v2/pkg/terminal"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

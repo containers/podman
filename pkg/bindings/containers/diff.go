@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/containers/libpod/v2/pkg/bindings"
+	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/storage/pkg/archive"
 )
 

@@ -2,7 +2,7 @@
 
 package libpod
 
-import "github.com/containers/libpod/v2/libpod/define"
+import "github.com/containers/podman/v2/libpod/define"
 
 func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	return define.ErrNotImplemented

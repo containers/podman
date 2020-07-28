@@ -9,8 +9,8 @@ import (
 	"github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/libpod/image"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/image"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )

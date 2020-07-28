@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/bindings"
-	"github.com/containers/libpod/v2/pkg/bindings/containers"
-	"github.com/containers/libpod/v2/pkg/specgen"
-	"github.com/containers/libpod/v2/test/utils"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/bindings"
+	"github.com/containers/podman/v2/pkg/bindings/containers"
+	"github.com/containers/podman/v2/pkg/specgen"
+	"github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -187,7 +187,7 @@ var _ = Describe("Podman containers ", func() {
 		osVer, err := strconv.Atoi(host.Version)
 		Expect(err).To(BeNil())
 		if host.Distribution == "fedora" && osVer >= 31 {
-			Skip("FIXME: https://github.com/containers/libpod/issues/5325")
+			Skip("FIXME: https://github.com/containers/podman/issues/5325")
 		}
 
 		// Removing a paused container with force should work

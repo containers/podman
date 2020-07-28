@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/lookup"
-	"github.com/containers/libpod/v2/pkg/util"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/lookup"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"

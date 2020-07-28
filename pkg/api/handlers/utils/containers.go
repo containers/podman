@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	createconfig "github.com/containers/libpod/v2/pkg/spec"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	createconfig "github.com/containers/podman/v2/pkg/spec"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
