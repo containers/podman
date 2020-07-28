@@ -91,7 +91,7 @@ func CoverageArgs(args []string) []string {
 	// parser.
 	return append([]string{
 		fmt.Sprintf("-test.coverprofile=coverprofile.e2e.%d", rand.Int()),
-		fmt.Sprintf("-test.outputdir=%q", isCoverageRunPath),
+		fmt.Sprintf("-test.outputdir=%s", isCoverageRunPath),
 		"COVERAGE",
 	}, args...)
 }
