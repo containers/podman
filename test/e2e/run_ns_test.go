@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"os/exec"
 	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
@@ -102,4 +103,34 @@ var _ = Describe("Podman run ns", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
+
+	It("podman run --ipc=host --pid=host", func() {
+		cmd := exec.Command("ls", "-l", "/proc/self/ns/pid")
+		res, err := cmd.Output()
+		Expect(err).To(BeNil())
+		fields := strings.Split(string(res), " ")
+		hostPidNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
+
+		cmd = exec.Command("ls", "-l", "/proc/self/ns/ipc")
+		res, err = cmd.Output()
+		Expect(err).To(BeNil())
+		fields = strings.Split(string(res), " ")
+		hostIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
+
+		session := podmanTest.Podman([]string{"run", "--ipc=host", "--pid=host", ALPINE, "ls", "-l", "/proc/self/ns/pid"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		fields = strings.Split(session.OutputToString(), " ")
+		ctrPidNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
+
+		session = podmanTest.Podman([]string{"run", "--ipc=host", "--pid=host", ALPINE, "ls", "-l", "/proc/self/ns/ipc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		fields = strings.Split(session.OutputToString(), " ")
+		ctrIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
+
+		Expect(hostPidNS).To(Equal(ctrPidNS))
+		Expect(hostIpcNS).To(Equal(ctrIpcNS))
+	})
+
 })
