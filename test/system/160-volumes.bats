@@ -93,6 +93,7 @@ Labels.l       | $mylabel
     is "$(<$mountpoint/myfile)" "$rand" "we see content created in container"
 
     # Clean up
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman volume rm $myvolume
 }
 
@@ -134,12 +135,14 @@ EOF
     is "$output" "got here -$rand-" "script in volume is runnable with default (exec)"
 
     # Clean up
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman volume rm $myvolume
 }
 
 
 # Anonymous temporary volumes, and persistent autocreated named ones
 @test "podman volume, implicit creation with run" {
+    skip_if_remote "FIXME: pending #7128"
 
     # No hostdir arg: create anonymous container with random name
     rand=$(random_string)
@@ -172,6 +175,7 @@ EOF
     run_podman run --rm -v $myvol:/myvol:z $IMAGE \
                sh -c "cp /myvol/myfile /myvol/myfile2"
 
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman volume rm $myvol
 
     # Autocreated volumes should also work with keep-id
@@ -180,6 +184,7 @@ EOF
     run_podman run --rm -v $myvol:/myvol:z --userns=keep-id $IMAGE \
                touch /myvol/myfile
 
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman volume rm $myvol
 }
 
@@ -187,6 +192,7 @@ EOF
 # Confirm that container sees the correct id
 @test "podman volume with --userns=keep-id" {
     is_rootless || skip "only meaningful when run rootless"
+    skip_if_remote "FIXME: pending #7195"
 
     myvoldir=${PODMAN_TMPDIR}/volume_$(random_string)
     mkdir $myvoldir

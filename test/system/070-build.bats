@@ -6,9 +6,7 @@
 load helpers
 
 @test "podman build - basic test" {
-    if is_remote && is_rootless; then
-        skip "unreliable with podman-remote and rootless; #2972"
-    fi
+    skip_if_remote "FIXME: pending #7136"
 
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
@@ -34,6 +32,7 @@ EOF
 
 # Regression from v1.5.0. This test passes fine in v1.5.0, fails in 1.6
 @test "podman build - cache (#3920)" {
+    skip_if_remote "FIXME: pending #7136"
     if is_remote && is_rootless; then
         skip "unreliable with podman-remote and rootless; #2972"
     fi
@@ -81,6 +80,8 @@ EOF
 }
 
 @test "podman build - URLs" {
+    skip_if_remote "FIXME: pending #7137"
+
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
 
@@ -90,6 +91,7 @@ ADD https://github.com/containers/podman/blob/master/README.md /tmp/
 EOF
     run_podman build -t add_url $tmpdir
     run_podman run --rm add_url stat /tmp/README.md
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman rmi -f add_url
 
     # Now test COPY. That should fail.
@@ -100,6 +102,8 @@ EOF
 
 
 @test "podman build - workdir, cmd, env, label" {
+    skip_if_remote "FIXME: pending #7137"
+
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
 
@@ -234,19 +238,19 @@ Labels.$label_name | $label_value
 }
 
 @test "podman build - stdin test" {
-    if is_remote && is_rootless; then
-        skip "unreliable with podman-remote and rootless; #2972"
-    fi
+    skip_if_remote "FIXME: pending #7136"
 
-    # Random workdir, and multiple random strings to verify command & env
+    # Random workdir, and random string to verify build output
     workdir=/$(random_string 10)
+    random_echo=$(random_string 15)
     PODMAN_TIMEOUT=240 run_podman build -t build_test - << EOF
 FROM  $IMAGE
 RUN mkdir $workdir
 WORKDIR $workdir
-RUN /bin/echo 'Test'
+RUN /bin/echo $random_echo
 EOF
     is "$output" ".*STEP 5: COMMIT" "COMMIT seen in log"
+    is "$output" ".*STEP .: RUN /bin/echo $random_echo"
 
     run_podman run --rm build_test pwd
     is "$output" "$workdir" "pwd command in container"

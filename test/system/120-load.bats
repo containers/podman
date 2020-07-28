@@ -28,6 +28,8 @@ verify_iid_and_name() {
 
 
 @test "podman load - by image ID" {
+    skip_if_remote "FIXME: pending #7123"
+
     # FIXME: how to build a simple archive instead?
     get_iid_and_name
 
@@ -74,7 +76,9 @@ verify_iid_and_name() {
     verify_iid_and_name $img_name
 }
 
-@test "podman load - NAME and NAME:TAG arguments work (requires: #2674)" {
+@test "podman load - NAME and NAME:TAG arguments work" {
+    skip_if_remote "FIXME: pending #7124"
+
     get_iid_and_name
     run_podman save $iid -o $archive
     run_podman rmi $iid
