@@ -16,6 +16,7 @@ type ImageEngine interface {
 	Inspect(ctx context.Context, namesOrIDs []string, opts InspectOptions) ([]*ImageInspectReport, []error, error)
 	List(ctx context.Context, opts ImageListOptions) ([]*ImageSummary, error)
 	Load(ctx context.Context, opts ImageLoadOptions) (*ImageLoadReport, error)
+	Mount(ctx context.Context, images []string, options ImageMountOptions) ([]*ImageMountReport, error)
 	Prune(ctx context.Context, opts ImagePruneOptions) (*ImagePruneReport, error)
 	Pull(ctx context.Context, rawImage string, opts ImagePullOptions) (*ImagePullReport, error)
 	Push(ctx context.Context, source string, destination string, opts ImagePushOptions) error
@@ -27,6 +28,7 @@ type ImageEngine interface {
 	Shutdown(ctx context.Context)
 	Tag(ctx context.Context, nameOrID string, tags []string, options ImageTagOptions) error
 	Tree(ctx context.Context, nameOrID string, options ImageTreeOptions) (*ImageTreeReport, error)
+	Unmount(ctx context.Context, images []string, options ImageUnmountOptions) ([]*ImageUnmountReport, error)
 	Untag(ctx context.Context, nameOrID string, tags []string, options ImageUntagOptions) error
 	ManifestCreate(ctx context.Context, names, images []string, opts ManifestCreateOptions) (string, error)
 	ManifestInspect(ctx context.Context, name string) ([]byte, error)

@@ -54,6 +54,14 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 	return is, nil
 }
 
+func (ir *ImageEngine) Mount(ctx context.Context, images []string, options entities.ImageMountOptions) ([]*entities.ImageMountReport, error) {
+	return nil, errors.New("mounting images is not supported for remote clients")
+}
+
+func (ir *ImageEngine) Unmount(ctx context.Context, images []string, options entities.ImageUnmountOptions) ([]*entities.ImageUnmountReport, error) {
+	return nil, errors.New("unmounting images is not supported for remote clients")
+}
+
 func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
 	results, err := images.History(ir.ClientCxt, nameOrID)
 	if err != nil {

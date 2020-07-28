@@ -33,7 +33,11 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman untag all", func() {
-		Skip(v2remotefail)
+		SkipIfRemote()
+		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
 		tags := []string{ALPINE, "registry.com/foo:bar", "localhost/foo:bar"}
 
 		cmd := []string{"tag"}
@@ -63,6 +67,10 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman tag/untag - tag normalization", func() {
+		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
 		tests := []struct {
 			tag, normalized string
 		}{

@@ -1524,6 +1524,56 @@ _podman_info() {
     esac
 }
 
+_podman_image_umount() {
+     _podman_image_unmount
+}
+
+_podman_image_unmount() {
+    local boolean_options="
+	--all
+	-a
+	--help
+	-h
+	--force
+	-f
+    "
+    local options_with_args="
+    "
+
+    local all_options="$options_with_args $boolean_options"
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    __podman_complete_images --force-tag --id
+	    ;;
+    esac
+}
+
+_podman_image_mount() {
+    local boolean_options="
+       --all
+       -a
+       --help
+       -h
+    "
+
+    local options_with_args="
+	  --format
+    "
+
+    local all_options="$options_with_args $boolean_options"
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    __podman_complete_images --force-tag --id
+	    ;;
+    esac
+}
+
 _podman_image_build() {
      _podman_build
 }
@@ -1590,6 +1640,7 @@ _podman_image() {
 	 inspect
 	 load
 	 ls
+	 mount
 	 prune
 	 pull
 	 push
@@ -1598,6 +1649,8 @@ _podman_image() {
 	 sign
 	 tag
 	 trust
+	 umount
+	 unmount
 	 untag
      "
      local aliases="
