@@ -186,6 +186,46 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.Linu
 	return memory, nil
 }
 
+func setNamespaces(s *specgen.SpecGenerator, c *ContainerCLIOpts) error {
+	var err error
+
+	if c.PID != "" {
+		s.PidNS, err = specgen.ParseNamespace(c.PID)
+		if err != nil {
+			return err
+		}
+	}
+	if c.IPC != "" {
+		s.IpcNS, err = specgen.ParseNamespace(c.IPC)
+		if err != nil {
+			return err
+		}
+	}
+	if c.UTS != "" {
+		s.UtsNS, err = specgen.ParseNamespace(c.UTS)
+		if err != nil {
+			return err
+		}
+	}
+	if c.CgroupNS != "" {
+		s.CgroupNS, err = specgen.ParseNamespace(c.CgroupNS)
+		if err != nil {
+			return err
+		}
+	}
+	// userns must be treated differently
+	if c.UserNS != "" {
+		s.UserNS, err = specgen.ParseUserNamespace(c.UserNS)
+		if err != nil {
+			return err
+		}
+	}
+	if c.Net != nil {
+		s.NetNS = c.Net.Network
+	}
+	return nil
+}
+
 func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) error {
 	var (
 		err error
@@ -252,28 +292,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	s.Expose = expose
 
-	for k, v := range map[string]*specgen.Namespace{
-		c.IPC:       &s.IpcNS,
-		c.PID:       &s.PidNS,
-		c.UTS:       &s.UtsNS,
-		c.CGroupsNS: &s.CgroupNS,
-	} {
-		if k != "" {
-			*v, err = specgen.ParseNamespace(k)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	// userns must be treated differently
-	if c.UserNS != "" {
-		s.UserNS, err = specgen.ParseUserNamespace(c.UserNS)
-		if err != nil {
-			return err
-		}
-	}
-	if c.Net != nil {
-		s.NetNS = c.Net.Network
+	if err := setNamespaces(s, c); err != nil {
+		return err
 	}
 
 	if sig := c.StopSignal; len(sig) > 0 {

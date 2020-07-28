@@ -10,7 +10,7 @@ type ContainerCLIOpts struct {
 	BlkIOWeightDevice []string
 	CapAdd            []string
 	CapDrop           []string
-	CGroupsNS         string
+	CgroupNS          string
 	CGroupsMode       string
 	CGroupParent      string
 	CIDFile           string
