@@ -138,36 +138,9 @@ func build(cmd *cobra.Command, args []string) error {
 		return errors.New("cannot specify --squash, --squash-all and --layers options together")
 	}
 
-	contextDir, containerFiles, err := extractContextAndFiles(args, buildOpts.File)
-	if err != nil {
-		return err
-	}
-
-	ie, err := registry.NewImageEngine(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	apiBuildOpts, err := buildFlagsWrapperToOptions(cmd, contextDir, &buildOpts)
-	if err != nil {
-		return err
-	}
-
-	_, err = ie.Build(registry.GetContext(), containerFiles, *apiBuildOpts)
-	return err
-}
-
-// extractContextAndFiles parses args and files to extract a context directory
-// and {Container,Docker}files.
-//
-// TODO: this was copied and altered from the v1 client which in turn was
-// copied and altered from the Buildah code. Ideally, all of this code should
-// be cleanly consolidated into a package that is shared between Buildah and
-// Podman.
-func extractContextAndFiles(args, files []string) (string, []string, error) {
 	// Extract container files from the CLI (i.e., --file/-f) first.
 	var containerFiles []string
-	for _, f := range files {
+	for _, f := range buildOpts.File {
 		if f == "-" {
 			containerFiles = append(containerFiles, "/dev/stdin")
 		} else {
@@ -181,7 +154,7 @@ func extractContextAndFiles(args, files []string) (string, []string, error) {
 		// The context directory could be a URL.  Try to handle that.
 		tempDir, subDir, err := imagebuildah.TempDirForURL("", "buildah", args[0])
 		if err != nil {
-			return "", nil, errors.Wrapf(err, "error prepping temporary context directory")
+			return errors.Wrapf(err, "error prepping temporary context directory")
 		}
 		if tempDir != "" {
 			// We had to download it to a temporary directory.
@@ -196,7 +169,7 @@ func extractContextAndFiles(args, files []string) (string, []string, error) {
 			// Nope, it was local.  Use it as is.
 			absDir, err := filepath.Abs(args[0])
 			if err != nil {
-				return "", nil, errors.Wrapf(err, "error determining path to directory %q", args[0])
+				return errors.Wrapf(err, "error determining path to directory %q", args[0])
 			}
 			contextDir = absDir
 		}
@@ -212,7 +185,7 @@ func extractContextAndFiles(args, files []string) (string, []string, error) {
 			}
 			absFile, err := filepath.Abs(containerFiles[i])
 			if err != nil {
-				return "", nil, errors.Wrapf(err, "error determining path to file %q", containerFiles[i])
+				return errors.Wrapf(err, "error determining path to file %q", containerFiles[i])
 			}
 			contextDir = filepath.Dir(absFile)
 			break
@@ -220,10 +193,10 @@ func extractContextAndFiles(args, files []string) (string, []string, error) {
 	}
 
 	if contextDir == "" {
-		return "", nil, errors.Errorf("no context directory and no Containerfile specified")
+		return errors.Errorf("no context directory and no Containerfile specified")
 	}
 	if !utils.IsDir(contextDir) {
-		return "", nil, errors.Errorf("context must be a directory: %q", contextDir)
+		return errors.Errorf("context must be a directory: %q", contextDir)
 	}
 	if len(containerFiles) == 0 {
 		if utils.FileExists(filepath.Join(contextDir, "Containerfile")) {
@@ -233,7 +206,18 @@ func extractContextAndFiles(args, files []string) (string, []string, error) {
 		}
 	}
 
-	return contextDir, containerFiles, nil
+	ie, err := registry.NewImageEngine(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	apiBuildOpts, err := buildFlagsWrapperToOptions(cmd, contextDir, &buildOpts)
+	if err != nil {
+		return err
+	}
+
+	_, err = ie.Build(registry.GetContext(), containerFiles, *apiBuildOpts)
+	return err
 }
 
 // buildFlagsWrapperToOptions converts the local build flags to the build options used
