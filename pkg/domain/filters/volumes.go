@@ -3,7 +3,7 @@ package filters
 import (
 	"strings"
 
-	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/podman/v2/libpod"
 	"github.com/pkg/errors"
 )
 

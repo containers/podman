@@ -2,7 +2,7 @@
 #
 # Build a Podman container image from the latest
 # upstream version of Podman on GitHub.
-# https://github.com/containers/libpod
+# https://github.com/containers/podman
 # This image can be used to create a secured container
 # that runs safely with privileges within the container.
 # The containers created by this image also come with a
@@ -42,8 +42,8 @@ RUN useradd podman; yum -y update; yum -y reinstall shadow-utils; yum -y install
      fuse3 \
      containers-common; \
      mkdir /root/podman; \
-     git clone https://github.com/containers/libpod /root/podman/src/github.com/containers/libpod; \
-     cd /root/podman/src/github.com/containers/libpod; \
+     git clone https://github.com/containers/podman /root/podman/src/github.com/containers/podman; \
+     cd /root/podman/src/github.com/containers/podman; \
      make BUILDTAGS="selinux seccomp"; \
      make install PREFIX=/usr; \
      cd /root/podman; \

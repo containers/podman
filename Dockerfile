@@ -5,7 +5,7 @@ FROM registry.fedoraproject.org/fedora:latest
 # It is assumed that the source to be tested will overwrite $GOSRC (below)
 # at runtime.
 ENV GOPATH=/var/tmp/go
-ENV GOSRC=$GOPATH/src/github.com/containers/libpod
+ENV GOSRC=$GOPATH/src/github.com/containers/podman
 ENV SCRIPT_BASE=./contrib/cirrus
 ENV PACKER_BASE=$SCRIPT_BASE/packer
 

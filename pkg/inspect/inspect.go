@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/libpod/v2/libpod/driver"
+	"github.com/containers/podman/v2/libpod/driver"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )

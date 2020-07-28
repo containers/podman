@@ -9,12 +9,12 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/libpod/image"
-	"github.com/containers/libpod/v2/pkg/systemd"
-	systemdGen "github.com/containers/libpod/v2/pkg/systemd/generate"
-	"github.com/containers/libpod/v2/pkg/util"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v2/pkg/systemd"
+	systemdGen "github.com/containers/podman/v2/pkg/systemd/generate"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -261,7 +261,7 @@ func newerImageAvailable(runtime *libpod.Runtime, img *image.Image, origName str
 
 	// We need to account for the arch that the image uses.  It seems
 	// common on ARM to tweak this option to pull the correct image.  See
-	// github.com/containers/libpod/issues/6613.
+	// github.com/containers/podman/issues/6613.
 	sys.ArchitectureChoice = data.Architecture
 
 	remoteImg, err := remoteRef.NewImage(context.Background(), sys)

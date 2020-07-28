@@ -7,8 +7,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/containers/libpod/v2/pkg/criu"
-	. "github.com/containers/libpod/v2/test/utils"
+	"github.com/containers/podman/v2/pkg/criu"
+	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

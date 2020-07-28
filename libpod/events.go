@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/containers/libpod/v2/libpod/events"
+	"github.com/containers/podman/v2/libpod/events"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

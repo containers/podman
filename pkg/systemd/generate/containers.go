@@ -11,9 +11,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/version"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -237,7 +237,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			// Enforce --replace for named containers.  This will
 			// make systemd units more robuts as it allows them to
 			// start after system crashes (see
-			// github.com/containers/libpod/issues/5485).
+			// github.com/containers/podman/issues/5485).
 			startCommand = append(startCommand, "--replace")
 		}
 		startCommand = append(startCommand, info.CreateCommand[index:]...)

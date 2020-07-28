@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/libpod/v2/cmd/podman/registry"
-	"github.com/containers/libpod/v2/cmd/podman/validate"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/pkg/domain/infra"
+	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/validate"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/infra"
 	"github.com/spf13/cobra"
 )
 

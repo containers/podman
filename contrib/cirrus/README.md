@@ -19,7 +19,7 @@ task (pass or fail) is set based on the exit status of the last script to execut
 
 1. Launch a purpose-built container in Cirrus's community cluster.
    For container image details, please see
-   [the contributors guide](https://github.com/containers/libpod/blob/master/CONTRIBUTING.md#go-format-and-lint).
+   [the contributors guide](https://github.com/containers/podman/blob/master/CONTRIBUTING.md#go-format-and-lint).
 
 3. ``validate``: Perform standard `make validate` source verification,
    Should run for less than a minute or two.

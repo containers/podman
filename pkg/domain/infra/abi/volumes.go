@@ -3,10 +3,10 @@ package abi
 import (
 	"context"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/pkg/domain/filters"
-	"github.com/containers/libpod/v2/pkg/domain/infra/abi/parse"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/filters"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi/parse"
 	"github.com/pkg/errors"
 )
 

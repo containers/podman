@@ -37,7 +37,7 @@ t GET libpod/containers/json?limit=1 200 \
   .[0].IsInfra=false
 
 # Make sure `last` works, which is an alias for `limit`.
-# See https://github.com/containers/libpod/issues/6413.
+# See https://github.com/containers/podman/issues/6413.
 t GET libpod/containers/json?last=1 200 \
   length=1 \
   .[0].Id~[0-9a-f]\\{64\\} \

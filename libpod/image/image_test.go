@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/containers/libpod/v2/libpod/events"
-	"github.com/containers/libpod/v2/pkg/util"
+	"github.com/containers/podman/v2/libpod/events"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"

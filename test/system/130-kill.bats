@@ -11,7 +11,7 @@ load helpers
     # Workaround: run 'env --default-signal sh' instead of just 'sh' in
     # the container. Since env on our regular alpine image doesn't support
     # that flag, we need to pull fedora-minimal. See:
-    #    https://github.com/containers/libpod/issues/5004
+    #    https://github.com/containers/podman/issues/5004
     # FIXME: remove this kludge once we get rid of podman-remote
     local _image=$IMAGE
     local _sh_cmd="sh"

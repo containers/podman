@@ -19,11 +19,11 @@ or by changing the value for the "Default OCI runtime" in the containers.conf fi
 
 ### Installing Podman
 
-For installing Podman, please see the [installation instructions](https://github.com/containers/libpod/blob/master/install.md).
+For installing Podman, please see the [installation instructions](https://github.com/containers/podman/blob/master/install.md).
 
 ### Building Podman
 
-For building Podman, please see the [installation instructions](https://github.com/containers/libpod/blob/master/install.md#building-from-scratch).
+For building Podman, please see the [installation instructions](https://github.com/containers/podman/blob/master/install.md#building-from-scratch).
 
 ### Install slirp4netns
 
@@ -76,7 +76,7 @@ The format of this file is USERNAME:UID:RANGE
 
 This means the user johndoe is allocated UIDS 100000-165535 as well as their standard UID in the /etc/passwd file.  NOTE: this is not currently supported with network installs.  These files must be available locally to the host machine.  It is not possible to configure this with LDAP or Active Directory.
 
-If you update either the /etc/subuid or the /etc/subgid file, you need to stop all the running containers owned by the user and kill the pause process that is running on the system for that user.  This can be done automatically by using the [`podman system migrate`](https://github.com/containers/libpod/blob/master/docs/podman-system-migrate.1.md) command which will stop all the containers for the user and will kill the pause process.
+If you update either the /etc/subuid or the /etc/subgid file, you need to stop all the running containers owned by the user and kill the pause process that is running on the system for that user.  This can be done automatically by using the [`podman system migrate`](https://github.com/containers/podman/blob/master/docs/podman-system-migrate.1.md) command which will stop all the containers for the user and will kill the pause process.
 
 Rather than updating the files directly, the usermod program can be used to assign UIDs and GIDs to a user.
 
@@ -193,6 +193,6 @@ Other considerations in regards to volumes:
 
 ## More information
 
-If you are still experiencing problems running Podman in a rootless environment, please refer to the [Shortcomings of Rootless Podman](https://github.com/containers/libpod/blob/master/rootless.md) page which lists known issues and solutions to known issues in this environment.
+If you are still experiencing problems running Podman in a rootless environment, please refer to the [Shortcomings of Rootless Podman](https://github.com/containers/podman/blob/master/rootless.md) page which lists known issues and solutions to known issues in this environment.
 
 For more information on Podman and its subcommands, checkout the asciiart demos on the [README.md](../../README.md#commands) page or the [podman.io](https://podman.io) web site.

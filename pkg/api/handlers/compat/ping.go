@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/containers/buildah"
-	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 )
 
 // Ping returns headers to client about the service

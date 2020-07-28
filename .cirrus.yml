@@ -18,8 +18,8 @@ env:
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: "/var/tmp/go"
     GOBIN: "${GOPATH}/bin"
-    GOSRC: "/var/tmp/go/src/github.com/containers/libpod"
-    CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/libpod"
+    GOSRC: "/var/tmp/go/src/github.com/containers/podman"
+    CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/podman"
     # The default is 'sh' if unspecified
     CIRRUS_SHELL: "/bin/bash"
     # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
@@ -214,7 +214,7 @@ vendor_task:
         - "gating"
 
     env:
-        CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/libpod"
+        CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/podman"
         GOPATH: "/var/tmp/go"
         GOSRC: "$CIRRUS_WORKING_DIR"
 

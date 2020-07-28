@@ -5,7 +5,7 @@
 
 load helpers
 
-# Copied from tsweeney's https://github.com/containers/libpod/issues/4827
+# Copied from tsweeney's https://github.com/containers/podman/issues/4827
 @test "podman networking: port on localhost" {
     skip_if_remote
     random_1=$(random_string 30)

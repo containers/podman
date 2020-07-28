@@ -5,13 +5,13 @@
 Podman (the POD MANager) is a tool for managing containers and images, volumes mounted into those containers, and pods made from groups of containers.
 Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
 
-* [Latest Version: 2.0.3](https://github.com/containers/libpod/releases/latest)
+* [Latest Version: 2.0.3](https://github.com/containers/podman/releases/latest)
   * Latest Remote client for Windows
   * Latest Remote client for MacOs
   * Latest Static Remote client for Linux
 
 * [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
-* [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/libpod/libpod?status.svg)](https://godoc.org/github.com/containers/libpod/libpod)
+* [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/podman/libpod?status.svg)](https://godoc.org/github.com/containers/podman/libpod)
 
 ## Overview and scope
 
@@ -43,9 +43,9 @@ For general questions and discussion, please use the
 IRC `#podman` channel on `irc.freenode.net`.
 
 For discussions around issues/bugs and features, you can use the GitHub
-[issues](https://github.com/containers/libpod/issues)
+[issues](https://github.com/containers/podman/issues)
 and
-[PRs](https://github.com/containers/libpod/pulls)
+[PRs](https://github.com/containers/podman/pulls)
 tracking system.
 
 There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podman.io`.
@@ -58,10 +58,10 @@ Rootless Podman runs locked-down containers with no privileges that the user run
 Some of these restrictions can be lifted (via `--privileged`, for example), but rootless containers will never have more privileges than the user that launched them.
 If you run Podman as your user and mount in `/etc/passwd` from the host, you still won't be able to change it, since your user doesn't have permission to do so.
 
-Almost all normal Podman functionality is available, though there are some [shortcomings](https://github.com/containers/libpod/blob/master/rootless.md).
-Any recent Podman release should be able to run rootless without any additional configuration, though your operating system may require some additional configuration detailed in the [install guide](https://github.com/containers/libpod/blob/master/install.md).
+Almost all normal Podman functionality is available, though there are some [shortcomings](https://github.com/containers/podman/blob/master/rootless.md).
+Any recent Podman release should be able to run rootless without any additional configuration, though your operating system may require some additional configuration detailed in the [install guide](https://github.com/containers/podman/blob/master/install.md).
 
-A little configuration by an administrator is required before rootless Podman can be used, the necessary setup is documented [here](https://github.com/containers/libpod/blob/master/docs/tutorials/rootless_tutorial.md).
+A little configuration by an administrator is required before rootless Podman can be used, the necessary setup is documented [here](https://github.com/containers/podman/blob/master/docs/tutorials/rootless_tutorial.md).
 
 ## Out of scope
 
@@ -73,9 +73,9 @@ A little configuration by an administrator is required before rootless Podman ca
   standard for composing Pods and for orchestrating containers, making
   Kubernetes YAML a defacto standard file format. Hence, Podman allows the
   creation and execution of Pods from a Kubernetes YAML file (see
-  [podman-play-kube](https://github.com/containers/libpod/blob/master/docs/source/markdown/podman-play-kube.1.md)).
+  [podman-play-kube](https://github.com/containers/podman/blob/master/docs/source/markdown/podman-play-kube.1.md)).
   Podman can also generate Kubernetes YAML based on a container or Pod (see
-  [podman-generate-kube](https://github.com/containers/libpod/blob/master/docs/source/markdown/podman-generate-kube.1.md)),
+  [podman-generate-kube](https://github.com/containers/podman/blob/master/docs/source/markdown/podman-generate-kube.1.md)),
   which allows for an easy transition from a local development environment
   to a production Kubernetes cluster. If Kubernetes does not fit your requirements,
   there are other third-party tools that support the docker-compose format such as
@@ -122,10 +122,10 @@ includes tables showing Docker commands and their Podman equivalent commands.
 **[Tutorials](docs/tutorials)**
 Tutorials on using Podman.
 
-**[Remote Client](https://github.com/containers/libpod/blob/master/docs/tutorials/remote_client.md)**
+**[Remote Client](https://github.com/containers/podman/blob/master/docs/tutorials/remote_client.md)**
 A brief how-to on using the Podman remote-client.
 
-**[Basic Setup and Use of Podman in a Rootless environment](https://github.com/containers/libpod/blob/master/docs/tutorials/rootless_tutorial.md)**
+**[Basic Setup and Use of Podman in a Rootless environment](https://github.com/containers/podman/blob/master/docs/tutorials/rootless_tutorial.md)**
 A tutorial showing the setup and configuration necessary to run Rootless Podman.
 
 **[Release Notes](RELEASE_NOTES.md)**
@@ -142,7 +142,7 @@ Buildah and Podman are two complementary open-source projects that are
 available on most Linux platforms and both projects reside at
 [GitHub.com](https://github.com) with Buildah
 [here](https://github.com/containers/buildah) and Podman
-[here](https://github.com/containers/libpod).  Both, Buildah and Podman are
+[here](https://github.com/containers/podman).  Both, Buildah and Podman are
 command line tools that work on Open Container Initiative (OCI) images and
 containers.  The two projects differentiate in their specialization.
 

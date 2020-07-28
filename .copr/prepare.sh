@@ -29,7 +29,7 @@ if [ ${OS_TEST} -eq 0 ]; then
 fi
 
 mkdir -p build/
-git archive --prefix "libpod-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "build/libpod-${COMMIT_SHORT}.tar.gz"
+git archive --prefix "podman-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "build/podman-${COMMIT_SHORT}.tar.gz"
 if [ ! -d conmon ]; then
     git clone -n --quiet https://github.com/containers/conmon
 fi

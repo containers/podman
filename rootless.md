@@ -2,7 +2,7 @@
 
 The following list categorizes the known issues and irregularities with running Podman as a non-root user.  Although currently functional, there is still a number of work items that are under consideration to be added.  These proposed changes are in varying degrees of design and development.
 
-Contributors are more than welcomed to help with this work.  If you decide to carve off a piece and work on it, please create an issue in [GitHub](https://github.com/containers/libpod/issues), and assign it to yourself.  If you find other unexpected behavior with rootless Podman and feel it’s warranted, please feel free to update this document.
+Contributors are more than welcomed to help with this work.  If you decide to carve off a piece and work on it, please create an issue in [GitHub](https://github.com/containers/podman/issues), and assign it to yourself.  If you find other unexpected behavior with rootless Podman and feel it’s warranted, please feel free to update this document.
 
 * Podman can not create containers that bind to ports < 1024.
   * The kernel does not allow processes without CAP_NET_BIND_SERVICE to bind to low ports.
@@ -32,7 +32,7 @@ can easily fail
   * CNI wants to modify IPTables, plus other network manipulation that requires CAP_SYS_ADMIN.
   * There is potential we could probably do some sort of denylisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
 * Cannot use ping out of the box.
-  * [(Can be fixed by setting sysctl on host)](https://github.com/containers/libpod/blob/master/troubleshooting.md#6-rootless-containers-cannot-ping-hosts)
+  * [(Can be fixed by setting sysctl on host)](https://github.com/containers/podman/blob/master/troubleshooting.md#6-rootless-containers-cannot-ping-hosts)
 * Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release)
 * A few commands do not work.
   * mount/unmount (on fuse-overlay)
