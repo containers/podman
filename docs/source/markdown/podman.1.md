@@ -217,7 +217,7 @@ the exit codes follow the `chroot` standard, see below:
 
 ## FILES
 
-**containers.conf** (`/usr/share/containers/containers.conf`)
+**containers.conf** (`/usr/share/containers/containers.conf`, `/etc/containers/containers.conf`, `$HOME/.config/containers/containers.conf`)
 
     Podman has builtin defaults for command line options. These defaults can be overridden using the containers.conf configuration files.
 
@@ -235,13 +235,13 @@ When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.con
 
     Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid.
 
-**registries.conf** (`/etc/containers/registries.conf`)
+**registries.conf** (`/etc/containers/registries.conf`, `$HOME/.config/containers/registries.conf`)
 
     registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
     Non root users of Podman can create the `$HOME/.config/containers/registries.conf` file to be used instead of the system defaults.
 
-**storage.conf** (`/etc/containers/storage.conf`)
+**storage.conf** (`/etc/containers/storage.conf`, `$HOME/.config/contaners/storage.conf`)
 
     storage.conf is the storage configuration file for all tools using containers/storage
 
