@@ -195,7 +195,7 @@ func createInit(c *cobra.Command) error {
 	cliVals.IPC = c.Flag("ipc").Value.String()
 	cliVals.UTS = c.Flag("uts").Value.String()
 	cliVals.PID = c.Flag("pid").Value.String()
-	cliVals.CGroupsNS = c.Flag("cgroupns").Value.String()
+	cliVals.CgroupNS = c.Flag("cgroupns").Value.String()
 	if c.Flag("entrypoint").Changed {
 		val := c.Flag("entrypoint").Value.String()
 		cliVals.Entrypoint = &val
