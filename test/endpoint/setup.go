@@ -51,14 +51,7 @@ func Setup(tempDir string) *EndpointTestIntegration {
 
 	ociRuntime := os.Getenv("OCI_RUNTIME")
 	if ociRuntime == "" {
-		var err error
-		ociRuntime, err = exec.LookPath("runc")
-		// If we cannot find the runc binary, setting to something static as we have no way
-		// to return an error.  The tests will fail and point out that the runc binary could
-		// not be found nicely.
-		if err != nil {
-			ociRuntime = "/usr/bin/runc"
-		}
+		ociRuntime = "runc"
 	}
 	os.Setenv("DISABLE_HC_SYSTEMD", "true")
 	CNIConfigDir := "/etc/cni/net.d"
