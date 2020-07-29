@@ -64,7 +64,7 @@ INSTALL_PACKAGES=(\
     gettext
     git
     go-md2man
-    golang
+    golang-1.13
     iproute2
     iptables
     jq
@@ -100,12 +100,14 @@ INSTALL_PACKAGES=(\
     podman
     protobuf-c-compiler
     protobuf-compiler
+    python-dateutil
     python-protobuf
     python2
     python3-dateutil
     python3-pip
     python3-psutil
     python3-pytoml
+    python3-requests
     python3-setuptools
     rsync
     runc
@@ -134,6 +136,10 @@ if [[ "$OS_RELEASE_VER" -le 19 ]]; then
         python-minimal
         yum-utils
     )
+else
+    INSTALL_PACKAGES+=(\
+        python-is-python3
+    )
 fi
 
 # Do this at the last possible moment to avoid dpkg lock conflicts
@@ -143,17 +149,26 @@ $BIGTO ooe.sh $SUDOAPTGET upgrade
 echo "Installing general testing and system dependencies"
 # Necessary to update cache of newly added repos
 $LILTO ooe.sh $SUDOAPTGET update
-$BIGTO ooe.sh $SUDOAPTGET install ${INSTALL_PACKAGES[@]}
+$BIGTO ooe.sh $SUDOAPTGET install "${INSTALL_PACKAGES[@]}"
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
     $SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
-    $LILTO ooe.sh $SUDOAPTGET install --download-only ${DOWNLOAD_PACKAGES[@]}
-    ls -la "$PACKAGE_DOWNLOAD_DIR/"
+    $LILTO ooe.sh $SUDOAPTGET install --download-only "${DOWNLOAD_PACKAGES[@]}"
 fi
 
-echo "Installing runtime tooling"
+echo "Configuring Go environment"
+# There are multiple (otherwise conflicting) versions of golang available
+# on Ubuntu.  Being primarily localized by env. vars and defaults, dropping
+# a symlink is the appropriate way to "install" a specific version system-wide.
+$SUDO ln -sf /usr/lib/go-1.13/bin/go /usr/bin/go
+# Initially go was not installed
 cd $GOSRC
+source $SCRIPT_BASE/lib.sh
+echo "Go environment has been setup:"
+go env
+
+echo "Building/Installing runtime tooling"
 $SUDO hack/install_catatonit.sh
 $SUDO make install.libseccomp.sudo
 $SUDO make install.tools

@@ -39,26 +39,12 @@ done
 cd "${GOSRC}/"
 case "${OS_RELEASE_ID}" in
     ubuntu)
-	    apt-get update
-	    apt-get install -y containers-common
-	    if [[ "$OS_RELEASE_VER" == "19" ]]; then
-		    apt-get purge -y --auto-remove golang*
-		    apt-get install -y golang-1.13
-		    ln -s /usr/lib/go-1.13/bin/go /usr/bin/go
-	    fi
-	    if [[ "$OS_RELEASE_VER" == "20" ]]; then
-		    apt-get install -y python-is-python3
-	    fi
-	    apt-get upgrade -y conmon
         ;;
     fedora)
         # All SELinux distros need this for systemd-in-a-container
         setsebool container_manage_cgroup true
 
         workaround_bfq_bug
-
-	# HACK: Need Conmon 2.0.17, currently in updates-testing on F31.
-	dnf update -y --enablerepo=updates-testing conmon
 
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
             bash "$SCRIPT_BASE/add_second_partition.sh"
