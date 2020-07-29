@@ -280,6 +280,7 @@ var _ = Describe("Podman containers ", func() {
 	})
 
 	It("podman wait to pause|unpause condition", func() {
+		Skip("FIXME: https://github.com/containers/podman/issues/6518")
 		var (
 			name           = "top"
 			exitCode int32 = -1
