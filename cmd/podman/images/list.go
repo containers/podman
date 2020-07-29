@@ -168,7 +168,11 @@ func writeTemplate(imgs []imageReporter) error {
 		}
 	}
 	format := hdr + "{{range . }}" + row + "{{end}}"
-	tmpl := template.Must(template.New("list").Parse(format))
+	tmpl, err := template.New("list").Parse(format)
+	if err != nil {
+		return err
+	}
+	tmpl = template.Must(tmpl, nil)
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 	return tmpl.Execute(w, imgs)

@@ -125,7 +125,10 @@ func history(cmd *cobra.Command, args []string) error {
 	}
 	format := hdr + "{{range . }}" + row + "{{end}}"
 
-	tmpl := template.Must(template.New("report").Parse(format))
+	tmpl, err := template.New("report").Parse(format)
+	if err != nil {
+		return err
+	}
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	err = tmpl.Execute(w, hr)
 	if err != nil {
