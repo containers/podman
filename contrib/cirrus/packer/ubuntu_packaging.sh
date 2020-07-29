@@ -101,12 +101,14 @@ INSTALL_PACKAGES=(\
     podman
     protobuf-c-compiler
     protobuf-compiler
+    python-dateutil
     python-protobuf
     python2
     python3-dateutil
     python3-pip
     python3-psutil
     python3-pytoml
+    python3-requests
     python3-setuptools
     rsync
     runc

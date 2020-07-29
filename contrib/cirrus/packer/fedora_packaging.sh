@@ -26,7 +26,7 @@ source /usr/share/automation/environment
 # Set this to 1 to NOT enable updates-testing repository
 DISABLE_UPDATES_TESTING=${DISABLE_UPDATES_TESTING:0}
 
-# Do not enable update-stesting on the previous Fedora release
+# Do not enable updates-testing on the previous Fedora release
 if ((DISABLE_UPDATES_TESTING!=0)); then
     warn "Enabling updates-testing repository for image based on $FEDORA_BASE_IMAGE"
     $LILTO $SUDO ooe.sh dnf install -y 'dnf-command(config-manager)'
@@ -37,7 +37,16 @@ fi
 
 $BIGTO ooe.sh $SUDO dnf update -y
 
+# While both runc and crun are needed in the support of different distros
+# and environments, packaging will need to instal one and suggesting the other.
+# This can cause some ambiguity for automation, where more concrete, predictable
+# behavior is desirable.  Instead of fighting with or complicating the packaging
+# itself, workaround the problem.  Always removing 'runc' in Fedora since it's
+# exclusively cgroupsv2 focused as of release 31.  However, ensure the runc
+# is downloaded to $PACKAGE_DOWNLOAD_DIR for the minority of use-cases where
+# automation needs to swap it in.
 REMOVE_PACKAGES=(runc)
+
 INSTALL_PACKAGES=(\
     autoconf
     automake
@@ -118,11 +127,12 @@ INSTALL_PACKAGES=(\
     python2
     python3-PyYAML
     python3-dateutil
+    python3-libselinux
+    python3-libsemanage
+    python3-libvirt
     python3-psutil
     python3-pytoml
-    python3-libsemanage
-    python3-libselinux
-    python3-libvirt
+    python3-requests
     redhat-rpm-config
     rpcbind
     rsync
@@ -163,7 +173,7 @@ $BIGTO ooe.sh $SUDO dnf install -y ${INSTALL_PACKAGES[@]}
 #   $BIGTO ooe.sh $SUDO dnf --enablerepo=updates-testing -y upgrade crun
 
 [[ ${#REMOVE_PACKAGES[@]} -eq 0 ]] || \
-    $LILTO ooe.sh $SUDO dnf erase -y ${REMOVE_PACKAGES[@]}
+    $LILTO ooe.sh $SUDO dnf erase -y "${REMOVE_PACKAGES[@]}"
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
@@ -171,8 +181,7 @@ if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
     $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
     cd "$PACKAGE_DOWNLOAD_DIR"
-    $LILTO ooe.sh $SUDO dnf download -y --resolve ${DOWNLOAD_PACKAGES[@]}
-    ls -la "$PACKAGE_DOWNLOAD_DIR/"
+    $LILTO ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
 fi
 
 echo "Installing runtime tooling"
