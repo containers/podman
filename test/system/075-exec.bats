@@ -81,8 +81,6 @@ load helpers
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
 # #6593 : doesn't actually work with podman exec
 @test "podman exec - with keep-id" {
-    skip "Please enable once #6593 is fixed"
-
     run_podman run -d --userns=keep-id $IMAGE sh -c \
                "echo READY;while [ ! -f /stop ]; do sleep 1; done"
     cid="$output"

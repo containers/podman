@@ -284,4 +284,20 @@ echo $rand        |   0 | $rand
     is "$output" "root" "--user=0 overrides keep-id"
 }
 
+# #6991 : /etc/passwd is modifiable
+@test "podman run : --userns=keep-id: passwd file is modifiable" {
+    run_podman run -d --userns=keep-id $IMAGE sh -c 'while ! test -e /stop; do sleep 0.1; done'
+    cid="$output"
+
+    gecos="$(random_string 6) $(random_string 8)"
+    run_podman exec --user root $cid adduser -D -g "$gecos" -s /bin/sh newuser3
+    is "$output" "" "output from adduser"
+    run_podman exec $cid tail -1 /etc/passwd
+    is "$output" "newuser3:x:1000:1000:$gecos:/home/newuser3:/bin/sh" \
+       "newuser3 added to /etc/passwd in container"
+
+    run_podman exec $cid touch /stop
+    run_podman wait $cid
+}
+
 # vim: filetype=sh
