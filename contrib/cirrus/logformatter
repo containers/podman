@@ -208,13 +208,13 @@ END_HTML
         }
 
         # Try to identify the git commit we're working with...
-        if ($line =~ m!libpod/define.gitCommit=([0-9a-f]+)!) {
+        if ($line =~ m!/define.gitCommit=([0-9a-f]+)!) {
             $git_commit = $1;
         }
         # ...so we can link to specific lines in source files
         if ($git_commit) {
-            #           1  12  3                  34     4 5   526  6
-            $line =~ s{^(.*)(\/(containers\/libpod)(\/\S+):(\d+))(.*)$}
+            #           1  12  3                 34     4 5   526  6
+            $line =~ s{^(.*)(\/(containers\/[^/]+)(\/\S+):(\d+))(.*)$}
                       {$1<a class="codelink" href='https://github.com/$3/blob/$git_commit$4#L$5'>$2</a>$6};
         }
 
