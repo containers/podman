@@ -173,7 +173,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	runOpts.Spec = s
 
-	if _, err := createPodIfNecessary(s); err != nil {
+	if _, err := createPodIfNecessary(s, cliVals.Net); err != nil {
 		return err
 	}
 
