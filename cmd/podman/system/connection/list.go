@@ -75,7 +75,11 @@ func list(_ *cobra.Command, _ []string) error {
 
 	// TODO: Allow user to override format
 	format := "{{range . }}{{.Name}}\t{{.Identity}}\t{{.URI}}\n{{end}}"
-	tmpl := template.Must(template.New("connection").Parse(format))
+	tmpl, err := template.New("connection").Parse(format)
+	if err != nil {
+		return err
+	}
+
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 
