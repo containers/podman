@@ -562,17 +562,30 @@ func (r *Runtime) Shutdown(force bool) error {
 
 	r.valid = false
 
-	// Shutdown all containers if --force is given
-	if force {
-		ctrs, err := r.state.AllContainers()
-		if err != nil {
-			logrus.Errorf("Error retrieving containers from database: %v", err)
-		} else {
-			for _, ctr := range ctrs {
-				if err := ctr.StopWithTimeout(r.config.Engine.StopTimeout); err != nil {
-					logrus.Errorf("Error stopping container %s: %v", ctr.ID(), err)
-				}
+	ctrs, err := r.state.AllContainers()
+	if err != nil {
+		return errors.Wrap(err, "retrieve containers from database")
+	}
+	hasRunningContainers := false
+	for _, ctr := range ctrs {
+		// Shutdown all containers if --force is given
+		if force {
+			if err := ctr.StopWithTimeout(r.config.Engine.StopTimeout); err != nil {
+				logrus.Errorf("Error stopping container %s: %v", ctr.ID(), err)
 			}
+		}
+
+		state, err := ctr.State()
+		if err != nil {
+			logrus.Errorf("Unable to retrieve container state: %v", err)
+		}
+		if state == define.ContainerStateRunning {
+			hasRunningContainers = true
+		}
+	}
+	if !hasRunningContainers {
+		if err := stopPauseProcess(); err != nil {
+			return errors.Wrap(err, "stop pause process")
 		}
 	}
 
