@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v2/pkg/rootless"
-
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
@@ -27,6 +25,7 @@ import (
 	libpodImage "github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	domainUtils "github.com/containers/podman/v2/pkg/domain/utils"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/trust"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
@@ -83,6 +82,125 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entiti
 		history.Layers[i] = ToDomainHistoryLayer(layer)
 	}
 	return &history, nil
+}
+
+func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entities.ImageMountOptions) ([]*entities.ImageMountReport, error) {
+	var (
+		images []*image.Image
+		err    error
+	)
+	if os.Geteuid() != 0 {
+		if driver := ir.Libpod.StorageConfig().GraphDriverName; driver != "vfs" {
+			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
+			// of the mount command.
+			return nil, errors.Errorf("cannot mount using driver %s in rootless mode", driver)
+		}
+
+		became, ret, err := rootless.BecomeRootInUserNS("")
+		if err != nil {
+			return nil, err
+		}
+		if became {
+			os.Exit(ret)
+		}
+	}
+	if opts.All {
+		allImages, err := ir.Libpod.ImageRuntime().GetImages()
+		if err != nil {
+			return nil, err
+		}
+		for _, img := range allImages {
+			if !img.IsReadOnly() {
+				images = append(images, img)
+			}
+		}
+	} else {
+		for _, i := range nameOrIDs {
+			img, err := ir.Libpod.ImageRuntime().NewFromLocal(i)
+			if err != nil {
+				return nil, err
+			}
+			images = append(images, img)
+		}
+	}
+	reports := make([]*entities.ImageMountReport, 0, len(images))
+	for _, img := range images {
+		report := entities.ImageMountReport{Id: img.ID()}
+		if img.IsReadOnly() {
+			report.Err = errors.Errorf("mounting readonly %s image not supported", img.ID())
+		} else {
+			report.Path, report.Err = img.Mount([]string{}, "")
+		}
+		reports = append(reports, &report)
+	}
+	if len(reports) > 0 {
+		return reports, nil
+	}
+
+	images, err = ir.Libpod.ImageRuntime().GetImages()
+	if err != nil {
+		return nil, err
+	}
+	for _, i := range images {
+		mounted, path, err := i.Mounted()
+		if err != nil {
+			if errors.Cause(err) == storage.ErrLayerUnknown {
+				continue
+			}
+			return nil, err
+		}
+		if mounted {
+			tags, err := i.RepoTags()
+			if err != nil {
+				return nil, err
+			}
+			reports = append(reports, &entities.ImageMountReport{
+				Id:           i.ID(),
+				Name:         string(i.Digest()),
+				Repositories: tags,
+				Path:         path,
+			})
+		}
+	}
+	return reports, nil
+}
+
+func (ir *ImageEngine) Unmount(ctx context.Context, nameOrIDs []string, options entities.ImageUnmountOptions) ([]*entities.ImageUnmountReport, error) {
+	var images []*image.Image
+
+	if options.All {
+		allImages, err := ir.Libpod.ImageRuntime().GetImages()
+		if err != nil {
+			return nil, err
+		}
+		for _, img := range allImages {
+			if !img.IsReadOnly() {
+				images = append(images, img)
+			}
+		}
+	} else {
+		for _, i := range nameOrIDs {
+			img, err := ir.Libpod.ImageRuntime().NewFromLocal(i)
+			if err != nil {
+				return nil, err
+			}
+			images = append(images, img)
+		}
+	}
+
+	reports := []*entities.ImageUnmountReport{}
+	for _, img := range images {
+		report := entities.ImageUnmountReport{Id: img.ID()}
+		if err := img.Unmount(options.Force); err != nil {
+			if options.All && errors.Cause(err) == storage.ErrLayerNotMounted {
+				logrus.Debugf("Error umounting image %s, storage.ErrLayerNotMounted", img.ID())
+				continue
+			}
+			report.Err = errors.Wrapf(err, "error unmounting image %s", img.ID())
+		}
+		reports = append(reports, &report)
+	}
+	return reports, nil
 }
 
 func ToDomainHistoryLayer(layer *libpodImage.History) entities.ImageHistoryLayer {
@@ -225,7 +343,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	case "v2s2", "docker":
 		manifestType = manifest.DockerV2Schema2MediaType
 	default:
-		return fmt.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", options.Format)
+		return errors.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", options.Format)
 	}
 
 	var registryCreds *types.DockerAuthConfig
@@ -292,7 +410,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 //
 // 	// TODO: Determine Size
 // 	report := entities.ImagePruneReport{}
-// 	copy(report.Report.Id, id)
+// 	copy(report.Report.ID, id)
 // 	return &report, nil
 // }
 

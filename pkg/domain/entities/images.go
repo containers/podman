@@ -91,7 +91,7 @@ type ImageRemoveOptions struct {
 }
 
 // ImageRemoveResponse is the response for removing one or more image(s) from storage
-// and containers what was untagged vs actually removed.
+// and images what was untagged vs actually removed.
 type ImageRemoveReport struct {
 	// Deleted images.
 	Deleted []string `json:",omitempty"`
@@ -318,3 +318,31 @@ type SignOptions struct {
 
 // SignReport describes the result of signing
 type SignReport struct{}
+
+// ImageMountOptions describes the input values for mounting images
+// in the CLI
+type ImageMountOptions struct {
+	All    bool
+	Format string
+}
+
+// ImageUnmountOptions are the options from the cli for unmounting
+type ImageUnmountOptions struct {
+	All   bool
+	Force bool
+}
+
+// ImageMountReport describes the response from image mount
+type ImageMountReport struct {
+	Err          error
+	Id           string //nolint
+	Name         string
+	Repositories []string
+	Path         string
+}
+
+// ImageUnmountReport describes the response from umounting an image
+type ImageUnmountReport struct {
+	Err error
+	Id  string //nolint
+}

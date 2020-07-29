@@ -1593,6 +1593,63 @@ func (i *Image) newImageEvent(status events.Status) {
 	}
 }
 
+// Mount mounts a image's filesystem on the host
+// The path where the image has been mounted is returned
+func (i *Image) Mount(options []string, mountLabel string) (string, error) {
+	defer i.newImageEvent(events.Mount)
+	return i.mount(options, mountLabel)
+}
+
+// Unmount unmounts a image's filesystem on the host
+func (i *Image) Unmount(force bool) error {
+	defer i.newImageEvent(events.Unmount)
+	return i.unmount(force)
+}
+
+// Mounted returns whether the image is mounted and the path it is mounted
+// at (if it is mounted).
+// If the image is not mounted, no error is returned, and the mountpoint
+// will be set to "".
+func (i *Image) Mounted() (bool, string, error) {
+	mountedTimes, err := i.imageruntime.store.Mounted(i.TopLayer())
+	if err != nil {
+		return false, "", err
+	}
+
+	if mountedTimes > 0 {
+		layer, err := i.imageruntime.store.Layer(i.TopLayer())
+		if err != nil {
+			return false, "", err
+		}
+		return true, layer.MountPoint, nil
+	}
+
+	return false, "", nil
+}
+
+// mount mounts the container's root filesystem
+func (i *Image) mount(options []string, mountLabel string) (string, error) {
+	mountPoint, err := i.imageruntime.store.MountImage(i.ID(), options, mountLabel)
+	if err != nil {
+		return "", errors.Wrapf(err, "error mounting storage for image %s", i.ID())
+	}
+	mountPoint, err = filepath.EvalSymlinks(mountPoint)
+	if err != nil {
+		return "", errors.Wrapf(err, "error resolving storage path for image %s", i.ID())
+	}
+	return mountPoint, nil
+}
+
+// unmount unmounts the image's root filesystem
+func (i *Image) unmount(force bool) error {
+	// Also unmount storage
+	if _, err := i.imageruntime.store.UnmountImage(i.ID(), force); err != nil {
+		return errors.Wrapf(err, "error unmounting image %s root filesystem", i.ID())
+	}
+
+	return nil
+}
+
 // LayerInfo keeps information of single layer
 type LayerInfo struct {
 	// Layer ID

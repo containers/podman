@@ -59,4 +59,25 @@ var _ = Describe("Podman mount", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 	})
+
+	It("podman image mount", func() {
+		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		mount := podmanTest.PodmanNoCache([]string{"image", "mount", ALPINE})
+		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).ToNot(Equal(0))
+		Expect(mount.ErrorToString()).To(ContainSubstring("podman unshare"))
+	})
+
+	It("podman unshare image podman mount", func() {
+		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"unshare", PODMAN_BINARY, "image", "mount", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+	})
 })

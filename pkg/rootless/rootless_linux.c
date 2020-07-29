@@ -211,7 +211,8 @@ can_use_shortcut ()
           break;
         }
 
-      if (argv[argc+1] != NULL && strcmp (argv[argc], "container") == 0 &&
+      if (argv[argc+1] != NULL && (strcmp (argv[argc], "container") == 0 ||
+	   strcmp (argv[argc], "image") == 0) &&
 	   strcmp (argv[argc+1], "mount") == 0)
         {
           ret = false;
