@@ -37,14 +37,13 @@ fi
 
 $BIGTO ooe.sh $SUDO dnf update -y
 
-# While both runc and crun are needed in the support of different distros
-# and environments, packaging will need to instal one and suggesting the other.
-# This can cause some ambiguity for automation, where more concrete, predictable
-# behavior is desirable.  Instead of fighting with or complicating the packaging
-# itself, workaround the problem.  Always removing 'runc' in Fedora since it's
-# exclusively cgroupsv2 focused as of release 31.  However, ensure the runc
-# is downloaded to $PACKAGE_DOWNLOAD_DIR for the minority of use-cases where
-# automation needs to swap it in.
+# Fedora, as of 31, uses cgroups v2 by default. runc does not support
+# cgroups v2, only crun does. (As of 2020-07-30 runc support is
+# forthcoming but not even close to ready yet). To ensure a reliable
+# runtime environment, force-remove runc if it is present.
+# However, because a few other repos. which use these images still need
+# it, ensure the runc package is cached in $PACKAGE_DOWNLOAD_DIR so
+# it may be swap it in when required.
 REMOVE_PACKAGES=(runc)
 
 INSTALL_PACKAGES=(\
