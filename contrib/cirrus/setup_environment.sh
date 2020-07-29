@@ -127,9 +127,6 @@ case "$PRIV_NAME" in
             echo "$_suns" >> /etc/environment
             source /etc/environment
         fi
-
-# Reload to incorporate any changes from above
-source "$SCRIPT_BASE/lib.sh"
         ;;
     rootless)
         _ru="export ROOTLESS_USER='${ROOTLESS_USER:-some${RANDOM}dude}'"

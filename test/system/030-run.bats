@@ -460,4 +460,17 @@ json-file | f
     is "$output" "$expect" "podman run with --tz=local, matches host"
 }
 
+# run with --runtime should preserve the named runtime
+@test "podman run : full path to --runtime is preserved" {
+    skip_if_cgroupsv1
+    skip_if_remote
+    run_podman run -d --runtime '/usr/bin/crun' $IMAGE sleep 60
+    cid="$output"
+
+    run_podman inspect --format '{{.OCIRuntime}}' $cid
+    is "$output" "/usr/bin/crun"
+
+    run_podman kill $cid
+}
+
 # vim: filetype=sh
