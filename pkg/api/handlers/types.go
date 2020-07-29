@@ -203,15 +203,6 @@ func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 		return nil, errors.Wrapf(err, "Failed to obtain RepoTags for image %s", l.ID())
 	}
 
-	history, err := l.History(context.TODO())
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain History for image %s", l.ID())
-	}
-	historyIds := make([]string, len(history))
-	for i, h := range history {
-		historyIds[i] = h.ID
-	}
-
 	digests := make([]string, len(l.Digests()))
 	for i, d := range l.Digests() {
 		digests[i] = string(d)
@@ -233,7 +224,7 @@ func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 		Digest:       string(l.Digest()),
 		Digests:      digests,
 		ConfigDigest: string(l.ConfigDigest),
-		History:      historyIds,
+		History:      l.NamesHistory(),
 	}
 	return &is, nil
 }
