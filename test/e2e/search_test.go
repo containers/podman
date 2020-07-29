@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strconv"
 	"text/template"
 
@@ -96,6 +97,15 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(search.LineInOutputContains("quay.io/libpod/gate")).To(BeTrue())
+	})
+
+	It("podman search image with description", func() {
+		search := podmanTest.Podman([]string{"search", "quay.io/libpod/whalesay"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		output := fmt.Sprintf("%s", search.Out.Contents())
+		match, _ := regexp.MatchString(`(?m)^quay.io\s+quay.io/libpod/whalesay\s+Static image used for automated testing.+$`, output)
+		Expect(match).To(BeTrue())
 	})
 
 	It("podman search format flag", func() {
