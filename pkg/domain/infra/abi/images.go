@@ -402,7 +402,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 	for i := range searchResults {
 		reports[i].Index = searchResults[i].Index
 		reports[i].Name = searchResults[i].Name
-		reports[i].Description = searchResults[i].Index
+		reports[i].Description = searchResults[i].Description
 		reports[i].Stars = searchResults[i].Stars
 		reports[i].Official = searchResults[i].Official
 		reports[i].Automated = searchResults[i].Automated
