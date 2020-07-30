@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
@@ -69,6 +70,14 @@ func printSummary(reports *entities.SystemDfReport, userFormat string) error {
 
 	//	Images
 	if len(userFormat) > 0 {
+		if !strings.HasSuffix(userFormat, `\n`) {
+			userFormat += `\n`
+		}
+		// should be Unquoto from cmd line
+		userFormat, err := strconv.Unquote(`"` + userFormat + `"`)
+		if err != nil {
+			return err
+		}
 		format = userFormat
 	}
 
