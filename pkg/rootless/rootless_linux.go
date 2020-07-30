@@ -224,6 +224,10 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 	uidsMapped := false
 	if uids != nil {
 		err := tryMappingTool("newuidmap", pid, os.Geteuid(), uids)
+		// If some mappings were specified, do not ignore the error
+		if err != nil && len(uids) > 0 {
+			return false, -1, err
+		}
 		uidsMapped = err == nil
 	}
 	if !uidsMapped {
@@ -246,6 +250,10 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 	gidsMapped := false
 	if gids != nil {
 		err := tryMappingTool("newgidmap", pid, os.Getegid(), gids)
+		// If some mappings were specified, do not ignore the error
+		if err != nil && len(gids) > 0 {
+			return false, -1, err
+		}
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {
