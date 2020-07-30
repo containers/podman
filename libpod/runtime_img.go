@@ -48,7 +48,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 			imageCtrs = append(imageCtrs, ctr)
 		}
 	}
-	if len(imageCtrs) > 0 && len(img.Names()) <= 1 {
+	if len(imageCtrs) > 0 && (len(img.Names()) <= 1 || (force && img.InputIsID())) {
 		if force {
 			for _, ctr := range imageCtrs {
 				if err := r.removeContainer(ctx, ctr, true, false, false); err != nil {
