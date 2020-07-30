@@ -24,9 +24,10 @@ function teardown() {
     run_podman run -d -v /myvol2 --name c2 $IMAGE \
                sh -c 'while ! test -e /stop; do sleep 0.1;done'
 
-    run_podman system df --format '{{ .Type }}:{{ .Total }}:{{ .Active }}--'
-    # FIXME: if/when #7149 gets fixed, split this into three tests (i.e. test "${lines[0]}", [1], [2] )
-    is "$output" "Images:1:1--Containers:2:1--Local Volumes:2:1--"
+    run_podman system df --format '{{ .Type }}:{{ .Total }}:{{ .Active }}'
+    is "${lines[0]}" "Images:1:1"        "system df : Images line"
+    is "${lines[1]}" "Containers:2:1"    "system df : Containers line"
+    is "${lines[2]}" "Local Volumes:2:1" "system df : Volumes line"
 
     # Try -v. (Grrr. No way to specify individual formats)
     #
