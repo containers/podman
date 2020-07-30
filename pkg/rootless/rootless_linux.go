@@ -97,7 +97,11 @@ func GetRootlessGID() int {
 	return os.Getegid()
 }
 
-func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) error {
+func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) error {
+	var tool = "newuidmap"
+	if !uid {
+		tool = "newgidmap"
+	}
 	path, err := exec.LookPath(tool)
 	if err != nil {
 		return errors.Wrapf(err, "cannot find %s", tool)
@@ -110,6 +114,15 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 	args := []string{path, fmt.Sprintf("%d", pid)}
 	args = appendTriplet(args, 0, hostID, 1)
 	for _, i := range mappings {
+		if hostID >= i.HostID && hostID < i.HostID+i.Size {
+			what := "UID"
+			where := "/etc/subuid"
+			if !uid {
+				what = "GID"
+				where = "/etc/subgid"
+			}
+			return errors.Errorf("invalid configuration: the specified mapping %d:%d in %q includes the user %s", i.HostID, i.Size, where, what)
+		}
 		args = appendTriplet(args, i.ContainerID+1, i.HostID, i.Size)
 	}
 	cmd := exec.Cmd{
@@ -227,7 +240,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 
 	uidsMapped := false
 	if uids != nil {
-		err := tryMappingTool("newuidmap", pid, os.Geteuid(), uids)
+		err := tryMappingTool(true, pid, os.Geteuid(), uids)
 		// If some mappings were specified, do not ignore the error
 		if err != nil && len(uids) > 0 {
 			return false, -1, err
@@ -253,7 +266,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 
 	gidsMapped := false
 	if gids != nil {
-		err := tryMappingTool("newgidmap", pid, os.Getegid(), gids)
+		err := tryMappingTool(false, pid, os.Getegid(), gids)
 		// If some mappings were specified, do not ignore the error
 		if err != nil && len(gids) > 0 {
 			return false, -1, err
