@@ -175,7 +175,7 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	return uids, gids, nil
 }
 
-func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool, int, error) {
+func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ bool, _ int, retErr error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
@@ -205,7 +205,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 	defer errorhandling.CloseQuiet(r)
 	defer errorhandling.CloseQuiet(w)
 	defer func() {
-		if _, err := w.Write([]byte("0")); err != nil {
+		toWrite := []byte("0")
+		if retErr != nil {
+			toWrite = []byte("1")
+		}
+		if _, err := w.Write(toWrite); err != nil {
 			logrus.Errorf("failed to write byte 0: %q", err)
 		}
 	}()
