@@ -143,7 +143,7 @@ RUN mkdir -p /a/b/c
 RUN ln -s /no/such/nonesuch /a/b/c/badsymlink
 RUN ln -s /bin/mydefaultcmd /a/b/c/goodsymlink
 RUN touch /a/b/c/myfile
-RUN chown -h 1:2 /a/b/c/badsymlink /a/b/c/goodsymlink /a/b/c/myfile
+RUN chown -h 1:2 /a/b/c/badsymlink /a/b/c/goodsymlink && chown -h 4:5 /a/b/c/myfile
 VOLUME /a/b/c
 
 # Test for environment passing and override
@@ -216,18 +216,18 @@ Labels.$label_name | $label_value
     # be they dangling or valid, would barf with
     #    Error: chown <mountpath>/_data/symlink: ENOENT
     run_podman run --rm build_test stat -c'%u:%g:%N' /a/b/c/badsymlink
-    is "$output" "0:0:'/a/b/c/badsymlink' -> '/no/such/nonesuch'" \
+    is "$output" "1:2:'/a/b/c/badsymlink' -> '/no/such/nonesuch'" \
        "bad symlink to nonexistent file is chowned and preserved"
 
     run_podman run --rm build_test stat -c'%u:%g:%N' /a/b/c/goodsymlink
-    is "$output" "0:0:'/a/b/c/goodsymlink' -> '/bin/mydefaultcmd'" \
+    is "$output" "1:2:'/a/b/c/goodsymlink' -> '/bin/mydefaultcmd'" \
        "good symlink to existing file is chowned and preserved"
 
     run_podman run --rm build_test stat -c'%u:%g' /bin/mydefaultcmd
     is "$output" "2:3" "target of symlink is not chowned"
 
     run_podman run --rm build_test stat -c'%u:%g:%N' /a/b/c/myfile
-    is "$output" "0:0:/a/b/c/myfile" "file in volume is chowned to root"
+    is "$output" "4:5:/a/b/c/myfile" "file in volume is chowned"
 
     # Clean up
     run_podman rmi -f build_test

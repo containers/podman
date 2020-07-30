@@ -1534,9 +1534,6 @@ func (c *Container) chownVolume(volumeName string) error {
 		return errors.Wrapf(err, "error retrieving named volume %s for container %s", volumeName, c.ID())
 	}
 
-	uid := int(c.config.Spec.Process.User.UID)
-	gid := int(c.config.Spec.Process.User.GID)
-
 	vol.lock.Lock()
 	defer vol.lock.Unlock()
 
@@ -1547,22 +1544,34 @@ func (c *Container) chownVolume(volumeName string) error {
 
 	if vol.state.NeedsChown {
 		vol.state.NeedsChown = false
+
+		uid := int(c.config.Spec.Process.User.UID)
+		gid := int(c.config.Spec.Process.User.GID)
+
+		if c.config.IDMappings.UIDMap != nil {
+			p := idtools.IDPair{
+				UID: uid,
+				GID: gid,
+			}
+			mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
+			newPair, err := mappings.ToHost(p)
+			if err != nil {
+				return errors.Wrapf(err, "error mapping user %d:%d", uid, gid)
+			}
+			uid = newPair.UID
+			gid = newPair.GID
+		}
+
 		vol.state.UIDChowned = uid
 		vol.state.GIDChowned = gid
 
 		if err := vol.save(); err != nil {
 			return err
 		}
-		err := filepath.Walk(vol.MountPoint(), func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if err := os.Lchown(path, uid, gid); err != nil {
-				return err
-			}
-			return nil
-		})
-		if err != nil {
+
+		mountPoint := vol.MountPoint()
+
+		if err := os.Lchown(mountPoint, uid, gid); err != nil {
 			return err
 		}
 	}
