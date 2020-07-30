@@ -476,5 +476,13 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(ContainSubstring("echo very long cr..."))
 	})
+	It("podman ps --format {{RunningFor}}", func() {
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
+		result := podmanTest.Podman([]string{"ps", "-a", "--format", "{{.RunningFor}}"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring("ago"))
+	})
 })
