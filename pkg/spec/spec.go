@@ -321,13 +321,13 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// config.
 	var defaultEnv map[string]string
 	if runtimeConfig == nil {
-		defaultEnv = env.DefaultEnvVariables
+		defaultEnv = env.DefaultEnvVariables()
 	} else {
 		defaultEnv, err = env.ParseSlice(runtimeConfig.Containers.Env)
 		if err != nil {
 			return nil, errors.Wrap(err, "Env fields in containers.conf failed ot parse")
 		}
-		defaultEnv = env.Join(env.DefaultEnvVariables, defaultEnv)
+		defaultEnv = env.Join(env.DefaultEnvVariables(), defaultEnv)
 	}
 
 	if err := addRlimits(config, &g); err != nil {

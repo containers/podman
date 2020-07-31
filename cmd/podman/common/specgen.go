@@ -308,9 +308,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	//
 	// Precedence order (higher index wins):
 	//  1) env-host, 2) image data, 3) env-file, 4) env
-	env := map[string]string{
-		"container": "podman",
-	}
+	env := make(map[string]string)
+	env["container"] = "podman"
 
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
