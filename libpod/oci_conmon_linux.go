@@ -954,9 +954,12 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return err
 	}
 
+	var filesToClose []*os.File
 	if ctr.config.PreserveFDs > 0 {
 		for fd := 3; fd < int(3+ctr.config.PreserveFDs); fd++ {
-			cmd.ExtraFiles = append(cmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
+			f := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd))
+			filesToClose = append(filesToClose, f)
+			cmd.ExtraFiles = append(cmd.ExtraFiles, f)
 		}
 	}
 
@@ -1052,14 +1055,10 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
-	if ctr.config.PreserveFDs > 0 {
-		for fd := 3; fd < int(3+ctr.config.PreserveFDs); fd++ {
-			// These fds were passed down to the runtime.  Close them
-			// and not interfere
-			if err := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close(); err != nil {
-				logrus.Debugf("unable to close file fd-%d", fd)
-			}
-		}
+	// These fds were passed down to the runtime.  Close them
+	// and not interfere
+	for _, f := range filesToClose {
+		errorhandling.CloseQuiet(f)
 	}
 
 	return nil
