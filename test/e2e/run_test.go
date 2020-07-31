@@ -812,7 +812,11 @@ USER mail`
 	})
 
 	It("podman run --pod automatically", func() {
-		session := podmanTest.Podman([]string{"run", "--pod", "new:foobar", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "-d", "--pod", "new:foobar", ALPINE, "nc", "-l", "-p", "8080"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--pod", "foobar", ALPINE, "/bin/sh", "-c", "echo test | nc -w 1 127.0.0.1 8080"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

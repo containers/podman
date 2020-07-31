@@ -462,6 +462,10 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 func GetNamespaceOptions(ns []string) ([]libpod.PodCreateOption, error) {
 	var options []libpod.PodCreateOption
 	var erroredOptions []libpod.PodCreateOption
+	if ns == nil {
+		//set the default namespaces
+		ns = strings.Split(specgen.DefaultKernelNamespaces, ",")
+	}
 	for _, toShare := range ns {
 		switch toShare {
 		case "cgroup":
