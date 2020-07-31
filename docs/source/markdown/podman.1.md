@@ -214,7 +214,6 @@ the exit codes follow the `chroot` standard, see below:
 ## FILES
 
 **containers.conf** (`/usr/share/containers/containers.conf`)
-
     Podman has builtin defaults for command line options. These defaults can be overridden using the containers.conf configuration files.
 
 Distributions ship the `/usr/share/containers/containers.conf` file with their default settings. Administrators can override fields in this file by creating the `/etc/containers/containers.conf` file.  Users can further modify defaults by creating the `$HOME/.config/containers/containers.conf` file. Podman merges its builtin defaults with the specified fields from these files, if they exist. Fields specified in the users file override the administrator's file, which overrides the distribution's file, which override the built-in defaults.
