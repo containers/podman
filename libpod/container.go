@@ -261,6 +261,10 @@ type ContainerConfig struct {
 	Mounts []string `json:"mounts,omitempty"`
 	// NamedVolumes lists the named volumes to mount into the container.
 	NamedVolumes []*ContainerNamedVolume `json:"namedVolumes,omitempty"`
+	// CreateWorkingDir indicates that Libpod should create the container's
+	// working directory if it does not exist. Some OCI runtimes do this by
+	// default, but others do not.
+	CreateWorkingDir bool `json:"createWorkingDir,omitempty"`
 
 	// Security Config
 
