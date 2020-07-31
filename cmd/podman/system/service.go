@@ -49,7 +49,7 @@ func init() {
 
 	flags := srvCmd.Flags()
 	flags.Int64VarP(&srvArgs.Timeout, "time", "t", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
-	flags.BoolVar(&srvArgs.Varlink, "varlink", false, "Use legacy varlink service instead of REST")
+	flags.BoolVar(&srvArgs.Varlink, "varlink", false, "Use legacy varlink service instead of REST. Unit of --time changes from seconds to milliseconds.")
 
 	_ = flags.MarkDeprecated("varlink", "valink API is deprecated.")
 	flags.SetNormalizeFunc(aliasTimeoutFlag)
@@ -88,14 +88,15 @@ func service(cmd *cobra.Command, args []string) error {
 
 	opts := entities.ServiceOptions{
 		URI:     apiURI,
-		Timeout: time.Duration(srvArgs.Timeout) * time.Second,
 		Command: cmd,
 	}
 
 	if srvArgs.Varlink {
+		opts.Timeout = time.Duration(srvArgs.Timeout) * time.Millisecond
 		return registry.ContainerEngine().VarlinkService(registry.GetContext(), opts)
 	}
 
+	opts.Timeout = time.Duration(srvArgs.Timeout) * time.Second
 	return restService(opts, cmd.Flags(), registry.PodmanConfig())
 }
 
