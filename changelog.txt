@@ -1,3 +1,26 @@
+- Changelog for v2.0.4 (2020-07-31):
+  * Update release notes for v2.0.4
+  * Disable a nonfunctional build test
+  * volumes: do not recurse when chowning
+  * add {{.RunningFor}} placeholder in ps --format
+  * fix swapped mem_usage/percent fields
+  * Ensure that 'rmi --force' evicts Podman containers
+  * Don't crash when giving bogus format commands
+  * Binding the same container port to >1 host port is OK
+  * Specifying --ipc=host --pid=host is broken
+  * add newline to output in error message
+  * When chowning we should not follow symbolic link
+  * replace the html/template package with text/template
+  * The `podman start --attach` command should not print ID
+  * Fix exit code example in podman-run.1.md
+  * Switch references from libpod.conf to containers.conf
+  * Bump github.com/rootless-containers/rootlesskit from 0.9.5 to 0.10.0
+  * compat/info.go: TrimPrefix(CGroupsVersion, "v")
+  * Fix building from http or '-' options
+  * Fix `podman image search` missing description
+  * test/apiv2: add a simple events test
+  * API events: fix parsing error
+
 - Changelog for v2.0.3 (2020-07-23):
   * Drop a nonfunctional test in test/apiv2
   * Update release notes for v2.0.3
