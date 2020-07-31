@@ -2,23 +2,20 @@ package define
 
 import (
 	"errors"
-
-	"github.com/containers/podman/v2/libpod/image"
-	"github.com/containers/podman/v2/utils"
 )
 
 var (
 	// ErrNoSuchCtr indicates the requested container does not exist
-	ErrNoSuchCtr = image.ErrNoSuchCtr
+	ErrNoSuchCtr = errors.New("no such container")
 
 	// ErrNoSuchPod indicates the requested pod does not exist
-	ErrNoSuchPod = image.ErrNoSuchPod
+	ErrNoSuchPod = errors.New("no such pod")
 
 	// ErrNoSuchImage indicates the requested image does not exist
-	ErrNoSuchImage = image.ErrNoSuchImage
+	ErrNoSuchImage = errors.New("no such image")
 
 	// ErrNoSuchTag indicates the requested image tag does not exist
-	ErrNoSuchTag = image.ErrNoSuchTag
+	ErrNoSuchTag = errors.New("no such tag")
 
 	// ErrNoSuchVolume indicates the requested volume does not exist
 	ErrNoSuchVolume = errors.New("no such volume")
@@ -76,7 +73,7 @@ var (
 
 	// ErrDetach indicates that an attach session was manually detached by
 	// the user.
-	ErrDetach = utils.ErrDetach
+	ErrDetach = errors.New("detached from container")
 
 	// ErrWillDeadlock indicates that the requested operation will cause a
 	// deadlock. This is usually caused by upgrade issues, and is resolved
