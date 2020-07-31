@@ -3,10 +3,10 @@ package network
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"os"
 	"strings"
+	"text/template"
 
 	"github.com/containers/libpod/v2/cmd/podman/registry"
 	"github.com/containers/libpod/v2/pkg/domain/entities"

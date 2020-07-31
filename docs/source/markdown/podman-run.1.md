@@ -1066,7 +1066,7 @@ the exit codes follow the **chroot**(1) standard, see below:
 
   **Exit code** _contained command_ exit code
 
-    $ podman run busybox /bin/sh -c 'exit 3'
+    $ podman run busybox /bin/sh -c 'exit 3'; echo $?
     3
 
 ## EXAMPLES
