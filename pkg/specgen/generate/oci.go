@@ -260,7 +260,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	for key, val := range s.Annotations {
 		g.AddAnnotation(key, val)
 	}
-	g.AddProcessEnv("container", "podman")
 
 	g.Config.Linux.Resources = s.ResourceLimits
 

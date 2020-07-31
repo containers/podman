@@ -12,13 +12,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DefaultEnvVariables sets $PATH and $TERM.
-var DefaultEnvVariables = map[string]string{
-	"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-	"TERM": "xterm",
-}
-
 const whiteSpaces = " \t"
+
+// DefaultEnvVariables returns a default environment, with $PATH and $TERM set.
+func DefaultEnvVariables() map[string]string {
+	return map[string]string{
+		"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+		"TERM": "xterm",
+	}
+}
 
 // Slice transforms the specified map of environment variables into a
 // slice. If a value is non-empty, the key and value are joined with '='.

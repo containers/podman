@@ -86,6 +86,15 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 
 	s.Env = envLib.Join(envLib.Join(defaultEnvs, envs), s.Env)
 
+	// Ensure that default environment variables are populated.
+	// Container must have PATH and TERM set, even if nothing else set them.
+	baseEnv := envLib.DefaultEnvVariables()
+	for k, v := range baseEnv {
+		if _, ok := s.Env[k]; !ok {
+			s.Env[k] = v
+		}
+	}
+
 	// Labels and Annotations
 	annotations := make(map[string]string)
 	if newImage != nil {
