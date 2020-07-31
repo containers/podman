@@ -128,6 +128,34 @@ func Load(ctx context.Context, r io.Reader, name *string) (*entities.ImageLoadRe
 	return &report, response.Process(&report)
 }
 
+func MultiExport(ctx context.Context, namesOrIds []string, w io.Writer, format *string, compress *bool) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	params := url.Values{}
+	if format != nil {
+		params.Set("format", *format)
+	}
+	if compress != nil {
+		params.Set("compress", strconv.FormatBool(*compress))
+	}
+	for _, ref := range namesOrIds {
+		params.Add("references", ref)
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/images/export", params, nil)
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode/100 == 2 || response.StatusCode/100 == 3 {
+		_, err = io.Copy(w, response.Body)
+		return err
+	}
+	return response.Process(nil)
+
+}
+
 // Export saves an image from local storage as a tarball or image archive.  The optional format
 // parameter is used to change the format of the output.
 func Export(ctx context.Context, nameOrID string, w io.Writer, format *string, compress *bool) error {

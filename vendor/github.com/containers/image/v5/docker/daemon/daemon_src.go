@@ -3,7 +3,7 @@ package daemon
 import (
 	"context"
 
-	"github.com/containers/image/v5/docker/tarfile"
+	"github.com/containers/image/v5/docker/internal/tarfile"
 	"github.com/containers/image/v5/types"
 	"github.com/pkg/errors"
 )
@@ -35,10 +35,11 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref daemonRef
 	}
 	defer inputStream.Close()
 
-	src, err := tarfile.NewSourceFromStreamWithSystemContext(sys, inputStream)
+	archive, err := tarfile.NewReaderFromStream(sys, inputStream)
 	if err != nil {
 		return nil, err
 	}
+	src := tarfile.NewSource(archive, true, nil, -1)
 	return &daemonImageSource{
 		ref:    ref,
 		Source: src,

@@ -86,7 +86,7 @@ func newBar(container *Progress, bs *bState) *Bar {
 		noPop:        bs.noPop,
 		operateState: make(chan func(*bState)),
 		frameCh:      make(chan io.Reader, 1),
-		syncTableCh:  make(chan [][]chan int),
+		syncTableCh:  make(chan [][]chan int, 1),
 		completed:    make(chan bool, 1),
 		done:         make(chan struct{}),
 		cancel:       cancel,
@@ -132,14 +132,18 @@ func (b *Bar) Current() int64 {
 // Given default bar style is "[=>-]<+", refill rune is '+'.
 // To set bar style use mpb.BarStyle(string) BarOption.
 func (b *Bar) SetRefill(amount int64) {
-	b.operateState <- func(s *bState) {
+	select {
+	case b.operateState <- func(s *bState) {
 		s.refill = amount
+	}:
+	case <-b.done:
 	}
 }
 
 // TraverseDecorators traverses all available decorators and calls cb func on each.
 func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
-	b.operateState <- func(s *bState) {
+	select {
+	case b.operateState <- func(s *bState) {
 		for _, decorators := range [...][]decor.Decorator{
 			s.pDecorators,
 			s.aDecorators,
@@ -148,6 +152,8 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 				cb(extractBaseDecorator(d))
 			}
 		}
+	}:
+	case <-b.done:
 	}
 }
 
@@ -174,6 +180,7 @@ func (b *Bar) SetTotal(total int64, complete bool) {
 }
 
 // SetCurrent sets progress' current to an arbitrary value.
+// Setting a negative value will cause a panic.
 func (b *Bar) SetCurrent(current int64) {
 	select {
 	case b.operateState <- func(s *bState) {
@@ -305,11 +312,13 @@ func (b *Bar) render(tw int) {
 		defer func() {
 			// recovering if user defined decorator panics for example
 			if p := recover(); p != nil {
-				s.extender = makePanicExtender(p)
+				if b.recoveredPanic == nil {
+					s.extender = makePanicExtender(p)
+					b.toShutdown = !b.toShutdown
+					b.recoveredPanic = p
+				}
 				frame, lines := s.extender(nil, s.reqWidth, stat)
 				b.extendedLines = lines
-				b.toShutdown = !b.toShutdown
-				b.recoveredPanic = p
 				b.frameCh <- frame
 				b.dlogger.Println(p)
 			}
@@ -348,12 +357,15 @@ func (b *Bar) subscribeDecorators() {
 			shutdownListeners = append(shutdownListeners, d)
 		}
 	})
-	b.operateState <- func(s *bState) {
+	select {
+	case b.operateState <- func(s *bState) {
 		s.averageDecorators = averageDecorators
 		s.ewmaDecorators = ewmaDecorators
 		s.shutdownListeners = shutdownListeners
+	}:
+		b.hasEwmaDecorators = len(ewmaDecorators) != 0
+	case <-b.done:
 	}
-	b.hasEwmaDecorators = len(ewmaDecorators) != 0
 }
 
 func (b *Bar) refreshTillShutdown() {

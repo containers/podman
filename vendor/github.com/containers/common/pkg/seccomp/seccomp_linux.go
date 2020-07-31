@@ -122,7 +122,7 @@ Loop:
 		}
 		if len(call.Excludes.Caps) > 0 {
 			for _, c := range call.Excludes.Caps {
-				if inSlice(rs.Process.Capabilities.Bounding, c) {
+				if rs != nil && rs.Process != nil && rs.Process.Capabilities != nil && inSlice(rs.Process.Capabilities.Bounding, c) {
 					continue Loop
 				}
 			}
@@ -134,7 +134,7 @@ Loop:
 		}
 		if len(call.Includes.Caps) > 0 {
 			for _, c := range call.Includes.Caps {
-				if !inSlice(rs.Process.Capabilities.Bounding, c) {
+				if rs != nil && rs.Process != nil && rs.Process.Capabilities != nil && !inSlice(rs.Process.Capabilities.Bounding, c) {
 					continue Loop
 				}
 			}

@@ -282,9 +282,16 @@ func (r *Runtime) LoadImage(ctx context.Context, name, inputFile string, writer 
 		src       types.ImageReference
 	)
 
+	if name == "" {
+		newImages, err = r.ImageRuntime().LoadAllImagesFromDockerArchive(ctx, inputFile, signaturePolicy, writer)
+		if err == nil {
+			return getImageNames(newImages), nil
+		}
+	}
+
 	for _, referenceFn := range []func() (types.ImageReference, error){
 		func() (types.ImageReference, error) {
-			return dockerarchive.ParseReference(inputFile) // FIXME? We should add dockerarchive.NewReference()
+			return dockerarchive.ParseReference(inputFile)
 		},
 		func() (types.ImageReference, error) {
 			return ociarchive.NewReference(inputFile, name) // name may be ""

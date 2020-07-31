@@ -14,7 +14,6 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
-	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/signature"
@@ -228,15 +227,6 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid image reference %q", rawImage)
 		}
-	}
-
-	// Special-case for docker-archive which allows multiple tags.
-	if imageRef.Transport().Name() == dockerarchive.Transport.Name() {
-		newImage, err := ir.Libpod.ImageRuntime().LoadFromArchiveReference(ctx, imageRef, options.SignaturePolicy, writer)
-		if err != nil {
-			return nil, err
-		}
-		return &entities.ImagePullReport{Images: []string{newImage[0].ID()}}, nil
 	}
 
 	var registryCreds *types.DockerAuthConfig
@@ -481,6 +471,10 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 }
 
 func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, options entities.ImageSaveOptions) error {
+	if options.MultiImageArchive {
+		nameOrIDs := append([]string{nameOrID}, tags...)
+		return ir.Libpod.ImageRuntime().SaveImages(ctx, nameOrIDs, options.Format, options.Output, options.Quiet)
+	}
 	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil {
 		return err

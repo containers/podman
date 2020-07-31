@@ -11,7 +11,7 @@ require (
 	github.com/containernetworking/cni v0.8.0
 	github.com/containernetworking/plugins v0.8.7
 	github.com/containers/buildah v1.15.1-0.20200813183340-0a8dc1f8064c
-	github.com/containers/common v0.20.3-0.20200827091701-a550d6a98aa3
+	github.com/containers/common v0.21.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.5.2
 	github.com/containers/psgo v1.5.1
@@ -60,8 +60,10 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
+	golang.org/x/sys v0.0.0-20200810151505-1b9f1253b3ed
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace github.com/containers/image/v5 => github.com/containers/image/v5 v5.5.2-0.20200902171422-1c313b2d23e0

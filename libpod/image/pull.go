@@ -11,8 +11,8 @@ import (
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/docker/archive"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
-	"github.com/containers/image/v5/docker/tarfile"
 	ociarchive "github.com/containers/image/v5/oci/archive"
 	oci "github.com/containers/image/v5/oci/layout"
 	is "github.com/containers/image/v5/storage"
@@ -61,12 +61,26 @@ type pullRefPair struct {
 	dstRef types.ImageReference
 }
 
+// cleanUpFunc is a function prototype for clean-up functions.
+type cleanUpFunc func() error
+
 // pullGoal represents the prepared image references and decided behavior to be executed by imagePull
 type pullGoal struct {
 	refPairs             []pullRefPair
-	pullAllPairs         bool     // Pull all refPairs instead of stopping on first success.
-	usedSearchRegistries bool     // refPairs construction has depended on registries.GetRegistries()
-	searchedRegistries   []string // The list of search registries used; set only if usedSearchRegistries
+	pullAllPairs         bool          // Pull all refPairs instead of stopping on first success.
+	usedSearchRegistries bool          // refPairs construction has depended on registries.GetRegistries()
+	searchedRegistries   []string      // The list of search registries used; set only if usedSearchRegistries
+	cleanUpFuncs         []cleanUpFunc // Mainly used to close long-lived objects (e.g., an archive.Reader)
+}
+
+// cleanUp invokes all cleanUpFuncs.  Certain resources may not be available
+// anymore.  Errors are logged.
+func (p *pullGoal) cleanUp() {
+	for _, f := range p.cleanUpFuncs {
+		if err := f(); err != nil {
+			logrus.Error(err.Error())
+		}
+	}
 }
 
 // singlePullRefPairGoal returns a no-frills pull goal for the specified reference pair.
@@ -114,7 +128,49 @@ func (ir *Runtime) getSinglePullRefPairGoal(srcRef types.ImageReference, destNam
 	return singlePullRefPairGoal(rp), nil
 }
 
+// getPullRefPairsFromDockerArchiveReference returns a slice of pullRefPairs
+// for the specified docker reference and the corresponding archive.Reader.
+func (ir *Runtime) getPullRefPairsFromDockerArchiveReference(ctx context.Context, reader *archive.Reader, ref types.ImageReference, sc *types.SystemContext) ([]pullRefPair, error) {
+	destNames, err := reader.ManifestTagsForReference(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(destNames) == 0 {
+		destName, err := getImageDigest(ctx, ref, sc)
+		if err != nil {
+			return nil, err
+		}
+		destNames = append(destNames, destName)
+	} else {
+		for i := range destNames {
+			ref, err := NormalizedTag(destNames[i])
+			if err != nil {
+				return nil, err
+			}
+			destNames[i] = ref.String()
+		}
+	}
+
+	refPairs := []pullRefPair{}
+	for _, destName := range destNames {
+		destRef, err := is.Transport.ParseStoreReference(ir.store, destName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", destName)
+		}
+		pair := pullRefPair{
+			image:  destName,
+			srcRef: ref,
+			dstRef: destRef,
+		}
+		refPairs = append(refPairs, pair)
+	}
+
+	return refPairs, nil
+}
+
 // pullGoalFromImageReference returns a pull goal for a single ImageReference, depending on the used transport.
+// Note that callers are responsible for invoking (*pullGoal).cleanUp() to clean up possibly open resources.
 func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (*pullGoal, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "pullGoalFromImageReference")
 	defer span.Finish()
@@ -122,57 +178,26 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 	// supports pulling from docker-archive, oci, and registries
 	switch srcRef.Transport().Name() {
 	case DockerArchive:
-		archivePath := srcRef.StringWithinTransport()
-		tarSource, err := tarfile.NewSourceFromFile(archivePath)
+		reader, readerRef, err := archive.NewReaderForReference(sc, srcRef)
 		if err != nil {
 			return nil, err
 		}
-		defer tarSource.Close()
-		manifest, err := tarSource.LoadTarManifest()
 
+		pairs, err := ir.getPullRefPairsFromDockerArchiveReference(ctx, reader, readerRef, sc)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving manifest.json")
-		}
-		// to pull the first image stored in the tar file
-		if len(manifest) == 0 {
-			// use the hex of the digest if no manifest is found
-			reference, err := getImageDigest(ctx, srcRef, sc)
-			if err != nil {
-				return nil, err
+			// No need to defer for a single error path.
+			if err := reader.Close(); err != nil {
+				logrus.Error(err.Error())
 			}
-			return ir.getSinglePullRefPairGoal(srcRef, reference)
+			return nil, err
 		}
 
-		if len(manifest[0].RepoTags) == 0 {
-			// If the input image has no repotags, we need to feed it a dest anyways
-			digest, err := getImageDigest(ctx, srcRef, sc)
-			if err != nil {
-				return nil, err
-			}
-			return ir.getSinglePullRefPairGoal(srcRef, digest)
-		}
-
-		// Need to load in all the repo tags from the manifest
-		res := []pullRefPair{}
-		for _, dst := range manifest[0].RepoTags {
-			//check if image exists and gives a warning of untagging
-			localImage, err := ir.NewFromLocal(dst)
-			imageID := strings.TrimSuffix(manifest[0].Config, ".json")
-			if err == nil && imageID != localImage.ID() {
-				logrus.Errorf("the image %s already exists, renaming the old one with ID %s to empty string", dst, localImage.ID())
-			}
-
-			pullInfo, err := ir.getPullRefPair(srcRef, dst)
-			if err != nil {
-				return nil, err
-			}
-			res = append(res, pullInfo)
-		}
 		return &pullGoal{
-			refPairs:             res,
 			pullAllPairs:         true,
 			usedSearchRegistries: false,
+			refPairs:             pairs,
 			searchedRegistries:   nil,
+			cleanUpFuncs:         []cleanUpFunc{reader.Close},
 		}, nil
 
 	case OCIArchive:
@@ -249,6 +274,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 			return nil, errors.Wrapf(err, "error determining pull goal for image %q", inputName)
 		}
 	}
+	defer goal.cleanUp()
 	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, retryOptions, label)
 }
 
@@ -267,6 +293,7 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 	if err != nil {
 		return nil, errors.Wrapf(err, "error determining pull goal for image %q", transports.ImageName(srcRef))
 	}
+	defer goal.cleanUp()
 	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, retryOptions, nil)
 }
 

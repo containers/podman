@@ -90,6 +90,11 @@
 
 ## Log
 
+## 2020-08-19
+
+Release v0.5.8 fixes issue
+[issue #35](https://github.com/ulikunitz/xz/issues/35).
+
 ### 2020-02-24
 
 Release v0.5.7 supports the check-ID None and fixes

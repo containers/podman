@@ -22,7 +22,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/docker/distribution/registry/api/errcode"
 	v2 "github.com/docker/distribution/registry/api/v2"
-	"github.com/docker/distribution/registry/client"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -154,7 +153,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusAccepted {
 		logrus.Debugf("Error initiating layer upload, response %#v", *res)
-		return types.BlobInfo{}, errors.Wrapf(client.HandleErrorResponse(res), "Error initiating layer upload to %s in %s", uploadPath, d.c.registry)
+		return types.BlobInfo{}, errors.Wrapf(registryHTTPResponseToError(res), "Error initiating layer upload to %s in %s", uploadPath, d.c.registry)
 	}
 	uploadLocation, err := res.Location()
 	if err != nil {
@@ -175,7 +174,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 		}
 		defer res.Body.Close()
 		if !successStatus(res.StatusCode) {
-			return nil, errors.Wrapf(client.HandleErrorResponse(res), "Error uploading layer chunked")
+			return nil, errors.Wrapf(registryHTTPResponseToError(res), "Error uploading layer chunked")
 		}
 		uploadLocation, err := res.Location()
 		if err != nil {
@@ -201,7 +200,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		logrus.Debugf("Error uploading layer, response %#v", *res)
-		return types.BlobInfo{}, errors.Wrapf(client.HandleErrorResponse(res), "Error uploading layer to %s", uploadLocation)
+		return types.BlobInfo{}, errors.Wrapf(registryHTTPResponseToError(res), "Error uploading layer to %s", uploadLocation)
 	}
 
 	logrus.Debugf("Upload of layer %s complete", computedDigest)
@@ -226,7 +225,7 @@ func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.
 		return true, getBlobSize(res), nil
 	case http.StatusUnauthorized:
 		logrus.Debugf("... not authorized")
-		return false, -1, errors.Wrapf(client.HandleErrorResponse(res), "Error checking whether a blob %s exists in %s", digest, repo.Name())
+		return false, -1, errors.Wrapf(registryHTTPResponseToError(res), "Error checking whether a blob %s exists in %s", digest, repo.Name())
 	case http.StatusNotFound:
 		logrus.Debugf("... not present")
 		return false, -1, nil
@@ -277,7 +276,7 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 		return fmt.Errorf("Mounting %s from %s to %s started an upload instead", srcDigest, srcRepo.Name(), d.ref.ref.Name())
 	default:
 		logrus.Debugf("Error mounting, response %#v", *res)
-		return errors.Wrapf(client.HandleErrorResponse(res), "Error mounting %s from %s to %s", srcDigest, srcRepo.Name(), d.ref.ref.Name())
+		return errors.Wrapf(registryHTTPResponseToError(res), "Error mounting %s from %s to %s", srcDigest, srcRepo.Name(), d.ref.ref.Name())
 	}
 }
 
@@ -414,7 +413,7 @@ func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte, inst
 	}
 	defer res.Body.Close()
 	if !successStatus(res.StatusCode) {
-		err = errors.Wrapf(client.HandleErrorResponse(res), "Error uploading manifest %s to %s", refTail, d.ref.ref.Name())
+		err = errors.Wrapf(registryHTTPResponseToError(res), "Error uploading manifest %s to %s", refTail, d.ref.ref.Name())
 		if isManifestInvalidError(errors.Cause(err)) {
 			err = types.ManifestTypeRejectedError{Err: err}
 		}
@@ -641,7 +640,7 @@ sigExists:
 				logrus.Debugf("Error body %s", string(body))
 			}
 			logrus.Debugf("Error uploading signature, status %d, %#v", res.StatusCode, res)
-			return errors.Wrapf(client.HandleErrorResponse(res), "Error uploading signature to %s in %s", path, d.c.registry)
+			return errors.Wrapf(registryHTTPResponseToError(res), "Error uploading signature to %s in %s", path, d.c.registry)
 		}
 	}
 

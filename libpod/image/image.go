@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/retry"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/directory"
+	"github.com/containers/image/v5/docker/archive"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
@@ -173,13 +174,182 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	return newImage, nil
 }
 
+// SaveImages stores one more images in a multi-image archive.
+// Note that only `docker-archive` supports storing multiple
+// image.
+func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format string, outputFile string, quiet bool) (finalErr error) {
+	if format != DockerArchive {
+		return errors.Errorf("multi-image archives are only supported in in the %q format", DockerArchive)
+	}
+
+	sys := GetSystemContext("", "", false)
+
+	archWriter, err := archive.NewWriter(sys, outputFile)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err := archWriter.Close()
+		if err == nil {
+			return
+		}
+		if finalErr == nil {
+			finalErr = err
+			return
+		}
+		finalErr = errors.Wrap(finalErr, err.Error())
+	}()
+
+	// Decide whether c/image's progress bars should use stderr or stdout.
+	// Use stderr in case we need to be quiet or if the output is set to
+	// stdout.  If the output is set of stdout, any log message there would
+	// corrupt the tarfile.
+	writer := os.Stdout
+	if quiet {
+		writer = os.Stderr
+	}
+
+	// extend an image with additional tags
+	type imageData struct {
+		*Image
+		tags []reference.NamedTagged
+	}
+
+	// Look up the images (and their tags) in the local storage.
+	imageMap := make(map[string]*imageData) // to group tags for an image
+	imageQueue := []string{}                // to preserve relative image order
+	for _, nameOrID := range namesOrIDs {
+		// Look up the name or ID in the local image storage.
+		localImage, err := ir.NewFromLocal(nameOrID)
+		if err != nil {
+			return err
+		}
+		id := localImage.ID()
+
+		iData, exists := imageMap[id]
+		if !exists {
+			imageQueue = append(imageQueue, id)
+			iData = &imageData{Image: localImage}
+			imageMap[id] = iData
+		}
+
+		// Unless we referred to an ID, add the input as a tag.
+		if !strings.HasPrefix(id, nameOrID) {
+			tag, err := NormalizedTag(nameOrID)
+			if err != nil {
+				return err
+			}
+			refTagged, isTagged := tag.(reference.NamedTagged)
+			if isTagged {
+				iData.tags = append(iData.tags, refTagged)
+			}
+		}
+	}
+
+	policyContext, err := getPolicyContext(sys)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := policyContext.Destroy(); err != nil {
+			logrus.Errorf("failed to destroy policy context: %q", err)
+		}
+	}()
+
+	// Now copy the images one-by-one.
+	for _, id := range imageQueue {
+		dest, err := archWriter.NewReference(nil)
+		if err != nil {
+			return err
+		}
+
+		img := imageMap[id]
+		copyOptions := getCopyOptions(sys, writer, nil, nil, SigningOptions{}, "", img.tags)
+		copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath()
+
+		// For copying, we need a source reference that we can create
+		// from the image.
+		src, err := is.Transport.NewStoreReference(img.imageruntime.store, nil, id)
+		if err != nil {
+			return errors.Wrapf(err, "error getting source imageReference for %q", img.InputName)
+		}
+		_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// LoadAllImagesFromDockerArchive loads all images from the docker archive that
+// fileName points to.
+func (ir *Runtime) LoadAllImagesFromDockerArchive(ctx context.Context, fileName string, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
+	if signaturePolicyPath == "" {
+		signaturePolicyPath = ir.SignaturePolicyPath
+	}
+
+	sc := GetSystemContext(signaturePolicyPath, "", false)
+	reader, err := archive.NewReader(sc, fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err := reader.Close(); err != nil {
+			logrus.Errorf(err.Error())
+		}
+	}()
+
+	refLists, err := reader.List()
+	if err != nil {
+		return nil, err
+	}
+
+	refPairs := []pullRefPair{}
+	for _, refList := range refLists {
+		for _, ref := range refList {
+			pairs, err := ir.getPullRefPairsFromDockerArchiveReference(ctx, reader, ref, sc)
+			if err != nil {
+				return nil, err
+			}
+			refPairs = append(refPairs, pairs...)
+		}
+	}
+
+	goal := pullGoal{
+		pullAllPairs:         true,
+		usedSearchRegistries: false,
+		refPairs:             refPairs,
+		searchedRegistries:   nil,
+	}
+
+	defer goal.cleanUp()
+	imageNames, err := ir.doPullImage(ctx, sc, goal, writer, SigningOptions{}, &DockerRegistryOptions{}, &retry.RetryOptions{}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	newImages := make([]*Image, 0, len(imageNames))
+	for _, name := range imageNames {
+		newImage, err := ir.NewFromLocal(name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
+		}
+		newImages = append(newImages, newImage)
+	}
+	ir.newImageEvent(events.LoadFromArchive, "")
+	return newImages, nil
+}
+
 // LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)
 // This function is needed because it is possible for a tar archive to have multiple tags for one image
 func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, &retry.RetryOptions{MaxRetry: maxRetry})
+
+	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, &retry.RetryOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}

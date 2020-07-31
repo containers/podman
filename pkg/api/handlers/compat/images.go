@@ -365,7 +365,6 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, err := runtime.LoadImage(r.Context(), "", f.Name(), writer, "")
-	//id, err := runtime.Import(r.Context())
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
 		return

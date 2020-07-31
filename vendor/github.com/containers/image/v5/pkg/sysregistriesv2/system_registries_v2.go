@@ -338,55 +338,86 @@ func (config *V2RegistriesConf) postProcess() error {
 }
 
 // ConfigPath returns the path to the system-wide registry configuration file.
+// Deprecated: This API implies configuration is read from files, and that there is only one.
+// Please use ConfigurationSourceDescription to obtain a string usable for error messages.
 func ConfigPath(ctx *types.SystemContext) string {
-	if ctx != nil && ctx.SystemRegistriesConfPath != "" {
-		return ctx.SystemRegistriesConfPath
-	}
-
-	userRegistriesFilePath := filepath.Join(homedir.Get(), userRegistriesFile)
-	if _, err := os.Stat(userRegistriesFilePath); err == nil {
-		return userRegistriesFilePath
-	}
-
-	if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
-		return filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfPath)
-	}
-
-	return systemRegistriesConfPath
+	return newConfigWrapper(ctx).configPath
 }
 
-// ConfigDirPath returns the path to the system-wide directory for drop-in
+// ConfigDirPath returns the path to the directory for drop-in
 // registry configuration files.
+// Deprecated: This API implies configuration is read from directories, and that there is only one.
+// Please use ConfigurationSourceDescription to obtain a string usable for error messages.
 func ConfigDirPath(ctx *types.SystemContext) string {
-	if ctx != nil && ctx.SystemRegistriesConfDirPath != "" {
-		return ctx.SystemRegistriesConfDirPath
+	configWrapper := newConfigWrapper(ctx)
+	if configWrapper.userConfigDirPath != "" {
+		return configWrapper.userConfigDirPath
 	}
-
-	userRegistriesDirPath := filepath.Join(homedir.Get(), userRegistriesDir)
-	if _, err := os.Stat(userRegistriesDirPath); err == nil {
-		return userRegistriesDirPath
-	}
-
-	if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
-		return filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfDirPath)
-	}
-
-	return systemRegistriesConfDirPath
+	return configWrapper.configDirPath
 }
 
 // configWrapper is used to store the paths from ConfigPath and ConfigDirPath
 // and acts as a key to the internal cache.
 type configWrapper struct {
-	configPath    string
+	// path to the registries.conf file
+	configPath string
+	// path to system-wide registries.conf.d directory, or "" if not used
 	configDirPath string
+	// path to user specificed registries.conf.d directory, or "" if not used
+	userConfigDirPath string
 }
 
 // newConfigWrapper returns a configWrapper for the specified SystemContext.
 func newConfigWrapper(ctx *types.SystemContext) configWrapper {
-	return configWrapper{
-		configPath:    ConfigPath(ctx),
-		configDirPath: ConfigDirPath(ctx),
+	var wrapper configWrapper
+	userRegistriesFilePath := filepath.Join(homedir.Get(), userRegistriesFile)
+	userRegistriesDirPath := filepath.Join(homedir.Get(), userRegistriesDir)
+
+	// decide configPath using per-user path or system file
+	if ctx != nil && ctx.SystemRegistriesConfPath != "" {
+		wrapper.configPath = ctx.SystemRegistriesConfPath
+	} else if _, err := os.Stat(userRegistriesFilePath); err == nil {
+		// per-user registries.conf exists, not reading system dir
+		// return config dirs from ctx or per-user one
+		wrapper.configPath = userRegistriesFilePath
+		if ctx != nil && ctx.SystemRegistriesConfDirPath != "" {
+			wrapper.configDirPath = ctx.SystemRegistriesConfDirPath
+		} else {
+			wrapper.userConfigDirPath = userRegistriesDirPath
+		}
+		return wrapper
+	} else if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
+		wrapper.configPath = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfPath)
+	} else {
+		wrapper.configPath = systemRegistriesConfPath
 	}
+
+	// potentially use both system and per-user dirs if not using per-user config file
+	if ctx != nil && ctx.SystemRegistriesConfDirPath != "" {
+		// dir explicitly chosen: use only that one
+		wrapper.configDirPath = ctx.SystemRegistriesConfDirPath
+	} else if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
+		wrapper.configDirPath = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfDirPath)
+		wrapper.userConfigDirPath = userRegistriesDirPath
+	} else {
+		wrapper.configDirPath = systemRegistriesConfDirPath
+		wrapper.userConfigDirPath = userRegistriesDirPath
+	}
+
+	return wrapper
+}
+
+// ConfigurationSourceDescription returns a string containres paths of registries.conf and registries.conf.d
+func ConfigurationSourceDescription(ctx *types.SystemContext) string {
+	wrapper := newConfigWrapper(ctx)
+	configSources := []string{wrapper.configPath}
+	if wrapper.configDirPath != "" {
+		configSources = append(configSources, wrapper.configDirPath)
+	}
+	if wrapper.userConfigDirPath != "" {
+		configSources = append(configSources, wrapper.userConfigDirPath)
+	}
+	return strings.Join(configSources, ", ")
 }
 
 // configMutex is used to synchronize concurrent accesses to configCache.
@@ -422,39 +453,49 @@ func getConfig(ctx *types.SystemContext) (*V2RegistriesConf, error) {
 // dropInConfigs returns a slice of drop-in-configs from the registries.conf.d
 // directory.
 func dropInConfigs(wrapper configWrapper) ([]string, error) {
-	var configs []string
-
-	err := filepath.Walk(wrapper.configDirPath,
-		// WalkFunc to read additional configs
-		func(path string, info os.FileInfo, err error) error {
-			switch {
-			case err != nil:
-				// return error (could be a permission problem)
-				return err
-			case info == nil:
-				// this should only happen when err != nil but let's be sure
-				return nil
-			case info.IsDir():
-				if path != wrapper.configDirPath {
-					// make sure to not recurse into sub-directories
-					return filepath.SkipDir
-				}
-				// ignore directories
-				return nil
-			default:
-				// only add *.conf files
-				if strings.HasSuffix(path, ".conf") {
-					configs = append(configs, path)
-				}
-				return nil
-			}
-		},
+	var (
+		configs  []string
+		dirPaths []string
 	)
+	if wrapper.configDirPath != "" {
+		dirPaths = append(dirPaths, wrapper.configDirPath)
+	}
+	if wrapper.userConfigDirPath != "" {
+		dirPaths = append(dirPaths, wrapper.userConfigDirPath)
+	}
+	for _, dirPath := range dirPaths {
+		err := filepath.Walk(dirPath,
+			// WalkFunc to read additional configs
+			func(path string, info os.FileInfo, err error) error {
+				switch {
+				case err != nil:
+					// return error (could be a permission problem)
+					return err
+				case info == nil:
+					// this should only happen when err != nil but let's be sure
+					return nil
+				case info.IsDir():
+					if path != dirPath {
+						// make sure to not recurse into sub-directories
+						return filepath.SkipDir
+					}
+					// ignore directories
+					return nil
+				default:
+					// only add *.conf files
+					if strings.HasSuffix(path, ".conf") {
+						configs = append(configs, path)
+					}
+					return nil
+				}
+			},
+		)
 
-	if err != nil && !os.IsNotExist(err) {
-		// Ignore IsNotExist errors: most systems won't have a registries.conf.d
-		// directory.
-		return nil, errors.Wrapf(err, "error reading registries.conf.d")
+		if err != nil && !os.IsNotExist(err) {
+			// Ignore IsNotExist errors: most systems won't have a registries.conf.d
+			// directory.
+			return nil, errors.Wrapf(err, "error reading registries.conf.d")
+		}
 	}
 
 	return configs, nil
