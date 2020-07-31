@@ -97,7 +97,11 @@ func GetRootlessGID() int {
 	return os.Getegid()
 }
 
-func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) error {
+func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) error {
+	var tool = "newuidmap"
+	if !uid {
+		tool = "newgidmap"
+	}
 	path, err := exec.LookPath(tool)
 	if err != nil {
 		return errors.Wrapf(err, "cannot find %s", tool)
@@ -110,6 +114,15 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 	args := []string{path, fmt.Sprintf("%d", pid)}
 	args = appendTriplet(args, 0, hostID, 1)
 	for _, i := range mappings {
+		if hostID >= i.HostID && hostID < i.HostID+i.Size {
+			what := "UID"
+			where := "/etc/subuid"
+			if !uid {
+				what = "GID"
+				where = "/etc/subgid"
+			}
+			return errors.Errorf("invalid configuration: the specified mapping %d:%d in %q includes the user %s", i.HostID, i.Size, where, what)
+		}
 		args = appendTriplet(args, i.ContainerID+1, i.HostID, i.Size)
 	}
 	cmd := exec.Cmd{
@@ -175,7 +188,7 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	return uids, gids, nil
 }
 
-func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool, int, error) {
+func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ bool, _ int, retErr error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
@@ -205,7 +218,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 	defer errorhandling.CloseQuiet(r)
 	defer errorhandling.CloseQuiet(w)
 	defer func() {
-		if _, err := w.Write([]byte("0")); err != nil {
+		toWrite := []byte("0")
+		if retErr != nil {
+			toWrite = []byte("1")
+		}
+		if _, err := w.Write(toWrite); err != nil {
 			logrus.Errorf("failed to write byte 0: %q", err)
 		}
 	}()
@@ -223,7 +240,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 
 	uidsMapped := false
 	if uids != nil {
-		err := tryMappingTool("newuidmap", pid, os.Geteuid(), uids)
+		err := tryMappingTool(true, pid, os.Geteuid(), uids)
+		// If some mappings were specified, do not ignore the error
+		if err != nil && len(uids) > 0 {
+			return false, -1, err
+		}
 		uidsMapped = err == nil
 	}
 	if !uidsMapped {
@@ -245,7 +266,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 
 	gidsMapped := false
 	if gids != nil {
-		err := tryMappingTool("newgidmap", pid, os.Getegid(), gids)
+		err := tryMappingTool(false, pid, os.Getegid(), gids)
+		// If some mappings were specified, do not ignore the error
+		if err != nil && len(gids) > 0 {
+			return false, -1, err
+		}
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {

@@ -860,7 +860,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       fprintf (stderr, "cannot read from sync pipe: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
-  if (b != '0')
+  if (ret != 1 || b != '0')
     _exit (EXIT_FAILURE);
 
   if (syscall_setresgid (0, 0, 0) < 0)
