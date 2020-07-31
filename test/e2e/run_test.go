@@ -1123,4 +1123,14 @@ USER mail`
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 		Expect(session.ErrorToString()).To(ContainSubstring("Invalid umask"))
 	})
+
+	It("podman run makes entrypoint from image", func() {
+		dockerfile := `FROM busybox
+WORKDIR /madethis`
+		podmanTest.BuildImage(dockerfile, "test", "false")
+		session := podmanTest.Podman([]string{"run", "--rm", "test", "pwd"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/madethis"))
+	})
 })

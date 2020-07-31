@@ -159,7 +159,32 @@ func (c *Container) prepare() error {
 	}
 
 	// Save changes to container state
-	return c.save()
+	if err := c.save(); err != nil {
+		return err
+	}
+
+	// Ensure container entrypoint is created (if required)
+	if c.config.CreateWorkingDir {
+		workdir, err := securejoin.SecureJoin(c.state.Mountpoint, c.WorkingDir())
+		if err != nil {
+			return errors.Wrapf(err, "error creating path to container %s working dir", c.ID())
+		}
+		rootUID := c.RootUID()
+		rootGID := c.RootGID()
+
+		if err := os.MkdirAll(workdir, 0755); err != nil {
+			if os.IsExist(err) {
+				return nil
+			}
+			return errors.Wrapf(err, "error creating container %s working dir", c.ID())
+		}
+
+		if err := os.Chown(workdir, rootUID, rootGID); err != nil {
+			return errors.Wrapf(err, "error chowning container %s working directory to container root", c.ID())
+		}
+	}
+
+	return nil
 }
 
 // cleanupNetwork unmounts and cleans up the container's network
