@@ -307,6 +307,10 @@ func (l psReporter) Status() string {
 	return l.State()
 }
 
+func (l psReporter) RunningFor() string {
+	return l.CreatedHuman()
+}
+
 // Command returns the container command in string format
 func (l psReporter) Command() string {
 	command := strings.Join(l.ListContainer.Command, " ")
