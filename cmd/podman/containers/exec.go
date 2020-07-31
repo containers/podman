@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	envLib "github.com/containers/podman/v2/pkg/env"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -109,6 +110,12 @@ func exec(_ *cobra.Command, args []string) error {
 	}
 
 	execOpts.Envs = envLib.Join(execOpts.Envs, cliEnv)
+
+	for fd := 3; fd < int(3+execOpts.PreserveFDs); fd++ {
+		if !rootless.IsFdInherited(fd) {
+			return errors.Errorf("file descriptor %d is not available - the preserve-fds option requires that file descriptors must be passed", fd)
+		}
+	}
 
 	if !execDetach {
 		streams := define.AttachStreams{}
