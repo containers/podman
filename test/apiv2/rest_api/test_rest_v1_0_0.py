@@ -13,9 +13,11 @@ from multiprocessing import Process
 import requests
 from dateutil.parser import parse
 
+PODMAN_URL = "http://localhost:8080"
+
 
 def _url(path):
-    return "http://localhost:8080/v1.0.0/libpod" + path
+    return PODMAN_URL + "/v1.0.0/libpod" + path
 
 
 def podman():
@@ -205,7 +207,21 @@ class TestApi(unittest.TestCase):
         search.join(timeout=10)
         self.assertFalse(search.is_alive(), "/images/search took too long")
 
-    def validateObjectFields(self, buffer):
+    def test_ping(self):
+        r = requests.get(PODMAN_URL + "/_ping")
+        self.assertEqual(r.status_code, 200, r.text)
+
+        r = requests.head(PODMAN_URL + "/_ping")
+        self.assertEqual(r.status_code, 200, r.text)
+
+        r = requests.get(_url("/_ping"))
+        self.assertEqual(r.status_code, 200, r.text)
+
+        r = requests.get(_url("/_ping"))
+        self.assertEqual(r.status_code, 200, r.text)
+
+
+def validateObjectFields(self, buffer):
         objs = json.loads(buffer)
         if not isinstance(objs, dict):
             for o in objs:
@@ -213,7 +229,6 @@ class TestApi(unittest.TestCase):
         else:
             _ = objs["Id"]
         return objs
-
 
 if __name__ == '__main__':
     unittest.main()
