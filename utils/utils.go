@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -51,7 +52,7 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []stri
 
 // ErrDetach is an error indicating that the user manually detached from the
 // container.
-var ErrDetach = errors.New("detached from container")
+var ErrDetach = define.ErrDetach
 
 // CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
 func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
