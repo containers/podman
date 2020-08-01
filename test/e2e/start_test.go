@@ -86,6 +86,18 @@ var _ = Describe("Podman start", func() {
 		Expect(session.OutputToString()).To(Equal(name))
 	})
 
+	It("podman start single container with attach and test the signal", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"create", "--entrypoint", "sh", ALPINE, "-c", "exit 1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		session = podmanTest.Podman([]string{"start", "--attach", cid})
+		session.WaitWithDefaultTimeout()
+		// It should forward the signal
+		Expect(session.ExitCode()).To(Equal(1))
+	})
+
 	It("podman start multiple containers", func() {
 		session := podmanTest.Podman([]string{"create", "-d", "--name", "foobar99", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()

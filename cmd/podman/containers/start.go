@@ -99,12 +99,17 @@ func start(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range responses {
-		if r.Err == nil && !startOptions.Attach {
-			fmt.Println(r.RawInput)
+		if r.Err == nil {
+			if startOptions.Attach {
+				// Implement the exitcode when the only one container is enabled attach
+				registry.SetExitCode(r.ExitCode)
+			} else {
+				fmt.Println(r.RawInput)
+			}
 		} else {
 			errs = append(errs, r.Err)
 		}
 	}
-	// TODO need to understand an implement exitcodes
+
 	return errs.PrintErrors()
 }
