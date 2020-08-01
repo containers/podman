@@ -1,5 +1,22 @@
 # Release Notes
 
+## 2.0.4
+### Bugfixes
+- Fixed a bug where the output of `podman image search` did not populate the Description field as it was mistakenly assigned to the ID field.
+- Fixed a bug where `podman build -` and `podman build` on an HTTP target would fail.
+- Fixed a bug where rootless Podman would improperly chown the copied-up contents of anonymous volumes ([#7130](https://github.com/containers/podman/issues/7130)).
+- Fixed a bug where Podman would sometimes HTML-escape special characters in its CLI output.
+- Fixed a bug where the `podman start --attach --interactive` command would print the container ID of the container attached to when exiting ([#7068](https://github.com/containers/podman/pull/7068)).
+- Fixed a bug where `podman run --ipc=host --pid=host` would only set `--pid=host` and not `--ipc=host` ([#7100](https://github.com/containers/podman/issues/7100)).
+- Fixed a bug where the `--publish` argument to `podman run`, `podman create` and `podman pod create` would not allow binding the same container port to more than one host port ([#7062](https://github.com/containers/podman/issues/7062)).
+- Fixed a bug where incorrect arguments to `podman images --format` could cause Podman to segfault.
+- Fixed a bug where `podman rmi --force` on an image ID with more than one name and at least one container using the image would not completely remove containers using the image ([#7153](https://github.com/containers/podman/issues/7153)).
+- Fixed a bug where memory usage in bytes and memory use percentage were swapped in the output of `podman stats --format=json`.
+
+### API
+- Fixed a bug where the libpod and compat events endpoints would fail if no filters were specified ([#7078](https://github.com/containers/podman/issues/7078)).
+- Fixed a bug where the `CgroupVersion` field in responses from the compat Info endpoint was prefixed by "v" (instead of just being "1" or "2", as is documented).
+
 ## 2.0.3
 ### Features
 - The `podman search` command now allows wildcards in search terms.
