@@ -20,6 +20,9 @@ var (
 	// ErrNoSuchVolume indicates the requested volume does not exist
 	ErrNoSuchVolume = errors.New("no such volume")
 
+	// ErrNoSuchNetwork indicates the requested network does not exist
+	ErrNoSuchNetwork = errors.New("network not found")
+
 	// ErrNoSuchExecSession indicates that the requested exec session does
 	// not exist.
 	ErrNoSuchExecSession = errors.New("no such exec session")

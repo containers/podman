@@ -8,6 +8,7 @@ import (
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -200,7 +201,7 @@ func InspectNetwork(config *config.Config, name string) (map[string]interface{},
 func Exists(config *config.Config, name string) (bool, error) {
 	_, err := ReadRawCNIConfByName(config, name)
 	if err != nil {
-		if errors.Cause(err) == ErrNetworkNotFound {
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
 			return false, nil
 		}
 		return false, err
