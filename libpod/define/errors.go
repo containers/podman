@@ -2,6 +2,10 @@ package define
 
 import (
 	"errors"
+
+	"github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v2/pkg/network"
+	"github.com/containers/podman/v2/utils"
 )
 
 var (
@@ -19,6 +23,9 @@ var (
 
 	// ErrNoSuchVolume indicates the requested volume does not exist
 	ErrNoSuchVolume = errors.New("no such volume")
+
+	// ErrNoSuchNetwork indicates the requested network does not exist
+	ErrNoSuchNetwork = network.ErrNetworkNotFound
 
 	// ErrNoSuchExecSession indicates that the requested exec session does
 	// not exist.

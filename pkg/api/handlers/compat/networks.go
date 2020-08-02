@@ -44,9 +44,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	_, err = network.InspectNetwork(config, name)
 	if err != nil {
-		// TODO our network package does not distinguish between not finding a
-		// specific network vs not being able to read it
-		utils.InternalServerError(w, err)
+		utils.NetworkNotFound(w, name, err)
 		return
 	}
 	report, err := getNetworkResourceByName(name, runtime)

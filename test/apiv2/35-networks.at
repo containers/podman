@@ -1,0 +1,8 @@
+# -*- sh -*-
+#
+# network-related tests
+#
+
+t GET /networks/non-existing-network 404
+
+# vim: filetype=sh
