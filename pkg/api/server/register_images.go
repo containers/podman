@@ -972,6 +972,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: integer
 	//    description: maximum number of results
 	//  - in: query
+	//    name: noTrunc
+	//    type: boolean
+	//    description: do not truncate any of the result strings
+	//  - in: query
 	//    name: filters
 	//    type: string
 	//    description: |

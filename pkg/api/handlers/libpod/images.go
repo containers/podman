@@ -638,6 +638,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Term      string   `json:"term"`
 		Limit     int      `json:"limit"`
+		NoTrunc   bool     `json:"noTrunc"`
 		Filters   []string `json:"filters"`
 		TLSVerify bool     `json:"tlsVerify"`
 	}{
@@ -650,7 +651,8 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	options := image.SearchOptions{
-		Limit: query.Limit,
+		Limit:   query.Limit,
+		NoTrunc: query.NoTrunc,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
@@ -677,7 +679,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	for i := range searchResults {
 		reports[i].Index = searchResults[i].Index
 		reports[i].Name = searchResults[i].Name
-		reports[i].Description = searchResults[i].Index
+		reports[i].Description = searchResults[i].Description
 		reports[i].Stars = searchResults[i].Stars
 		reports[i].Official = searchResults[i].Official
 		reports[i].Automated = searchResults[i].Automated
