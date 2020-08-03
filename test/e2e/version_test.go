@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v2/test/utils"
@@ -68,15 +69,17 @@ var _ = Describe("Podman version", func() {
 			{"{{ json .}}", true, 0},
 			{"{{json .   }}", true, 0},
 			{"  {{  json .    }}   ", true, 0},
-			{"{{json }}", false, 125},
+			{"{{json }}", true, 0},
 			{"{{json .", false, 125},
-			{"json . }}", false, 0}, // Note: this does NOT fail but produces garbage
+			{"json . }}", false, 0}, // without opening {{ template seen as string literal
 		}
 		for _, tt := range tests {
 			session := podmanTest.Podman([]string{"version", "--format", tt.input})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(tt.exitCode))
-			Expect(session.IsJSONOutputValid()).To(Equal(tt.success))
+
+			desc := fmt.Sprintf("JSON test(%q)", tt.input)
+			Expect(session).Should(Exit(tt.exitCode), desc)
+			Expect(session.IsJSONOutputValid()).To(Equal(tt.success), desc)
 		}
 	})
 

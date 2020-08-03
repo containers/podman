@@ -11,7 +11,9 @@ import (
 	"unicode"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -106,9 +108,12 @@ func images(cmd *cobra.Command, args []string) error {
 	switch {
 	case listFlag.quiet:
 		return writeID(imgs)
-	case cmd.Flag("format").Changed && listFlag.format == "json":
+	case parse.MatchesJSONFormat(listFlag.format):
 		return writeJSON(imgs)
 	default:
+		if cmd.Flag("format").Changed {
+			listFlag.noHeading = true // V1 compatibility
+		}
 		return writeTemplate(imgs)
 	}
 }
@@ -156,25 +161,29 @@ func writeJSON(images []imageReporter) error {
 }
 
 func writeTemplate(imgs []imageReporter) error {
-	var (
-		hdr, row string
-	)
-	if len(listFlag.format) < 1 {
-		hdr, row = imageListFormat(listFlag)
+	hdrs := report.Headers(imageReporter{}, map[string]string{
+		"ID":       "IMAGE ID",
+		"ReadOnly": "R/O",
+	})
+
+	var row string
+	if listFlag.format == "" {
+		row = lsFormatFromFlags(listFlag)
 	} else {
-		row = listFlag.format
-		if !strings.HasSuffix(row, "\n") {
-			row += "\n"
-		}
+		row = report.NormalizeFormat(listFlag.format)
 	}
-	format := hdr + "{{range . }}" + row + "{{end}}"
-	tmpl, err := template.New("list").Parse(format)
-	if err != nil {
-		return err
-	}
-	tmpl = template.Must(tmpl, nil)
+
+	format := "{{range . }}" + row + "{{end}}"
+	tmpl := template.Must(template.New("list").Parse(format))
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
+
+	if !listFlag.noHeading {
+		if err := tmpl.Execute(w, hdrs); err != nil {
+			return err
+		}
+	}
+
 	return tmpl.Execute(w, imgs)
 }
 
@@ -276,40 +285,27 @@ func sortFunc(key string, data []imageReporter) func(i, j int) bool {
 	}
 }
 
-func imageListFormat(flags listFlagType) (string, string) {
-	// Defaults
-	hdr := "REPOSITORY\tTAG"
-	row := "{{.Repository}}\t{{if .Tag}}{{.Tag}}{{else}}<none>{{end}}"
-
-	if flags.digests {
-		hdr += "\tDIGEST"
-		row += "\t{{.Digest}}"
+func lsFormatFromFlags(flags listFlagType) string {
+	row := []string{
+		"{{if .Repository}}{{.Repository}}{{else}}<none>{{end}}",
+		"{{if .Tag}}{{.Tag}}{{else}}<none>{{end}}",
 	}
 
-	hdr += "\tIMAGE ID"
-	row += "\t{{.ID}}"
+	if flags.digests {
+		row = append(row, "{{.Digest}}")
+	}
 
-	hdr += "\tCREATED\tSIZE"
-	row += "\t{{.Created}}\t{{.Size}}"
+	row = append(row, "{{.ID}}", "{{.Created}}", "{{.Size}}")
 
 	if flags.history {
-		hdr += "\tHISTORY"
-		row += "\t{{if .History}}{{.History}}{{else}}<none>{{end}}"
+		row = append(row, "{{if .History}}{{.History}}{{else}}<none>{{end}}")
 	}
 
 	if flags.readOnly {
-		hdr += "\tReadOnly"
-		row += "\t{{.ReadOnly}}"
+		row = append(row, "{{.ReadOnly}}")
 	}
 
-	if flags.noHeading {
-		hdr = ""
-	} else {
-		hdr += "\n"
-	}
-
-	row += "\n"
-	return hdr, row
+	return strings.Join(row, "\t") + "\n"
 }
 
 type imageReporter struct {
