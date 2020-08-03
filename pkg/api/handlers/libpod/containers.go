@@ -23,6 +23,7 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, name, err)
+			return
 		}
 		utils.InternalServerError(w, err)
 		return
