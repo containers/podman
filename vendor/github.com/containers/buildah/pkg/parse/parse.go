@@ -17,6 +17,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -342,6 +343,9 @@ func GetBindMount(args []string) (specs.Mount, error) {
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
 			newMount.Options = append(newMount.Options, kv[0])
+		case "readonly":
+			// Alias for "ro"
+			newMount.Options = append(newMount.Options, "ro")
 		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
 			newMount.Options = append(newMount.Options, kv[0])
 		case "bind-propagation":
@@ -367,6 +371,10 @@ func GetBindMount(args []string) (specs.Mount, error) {
 			}
 			newMount.Destination = kv[1]
 			setDest = true
+		case "consistency":
+			// Option for OS X only, has no meaning on other platforms
+			// and can thus be safely ignored.
+			// See also the handling of the equivalent "delegated" and "cached" in ValidateVolumeOpts
 		default:
 			return newMount, errors.Wrapf(errBadMntOption, kv[0])
 		}
@@ -403,6 +411,9 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 		switch kv[0] {
 		case "ro", "nosuid", "nodev", "noexec":
 			newMount.Options = append(newMount.Options, kv[0])
+		case "readonly":
+			// Alias for "ro"
+			newMount.Options = append(newMount.Options, "ro")
 		case "tmpfs-mode":
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
@@ -906,6 +917,9 @@ func defaultIsolation() (buildah.Isolation, error) {
 		default:
 			return 0, errors.Errorf("unrecognized $BUILDAH_ISOLATION value %q", isolation)
 		}
+	}
+	if unshare.IsRootless() {
+		return buildah.IsolationOCIRootless, nil
 	}
 	return buildah.IsolationDefault, nil
 }

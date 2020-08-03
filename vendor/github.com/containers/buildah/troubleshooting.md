@@ -76,7 +76,7 @@ the `buildah run` command will not complete and an error will be raised.
 
 #### Solution
 There are two solutions to this problem.  The
-[`podman run`](https://github.com/containers/libpod/blob/master/docs/podman-run.1.md)
+[`podman run`](https://github.com/containers/podman/blob/master/docs/podman-run.1.md)
 command can be used in place of `buildah run`.  To still use `buildah run`, surround
 the command with single quotes and use `bash -c`.  The previous examples would be
 changed to:

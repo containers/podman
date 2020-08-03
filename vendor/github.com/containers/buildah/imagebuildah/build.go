@@ -132,7 +132,8 @@ type BuildOptions struct {
 	// when handling RUN instructions. If a capability appears in both lists, it
 	// will be dropped.
 	DropCapabilities []string
-	CommonBuildOpts  *buildah.CommonBuildOptions
+	// CommonBuildOpts is *required*.
+	CommonBuildOpts *buildah.CommonBuildOptions
 	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
 	DefaultMountsFilePath string
 	// IIDFile tells the builder to write the image ID to the specified file

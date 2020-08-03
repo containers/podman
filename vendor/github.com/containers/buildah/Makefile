@@ -35,15 +35,24 @@ LIBSECCOMP_COMMIT := release-2.3
 
 EXTRA_LDFLAGS ?=
 LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
-SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go util/*.go
+SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go copier/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go util/*.go
 
 LINTFLAGS ?=
 
 all: bin/buildah bin/imgtype docs
 
+# Update nix/nixpkgs.json its latest stable commit
+.PHONY: nixpkgs
 nixpkgs:
-	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -c nix-prefetch-git \
+	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
+
+# Build statically linked binary
+.PHONY: static
+static:
+	@nix build -f nix/
+	mkdir -p ./bin
+	cp -rfp ./result/bin/* ./bin/
 
 .PHONY: bin/buildah
 bin/buildah:  $(SOURCES)
@@ -125,20 +134,24 @@ install.completions:
 install.runc:
 	install -m 755 ../../opencontainers/runc/runc $(DESTDIR)/$(BINDIR)/
 
+.PHONY: test-conformance
+test-conformance:
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -timeout 15m ./tests/conformance
+
 .PHONY: test-integration
 test-integration: install.tools
 	./tests/tools/build/ginkgo $(BUILDFLAGS) -v tests/e2e/.
 	cd tests; ./test_runner.sh
 
 tests/testreport/testreport: tests/testreport/testreport.go
-	$(GO_BUILD) -ldflags "-linkmode external -extldflags -static" -tags "$(STORAGETAGS) $(SECURITYTAGS)" -o tests/testreport/testreport ./tests/testreport
+	$(GO_BUILD) -ldflags "-linkmode external -extldflags -static" -tags "$(STORAGETAGS) $(SECURITYTAGS)" -o tests/testreport/testreport ./tests/testreport/testreport.go
 
 .PHONY: test-unit
 test-unit: tests/testreport/testreport
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -race $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd)
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -race $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd) -timeout 40m
 	tmp=$(shell mktemp -d) ; \
 	mkdir -p $$tmp/root $$tmp/runroot; \
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" ./cmd/buildah -args -root $$tmp/root -runroot $$tmp/runroot -storage-driver vfs -signature-policy $(shell pwd)/tests/policy.json -registries-conf $(shell pwd)/tests/registries.conf
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -race ./cmd/buildah -args --root $$tmp/root --runroot $$tmp/runroot --storage-driver vfs --signature-policy $(shell pwd)/tests/policy.json --registries-conf $(shell pwd)/tests/registries.conf
 
 vendor-in-container:
 	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.13 make vendor

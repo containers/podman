@@ -394,7 +394,10 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	for _, specMount := range spec.Mounts {
 		// Override some of the mounts from the generated list if we're doing different things with namespaces.
 		if specMount.Destination == "/dev/shm" {
-			specMount.Options = []string{"nosuid", "noexec", "nodev", "mode=1777", "size=" + shmSize}
+			specMount.Options = []string{"nosuid", "noexec", "nodev", "mode=1777"}
+			if shmSize != "" {
+				specMount.Options = append(specMount.Options, "size="+shmSize)
+			}
 			if hostIPC && !hostUser {
 				if _, err := os.Stat("/dev/shm"); err != nil && os.IsNotExist(err) {
 					logrus.Debugf("/dev/shm is not present, not binding into container")
@@ -841,13 +844,8 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 	stopped := false
 	defer func() {
 		if !stopped {
-			err2 := kill.Run()
-			if err2 != nil {
-				if err == nil {
-					err = errors.Wrapf(err2, "error stopping container")
-				} else {
-					logrus.Infof("error stopping container: %v", err2)
-				}
+			if err2 := kill.Run(); err2 != nil {
+				logrus.Infof("error stopping container: %v", err2)
 			}
 		}
 	}()
@@ -1779,6 +1777,8 @@ func setupMaskedPaths(g *generate.Generator) {
 		"/proc/sched_debug",
 		"/proc/scsi",
 		"/sys/firmware",
+		"/sys/fs/selinux",
+		"/sys/dev",
 	} {
 		g.AddLinuxMaskedPaths(mp)
 	}
@@ -1966,7 +1966,7 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 		}
 	}
 
-	for _, envSpec := range append(append(defaultEnv, b.Env()...), options.Env...) {
+	for _, envSpec := range util.MergeEnv(util.MergeEnv(defaultEnv, b.Env()), options.Env) {
 		env := strings.SplitN(envSpec, "=", 2)
 		if len(env) > 1 {
 			g.AddProcessEnv(env[0], env[1])
@@ -2023,12 +2023,9 @@ func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, shmSize string
 			Options:     []string{bind.NoBindOption, "rbind", "private", "nodev", "noexec", "nosuid", "ro"},
 		},
 	}
-	// Cover up /sys/fs/cgroup and /sys/fs/selinux, if they exist in our source for /sys.
+	// Cover up /sys/fs/cgroup, if it exist in our source for /sys.
 	if _, err := os.Stat("/sys/fs/cgroup"); err == nil {
 		spec.Linux.MaskedPaths = append(spec.Linux.MaskedPaths, "/sys/fs/cgroup")
-	}
-	if _, err := os.Stat("/sys/fs/selinux"); err == nil {
-		spec.Linux.MaskedPaths = append(spec.Linux.MaskedPaths, "/sys/fs/selinux")
 	}
 	// Keep anything that isn't under /dev, /proc, or /sys.
 	for i := range spec.Mounts {
@@ -2073,7 +2070,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation Isolation, options RunOptions
 	if cmd.Stderr == nil {
 		cmd.Stderr = os.Stderr
 	}
-	cmd.Env = append(os.Environ(), fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel()))
+	cmd.Env = util.MergeEnv(os.Environ(), []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())})
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
 		return errors.Wrapf(err, "error creating configuration pipe")

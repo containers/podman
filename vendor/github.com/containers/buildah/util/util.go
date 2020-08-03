@@ -469,3 +469,19 @@ func FindLocalRuntime(runtime string) string {
 	}
 	return localRuntime
 }
+
+// MergeEnv merges two lists of environment variables, avoiding duplicates.
+func MergeEnv(defaults, overrides []string) []string {
+	s := make([]string, 0, len(defaults)+len(overrides))
+	index := make(map[string]int)
+	for _, envSpec := range append(defaults, overrides...) {
+		envVar := strings.SplitN(envSpec, "=", 2)
+		if i, ok := index[envVar[0]]; ok {
+			s[i] = envSpec
+			continue
+		}
+		s = append(s, envSpec)
+		index[envVar[0]] = len(s) - 1
+	}
+	return s
+}
