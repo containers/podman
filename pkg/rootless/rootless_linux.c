@@ -205,7 +205,7 @@ can_use_shortcut ()
 
       if (strcmp (argv[argc], "mount") == 0
           || strcmp (argv[argc], "search") == 0
-          || strcmp (argv[argc], "system") == 0)
+          || (strcmp (argv[argc], "system") == 0 && argv[argc+1] && strcmp (argv[argc+1], "service") != 0))
         {
           ret = false;
           break;
