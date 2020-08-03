@@ -39,6 +39,7 @@ func VolumeNotFound(w http.ResponseWriter, name string, err error) {
 	msg := fmt.Sprintf("No such volume: %s", name)
 	Error(w, msg, http.StatusNotFound, err)
 }
+
 func ContainerNotFound(w http.ResponseWriter, name string, err error) {
 	if errors.Cause(err) != define.ErrNoSuchCtr {
 		InternalServerError(w, err)
@@ -52,6 +53,14 @@ func ImageNotFound(w http.ResponseWriter, name string, err error) {
 		InternalServerError(w, err)
 	}
 	msg := fmt.Sprintf("No such image: %s", name)
+	Error(w, msg, http.StatusNotFound, err)
+}
+
+func NetworkNotFound(w http.ResponseWriter, name string, err error) {
+	if errors.Cause(err) != define.ErrNoSuchNetwork {
+		InternalServerError(w, err)
+	}
+	msg := fmt.Sprintf("No such network: %s", name)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
