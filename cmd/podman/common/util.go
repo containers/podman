@@ -175,12 +175,15 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 	if hostIP != nil {
 		if *hostIP == "" {
 			return newPort, errors.Errorf("must provide a non-empty container host IP to publish")
+		} else if *hostIP != "0.0.0.0" {
+			// If hostIP is 0.0.0.0, leave it unset - CNI treats
+			// 0.0.0.0 and empty differently, Docker does not.
+			testIP := net.ParseIP(*hostIP)
+			if testIP == nil {
+				return newPort, errors.Errorf("cannot parse %q as an IP address", *hostIP)
+			}
+			newPort.HostIP = testIP.String()
 		}
-		testIP := net.ParseIP(*hostIP)
-		if testIP == nil {
-			return newPort, errors.Errorf("cannot parse %q as an IP address", *hostIP)
-		}
-		newPort.HostIP = testIP.String()
 	}
 	if hostPort != nil {
 		if *hostPort == "" {
