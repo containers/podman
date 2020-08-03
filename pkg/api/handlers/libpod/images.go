@@ -594,11 +594,9 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// I know mitr hates this ... but doing for now
-	if len(query.Repo) > 1 {
+	if len(query.Repo) > 0 {
 		destImage = fmt.Sprintf("%s:%s", query.Repo, tag)
 	}
-
 	commitImage, err := ctr.Commit(r.Context(), destImage, options)
 	if err != nil && !strings.Contains(err.Error(), "is not running") {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
