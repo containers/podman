@@ -128,7 +128,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//        The boolean `dangling` filter is not yet implemented for this endpoint.
 	// responses:
 	//   '200':
-	//     "$ref": "#/responses/DockerVolumeList"
+	//     "$ref": "#/responses/VolumeListResponse"
 	//   '500':
 	//     "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/volumes"), s.APIHandler(compat.ListVolumes)).Methods(http.MethodGet)
