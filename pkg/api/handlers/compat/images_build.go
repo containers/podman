@@ -20,6 +20,7 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/gorilla/schema"
+	"github.com/sirupsen/logrus"
 )
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +34,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
-		if hdr[0] != "application/x-tar" {
+		contentType := hdr[0]
+		switch contentType {
+		case "application/tar":
+			logrus.Warnf("tar file content type is  %s, should use \"application/x-tar\" content type", contentType)
+		case "application/x-tar":
+			break
+		default:
 			utils.BadRequest(w, "Content-Type", hdr[0],
 				fmt.Errorf("Content-Type: %s is not supported. Should be \"application/x-tar\"", hdr[0]))
 			return
