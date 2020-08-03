@@ -241,7 +241,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(mountCmd1.ExitCode()).To(Equal(0))
 		os.Stdout.Sync()
 		os.Stderr.Sync()
-		mountOut1 := strings.Join(strings.Fields(fmt.Sprintf("%s", mountCmd1.Out.Contents())), " ")
+		mountOut1 := strings.Join(strings.Fields(string(mountCmd1.Out.Contents())), " ")
 		fmt.Printf("Output: %s", mountOut1)
 		Expect(strings.Contains(mountOut1, volName)).To(BeFalse())
 
@@ -257,7 +257,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(mountCmd2.ExitCode()).To(Equal(0))
 		os.Stdout.Sync()
 		os.Stderr.Sync()
-		mountOut2 := strings.Join(strings.Fields(fmt.Sprintf("%s", mountCmd2.Out.Contents())), " ")
+		mountOut2 := strings.Join(strings.Fields(string(mountCmd2.Out.Contents())), " ")
 		fmt.Printf("Output: %s", mountOut2)
 		Expect(strings.Contains(mountOut2, volName)).To(BeTrue())
 
@@ -278,7 +278,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(mountCmd3.ExitCode()).To(Equal(0))
 		os.Stdout.Sync()
 		os.Stderr.Sync()
-		mountOut3 := strings.Join(strings.Fields(fmt.Sprintf("%s", mountCmd3.Out.Contents())), " ")
+		mountOut3 := strings.Join(strings.Fields(string(mountCmd3.Out.Contents())), " ")
 		fmt.Printf("Output: %s", mountOut3)
 		Expect(strings.Contains(mountOut3, volName)).To(BeFalse())
 	})

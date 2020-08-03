@@ -103,7 +103,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", "quay.io/libpod/whalesay"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
-		output := fmt.Sprintf("%s", search.Out.Contents())
+		output := string(search.Out.Contents())
 		match, _ := regexp.MatchString(`(?m)^quay.io\s+quay.io/libpod/whalesay\s+Static image used for automated testing.+$`, output)
 		Expect(match).To(BeTrue())
 	})
