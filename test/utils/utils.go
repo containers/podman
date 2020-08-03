@@ -215,7 +215,7 @@ func (s *PodmanSession) OutputToString() string {
 // where each array item is a line split by newline
 func (s *PodmanSession) OutputToStringArray() []string {
 	var results []string
-	output := fmt.Sprintf("%s", s.Out.Contents())
+	output := string(s.Out.Contents())
 	for _, line := range strings.Split(output, "\n") {
 		if line != "" {
 			results = append(results, line)
@@ -226,14 +226,14 @@ func (s *PodmanSession) OutputToStringArray() []string {
 
 // ErrorToString formats session stderr to string
 func (s *PodmanSession) ErrorToString() string {
-	fields := strings.Fields(fmt.Sprintf("%s", s.Err.Contents()))
+	fields := strings.Fields(string(s.Err.Contents()))
 	return strings.Join(fields, " ")
 }
 
 // ErrorToStringArray returns the stderr output as a []string
 // where each array item is a line split by newline
 func (s *PodmanSession) ErrorToStringArray() []string {
-	output := fmt.Sprintf("%s", s.Err.Contents())
+	output := string(s.Err.Contents())
 	return strings.Split(output, "\n")
 }
 
