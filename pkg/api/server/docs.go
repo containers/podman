@@ -52,6 +52,8 @@
 //
 //     Consumes:
 //     - application/json
+//     - application/tar
 //     - application/x-tar
+//     - application/x-gtar
 // swagger:meta
 package server

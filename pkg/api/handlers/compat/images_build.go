@@ -33,9 +33,21 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
-		if hdr[0] != "application/x-tar" {
+		validContentTypes := []string{
+			"application/tar",
+			"application/x-tar",
+			"application/x-gtar",
+		}
+
+		isValidContentType := false
+		for _, validContentType := range validContentTypes {
+			if validContentType == hdr[0] {
+				isValidContentType = true
+			}
+		}
+		if !isValidContentType {
 			utils.BadRequest(w, "Content-Type", hdr[0],
-				fmt.Errorf("Content-Type: %s is not supported. Should be \"application/x-tar\"", hdr[0]))
+				fmt.Errorf("Content-Type: %s is not supported. Should be one of %s", hdr[0], validContentTypes))
 			return
 		}
 	}
