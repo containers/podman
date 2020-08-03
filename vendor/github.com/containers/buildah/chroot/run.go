@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -741,10 +742,13 @@ func runUsingChrootExecMain() {
 			os.Exit(1)
 		}
 	} else {
-		logrus.Debugf("clearing supplemental groups")
-		if err = syscall.Setgroups([]int{}); err != nil {
-			fmt.Fprintf(os.Stderr, "error clearing supplemental groups list: %v", err)
-			os.Exit(1)
+		setgroups, _ := ioutil.ReadFile("/proc/self/setgroups")
+		if strings.Trim(string(setgroups), "\n") != "deny" {
+			logrus.Debugf("clearing supplemental groups")
+			if err = syscall.Setgroups([]int{}); err != nil {
+				fmt.Fprintf(os.Stderr, "error clearing supplemental groups list: %v", err)
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -1093,17 +1097,14 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		}
 		subSys := filepath.Join(spec.Root.Path, m.Mountpoint)
 		if err := unix.Mount(m.Mountpoint, subSys, "bind", sysFlags, ""); err != nil {
-			return undoBinds, errors.Wrapf(err, "error bind mounting /sys from host into mount namespace")
+			logrus.Warningf("could not bind mount %q, skipping: %v", m.Mountpoint, err)
+			continue
 		}
 		if err := makeReadOnly(subSys, sysFlags); err != nil {
 			return undoBinds, err
 		}
 	}
 	logrus.Debugf("bind mounted %q to %q", "/sys", filepath.Join(spec.Root.Path, "/sys"))
-
-	// Add /sys/fs/selinux to the set of masked paths, to ensure that we don't have processes
-	// attempting to interact with labeling, when they aren't allowed to do so.
-	spec.Linux.MaskedPaths = append(spec.Linux.MaskedPaths, "/sys/fs/selinux")
 
 	// Bind mount in everything we've been asked to mount.
 	for _, m := range spec.Mounts {

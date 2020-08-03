@@ -342,6 +342,9 @@ func GetBindMount(args []string) (specs.Mount, error) {
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
 			newMount.Options = append(newMount.Options, kv[0])
+		case "readonly":
+			// Alias for "ro"
+			newMount.Options = append(newMount.Options, "ro")
 		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
 			newMount.Options = append(newMount.Options, kv[0])
 		case "bind-propagation":
@@ -367,6 +370,10 @@ func GetBindMount(args []string) (specs.Mount, error) {
 			}
 			newMount.Destination = kv[1]
 			setDest = true
+		case "consistency":
+			// Option for OS X only, has no meaning on other platforms
+			// and can thus be safely ignored.
+			// See also the handling of the equivalent "delegated" and "cached" in ValidateVolumeOpts
 		default:
 			return newMount, errors.Wrapf(errBadMntOption, kv[0])
 		}
@@ -403,6 +410,9 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 		switch kv[0] {
 		case "ro", "nosuid", "nodev", "noexec":
 			newMount.Options = append(newMount.Options, kv[0])
+		case "readonly":
+			// Alias for "ro"
+			newMount.Options = append(newMount.Options, "ro")
 		case "tmpfs-mode":
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])

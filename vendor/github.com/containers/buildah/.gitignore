@@ -1,4 +1,5 @@
 docs/buildah*.1
+/bin
 /buildah
 /imgtype
 /build/

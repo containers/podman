@@ -1779,6 +1779,7 @@ func setupMaskedPaths(g *generate.Generator) {
 		"/proc/sched_debug",
 		"/proc/scsi",
 		"/sys/firmware",
+		"/sys/fs/selinux",
 	} {
 		g.AddLinuxMaskedPaths(mp)
 	}
@@ -2023,12 +2024,9 @@ func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, shmSize string
 			Options:     []string{bind.NoBindOption, "rbind", "private", "nodev", "noexec", "nosuid", "ro"},
 		},
 	}
-	// Cover up /sys/fs/cgroup and /sys/fs/selinux, if they exist in our source for /sys.
+	// Cover up /sys/fs/cgroup, if it exist in our source for /sys.
 	if _, err := os.Stat("/sys/fs/cgroup"); err == nil {
 		spec.Linux.MaskedPaths = append(spec.Linux.MaskedPaths, "/sys/fs/cgroup")
-	}
-	if _, err := os.Stat("/sys/fs/selinux"); err == nil {
-		spec.Linux.MaskedPaths = append(spec.Linux.MaskedPaths, "/sys/fs/selinux")
 	}
 	// Keep anything that isn't under /dev, /proc, or /sys.
 	for i := range spec.Mounts {
