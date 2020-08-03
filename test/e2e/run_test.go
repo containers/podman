@@ -811,6 +811,14 @@ USER mail`
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 	})
 
+	It("podman run --mount type=devpts,target=/foo/bar", func() {
+		SkipIfRootless()
+		session := podmanTest.Podman([]string{"run", "--mount", "type=devpts,target=/foo/bar", fedoraMinimal, "stat", "-f", "-c%T", "/foo/bar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("devpts"))
+	})
+
 	It("podman run --pod automatically", func() {
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", "new:foobar", ALPINE, "nc", "-l", "-p", "8080"})
 		session.WaitWithDefaultTimeout()

@@ -494,7 +494,7 @@ Tune a container's memory swappiness behavior. Accepts an integer between 0 and 
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPES are `bind`, `volume`, and `tmpfs`. <sup>[[1]](#Footnote1)</sup>
+Current supported mount TYPES are `bind`, `volume`, `tmpfs` and `devpts`. <sup>[[1]](#Footnote1)</sup>
 
        e.g.
 
@@ -505,6 +505,8 @@ Current supported mount TYPES are `bind`, `volume`, and `tmpfs`. <sup>[[1]](#Foo
        type=volume,source=vol1,destination=/path/in/container,ro=true
 
        type=tmpfs,tmpfs-size=512M,destination=/path/in/container
+
+       type=devpts,destination=/dev/pts
 
        Common Options:
 

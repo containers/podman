@@ -20,6 +20,8 @@ const (
 	TypeVolume = "volume"
 	// TypeTmpfs is the type for mounting tmpfs
 	TypeTmpfs = "tmpfs"
+	// TypeDevpts is the type for creating a devpts
+	TypeDevpts = "devpts"
 )
 
 var (
@@ -190,6 +192,15 @@ func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.N
 			finalMounts[mount.Destination] = mount
 		case TypeTmpfs:
 			mount, err := getTmpfsMount(tokens)
+			if err != nil {
+				return nil, nil, err
+			}
+			if _, ok := finalMounts[mount.Destination]; ok {
+				return nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
+			}
+			finalMounts[mount.Destination] = mount
+		case TypeDevpts:
+			mount, err := getDevptsMount(tokens)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -395,6 +406,39 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 			newMount.Options = append(newMount.Options, fmt.Sprintf("size=%s", kv[1]))
 		case "src", "source":
 			return newMount, errors.Errorf("source is not supported with tmpfs mounts")
+		case "target", "dst", "destination":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
+				return newMount, err
+			}
+			newMount.Destination = filepath.Clean(kv[1])
+			setDest = true
+		default:
+			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
+		}
+	}
+
+	if !setDest {
+		return newMount, noDestError
+	}
+
+	return newMount, nil
+}
+
+// Parse a single devpts mount entry from the --mount flag
+func getDevptsMount(args []string) (spec.Mount, error) {
+	newMount := spec.Mount{
+		Type:   TypeDevpts,
+		Source: TypeDevpts,
+	}
+
+	var setDest bool
+
+	for _, val := range args {
+		kv := strings.Split(val, "=")
+		switch kv[0] {
 		case "target", "dst", "destination":
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
