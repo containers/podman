@@ -11,7 +11,11 @@ import (
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/v5/docker/reference"
+	ociarchive "github.com/containers/image/v5/oci/archive"
+	"github.com/containers/image/v5/oci/layout"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/libpod/events"
 	"github.com/containers/libpod/v2/libpod/image"
 	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/containers/storage"
@@ -147,9 +151,21 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 	return nil
 }
 
+// newBuildEvent creates a new event based on completion of a built image
+func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
+	e := events.NewEvent(events.Build)
+	e.Type = events.Image
+	e.Name = idOrName
+	if err := r.eventer.Write(e); err != nil {
+		logrus.Errorf("unable to write build event: %q", err)
+	}
+}
+
 // Build adds the runtime to the imagebuildah call
 func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
 	id, ref, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	// Write event for build completion
+	r.newImageBuildCompleteEvent(id)
 	return id, ref, err
 }
 
