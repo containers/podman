@@ -170,7 +170,7 @@ func (gc *gpgv2Client) getKeyDetails(option string, keyid uint64) ([]byte, bool,
 	var args []string
 
 	if gc.gpgHomeDir != "" {
-		args = append([]string{"--homedir", gc.gpgHomeDir})
+		args = []string{"--homedir", gc.gpgHomeDir}
 	}
 	args = append(args, option, fmt.Sprintf("0x%x", keyid))
 
@@ -229,7 +229,7 @@ func (gc *gpgv1Client) getKeyDetails(option string, keyid uint64) ([]byte, bool,
 	var args []string
 
 	if gc.gpgHomeDir != "" {
-		args = append([]string{"--homedir", gc.gpgHomeDir})
+		args = []string{"--homedir", gc.gpgHomeDir}
 	}
 	args = append(args, option, fmt.Sprintf("0x%x", keyid))
 

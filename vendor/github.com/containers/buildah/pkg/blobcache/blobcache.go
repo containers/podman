@@ -275,12 +275,11 @@ func (s *blobCacheSource) LayerInfosForCopy(ctx context.Context, instanceDigest 
 		return nil, errors.Wrapf(err, "error getting layer infos for copying image %q through cache", transports.ImageName(s.reference))
 	}
 	if infos == nil {
-		image, err := s.reference.NewImage(ctx, &s.sys)
+		img, err := image.FromUnparsedImage(ctx, &s.sys, image.UnparsedInstance(s.source, instanceDigest))
 		if err != nil {
 			return nil, errors.Wrapf(err, "error opening image to get layer infos for copying image %q through cache", transports.ImageName(s.reference))
 		}
-		defer image.Close()
-		infos = image.LayerInfos()
+		infos = img.LayerInfos()
 	}
 
 	if canReplaceBlobs && s.reference.compress != types.PreserveOriginal {

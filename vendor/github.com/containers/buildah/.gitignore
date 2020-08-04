@@ -6,5 +6,6 @@ docs/buildah*.1
 tests/tools/build
 Dockerfile*
 !/tests/bud/*/Dockerfile*
+!/tests/conformance/**/Dockerfile*
 *.swp
 result

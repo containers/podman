@@ -251,8 +251,9 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 
 // startStage creates a new stage executor that will be referenced whenever a
 // COPY or ADD statement uses a --from=NAME flag.
-func (b *Executor) startStage(stage *imagebuilder.Stage, stages imagebuilder.Stages, output string) *StageExecutor {
+func (b *Executor) startStage(ctx context.Context, stage *imagebuilder.Stage, stages imagebuilder.Stages, output string) *StageExecutor {
 	stageExec := &StageExecutor{
+		ctx:             ctx,
 		executor:        b,
 		index:           stage.Position,
 		stages:          stages,
@@ -289,17 +290,24 @@ func (b *Executor) resolveNameToImageRef(output string) (types.ImageReference, e
 	return imageRef, nil
 }
 
-func (b *Executor) waitForStage(ctx context.Context, name string) error {
-	stage := b.stages[name]
-	if stage == nil {
-		return errors.Errorf("unknown stage %q", name)
+// waitForStage waits for an entry to be added to terminatedStage indicating
+// that the specified stage has finished.  If there is no stage defined by that
+// name, then it will return (false, nil).  If there is a stage defined by that
+// name, it will return true along with any error it encounters.
+func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebuilder.Stages) (bool, error) {
+	found := false
+	for _, otherStage := range stages {
+		if otherStage.Name == name || fmt.Sprintf("%d", otherStage.Position) == name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return false, nil
 	}
 	for {
 		if b.lastError != nil {
-			return b.lastError
-		}
-		if stage.stage == nil {
-			return nil
+			return true, b.lastError
 		}
 
 		b.stagesLock.Lock()
@@ -307,13 +315,13 @@ func (b *Executor) waitForStage(ctx context.Context, name string) error {
 		b.stagesLock.Unlock()
 
 		if terminated {
-			return nil
+			return true, nil
 		}
 
 		b.stagesSemaphore.Release(1)
 		time.Sleep(time.Millisecond * 10)
 		if err := b.stagesSemaphore.Acquire(ctx, 1); err != nil {
-			return errors.Wrapf(err, "error reacquiring job semaphore")
+			return true, errors.Wrapf(err, "error reacquiring job semaphore")
 		}
 	}
 }
@@ -355,7 +363,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	}
 
 	b.stagesLock.Lock()
-	stageExecutor := b.startStage(&stage, stages, output)
+	stageExecutor := b.startStage(ctx, &stage, stages, output)
 	b.stagesLock.Unlock()
 
 	// If this a single-layer build, or if it's a multi-layered
@@ -531,19 +539,19 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			go func() {
 				defer b.stagesSemaphore.Release(1)
 				defer wg.Done()
-				imageID, ref, err = b.buildStage(ctx, cleanupStages, stages, index)
-				if err != nil {
+				stageID, stageRef, stageErr := b.buildStage(ctx, cleanupStages, stages, index)
+				if stageErr != nil {
 					ch <- Result{
 						Index: index,
-						Error: err,
+						Error: stageErr,
 					}
 					return
 				}
 
 				ch <- Result{
 					Index:   index,
-					ImageID: imageID,
-					Ref:     ref,
+					ImageID: stageID,
+					Ref:     stageRef,
 					Error:   nil,
 				}
 			}()
@@ -559,6 +567,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 
 		b.stagesLock.Lock()
 		b.terminatedStage[stage.Name] = struct{}{}
+		b.terminatedStage[fmt.Sprintf("%d", stage.Position)] = struct{}{}
 		b.stagesLock.Unlock()
 
 		if r.Error != nil {
@@ -569,7 +578,9 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		// If this is an intermediate stage, make a note of the ID, so
 		// that we can look it up later.
 		if r.Index < len(stages)-1 && r.ImageID != "" {
+			b.stagesLock.Lock()
 			b.imageMap[stage.Name] = r.ImageID
+			b.stagesLock.Unlock()
 			// We're not populating the cache with intermediate
 			// images, so add this one to the list of images that
 			// we'll remove later.
@@ -579,6 +590,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		}
 		if r.Index == len(stages)-1 {
 			imageID = r.ImageID
+			ref = r.Ref
 		}
 	}
 

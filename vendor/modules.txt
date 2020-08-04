@@ -66,7 +66,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.15.1-0.20200708111410-d2ea9429455d
+# github.com/containers/buildah v1.15.1-0.20200731151214-29f4d01c621c
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -137,7 +137,7 @@ github.com/containers/image/v5/types
 github.com/containers/image/v5/version
 # github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b
 github.com/containers/libtrust
-# github.com/containers/ocicrypt v1.0.2
+# github.com/containers/ocicrypt v1.0.3
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
 github.com/containers/ocicrypt/config
@@ -279,8 +279,6 @@ github.com/docker/spdystream/spdy
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.6.5
 github.com/fsouza/go-dockerclient
-# github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
-github.com/fullsailor/pkcs7
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
 # github.com/godbus/dbus/v5 v5.0.3
@@ -554,6 +552,8 @@ github.com/xeipuuv/gojsonreference
 github.com/xeipuuv/gojsonschema
 # go.etcd.io/bbolt v1.3.5
 go.etcd.io/bbolt
+# go.mozilla.org/pkcs7 v0.0.0-20200128120323-432b2356ecb1
+go.mozilla.org/pkcs7
 # go.opencensus.io v0.22.0
 go.opencensus.io
 go.opencensus.io/internal

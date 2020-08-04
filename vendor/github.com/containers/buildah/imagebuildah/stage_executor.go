@@ -44,6 +44,7 @@ import (
 // If we're naming the result of the build, only the last stage will apply that
 // name to the image that it produces.
 type StageExecutor struct {
+	ctx             context.Context
 	executor        *Executor
 	index           int
 	stages          imagebuilder.Stages
@@ -262,7 +263,7 @@ func (s *StageExecutor) volumeCacheRestore() error {
 // don't care about the details of where in the filesystem the content actually
 // goes, because we're not actually going to add it here, so this is less
 // involved than Copy().
-func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []string, envValues []string) (string, error) {
+func (s *StageExecutor) digestSpecifiedContent(ctx context.Context, node *parser.Node, argValues []string, envValues []string) (string, error) {
 	// No instruction: done.
 	if node == nil {
 		return "", nil
@@ -295,6 +296,9 @@ func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []st
 			// container.  Update the ID mappings and
 			// all-content-comes-from-below-this-directory value.
 			from := strings.TrimPrefix(flag, "--from=")
+			if isStage, err := s.executor.waitForStage(ctx, from, s.stages[:s.index]); isStage && err != nil {
+				return "", err
+			}
 			if other, ok := s.executor.stages[from]; ok && other.index < s.index {
 				contextDir = other.mountPoint
 				idMappingOptions = &other.builder.IDMappingOptions
@@ -422,6 +426,9 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		var copyExcludes []string
 		contextDir := s.executor.contextDir
 		if len(copy.From) > 0 {
+			if isStage, err := s.executor.waitForStage(s.ctx, copy.From, s.stages[:s.index]); isStage && err != nil {
+				return err
+			}
 			if other, ok := s.executor.stages[copy.From]; ok && other.index < s.index {
 				contextDir = other.mountPoint
 				idMappingOptions = &other.builder.IDMappingOptions
@@ -638,9 +645,11 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 
 	// Check and see if the image is a pseudonym for the end result of a
 	// previous stage, named by an AS clause in the Dockerfile.
+	s.executor.stagesLock.Lock()
 	if asImageFound, ok := s.executor.imageMap[from]; ok {
 		builderOptions.FromImage = asImageFound
 	}
+	s.executor.stagesLock.Unlock()
 	builder, err = buildah.NewBuilder(ctx, s.executor.store, builderOptions)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating build container")
@@ -763,16 +772,14 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	// substitute that image's ID for the base image's name here.  If not,
 	// then go on assuming that it's just a regular image that's either in
 	// local storage, or one that we have to pull from a registry.
-	for _, previousStage := range s.stages[:s.index] {
-		if previousStage.Name == base {
-			if err := s.executor.waitForStage(ctx, previousStage.Name); err != nil {
-				return "", nil, err
-			}
-		}
+	if isStage, err := s.executor.waitForStage(ctx, base, s.stages[:s.index]); isStage && err != nil {
+		return "", nil, err
 	}
+	s.executor.stagesLock.Lock()
 	if stageImage, isPreviousStage := s.executor.imageMap[base]; isPreviousStage {
 		base = stageImage
 	}
+	s.executor.stagesLock.Unlock()
 
 	// Create the (first) working container for this stage.  Reinitializing
 	// the imagebuilder configuration may alter the list of steps we have,
@@ -876,10 +883,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				if len(arr) != 2 {
 					return "", nil, errors.Errorf("%s: invalid --from flag, should be --from=<name|stage>", command)
 				}
+				// If the source's name corresponds to the
+				// result of an earlier stage, wait for that
+				// stage to finish being built.
+				if isStage, err := s.executor.waitForStage(ctx, arr[1], s.stages[:s.index]); isStage && err != nil {
+					return "", nil, err
+				}
 				if otherStage, ok := s.executor.stages[arr[1]]; ok && otherStage.index < s.index {
-					if err := s.executor.waitForStage(ctx, otherStage.name); err != nil {
-						return "", nil, err
-					}
 					mountPoint = otherStage.mountPoint
 				} else if mountPoint, err = s.getImageRootfs(ctx, arr[1]); err != nil {
 					return "", nil, errors.Errorf("%s --from=%s: no stage or image found with that name", command, arr[1])
@@ -907,7 +917,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				return "", nil, errors.Wrapf(err, "error building at STEP \"%s\"", step.Message)
 			}
 			// In case we added content, retrieve its digest.
-			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments(), ib.Config().Env)
+			addedContentDigest, err := s.digestSpecifiedContent(ctx, node, ib.Arguments(), ib.Config().Env)
 			if err != nil {
 				return "", nil, err
 			}
@@ -956,7 +966,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		// cached images so far, look for one that matches what we
 		// expect to produce for this instruction.
 		if checkForLayers && !(s.executor.squash && lastInstruction && lastStage) {
-			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments(), ib.Config().Env)
+			addedContentDigest, err := s.digestSpecifiedContent(ctx, node, ib.Arguments(), ib.Config().Env)
 			if err != nil {
 				return "", nil, err
 			}
@@ -1014,7 +1024,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				return "", nil, errors.Wrapf(err, "error building at STEP \"%s\"", step.Message)
 			}
 			// In case we added content, retrieve its digest.
-			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments(), ib.Config().Env)
+			addedContentDigest, err := s.digestSpecifiedContent(ctx, node, ib.Arguments(), ib.Config().Env)
 			if err != nil {
 				return "", nil, err
 			}

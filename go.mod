@@ -10,7 +10,7 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.6
-	github.com/containers/buildah v1.15.1-0.20200708111410-d2ea9429455d
+	github.com/containers/buildah v1.15.1-0.20200731151214-29f4d01c621c
 	github.com/containers/common v0.18.0
 	github.com/containers/conmon v2.0.19+incompatible
 	github.com/containers/image/v5 v5.5.1
@@ -62,7 +62,6 @@ require (
 	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
-	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.6

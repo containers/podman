@@ -41,7 +41,7 @@ Buildah and Podman are two complementary open-source projects that are
 available on most Linux platforms and both projects reside at
 [GitHub.com](https://github.com) with Buildah
 [here](https://github.com/containers/buildah) and Podman
-[here](https://github.com/containers/libpod).  Both, Buildah and Podman are
+[here](https://github.com/containers/podman).  Both, Buildah and Podman are
 command line tools that work on Open Container Initiative (OCI) images and
 containers.  The two projects differentiate in their specialization.
 
