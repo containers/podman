@@ -6,7 +6,6 @@ import (
 	"path"
 	"runtime"
 	"runtime/pprof"
-	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -111,15 +110,6 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	cfg := registry.PodmanConfig()
-
-	// Validate --remote and --latest not given on same command
-	latest := cmd.Flags().Lookup("latest")
-	if latest != nil {
-		value, _ := strconv.ParseBool(latest.Value.String())
-		if cfg.Remote && value {
-			return errors.Errorf("For %s \"--remote\" and \"--latest\", are mutually exclusive flags", cmd.CommandPath())
-		}
-	}
 
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {

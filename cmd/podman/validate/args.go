@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -47,17 +48,20 @@ func IDOrLatestArgs(cmd *cobra.Command, args []string) error {
 // CheckAllLatestAndCIDFile checks that --all and --latest are used correctly.
 // If cidfile is set, also check for the --cidfile flag.
 func CheckAllLatestAndCIDFile(c *cobra.Command, args []string, ignoreArgLen bool, cidfile bool) error {
+	var specifiedLatest bool
 	argLen := len(args)
-	if c.Flags().Lookup("all") == nil || c.Flags().Lookup("latest") == nil {
-		if !cidfile {
-			return errors.New("unable to lookup values for 'latest' or 'all'")
-		} else if c.Flags().Lookup("cidfile") == nil {
-			return errors.New("unable to lookup values for 'latest', 'all' or 'cidfile'")
+	if !registry.IsRemote() {
+		specifiedLatest, _ = c.Flags().GetBool("latest")
+		if c.Flags().Lookup("all") == nil || c.Flags().Lookup("latest") == nil {
+			if !cidfile {
+				return errors.New("unable to lookup values for 'latest' or 'all'")
+			} else if c.Flags().Lookup("cidfile") == nil {
+				return errors.New("unable to lookup values for 'latest', 'all' or 'cidfile'")
+			}
 		}
 	}
 
 	specifiedAll, _ := c.Flags().GetBool("all")
-	specifiedLatest, _ := c.Flags().GetBool("latest")
 	specifiedCIDFile := false
 	if cid, _ := c.Flags().GetStringArray("cidfile"); len(cid) > 0 {
 		specifiedCIDFile = true
@@ -98,17 +102,21 @@ func CheckAllLatestAndCIDFile(c *cobra.Command, args []string, ignoreArgLen bool
 // CheckAllLatestAndPodIDFile checks that --all and --latest are used correctly.
 // If withIDFile is set, also check for the --pod-id-file flag.
 func CheckAllLatestAndPodIDFile(c *cobra.Command, args []string, ignoreArgLen bool, withIDFile bool) error {
+	var specifiedLatest bool
 	argLen := len(args)
-	if c.Flags().Lookup("all") == nil || c.Flags().Lookup("latest") == nil {
-		if !withIDFile {
-			return errors.New("unable to lookup values for 'latest' or 'all'")
-		} else if c.Flags().Lookup("pod-id-file") == nil {
-			return errors.New("unable to lookup values for 'latest', 'all' or 'pod-id-file'")
+	if !registry.IsRemote() {
+		// remote clients have no latest flag
+		specifiedLatest, _ = c.Flags().GetBool("latest")
+		if c.Flags().Lookup("all") == nil || c.Flags().Lookup("latest") == nil {
+			if !withIDFile {
+				return errors.New("unable to lookup values for 'latest' or 'all'")
+			} else if c.Flags().Lookup("pod-id-file") == nil {
+				return errors.New("unable to lookup values for 'latest', 'all' or 'pod-id-file'")
+			}
 		}
 	}
 
 	specifiedAll, _ := c.Flags().GetBool("all")
-	specifiedLatest, _ := c.Flags().GetBool("latest")
 	specifiedPodIDFile := false
 	if pid, _ := c.Flags().GetStringArray("pod-id-file"); len(pid) > 0 {
 		specifiedPodIDFile = true
