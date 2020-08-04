@@ -142,8 +142,6 @@ EOF
 
 # Anonymous temporary volumes, and persistent autocreated named ones
 @test "podman volume, implicit creation with run" {
-    skip_if_remote "FIXME: pending #7128"
-
     # No hostdir arg: create anonymous container with random name
     rand=$(random_string)
     run_podman run -v /myvol $IMAGE sh -c "echo $rand >/myvol/myfile"
