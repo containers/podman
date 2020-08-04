@@ -43,6 +43,12 @@ type State interface {
 	// containers and pods in all namespaces will be returned.
 	SetNamespace(ns string) error
 
+	// Resolve an ID into a Name. Since Podman names and IDs are globally
+	// unique between Pods and Containers, the ID may belong to either a pod
+	// or container. Despite this, we will always return ErrNoSuchCtr if the
+	// ID does not exist.
+	GetName(id string) (string, error)
+
 	// Return a container from the database from its full ID.
 	// If the container is not in the set namespace, an error will be
 	// returned.

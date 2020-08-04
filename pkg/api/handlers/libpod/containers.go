@@ -41,7 +41,6 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		Last      int                 `schema:"last"` // alias for limit
 		Limit     int                 `schema:"limit"`
 		Namespace bool                `schema:"namespace"`
-		Pod       bool                `schema:"pod"`
 		Size      bool                `schema:"size"`
 		Sync      bool                `schema:"sync"`
 	}{
@@ -72,7 +71,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		Size:      query.Size,
 		Sort:      "",
 		Namespace: query.Namespace,
-		Pod:       query.Pod,
+		Pod:       true,
 		Sync:      query.Sync,
 	}
 	pss, err := ps.GetContainerLists(runtime, opts)
