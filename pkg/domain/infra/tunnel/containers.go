@@ -500,9 +500,6 @@ func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.C
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
-	if opts.Rm {
-		logrus.Info("the remote client does not support --rm yet")
-	}
 	con, err := containers.CreateWithSpec(ic.ClientCxt, opts.Spec)
 	if err != nil {
 		return nil, err
@@ -526,6 +523,17 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	if err != nil {
 		report.ExitCode = define.ExitCode(err)
 	}
+	if opts.Rm {
+		if err := containers.Remove(ic.ClientCxt, con.ID, bindings.PFalse, bindings.PTrue); err != nil {
+			if errors.Cause(err) == define.ErrNoSuchCtr ||
+				errors.Cause(err) == define.ErrCtrRemoved {
+				logrus.Warnf("Container %s does not exist: %v", con.ID, err)
+			} else {
+				logrus.Errorf("Error removing container %s: %v", con.ID, err)
+			}
+		}
+	}
+
 	return &report, err
 }
 

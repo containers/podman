@@ -163,8 +163,6 @@ EOF
             die "$path: Unknown file type '$type'"
         fi
     done
-
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
 }
 
 # vim: filetype=sh

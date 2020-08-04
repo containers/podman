@@ -10,8 +10,6 @@ load helpers
     #   Error: invalid argument "true=\"false\"" for "-l, --label" \
     #      flag: parse error on line 1, column 5: bare " in non-quoted-field
     run_podman run --rm --label 'true="false"' $IMAGE true
-
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
 }
 
 # vim: filetype=sh

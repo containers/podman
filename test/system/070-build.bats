@@ -91,7 +91,6 @@ ADD https://github.com/containers/libpod/blob/master/README.md /tmp/
 EOF
     run_podman build -t add_url $tmpdir
     run_podman run --rm add_url stat /tmp/README.md
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman rmi -f add_url
 
     # Now test COPY. That should fail.

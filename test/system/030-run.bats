@@ -84,8 +84,6 @@ echo $rand        |   0 | $rand
     # Believe it or not, 'sh -c' resulted in different behavior
     run_podman 0 run --rm $IMAGE sh -c /bin/true
     run_podman 1 run --rm $IMAGE sh -c /bin/false
-
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
 }
 
 @test "podman run --name" {
