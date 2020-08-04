@@ -98,7 +98,7 @@ func Remove(ctx context.Context, nameOrID string, force, volumes *bool) error {
 		params.Set("force", strconv.FormatBool(*force))
 	}
 	if volumes != nil {
-		params.Set("vols", strconv.FormatBool(*volumes))
+		params.Set("v", strconv.FormatBool(*volumes))
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/containers/%s", params, nil, nameOrID)
 	if err != nil {
