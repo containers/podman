@@ -341,6 +341,16 @@ func SystemExec(command string, args []string) *PodmanSession {
 	return &PodmanSession{session}
 }
 
+// StartSystemExec is used to start exec a system command
+func StartSystemExec(command string, args []string) *PodmanSession {
+	c := exec.Command(command, args...)
+	session, err := gexec.Start(c, GinkgoWriter, GinkgoWriter)
+	if err != nil {
+		Fail(fmt.Sprintf("unable to run command: %s %s", command, strings.Join(args, " ")))
+	}
+	return &PodmanSession{session}
+}
+
 // StringInSlice determines if a string is in a string slice, returns bool
 func StringInSlice(s string, sl []string) bool {
 	for _, i := range sl {

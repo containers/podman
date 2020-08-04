@@ -171,6 +171,8 @@ type slirpFeatures struct {
 	HasMTU                 bool
 	HasEnableSandbox       bool
 	HasEnableSeccomp       bool
+	HasOutboundAddr        bool
+	HasIPv6                bool
 }
 
 type slirp4netnsCmdArg struct {
@@ -197,6 +199,8 @@ func checkSlirpFlags(path string) (*slirpFeatures, error) {
 		HasMTU:                 strings.Contains(string(out), "--mtu"),
 		HasEnableSandbox:       strings.Contains(string(out), "--enable-sandbox"),
 		HasEnableSeccomp:       strings.Contains(string(out), "--enable-seccomp"),
+		HasOutboundAddr:        strings.Contains(string(out), "--outbound-addr"),
+		HasIPv6:                strings.Contains(string(out), "--enable-ipv6"),
 	}, nil
 }
 
@@ -225,21 +229,64 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 
 	isSlirpHostForward := false
 	disableHostLoopback := true
+	enableIPv6 := false
+	outboundAddr := ""
+	outboundAddr6 := ""
+
 	if ctr.config.NetworkOptions != nil {
 		slirpOptions := ctr.config.NetworkOptions["slirp4netns"]
 		for _, o := range slirpOptions {
-			switch o {
-			case "port_handler=slirp4netns":
-				isSlirpHostForward = true
-			case "port_handler=rootlesskit":
-				isSlirpHostForward = false
-			case "allow_host_loopback=true":
-				disableHostLoopback = false
-			case "allow_host_loopback=false":
-				disableHostLoopback = true
+			parts := strings.Split(o, "=")
+			option, value := parts[0], parts[1]
+
+			switch option {
+			case "port_handler":
+				switch value {
+				case "slirp4netns":
+					isSlirpHostForward = true
+				case "rootlesskit":
+					isSlirpHostForward = false
+				default:
+					return errors.Errorf("unknown port_handler for slirp4netns: %q", value)
+				}
+			case "allow_host_loopback":
+				switch value {
+				case "true":
+					disableHostLoopback = false
+				case "false":
+					disableHostLoopback = true
+				default:
+					return errors.Errorf("invalid value of allow_host_loopback for slirp4netns: %q", value)
+				}
+			case "enable_ipv6":
+				switch value {
+				case "true":
+					enableIPv6 = true
+				case "false":
+					enableIPv6 = false
+				default:
+					return errors.Errorf("invalid value of enable_ipv6 for slirp4netns: %q", value)
+				}
+			case "outbound_addr":
+				ipv4 := net.ParseIP(value)
+				if ipv4 == nil || ipv4.To4() == nil {
+					_, err := net.InterfaceByName(value)
+					if err != nil {
+						return errors.Errorf("invalid outbound_addr %q", value)
+					}
+				}
+				outboundAddr = value
+			case "outbound_addr6":
+				ipv6 := net.ParseIP(value)
+				if ipv6 == nil || ipv6.To4() != nil {
+					_, err := net.InterfaceByName(value)
+					if err != nil {
+						return errors.Errorf("invalid outbound_addr6: %q", value)
+					}
+				}
+				outboundAddr6 = value
 			default:
 				return errors.Errorf("unknown option for slirp4netns: %q", o)
-
 			}
 		}
 	}
@@ -260,6 +307,30 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	}
 	if slirpFeatures.HasEnableSeccomp {
 		cmdArgs = append(cmdArgs, "--enable-seccomp")
+	}
+
+	if enableIPv6 {
+		if !slirpFeatures.HasIPv6 {
+			return errors.Errorf("enable_ipv6 not supported")
+		}
+		cmdArgs = append(cmdArgs, "--enable-ipv6")
+	}
+
+	if outboundAddr != "" {
+		if !slirpFeatures.HasOutboundAddr {
+			return errors.Errorf("outbound_addr not supported")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--outbound-addr=%s", outboundAddr))
+	}
+
+	if outboundAddr6 != "" {
+		if !slirpFeatures.HasOutboundAddr || !slirpFeatures.HasIPv6 {
+			return errors.Errorf("outbound_addr6 not supported")
+		}
+		if !enableIPv6 {
+			return errors.Errorf("enable_ipv6=true is required for outbound_addr6")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--outbound-addr6=%s", outboundAddr6))
 	}
 
 	var apiSocket string
