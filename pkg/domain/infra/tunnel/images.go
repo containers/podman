@@ -196,7 +196,11 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 		return nil, err
 	}
 	defer f.Close()
-	return images.Load(ir.ClientCxt, f, &opts.Name)
+	ref := opts.Name
+	if len(opts.Tag) > 0 {
+		ref += ":" + opts.Tag
+	}
+	return images.Load(ir.ClientCxt, f, &ref)
 }
 
 func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
