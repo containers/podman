@@ -2347,11 +2347,19 @@ func (s *BoltState) AddPod(pod *Pod) error {
 		// Check if we already have something with the given ID and name
 		idExist := idsBkt.Get(podID)
 		if idExist != nil {
-			return errors.Wrapf(define.ErrPodExists, "ID %s is in use", pod.ID())
+			err = define.ErrPodExists
+			if allPodsBkt.Get(idExist) == nil {
+				err = define.ErrCtrExists
+			}
+			return errors.Wrapf(err, "ID \"%s\" is in use", pod.ID())
 		}
 		nameExist := namesBkt.Get(podName)
 		if nameExist != nil {
-			return errors.Wrapf(define.ErrPodExists, "name %s is in use", pod.Name())
+			err = define.ErrPodExists
+			if allPodsBkt.Get(nameExist) == nil {
+				err = define.ErrCtrExists
+			}
+			return errors.Wrapf(err, "name \"%s\" is in use", pod.Name())
 		}
 
 		// We are good to add the pod

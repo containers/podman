@@ -586,11 +586,19 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		// Check if we already have a container with the given ID and name
 		idExist := idsBucket.Get(ctrID)
 		if idExist != nil {
-			return errors.Wrapf(define.ErrCtrExists, "ID %s is in use", ctr.ID())
+			err = define.ErrCtrExists
+			if allCtrsBucket.Get(idExist) == nil {
+				err = define.ErrPodExists
+			}
+			return errors.Wrapf(err, "ID \"%s\" is in use", ctr.ID())
 		}
 		nameExist := namesBucket.Get(ctrName)
 		if nameExist != nil {
-			return errors.Wrapf(define.ErrCtrExists, "name %s is in use", ctr.Name())
+			err = define.ErrCtrExists
+			if allCtrsBucket.Get(nameExist) == nil {
+				err = define.ErrPodExists
+			}
+			return errors.Wrapf(err, "name \"%s\" is in use", ctr.Name())
 		}
 
 		// No overlapping containers
