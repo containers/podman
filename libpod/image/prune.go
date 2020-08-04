@@ -66,6 +66,12 @@ func (ir *Runtime) GetPruneImages(ctx context.Context, all bool, filterFuncs []I
 	if err != nil {
 		return nil, err
 	}
+
+	tree, err := ir.layerTree()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, i := range allImages {
 		// filter the images based on this.
 		for _, filterFunc := range filterFuncs {
@@ -85,8 +91,9 @@ func (ir *Runtime) GetPruneImages(ctx context.Context, all bool, filterFuncs []I
 			}
 		}
 
-		//skip the cache or intermediate images
-		intermediate, err := i.Intermediate(ctx)
+		// skip the cache (i.e., with parent) and intermediate (i.e.,
+		// with children) images
+		intermediate, err := tree.hasChildrenAndParent(ctx, i)
 		if err != nil {
 			return nil, err
 		}

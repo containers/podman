@@ -29,6 +29,26 @@ func CreatedBeforeFilter(createTime time.Time) ResultFilter {
 	}
 }
 
+// IntermediateFilter returns filter for intermediate images (i.e., images
+// with children and no tags).
+func (ir *Runtime) IntermediateFilter(ctx context.Context, images []*Image) (ResultFilter, error) {
+	tree, err := ir.layerTree()
+	if err != nil {
+		return nil, err
+	}
+	return func(i *Image) bool {
+		if len(i.Names()) > 0 {
+			return true
+		}
+		children, err := tree.children(ctx, i, false)
+		if err != nil {
+			logrus.Error(err.Error())
+			return false
+		}
+		return len(children) == 0
+	}, nil
+}
+
 // CreatedAfterFilter allows you to filter on images created after
 // the given time.Time
 func CreatedAfterFilter(createTime time.Time) ResultFilter {
