@@ -18,7 +18,9 @@ function teardown() {
 
 
 @test "podman pod top - containers in different PID namespaces" {
-    skip_if_remote "podman-pod does not work with podman-remote"
+    if is_remote && is_rootless; then
+        skip "FIXME: pending #7139"
+    fi
 
     # With infra=false, we don't get a /pause container (we also
     # don't pull k8s.gcr.io/pause )
@@ -53,7 +55,9 @@ function teardown() {
 
 
 @test "podman pod - communicating between pods" {
-    skip_if_remote "podman-pod does not work with podman-remote"
+    if is_remote && is_rootless; then
+        skip "FIXME: pending #7139"
+    fi
 
     podname=pod$(random_string)
     run_podman 1 pod exists $podname
@@ -77,7 +81,7 @@ function teardown() {
     run_podman ps --format '{{.Pod}}'
     newline="
 "
-    is "$output" "${podid:0:12}${newline}${podid:0:12}" "sdfdsf"
+    is "$output" "${podid:0:12}${newline}${podid:0:12}" "ps shows 2 pod IDs"
 
     # Talker: send the message via common port on localhost
     message=$(random_string 15)
@@ -89,6 +93,7 @@ function teardown() {
     is "$output" "$message" "message sent from one container to another"
 
     # Clean up. First the nc -l container...
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman rm $cid1
 
     # ...then, from pause container, find the image ID of the pause image...
@@ -99,6 +104,7 @@ function teardown() {
     pause_iid="$output"
 
     # ...then rm the pod, then rmi the pause image so we don't leave strays.
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman pod rm $podname
     run_podman rmi $pause_iid
 
@@ -135,6 +141,10 @@ function random_ip() {
 }
 
 @test "podman pod create - hashtag AllTheOptions" {
+    if is_remote && is_rootless; then
+        skip "FIXME: pending #7139"
+    fi
+
     mac=$(random_mac)
     add_host_ip=$(random_ip)
     add_host_n=$(random_string | tr A-Z a-z).$(random_string | tr A-Z a-z).xyz
@@ -205,6 +215,7 @@ function random_ip() {
     is "$output" ".*options $dns_opt"        "--dns-opt was added"
 
     # pod inspect
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman pod inspect --format '{{.Name}}: {{.ID}} : {{.NumContainers}} : {{.Labels}}' mypod
     is "$output" "mypod: $pod_id : 1 : map\[${labelname}:${labelvalue}]" \
        "pod inspect --format ..."

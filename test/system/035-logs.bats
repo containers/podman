@@ -25,6 +25,8 @@ load helpers
 }
 
 @test "podman logs - multi" {
+    skip_if_remote "logs does not support multiple containers when run remotely"
+
     # Simple helper to make the container starts, below, easier to read
     local -a cid
     doit() {

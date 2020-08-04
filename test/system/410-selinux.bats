@@ -16,6 +16,7 @@ function check_label() {
     # FIXME: it'd be nice to specify the command to run, e.g. 'ls -dZ /',
     # but alpine ls (from busybox) doesn't support -Z
     run_podman run --rm $args $IMAGE cat -v /proc/self/attr/current
+    if is_remote; then sleep 2;fi   # FIXME: pending #7119
 
     # FIXME: on some CI systems, 'run --privileged' emits a spurious
     # warning line about dup devices. Ignore it.
