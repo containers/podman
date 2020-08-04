@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/errorhandling"
@@ -58,7 +59,7 @@ func runFlags(flags *pflag.FlagSet) {
 	flags.SetInterspersed(false)
 	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
 	flags.AddFlagSet(common.GetNetFlags())
-	flags.SetNormalizeFunc(common.AliasFlags)
+	flags.SetNormalizeFunc(utils.AliasFlags)
 	flags.BoolVar(&runOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 	flags.BoolVar(&runRmi, "rmi", false, "Remove container image unless used by other containers")
 	flags.UintVar(&runOpts.PreserveFDs, "preserve-fds", 0, "Pass a number of additional file descriptors into the container")

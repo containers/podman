@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/errorhandling"
@@ -58,7 +59,7 @@ func createFlags(flags *pflag.FlagSet) {
 	flags.SetInterspersed(false)
 	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
 	flags.AddFlagSet(common.GetNetFlags())
-	flags.SetNormalizeFunc(common.AliasFlags)
+	flags.SetNormalizeFunc(utils.AliasFlags)
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
