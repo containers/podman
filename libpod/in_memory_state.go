@@ -106,6 +106,36 @@ func (s *InMemoryState) SetNamespace(ns string) error {
 	return nil
 }
 
+// GetName retrieves the name associated with a given ID.
+// Works with both Container and Pod IDs.
+func (s *InMemoryState) GetName(id string) (string, error) {
+	if id == "" {
+		return "", define.ErrEmptyID
+	}
+
+	var idIndex *truncindex.TruncIndex
+	if s.namespace != "" {
+		nsIndex, ok := s.namespaceIndexes[s.namespace]
+		if !ok {
+			// We have no containers in the namespace
+			// Return false
+			return "", define.ErrNoSuchCtr
+		}
+		idIndex = nsIndex.idIndex
+	} else {
+		idIndex = s.idIndex
+	}
+
+	fullID, err := idIndex.Get(id)
+	if err != nil {
+		if err == truncindex.ErrNotExist {
+			return "", define.ErrNoSuchCtr
+		}
+		return "", errors.Wrapf(err, "error performing truncindex lookup for ID %s", id)
+	}
+	return fullID, nil
+}
+
 // Container retrieves a container from its full ID
 func (s *InMemoryState) Container(id string) (*Container, error) {
 	if id == "" {
