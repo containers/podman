@@ -1125,6 +1125,8 @@ USER mail`
 	})
 
 	It("podman run makes entrypoint from image", func() {
+		// BuildImage does not seem to work remote
+		SkipIfRemote()
 		dockerfile := `FROM busybox
 WORKDIR /madethis`
 		podmanTest.BuildImage(dockerfile, "test", "false")
