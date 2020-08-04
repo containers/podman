@@ -76,6 +76,8 @@ func (c *SecurityConfig) SetSecurityOpts(runtime *libpod.Runtime, securityOpts [
 			}
 
 			switch con[0] {
+			case "proc-opts":
+				c.ProcOpts = strings.Split(con[1], ",")
 			case "label":
 				c.LabelOpts = append(c.LabelOpts, con[1])
 			case "apparmor":

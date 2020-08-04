@@ -18,6 +18,18 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func setProcOpts(s *specgen.SpecGenerator, g *generate.Generator) {
+	if s.ProcOpts == nil {
+		return
+	}
+	for i := range g.Config.Mounts {
+		if g.Config.Mounts[i].Destination == "/proc" {
+			g.Config.Mounts[i].Options = s.ProcOpts
+			return
+		}
+	}
+}
+
 func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 	var (
 		isRootless = rootless.IsRootless()
@@ -340,6 +352,8 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	} else {
 		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseFalse
 	}
+
+	setProcOpts(s, &g)
 
 	return configSpec, nil
 }

@@ -125,6 +125,7 @@ type SecurityConfig struct {
 	ReadOnlyRootfs          bool              //read-only
 	ReadOnlyTmpfs           bool              //read-only-tmpfs
 	Sysctl                  map[string]string //sysctl
+	ProcOpts                []string
 }
 
 // CreateConfig is a pre OCI spec structure.  It represents user input from varlink or the CLI

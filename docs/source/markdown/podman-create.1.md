@@ -756,6 +756,9 @@ Security Options
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
 - `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
 
+- `proc-opts=OPTIONS` : Comma separated list of options to use for the /proc mount.  More details for the
+  possible mount options are specified at **proc(5)** man page.
+
 Note: Labeling can be disabled for all containers by setting label=false in the **containers.conf** (`/etc/containers/containers.conf` or `$HOME/.config/containers/containers.conf`) file.
 
 **--shm-size**=*size*
@@ -1168,7 +1171,7 @@ b
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-**subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1).
+**subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5)**.
 
 ## HISTORY
 October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman <dwalsh@redhat.com>

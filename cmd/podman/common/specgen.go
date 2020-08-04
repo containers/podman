@@ -511,6 +511,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			}
 
 			switch con[0] {
+			case "proc-opts":
+				s.ProcOpts = strings.Split(con[1], ",")
 			case "label":
 				// TODO selinux opts and label opts are the same thing
 				s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])

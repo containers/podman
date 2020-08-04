@@ -774,6 +774,8 @@ Security Options
 - **no-new-privileges**: Disable container processes from gaining additional privileges
 - **seccomp=unconfined**: Turn off seccomp confinement for the container
 - **seccomp**=_profile.json_:  Allowed syscall list seccomp JSON file to be used as a seccomp filter
+- **proc-opts**=_OPTIONS_ : Comma separated list of options to use for the /proc mount.  More details
+  for the possible mount options are specified at **proc(5)** man page.
 
 Note: Labeling can be disabled for all containers by setting **label=false** in the **containers.conf**(5) file.
 
@@ -1449,7 +1451,7 @@ b
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-**subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1).
+**subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5)**.
 
 ## HISTORY
 September 2018, updated by Kunal Kushwaha <kushwaha_kunal_v7@lab.ntt.co.jp>
