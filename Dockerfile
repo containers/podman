@@ -9,7 +9,7 @@ ENV GOSRC=$GOPATH/src/github.com/containers/podman
 ENV SCRIPT_BASE=./contrib/cirrus
 ENV PACKER_BASE=$SCRIPT_BASE/packer
 
-ADD / $GOSRC
+ADD . $GOSRC
 WORKDIR $GOSRC
 
 # Re-use repositories and package setup as in VMs under CI

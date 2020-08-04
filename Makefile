@@ -267,7 +267,10 @@ libpodimage: ## Build the libpod image
 
 .PHONY: dbuild
 dbuild: libpodimage
-	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} make all
+	-${CONTAINER_RUNTIME} rm ${LIBPOD_INSTANCE}
+	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged ${LIBPOD_IMAGE} make all
+	${CONTAINER_RUNTIME} cp ${LIBPOD_INSTANCE}:/var/tmp/go/src/github.com/containers/podman/bin/podman bin/
+	-${CONTAINER_RUNTIME} rm ${LIBPOD_INSTANCE}
 
 .PHONY: dbuild-podman-remote
 dbuild-podman-remote: libpodimage
