@@ -96,8 +96,6 @@ echo $rand        |   0 | $rand
     # Believe it or not, 'sh -c' resulted in different behavior
     run_podman 0 run --rm $IMAGE sh -c /bin/true
     run_podman 1 run --rm $IMAGE sh -c /bin/false
-
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
 }
 
 @test "podman run --name" {
@@ -266,8 +264,6 @@ echo $rand        |   0 | $rand
             done
         done
     done
-
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
 }
 
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
@@ -292,8 +288,6 @@ echo $rand        |   0 | $rand
     run_podman run --rm --privileged --userns=keep-id --user=0 $IMAGE id -un
     remove_same_dev_warning      # grumble
     is "$output" "root" "--user=0 overrides keep-id"
-
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
 }
 
 # #6991 : /etc/passwd is modifiable
