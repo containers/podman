@@ -2,6 +2,18 @@
 
 # Changelog
 
+## v1.15.1 (2020-07-27)
+    Mask over the /sys/fs/selinux in mask branch
+    chroot: do not use setgroups if it is blocked
+    chroot, run: not fail on bind mounts from /sys
+    Allow "readonly" as alias to "ro" in mount options
+    Add VFS additional image store to container
+    Ignore OS X specific consistency mount option
+    vendor golang.org/x/text@v0.3.3
+    Cirrus: Fix missing htpasswd in registry img
+    Switch scripts to use containers.conf
+    Make imagebuildah.BuildOptions.Architecture/OS optional
+
 ## v1.15.0 (2020-06-17)
     Bump github.com/containers/common from 0.12.0 to 0.13.1
     Bump github.com/containers/storage from 1.20.1 to 1.20.2
