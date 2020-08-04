@@ -647,6 +647,8 @@ Both hostPort and containerPort can be specified as a range of ports.
 
 When specifying ranges for both, the number of container ports in the range must match the number of host ports in the range.
 
+If host IP is set to 0.0.0.0 or not set at all, the port will be bound on all IPs on the host.
+
 Host port does not have to be specified (e.g. `podman run -p 127.0.0.1::80`).
 If it is not, the container port will be randomly assigned a port on the host.
 
