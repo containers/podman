@@ -195,6 +195,7 @@ func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
 		} else {
 			h.ImageSummary = *e
 			h.Repository = "<none>"
+			h.Tag = "<none>"
 			imgs = append(imgs, h)
 		}
 		listFlag.readOnly = e.IsReadOnly()
@@ -205,27 +206,34 @@ func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
 }
 
 func tokenRepoTag(ref string) (string, string, error) {
-
 	if ref == "<none>:<none>" {
 		return "<none>", "<none>", nil
 	}
 
 	repo, err := reference.Parse(ref)
 	if err != nil {
-		return "", "", err
+		return "<none>", "<none>", err
 	}
 
 	named, ok := repo.(reference.Named)
 	if !ok {
-		return ref, "", nil
+		return ref, "<none>", nil
+	}
+	name := named.Name()
+	if name == "" {
+		name = "<none>"
 	}
 
 	tagged, ok := repo.(reference.Tagged)
 	if !ok {
-		return named.Name(), "", nil
+		return name, "<none>", nil
+	}
+	tag := tagged.Tag()
+	if tag == "" {
+		tag = "<none>"
 	}
 
-	return named.Name(), tagged.Tag(), nil
+	return name, tag, nil
 
 }
 
