@@ -135,14 +135,17 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	s.Annotations = annotations
 
 	// workdir
-	if newImage != nil {
-		workingDir, err := newImage.WorkingDir(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if len(s.WorkDir) < 1 && len(workingDir) > 1 {
+	if s.WorkDir == "" {
+		if newImage != nil {
+			workingDir, err := newImage.WorkingDir(ctx)
+			if err != nil {
+				return nil, err
+			}
 			s.WorkDir = workingDir
 		}
+	}
+	if s.WorkDir == "" {
+		s.WorkDir = "/"
 	}
 
 	if len(s.SeccompProfilePath) < 1 {

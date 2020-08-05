@@ -218,13 +218,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	// If the user did not set an workdir but the image did, ensure it is
 	// created.
 	if s.WorkDir == "" && img != nil {
-		newWD, err := img.WorkingDir(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if newWD != "" {
-			options = append(options, libpod.WithCreateWorkingDir())
-		}
+		options = append(options, libpod.WithCreateWorkingDir())
 	}
 	if s.StopSignal != nil {
 		options = append(options, libpod.WithStopSignal(*s.StopSignal))
