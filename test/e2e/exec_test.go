@@ -210,7 +210,6 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec missing working directory test", func() {
-		Skip(v2remotefail)
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
@@ -225,7 +224,6 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec cannot be invoked", func() {
-		Skip(v2remotefail)
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
@@ -236,7 +234,6 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec command not found", func() {
-		Skip(v2remotefail)
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
