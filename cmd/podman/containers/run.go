@@ -126,6 +126,11 @@ func run(cmd *cobra.Command, args []string) error {
 	if err := createInit(cmd); err != nil {
 		return err
 	}
+	for fd := 3; fd < int(3+runOpts.PreserveFDs); fd++ {
+		if !rootless.IsFdInherited(fd) {
+			return errors.Errorf("file descriptor %d is not available - the preserve-fds option requires that file descriptors must be passed", fd)
+		}
+	}
 
 	imageName := args[0]
 	if !cliVals.RootFS {

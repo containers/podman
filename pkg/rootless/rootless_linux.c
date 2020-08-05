@@ -225,6 +225,16 @@ can_use_shortcut ()
   return ret;
 }
 
+int
+is_fd_inherited(int fd)
+{
+  if (open_files_set == NULL || fd > open_files_max_fd || fd < 0)
+  {
+    return 0;
+  }
+  return FD_ISSET(fd % FD_SETSIZE, &(open_files_set[fd / FD_SETSIZE])) ? 1 : 0;
+}
+
 static void __attribute__((constructor)) init()
 {
   const char *xdg_runtime_dir;

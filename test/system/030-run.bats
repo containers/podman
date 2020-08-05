@@ -63,7 +63,6 @@ echo $rand        |   0 | $rand
 
 # 'run --preserve-fds' passes a number of additional file descriptors into the container
 @test "podman run --preserve-fds" {
-    skip "enable this once #6653 is fixed"
     skip_if_remote
 
     content=$(random_string 20)

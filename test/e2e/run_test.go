@@ -1063,6 +1063,13 @@ USER mail`
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run --preserve-fds invalid fd", func() {
+		session := podmanTest.Podman([]string{"run", "--preserve-fds", "2", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ErrorToString()).To(ContainSubstring("file descriptor 3 is not available"))
+	})
+
 	It("podman run --privileged and --group-add", func() {
 		groupName := "kvm"
 		session := podmanTest.Podman([]string{"run", "-t", "-i", "--group-add", groupName, "--privileged", fedoraMinimal, "groups"})

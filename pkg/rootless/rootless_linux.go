@@ -32,6 +32,7 @@ extern uid_t rootless_gid();
 extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path, char *file_to_read, int fd);
 extern int reexec_in_user_namespace_wait(int pid, int options);
 extern int reexec_userns_join(int pid, char *pause_pid_file_path);
+extern int is_fd_inherited(int fd);
 */
 import "C"
 
@@ -519,4 +520,9 @@ func ConfigurationMatches() (bool, error) {
 	}
 
 	return matches(GetRootlessGID(), gids, currentGIDs), nil
+}
+
+// IsFdInherited checks whether the fd is opened and valid to use
+func IsFdInherited(fd int) bool {
+	return int(C.is_fd_inherited(C.int(fd))) > 0
 }
