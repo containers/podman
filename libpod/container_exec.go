@@ -415,6 +415,13 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, httpCon net.Conn, h
 
 	execOpts, err := prepareForExec(c, session)
 	if err != nil {
+		session.State = define.ExecStateStopped
+		session.ExitCode = define.ExecErrorCodeGeneric
+
+		if err := c.save(); err != nil {
+			logrus.Errorf("Error saving container %s exec session %s after failure to prepare: %v", err, c.ID(), session.ID())
+		}
+
 		return err
 	}
 
@@ -427,6 +434,13 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, httpCon net.Conn, h
 
 	pid, attachChan, err := c.ociRuntime.ExecContainerHTTP(c, session.ID(), execOpts, httpCon, httpBuf, streams, cancel)
 	if err != nil {
+		session.State = define.ExecStateStopped
+		session.ExitCode = define.TranslateExecErrorToExitCode(define.ExecErrorCodeGeneric, err)
+
+		if err := c.save(); err != nil {
+			logrus.Errorf("Error saving container %s exec session %s after failure to start: %v", err, c.ID(), session.ID())
+		}
+
 		return err
 	}
 
