@@ -72,16 +72,16 @@ var _ = Describe("Podman logs", func() {
 		Expect(len(results.OutputToStringArray())).To(Equal(0))
 	})
 
-	It("tail 99 lines", func() {
-		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+	It("tail 800 lines", func() {
+		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "i=1; while [ \"$i\" -ne 1000 ]; do echo \"line $i\"; i=$((i + 1)); done"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
 		cid := logc.OutputToString()
 
-		results := podmanTest.Podman([]string{"logs", "--tail", "99", cid})
+		results := podmanTest.Podman([]string{"logs", "--tail", "800", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results).To(Exit(0))
-		Expect(len(results.OutputToStringArray())).To(Equal(3))
+		Expect(len(results.OutputToStringArray())).To(Equal(800))
 	})
 
 	It("tail 2 lines with timestamps", func() {
