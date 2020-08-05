@@ -207,6 +207,10 @@ func WaitContainerReady(p PodmanTestCommon, id string, expStr string, timeout in
 
 // OutputToString formats session output to string
 func (s *PodmanSession) OutputToString() string {
+	if s == nil || s.Out == nil || s.Out.Contents() == nil {
+		return ""
+	}
+
 	fields := strings.Fields(string(s.Out.Contents()))
 	return strings.Join(fields, " ")
 }
