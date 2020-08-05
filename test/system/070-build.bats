@@ -165,6 +165,7 @@ EOF
     # cd to the dir, so we test relative paths (important for podman-remote)
     cd $PODMAN_TMPDIR
     run_podman build -t build_test -f build-test/Containerfile build-test
+    local iid="${lines[-1]}"
 
     # Run without args - should run the above script. Verify its output.
     export MYENV2="$s_env2"
@@ -231,6 +232,22 @@ Labels.$label_name | $label_value
 
     run_podman run --rm build_test stat -c'%u:%g:%N' /a/b/c/myfile
     is "$output" "4:5:/a/b/c/myfile" "file in volume is chowned"
+
+    # Hey, as long as we have an image with lots of layers, let's
+    # confirm that 'image tree' works as expected
+    run_podman image tree build_test
+    is "${lines[0]}" "Image ID: ${iid:0:12}" \
+       "image tree: first line"
+    is "${lines[1]}" "Tags:     \[localhost/build_test:latest]" \
+       "image tree: second line"
+    is "${lines[2]}" "Size:     [0-9.]\+[kM]B" \
+       "image tree: third line"
+    is "${lines[3]}" "Image Layers" \
+       "image tree: fourth line"
+    is "${lines[4]}"  "...  ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[$IMAGE]" \
+       "image tree: first layer line"
+    is "${lines[-1]}" "...  ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/build_test:latest]" \
+       "image tree: last layer line"
 
     # Clean up
     run_podman rmi -f build_test
