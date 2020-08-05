@@ -90,6 +90,7 @@ github.com/containers/common/pkg/auth
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/cgroupv2
 github.com/containers/common/pkg/config
+github.com/containers/common/pkg/retry
 github.com/containers/common/pkg/sysinfo
 github.com/containers/common/version
 # github.com/containers/conmon v2.0.19+incompatible
