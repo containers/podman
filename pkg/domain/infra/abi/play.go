@@ -340,9 +340,7 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 				HostPort:      p.HostPort,
 				ContainerPort: p.ContainerPort,
 				Protocol:      strings.ToLower(string(p.Protocol)),
-			}
-			if p.HostIP != "" {
-				logrus.Debug("HostIP on port bindings is not supported")
+				HostIP:        p.HostIP,
 			}
 			// only hostPort is utilized in podman context, all container ports
 			// are accessible inside the shared network namespace
