@@ -21,6 +21,15 @@ load helpers
     run_podman exec $cid sh -c "cat /$rand_filename"
     is "$output" "$rand_content" "Can exec and see file in running container"
 
+
+    # Specially defined situations: exec a dir, or no such command.
+    # We don't check the full error message because runc & crun differ.
+    run_podman 126 exec $cid /etc
+    is "$output" ".*permission denied"  "podman exec /etc"
+    run_podman 127 exec $cid /no/such/command
+    is "$output" ".*such file or dir"   "podman exec /no/such/command"
+
+    # Done
     run_podman exec $cid rm -f /$rand_filename
 
     run_podman wait $cid
