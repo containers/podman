@@ -77,8 +77,6 @@ verify_iid_and_name() {
 }
 
 @test "podman load - NAME and NAME:TAG arguments work" {
-    skip_if_remote "FIXME: pending #7124"
-
     get_iid_and_name
     run_podman save $iid -o $archive
     run_podman rmi $iid
