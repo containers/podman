@@ -3,9 +3,7 @@ package generate
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
@@ -88,39 +86,40 @@ KillMode=none
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target`
+WantedBy=multi-user.target default.target
+`
 
 // PodUnits generates systemd units for the specified pod and its containers.
 // Based on the options, the return value might be the content of all units or
 // the files they been written to.
-func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (string, error) {
+func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (map[string]string, error) {
 	// Error out if the pod has no infra container, which we require to be the
 	// main service.
 	if !pod.HasInfraContainer() {
-		return "", errors.Errorf("error generating systemd unit files: Pod %q has no infra container", pod.Name())
+		return nil, errors.Errorf("error generating systemd unit files: Pod %q has no infra container", pod.Name())
 	}
 
 	podInfo, err := generatePodInfo(pod, options)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	infraID, err := pod.InfraContainerID()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Compute the container-dependency graph for the Pod.
 	containers, err := pod.AllContainers()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if len(containers) == 0 {
-		return "", errors.Errorf("error generating systemd unit files: Pod %q has no containers", pod.Name())
+		return nil, errors.Errorf("error generating systemd unit files: Pod %q has no containers", pod.Name())
 	}
 	graph, err := libpod.BuildContainerGraph(containers)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Traverse the dependency graph and create systemdgen.containerInfo's for
@@ -133,7 +132,7 @@ func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (string,
 		}
 		ctrInfo, err := generateContainerInfo(ctr, options)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		// Now add the container's dependencies and at the container as a
 		// required service of the infra container.
@@ -149,24 +148,23 @@ func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (string,
 		containerInfos = append(containerInfos, ctrInfo)
 	}
 
+	units := map[string]string{}
 	// Now generate the systemd service for all containers.
-	builder := strings.Builder{}
 	out, err := executePodTemplate(podInfo, options)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	builder.WriteString(out)
+	units[podInfo.ServiceName] = out
 	for _, info := range containerInfos {
 		info.pod = podInfo
-		builder.WriteByte('\n')
 		out, err := executeContainerTemplate(info, options)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		builder.WriteString(out)
+		units[info.ServiceName] = out
 	}
 
-	return builder.String(), nil
+	return units, nil
 }
 
 func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (*podInfo, error) {
@@ -339,18 +337,5 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		return "", err
 	}
 
-	if !options.Files {
-		return buf.String(), nil
-	}
-
-	buf.WriteByte('\n')
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", errors.Wrap(err, "error getting current working directory")
-	}
-	path := filepath.Join(cwd, fmt.Sprintf("%s.service", info.ServiceName))
-	if err := ioutil.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		return "", errors.Wrap(err, "error generating systemd unit")
-	}
-	return path, nil
+	return buf.String(), nil
 }
