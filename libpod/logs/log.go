@@ -101,11 +101,14 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 			if err != nil {
 				if errors.Cause(err) == io.EOF {
 					inputs <- []string{leftover}
-					close(inputs)
-					break
+				} else {
+					logrus.Error(err)
 				}
-				logrus.Error(err)
 				close(inputs)
+				if err := f.Close(); err != nil {
+					logrus.Error(err)
+				}
+				break
 			}
 			line := strings.Split(s+leftover, "\n")
 			if len(line) > 1 {
@@ -136,9 +139,6 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 		}
 		// if we have enough loglines, we can hangup
 		if nllCounter >= tail {
-			if err := f.Close(); err != nil {
-				logrus.Error(err)
-			}
 			break
 		}
 	}
