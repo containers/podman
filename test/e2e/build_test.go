@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/containers/buildah"
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -212,5 +213,17 @@ RUN printenv http_proxy`
 		ok, _ := session.GrepString("1.2.3.4")
 		Expect(ok).To(BeTrue())
 		os.Unsetenv("http_proxy")
+	})
+
+	It("podman build and check identity", func() {
+		session := podmanTest.Podman([]string{"build", "--no-cache", "-t", "test", "build/basicalpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Verify that OS and Arch are being set
+		inspect := podmanTest.PodmanNoCache([]string{"image", "inspect", "--format", "{{ index .Config.Labels \"io.buildah.version\" }}", "test"})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.OutputToString()
+		Expect(data).To(Equal(buildah.Version))
 	})
 })

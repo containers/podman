@@ -199,7 +199,7 @@ WORKDIR /test
 		Expect(result.OutputToString()).To(Equal("/test"))
 	})
 
-	It("podman images filter after image", func() {
+	It("podman images filter since image", func() {
 		podmanTest.RestoreAllArtifacts()
 		rmi := podmanTest.PodmanNoCache([]string{"rmi", "busybox"})
 		rmi.WaitWithDefaultTimeout()
@@ -208,7 +208,7 @@ WORKDIR /test
 		dockerfile := `FROM docker.io/library/alpine:latest
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "after=docker.io/library/alpine:latest"})
+		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "since=foobar.com/before:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(0))
@@ -223,7 +223,7 @@ WORKDIR /test
 		dockerfile := `FROM docker.io/library/alpine:latest
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.PodmanNoCache([]string{"image", "list", "-q", "-f", "after=docker.io/library/alpine:latest"})
+		result := podmanTest.PodmanNoCache([]string{"image", "list", "-q", "-f", "after=foobar.com/before:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(0))
@@ -237,7 +237,7 @@ WORKDIR /test
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "dangling=true"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(1))
 	})
 
 	It("podman check for image with sha256: prefix", func() {

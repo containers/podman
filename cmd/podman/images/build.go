@@ -386,6 +386,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
 	}
 
+	labels := append([]string{buildah.BuilderIdentityAnnotation + "=" + buildah.Version}, flags.Label...)
 	opts := imagebuildah.BuildOptions{
 		AddCapabilities: flags.CapAdd,
 		AdditionalTags:  tags,
@@ -422,7 +423,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		IIDFile:                 flags.Iidfile,
 		In:                      stdin,
 		Isolation:               isolation,
-		Labels:                  flags.Label,
+		Labels:                  labels,
 		Layers:                  flags.Layers,
 		NamespaceOptions:        nsValues,
 		NoCache:                 flags.NoCache,

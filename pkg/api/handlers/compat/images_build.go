@@ -136,7 +136,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// convert label formats
-	var labels = []string{}
+	var labels = []string{buildah.BuilderIdentityAnnotation + "=" + buildah.Version}
 	if _, found := r.URL.Query()["labels"]; found {
 		var m = map[string]string{}
 		if err := json.Unmarshal([]byte(query.Labels), &m); err != nil {
