@@ -38,8 +38,6 @@ verify_iid_and_name() {
 
 
 @test "podman load - by image ID" {
-    skip_if_remote "FIXME: pending #7123"
-
     # FIXME: how to build a simple archive instead?
     get_iid_and_name
 
