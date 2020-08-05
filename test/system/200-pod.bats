@@ -93,7 +93,6 @@ function teardown() {
     is "$output" "$message" "message sent from one container to another"
 
     # Clean up. First the nc -l container...
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman rm $cid1
 
     # ...then, from pause container, find the image ID of the pause image...
@@ -104,7 +103,6 @@ function teardown() {
     pause_iid="$output"
 
     # ...then rm the pod, then rmi the pause image so we don't leave strays.
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman pod rm $podname
     run_podman rmi $pause_iid
 
@@ -215,7 +213,6 @@ function random_ip() {
     is "$output" ".*options $dns_opt"        "--dns-opt was added"
 
     # pod inspect
-    if is_remote; then sleep 2;fi   # FIXME: pending #7119
     run_podman pod inspect --format '{{.Name}}: {{.ID}} : {{.NumContainers}} : {{.Labels}}' mypod
     is "$output" "mypod: $pod_id : 1 : map\[${labelname}:${labelvalue}]" \
        "pod inspect --format ..."
