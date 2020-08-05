@@ -135,11 +135,6 @@ func (s *SpecGenerator) Validate() error {
 		return err
 	}
 
-	// The following are defaults as needed by container creation
-	if len(s.WorkDir) < 1 {
-		s.WorkDir = "/"
-	}
-
 	// Set defaults if network info is not provided
 	if s.NetNS.NSMode == "" {
 		s.NetNS.NSMode = Bridge
