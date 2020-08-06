@@ -3,8 +3,6 @@
 load helpers
 
 @test "podman history - basic tests" {
-    skip_if_remote "FIXME: pending #7122"
-
     tests="
                                  | .*[0-9a-f]\\\{12\\\} .* CMD .* LABEL
 --format '{{.ID}} {{.Created}}'  | .*[0-9a-f]\\\{12\\\} .* ago
