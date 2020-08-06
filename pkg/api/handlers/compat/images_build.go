@@ -80,6 +80,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Target      string   `schema:"target"`
 		Outputs     string   `schema:"outputs"`
 		Registry    string   `schema:"registry"`
+		IIDFile     string   `schema:"iidfile"`
 	}{
 		Dockerfile:  "Dockerfile",
 		Tag:         []string{},
@@ -112,7 +113,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
-
 	var (
 		output          string
 		additionalNames []string
@@ -215,7 +215,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Volumes:            nil,
 		},
 		DefaultMountsFilePath:   "",
-		IIDFile:                 "",
+		IIDFile:                 query.IIDFile,
 		Squash:                  query.Squash,
 		Labels:                  labels,
 		Annotations:             nil,
@@ -237,13 +237,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find image ID that was built...
+	stream := progress.String() + "\n" + strings.Join(buildEvents, "\n") + "\n"
+	// Docker prepends a message to the ID that was built.  Podman does not
+	if !utils.IsLibpodRequest(r) {
+		stream += "Successfully built "
+	}
+	stream += fmt.Sprintf("%s\n", id)
 	utils.WriteResponse(w, http.StatusOK,
 		struct {
 			Stream string `json:"stream"`
 		}{
-			Stream: progress.String() + "\n" +
-				strings.Join(buildEvents, "\n") +
-				fmt.Sprintf("\nSuccessfully built %s\n", id),
+			Stream: stream,
 		})
 }
 

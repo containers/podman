@@ -38,7 +38,6 @@ var _ = Describe("Podman build", func() {
 	// Let's first do the most simple build possible to make sure stuff is
 	// happy and then clean up after ourselves to make sure that works too.
 	It("podman build and remove basic alpine", func() {
-		SkipIfRemote()
 		session := podmanTest.PodmanNoCache([]string{"build", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -154,21 +153,20 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build basic alpine and print id to external file", func() {
-		SkipIfRemote()
-
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
+		// golang does not have an easy way to get a tempfile name but not create it
+		tmpFile, err := ioutil.TempFile(os.TempDir(), "")
 		Expect(err).To(BeNil())
-		Expect(os.Chdir(os.TempDir())).To(BeNil())
-		defer Expect(os.Chdir(cwd)).To(BeNil())
-
-		targetPath := filepath.Join(os.TempDir(), "dir")
-		targetFile := filepath.Join(targetPath, "idFile")
+		err = tmpFile.Close()
+		Expect(err).To(BeNil())
+		targetFile := tmpFile.Name()
+		err = os.Remove(targetFile)
+		Expect(err).To(BeNil())
 
 		session := podmanTest.PodmanNoCache([]string{"build", "build/basicalpine", "--iidfile", targetFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		id, _ := ioutil.ReadFile(targetFile)
+		id, err := ioutil.ReadFile(targetFile)
+		Expect(err).To(BeNil())
 
 		// Verify that id is correct
 		inspect := podmanTest.PodmanNoCache([]string{"inspect", string(id)})

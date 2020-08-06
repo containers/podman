@@ -289,6 +289,10 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Set("labels", l)
 	}
 
+	if iidFile := options.IIDFile; len(iidFile) > 0 {
+		params.Set("iidfile", iidFile)
+	}
+
 	// TODO network?
 	if OS := options.OS; len(OS) > 0 {
 		platform += OS

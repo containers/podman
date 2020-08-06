@@ -1385,6 +1385,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      output configuration TBD
 	//      (As of version 1.xx)
+	//  - in: query
+	//    name: iidfile
+	//    type: string
+	//    default:
+	//    description: file to store the image id in upon completion
 	// produces:
 	// - application/json
 	// responses:
