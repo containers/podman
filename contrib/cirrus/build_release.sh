@@ -4,11 +4,11 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var TEST_REMOTE_CLIENT OS_RELEASE_ID GOSRC
+req_env_var RCLI OS_RELEASE_ID GOSRC
 
 cd $GOSRC
 
-if [[ "$TEST_REMOTE_CLIENT" == "true" ]] && [[ -z "$CROSS_PLATFORM" ]]
+if [[ "$RCLI" == "true" ]] && [[ -z "$CROSS_PLATFORM" ]]
 then
     CROSS_PLATFORM=linux
 fi

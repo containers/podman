@@ -103,7 +103,7 @@ case "$SPECIALMODE" in
                 tee -a /etc/environment) && eval "$X" && echo "$X"
             X=$(echo "export SPECIALMODE='${SPECIALMODE}'" | \
                 tee -a /etc/environment) && eval "$X" && echo "$X"
-            X=$(echo "export TEST_REMOTE_CLIENT='${TEST_REMOTE_CLIENT}'" | \
+            X=$(echo "export RCLI='${RCLI}'" | \
                 tee -a /etc/environment) && eval "$X" && echo "$X"
             setup_rootless
         fi

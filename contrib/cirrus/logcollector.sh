@@ -4,7 +4,7 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var CIRRUS_WORKING_DIR OS_RELEASE_ID TEST_REMOTE_CLIENT
+req_env_var CIRRUS_WORKING_DIR OS_RELEASE_ID RCLI
 
 # Assume there are other log collection commands to follow - Don't
 # let one break another that may be useful, but also keep any
@@ -34,12 +34,12 @@ case $1 in
     journal) showrun journalctl -b ;;
     podman) showrun ./bin/podman system info ;;
     varlink)
-       if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
+       if [[ "$RCLI" == "true" ]]
        then
           echo "(Trailing 100 lines of $VARLINK_LOG)"
           showrun tail -100 $VARLINK_LOG
        else
-          die 0 "\$TEST_REMOTE_CLIENT is not 'true': $TEST_REMOTE_CLIENT"
+          die 0 "\$RCLI is not 'true': $RCLI"
        fi
        ;;
     packages)

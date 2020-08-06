@@ -96,12 +96,12 @@ LILTO="timeout_attempt_delay_command 120s 5 30s"
 BIGTO="timeout_attempt_delay_command 300s 5 60s"
 
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separately)
-ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
+ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(REMOTE.*)'
 # Unsafe env. vars for display
 SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(GC[EP]..+)|(SSH)'
 
 SPECIALMODE="${SPECIALMODE:-none}"
-TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
+RCLI="${RCLI:-false}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
 
 # When running as root, this may be empty or not, as a user, it MUST be set.

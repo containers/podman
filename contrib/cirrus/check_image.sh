@@ -6,7 +6,7 @@ source $(dirname $0)/lib.sh
 
 EVIL_UNITS="$($CIRRUS_WORKING_DIR/$PACKER_BASE/systemd_banish.sh --list)"
 
-req_env_var PACKER_BUILDER_NAME TEST_REMOTE_CLIENT EVIL_UNITS OS_RELEASE_ID CG_FS_TYPE
+req_env_var PACKER_BUILDER_NAME RCLI EVIL_UNITS OS_RELEASE_ID CG_FS_TYPE
 
 NFAILS=0
 echo "Validating VM image"

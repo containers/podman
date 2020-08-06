@@ -18,7 +18,7 @@ if [ "${ID}" != "fedora" ] || [ "${CONTAINER_RUNTIME}" != "" ]; then
     INTEGRATION_TEST_ENVS="SKIP_USERNS=1"
 fi
 
-echo "$(date --rfc-3339=seconds) $(basename $0) started with '$*' and TEST_REMOTE_CLIENT='${TEST_REMOTE_CLIENT}'"
+echo "$(date --rfc-3339=seconds) $(basename $0) started with '$*' and RCLI='${RCLI}'"
 
 pwd
 
@@ -57,9 +57,9 @@ while getopts "bituv" opt; do
     esac
 done
 
-# The TEST_REMOTE_CLIENT environment variable decides whether
+# The RCLI environment variable decides whether
 # to test varlinke
-if [[ "$TEST_REMOTE_CLIENT" == "true" ]]; then
+if [[ "$RCLI" == "true" ]]; then
     remote=1
 fi
 
