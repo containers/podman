@@ -1,5 +1,23 @@
 package specs
 
+// ContainerState represents the state of a container.
+type ContainerState string
+
+const (
+	// StateCreating indicates that the container is being created
+	StateCreating ContainerState  = "creating"
+
+	// StateCreated indicates that the runtime has finished the create operation
+	StateCreated ContainerState  = "created"
+
+	// StateRunning indicates that the container process has executed the
+	// user-specified program but has not exited
+	StateRunning ContainerState  = "running"
+
+	// StateStopped indicates that the container process has exited
+	StateStopped ContainerState  = "stopped"
+)
+
 // State holds information about the runtime state of the container.
 type State struct {
 	// Version is the version of the specification that is supported.
