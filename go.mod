@@ -15,7 +15,7 @@ require (
 	github.com/containers/conmon v2.0.19+incompatible
 	github.com/containers/image/v5 v5.5.1
 	github.com/containers/psgo v1.5.1
-	github.com/containers/storage v1.21.2
+	github.com/containers/storage v1.22.0
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cri-o/ocicni v0.2.0
 	github.com/cyphar/filepath-securejoin v0.2.2
@@ -34,13 +34,13 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.10
-	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
+	github.com/mrunalp/fileutils v0.0.0-20200520151820-abd8a0e76976
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
-	github.com/opencontainers/runc v1.0.0-rc91.0.20200708210054-ce54a9d4d79b
-	github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2
+	github.com/opencontainers/runc v1.0.0-rc92
+	github.com/opencontainers/runtime-spec v1.0.3-0.20200728170252-4d89ac9fbff6
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200714183735-07406c5828aa
 	github.com/opencontainers/selinux v1.6.0
 	github.com/opentracing/opentracing-go v1.2.0
@@ -61,7 +61,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
 	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
+	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
 	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.6
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab

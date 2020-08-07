@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -271,30 +270,44 @@ func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 			// directories
 			if storageOpts.RunRoot == "" {
 				storageOpts.RunRoot = defaultRootlessRunRoot
-			}
-			if storageOpts.GraphRoot == "" {
-				storageOpts.GraphRoot = defaultRootlessGraphRoot
-			}
-			if storageOpts.RootlessStoragePath != "" {
-				if err = validRootlessStoragePathFormat(storageOpts.RootlessStoragePath); err != nil {
-					return storageOpts, err
-				}
-				rootlessStoragePath := strings.Replace(storageOpts.RootlessStoragePath, "$HOME", homedir.Get(), -1)
-				rootlessStoragePath = strings.Replace(rootlessStoragePath, "$UID", strconv.Itoa(rootlessUID), -1)
-				usr, err := user.LookupId(strconv.Itoa(rootlessUID))
+			} else {
+				rootlessRunRoot, err := expandEnvPath(storageOpts.RunRoot, rootlessUID)
 				if err != nil {
 					return storageOpts, err
 				}
-				rootlessStoragePath = strings.Replace(rootlessStoragePath, "$USER", usr.Username, -1)
+				storageOpts.RunRoot = rootlessRunRoot
+			}
+			if storageOpts.GraphRoot == "" {
+				storageOpts.GraphRoot = defaultRootlessGraphRoot
+			} else {
+				rootlessGraphRoot, err := expandEnvPath(storageOpts.GraphRoot, rootlessUID)
+				if err != nil {
+					return storageOpts, err
+				}
+				storageOpts.GraphRoot = rootlessGraphRoot
+			}
+			if storageOpts.RootlessStoragePath != "" {
+				rootlessStoragePath, err := expandEnvPath(storageOpts.RootlessStoragePath, rootlessUID)
+				if err != nil {
+					return storageOpts, err
+				}
 				storageOpts.GraphRoot = rootlessStoragePath
 			}
 		}
 	}
 	return storageOpts, nil
 }
+func expandEnvPath(path string, rootlessUID int) (string, error) {
+	if err := validEnvPathFormat(path); err != nil {
+		return path, err
+	}
+	path = strings.Replace(path, "$UID", strconv.Itoa(rootlessUID), -1)
+	path = os.ExpandEnv(path)
+	return path, nil
+}
 
-// validRootlessStoragePathFormat checks if the environments contained in the path are accepted
-func validRootlessStoragePathFormat(path string) error {
+// validEnvPathFormat checks if the environments contained in the path are accepted
+func validEnvPathFormat(path string) error {
 	if !strings.Contains(path, "$") {
 		return nil
 	}

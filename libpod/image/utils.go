@@ -1,7 +1,6 @@
 package image
 
 import (
-	"fmt"
 	"io"
 	"net/url"
 	"regexp"
@@ -158,19 +157,5 @@ func imageNameForSaveDestination(img *Image, imgUserInput string) string {
 		return ""
 	}
 
-	prepend := ""
-	localRegistryPrefix := fmt.Sprintf("%s/", DefaultLocalRegistry)
-	if !strings.HasPrefix(imgUserInput, localRegistryPrefix) {
-		// we need to check if localhost was added to the image name in NewFromLocal
-		for _, name := range img.Names() {
-			// If the user is saving an image in the localhost registry,  getLocalImage need
-			// a name that matches the format localhost/<tag1>:<tag2> or localhost/<tag>:latest to correctly
-			// set up the manifest and save.
-			if strings.HasPrefix(name, localRegistryPrefix) && (strings.HasSuffix(name, imgUserInput) || strings.HasSuffix(name, fmt.Sprintf("%s:latest", imgUserInput))) {
-				prepend = localRegistryPrefix
-				break
-			}
-		}
-	}
-	return fmt.Sprintf("%s%s", prepend, imgUserInput)
+	return imgUserInput
 }

@@ -18,9 +18,11 @@ func statDifferent(oldStat *system.StatT, oldInfo *FileInfo, newStat *system.Sta
 	if cuid, cgid, err := newInfo.idMappings.ToContainer(idtools.IDPair{UID: int(uid), GID: int(gid)}); err == nil {
 		uid = uint32(cuid)
 		gid = uint32(cgid)
-		if oldcuid, oldcgid, err := oldInfo.idMappings.ToContainer(idtools.IDPair{UID: int(oldUID), GID: int(oldGID)}); err == nil {
-			oldUID = uint32(oldcuid)
-			oldGID = uint32(oldcgid)
+		if oldInfo != nil {
+			if oldcuid, oldcgid, err := oldInfo.idMappings.ToContainer(idtools.IDPair{UID: int(oldUID), GID: int(oldGID)}); err == nil {
+				oldUID = uint32(oldcuid)
+				oldGID = uint32(oldcgid)
+			}
 		}
 	}
 	ownerChanged := uid != oldUID || gid != oldGID
