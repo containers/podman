@@ -1143,7 +1143,7 @@ USER mail`
 		Expect(session.ErrorToString()).To(ContainSubstring("Invalid umask"))
 	})
 
-	It("podman run makes entrypoint from image", func() {
+	It("podman run makes workdir from image", func() {
 		// BuildImage does not seem to work remote
 		SkipIfRemote()
 		dockerfile := `FROM busybox
@@ -1153,5 +1153,14 @@ WORKDIR /madethis`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("/madethis"))
+	})
+
+	It("podman run --entrypoint does not use image command", func() {
+		session := podmanTest.Podman([]string{"run", "--entrypoint", "/bin/echo", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		// We can't guarantee the output is completely empty, some
+		// nonprintables seem to work their way in.
+		Expect(session.OutputToString()).To(Not(ContainSubstring("/bin/sh")))
 	})
 })
