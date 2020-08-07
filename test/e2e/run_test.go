@@ -1061,13 +1061,12 @@ USER mail`
 		Expect(session.OutputToString()).To(ContainSubstring(limit))
 	})
 
-	It("podman run makes entrypoint from image", func() {
-		dockerfile := `FROM busybox
-WORKDIR /madethis`
-		podmanTest.BuildImage(dockerfile, "test", "false")
-		session := podmanTest.Podman([]string{"run", "--rm", "test", "pwd"})
+	It("podman run --entrypoint does not use image command", func() {
+		session := podmanTest.Podman([]string{"run", "--entrypoint", "/bin/echo", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/madethis"))
+		// We can't guarantee the output is completely empty, some
+		// nonprintables seem to work their way in.
+		Expect(session.OutputToString()).To(Not(ContainSubstring("/bin/sh")))
 	})
 })
