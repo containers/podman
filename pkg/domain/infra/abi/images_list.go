@@ -13,6 +13,14 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		return nil, err
 	}
 
+	if !opts.All {
+		filter, err := ir.Libpod.ImageRuntime().IntermediateFilter(ctx, images)
+		if err != nil {
+			return nil, err
+		}
+		images = libpodImage.FilterImages(images, []libpodImage.ResultFilter{filter})
+	}
+
 	summaries := []*entities.ImageSummary{}
 	for _, img := range images {
 		var repoTags []string
@@ -31,15 +39,6 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 			repoTags, err = img.RepoTags()
 			if err != nil {
 				return nil, err
-			}
-			if len(img.Names()) == 0 {
-				parent, err := img.IsParent(ctx)
-				if err != nil {
-					return nil, err
-				}
-				if parent {
-					continue
-				}
 			}
 		}
 
