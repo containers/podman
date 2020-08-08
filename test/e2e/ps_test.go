@@ -188,6 +188,21 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.IsJSONOutputValid()).To(BeTrue())
 	})
 
+	It("podman ps print a human-readable `Status` with json format", func() {
+		_, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"ps", "-a", "--format", "json"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.IsJSONOutputValid()).To(BeTrue())
+		// must contain "Status"
+		match, StatusLine := result.GrepString(`Status`)
+		Expect(match).To(BeTrue())
+		// container is running or exit, so it must contain `ago`
+		Expect(StatusLine[0]).To(ContainSubstring("ago"))
+	})
+
 	It("podman ps namespace flag with go template format", func() {
 		Skip(v2fail)
 		_, ec, _ := podmanTest.RunLsContainer("test1")

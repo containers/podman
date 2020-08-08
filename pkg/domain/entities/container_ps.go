@@ -56,6 +56,8 @@ type ListContainer struct {
 	StartedAt int64
 	// State of container
 	State string
+	// Status is a human-readable approximation of a duration for json output
+	Status string
 }
 
 // ListContainer Namespaces contains the identifiers of the container's Linux namespaces
