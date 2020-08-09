@@ -3,6 +3,32 @@
 # network-related tests
 #
 
-t GET /networks/non-existing-network 404
+t GET networks/non-existing-network 404 \
+  .cause='network not found'
+
+if root; then
+  t POST libpod/networks/create?name=network1 '' 200 \
+    .Filename~.*/network1\\.conflist
+
+  # --data '{"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]}}'
+  t POST libpod/networks/create?name=network2 '"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]}' 200 \
+    .Filename~.*/network2\\.conflist
+
+  # test for empty mask
+  t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[]}' 500 \
+    .cause~'.*cannot be empty'
+  # test for invalid mask
+  t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[0,255,255,0]}' 500 \
+    .cause~'.*mask is invalid'
+
+  # clean the network
+  t DELETE libpod/networks/network1 200 \
+    .[0].Name~network1 \
+    .[0].Err=null
+  t DELETE libpod/networks/network2 200 \
+    .[0].Name~network2 \
+    .[0].Err=null
+
+fi
 
 # vim: filetype=sh
