@@ -1,11 +1,14 @@
 package integration
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/uber/jaeger-client-go/utils"
 )
 
 var _ = Describe("Podman run networking", func() {
@@ -288,6 +291,53 @@ var _ = Describe("Podman run networking", func() {
 		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:allow_host_loopback=true", ALPINE, "ping", "-c1", "10.0.2.2"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run network bind to 127.0.0.1", func() {
+		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
+		Expect(slirp4netnsHelp.ExitCode()).To(Equal(0))
+		networkConfiguration := "slirp4netns:outbound_addr=127.0.0.1,allow_host_loopback=true"
+
+		if strings.Contains(slirp4netnsHelp.OutputToString(), "outbound-addr") {
+			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", "8083"})
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", "8083"})
+			session.Wait(30)
+			ncListener.Wait(30)
+
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(ncListener.ExitCode()).To(Equal(0))
+			Expect(ncListener.ErrorToString()).To(ContainSubstring("127.0.0.1"))
+		} else {
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", "8083"})
+			session.Wait(30)
+			Expect(session.ExitCode()).ToNot(Equal(0))
+			Expect(session.ErrorToString()).To(ContainSubstring("outbound_addr not supported"))
+		}
+	})
+
+	It("podman run network bind to HostIP", func() {
+		ip, err := utils.HostIP()
+		Expect(err).To(BeNil())
+
+		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
+		Expect(slirp4netnsHelp.ExitCode()).To(Equal(0))
+		networkConfiguration := fmt.Sprintf("slirp4netns:outbound_addr=%s,allow_host_loopback=true", ip.String())
+
+		if strings.Contains(slirp4netnsHelp.OutputToString(), "outbound-addr") {
+			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", "8084"})
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", "8084"})
+			session.Wait(30)
+			ncListener.Wait(30)
+
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(ncListener.ExitCode()).To(Equal(0))
+			Expect(ncListener.ErrorToString()).To(ContainSubstring(ip.String()))
+		} else {
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", "8084"})
+			session.Wait(30)
+			Expect(session.ExitCode()).ToNot(Equal(0))
+			Expect(session.ErrorToString()).To(ContainSubstring("outbound_addr not supported"))
+		}
 	})
 
 	It("podman run network expose ports in image metadata", func() {

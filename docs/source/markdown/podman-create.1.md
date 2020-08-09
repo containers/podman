@@ -562,9 +562,14 @@ Valid values are:
 - `ns:<path>`: path to a network namespace to join
 - `private`: create a new namespace for the container (default)
 - `slirp4netns[:OPTIONS,...]`: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
-  **port_handler=rootlesskit**: Use rootlesskit for port forwarding.  Default.
-  **port_handler=slirp4netns**: Use the slirp4netns port forwarding.
-  **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`).  Default to false.
+  - **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`). Default is false.
+  - **enable_ipv6=true|false**: Enable IPv6. Default is false. (Required for `outbound_addr6`).
+  - **outbound_addr=INTERFACE**: Specify the outbound interface slirp should bind to (ipv4 traffic only).
+  - **outbound_addr=IPv4**: Specify the outbound ipv4 address slirp should bind to.
+  - **outbound_addr6=INTERFACE**: Specify the outbound interface slirp should bind to (ipv6 traffic only).
+  - **outbound_addr6=IPv6**: Specify the outbound ipv6 address slirp should bind to.
+  - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default.
+  - **port_handler=slirp4netns**: Use the slirp4netns port forwarding.
 
 **--network-alias**=*alias*
 
