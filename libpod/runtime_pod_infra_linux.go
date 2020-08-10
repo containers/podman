@@ -83,6 +83,9 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 			return nil, errors.Wrapf(err, "error removing network namespace from pod %s infra container", p.ID())
 		}
 
+		// For each option in InfraContainerConfig - if set, pass into
+		// the infra container we're creating with the appropriate
+		// With... option.
 		if p.config.InfraContainer.StaticIP != nil {
 			options = append(options, WithStaticIP(p.config.InfraContainer.StaticIP))
 		}
@@ -106,6 +109,9 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 		}
 		if len(p.config.InfraContainer.HostAdd) > 0 {
 			options = append(options, WithHosts(p.config.InfraContainer.HostAdd))
+		}
+		if len(p.config.InfraContainer.ExitCommand) > 0 {
+			options = append(options, WithExitCommand(p.config.InfraContainer.ExitCommand))
 		}
 	}
 
