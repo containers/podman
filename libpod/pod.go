@@ -81,7 +81,15 @@ type podState struct {
 	InfraContainerID string
 }
 
-// InfraContainerConfig is the configuration for the pod's infra container
+// InfraContainerConfig is the configuration for the pod's infra container.
+// Generally speaking, these are equivalent to container configuration options
+// you will find in container_config.go (and even named identically), save for
+// HasInfraContainer (which determines if an infra container is even created -
+// if it is false, no other options in this struct will be used) and HostNetwork
+// (this involves the created OCI spec, and as such is not represented directly
+// in container_config.go).
+// Generally speaking, aside from those two exceptions, these options will set
+// the equivalent field in the container's configuration.
 type InfraContainerConfig struct {
 	ConmonPidFile      string               `json:"conmonPidFile"`
 	HasInfraContainer  bool                 `json:"makeInfraContainer"`
@@ -96,6 +104,7 @@ type InfraContainerConfig struct {
 	UseImageHosts      bool                 `json:"useImageHosts,omitempty"`
 	HostAdd            []string             `json:"hostsAdd,omitempty"`
 	Networks           []string             `json:"networks,omitempty"`
+	ExitCommand        []string             `json:"exitCommand,omitempty"`
 }
 
 // ID retrieves the pod's ID

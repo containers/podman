@@ -13,14 +13,14 @@ func MakePod(p *specgen.PodSpecGenerator, rt *libpod.Runtime) (*libpod.Pod, erro
 	if err := p.Validate(); err != nil {
 		return nil, err
 	}
-	options, err := createPodOptions(p)
+	options, err := createPodOptions(p, rt)
 	if err != nil {
 		return nil, err
 	}
 	return rt.NewPod(context.Background(), options...)
 }
 
-func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, error) {
+func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod.PodCreateOption, error) {
 	var (
 		options []libpod.PodCreateOption
 	)
@@ -31,6 +31,18 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 			return nil, err
 		}
 		options = append(options, nsOptions...)
+
+		// Make our exit command
+		storageConfig := rt.StorageConfig()
+		runtimeConfig, err := rt.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+		exitCommand, err := CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, false)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error creating infra container exit command")
+		}
+		options = append(options, libpod.WithPodInfraExitCommand(exitCommand))
 	}
 	if len(p.CgroupParent) > 0 {
 		options = append(options, libpod.WithPodCgroupParent(p.CgroupParent))
