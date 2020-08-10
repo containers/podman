@@ -1,7 +1,7 @@
 System
 ======
 
-:doc:`connection <markdown/podman-system-conection.1>` Manage the destination(s) for Podman service(s)
+:doc:`connection <connection>` Manage the destination(s) for Podman service(s)
 
 :doc:`df <markdown/podman-system-df.1>` Show podman disk usage
 

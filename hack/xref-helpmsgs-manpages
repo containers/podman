@@ -26,8 +26,11 @@ $| = 1;
 my $Default_Podman = './bin/podman';
 my $PODMAN = $ENV{PODMAN} || $Default_Podman;
 
+# Path to all doc files, including .rst and (down one level) markdown
+my $Docs_Path = 'docs/source';
+
 # Path to podman markdown source files (of the form podman-*.1.md)
-my $Markdown_Path = 'docs/source/markdown';
+my $Markdown_Path = "$Docs_Path/markdown";
 
 # Global error count
 my $Errs = 0;
@@ -99,12 +102,18 @@ sub main {
 
     my $help = podman_help();
     my $man  = podman_man('podman');
+    my $rst  = podman_rst();
 
     xref_by_help($help, $man);
     xref_by_man($help, $man);
 
+    xref_rst($help, $rst);
+
     exit !!$Errs;
 }
+
+###############################################################################
+# BEGIN cross-referencing
 
 ##################
 #  xref_by_help  #  Find keys in '--help' but not in man
@@ -178,6 +187,33 @@ sub xref_by_man {
     }
 }
 
+##############
+#  xref_rst  #  Cross-check *.rst files against help
+##############
+sub xref_rst {
+    my ($help, $rst, @subcommand) = @_;
+
+    # Cross-check against rst (but only subcommands, not options).
+    # We key on $help because that is Absolute Truth: anything in podman --help
+    # must be referenced in an rst (the converse is not true).
+    for my $k (sort grep { $_ !~ /^-/ } keys %$help) {
+        # Check for subcommands, if any (eg podman system -> connection -> add)
+        if (ref $help->{$k}) {
+            xref_rst($help->{$k}, $rst->{$k}, @subcommand, $k);
+        }
+
+        # Check that command is mentioned in at least one .rst file
+        if (! exists $rst->{$k}{_desc}) {
+            my @podman = ("podman", @subcommand, $k);
+            warn "$ME: no link in *.rst for @podman\n";
+            ++$Errs;
+        }
+    }
+}
+
+# END   cross-referencing
+###############################################################################
+# BEGIN data gathering
 
 #################
 #  podman_help  #  Parse output of 'podman [subcommand] --help'
@@ -316,5 +352,77 @@ sub podman_man {
     return \%man;
 }
 
+
+################
+#  podman_rst  #  Parse contents of docs/source/*.rst
+################
+sub podman_rst {
+    my %rst;
+
+    # Read all .rst files, looking for ":doc:`subcmd <target>` description"
+    for my $rst (glob "$Docs_Path/*.rst") {
+        open my $fh, '<', $rst
+            or die "$ME: Cannot read $rst: $!\n";
+
+        # The basename of foo.rst is usually, but not always, the name of
+        # a podman subcommand. There are a few special cases:
+        (my $command = $rst) =~ s!^.*/(.*)\.rst!$1!;
+
+        my $subcommand_href = \%rst;
+        if ($command eq 'Commands') {
+            ;
+        }
+        elsif ($command eq 'managecontainers') {
+            $subcommand_href = $rst{container} //= { };
+        }
+        elsif ($command eq 'connection') {
+            $subcommand_href = $rst{system}{connection} //= { };
+        }
+        else {
+            $subcommand_href = $rst{$command} //= { };
+        }
+
+        my $previous_subcommand = '';
+        while (my $line = <$fh>) {
+            if ($line =~ /^:doc:`(\S+)\s+<(.*?)>`\s+(.*)/) {
+                my ($subcommand, $target, $desc) = ($1, $2, $3);
+
+                # Check that entries are in alphabetical order
+                if ($subcommand lt $previous_subcommand) {
+                    warn "$ME: $rst:$.: '$previous_subcommand' and '$subcommand' are out of order\n";
+                    ++$Errs;
+                }
+                $previous_subcommand = $subcommand;
+
+                # Mark this subcommand as documented.
+                $subcommand_href->{$subcommand}{_desc} = $desc;
+
+                # Check for invalid links. These will be one of two forms:
+                #    <markdown/foo.1>     -> markdown/foo.1.md
+                #    <foo>                -> foo.rst
+                if ($target =~ m!^markdown/!) {
+                    if (! -e "$Docs_Path/$target.md") {
+                        warn "$ME: $rst:$.: '$subcommand' links to nonexistent $target\n";
+                        ++$Errs;
+                    }
+                }
+                else {
+                    if (! -e "$Docs_Path/$target.rst") {
+                        warn "$ME: $rst:$.: '$subcommand' links to nonexistent $target.rst\n";
+                    }
+                }
+            }
+        }
+        close $fh;
+    }
+
+    # Special case: 'image trust set/show' are documented in image-trust.1
+    $rst{image}{trust}{$_} = { _desc => 'ok' } for (qw(set show));
+
+    return \%rst;
+}
+
+# END   data gathering
+###############################################################################
 
 1;

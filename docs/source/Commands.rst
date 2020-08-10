@@ -98,7 +98,7 @@ Commands
 
 :doc:`top <markdown/podman-top.1>` Display the running processes of a container
 
-:doc:`umount <markdown/podman-umount.1>` Unmounts working container's root filesystem
+:doc:`unmount <markdown/podman-unmount.1>` Unmounts working container's root filesystem
 
 :doc:`unpause <markdown/podman-unpause.1>` Unpause the processes in one or more containers
 
