@@ -53,6 +53,18 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session).To(ExitWithError())
 	})
 
+	It("podman generate systemd bad restart-policy value", func() {
+		session := podmanTest.Podman([]string{"create", "--name", "foobar", "alpine", "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--restart-policy", "bogus", "foobar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		found, _ := session.ErrorGrepString("Error: bogus is not a valid restart policy")
+		Expect(found).Should(BeTrue())
+	})
+
 	It("podman generate systemd good timeout value", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "foobar", "alpine", "top"})
 		session.WaitWithDefaultTimeout()

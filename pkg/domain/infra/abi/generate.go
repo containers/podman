@@ -20,9 +20,10 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	if ctrErr == nil {
 		// Generate the unit for the container.
 		s, err := generate.ContainerUnit(ctr, options)
-		if err == nil {
-			return &entities.GenerateSystemdReport{Output: s}, nil
+		if err != nil {
+			return nil, err
 		}
+		return &entities.GenerateSystemdReport{Output: s}, nil
 	}
 
 	// If it's not a container, we either have a pod or garbage.
