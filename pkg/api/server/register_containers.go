@@ -661,11 +661,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    description: Include namespace information
 	//    default: false
-	//  - in: query
 	//    name: pod
 	//    type: boolean
 	//    default: false
-	//    description: Include Pod ID and Name if applicable
+	//    description: Ignored. Previously included details on pod name and ID that are currently included by default.
 	//  - in: query
 	//    name: size
 	//    type: boolean

@@ -732,6 +732,22 @@ func (r *Runtime) GetStore() storage.Store {
 	return r.store
 }
 
+// GetName retrieves the name associated with a given full ID.
+// This works for both containers and pods, and does not distinguish between the
+// two.
+// If the given ID does not correspond to any existing Pod or Container,
+// ErrNoSuchCtr is returned.
+func (r *Runtime) GetName(id string) (string, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return "", define.ErrRuntimeStopped
+	}
+
+	return r.state.GetName(id)
+}
+
 // DBConfig is a set of Libpod runtime configuration settings that are saved in
 // a State when it is first created, and can subsequently be retrieved.
 type DBConfig struct {

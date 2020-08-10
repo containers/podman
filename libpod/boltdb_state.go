@@ -424,6 +424,61 @@ func (s *BoltState) SetNamespace(ns string) error {
 	return nil
 }
 
+// GetName returns the name associated with a given ID. Since IDs are globally
+// unique, it works for both containers and pods.
+// Returns ErrNoSuchCtr if the ID does not exist.
+func (s *BoltState) GetName(id string) (string, error) {
+	if id == "" {
+		return "", define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return "", define.ErrDBClosed
+	}
+
+	idBytes := []byte(id)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return "", err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	name := ""
+
+	err = db.View(func(tx *bolt.Tx) error {
+		idBkt, err := getIDBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		nameBytes := idBkt.Get(idBytes)
+		if nameBytes == nil {
+			return define.ErrNoSuchCtr
+		}
+
+		if s.namespaceBytes != nil {
+			nsBkt, err := getNSBucket(tx)
+			if err != nil {
+				return err
+			}
+
+			idNs := nsBkt.Get(idBytes)
+			if !bytes.Equal(idNs, s.namespaceBytes) {
+				return define.ErrNoSuchCtr
+			}
+		}
+
+		name = string(nameBytes)
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return name, nil
+}
+
 // Container retrieves a single container from the state by its full ID
 func (s *BoltState) Container(id string) (*Container, error) {
 	if id == "" {
