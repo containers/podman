@@ -648,9 +648,9 @@ endef
 		$(call go-get,github.com/cpuguy83/go-md2man); \
 	fi
 
-# $BUILD_TAGS variable is used in hack/golangci-lint.sh
+# $(BUILD_TAGS) variable is used in hack/golangci-lint.sh
 .PHONY: varlink_generate
-ifneq (or $(findstring varlink,$(BUILDTAGS)),$(findstring varlink,$(BUILD_TAGS)))
+ifeq (or $(findstring varlink,$(BUILDTAGS)),$(findstring varlink,$(BUILD_TAGS)))
 varlink_generate: .gopathok pkg/varlink/iopodman.go ## Generate varlink
 else
 varlink_generate:
