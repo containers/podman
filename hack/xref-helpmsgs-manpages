@@ -29,6 +29,9 @@ my $PODMAN = $ENV{PODMAN} || $Default_Podman;
 # Path to podman markdown source files (of the form podman-*.1.md)
 my $Markdown_Path = 'docs/source/markdown';
 
+# Global error count
+my $Errs = 0;
+
 # END   user-customizable section
 ###############################################################################
 
@@ -97,10 +100,10 @@ sub main {
     my $help = podman_help();
     my $man  = podman_man('podman');
 
-    my $retval = xref_by_help($help, $man)
-        +        xref_by_man($help, $man);
+    xref_by_help($help, $man);
+    xref_by_man($help, $man);
 
-    exit !!$retval;
+    exit !!$Errs;
 }
 
 ##################
@@ -108,23 +111,20 @@ sub main {
 ##################
 sub xref_by_help {
     my ($help, $man, @subcommand) = @_;
-    my $errs = 0;
 
     for my $k (sort keys %$help) {
         if (exists $man->{$k}) {
             if (ref $help->{$k}) {
-                $errs += xref_by_help($help->{$k}, $man->{$k}, @subcommand, $k);
+                xref_by_help($help->{$k}, $man->{$k}, @subcommand, $k);
             }
             # Otherwise, non-ref is leaf node such as a --option
         }
         else {
             my $man = $man->{_path} || 'man';
             warn "$ME: podman @subcommand --help lists $k, but $k not in $man\n";
-            ++$errs;
+            ++$Errs;
         }
     }
-
-    return $errs;
 }
 
 #################
@@ -137,13 +137,11 @@ sub xref_by_help {
 sub xref_by_man {
     my ($help, $man, @subcommand) = @_;
 
-    my $errs = 0;
-
     # FIXME: this generates way too much output
     for my $k (grep { $_ ne '_path' } sort keys %$man) {
         if (exists $help->{$k}) {
             if (ref $man->{$k}) {
-                $errs += xref_by_man($help->{$k}, $man->{$k}, @subcommand, $k);
+                xref_by_man($help->{$k}, $man->{$k}, @subcommand, $k);
             }
         }
         elsif ($k ne '--help' && $k ne '-h') {
@@ -175,11 +173,9 @@ sub xref_by_man {
             next if "@subcommand" eq 'system' && $k eq 'service';
 
             warn "$ME: podman @subcommand: $k in $man, but not --help\n";
-            ++$errs;
+            ++$Errs;
         }
     }
-
-    return $errs;
 }
 
 
@@ -249,6 +245,7 @@ sub podman_man {
         or die "$ME: Cannot read $manpath: $!\n";
     my $section = '';
     my @most_recent_flags;
+    my $previous_subcmd = '';
     while (my $line = <$fh>) {
         chomp $line;
         next unless $line;		# skip empty lines
@@ -278,6 +275,11 @@ sub podman_man {
             elsif ($line =~ /^\|\s+(\S+)\s+\|\s+\[\S+\]\((\S+)\.1\.md\)/) {
                 # $1 will be changed by recursion _*BEFORE*_ left-hand assignment
                 my $subcmd = $1;
+                if ($previous_subcmd gt $subcmd) {
+                    warn "$ME: $subpath: '$previous_subcmd' and '$subcmd' are out of order\n";
+                    ++$Errs;
+                }
+                $previous_subcmd = $subcmd;
                 $man{$subcmd} = podman_man($2);
             }
         }
