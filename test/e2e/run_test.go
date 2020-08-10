@@ -183,20 +183,44 @@ var _ = Describe("Podman run", func() {
 		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("FALSE"))
 	})
 
-	It("podman run seccomp test", func() {
-
+	forbidGetCWDSeccompProfile := func() string {
 		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 		jsonFile, err := podmanTest.CreateSeccompJson(in)
 		if err != nil {
 			fmt.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
+		return jsonFile
+	}
 
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", strings.Join([]string{"seccomp=", jsonFile}, ""), ALPINE, "pwd"})
+	It("podman run seccomp test", func() {
+		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", strings.Join([]string{"seccomp=", forbidGetCWDSeccompProfile()}, ""), ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		match, _ := session.GrepString("Operation not permitted")
 		Expect(match).Should(BeTrue())
+	})
+
+	It("podman run seccomp test --privileged", func() {
+		session := podmanTest.Podman([]string{"run", "-it", "--privileged", "--security-opt", strings.Join([]string{"seccomp=", forbidGetCWDSeccompProfile()}, ""), ALPINE, "pwd"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		match, _ := session.GrepString("Operation not permitted")
+		Expect(match).Should(BeTrue())
+	})
+
+	It("podman run seccomp test --privileged no profile should be unconfined", func() {
+		session := podmanTest.Podman([]string{"run", "-it", "--privileged", ALPINE, "grep", "Seccomp", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("0"))
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run seccomp test no profile should be default", func() {
+		session := podmanTest.Podman([]string{"run", "-it", ALPINE, "grep", "Seccomp", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("2"))
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman run capabilities test", func() {
