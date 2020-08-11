@@ -809,8 +809,8 @@ Run container in systemd mode. The default is **true**.
 
 The value *always* enforces the systemd mode is enforced without
 looking at the executable name.  Otherwise, if set to **true** and the
-command you are running inside the container is systemd, _/usr/sbin/init_
-or _/sbin/init_.
+command you are running inside the container is systemd, _/usr/sbin/init_,
+_/sbin/init_ or _/usr/local/sbin/init_.
 
 If the command you are running inside of the container is systemd
 Podman will setup tmpfs mount points in the following directories:
