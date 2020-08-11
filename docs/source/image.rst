@@ -18,7 +18,7 @@ Image
 
 :doc:`load <markdown/podman-load.1>` Load an image from container archive
 
-:doc:`mount <markdown/podman-images-mount.1>` Mount an image's root filesystem.
+:doc:`mount <markdown/podman-image-mount.1>` Mount an image's root filesystem.
 
 :doc:`prune <markdown/podman-image-prune.1>` Remove unused images
 
@@ -40,6 +40,6 @@ Image
 
 :doc:`trust <markdown/podman-image-trust.1>` Manage container image trust policy
 
-:doc:`untag <markdown/podman-untag.1>` Removes one or more names from a locally-stored image
-
 :doc:`unmount <markdown/podman-unmount.1>` Unmount an image's root filesystem
+
+:doc:`untag <markdown/podman-untag.1>` Removes one or more names from a locally-stored image
