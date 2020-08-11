@@ -15,6 +15,7 @@ If you are completely new to containers, we recommend that you check out the :do
    :caption: Contents:
 
    Introduction
+   :doc:`<markdown/podman.1>` Simple management tool for pods, containers and images
    Commands
    Reference
    Tutorials

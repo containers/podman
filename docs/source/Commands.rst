@@ -6,11 +6,13 @@ Commands
 
 :doc:`attach <markdown/podman-attach.1>` Attach to a running container
 
+:doc:`auto-update <markdown/podman-auto-update.1>` Auto update containers according to their auto-update policy
+
 :doc:`build <markdown/podman-build.1>` Build an image using instructions from Containerfiles
 
 :doc:`commit <markdown/podman-commit.1>` Create new image based on the changed container
 
-:doc:`containers <managecontainers>` Manage Containers
+:doc:`container <managecontainers>` Manage Containers
 
 :doc:`cp <markdown/podman-cp.1>` Copy files/folders between a container and the local filesystem
 
@@ -51,6 +53,8 @@ Commands
 :doc:`logout <markdown/podman-logout.1>` Logout of a container registry
 
 :doc:`logs <markdown/podman-logs.1>` Fetch the logs of a container
+
+:doc:`manifest <manifest>` Create and manipulate manifest lists and image indexes
 
 :doc:`mount <markdown/podman-mount.1>` Mount a working container's root filesystem
 
@@ -99,6 +103,8 @@ Commands
 :doc:`unpause <markdown/podman-unpause.1>` Unpause the processes in one or more containers
 
 :doc:`unshare <markdown/podman-unshare.1>` Run a command in a modified user namespace
+
+:doc:`untag <markdown/podman-untag.1>` Removes one or more names from a locally-stored image
 
 :doc:`version <markdown/podman-version.1>` Display the Podman Version Information
 
