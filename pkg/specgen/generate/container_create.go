@@ -164,13 +164,14 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		}
 
 		if len(command) > 0 {
-			if command[0] == "/usr/sbin/init" || command[0] == "/sbin/init" || (filepath.Base(command[0]) == "systemd") {
+			if command[0] == "/usr/sbin/init" || command[0] == "/sbin/init" || command[0] == "/usr/local/sbin/init" || (filepath.Base(command[0]) == "systemd") {
 				useSystemd = true
 			}
 		}
 	default:
 		return nil, errors.Wrapf(err, "invalid value %q systemd option requires 'true, false, always'", s.Systemd)
 	}
+	logrus.Debugf("using systemd mode: %t", useSystemd)
 	if useSystemd {
 		// is StopSignal was not set by the user then set it to systemd
 		// expected StopSigal
