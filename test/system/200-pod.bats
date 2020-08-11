@@ -18,7 +18,9 @@ function teardown() {
 
 
 @test "podman pod top - containers in different PID namespaces" {
-    skip_if_remote "podman-pod does not work with podman-remote"
+    if is_remote && is_rootless; then
+        skip "FIXME: pending #7139"
+    fi
 
     # With infra=false, we don't get a /pause container (we also
     # don't pull k8s.gcr.io/pause )
@@ -53,7 +55,9 @@ function teardown() {
 
 
 @test "podman pod - communicating between pods" {
-    skip_if_remote "podman-pod does not work with podman-remote"
+    if is_remote && is_rootless; then
+        skip "FIXME: pending #7139"
+    fi
 
     podname=pod$(random_string)
     run_podman 1 pod exists $podname
@@ -77,7 +81,7 @@ function teardown() {
     run_podman ps --format '{{.Pod}}'
     newline="
 "
-    is "$output" "${podid:0:12}${newline}${podid:0:12}" "sdfdsf"
+    is "$output" "${podid:0:12}${newline}${podid:0:12}" "ps shows 2 pod IDs"
 
     # Talker: send the message via common port on localhost
     message=$(random_string 15)
@@ -135,6 +139,10 @@ function random_ip() {
 }
 
 @test "podman pod create - hashtag AllTheOptions" {
+    if is_remote && is_rootless; then
+        skip "FIXME: pending #7139"
+    fi
+
     mac=$(random_mac)
     add_host_ip=$(random_ip)
     add_host_n=$(random_string | tr A-Z a-z).$(random_string | tr A-Z a-z).xyz

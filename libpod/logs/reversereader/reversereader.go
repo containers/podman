@@ -60,7 +60,7 @@ func (r *ReverseReader) Read() (string, error) {
 	if int64(n) < r.readSize {
 		b = b[0:n]
 	}
-	// Set to the next page boundary
-	r.offset = -r.readSize
+	// Move the offset one pagesize up
+	r.offset -= r.readSize
 	return string(b), nil
 }

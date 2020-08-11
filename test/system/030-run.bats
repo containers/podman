@@ -190,6 +190,8 @@ echo $rand        |   0 | $rand
 }
 
 @test "podman run docker-archive" {
+    skip_if_remote "FIXME: pending #7116"
+
     # Create an image that, when run, outputs a random magic string
     expect=$(random_string 20)
     run_podman run --name myc --entrypoint="[\"/bin/echo\",\"$expect\"]" $IMAGE
@@ -228,6 +230,70 @@ echo $rand        |   0 | $rand
     # Clean up.
     run_podman rm $cid
     run_podman rmi myi
+}
+
+# #6735 : complex interactions with multiple user namespaces
+# The initial report has to do with bind mounts, but that particular
+# symptom only manifests on a fedora container image -- we have no
+# reproducer on alpine. Checking directory ownership is good enough.
+@test "podman run : user namespace preserved root ownership" {
+    skip_if_remote "FIXME: pending #7195"
+
+    for priv in "" "--privileged"; do
+        for user in "--user=0" "--user=100"; do
+            for keepid in "" "--userns=keep-id"; do
+                opts="$priv $user $keepid"
+
+                for dir in /etc /usr;do
+                    run_podman run --rm $opts $IMAGE stat -c '%u:%g:%n' $dir
+                    remove_same_dev_warning      # grumble
+                    is "$output" "0:0:$dir" "run $opts ($dir)"
+                done
+            done
+        done
+    done
+}
+
+# #6829 : add username to /etc/passwd inside container if --userns=keep-id
+@test "podman run : add username to /etc/passwd if --userns=keep-id" {
+    skip_if_remote "FIXME: pending #7195"
+
+    # Default: always run as root
+    run_podman run --rm $IMAGE id -un
+    is "$output" "root" "id -un on regular container"
+
+    # This would always work on root, but is new behavior on rootless: #6829
+    # adds a user entry to /etc/passwd
+    run_podman run --rm --userns=keep-id $IMAGE id -un
+    is "$output" "$(id -un)" "username on container with keep-id"
+
+    # --privileged should make no difference
+    run_podman run --rm --privileged --userns=keep-id $IMAGE id -un
+    remove_same_dev_warning      # grumble
+    is "$output" "$(id -un)" "username on container with keep-id"
+
+    # ...but explicitly setting --user should override keep-id
+    run_podman run --rm --privileged --userns=keep-id --user=0 $IMAGE id -un
+    remove_same_dev_warning      # grumble
+    is "$output" "root" "--user=0 overrides keep-id"
+}
+
+# #6991 : /etc/passwd is modifiable
+@test "podman run : --userns=keep-id: passwd file is modifiable" {
+    skip_if_remote "FIXME: pending #7195"
+
+    run_podman run -d --userns=keep-id $IMAGE sh -c 'while ! test -e /stop; do sleep 0.1; done'
+    cid="$output"
+
+    gecos="$(random_string 6) $(random_string 8)"
+    run_podman exec --user root $cid adduser -D -g "$gecos" -s /bin/sh newuser3
+    is "$output" "" "output from adduser"
+    run_podman exec $cid tail -1 /etc/passwd
+    is "$output" "newuser3:x:1000:1000:$gecos:/home/newuser3:/bin/sh" \
+       "newuser3 added to /etc/passwd in container"
+
+    run_podman exec $cid touch /stop
+    run_podman wait $cid
 }
 
 # vim: filetype=sh

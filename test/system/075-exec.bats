@@ -6,8 +6,6 @@
 load helpers
 
 @test "podman exec - basic test" {
-    skip_if_remote
-
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
 
@@ -21,6 +19,15 @@ load helpers
     run_podman exec $cid sh -c "cat /$rand_filename"
     is "$output" "$rand_content" "Can exec and see file in running container"
 
+
+    # Specially defined situations: exec a dir, or no such command.
+    # We don't check the full error message because runc & crun differ.
+    run_podman 126 exec $cid /etc
+    is "$output" ".*permission denied"  "podman exec /etc"
+    run_podman 127 exec $cid /no/such/command
+    is "$output" ".*such file or dir"   "podman exec /no/such/command"
+
+    # Done
     run_podman exec $cid rm -f /$rand_filename
 
     run_podman wait $cid
@@ -76,6 +83,26 @@ load helpers
 
     # Clean up
     run_podman exec $cid touch /stop
+    run_podman wait $cid
+    run_podman rm $cid
+}
+
+# #6829 : add username to /etc/passwd inside container if --userns=keep-id
+# #6593 : doesn't actually work with podman exec
+@test "podman exec - with keep-id" {
+    skip "Please enable once #6593 is fixed"
+
+    run_podman run -d --userns=keep-id $IMAGE sh -c \
+               "echo READY;while [ ! -f /stop ]; do sleep 1; done"
+    cid="$output"
+    wait_for_ready $cid
+
+    run_podman exec $cid id -un
+    is "$output" "$(id -un)" "container is running as current user"
+
+    # Until #6593 gets fixed, this just hangs. The server process barfs with:
+    #   unable to find user <username>: no matching entries in passwd file
+    run_podman exec --user=$(id -un) $cid touch /stop
     run_podman wait $cid
     run_podman rm $cid
 }

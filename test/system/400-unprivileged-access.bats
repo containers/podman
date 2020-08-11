@@ -97,4 +97,72 @@ EOF
     run_podman rm c_uidmap c_uidmap_v
 }
 
+# #6957 - mask out /proc/acpi, /sys/dev, and other sensitive system files
+@test "sensitive mount points are masked without --privileged" {
+    # Weird error, maybe a flake?
+    #   can only attach to created or running containers: container state improper
+    # https://github.com/containers/podman/pull/7111#issuecomment-666858715
+    skip_if_remote "FIXME: Weird flake"
+
+    # FIXME: this should match the list in pkg/specgen/generate/config_linux.go
+    local -a mps=(
+        /proc/acpi
+        /proc/kcore
+        /proc/keys
+        /proc/latency_stats
+        /proc/timer_list
+        /proc/timer_stats
+        /proc/sched_debug
+        /proc/scsi
+        /sys/firmware
+        /sys/fs/selinux
+        /sys/dev
+    )
+
+    # Some of the above may not exist on our host. Find only the ones that do.
+    local -a subset=()
+    for mp in ${mps[@]}; do
+        if [ -e $mp ]; then
+            subset+=($mp)
+        fi
+    done
+
+    # Run 'stat' on all the files, plus /dev/null. Get path, file type,
+    # number of links, major, and minor (see below for why). Do it all
+    # in one go, to avoid multiple podman-runs
+    run_podman run --rm $IMAGE stat -c'%n:%F:%h:%T:%t' /dev/null ${subset[@]}
+    local devnull=
+    for result in "${lines[@]}"; do
+        # e.g. /proc/acpi:character special file:1:3:1
+        local IFS=:
+        read path type nlinks major minor <<<"$result"
+
+        if [[ $path = "/dev/null" ]]; then
+            # /dev/null is our reference point: masked *files* (not directories)
+            # will be created as /dev/null clones.
+            # This depends on 'stat' returning results in argv order,
+            # so /dev/null is first, so we have a reference for others.
+            # If that ever breaks, this test will have to be done in two passes.
+            devnull="$major:$minor"
+        elif [[ $type = "character special file" ]]; then
+            # Container file is a character device: it must match /dev/null
+            is "$major:$minor" "$devnull" "$path: major/minor matches /dev/null"
+        elif [[ $type = "directory" ]]; then
+            # Directories: must be empty (only two links).
+            # FIXME: this is a horrible almost-worthless test! It does not
+            # actually check for files in the directory (expect: zero),
+            # merely for the nonexistence of any subdirectories! It relies
+            # on the observed (by Ed) fact that all the masked directories
+            # contain further subdirectories on the host. If there's ever
+            # a new masked directory that contains only files, this test
+            # will silently pass without any indication of error.
+            # If you can think of a better way to do this check,
+            # please feel free to fix it.
+            is "$nlinks" "2" "$path: directory link count"
+        else
+            die "$path: Unknown file type '$type'"
+        fi
+    done
+}
+
 # vim: filetype=sh

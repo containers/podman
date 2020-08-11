@@ -140,7 +140,6 @@ EOF
 
 # Anonymous temporary volumes, and persistent autocreated named ones
 @test "podman volume, implicit creation with run" {
-
     # No hostdir arg: create anonymous container with random name
     rand=$(random_string)
     run_podman run -v /myvol $IMAGE sh -c "echo $rand >/myvol/myfile"
@@ -187,6 +186,7 @@ EOF
 # Confirm that container sees the correct id
 @test "podman volume with --userns=keep-id" {
     is_rootless || skip "only meaningful when run rootless"
+    skip_if_remote "FIXME: pending #7195"
 
     myvoldir=${PODMAN_TMPDIR}/volume_$(random_string)
     mkdir $myvoldir

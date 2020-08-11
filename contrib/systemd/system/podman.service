@@ -8,7 +8,3 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 ExecStart=/usr/bin/podman system service
-
-[Install]
-WantedBy=multi-user.target
-Also=podman.socket

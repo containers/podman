@@ -89,6 +89,16 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(ok).To(BeTrue())
 	})
 
+	It("podman --userns=keep-id check passwd", func() {
+		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "id", "-un"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		u, err := user.Current()
+		Expect(err).To(BeNil())
+		ok, _ := session.GrepString(u.Name)
+		Expect(ok).To(BeTrue())
+	})
+
 	It("podman --userns=keep-id root owns /usr", func() {
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "stat", "-c%u", "/usr"})
 		session.WaitWithDefaultTimeout()
@@ -101,6 +111,31 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal("0"))
+	})
+
+	It("podman run --userns=keep-id can add users", func() {
+		if os.Geteuid() == 0 {
+			Skip("Test only runs without root")
+		}
+
+		userName := os.Getenv("USER")
+		if userName == "" {
+			Skip("Can't complete test if no username available")
+		}
+
+		ctrName := "ctr-name"
+		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "--user", "root:root", "-d", "--stop-signal", "9", "--name", ctrName, fedoraMinimal, "sleep", "600"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		exec1 := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "cat", "/etc/passwd"})
+		exec1.WaitWithDefaultTimeout()
+		Expect(exec1.ExitCode()).To(Equal(0))
+		Expect(exec1.OutputToString()).To(ContainSubstring(userName))
+
+		exec2 := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "useradd", "testuser"})
+		exec2.WaitWithDefaultTimeout()
+		Expect(exec2.ExitCode()).To(Equal(0))
 	})
 
 	It("podman --userns=auto", func() {

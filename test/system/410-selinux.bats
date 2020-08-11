@@ -19,15 +19,8 @@ function check_label() {
 
     # FIXME: on some CI systems, 'run --privileged' emits a spurious
     # warning line about dup devices. Ignore it.
+    remove_same_dev_warning
     local context="$output"
-    if [ ${#lines[@]} -gt 1 ]; then
-        if expr "${lines[0]}" : "WARNING: .* type, major" >/dev/null; then
-            echo "# ${lines[0]} [ignored]" >&3
-            context="${lines[1]}"
-        else
-            die "FAILED: too much output, expected one single line"
-        fi
-    fi
 
     is "$context" ".*_u:system_r:.*" "SELinux role should always be system_r"
 

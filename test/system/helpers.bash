@@ -16,6 +16,12 @@ IMAGE=$PODMAN_TEST_IMAGE_FQN
 # Default timeout for a podman command.
 PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-60}
 
+# Prompt to display when logging podman commands; distinguish root/rootless
+_LOG_PROMPT='$'
+if [ $(id -u) -eq 0 ]; then
+    _LOG_PROMPT='#'
+fi
+
 ###############################################################################
 # BEGIN setup/teardown tools
 
@@ -132,7 +138,7 @@ function run_podman() {
     esac
 
     # stdout is only emitted upon error; this echo is to help a debugger
-    echo "\$ $PODMAN $*"
+    echo "$_LOG_PROMPT $PODMAN $*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
     run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@" 3>/dev/null
@@ -234,12 +240,29 @@ function is_remote() {
     [[ "$PODMAN" =~ -remote ]]
 }
 
+###########################
+#  _add_label_if_missing  #  make sure skip messages include rootless/remote
+###########################
+function _add_label_if_missing() {
+    local msg="$1"
+    local want="$2"
+
+    if [ -z "$msg" ]; then
+        echo
+    elif expr "$msg" : ".*$want" &>/dev/null; then
+        echo "$msg"
+    else
+        echo "[$want] $msg"
+    fi
+}
+
 ######################
 #  skip_if_rootless  #  ...with an optional message
 ######################
 function skip_if_rootless() {
     if is_rootless; then
-        skip "${1:-not applicable under rootless podman}"
+        local msg=$(_add_label_if_missing "$1" "rootless")
+        skip "${msg:-not applicable under rootless podman}"
     fi
 }
 
@@ -248,7 +271,8 @@ function skip_if_rootless() {
 ####################
 function skip_if_remote() {
     if is_remote; then
-        skip "${1:-test does not work with podman-remote}"
+        local msg=$(_add_label_if_missing "$1" "remote")
+        skip "${msg:-test does not work with podman-remote}"
     fi
 }
 
@@ -386,5 +410,37 @@ function find_exec_pid_files() {
         find $storage_path -type f -iname 'exec_pid_*'
     fi
 }
+
+
+#############################
+#  remove_same_dev_warning  #  Filter out useless warning from output
+#############################
+#
+# On some CI systems, 'podman run --privileged' emits a useless warning:
+#
+#    WARNING: The same type, major and minor should not be used for multiple devices.
+#
+# This obviously screws us up when we look at output results.
+#
+# This function removes the warning from $output and $lines
+#
+function remove_same_dev_warning() {
+    # No input arguments. We operate in-place on $output and $lines
+
+    local i=0
+    local -a new_lines=()
+    while [[ $i -lt ${#lines[@]} ]]; do
+        if expr "${lines[$i]}" : 'WARNING: .* same type, major.* multiple' >/dev/null; then
+            :
+        else
+            new_lines+=("${lines[$i]}")
+        fi
+        i=$(( i + 1 ))
+    done
+
+    lines=("${new_lines[@]}")
+    output=$(printf '%s\n' "${lines[@]}")
+}
+
 # END   miscellaneous tools
 ###############################################################################

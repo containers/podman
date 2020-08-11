@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/containers/libpod/v2/pkg/domain/infra/abi"
-	"github.com/containers/libpod/v2/pkg/network"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -78,7 +78,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	if reports[0].Err != nil {
 		// If the network cannot be found, we return a 404.
-		if errors.Cause(err) == network.ErrNetworkNotFound {
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
 			utils.Error(w, "Something went wrong", http.StatusNotFound, err)
 			return
 		}
@@ -104,7 +104,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	reports, err := ic.NetworkInspect(r.Context(), []string{name}, options)
 	if err != nil {
 		// If the network cannot be found, we return a 404.
-		if errors.Cause(err) == network.ErrNetworkNotFound {
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
 			utils.Error(w, "Something went wrong", http.StatusNotFound, err)
 			return
 		}

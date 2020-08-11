@@ -277,6 +277,9 @@ type ContainerConfig struct {
 	User string `json:"user,omitempty"`
 	// Additional groups to add
 	Groups []string `json:"groups,omitempty"`
+	// AddCurrentUserPasswdEntry indicates that the current user passwd entry
+	// should be added to the /etc/passwd within the container
+	AddCurrentUserPasswdEntry bool `json:"addCurrentUserPasswdEntry,omitempty"`
 
 	// Namespace Config
 	// IDs of container to share namespaces with
@@ -774,7 +777,10 @@ func (c *Container) Hostname() string {
 
 // WorkingDir returns the containers working dir
 func (c *Container) WorkingDir() string {
-	return c.config.Spec.Process.Cwd
+	if c.config.Spec.Process != nil {
+		return c.config.Spec.Process.Cwd
+	}
+	return "/"
 }
 
 // State Accessors

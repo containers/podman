@@ -149,9 +149,9 @@ WantedBy=multi-user.target default.target
 
 Podman-generated unit files include an `[Install]` section, which carries installation information for the unit. It is used by the enable and disable commands of systemctl(1) during installation.
 
-Once you have generated the systemd unit file, you can copy the generated systemd file to ```/usr/lib/systemd/system``` for installing as a root user and to ```$HOME/.config/systemd/user ``` for installing it as a non-root user. Enable the copied unit file or files using `systemctl enable`.
+Once you have generated the systemd unit file, you can copy the generated systemd file to ```/etc/systemd/system``` for installing as a root user and to ```$HOME/.config/systemd/user``` for installing it as a non-root user. Enable the copied unit file or files using `systemctl enable`.
 
-Note: Coping unit files to ```/usr/lib/systemd/system``` and enabling it marks the unit file to be automatically started at boot. And smillarly, coping a unit file to ```$HOME/.config/systemd/user ``` and enabling it marks the unit file to be automatically started on user login.
+Note: Coping unit files to ```/etc/systemd/system``` and enabling it marks the unit file to be automatically started at boot. And smillarly, coping a unit file to ```$HOME/.config/systemd/user``` and enabling it marks the unit file to be automatically started on user login.
 
 
 ```
@@ -162,14 +162,14 @@ $ podman generate systemd --files --name systemd-pod
 
 # Copy all the generated files.
 
-$ sudo cp pod-systemd-pod.service container-great_payne.service /usr/lib/systemd/system
+$ sudo cp pod-systemd-pod.service container-great_payne.service /etc/systemd/system
 $ systemctl enable pod-systemd-pod.service
-Created symlink /etc/systemd/system/multi-user.target.wants/pod-systemd-pod.service → /usr/lib/systemd/system/pod-systemd-pod.service.
-Created symlink /etc/systemd/system/default.target.wants/pod-systemd-pod.service → /usr/lib/systemd/system/pod-systemd-pod.service.
+Created symlink /etc/systemd/system/multi-user.target.wants/pod-systemd-pod.service → /etc/systemd/system/pod-systemd-pod.service.
+Created symlink /etc/systemd/system/default.target.wants/pod-systemd-pod.service → /etc/systemd/system/pod-systemd-pod.service.
 $ systemctl is-enabled pod-systemd-pod.service
 enabled
 ```
-To run the user services placed in `$HOME/.config/systemd/user/` on first login of that user, enable the service with --user flag.
+To run the user services placed in `$HOME/.config/systemd/user` on first login of that user, enable the service with --user flag.
 
 ```
 $ systemctl --user enable <.service>

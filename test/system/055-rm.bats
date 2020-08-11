@@ -32,6 +32,8 @@ load helpers
 #
 # See https://github.com/containers/libpod/issues/3795
 @test "podman rm -f" {
+    skip_if_remote "FIXME: pending #7117"
+
     rand=$(random_string 30)
     ( sleep 3; run_podman rm -f $rand ) &
     run_podman 137 run --name $rand $IMAGE sleep 30

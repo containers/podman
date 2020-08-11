@@ -10,6 +10,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/pkg/errors"
 )
 
@@ -55,7 +56,7 @@ func GetCNIConfigPathByName(config *config.Config, name string) (string, error) 
 			return confFile, nil
 		}
 	}
-	return "", errors.Wrap(ErrNetworkNotFound, fmt.Sprintf("unable to find network configuration for %s", name))
+	return "", errors.Wrap(define.ErrNoSuchNetwork, fmt.Sprintf("unable to find network configuration for %s", name))
 }
 
 // ReadRawCNIConfByName reads the raw CNI configuration for a CNI

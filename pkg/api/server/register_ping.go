@@ -9,9 +9,8 @@ import (
 
 func (s *APIServer) registerPingHandlers(r *mux.Router) error {
 
-	r.Handle("/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodGet)
-	r.Handle("/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodHead)
-
+	r.Handle("/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodGet, http.MethodHead)
+	r.Handle(VersionedPath("/_ping"), s.APIHandler(compat.Ping)).Methods(http.MethodGet, http.MethodHead)
 	// swagger:operation GET /libpod/_ping libpod libpodPingGet
 	// ---
 	//   summary: Ping service
@@ -62,7 +61,7 @@ func (s *APIServer) registerPingHandlers(r *mux.Router) error {
 	//               determine if talking to Podman engine or another engine
 	//     500:
 	//       $ref: "#/responses/InternalError"
-	r.Handle("/libpod/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodGet)
-	r.Handle("/libpod/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodHead)
+	r.Handle("/libpod/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodGet, http.MethodHead)
+	r.Handle(VersionedPath("/libpod/_ping"), s.APIHandler(compat.Ping)).Methods(http.MethodGet, http.MethodHead)
 	return nil
 }

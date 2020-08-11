@@ -93,20 +93,14 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 	if query.All {
 		return images, nil
 	}
-	returnImages := []*image.Image{}
-	for _, img := range images {
-		if len(img.Names()) == 0 {
-			parent, err := img.IsParent(r.Context())
-			if err != nil {
-				return nil, err
-			}
-			if parent {
-				continue
-			}
-		}
-		returnImages = append(returnImages, img)
+
+	filter, err := runtime.ImageRuntime().IntermediateFilter(r.Context(), images)
+	if err != nil {
+		return nil, err
 	}
-	return returnImages, nil
+	images = image.FilterImages(images, []image.ResultFilter{filter})
+
+	return images, nil
 }
 
 func GetImage(r *http.Request, name string) (*image.Image, error) {

@@ -153,7 +153,9 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	// User
 	switch s.UserNS.NSMode {
 	case specgen.KeepID:
-		if !rootless.IsRootless() {
+		if rootless.IsRootless() {
+			toReturn = append(toReturn, libpod.WithAddCurrentUserPasswdEntry())
+		} else {
 			// keep-id as root doesn't need a user namespace
 			s.UserNS.NSMode = specgen.Host
 		}
@@ -452,6 +454,10 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 func GetNamespaceOptions(ns []string) ([]libpod.PodCreateOption, error) {
 	var options []libpod.PodCreateOption
 	var erroredOptions []libpod.PodCreateOption
+	if ns == nil {
+		//set the default namespaces
+		ns = strings.Split(specgen.DefaultKernelNamespaces, ",")
+	}
 	for _, toShare := range ns {
 		switch toShare {
 		case "cgroup":

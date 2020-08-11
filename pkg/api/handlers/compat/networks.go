@@ -10,6 +10,7 @@ import (
 
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/libpod/v2/libpod"
+	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
 	"github.com/containers/libpod/v2/pkg/domain/entities"
 	"github.com/containers/libpod/v2/pkg/domain/infra/abi"
@@ -44,9 +45,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	_, err = network.InspectNetwork(config, name)
 	if err != nil {
-		// TODO our network package does not distinguish between not finding a
-		// specific network vs not being able to read it
-		utils.InternalServerError(w, err)
+		utils.NetworkNotFound(w, name, err)
 		return
 	}
 	report, err := getNetworkResourceByName(name, runtime)
@@ -285,7 +284,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !exists {
-		utils.Error(w, "network not found", http.StatusNotFound, network.ErrNetworkNotFound)
+		utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
 		return
 	}
 	if err := network.RemoveNetwork(config, name); err != nil {

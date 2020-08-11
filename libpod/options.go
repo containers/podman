@@ -844,6 +844,20 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
+// WithAddCurrentUserPasswdEntry indicates that container should add current
+// user entry to /etc/passwd, since the UID will be mapped into the container,
+// via user namespace
+func WithAddCurrentUserPasswdEntry() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.AddCurrentUserPasswdEntry = true
+		return nil
+	}
+}
+
 // WithUserNSFrom indicates the the container should join the user namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of

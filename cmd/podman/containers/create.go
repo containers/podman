@@ -124,7 +124,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if _, err := createPodIfNecessary(s); err != nil {
+	if _, err := createPodIfNecessary(s, cliVals.Net); err != nil {
 		return err
 	}
 
@@ -279,7 +279,7 @@ func openCidFile(cidfile string) (*os.File, error) {
 // createPodIfNecessary automatically creates a pod when requested.  if the pod name
 // has the form new:ID, the pod ID is created and the name in the spec generator is replaced
 // with ID.
-func createPodIfNecessary(s *specgen.SpecGenerator) (*entities.PodCreateReport, error) {
+func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions) (*entities.PodCreateReport, error) {
 	if !strings.HasPrefix(s.Pod, "new:") {
 		return nil, nil
 	}
@@ -288,11 +288,10 @@ func createPodIfNecessary(s *specgen.SpecGenerator) (*entities.PodCreateReport, 
 		return nil, errors.Errorf("new pod name must be at least one character")
 	}
 	createOptions := entities.PodCreateOptions{
-		Name:  podName,
-		Infra: true,
-		Net: &entities.NetOptions{
-			PublishPorts: s.PortMappings,
-		},
+		Name:          podName,
+		Infra:         true,
+		Net:           netOpts,
+		CreateCommand: os.Args,
 	}
 	s.Pod = podName
 	return registry.ContainerEngine().PodCreate(context.Background(), createOptions)
