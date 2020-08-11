@@ -226,7 +226,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	if err != nil {
 		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, rawImage))
 		if err != nil {
-			return nil, errors.Errorf("invalid image reference %q", rawImage)
+			return nil, errors.Wrapf(err, "invalid image reference %q", rawImage)
 		}
 	}
 
