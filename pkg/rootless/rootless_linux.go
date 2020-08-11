@@ -389,13 +389,11 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 			lastErr = nil
 			break
 		} else {
-			fds, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM, 0)
+			r, w, err := os.Pipe()
 			if err != nil {
 				lastErr = err
 				continue
 			}
-
-			r, w := os.NewFile(uintptr(fds[0]), "read file"), os.NewFile(uintptr(fds[1]), "write file")
 
 			defer errorhandling.CloseQuiet(r)
 
