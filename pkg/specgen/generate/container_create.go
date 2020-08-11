@@ -153,7 +153,12 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		}
 
 		if len(command) > 0 {
-			if command[0] == "/usr/sbin/init" || command[0] == "/sbin/init" || command[0] == "/usr/local/sbin/init" || (filepath.Base(command[0]) == "systemd") {
+			useSystemdCommands := map[string]bool{
+				"/sbin/init":           true,
+				"/usr/sbin/init":       true,
+				"/usr/local/sbin/init": true,
+			}
+			if useSystemdCommands[command[0]] || (filepath.Base(command[0]) == "systemd") {
 				useSystemd = true
 			}
 		}
