@@ -7,6 +7,15 @@ let
         libassuan = (static pkg.libassuan);
         libgpgerror = (static pkg.libgpgerror);
         libseccomp = (static pkg.libseccomp);
+        glib = (static pkg.glib).overrideAttrs(x: {
+          outputs = [ "bin" "out" "dev" ];
+          mesonFlags = [
+            "-Ddefault_library=static"
+            "-Ddevbindir=${placeholder ''dev''}/bin"
+            "-Dgtk_doc=false"
+            "-Dnls=disabled"
+          ];
+        });
       };
     };
   });
