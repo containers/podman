@@ -124,6 +124,7 @@ func add(cmd *cobra.Command, args []string) error {
 		cfg.Engine.ServiceDestinations = map[string]config.Destination{
 			args[0]: dst,
 		}
+		cfg.Engine.ActiveService = args[0]
 	} else {
 		cfg.Engine.ServiceDestinations[args[0]] = dst
 	}
@@ -181,12 +182,20 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 		authMethods = append(authMethods, ssh.PublicKeysCallback(a.Signers))
 	}
 
-	config := &ssh.ClientConfig{
+	if len(authMethods) == 0 {
+		pass, err := terminal.ReadPassword(fmt.Sprintf("%s's login password:", uri.User.Username()))
+		if err != nil {
+			return "", err
+		}
+		authMethods = append(authMethods, ssh.Password(string(pass)))
+	}
+
+	cfg := &ssh.ClientConfig{
 		User:            uri.User.Username(),
 		Auth:            authMethods,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-	dial, err := ssh.Dial("tcp", uri.Host, config)
+	dial, err := ssh.Dial("tcp", uri.Host, cfg)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to connect to %q", uri.Host)
 	}
