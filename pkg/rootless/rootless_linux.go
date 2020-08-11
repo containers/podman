@@ -233,6 +233,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	if pid < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
+	defer func() {
+		if retErr != nil {
+			C.reexec_in_user_namespace_wait(pidC, 0)
+		}
+	}()
 
 	uids, gids, err := GetConfiguredMappings()
 	if err != nil {
@@ -294,6 +299,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	}
 
 	if fileOutput != nil {
+		ret := C.reexec_in_user_namespace_wait(pidC, 0)
+		if ret < 0 {
+			return false, -1, errors.New("error waiting for the re-exec process")
+		}
+
 		return true, 0, nil
 	}
 
