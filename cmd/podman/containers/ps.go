@@ -109,6 +109,7 @@ func jsonOut(responses []entities.ListContainer) error {
 	r := make([]entities.ListContainer, 0)
 	for _, con := range responses {
 		con.CreatedAt = units.HumanDuration(time.Since(time.Unix(con.Created, 0))) + " ago"
+		con.Status = psReporter{con}.Status()
 		r = append(r, con)
 	}
 	b, err := json.MarshalIndent(r, "", "  ")
