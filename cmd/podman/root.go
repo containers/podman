@@ -290,6 +290,7 @@ func resolveDestination() (string, string) {
 
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
+		logrus.Warning(errors.Wrap(err, "unable to read local containers.conf"))
 		return registry.DefaultAPIAddress(), ""
 	}
 
