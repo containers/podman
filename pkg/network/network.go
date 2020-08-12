@@ -137,6 +137,15 @@ func networkIntersect(n1, n2 *net.IPNet) bool {
 // ValidateUserNetworkIsAvailable returns via an error if a network is available
 // to be used
 func ValidateUserNetworkIsAvailable(config *config.Config, userNet *net.IPNet) error {
+	if len(userNet.IP) == 0 || len(userNet.Mask) == 0 {
+		return errors.Errorf("network %s's ip or mask cannot be empty", userNet.String())
+	}
+
+	ones, bit := userNet.Mask.Size()
+	if ones == 0 || bit == 0 {
+		return errors.Errorf("network %s's mask is invalid", userNet.String())
+	}
+
 	networks, err := GetNetworksFromFilesystem(config)
 	if err != nil {
 		return err
