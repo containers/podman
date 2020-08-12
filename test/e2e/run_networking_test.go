@@ -293,6 +293,22 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run slirp4netns network with different cidr", func() {
+		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
+		Expect(slirp4netnsHelp.ExitCode()).To(Equal(0))
+
+		networkConfiguration := "slirp4netns:cidr=192.168.0.0/24,allow_host_loopback=true"
+		session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "ping", "-c1", "192.168.0.2"})
+		session.Wait(30)
+
+		if strings.Contains(slirp4netnsHelp.OutputToString(), "cidr") {
+			Expect(session.ExitCode()).To(Equal(0))
+		} else {
+			Expect(session.ExitCode()).ToNot(Equal(0))
+			Expect(session.ErrorToString()).To(ContainSubstring("cidr not supported"))
+		}
+	})
+
 	It("podman run network bind to 127.0.0.1", func() {
 		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
 		Expect(slirp4netnsHelp.ExitCode()).To(Equal(0))

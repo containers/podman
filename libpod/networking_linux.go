@@ -171,6 +171,7 @@ type slirpFeatures struct {
 	HasMTU                 bool
 	HasEnableSandbox       bool
 	HasEnableSeccomp       bool
+	HasCIDR                bool
 	HasOutboundAddr        bool
 	HasIPv6                bool
 }
@@ -199,6 +200,7 @@ func checkSlirpFlags(path string) (*slirpFeatures, error) {
 		HasMTU:                 strings.Contains(string(out), "--mtu"),
 		HasEnableSandbox:       strings.Contains(string(out), "--enable-sandbox"),
 		HasEnableSeccomp:       strings.Contains(string(out), "--enable-seccomp"),
+		HasCIDR:                strings.Contains(string(out), "--cidr"),
 		HasOutboundAddr:        strings.Contains(string(out), "--outbound-addr"),
 		HasIPv6:                strings.Contains(string(out), "--enable-ipv6"),
 	}, nil
@@ -227,6 +229,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
+	cidr := ""
 	isSlirpHostForward := false
 	disableHostLoopback := true
 	enableIPv6 := false
@@ -240,6 +243,12 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 			option, value := parts[0], parts[1]
 
 			switch option {
+			case "cidr":
+				ipv4, _, err := net.ParseCIDR(value)
+				if err != nil || ipv4.To4() == nil {
+					return errors.Errorf("invalid cidr %q", value)
+				}
+				cidr = value
 			case "port_handler":
 				switch value {
 				case "slirp4netns":
@@ -307,6 +316,13 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	}
 	if slirpFeatures.HasEnableSeccomp {
 		cmdArgs = append(cmdArgs, "--enable-seccomp")
+	}
+
+	if cidr != "" {
+		if !slirpFeatures.HasCIDR {
+			return errors.Errorf("cidr not supported")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--cidr=%s", cidr))
 	}
 
 	if enableIPv6 {
