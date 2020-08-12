@@ -305,7 +305,7 @@ testunit: libpodimage ## Run unittest on the built image
 localunit: test/goecho/goecho varlink_generate
 	hack/check_root.sh make localunit
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
-	ginkgo \
+	$(GOBIN)/ginkgo \
 		-r \
 		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings,hack \
@@ -321,16 +321,16 @@ localunit: test/goecho/goecho varlink_generate
 
 .PHONY: ginkgo
 ginkgo:
-	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. hack/.
+	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. hack/.
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
-	ginkgo -v $(TESTFLAGS) -tags "$(REMOTETAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(REMOTETAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 .PHONY: endpoint
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 endpoint:
-	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -debug test/endpoint/.
+	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -debug test/endpoint/.
 endpoint:
 endif
 
