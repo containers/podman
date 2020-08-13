@@ -6,5 +6,6 @@ Documentation=man:podman-system-service(1)
 StartLimitIntervalSec=0
 
 [Service]
-Type=simple
+Type=notify
+KillMode=process
 ExecStart=/usr/bin/podman system service
