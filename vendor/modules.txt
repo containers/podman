@@ -200,6 +200,7 @@ github.com/containers/storage/pkg/unshare
 github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd/v22 v22.1.0
 github.com/coreos/go-systemd/v22/activation
+github.com/coreos/go-systemd/v22/daemon
 github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
