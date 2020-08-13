@@ -12,8 +12,15 @@ _SOCAT_LOG=
 function setup() {
     skip_if_remote
 
-    # TODO: remove this once CI systems have newer crun and container-selinux
-    skip "TEMPORARY SKIP - until CI systems get new crun, container-selinux"
+    # Skip if systemd is not running
+    systemctl list-units &>/dev/null || skip "systemd not available"
+
+    # sdnotify fails with runc 1.0.0-3-dev2 on Ubuntu. Let's just
+    # assume that we work only with crun, nothing else.
+    run_podman info --format '{{ .Host.OCIRuntime.Name }}'
+    if [[ "$output" != "crun" ]]; then
+        skip "this test only works with crun, not '$output'"
+    fi
 
     basic_setup
 }
@@ -107,7 +114,7 @@ function _assert_mainpid_is_conmon() {
 @test "sdnotify : container" {
     # Sigh... we need to pull a humongous image because it has systemd-notify.
     # FIXME: is there a smaller image we could use?
-    _FEDORA=registry.fedoraproject.org/fedora:latest
+    _FEDORA=registry.fedoraproject.org/fedora:31
 
     # Pull that image. Retry in case of flakes.
     run_podman pull $_FEDORA || \
