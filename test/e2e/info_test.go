@@ -109,4 +109,30 @@ var _ = Describe("Podman Info", func() {
 		Expect(err).To(BeNil())
 		Expect(string(out)).To(Equal(expect))
 	})
+
+	It("podman --storage-opt \"\" disable storage options", func() {
+		SkipIfRemote()
+		os.Setenv("CONTAINERS_STORAGE_CONF", "config/storage.conf")
+		podmanPath := podmanTest.PodmanTest.PodmanBinary
+		cmd := exec.Command(podmanPath, "info", "--format", "{{.Store.GraphOptions}}")
+		out, err := cmd.CombinedOutput()
+		fmt.Println(string(out))
+		Expect(err).To(BeNil())
+		Expect(string(out)).To(Equal("map[overlay.mountopt:nodev]"))
+
+		cmd = exec.Command(podmanPath, "--storage-opt", "", "info", "--format", "{{.Store.GraphOptions}}")
+		out, err = cmd.CombinedOutput()
+		fmt.Println(string(out))
+		Expect(err).To(BeNil())
+		Expect(string(out)).To(Equal("map[]"))
+
+		cmd = exec.Command(podmanPath, "--storage-opt", "overlay.mountopt=nodev,metacopy=on", "info", "--format", "{{.Store.GraphOptions}}")
+		out, err = cmd.CombinedOutput()
+		fmt.Println(string(out))
+		Expect(err).To(BeNil())
+		Expect(string(out)).To(Equal("map[overlay.mountopt:nodev,metacopy=on]"))
+
+		os.Unsetenv("CONTAINERS_STORAGE_CONF")
+	})
+
 })

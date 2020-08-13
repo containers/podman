@@ -143,7 +143,11 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	// This should always be checked after storage-driver is checked
 	if len(cfg.StorageOpts) > 0 {
 		storageSet = true
-		storageOpts.GraphDriverOptions = cfg.StorageOpts
+		if len(cfg.StorageOpts) == 1 && cfg.StorageOpts[0] == "" {
+			storageOpts.GraphDriverOptions = []string{}
+		} else {
+			storageOpts.GraphDriverOptions = cfg.StorageOpts
+		}
 	}
 	if opts.migrate {
 		options = append(options, libpod.WithMigrate())
