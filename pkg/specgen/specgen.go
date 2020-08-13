@@ -289,6 +289,8 @@ type ContainerSecurityConfig struct {
 	ReadOnlyFilesystem bool `json:"read_only_filesystem,omittempty"`
 	// Umask is the umask the init process of the container will be run with.
 	Umask string `json:"umask,omitempty"`
+	// ProcOpts are the options used for the proc mount.
+	ProcOpts []string `json:"procfs_opts,omitempty"`
 }
 
 // ContainerCgroupConfig contains configuration information about a container's

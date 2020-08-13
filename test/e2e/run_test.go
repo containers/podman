@@ -827,6 +827,15 @@ USER mail`
 		Expect(isSharedOnly).Should(BeTrue())
 	})
 
+	It("podman run --security-opts proc-opts=", func() {
+		session := podmanTest.Podman([]string{"run", "--security-opt", "proc-opts=nosuid,exec", fedoraMinimal, "findmnt", "-noOPTIONS", "/proc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring("nosuid"))
+		Expect(output).To(Not(ContainSubstring("exec")))
+	})
+
 	It("podman run --mount type=bind,bind-nonrecursive", func() {
 		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,bind-nonrecursive,slave,src=/,target=/host", fedoraMinimal, "findmnt", "-nR", "/host"})
