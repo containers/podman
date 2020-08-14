@@ -179,6 +179,47 @@ var _ = Describe("Podman network create", func() {
 		Expect(subnet.Contains(containerIP)).To(BeTrue())
 	})
 
+	It("podman network create with name and IPv6 subnet", func() {
+		SkipIfRemote()
+		var (
+			results []network.NcList
+		)
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:1:2:3:4::/64", "newIPv6network"})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+
+		defer podmanTest.removeCNINetwork("newIPv6network")
+
+		// Inspect the network configuration
+		inspect := podmanTest.Podman([]string{"network", "inspect", "newIPv6network"})
+		inspect.WaitWithDefaultTimeout()
+
+		// JSON the network configuration into something usable
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+		Expect(err).To(BeNil())
+		result := results[0]
+		Expect(result["name"]).To(Equal("newIPv6network"))
+
+		// JSON the bridge info
+		bridgePlugin, err := genericPluginsToBridge(result["plugins"], "bridge")
+		Expect(err).To(BeNil())
+		Expect(bridgePlugin.IPAM.Routes[0].Dest).To(Equal("::/0"))
+
+		// Once a container executes a new network, the nic will be created. We should clean those up
+		// best we can
+		defer removeNetworkDevice(bridgePlugin.BrName)
+
+		try := podmanTest.Podman([]string{"run", "-it", "--rm", "--network", "newIPv6network", ALPINE, "sh", "-c", "ip addr show eth0 |  grep global | awk ' /inet6 / {print $2}'"})
+		try.WaitWithDefaultTimeout()
+
+		_, subnet, err := net.ParseCIDR("fd00:1:2:3:4::/64")
+		Expect(err).To(BeNil())
+		containerIP, _, err := net.ParseCIDR(try.OutputToString())
+		Expect(err).To(BeNil())
+		// Ensure that the IP the container got is within the subnet the user asked for
+		Expect(subnet.Contains(containerIP)).To(BeTrue())
+	})
+
 	It("podman network create with invalid subnet", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/17000", "fail"})
 		nc.WaitWithDefaultTimeout()
