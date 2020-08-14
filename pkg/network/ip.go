@@ -12,3 +12,8 @@ func CalcGatewayIP(ipn *net.IPNet) net.IP {
 	nid := ipn.IP.Mask(ipn.Mask)
 	return ip.NextIP(nid)
 }
+
+// IsIPv6 returns if netIP is IPv6.
+func IsIPv6(netIP net.IP) bool {
+	return netIP != nil && netIP.To4() == nil
+}
