@@ -2223,16 +2223,23 @@ func (s *store) DeleteLayer(id string) error {
 		}
 		for _, layer := range layers {
 			if layer.Parent == id {
-				return ErrLayerHasChildren
+				return errors.Wrapf(ErrLayerHasChildren, "used by layer %v", layer.ID)
 			}
 		}
 		images, err := ristore.Images()
 		if err != nil {
 			return err
 		}
+
 		for _, image := range images {
-			if image.TopLayer == id || stringutils.InSlice(image.MappedTopLayers, id) {
-				return errors.Wrapf(ErrLayerUsedByImage, "Layer %v used by image %v", id, image.ID)
+			if image.TopLayer == id {
+				return errors.Wrapf(ErrLayerUsedByImage, "layer %v used by image %v", id, image.ID)
+			}
+			if stringutils.InSlice(image.MappedTopLayers, id) {
+				// No write access to the image store, fail before the layer is deleted
+				if _, ok := ristore.(*imageStore); !ok {
+					return errors.Wrapf(ErrLayerUsedByImage, "layer %v used by image %v", id, image.ID)
+				}
 			}
 		}
 		containers, err := rcstore.Containers()
@@ -2241,10 +2248,25 @@ func (s *store) DeleteLayer(id string) error {
 		}
 		for _, container := range containers {
 			if container.LayerID == id {
-				return errors.Wrapf(ErrLayerUsedByContainer, "Layer %v used by container %v", id, container.ID)
+				return errors.Wrapf(ErrLayerUsedByContainer, "layer %v used by container %v", id, container.ID)
 			}
 		}
-		return rlstore.Delete(id)
+		if err := rlstore.Delete(id); err != nil {
+			return errors.Wrapf(err, "delete layer %v", id)
+		}
+
+		// The check here is used to avoid iterating the images if we don't need to.
+		// There is already a check above for the imageStore to be writeable when the layer is part of MappedTopLayers.
+		if istore, ok := ristore.(*imageStore); ok {
+			for _, image := range images {
+				if stringutils.InSlice(image.MappedTopLayers, id) {
+					if err = istore.removeMappedTopLayer(image.ID, id); err != nil {
+						return errors.Wrapf(err, "remove mapped top layer %v from image %v", id, image.ID)
+					}
+				}
+			}
+		}
+		return nil
 	}
 	return ErrNotALayer
 }

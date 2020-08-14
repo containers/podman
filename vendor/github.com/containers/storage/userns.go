@@ -252,7 +252,7 @@ func subtractHostIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDMap {
 		}
 		r2 := idtools.IDMap{
 			ContainerID: used.ContainerID + used.Size,
-			HostID:      used.HostID + used.Size,
+			HostID:      avail.HostID + (used.HostID - avail.HostID),
 			Size:        avail.HostID + avail.Size - used.HostID - used.Size,
 		}
 		return []idtools.IDMap{r1, r2}
@@ -297,7 +297,7 @@ func subtractContainerIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDM
 		}
 		r2 := idtools.IDMap{
 			ContainerID: used.ContainerID + used.Size,
-			HostID:      avail.HostID + used.Size,
+			HostID:      avail.HostID + (used.ContainerID - avail.ContainerID),
 			Size:        avail.ContainerID + avail.Size - used.ContainerID - used.Size,
 		}
 		return []idtools.IDMap{r1, r2}
@@ -314,22 +314,17 @@ func subtractContainerIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDM
 // subtractAll subtracts all usedIDs from the available IDs.
 func subtractAll(availableIDs, usedIDs []idtools.IDMap, host bool) []idtools.IDMap {
 	for _, u := range usedIDs {
-		for i := 0; i < len(availableIDs); {
-			var prev []idtools.IDMap
-			if i > 0 {
-				prev = availableIDs[:i-1]
-			}
-			next := availableIDs[i+1:]
-			cur := availableIDs[i]
+		var newAvailableIDs []idtools.IDMap
+		for _, cur := range availableIDs {
 			var newRanges []idtools.IDMap
 			if host {
 				newRanges = subtractHostIDs(cur, u)
 			} else {
 				newRanges = subtractContainerIDs(cur, u)
 			}
-			availableIDs = append(append(prev, newRanges...), next...)
-			i += len(newRanges)
+			newAvailableIDs = append(newAvailableIDs, newRanges...)
 		}
+		availableIDs = newAvailableIDs
 	}
 	return availableIDs
 }
@@ -361,6 +356,7 @@ func findAvailableIDRange(size uint32, availableIDs, usedIDs []idtools.IDMap) ([
 			return avail[:i+1], nil
 		}
 		remaining -= uint32(avail[i].Size)
+		currentID += avail[i].Size
 	}
 
 	return nil, errors.New("could not find enough available IDs")
@@ -452,6 +448,5 @@ func (s *store) getAutoUserNS(id string, options *AutoUserNsOptions, image *Imag
 	if len(options.AdditionalGIDMappings) > 0 {
 		availableGIDs = subtractAll(availableGIDs, options.AdditionalGIDMappings, false)
 	}
-
 	return append(availableUIDs, options.AdditionalUIDMappings...), append(availableGIDs, options.AdditionalGIDMappings...), nil
 }
