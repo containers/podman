@@ -4,12 +4,19 @@
 
 ## Overview
 
-This directory contains the Dockerfiles necessary to create the three podmanimage container
-images that are housed on quay.io under the Podman account.  All three repositories where
+This directory contains the Dockerfiles necessary to create the podmanimage container
+images that are housed on quay.io under the Podman account.  All repositories where
 the images live are public and can be pulled without credentials.  These container images are secured and the
-resulting containers can run safely with privileges within the container.  The container images are built
-using the latest Fedora and then Podman is installed into them:
+resulting containers can run safely with privileges within the container.
 
+The container images are built using the latest Fedora and then Podman is installed into them.
+The PATH in the container images is set to the default PATH provided by Fedora.  Also, the
+ENTRYPOINT and the WORKDIR variables are not set within these container images, as such they
+default to `/`.
+
+The container images are:
+
+  * quay.io/containers/podman - This image is built using the latest stable version of Podman in a Fedora based container.  Built with [podmanimage/stable/Dockerfile](stable/Dockerfile).
   * quay.io/podman/stable - This image is built using the latest stable version of Podman in a Fedora based container.  Built with [podmanimage/stable/Dockerfile](stable/Dockerfile).
   * quay.io/podman/upstream - This image is built using the latest code found in this GitHub repository.  When someone creates a commit and pushes it, the image is created.  Due to that the image changes frequently and is not guaranteed to be stable.  Built with [podmanimage/upstream/Dockerfile](upstream/Dockerfile).
   * quay.io/podman/testing - This image is built using the latest version of Podman that is or was in updates testing for Fedora.  At times this may be the same as the stable image.  This container image will primarily be used by the development teams for verification testing when a new package is created.  Built with [podmanimage/testing/Dockerfile](testing/Dockerfile).
