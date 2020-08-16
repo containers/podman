@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
@@ -94,8 +95,8 @@ const (
 	_installPrefix = "/usr"
 	// _cniConfigDir is the directory where cni configuration is found
 	_cniConfigDir = "/etc/cni/net.d/"
-	// _cniConfigDirRootless is the directory where cni plugins are found
-	_cniConfigDirRootless = ".config/cni/net.d/"
+	// _cniConfigDirRootless is the directory in XDG_CONFIG_HOME for cni plugins
+	_cniConfigDirRootless = "cni/net.d/"
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
@@ -115,9 +116,9 @@ const (
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.
 	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
-	// DefaultRootlessSignaturePolicyPath is the default value for the
-	// rootless policy.json file.
-	DefaultRootlessSignaturePolicyPath = ".config/containers/policy.json"
+	// DefaultRootlessSignaturePolicyPath is the location within
+	// XDG_CONFIG_HOME of the rootless policy.json file.
+	DefaultRootlessSignaturePolicyPath = "containers/policy.json"
 	// DefaultShmSize default value
 	DefaultShmSize = "65536k"
 	// DefaultUserNSSize default value
@@ -144,11 +145,11 @@ func DefaultConfig() (*Config, error) {
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 	if unshare.IsRootless() {
-		home, err := unshare.HomeDir()
+		configHome, err := homedir.GetConfigHome()
 		if err != nil {
 			return nil, err
 		}
-		sigPath := filepath.Join(home, DefaultRootlessSignaturePolicyPath)
+		sigPath := filepath.Join(configHome, DefaultRootlessSignaturePolicyPath)
 		defaultEngineConfig.SignaturePolicyPath = sigPath
 		if _, err := os.Stat(sigPath); err != nil {
 			if _, err := os.Stat(DefaultSignaturePolicyPath); err == nil {
@@ -156,7 +157,7 @@ func DefaultConfig() (*Config, error) {
 			}
 		}
 		netns = "slirp4netns"
-		cniConfig = filepath.Join(home, _cniConfigDirRootless)
+		cniConfig = filepath.Join(configHome, _cniConfigDirRootless)
 	}
 
 	cgroupNS := "host"

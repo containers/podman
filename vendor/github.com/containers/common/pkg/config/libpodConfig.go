@@ -226,7 +226,7 @@ func newLibpodConfig(c *Config) error {
 
 	// hard code EventsLogger to "file" to match older podman versions.
 	if config.EventsLogger != "file" {
-		logrus.Debugf("Ignoring libpod.conf EventsLogger setting %q. Use %q if you want to change this setting and remove libpod.conf files.", Path(), config.EventsLogger)
+		logrus.Warnf("Ignoring libpod.conf EventsLogger setting %q. Use %q if you want to change this setting and remove libpod.conf files.", config.EventsLogger, Path())
 		config.EventsLogger = "file"
 	}
 
@@ -260,9 +260,7 @@ func systemLibpodConfigs() ([]string, error) {
 			if err != nil {
 				containersConfPath = filepath.Join("$HOME", UserOverrideContainersConfig)
 			}
-			// TODO: Raise to Warnf, when Podman is updated to
-			// remove libpod.conf by default
-			logrus.Debugf("Found deprecated file %s, please remove. Use %s to override defaults.\n", Path(), containersConfPath)
+			logrus.Warnf("Found deprecated file %s, please remove. Use %s to override defaults.\n", path, containersConfPath)
 			return []string{path}, nil
 		}
 		return nil, err
@@ -270,15 +268,11 @@ func systemLibpodConfigs() ([]string, error) {
 
 	configs := []string{}
 	if _, err := os.Stat(_rootConfigPath); err == nil {
-		// TODO: Raise to Warnf, when Podman is updated to
-		// remove libpod.conf by default
-		logrus.Debugf("Found deprecated file %s, please remove. Use %s to override defaults.\n", _rootConfigPath, OverrideContainersConfig)
+		logrus.Warnf("Found deprecated file %s, please remove. Use %s to override defaults.\n", _rootConfigPath, OverrideContainersConfig)
 		configs = append(configs, _rootConfigPath)
 	}
 	if _, err := os.Stat(_rootOverrideConfigPath); err == nil {
-		// TODO: Raise to Warnf, when Podman is updated to
-		// remove libpod.conf by default
-		logrus.Debugf("Found deprecated file %s, please remove. Use %s to override defaults.\n", _rootOverrideConfigPath, OverrideContainersConfig)
+		logrus.Warnf("Found deprecated file %s, please remove. Use %s to override defaults.\n", _rootOverrideConfigPath, OverrideContainersConfig)
 		configs = append(configs, _rootOverrideConfigPath)
 	}
 	return configs, nil
