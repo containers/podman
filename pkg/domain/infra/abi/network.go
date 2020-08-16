@@ -191,7 +191,7 @@ func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreate
 	var plugins []network.CNIPlugins
 	var routes []network.IPAMRoute
 
-	defaultRoute, err := network.NewIPAMDefaultRoute()
+	defaultRoute, err := network.NewIPAMDefaultRoute(network.IsIPv6(subnet.IP))
 	if err != nil {
 		return "", err
 	}
