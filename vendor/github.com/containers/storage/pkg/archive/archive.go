@@ -602,7 +602,7 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	return nil
 }
 
-func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool) error {
+func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool, buffer []byte) error {
 	// hdr.Mode is in linux format, which we can use for sycalls,
 	// but for os.Foo() calls we need the mode converted to os.FileMode,
 	// so use hdrInfo.Mode() (they differ for e.g. setuid bits)
@@ -626,7 +626,7 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 		if err != nil {
 			return err
 		}
-		if _, err := io.Copy(file, reader); err != nil {
+		if _, err := io.CopyBuffer(file, reader, buffer); err != nil {
 			file.Close()
 			return err
 		}
@@ -942,6 +942,7 @@ func Unpack(decompressedArchive io.Reader, dest string, options *TarOptions) err
 	idMappings := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
 	rootIDs := idMappings.RootPair()
 	whiteoutConverter := getWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
+	buffer := make([]byte, 1<<20)
 
 	// Iterate through the files in the archive.
 loop:
@@ -1038,7 +1039,7 @@ loop:
 			chownOpts = &idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 		}
 
-		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, chownOpts, options.InUserNS, options.IgnoreChownErrors); err != nil {
+		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, chownOpts, options.InUserNS, options.IgnoreChownErrors, buffer); err != nil {
 			return err
 		}
 

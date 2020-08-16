@@ -292,6 +292,7 @@ static int containers_reexec(int flags) {
 		fprintf(stderr, "Error during reexec(...): %m\n");
 		return -1;
 	}
+	close(fd);
 	return 0;
 }
 

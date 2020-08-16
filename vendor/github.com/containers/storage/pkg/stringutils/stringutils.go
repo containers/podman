@@ -56,11 +56,22 @@ func Truncate(s string, maxlen int) string {
 // Comparison is case insensitive
 func InSlice(slice []string, s string) bool {
 	for _, ss := range slice {
-		if strings.ToLower(s) == strings.ToLower(ss) {
+		if strings.EqualFold(s, ss) {
 			return true
 		}
 	}
 	return false
+}
+
+// RemoveFromSlice removes a string from a slice.  The string can be present
+// multiple times.  The entire slice is iterated.
+func RemoveFromSlice(slice []string, s string) (ret []string) {
+	for _, ss := range slice {
+		if !strings.EqualFold(s, ss) {
+			ret = append(ret, ss)
+		}
+	}
+	return ret
 }
 
 func quote(word string, buf *bytes.Buffer) {

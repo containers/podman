@@ -262,7 +262,7 @@ func (p *Pattern) compile() error {
 		}
 	}
 
-	regStr += "(/.*)?$"
+	regStr += "(" + escSL + ".*)?$"
 
 	re, err := regexp.Compile(regStr)
 	if err != nil {

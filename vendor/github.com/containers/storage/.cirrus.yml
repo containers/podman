@@ -62,8 +62,10 @@ testing_task:
         - lint
 
     # Not all $TEST_DRIVER combinations are valid for all OS types.
-    # Note: Nested-variable resolution happens at runtime, not eval. time.
-    # Use verbose logic for ease of reading/maintaining.
+    # N/B: As of the addition of this note, nested-variable resolution
+    # does not happen for boolean `only_if` expressions.  Since $VM_IMAGE
+    # contains nested variables, we must filter based on that and not the
+    # actual distro/version value.
     only_if: >-
         ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "vfs" ) ||
         ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "aufs" ) ||
@@ -146,3 +148,15 @@ vendor_task:
         folder: $GOPATH/pkg/mod
     build_script: make vendor
     test_script: hack/tree_status.sh
+
+# Represent overall pass/fail status from required dependent tasks
+success_task:
+    depends_on:
+        - lint
+        - testing
+        - meta
+        - vendor
+    container:
+        image: golang:1.14
+    clone_script: 'mkdir -p "$CIRRUS_WORKING_DIR"'  # Source code not needed
+    script: /bin/true
