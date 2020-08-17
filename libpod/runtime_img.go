@@ -12,8 +12,6 @@ import (
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/v5/docker/reference"
 	ociarchive "github.com/containers/image/v5/oci/archive"
-	"github.com/containers/image/v5/oci/layout"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/libpod/image"
