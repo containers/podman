@@ -1,4 +1,3 @@
-export GO111MODULE=off
 export GOPROXY=https://proxy.golang.org
 
 GO ?= go
@@ -38,11 +37,7 @@ PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit 
 
 SOURCES = $(shell find . -path './.*' -prune -o -name "*.go")
 
-GO_BUILD ?= $(GO) build
-# Go module support: set `-mod=vendor` to use the vendored sources
-ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
-	GO_BUILD ?= GO111MODULE=on $(GO) build -mod=vendor
-endif
+GO_BUILD ?= $(GO) build -mod=vendor
 
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
