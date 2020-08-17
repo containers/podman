@@ -18,7 +18,7 @@ fi
 UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"
 
 function setup() {
-    skip_if_remote
+    skip_if_remote "systemd tests are meaningless over remote"
 
     basic_setup
 }
