@@ -2130,3 +2130,23 @@ func WithPodHostNetwork() PodCreateOption {
 		return nil
 	}
 }
+
+// WithPodInfraExitCommand sets an exit command for the pod's infra container.
+// Semantics are identical to WithExitCommand() above - the ID of the container
+// will be appended to the end of the provided command (note that this will
+// specifically be the ID of the infra container *and not the pod's id*.
+func WithPodInfraExitCommand(exitCmd []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod infra container exit command as no infra container is being created")
+		}
+
+		pod.config.InfraContainer.ExitCommand = exitCmd
+
+		return nil
+	}
+}

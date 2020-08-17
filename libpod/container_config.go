@@ -310,7 +310,11 @@ type ContainerMiscConfig struct {
 	// OCIRuntime used to create the container
 	OCIRuntime string `json:"runtime,omitempty"`
 	// ExitCommand is the container's exit command.
-	// This Command will be executed when the container exits
+	// This Command will be executed when the container exits by Conmon.
+	// It is usually used to invoke post-run cleanup - for example, in
+	// Podman, it invokes `podman container cleanup`, which in turn calls
+	// Libpod's Cleanup() API to unmount the container and clean up its
+	// network.
 	ExitCommand []string `json:"exitCommand,omitempty"`
 	// IsInfra is a bool indicating whether this container is an infra container used for
 	// sharing kernel namespaces in a pod

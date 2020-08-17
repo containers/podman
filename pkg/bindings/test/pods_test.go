@@ -244,7 +244,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
-				To(Equal(define.ContainerStateStopped))
+				To(Equal(define.ContainerStateExited))
 		}
 
 		// Stop an already stopped pod
@@ -309,7 +309,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
-				To(Equal(define.ContainerStateStopped))
+				To(Equal(define.ContainerStateExited))
 		}
 		_, err = pods.Stop(bt.conn, newpod2, nil)
 		Expect(err).To(BeNil())
@@ -318,7 +318,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
-				To(Equal(define.ContainerStateStopped))
+				To(Equal(define.ContainerStateExited))
 		}
 		_, err = pods.Prune(bt.conn)
 		Expect(err).To(BeNil())

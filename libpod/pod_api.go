@@ -11,20 +11,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Start starts all containers within a pod
-// It combines the effects of Init() and Start() on a container
+// Start starts all containers within a pod.
+// It combines the effects of Init() and Start() on a container.
 // If a container has already been initialized it will be started,
 // otherwise it will be initialized then started.
 // Containers that are already running or have been paused are ignored
 // All containers are started independently, in order dictated by their
 // dependencies.
-// An error and a map[string]error are returned
+// An error and a map[string]error are returned.
 // If the error is not nil and the map is nil, an error was encountered before
-// any containers were started
+// any containers were started.
 // If map is not nil, an error was encountered when starting one or more
 // containers. The container ID is mapped to the error encountered. The error is
-// set to ErrCtrExists
-// If both error and the map are nil, all containers were started successfully
+// set to ErrPodPartialFail.
+// If both error and the map are nil, all containers were started successfully.
 func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -72,20 +72,20 @@ func (p *Pod) Stop(ctx context.Context, cleanup bool) (map[string]error, error) 
 }
 
 // StopWithTimeout stops all containers within a pod that are not already stopped
-// Each container will use its own stop timeout
+// Each container will use its own stop timeout.
 // Only running containers will be stopped. Paused, stopped, or created
 // containers will be ignored.
 // If cleanup is true, mounts and network namespaces will be cleaned up after
 // the container is stopped.
 // All containers are stopped independently. An error stopping one container
 // will not prevent other containers being stopped.
-// An error and a map[string]error are returned
+// An error and a map[string]error are returned.
 // If the error is not nil and the map is nil, an error was encountered before
-// any containers were stopped
+// any containers were stopped.
 // If map is not nil, an error was encountered when stopping one or more
 // containers. The container ID is mapped to the error encountered. The error is
-// set to ErrCtrExists
-// If both error and the map are nil, all containers were stopped without error
+// set to ErrPodPartialFail.
+// If both error and the map are nil, all containers were stopped without error.
 func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -138,10 +138,82 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		ctr.lock.Unlock()
 	}
 
+	p.newPodEvent(events.Stop)
+
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error stopping some containers")
 	}
-	defer p.newPodEvent(events.Stop)
+	return nil, nil
+}
+
+// Cleanup cleans up all containers within a pod that have stopped.
+// All containers are cleaned up independently. An error with one container will
+// not prevent other containers being cleaned up.
+// An error and a map[string]error are returned.
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were cleaned up.
+// If map is not nil, an error was encountered when working on one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrPodPartialFail.
+// If both error and the map are nil, all containers were paused without error
+func (p *Pod) Cleanup(ctx context.Context) (map[string]error, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return nil, define.ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return nil, err
+	}
+
+	ctrErrors := make(map[string]error)
+
+	// Clean up all containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+
+		if err := ctr.syncContainer(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		// Ignore containers that are running/paused
+		if !ctr.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
+			ctr.lock.Unlock()
+			continue
+		}
+
+		// Check for running exec sessions, ignore containers with them.
+		sessions, err := ctr.getActiveExecSessions()
+		if err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+		if len(sessions) > 0 {
+			ctr.lock.Unlock()
+			continue
+		}
+
+		// TODO: Should we handle restart policy here?
+
+		ctr.newContainerEvent(events.Cleanup)
+
+		if err := ctr.cleanup(ctx); err != nil {
+			ctrErrors[ctr.ID()] = err
+		}
+
+		ctr.lock.Unlock()
+	}
+
+	if len(ctrErrors) > 0 {
+		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error cleaning up some containers")
+	}
+
 	return nil, nil
 }
 
@@ -150,12 +222,12 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 // containers will be ignored.
 // All containers are paused independently. An error pausing one container
 // will not prevent other containers being paused.
-// An error and a map[string]error are returned
+// An error and a map[string]error are returned.
 // If the error is not nil and the map is nil, an error was encountered before
-// any containers were paused
+// any containers were paused.
 // If map is not nil, an error was encountered when pausing one or more
 // containers. The container ID is mapped to the error encountered. The error is
-// set to ErrCtrExists
+// set to ErrPodPartialFail.
 // If both error and the map are nil, all containers were paused without error
 func (p *Pod) Pause() (map[string]error, error) {
 	p.lock.Lock()
@@ -219,13 +291,13 @@ func (p *Pod) Pause() (map[string]error, error) {
 // containers will be ignored.
 // All containers are unpaused independently. An error unpausing one container
 // will not prevent other containers being unpaused.
-// An error and a map[string]error are returned
+// An error and a map[string]error are returned.
 // If the error is not nil and the map is nil, an error was encountered before
-// any containers were unpaused
+// any containers were unpaused.
 // If map is not nil, an error was encountered when unpausing one or more
 // containers. The container ID is mapped to the error encountered. The error is
-// set to ErrCtrExists
-// If both error and the map are nil, all containers were unpaused without error
+// set to ErrPodPartialFail.
+// If both error and the map are nil, all containers were unpaused without error.
 func (p *Pod) Unpause() (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -280,13 +352,13 @@ func (p *Pod) Unpause() (map[string]error, error) {
 // All containers are started independently, in order dictated by their
 // dependencies. An error restarting one container
 // will not prevent other containers being restarted.
-// An error and a map[string]error are returned
+// An error and a map[string]error are returned.
 // If the error is not nil and the map is nil, an error was encountered before
-// any containers were restarted
+// any containers were restarted.
 // If map is not nil, an error was encountered when restarting one or more
 // containers. The container ID is mapped to the error encountered. The error is
-// set to ErrCtrExists
-// If both error and the map are nil, all containers were restarted without error
+// set to ErrPodPartialFail.
+// If both error and the map are nil, all containers were restarted without error.
 func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -328,17 +400,17 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	return nil, nil
 }
 
-// Kill sends a signal to all running containers within a pod
+// Kill sends a signal to all running containers within a pod.
 // Signals will only be sent to running containers. Containers that are not
 // running will be ignored. All signals are sent independently, and sending will
 // continue even if some containers encounter errors.
-// An error and a map[string]error are returned
+// An error and a map[string]error are returned.
 // If the error is not nil and the map is nil, an error was encountered before
-// any containers were signalled
+// any containers were signalled.
 // If map is not nil, an error was encountered when signalling one or more
 // containers. The container ID is mapped to the error encountered. The error is
-// set to ErrCtrExists
-// If both error and the map are nil, all containers were signalled successfully
+// set to ErrPodPartialFail.
+// If both error and the map are nil, all containers were signalled successfully.
 func (p *Pod) Kill(signal uint) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -393,8 +465,8 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 	return nil, nil
 }
 
-// Status gets the status of all containers in the pod
-// Returns a map of Container ID to Container Status
+// Status gets the status of all containers in the pod.
+// Returns a map of Container ID to Container Status.
 func (p *Pod) Status() (map[string]define.ContainerStatus, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -430,7 +502,7 @@ func containerStatusFromContainers(allCtrs []*Container) (map[string]define.Cont
 	return status, nil
 }
 
-// Inspect returns a PodInspect struct to describe the pod
+// Inspect returns a PodInspect struct to describe the pod.
 func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
