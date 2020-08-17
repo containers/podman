@@ -2,10 +2,10 @@ package image
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
-
 	podmanVersion "github.com/containers/libpod/version"
 )
 
@@ -41,6 +41,7 @@ func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, add
 		DockerArchiveAdditionalTags: additionalDockerArchiveTags,
 		OSChoice:                    o.OSChoice,
 		ArchitectureChoice:          o.ArchitectureChoice,
+		BigFilesTemporaryDir:        GetTempDir(),
 	}
 	if parent != nil {
 		sc.SignaturePolicyPath = parent.SignaturePolicyPath
@@ -64,4 +65,12 @@ func GetSystemContext(signaturePolicyPath, authFilePath string, forceCompress bo
 	sc.DockerRegistryUserAgent = fmt.Sprintf("libpod/%s", podmanVersion.Version)
 
 	return sc
+}
+
+// Retrieve the temporary directory for storing large files.
+func GetTempDir() string {
+	if tmpdir, ok := os.LookupEnv("TMPDIR"); ok {
+		return tmpdir
+	}
+	return "/var/tmp"
 }
