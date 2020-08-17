@@ -257,8 +257,10 @@ var _ = Describe("Podman commit", func() {
 		cwd, err := os.Getwd()
 		Expect(err).To(BeNil())
 		Expect(os.Chdir(os.TempDir())).To(BeNil())
-		targetPath := filepath.Join(os.TempDir(), "dir")
-		Expect(os.MkdirAll(targetPath, 0755)).To(BeNil())
+		targetPath, err := CreateTempDirInTempDir()
+		if err != nil {
+			os.Exit(1)
+		}
 		targetFile := filepath.Join(targetPath, "idFile")
 		defer Expect(os.RemoveAll(targetFile)).To(BeNil())
 		defer Expect(os.Chdir(cwd)).To(BeNil())
