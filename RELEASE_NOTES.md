@@ -1,5 +1,51 @@
 # Release Notes
 
+## 2.0.5
+### Features
+- Rootless Podman will now add an entry to `/etc/passwd` for the user who ran Podman if run with `--userns=keep-id`.
+
+### Changes
+- Podman's automatic systemd integration (activated by the `--systemd=true` flag, set by default) will now activate for containers using `/usr/local/sbin/init` as their command, instead of just `/usr/sbin/init` and `/sbin/init` (and any path ending in `systemd`).
+- Seccomp profiles specified by the `--security-opt seccomp=...` flag to `podman create` and `podman run` will now be honored even if the container was created using `--privileged`.
+
+### Bugfixes
+- Fixed a bug where the `podman play kube` would not honor the `hostIP` field for port forwarding ([#5964](https://github.com/containers/podman/issues/5964)).
+- Fixed a bug where the `podman generate systemd` command would panic on an invalid restart policy being specified ([#7271](https://github.com/containers/podman/issues/7271)).
+- Fixed a bug where the `podman images` command could take a very long time (several minutes) to complete when a large number of images were present.
+- Fixed a bug where the `podman logs` command with the `--tail` flag would not work properly when a large amount of output would be printed ((#7230)[https://github.com/containers/podman/issues/7230]).
+- Fixed a bug where the `podman exec` command with remote Podman would not return a non-zero exit code when the exec session failed to start (e.g. invoking a non-existent command) ([#6893](https://github.com/containers/podman/issues/6893)).
+- Fixed a bug where the `podman load` command with remote Podman would did not honor user-specified tags ([#7124](https://github.com/containers/podman/issues/7124)).
+- Fixed a bug where the `podman system service` command, when run as a non-root user by Systemd, did not properly handle the Podman pause process and would not restart properly as a result ([#7180](https://github.com/containers/podman/issues/7180)).
+- Fixed a bug where the `--publish` flag to `podman create`, `podman run`, and `podman pod create` did not properly handle a host IP of 0.0.0.0 (attempting to bind to literal 0.0.0.0, instead of all IPs on the system) ([#7104](https://github.com/containers/podman/issues/7014)).
+- Fixed a bug where the `podman start --attach` command would not print the container's exit code when the command exited due to the container exiting.
+- Fixed a bug where the `podman rm` command with remote Podman would not remove volumes, even if the `--volumes` flag was specified ([#7128](https://github.com/containers/podman/issues/7128)).
+- Fixed a bug where the `podman run` command with remote Podman and the `--rm` flag could exit before the container was fully removed.
+- Fixed a bug where the `--pod new:...` flag to `podman run` and `podman create` would create a pod that did not share any namespaces.
+- Fixed a bug where the `--preserve-fds` flag to `podman run` and `podman exec` could close the wrong file descriptors while trying to close user-provided descriptors after passing them into the container.
+- Fixed a bug where default environment variables (`$PATH` and `$TERM`) were not set in containers when not provided by the image.
+- Fixed a bug where pod infra containers were not properly unmounted after exiting.
+- Fixed a bug where networks created with `podman network create` with an IPv6 subnet did not properly set an IPv6 default route.
+- Fixed a bug where the `podman save` command would not work properly when its output was piped to another command ([#7017](https://github.com/containers/podman/issues/7017)).
+- Fixed a bug where containers using a systemd init on a cgroups v1 system could leak mounts under `/sys/fs/cgroup/systemd` to the host.
+- Fixed a bug where `podman build` would not generate an event on completion ([#7022](https://github.com/containers/podman/issues/7022)).
+- Fixed a bug where the `podman history` command with remote Podman printed incorrect creation times for layers ([#7122](https://github.com/containers/podman/issues/7122)).
+- Fixed a bug where Podman would not create working directories specified by the container image if they did not exist.
+- Fixed a bug where Podman did not clear `CMD` from the container image if the user overrode `ENTRYPOINT` ([#7115](https://github.com/containers/podman/issues/7115)).
+- Fixed a bug where error parsing image names were not fully reported (part of the error message containing the exact issue was dropped).
+- Fixed a bug where the `podman images` command with remote Podman did not support printing image tags in Go templates supplied to the `--format` flag ([#7123](https://github.com/containers/podman/issues/7123)).
+
+### API
+- Fixed a bug where the libpod and compat Build endpoints did not accept the `application/tar` content type (instead only accepting `application/x-tar`) ([#7185](https://github.com/containers/podman/issues/7185)).
+- Fixed a bug where the libpod Exists endpoint would attempt to write a second header in some error conditions ([#7197](https://github.com/containers/podman/issues/7197)).
+- Fixed a bug where compat and libpod Network Inspect and Network Remove endpoints would return a 500 instead of 404 when the requested network was not found.
+- Added a versioned `_ping` endpoint (e.g. `http://localhost/v1.40/_ping`).
+- Fixed a bug where containers started through a systemd-managed instance of the REST API would be shut down when `podman system service` shut down due to its idle timeout ([#7294](https://github.com/containers/podman/issues/7294)).
+- Added stronger parameter verification for the libpod Network Create endpoint to ensure subnet mask is a valid value.
+- The `Pod` URL parameter to the Libpod Container List endpoint has been deprecated; the information previously gated by the `Pod` boolean will now be included in the response unconditionally.
+
+### Misc
+- Updated Buildah to v1.15.1
+
 ## 2.0.4
 ### Bugfixes
 - Fixed a bug where the output of `podman image search` did not populate the Description field as it was mistakenly assigned to the ID field.
