@@ -3,10 +3,10 @@ package common
 import (
 	"net"
 
-	"github.com/containers/libpod/v2/cmd/podman/parse"
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
-	"github.com/containers/libpod/v2/pkg/specgen"
+	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

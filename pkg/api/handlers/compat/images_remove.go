@@ -3,8 +3,8 @@ package compat
 import (
 	"net/http"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )

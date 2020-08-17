@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	lsignal "github.com/containers/libpod/v2/pkg/signal"
+	lsignal "github.com/containers/podman/v2/pkg/signal"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

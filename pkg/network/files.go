@@ -10,7 +10,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/pkg/errors"
 )
 

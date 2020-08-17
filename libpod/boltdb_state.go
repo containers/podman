@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/define"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

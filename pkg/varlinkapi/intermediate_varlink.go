@@ -4,8 +4,8 @@ package varlinkapi
 
 import (
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/libpod/v2/pkg/rootless"
-	iopodman "github.com/containers/libpod/v2/pkg/varlink"
+	"github.com/containers/podman/v2/pkg/rootless"
+	iopodman "github.com/containers/podman/v2/pkg/varlink"
 	"github.com/pkg/errors"
 )
 

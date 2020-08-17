@@ -5,8 +5,8 @@ package libpod
 import (
 	"context"
 
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/libpod/logs"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/logs"
 	"github.com/pkg/errors"
 )
 

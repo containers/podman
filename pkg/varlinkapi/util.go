@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/channelwriter"
-	iopodman "github.com/containers/libpod/v2/pkg/varlink"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/channelwriter"
+	iopodman "github.com/containers/podman/v2/pkg/varlink"
 	"github.com/containers/storage/pkg/archive"
 )
 

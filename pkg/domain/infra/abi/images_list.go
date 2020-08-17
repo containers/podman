@@ -3,8 +3,8 @@ package abi
 import (
 	"context"
 
-	libpodImage "github.com/containers/libpod/v2/libpod/image"
-	"github.com/containers/libpod/v2/pkg/domain/entities"
+	libpodImage "github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 )
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {

@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/v2/libpod"
-	"github.com/containers/libpod/v2/pkg/api/handlers"
-	"github.com/containers/libpod/v2/pkg/api/server/idletracker"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/pkg/api/handlers"
+	"github.com/containers/podman/v2/pkg/api/server/idletracker"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/gorilla/mux"

@@ -2,8 +2,8 @@ package generate
 
 import (
 	"github.com/containers/common/pkg/sysinfo"
-	"github.com/containers/libpod/v2/pkg/cgroups"
-	"github.com/containers/libpod/v2/pkg/specgen"
+	"github.com/containers/podman/v2/pkg/cgroups"
+	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/pkg/errors"
 )
 

@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/containers/libpod/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/registry"
 )
 
 var (

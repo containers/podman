@@ -3,8 +3,8 @@ package libpod
 import (
 	"time"
 
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/libpod/lock"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/lock"
 )
 
 // Volume is a libpod named volume.

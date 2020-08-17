@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/specgen"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 

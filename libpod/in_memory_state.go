@@ -3,8 +3,8 @@ package libpod
 import (
 	"strings"
 
-	"github.com/containers/libpod/v2/libpod/define"
-	"github.com/containers/libpod/v2/pkg/registrar"
+	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/registrar"
 	"github.com/containers/storage/pkg/truncindex"
 	"github.com/pkg/errors"
 )
