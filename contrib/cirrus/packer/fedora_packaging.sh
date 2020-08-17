@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script is called from fedora_setup.sh and various Dockerfiles.
 # It's not intended to be used outside of those contexts.  It assumes the lib.sh

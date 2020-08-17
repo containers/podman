@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Compare commands listed by 'podman help' against those in 'man podman'.
 # Recurse into subcommands as well.

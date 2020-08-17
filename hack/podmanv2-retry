@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # podman-try - try running a command via PODMAN1; use PODMAN2 as fallback
 #

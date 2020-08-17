@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script executes a command while logging all output to a temporary
 # file.  If the command exits non-zero, then all output is sent to the console,

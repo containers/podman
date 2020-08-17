@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script attempts basic confirmation of functional networking
 # by connecting to a set of essential external servers and failing

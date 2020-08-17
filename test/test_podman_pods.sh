@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test_podman_pods.sh
 # A script to be run at the command line with Podman installed.
 # This should be run against a new kit to provide base level testing

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script is called by packer on a vanilla CentOS VM, to setup the image
 # used for building images FROM base images. It's not intended to be used

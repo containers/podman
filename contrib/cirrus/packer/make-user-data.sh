@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script is utilized by Makefile, it's not intended to be run by humans
 
