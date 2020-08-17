@@ -70,8 +70,8 @@ github.com/containers/buildah v1.15.1 h1:fVYZedNKir1B7qW43KR3zmkjHH+ZAmPoPQix9zH
 github.com/containers/buildah v1.15.1/go.mod h1:AQPeirYl0bqtXuJaxM9d/xslMm+1qrABc73AEFw0M9U=
 github.com/containers/common v0.14.0 h1:hiZFDPf6ajKiDmojN5f5X3gboKPO73NLrYb0RXfrQiA=
 github.com/containers/common v0.14.0/go.mod h1:9olhlE+WhYof1npnMJdyRMX14/yIUint6zyHzcyRVAg=
-github.com/containers/common v0.14.7 h1:KcyupqUqY9GFnxBck5Ww/tMstbvEmekQys8k8GiYAC0=
-github.com/containers/common v0.14.7/go.mod h1:9olhlE+WhYof1npnMJdyRMX14/yIUint6zyHzcyRVAg=
+github.com/containers/common v0.14.8 h1:u0dwl1GV6tpxtVhFlPuTLx5pN7pXV+/GkP1Y34l0mjI=
+github.com/containers/common v0.14.8/go.mod h1:9olhlE+WhYof1npnMJdyRMX14/yIUint6zyHzcyRVAg=
 github.com/containers/conmon v2.0.18+incompatible h1:rjwjNnE756NuXcdE/uUmj4kDbrykslPuBMHI31wh43E=
 github.com/containers/conmon v2.0.18+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.4.4/go.mod h1:g7cxNXitiLi6pEr9/L9n/0wfazRuhDKXU15kV86N8h8=
