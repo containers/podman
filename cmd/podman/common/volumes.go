@@ -88,17 +88,11 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 			if _, ok := unifiedVolumes[dest]; ok {
 				continue
 			}
-			localOpts := options
-			if dest == "/run" {
-				localOpts = append(localOpts, "noexec", "size=65536k")
-			} else {
-				localOpts = append(localOpts, "exec")
-			}
 			unifiedMounts[dest] = spec.Mount{
 				Destination: dest,
 				Type:        TypeTmpfs,
 				Source:      "tmpfs",
-				Options:     localOpts,
+				Options:     options,
 			}
 		}
 	}
