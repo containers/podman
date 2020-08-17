@@ -376,7 +376,7 @@ install_scl_git() {
     echo "Installing SoftwareCollections updated 'git' version."
     ooe.sh $SUDO yum -y install rh-git29
     cat << "EOF" | $SUDO tee /usr/bin/git
-#!/bin/bash
+#!/usr/bin/env bash
 
 scl enable rh-git29 -- git $@
 EOF

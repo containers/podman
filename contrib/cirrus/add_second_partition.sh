@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # N/B: This script could mega f*!@up your disks if run by mistake.
 #      it is left without the execute-bit on purpose!

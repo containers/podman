@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euxo pipefail
 
 # returned path can vary: /usr/bin/dnf /bin/dnf ...

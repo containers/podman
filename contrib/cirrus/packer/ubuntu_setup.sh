@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script is called by packer on the subject Ubuntu VM, to setup the podman
 # build/test environment.  It's not intended to be used outside of this context.

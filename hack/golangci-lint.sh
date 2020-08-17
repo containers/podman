@@ -1,6 +1,7 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 
 # Need to run linter twice to cover all the build tags code paths
+set -e
 
 declare -A BUILD_TAGS
 # TODO: add systemd tag

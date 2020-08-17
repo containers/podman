@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script produces various bits of metadata needed by Makefile.  Using
 # a script allows uniform behavior across multiple environments and

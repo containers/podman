@@ -1,5 +1,6 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 # Assemble remote man pages for darwin or windows from markdown files
+set -e
 
 PLATFORM=$1                         ## linux, windows or darwin
 TARGET=${2}                         ## where to output files

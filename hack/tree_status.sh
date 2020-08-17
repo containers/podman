@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 SUGGESTION="${SUGGESTION:-sync the vendor.conf and commit all changes.}"

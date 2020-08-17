@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # man-page-checker - validate and cross-reference man page names
 #

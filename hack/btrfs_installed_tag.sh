@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 cc -E - > /dev/null 2> /dev/null << EOF
 #include <btrfs/ioctl.h>
 EOF

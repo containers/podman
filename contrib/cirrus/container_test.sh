@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -xeo pipefail
 
 export GOPATH=/var/tmp/go
