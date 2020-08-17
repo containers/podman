@@ -12,6 +12,9 @@ documented on the top of Podman's [README.md](../README.md).  If they differ, pl
 update your version of Podman to the latest possible and retry your command before creating
 an issue.
 
+Also, there is a running list of known issues in the [Podman Troubleshooting Guide](https://github.com/containers/podman/blob/master/troubleshooting.md),
+please reference that page before opening a new issue.
+
 If you are filing a bug against `podman build`, please instead file a bug
 against Buildah (https://github.com/containers/buildah/issues). Podman build
 executes Buildah to perform container builds, and as such the Buildah
@@ -63,5 +66,9 @@ Briefly describe the problem you are having in a few paragraphs.
 ```
 (paste your output here)
 ```
+
+**Have you tested with the latest version of Podman and have you checked the Podman Troubleshooting Guide?**
+
+Yes/No
 
 **Additional environment details (AWS, VirtualBox, physical, etc.):**
