@@ -15,13 +15,14 @@ var remoteFromCLI = struct {
 }{}
 
 // IsRemote returns true if podman was built to run remote or --remote flag given on CLI
-// Use in init() functions as a initialization check
+// Use in init() functions as an initialization check
 func IsRemote() bool {
 	remoteFromCLI.sync.Do(func() {
 		fs := pflag.NewFlagSet("remote", pflag.ContinueOnError)
-		fs.BoolVarP(&remoteFromCLI.Value, "remote", "r", false, "")
 		fs.ParseErrorsWhitelist.UnknownFlags = true
+		fs.Usage = func() {}
 		fs.SetInterspersed(false)
+		fs.BoolVarP(&remoteFromCLI.Value, "remote", "r", false, "")
 		_ = fs.Parse(os.Args[1:])
 	})
 	return podmanOptions.EngineMode == entities.TunnelMode || remoteFromCLI.Value
