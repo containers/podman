@@ -241,6 +241,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			startCommand = append(startCommand, "--replace")
 		}
 		startCommand = append(startCommand, info.CreateCommand[index:]...)
+		startCommand = quoteArguments(startCommand)
 
 		info.ExecStartPre = "/bin/rm -f {{.PIDFile}} {{.ContainerIDFile}}"
 		info.ExecStart = strings.Join(startCommand, " ")
