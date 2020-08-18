@@ -358,7 +358,7 @@ Print usage statement
 
 Container host name
 
-Sets the container host name that is available inside the container.
+Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pods hostname will be used.
 
 **--http-proxy**=**true**|**false**
 
@@ -938,10 +938,9 @@ This option is incompatible with **--gidmap**, **--uidmap**, **--subuid** and **
 Set the UTS namespace mode for the container. The following values are supported:
 
 - **host**: use the host's UTS namespace inside the container.
-- **private**: create a new namespace for the container (default)
-- **ns**: use own UTS namespace.
-
-**NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
+- **private**: create a new namespace for the container (default).
+- **ns:[path]**: run the container in the given existing UTS namespace.
+- **container:[container]**: join the UTS namespace of the specified container.
 
 **--volume**, **-v**[=[[_source-volume_|_host-dir_:]_container-dir_[:_options_]]]
 
