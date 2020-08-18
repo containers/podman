@@ -10,22 +10,18 @@ import (
 	"os"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/image/v5/directory"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
 	ociarchive "github.com/containers/image/v5/oci/archive"
-	"github.com/containers/image/v5/oci/layout"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/v2/libpod/define"
 	"github.com/containers/libpod/v2/libpod/events"
 	"github.com/containers/libpod/v2/libpod/image"
 	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/containers/storage"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	"github.com/containers/image/v5/directory"
-	dockerarchive "github.com/containers/image/v5/docker/archive"
-	ociarchive "github.com/containers/image/v5/oci/archive"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Runtime API
