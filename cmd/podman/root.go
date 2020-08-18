@@ -111,6 +111,30 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	cfg := registry.PodmanConfig()
 
+	// --connection is not as "special" as --remote so we can wait and process it here
+	var connErr error
+	conn := cmd.Root().LocalFlags().Lookup("connection")
+	if conn != nil && conn.Changed {
+		cfg.Engine.ActiveService = conn.Value.String()
+
+		var err error
+		cfg.URI, cfg.Identity, err = cfg.ActiveDestination()
+		if err != nil {
+			connErr = errors.Wrap(err, "failed to resolve active destination")
+		}
+
+		if err := cmd.Root().LocalFlags().Set("url", cfg.URI); err != nil {
+			connErr = errors.Wrap(err, "failed to override --url flag")
+		}
+
+		if err := cmd.Root().LocalFlags().Set("identity", cfg.Identity); err != nil {
+			connErr = errors.Wrap(err, "failed to override --identity flag")
+		}
+	}
+	if connErr != nil {
+		return connErr
+	}
+
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
 		return err
@@ -226,10 +250,11 @@ func loggingHook() {
 
 func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	cfg := opts.Config
-	uri, ident := resolveDestination()
+	srv, uri, ident := resolveDestination()
 
 	lFlags := cmd.Flags()
 	lFlags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
+	lFlags.StringVarP(&opts.Engine.ActiveService, "connection", "c", srv, "Connection to use for remote Podman service")
 	lFlags.StringVar(&opts.URI, "url", uri, "URL to access Podman service (CONTAINER_HOST)")
 	lFlags.StringVar(&opts.Identity, "identity", ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
 
@@ -279,24 +304,24 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	}
 }
 
-func resolveDestination() (string, string) {
+func resolveDestination() (string, string, string) {
 	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
 		var ident string
 		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
 			ident = v
 		}
-		return uri, ident
+		return "", uri, ident
 	}
 
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
 		logrus.Warning(errors.Wrap(err, "unable to read local containers.conf"))
-		return registry.DefaultAPIAddress(), ""
+		return "", registry.DefaultAPIAddress(), ""
 	}
 
 	uri, ident, err := cfg.ActiveDestination()
 	if err != nil {
-		return registry.DefaultAPIAddress(), ""
+		return "", registry.DefaultAPIAddress(), ""
 	}
-	return uri, ident
+	return cfg.Engine.ActiveService, uri, ident
 }

@@ -95,7 +95,7 @@ func add(cmd *cobra.Command, args []string) error {
 		uri.Host = net.JoinHostPort(uri.Hostname(), cmd.Flag("port").DefValue)
 	}
 
-	if uri.Path == "" {
+	if uri.Path == "" || uri.Path == "/" {
 		if uri.Path, err = getUDS(cmd, uri); err != nil {
 			return errors.Wrapf(err, "failed to connect to  %q", uri.String())
 		}

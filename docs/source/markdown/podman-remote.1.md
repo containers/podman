@@ -23,7 +23,7 @@ Podman-remote provides a local client interacting with a Podman backend node thr
 
 ## GLOBAL OPTIONS
 
-**--connection**=*name*
+**--connection**=*name*, **-c**
 
 Remote connection name
 
