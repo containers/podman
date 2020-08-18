@@ -47,7 +47,7 @@ bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
 
 # Generate a systemd unit for this container
 $ podman generate systemd --new --files bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
-/home/user/containers/libpod/container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service
+/home/user/containers/podman/container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service
 
 # Load the new systemd unit and start it
 $ mv ./container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service ~/.config/systemd/user

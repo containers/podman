@@ -12,7 +12,7 @@ definitions:
         format: int64
         type: integer
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   AuthenticateOKBody:
     description: AuthenticateOKBody authenticate o k body
     properties:
@@ -27,7 +27,7 @@ definitions:
     - IdentityToken
     - Status
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/registry
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/registry
   AutoUserNsOptions:
     properties:
       AdditionalGIDMappings:
@@ -65,7 +65,7 @@ definitions:
         type: integer
     title: AutoUserNsOptions defines how to automatically create a user namespace.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/containers/storage
+    x-go-package: github.com/containers/podman/vendor/github.com/containers/storage
   CgroupConfig:
     description: CgroupConfig configures the cgroup namespace for the container
     properties:
@@ -78,19 +78,19 @@ definitions:
       Cgroups:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   CgroupMode:
     title: CgroupMode represents cgroup mode in the container.
     type: string
-    x-go-package: github.com/containers/libpod/pkg/namespaces
+    x-go-package: github.com/containers/podman/pkg/namespaces
   CgroupSpec:
     title: CgroupSpec represents the cgroup to use for the container.
     type: string
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   CgroupnsMode:
     description: CgroupnsMode represents the cgroup namespace mode of the container
     type: string
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   Change:
     description: |-
       It describes changes of the files in the path respect to the
@@ -103,12 +103,12 @@ definitions:
         type: string
     title: Change represents a change, it wraps the change type and path.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/containers/storage/pkg/archive
+    x-go-package: github.com/containers/podman/vendor/github.com/containers/storage/pkg/archive
   ChangeType:
     format: int64
     title: ChangeType represents the change type.
     type: integer
-    x-go-package: github.com/containers/libpod/vendor/github.com/containers/storage/pkg/archive
+    x-go-package: github.com/containers/podman/vendor/github.com/containers/storage/pkg/archive
   Config:
     description: |-
       It should hold only portable information about the container.
@@ -178,14 +178,14 @@ definitions:
         type: string
     title: Config contains the configuration data about a container.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   ConfigReference:
     description: ConfigReference specifies the source which provides a network's configuration
     properties:
       Network:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   ConmonInfo:
     description: ConmonInfo describes the conmon executable being used
     properties:
@@ -199,7 +199,7 @@ definitions:
         type: string
         x-go-name: Version
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   ContainerBasicConfig:
     properties:
       annotations:
@@ -367,7 +367,7 @@ definitions:
         $ref: '#/definitions/Namespace'
     title: ContainerBasicConfig contains the basic parts of a container.
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   ContainerCgroupConfig:
     description: |-
       ContainerCgroupConfig contains configuration information about a container's
@@ -389,7 +389,7 @@ definitions:
         type: string
         x-go-name: CgroupsMode
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   ContainerChangeResponseItem:
     description: ContainerChangeResponseItem change item in response to ContainerChanges
       operation
@@ -405,7 +405,7 @@ definitions:
     - Kind
     - Path
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   ContainerCreateCreatedBody:
     description: ContainerCreateCreatedBody OK response to ContainerCreate operation
     properties:
@@ -422,7 +422,7 @@ definitions:
     - Id
     - Warnings
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   ContainerHealthCheckConfig:
     description: |-
       ContainerHealthCheckConfig describes a container healthcheck with attributes
@@ -431,7 +431,7 @@ definitions:
       healthconfig:
         $ref: '#/definitions/Schema2HealthConfig'
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   ContainerNamedVolume:
     description: |-
       ContainerNamedVolume is a named volume that will be mounted into the
@@ -454,7 +454,7 @@ definitions:
         type: string
         x-go-name: Name
     type: object
-    x-go-package: github.com/containers/libpod/libpod
+    x-go-package: github.com/containers/podman/libpod
   ContainerNetworkConfig:
     description: |-
       ContainerNetworkConfig contains information on a container's network
@@ -568,7 +568,7 @@ definitions:
         type: boolean
         x-go-name: UseImageResolvConf
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   ContainerNode:
     description: |-
       ContainerNode stores information about the node that a container
@@ -594,7 +594,7 @@ definitions:
       Name:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   ContainerResourceConfig:
     properties:
       oom_score_adj:
@@ -647,7 +647,7 @@ definitions:
         x-go-name: WeightDevice
     title: ContainerResourceConfig contains information on container resource limits.
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   ContainerSecurityConfig:
     description: |-
       ContainerSecurityConfig is a container's security features, including
@@ -750,7 +750,7 @@ definitions:
       userns:
         $ref: '#/definitions/Namespace'
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   ContainerSize:
     description: |-
       ContainerSize holds the size of the container's root filesystem and top
@@ -765,7 +765,7 @@ definitions:
         type: integer
         x-go-name: RwSize
     type: object
-    x-go-package: github.com/containers/libpod/pkg/ps/define
+    x-go-package: github.com/containers/podman/pkg/ps/define
   ContainerState:
     description: |-
       ContainerState stores container's running state
@@ -798,7 +798,7 @@ definitions:
       Status:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   ContainerStorageConfig:
     description: |-
       ContainerStorageConfig contains information on the storage configuration of a
@@ -909,7 +909,7 @@ definitions:
         type: string
         x-go-name: WorkDir
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   ContainerStore:
     description: |-
       ContainerStore describes the quantity of containers in the
@@ -932,7 +932,7 @@ definitions:
         type: integer
         x-go-name: Stopped
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   ContainerTopOKBody:
     description: ContainerTopOKBody OK response to ContainerTop operation
     properties:
@@ -953,7 +953,7 @@ definitions:
     - Processes
     - Titles
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   ContainerUpdateOKBody:
     description: ContainerUpdateOKBody OK response to ContainerUpdate operation
     properties:
@@ -965,7 +965,7 @@ definitions:
     required:
     - Warnings
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   ContainerWaitOKBody:
     description: ContainerWaitOKBody OK response to ContainerWait operation
     properties:
@@ -979,7 +979,7 @@ definitions:
     - Error
     - StatusCode
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   ContainerWaitOKBodyError:
     description: ContainerWaitOKBodyError container waiting error, if any
     properties:
@@ -987,7 +987,7 @@ definitions:
         description: Details of an error
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   ContainersPruneReport:
     properties:
       ContainersDeleted:
@@ -998,7 +998,7 @@ definitions:
         format: uint64
         type: integer
     type: object
-    x-go-package: github.com/containers/libpod/pkg/api/handlers
+    x-go-package: github.com/containers/podman/pkg/api/handlers
   CreateConfig:
     description: CreateConfig is a pre OCI spec structure.  It represents user input
       from varlink or the CLI
@@ -1137,7 +1137,7 @@ definitions:
       WorkDir:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   CreateResourceConfig:
     description: |-
       CreateResourceConfig represents resource elements in CreateConfig
@@ -1223,7 +1223,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   Data:
     description: Data handles the data for a storage driver
     properties:
@@ -1234,7 +1234,7 @@ definitions:
       Name:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/driver
+    x-go-package: github.com/containers/podman/libpod/driver
   DeviceMapping:
     properties:
       CgroupPermissions:
@@ -1245,7 +1245,7 @@ definitions:
         type: string
     title: DeviceMapping represents the device mapping between the host and the container.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   DeviceRequest:
     description: Used by GPU device drivers.
     properties:
@@ -1270,7 +1270,7 @@ definitions:
         type: object
     title: DeviceRequest represents a request for devices from a device driver.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   Digest:
     description: |-
       The following is an example of the contents of Digest types:
@@ -1285,7 +1285,7 @@ definitions:
       the correct format and it provides quick access to the components of a
       digest string.
     type: string
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/go-digest
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/go-digest
   DistributionInfo:
     description: |-
       DistributionInfo describes the host distribution
@@ -1298,7 +1298,7 @@ definitions:
         type: string
         x-go-name: Version
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   Duration:
     description: |-
       A Duration represents the elapsed time between two instants
@@ -1319,7 +1319,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   EndpointResource:
     description: EndpointResource contains network resources allocated and used for
       a container in a network
@@ -1335,7 +1335,7 @@ definitions:
       Name:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   EndpointSettings:
     description: EndpointSettings stores the network endpoint details
     properties:
@@ -1375,7 +1375,7 @@ definitions:
         description: Operational data
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   ErrorResponse:
     properties:
       message:
@@ -1386,7 +1386,7 @@ definitions:
     - message
     title: ErrorResponse Represents an error.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   FileMode:
     description: |-
       The bits have the same definition on all systems, so that
@@ -1412,7 +1412,7 @@ definitions:
     - Name
     title: GraphDriverData Information about a container's graph driver.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   HardwareAddr:
     items:
       format: uint8
@@ -1433,7 +1433,7 @@ definitions:
       Status:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   HealthCheckLog:
     description: HealthCheckLog describes the results of a single healthcheck
     properties:
@@ -1451,7 +1451,7 @@ definitions:
         description: Start time as string
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   HealthCheckResults:
     description: HealthCheckResults describes the results/logs from a healthcheck
     properties:
@@ -1468,7 +1468,7 @@ definitions:
         description: Status healthy or unhealthy
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   HealthConfig:
     properties:
       Interval:
@@ -1497,7 +1497,7 @@ definitions:
         $ref: '#/definitions/Duration'
     title: HealthConfig holds configuration settings for the HEALTHCHECK feature.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   HealthcheckResult:
     description: HealthcheckResult stores information about a single run of a healthcheck
       probe
@@ -1514,7 +1514,7 @@ definitions:
         format: date-time
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   History:
     properties:
       author:
@@ -1542,7 +1542,7 @@ definitions:
         x-go-name: EmptyLayer
     title: History describes the history of a layer.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/image-spec/specs-go/v1
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/image-spec/specs-go/v1
   HistoryResponseItem:
     description: HistoryResponseItem individual image layer information in response
       to ImageHistory operation
@@ -1578,7 +1578,7 @@ definitions:
     - Size
     - Tags
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/image
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/image
   HostConfig:
     description: |-
       Here, "non-portable" means "dependent of the host we are running on".
@@ -1824,7 +1824,7 @@ definitions:
         type: array
     title: HostConfig the non-portable Config structure of a container.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   HostInfo:
     description: HostInfo describes the libpod host
     properties:
@@ -1896,7 +1896,7 @@ definitions:
         type: string
         x-go-name: Uptime
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   IDMap:
     description: |-
       IDMap contains a single entry for user namespace range remapping. An array
@@ -1916,7 +1916,7 @@ definitions:
         type: integer
         x-go-name: Size
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/containers/storage/pkg/idtools
+    x-go-package: github.com/containers/podman/vendor/github.com/containers/storage/pkg/idtools
   IDMappingOptions:
     description: |-
       IDMappingOptions are used for specifying how ID mapping should be set up for
@@ -1949,7 +1949,7 @@ definitions:
           $ref: '#/definitions/IDMap'
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/containers/storage
+    x-go-package: github.com/containers/podman/vendor/github.com/containers/storage
   IDMappings:
     description: IDMappings describe the GID and UID mappings
     properties:
@@ -1964,7 +1964,7 @@ definitions:
         type: array
         x-go-name: UIDMap
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   IDResponse:
     properties:
       Id:
@@ -1972,7 +1972,7 @@ definitions:
         type: string
         x-go-name: ID
     type: object
-    x-go-package: github.com/containers/libpod/pkg/api/handlers
+    x-go-package: github.com/containers/podman/pkg/api/handlers
   IP:
     description: |-
       Note that in this documentation, referring to an
@@ -2003,7 +2003,7 @@ definitions:
           type: string
         type: object
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   IPAMConfig:
     description: IPAMConfig represents IPAM configurations
     properties:
@@ -2019,7 +2019,7 @@ definitions:
       Subnet:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   IPMask:
     description: See type IPNet and func ParseCIDR for details.
     items:
@@ -2050,7 +2050,7 @@ definitions:
     - Id
     type: object
     x-go-name: IDResponse
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   ImageConfig:
     properties:
       Cmd:
@@ -2101,7 +2101,7 @@ definitions:
     title: ImageConfig defines the execution parameters which should be used as a
       base when running a container using an image.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/image-spec/specs-go/v1
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/image-spec/specs-go/v1
   ImageDeleteResponse:
     description: |-
       ImageDeleteResponse is the response for removing an image from storage and containers
@@ -2116,7 +2116,7 @@ definitions:
         type: array
         x-go-name: Untagged
     type: object
-    x-go-package: github.com/containers/libpod/libpod/image
+    x-go-package: github.com/containers/podman/libpod/image
   ImageDeleteResponseItem:
     description: ImageDeleteResponseItem image delete response item
     properties:
@@ -2127,16 +2127,16 @@ definitions:
         description: The image ID of an image that was untagged
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   ImageImportReport:
     properties:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   ImageLayer:
     type: object
-    x-go-package: github.com/containers/libpod/pkg/api/handlers
+    x-go-package: github.com/containers/podman/pkg/api/handlers
   ImageLoadReport:
     properties:
       Names:
@@ -2144,7 +2144,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   ImageMetadata:
     description: ImageMetadata contains engine-local data about the image
     properties:
@@ -2152,7 +2152,7 @@ definitions:
         format: date-time
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   ImageStore:
     description: |-
       ImageStore describes the image store.  Right now only the number
@@ -2163,7 +2163,7 @@ definitions:
         type: integer
         x-go-name: Number
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   ImageSummary:
     description: ImageSummary image summary
     properties:
@@ -2222,7 +2222,7 @@ definitions:
     - Size
     - VirtualSize
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   Info:
     description: |-
       Info is the overall struct that describes the host system
@@ -2240,7 +2240,7 @@ definitions:
       version:
         $ref: '#/definitions/Version'
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectAdditionalNetwork:
     description: |-
       InspectAdditionalNetwork holds information about non-default CNI networks the
@@ -2323,7 +2323,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectBlkioThrottleDevice:
     description: |-
       InspectBlkioThrottleDevice holds information about a speed cap for a device
@@ -2341,7 +2341,7 @@ definitions:
         format: uint64
         type: integer
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectBlkioWeightDevice:
     description: |-
       InspectBlkioWeightDevice holds information about the relative weight
@@ -2358,7 +2358,7 @@ definitions:
         format: uint16
         type: integer
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectContainerConfig:
     description: |-
       InspectContainerConfig holds further data about how a container was initially
@@ -2445,7 +2445,7 @@ definitions:
         description: Container working directory
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectContainerHostConfig:
     description: |-
       InspectContainerHostConfig holds information used when the container was
@@ -2931,7 +2931,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectContainerState:
     description: |-
       InspectContainerState provides a detailed record of a container's current
@@ -2974,7 +2974,7 @@ definitions:
       Status:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectDevice:
     properties:
       CgroupPermissions:
@@ -2991,7 +2991,7 @@ definitions:
         type: string
     title: InspectDevice is a single device that will be mounted into the container.
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectHostPort:
     description: |-
       InspectHostPort provides information on a port on the host that a container's
@@ -3009,7 +3009,7 @@ definitions:
           integer stuffed into a string.
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectLogConfig:
     description: |-
       InspectLogConfig holds information about a container's configured log driver
@@ -3022,7 +3022,7 @@ definitions:
       Type:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectMount:
     description: |-
       InspectMount provides a record of a single mount in a container. It contains
@@ -3069,7 +3069,7 @@ definitions:
           "volume" and "bind".
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectNetworkSettings:
     description: |-
       InspectNetworkSettings holds information about the network settings of the
@@ -3155,7 +3155,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectPodContainerInfo:
     properties:
       Id:
@@ -3170,7 +3170,7 @@ definitions:
         type: string
     title: InspectPodContainerInfo contains information on a container in a pod.
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectPodInfraConfig:
     description: |-
       InspectPodInfraConfig contains the configuration of the pod's infra
@@ -3232,7 +3232,7 @@ definitions:
       StaticMAC:
         $ref: '#/definitions/HardwareAddr'
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectRestartPolicy:
     properties:
       MaximumRetryCount:
@@ -3254,7 +3254,7 @@ definitions:
         type: string
     title: InspectRestartPolicy holds information about the container's restart policy.
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   InspectUlimit:
     properties:
       Hard:
@@ -3270,24 +3270,24 @@ definitions:
         type: integer
     title: InspectUlimit is a ulimit that will be applied to the container.
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   IpcConfig:
     description: IpcConfig configures the ipc namespace for the container
     properties:
       IpcMode:
         $ref: '#/definitions/IpcMode'
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   IpcMode:
     title: IpcMode represents the container ipc stack.
     type: string
-    x-go-package: github.com/containers/libpod/pkg/namespaces
+    x-go-package: github.com/containers/podman/pkg/namespaces
   Isolation:
     description: |-
       Isolation represents the isolation technology of a container. The supported
       values are platform specific
     type: string
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   LibpodContainersPruneReport:
     properties:
       error:
@@ -3301,14 +3301,14 @@ definitions:
         type: integer
         x-go-name: SpaceReclaimed
     type: object
-    x-go-package: github.com/containers/libpod/pkg/api/handlers
+    x-go-package: github.com/containers/podman/pkg/api/handlers
   LibpodImagesPullReport:
     properties:
       id:
         type: string
         x-go-name: ID
     type: object
-    x-go-package: github.com/containers/libpod/pkg/api/handlers
+    x-go-package: github.com/containers/podman/pkg/api/handlers
   LibpodImagesRemoveReport:
     description: |-
       LibpodImagesRemoveReport is the return type for image removal via the rest
@@ -3336,7 +3336,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/pkg/api/handlers
+    x-go-package: github.com/containers/podman/pkg/api/handlers
   LinuxBlockIO:
     description: LinuxBlockIO for Linux cgroup 'blkio' resource management
     properties:
@@ -3382,7 +3382,7 @@ definitions:
         type: array
         x-go-name: WeightDevice
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxCPU:
     description: LinuxCPU for Linux cgroup 'cpu' resource management
     properties:
@@ -3422,7 +3422,7 @@ definitions:
         type: integer
         x-go-name: Shares
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxDevice:
     description: LinuxDevice represents the mknod information for a Linux special
       device file
@@ -3458,7 +3458,7 @@ definitions:
         type: integer
         x-go-name: UID
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxDeviceCgroup:
     description: LinuxDeviceCgroup represents a device rule for the whitelist controller
     properties:
@@ -3485,7 +3485,7 @@ definitions:
         type: string
         x-go-name: Type
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxHugepageLimit:
     description: LinuxHugepageLimit structure corresponds to limiting kernel hugepages
     properties:
@@ -3501,7 +3501,7 @@ definitions:
         type: string
         x-go-name: Pagesize
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxInterfacePriority:
     description: LinuxInterfacePriority for network interfaces
     properties:
@@ -3515,7 +3515,7 @@ definitions:
         type: integer
         x-go-name: Priority
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxMemory:
     description: LinuxMemory for Linux cgroup 'memory' resource management
     properties:
@@ -3558,7 +3558,7 @@ definitions:
         type: boolean
         x-go-name: UseHierarchy
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxNetwork:
     description: LinuxNetwork identification and priority configuration
     properties:
@@ -3574,7 +3574,7 @@ definitions:
         type: array
         x-go-name: Priorities
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxPids:
     description: LinuxPids for Linux cgroup 'pids' resource management (Linux 4.3)
     properties:
@@ -3584,7 +3584,7 @@ definitions:
         type: integer
         x-go-name: Limit
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxRdma:
     description: LinuxRdma for Linux cgroup 'rdma' resource management (Linux 4.11)
     properties:
@@ -3601,7 +3601,7 @@ definitions:
         type: integer
         x-go-name: HcaObjects
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxResources:
     description: LinuxResources has container runtime resource constraints
     properties:
@@ -3637,7 +3637,7 @@ definitions:
         type: object
         x-go-name: Rdma
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxThrottleDevice:
     description: LinuxThrottleDevice struct holds a `major:minor rate_per_second`
       pair
@@ -3658,7 +3658,7 @@ definitions:
         type: integer
         x-go-name: Rate
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   LinuxWeightDevice:
     description: LinuxWeightDevice struct holds a `major:minor weight` pair for weightDevice
     properties:
@@ -3684,7 +3684,7 @@ definitions:
         type: integer
         x-go-name: Weight
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   List:
     description: |-
       Callers can either use this abstract interface without understanding the details of the formats,
@@ -3704,7 +3704,7 @@ definitions:
         type: string
     title: List is an interface for parsing, modifying lists of image manifests.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/containers/image/v5/manifest
+    x-go-package: github.com/containers/podman/vendor/github.com/containers/image/v5/manifest
   ListContainer:
     description: Listcontainer describes a container suitable for listing
     properties:
@@ -3790,7 +3790,7 @@ definitions:
         description: State of container
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   ListContainerNamespaces:
     description: ListContainer Namespaces contains the identifiers of the container's
       Linux namespaces
@@ -3822,7 +3822,7 @@ definitions:
         type: string
         x-go-name: UTS
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   ListPodContainer:
     properties:
       Id:
@@ -3832,7 +3832,7 @@ definitions:
       Status:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   ListPodsReport:
     properties:
       Cgroup:
@@ -3859,7 +3859,7 @@ definitions:
       Status:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   ListRegistriesReport:
     description: |-
       ListRegistriesReport is the report when querying for a sorted list of
@@ -3870,7 +3870,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   LogConfig:
     description: LogConfig describes the logging characteristics for a container
     properties:
@@ -3896,7 +3896,7 @@ definitions:
         type: string
         x-go-name: Path
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   ManifestAddOpts:
     description: Options for adding a manifest
     properties:
@@ -3931,7 +3931,7 @@ definitions:
         type: string
         x-go-name: Variant
     type: object
-    x-go-package: github.com/containers/libpod/libpod/image
+    x-go-package: github.com/containers/podman/libpod/image
   Mount:
     properties:
       destination:
@@ -3955,7 +3955,7 @@ definitions:
         x-go-name: Type
     title: Mount specifies a mount for a container.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   MountPoint:
     description: This is used for reporting the mountpoints in use by a container.
     properties:
@@ -3977,7 +3977,7 @@ definitions:
         $ref: '#/definitions/Type'
     title: MountPoint represents a mount point configuration inside the container.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   NamedVolume:
     description: |-
       NamedVolume holds information about a named volume that will be mounted into
@@ -4000,7 +4000,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   Namespace:
     description: Namespace describes the namespace
     properties:
@@ -4010,10 +4010,10 @@ definitions:
         type: string
         x-go-name: Value
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   NamespaceMode:
     type: string
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   NetworkConfig:
     description: NetworkConfig configures the network namespace for the container
     properties:
@@ -4062,7 +4062,7 @@ definitions:
       PublishAll:
         type: boolean
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   NetworkCreate:
     description: NetworkCreate is the expected body of the "create network" http request
       message
@@ -4104,7 +4104,7 @@ definitions:
       Scope:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   NetworkCreateOptions:
     description: NetworkCreateOptions describes options to create a network
     properties:
@@ -4123,14 +4123,14 @@ definitions:
       Subnet:
         $ref: '#/definitions/IPNet'
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   NetworkCreateReport:
     description: NetworkCreateReport describes a created network for the cli
     properties:
       Filename:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   NetworkCreateRequest:
     properties:
       Attachable:
@@ -4174,13 +4174,13 @@ definitions:
     title: NetworkCreateRequest is the request message sent to the server for network
       create call.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   NetworkInspectReport:
     additionalProperties:
       type: object
     description: NetworkInspectReport describes the results from inspect networks
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   NetworkListReport:
     description: NetworkListReport describes the results from listing networks
     properties:
@@ -4200,11 +4200,11 @@ definitions:
           $ref: '#/definitions/NetworkConfig'
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   NetworkMode:
     title: NetworkMode represents the container network stack.
     type: string
-    x-go-package: github.com/containers/libpod/pkg/namespaces
+    x-go-package: github.com/containers/podman/pkg/namespaces
   NetworkResource:
     description: NetworkResource is the body of the "get network" http response message
     properties:
@@ -4255,7 +4255,7 @@ definitions:
           $ref: '#/definitions/ServiceInfo'
         type: object
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   NetworkRmReport:
     description: NetworkRmReport describes the results of network removal
     properties:
@@ -4264,7 +4264,7 @@ definitions:
       Name:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   NetworkSettings:
     description: NetworkSettings exposes the network settings in the api
     properties:
@@ -4314,7 +4314,7 @@ definitions:
           $ref: '#/definitions/Address'
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   OCIRuntimeInfo:
     description: |-
       OCIRuntimeInfo describes the runtime (crun or runc) being
@@ -4333,7 +4333,7 @@ definitions:
         type: string
         x-go-name: Version
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   POSIXRlimit:
     description: POSIXRlimit type and restrictions
     properties:
@@ -4352,7 +4352,7 @@ definitions:
         type: string
         x-go-name: Type
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
   PeerInfo:
     description: PeerInfo represents one peer of an overlay network
     properties:
@@ -4361,18 +4361,18 @@ definitions:
       Name:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   PidConfig:
     description: PidConfig configures the pid namespace for the container
     properties:
       PidMode:
         $ref: '#/definitions/PidMode'
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   PidMode:
     title: PidMode represents the pid namespace of the container.
     type: string
-    x-go-package: github.com/containers/libpod/pkg/namespaces
+    x-go-package: github.com/containers/podman/pkg/namespaces
   PlayKubePod:
     description: PlayKubePod represents a single pod and associated containers created
       by play kube
@@ -4392,7 +4392,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PlayKubeReport:
     properties:
       Pods:
@@ -4402,7 +4402,7 @@ definitions:
         type: array
     title: PlayKubeReport contains the results of running play kube.
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   Plugin:
     description: Plugin A plugin for the Engine API
     properties:
@@ -4430,7 +4430,7 @@ definitions:
     - Name
     - Settings
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginConfig:
     properties:
       Args:
@@ -4497,7 +4497,7 @@ definitions:
     - WorkDir
     title: PluginConfig The config of a plugin.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginConfigArgs:
     description: PluginConfigArgs plugin config args
     properties:
@@ -4523,7 +4523,7 @@ definitions:
     - Settable
     - Value
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginConfigInterface:
     description: PluginConfigInterface The interface between Docker and the plugin
     properties:
@@ -4542,7 +4542,7 @@ definitions:
     - Socket
     - Types
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginConfigLinux:
     description: PluginConfigLinux plugin config linux
     properties:
@@ -4564,7 +4564,7 @@ definitions:
     - Capabilities
     - Devices
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginConfigNetwork:
     description: PluginConfigNetwork plugin config network
     properties:
@@ -4574,7 +4574,7 @@ definitions:
     required:
     - Type
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginConfigRootfs:
     description: PluginConfigRootfs plugin config rootfs
     properties:
@@ -4589,7 +4589,7 @@ definitions:
         type: string
         x-go-name: Type
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginConfigUser:
     description: PluginConfigUser plugin config user
     properties:
@@ -4602,7 +4602,7 @@ definitions:
         format: uint32
         type: integer
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginDevice:
     description: PluginDevice plugin device
     properties:
@@ -4626,7 +4626,7 @@ definitions:
     - Path
     - Settable
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginEnv:
     description: PluginEnv plugin env
     properties:
@@ -4650,7 +4650,7 @@ definitions:
     - Settable
     - Value
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginInterfaceType:
     description: PluginInterfaceType plugin interface type
     properties:
@@ -4668,7 +4668,7 @@ definitions:
     - Prefix
     - Version
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginMount:
     description: PluginMount plugin mount
     properties:
@@ -4706,7 +4706,7 @@ definitions:
     - Source
     - Type
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PluginSettings:
     properties:
       Args:
@@ -4736,7 +4736,7 @@ definitions:
     - Mounts
     title: PluginSettings Settings that can be modified by users.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PodBasicConfig:
     properties:
       hostname:
@@ -4814,7 +4814,7 @@ definitions:
         x-go-name: SharedNamespaces
     title: PodBasicConfig contains basic configuration options for pods.
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   PodCgroupConfig:
     description: This will be expanded in future updates to pods.
     properties:
@@ -4828,7 +4828,7 @@ definitions:
         x-go-name: CgroupParent
     title: PodCgroupConfig contains configuration options about a pod's cgroups.
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   PodCreateConfig:
     properties:
       cgroup-parent:
@@ -4863,7 +4863,7 @@ definitions:
         type: string
         x-go-name: Share
     type: object
-    x-go-package: github.com/containers/libpod/pkg/api/handlers
+    x-go-package: github.com/containers/podman/pkg/api/handlers
   PodKillReport:
     properties:
       Errs:
@@ -4873,7 +4873,7 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PodNetworkConfig:
     properties:
       cni_networks:
@@ -4973,7 +4973,7 @@ definitions:
         $ref: '#/definitions/HardwareAddr'
     title: PodNetworkConfig contains networking configuration for a pod.
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   PodPauseReport:
     properties:
       Errs:
@@ -4983,7 +4983,7 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PodPruneReport:
     properties:
       Err:
@@ -4991,7 +4991,7 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PodRestartReport:
     properties:
       Errs:
@@ -5001,7 +5001,7 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PodRmReport:
     properties:
       Err:
@@ -5009,7 +5009,7 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PodSpecGenerator:
     description: PodSpecGenerator describes options to create a pod
     properties:
@@ -5190,7 +5190,7 @@ definitions:
       static_mac:
         $ref: '#/definitions/HardwareAddr'
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   PodStartReport:
     properties:
       Errs:
@@ -5200,7 +5200,7 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PodStatsReport:
     properties:
       BlockIO:
@@ -5223,7 +5223,7 @@ definitions:
         type: string
     title: PodStatsReport includes pod-resource statistics data.
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PodStopReport:
     properties:
       Errs:
@@ -5233,7 +5233,7 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   PodUnpauseReport:
     properties:
       Errs:
@@ -5243,12 +5243,12 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   Policy:
     format: int64
     title: Policy denotes a seccomp policy.
     type: integer
-    x-go-package: github.com/containers/libpod/pkg/seccomp
+    x-go-package: github.com/containers/podman/pkg/seccomp
   Port:
     description: Port An open port on a container
     properties:
@@ -5270,7 +5270,7 @@ definitions:
     - PrivatePort
     - Type
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   PortBinding:
     description: PortBinding represents a binding between a Host IP address and a
       Host Port
@@ -5283,7 +5283,7 @@ definitions:
         description: HostPort is the host port number
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/go-connections/nat
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/go-connections/nat
   PortMap:
     additionalProperties:
       items:
@@ -5291,7 +5291,7 @@ definitions:
       type: array
     description: PortMap is a collection of PortBinding indexed by Port
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/go-connections/nat
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/go-connections/nat
   PortMapping:
     properties:
       container_port:
@@ -5339,17 +5339,17 @@ definitions:
         x-go-name: Range
     title: PortMapping is one or more ports that will be mapped into the container.
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   PortSet:
     additionalProperties:
       type: object
     description: PortSet is a collection of structs indexed by Port
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/go-connections/nat
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/go-connections/nat
   Propagation:
     title: Propagation represents the propagation of a mount.
     type: string
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/mount
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/mount
   RemoteSocket:
     description: RemoteSocket describes information about the API socket
     properties:
@@ -5360,7 +5360,7 @@ definitions:
         type: string
         x-go-name: Path
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   Report:
     properties:
       Err:
@@ -5372,7 +5372,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   RestartPolicy:
     properties:
       MaximumRetryCount:
@@ -5382,7 +5382,7 @@ definitions:
         type: string
     title: RestartPolicy represents the restart policies of the container.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/container
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/container
   RootFS:
     description: RootFS holds the root fs information of an image
     properties:
@@ -5394,7 +5394,7 @@ definitions:
       Type:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/inspect
+    x-go-package: github.com/containers/podman/pkg/inspect
   Schema2HealthConfig:
     description: |-
       Schema2HealthConfig is a HealthConfig, which holds configuration settings
@@ -5425,7 +5425,7 @@ definitions:
       Timeout:
         $ref: '#/definitions/Duration'
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/containers/image/v5/manifest
+    x-go-package: github.com/containers/podman/vendor/github.com/containers/image/v5/manifest
   SecurityConfig:
     description: SecurityConfig configures the security features for the container
     properties:
@@ -5470,7 +5470,7 @@ definitions:
           type: string
         type: object
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   ServiceInfo:
     description: ServiceInfo represents service parameters with the list of service's
       tasks
@@ -5489,7 +5489,7 @@ definitions:
       VIP:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   ServiceUpdateResponse:
     description: ServiceUpdateResponse service update response
     properties:
@@ -5499,7 +5499,7 @@ definitions:
           type: string
         type: array
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   Signal:
     description: It implements the os.Signal interface.
     format: int64
@@ -5521,7 +5521,7 @@ definitions:
         type: string
         x-go-name: Version
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   SpecGenerator:
     description: |-
       SpecGenerator creates an OCI spec and Libpod configuration options to create
@@ -6063,7 +6063,7 @@ definitions:
         type: string
         x-go-name: WorkDir
     type: object
-    x-go-package: github.com/containers/libpod/pkg/specgen
+    x-go-package: github.com/containers/podman/pkg/specgen
   StoreInfo:
     description: |-
       StoreInfo describes the container storage and its
@@ -6099,14 +6099,14 @@ definitions:
         type: string
         x-go-name: VolumePath
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   StrSlice:
     description: We need to override the json decoder to accept both options.
     items:
       type: string
     title: StrSlice represents a string or an array of strings.
     type: array
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/strslice
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/strslice
   SystemDfContainerReport:
     description: SystemDfContainerReport describes a container for use with df
     properties:
@@ -6135,7 +6135,7 @@ definitions:
       Status:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   SystemDfImageReport:
     description: SystemDfImageReport describes an image for use with df
     properties:
@@ -6161,7 +6161,7 @@ definitions:
         format: int64
         type: integer
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   SystemDfVolumeReport:
     description: SystemDfVolumeReport describes a volume and its size
     properties:
@@ -6174,7 +6174,7 @@ definitions:
       VolumeName:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   Task:
     description: Task carries the information about one backend task
     properties:
@@ -6189,7 +6189,7 @@ definitions:
       Name:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/network
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/network
   ThrottleDevice:
     description: ThrottleDevice is a structure that holds device:rate_per_second pair
     properties:
@@ -6199,15 +6199,15 @@ definitions:
         format: uint64
         type: integer
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/blkiodev
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/blkiodev
   Type:
     title: Type represents the type of a mount.
     type: string
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/mount
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/mount
   UTSMode:
     title: UTSMode represents the UTS namespace of the container.
     type: string
-    x-go-package: github.com/containers/libpod/pkg/namespaces
+    x-go-package: github.com/containers/podman/pkg/namespaces
   Ulimit:
     properties:
       Hard:
@@ -6220,7 +6220,7 @@ definitions:
         type: integer
     title: Ulimit is a human friendly version of Rlimit.
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/go-units
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/go-units
   UserConfig:
     description: UserConfig configures the user namespace for the container
     properties:
@@ -6235,11 +6235,11 @@ definitions:
       UsernsMode:
         $ref: '#/definitions/UsernsMode'
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   UsernsMode:
     title: UsernsMode represents userns mode in the container.
     type: string
-    x-go-package: github.com/containers/libpod/pkg/namespaces
+    x-go-package: github.com/containers/podman/pkg/namespaces
   UtsConfig:
     description: UtsConfig configures the uts namespace for the container
     properties:
@@ -6254,7 +6254,7 @@ definitions:
       UtsMode:
         $ref: '#/definitions/UTSMode'
     type: object
-    x-go-package: github.com/containers/libpod/pkg/spec
+    x-go-package: github.com/containers/podman/pkg/spec
   Version:
     description: Version is an output struct for varlink
     properties:
@@ -6275,7 +6275,7 @@ definitions:
       Version:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/libpod/define
+    x-go-package: github.com/containers/podman/libpod/define
   Volume:
     description: Volume volume
     properties:
@@ -6326,7 +6326,7 @@ definitions:
     - Options
     - Scope
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   VolumeCreate:
     properties:
       Driver:
@@ -6347,7 +6347,7 @@ definitions:
         type: object
     type: object
     x-go-name: VolumeCreateOptions
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   VolumeCreateBody:
     description: VolumeCreateBody Volume configuration
     properties:
@@ -6374,7 +6374,7 @@ definitions:
     - Labels
     - Name
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/volume
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/volume
   VolumeListOKBody:
     description: VolumeListOKBody Volume list response
     properties:
@@ -6392,7 +6392,7 @@ definitions:
     - Volumes
     - Warnings
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/volume
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/volume
   VolumePruneReport:
     properties:
       Err:
@@ -6400,7 +6400,7 @@ definitions:
       Id:
         type: string
     type: object
-    x-go-package: github.com/containers/libpod/pkg/domain/entities
+    x-go-package: github.com/containers/podman/pkg/domain/entities
   VolumeUsageData:
     description: |-
       VolumeUsageData Usage details about the volume. This information is used by the
@@ -6424,7 +6424,7 @@ definitions:
     - RefCount
     - Size
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types
   WeightDevice:
     description: WeightDevice is a structure that holds device:weight pair
     properties:
@@ -6434,7 +6434,7 @@ definitions:
         format: uint16
         type: integer
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/docker/docker/api/types/blkiodev
+    x-go-package: github.com/containers/podman/vendor/github.com/docker/docker/api/types/blkiodev
   linuxBlockIODevice:
     description: linuxBlockIODevice holds major:minor format supported in blkio cgroup
     properties:
@@ -6449,7 +6449,7 @@ definitions:
         type: integer
         x-go-name: Minor
     type: object
-    x-go-package: github.com/containers/libpod/vendor/github.com/opencontainers/runtime-spec/specs-go
+    x-go-package: github.com/containers/podman/vendor/github.com/opencontainers/runtime-spec/specs-go
 host: podman.io
 info:
   contact:
@@ -6491,7 +6491,7 @@ info:
   title: Provides a container compatible interface. (Experimental)
   version: 0.0.1
   x-logo:
-  - url: https://raw.githubusercontent.com/containers/libpod/master/logo/podman-logo.png
+  - url: https://raw.githubusercontent.com/containers/podman/master/logo/podman-logo.png
   - altText: Podman logo
 paths:
   /build:

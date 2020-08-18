@@ -75,7 +75,7 @@ echo $rand        |   0 | $rand
 }
 
 # 'run --rm' goes through different code paths and may lose exit status.
-# See https://github.com/containers/libpod/issues/3795
+# See https://github.com/containers/podman/issues/3795
 @test "podman run --rm" {
 
     run_podman 0 run --rm $IMAGE /bin/true

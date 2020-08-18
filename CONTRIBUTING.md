@@ -8,14 +8,14 @@ that we follow.
 
 * [Reporting Issues](#reporting-issues)
 * [Contributing to libpod](#contributing-to-libpod)
-* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
+* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
 
 ## Reporting Issues
 
 Before reporting an issue, check our backlog of
-[open issues](https://github.com/containers/libpod/issues)
+[open issues](https://github.com/containers/podman/issues)
 to see if someone else has already reported it. If so, feel free to add
 your scenario, or additional information, to the discussion. Or simply
 "subscribe" to it to be notified when it is updated.
@@ -52,8 +52,8 @@ Create a path that corresponds to the go import paths of libpod: `mkdir -p $GOPA
 
 Then clone your fork locally:
 ```shell
-$ git clone git@github.com:<you>/libpod $GOPATH/src/github.com/containers/libpod
-$ cd $GOPATH/src/github.com/containers/libpod
+$ git clone git@github.com:<you>/libpod $GOPATH/src/github.com/containers/podman
+$ cd $GOPATH/src/github.com/containers/podman
 ```
 
 ### Deal with make
@@ -344,7 +344,7 @@ documentation.](contrib/cirrus/README.md)
 There is always additional complexity added by automation, and so it sometimes
 can fail for any number of reasons.  This includes post-merge testing on all
 branches, which you may occasionally see [red bars on the status graph
-.](https://cirrus-ci.com/github/containers/libpod/master)
+.](https://cirrus-ci.com/github/containers/podman/master)
 
 When the graph shows mostly green bars on the right, it's a good indication
 the master branch is currently stable.  Alternating red/green bars is indicative
@@ -377,9 +377,9 @@ For general questions and discussion, please use the
 IRC `#podman` channel on `irc.freenode.net`.
 
 For discussions around issues/bugs and features, you can use the GitHub
-[issues](https://github.com/containers/libpod/issues)
+[issues](https://github.com/containers/podman/issues)
 and
-[PRs](https://github.com/containers/libpod/pulls)
+[PRs](https://github.com/containers/podman/pulls)
 tracking system.
 
 There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podman.io`.

@@ -61,6 +61,6 @@ then
     PR_SUBJECT=$(echo "$CIRRUS_CHANGE_MESSAGE" | head -1)
     ircmsg "${MENTION_PREFIX}Cirrus-CI testing successful for PR '$PR_SUBJECT': $URL"
 else
-    URL="https://cirrus-ci.com/github/containers/libpod/$CIRRUS_BRANCH"
+    URL="https://cirrus-ci.com/github/containers/podman/$CIRRUS_BRANCH"
     ircmsg "Cirrus-CI testing branch $(basename $CIRRUS_BRANCH) successful: $URL"
 fi

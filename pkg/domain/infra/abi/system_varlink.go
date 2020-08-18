@@ -23,7 +23,7 @@ func (ic *ContainerEngine) VarlinkService(_ context.Context, opts entities.Servi
 		"Atomic",
 		"podman",
 		version.Version,
-		"https://github.com/containers/libpod",
+		"https://github.com/containers/podman",
 	)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create new varlink service")

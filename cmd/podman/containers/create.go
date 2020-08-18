@@ -217,7 +217,7 @@ func createInit(c *cobra.Command) error {
 	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
-	// the hostname (see https://github.com/containers/libpod/issues/1367).
+	// the hostname (see https://github.com/containers/podman/issues/1367).
 
 	return nil
 }

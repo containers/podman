@@ -76,7 +76,7 @@ sudo $pkg_manager install -y ${PKGS[*]}
 sudo rm -f podman-*.src.rpm
 
 make -f .copr/Makefile
-# workaround for https://github.com/containers/libpod/issues/4627
+# workaround for https://github.com/containers/podman/issues/4627
 if [ -d ~/rpmbuild/BUILD ]; then
     chmod -R +w ~/rpmbuild/BUILD
 fi

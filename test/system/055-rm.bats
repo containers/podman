@@ -30,7 +30,7 @@ load helpers
 # so what we do is start the 'rm' beforehand and monitor the exit status
 # of the 'sleep' container.
 #
-# See https://github.com/containers/libpod/issues/3795
+# See https://github.com/containers/podman/issues/3795
 @test "podman rm -f" {
     skip_if_remote "FIXME: pending #7117"
 

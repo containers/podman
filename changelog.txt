@@ -3983,7 +3983,7 @@
   * volume: resolve symlinks in paths
   * volume: write the correct ID of the container in error messages
   * vendor: update containers/buildah
-  * papr: relabel GOPATH/github.com/containers/libpod
+  * papr: relabel GOPATH/github.com/containers/podman
   * tests: do not fail in the cleanup phase
   * tests: do not make assumptions on the mount output
   * papr_prepare: remove double process for starting up .papr.sh
@@ -4290,7 +4290,7 @@
   * Fix handling of devices
   * tutorial: point to containers/skopeo
   * point to containers/skopeo
-  * install.md:  point to containers/libpod
+  * install.md:  point to containers/podman
   * Bump gitvalidation epoch
   * Bump to v0.8.4-dev
 
@@ -4682,7 +4682,7 @@
   * Vendor in latest runtime-tools
   * docs: add documentation for rootless containers
   * runtime: change rootless data storage default path
-  * rootless: use $HOME/.config/containers/libpod.conf
+  * rootless: use $HOME/.config/containers/podman.conf
   * test: add env variables to the debug output
   * rootless: do not configure additional groups
   * oci: set XDG_RUNTIME_DIR to the runtime from GetRootlessRuntimeDir()

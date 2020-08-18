@@ -88,7 +88,7 @@ localhost/test             latest            4b8c27c343e1   4 weeks ago     253 
 k8s.gcr.io/pause           3.1               da86e6ba6ca1   20 months ago   747 kB
 ```
 If the conf file is set up, you may simply use Podman as you would on the linux machine. Take a look at
-[podman-remote.conf.5.md](https://github.com/containers/libpod/blob/master/docs/podman-remote.conf.5.md) on how to use the conf file:
+[podman-remote.conf.5.md](https://github.com/containers/podman/blob/master/docs/podman-remote.conf.5.md) on how to use the conf file:
 
 ```
 $ podman images

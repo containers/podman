@@ -16,7 +16,7 @@ CPUS="2"
 MEMORY="4Gb"
 DISK="200"
 PROJECT="libpod-218412"
-GOSRC="/var/tmp/go/src/github.com/containers/libpod"
+GOSRC="/var/tmp/go/src/github.com/containers/podman"
 GCLOUD_IMAGE=${GCLOUD_IMAGE:-quay.io/cevich/gcloud_centos:latest}
 GCLOUD_SUDO=${GCLOUD_SUDO-sudo}
 

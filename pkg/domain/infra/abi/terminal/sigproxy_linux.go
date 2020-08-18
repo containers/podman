@@ -22,7 +22,7 @@ func ProxySignals(ctr *libpod.Container) {
 			// intended for the podman command itself.
 			// SIGURG was added because of golang 1.14 and its preemptive changes
 			// causing more signals to "show up".
-			// https://github.com/containers/libpod/issues/5483
+			// https://github.com/containers/podman/issues/5483
 			if s == syscall.SIGCHLD || s == syscall.SIGPIPE || s == syscall.SIGURG {
 				continue
 			}
