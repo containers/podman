@@ -307,10 +307,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	// ENVIRONMENT VARIABLES
 	//
 	// Precedence order (higher index wins):
-	//  1) env-host, 2) image data, 3) env-file, 4) env
-	env := map[string]string{
-		"container": "podman",
-	}
+	//  1) containers.conf (EnvHost, EnvHTTP, Env) 2) image data, 3 User EnvHost/EnvHTTP, 4) env-file, 5) env
+	// containers.conf handled and image data handled on the server side
+	// user specified EnvHost and EnvHTTP handled on Server Side relative to Server
+	// env-file and env handled on client side
+	var env map[string]string
 
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
@@ -319,24 +320,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		return errors.Wrap(err, "error parsing host environment variables")
 	}
 
-	if c.EnvHost {
-		env = envLib.Join(env, osEnv)
-	} else if c.HTTPProxy {
-		for _, envSpec := range []string{
-			"http_proxy",
-			"HTTP_PROXY",
-			"https_proxy",
-			"HTTPS_PROXY",
-			"ftp_proxy",
-			"FTP_PROXY",
-			"no_proxy",
-			"NO_PROXY",
-		} {
-			if v, ok := osEnv[envSpec]; ok {
-				env[envSpec] = v
-			}
-		}
-	}
+	s.EnvHost = c.EnvHost
+	s.HTTPProxy = c.HTTPProxy
 
 	// env-file overrides any previous variables
 	for _, f := range c.EnvFile {
