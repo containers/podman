@@ -15,7 +15,6 @@ const (
 )
 
 var (
-
 	// ErrApparmorUnsupported indicates that AppArmor support is not supported.
 	ErrApparmorUnsupported = errors.New("AppArmor is not supported")
 	// ErrApparmorRootless indicates that AppArmor support is not supported in rootless mode.
