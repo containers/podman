@@ -127,8 +127,10 @@ var _ = Describe("Podman build", func() {
 		defer Expect(os.Chdir(cwd)).To(BeNil())
 
 		// Write target and fake files
-		targetPath := filepath.Join(os.TempDir(), "dir")
-		Expect(os.MkdirAll(targetPath, 0755)).To(BeNil())
+		targetPath, err := CreateTempDirInTempDir()
+		if err != nil {
+			os.Exit(1)
+		}
 
 		fakeFile := filepath.Join(os.TempDir(), "Containerfile")
 		Expect(ioutil.WriteFile(fakeFile, []byte("FROM alpine"), 0755)).To(BeNil())
@@ -162,7 +164,10 @@ var _ = Describe("Podman build", func() {
 		Expect(os.Chdir(os.TempDir())).To(BeNil())
 		defer Expect(os.Chdir(cwd)).To(BeNil())
 
-		targetPath := filepath.Join(os.TempDir(), "dir")
+		targetPath, err := CreateTempDirInTempDir()
+		if err != nil {
+			os.Exit(1)
+		}
 		targetFile := filepath.Join(targetPath, "idFile")
 
 		session := podmanTest.PodmanNoCache([]string{"build", "build/basicalpine", "--iidfile", targetFile})
