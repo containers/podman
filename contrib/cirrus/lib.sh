@@ -29,7 +29,7 @@ then
     # Ensure compiled tooling is reachable
     export PATH="$PATH:$GOPATH/bin"
 fi
-CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-$GOPATH/src/github.com/containers/libpod}"
+CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-$GOPATH/src/github.com/containers/podman}"
 export GOSRC="${GOSRC:-$CIRRUS_WORKING_DIR}"
 export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"
 export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
