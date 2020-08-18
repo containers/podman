@@ -43,6 +43,9 @@ func (s *SpecGenerator) Validate() error {
 	}
 	// Cannot set hostname and utsns
 	if len(s.ContainerBasicConfig.Hostname) > 0 && !s.ContainerBasicConfig.UtsNS.IsPrivate() {
+		if s.ContainerBasicConfig.UtsNS.IsPod() {
+			return errors.Wrap(ErrInvalidSpecConfig, "cannot set hostname when joining the pod UTS namespace")
+		}
 		return errors.Wrap(ErrInvalidSpecConfig, "cannot set hostname when running in the host UTS namespace")
 	}
 	// systemd values must be true, false, or always
