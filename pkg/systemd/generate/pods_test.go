@@ -75,7 +75,7 @@ Before=container-1.service container-2.service
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
-ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --replace
+ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo "bar=arg with space" --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
 ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
@@ -118,7 +118,7 @@ WantedBy=multi-user.target default.target`
 				StopTimeout:      10,
 				PodmanVersion:    "CI",
 				RequiredServices: []string{"container-1", "container-2"},
-				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo"},
+				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo", "bar=arg with space"},
 			},
 			podGoodNamedNew,
 			true,
