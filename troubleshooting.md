@@ -558,3 +558,37 @@ _eof
 
 In order to effect root running containers and all users, modify the system
 wide defaults in /etc/containers/containers.conf
+
+
+### 23) Container with exposed ports won't run in a pod
+
+A container with ports that have been published with the `--publish` or `-p` option
+can not be run within a pod.
+
+#### Symptom
+
+```
+$ podman pod create --name srcview -p 127.0.0.1:3434:3434 -p 127.0.0.1:7080:7080 -p 127.0.0.1:3370:3370                        4b2f4611fa2cbd60b3899b936368c2b3f4f0f68bc8e6593416e0ab8ecb0a3f1d
+
+$ podman run --pod srcview --name src-expose -p 3434:3434 -v "${PWD}:/var/opt/localrepo":Z,ro sourcegraph/src-expose:latest serve /var/opt/localrepo
+Error: cannot set port bindings on an existing container network namespace
+```
+
+#### Solution
+
+This is a known limitation.  If a container will be run within a pod, it is not necessary
+to publish the port for the containers in the pod. The port must only be published by the
+pod itself.  Pod network stacks act like the network stack on the host - you have a
+variety of containers in the pod, and programs in the container, all sharing a single
+interface and IP address, and associated ports. If one container binds to a port, no other
+container can use that port within the pod while it is in use. Containers in the pod can
+also communicate over localhost by having one container bind to localhost in the pod, and
+another connect to that port.
+
+In the example from the symptom section, dropping the `-p 3434:3434` would allow the
+`podman run` command to complete, and the container as part of the pod would still have
+access to that port.  For example:
+
+```
+$ podman run --pod srcview --name src-expose -v "${PWD}:/var/opt/localrepo":Z,ro sourcegraph/src-expose:latest serve /var/opt/localrepo
+```
