@@ -47,9 +47,12 @@ var _ = Describe("Podman trust", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		outArray := session.OutputToStringArray()
 		Expect(len(outArray)).To(Equal(3))
-		Expect(outArray[0]).Should(ContainSubstring("accept"))
-		Expect(outArray[1]).Should(ContainSubstring("reject"))
-		Expect(outArray[2]).Should(ContainSubstring("signed"))
+
+		// image order is not guaranteed. All we can do is check that
+		// these strings appear in output, we can't cross-check them.
+		Expect(session.OutputToString()).To(ContainSubstring("accept"))
+		Expect(session.OutputToString()).To(ContainSubstring("reject"))
+		Expect(session.OutputToString()).To(ContainSubstring("signed"))
 	})
 
 	It("podman image trust set", func() {
