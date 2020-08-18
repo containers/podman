@@ -233,6 +233,7 @@ func (c *Container) Kill(signal uint) error {
 // This function returns when the attach finishes. It does not hold the lock for
 // the duration of its runtime, only using it at the beginning to verify state.
 func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
+	logrus.Errorf("normal attach")
 	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {
@@ -268,6 +269,7 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 // sent.
 // At least one of streamAttach and streamLogs must be set.
 func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, streamAttach, streamLogs bool) (deferredErr error) {
+	logrus.Errorf("HTTP attach")
 	isTerminal := false
 	if c.config.Spec.Process != nil {
 		isTerminal = c.config.Spec.Process.Terminal
