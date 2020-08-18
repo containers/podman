@@ -3546,22 +3546,32 @@ _podman_volume() {
 
 _podman_podman() {
      local options_with_args="
-	   --config -c
+	   --cni-config-dir
+	   --conmon
+	   --connection -c
+	   --events-backend
+	   --hooks-dir
+	   --identity
+	   --log-level
+	   --namespace
+	   --network-cmd-path
 	   --root
 	   --runroot
 	   --storage-driver
 	   --storage-opt
-	   --log-level
-	   --namespace
-    "
+	   --tmpdir
+	   --runtime
+	   --url
+     "
      local boolean_options="
 	   --help
-	   -h
-	   --version
-	   -v
 	   --syslog
+	   --version
+	   -h
+	   -r, --remote
+	   -v
      "
-     commands="
+    commands="
     attach
     auto-update
     build
