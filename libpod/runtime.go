@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/define"
@@ -17,6 +18,7 @@ import (
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/libpod/lock"
 	"github.com/containers/podman/v2/pkg/cgroups"
+	"github.com/containers/podman/v2/pkg/registries"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
@@ -815,4 +817,51 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 
 func (r *Runtime) EnableLabeling() bool {
 	return r.config.Containers.EnableLabeling
+}
+
+// Reload reloads the configurations files
+func (r *Runtime) Reload() error {
+	if err := r.reloadContainersConf(); err != nil {
+		return err
+	}
+	if err := r.reloadStorageConf(); err != nil {
+		return err
+	}
+	if err := reloadRegistriesConf(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// reloadContainersConf reloads the containers.conf
+func (r *Runtime) reloadContainersConf() error {
+	config, err := config.Reload()
+	if err != nil {
+		return err
+	}
+	r.config = config
+	logrus.Infof("applied new containers configuration: %v", config)
+	return nil
+}
+
+// reloadRegistries reloads the registries.conf
+func reloadRegistriesConf() error {
+	sysregistriesv2.InvalidateCache()
+	registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registries.SystemRegistriesConfPath()})
+	if err != nil {
+		return err
+	}
+	logrus.Infof("applied new registry configuration: %+v", registries)
+	return nil
+}
+
+// reloadStorageConf reloads the storage.conf
+func (r *Runtime) reloadStorageConf() error {
+	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
+	if err != nil {
+		return err
+	}
+	storage.ReloadConfigurationFile(configFile, &r.storageConfig)
+	logrus.Infof("applied new storage configuration: %v", r.storageConfig)
+	return nil
 }
