@@ -417,8 +417,6 @@ testing_task:
           gce_instance:
               image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
 
-    timeout_in: 120m
-
     env:
         ADD_SECOND_PARTITION: 'true'
         matrix:
@@ -473,8 +471,6 @@ special_testing_rootless_task:
           - RCLI: 'true'
           - RCLI: 'false'
 
-    timeout_in: 60m
-
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
@@ -514,8 +510,6 @@ special_testing_in_podman_task:
         ADD_SECOND_PARTITION: 'true'
         MOD_CONTAINERS_CONF: 'false'  # Use existing/native setup
         SPECIALMODE: 'in_podman'  # See docs
-
-    timeout_in: 60m
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
