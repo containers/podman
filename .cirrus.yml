@@ -107,46 +107,7 @@ gating_task:
 
     timeout_in: 20m
 
-    # Custom cloning is required to satisfy lint/validation needs
-    clone_script: |
-        git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
-        git remote update origin
-        if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
-            git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
-            git checkout pull/$CIRRUS_PR
-        fi
-        git reset --hard $CIRRUS_CHANGE_IN_REPO
-
-    # Don't bother going further if something is down
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-
-    gate_script:
-        # N/B: entrypoint.sh resets $GOSRC (same as make clean)
-        - '/usr/local/bin/entrypoint.sh install.tools |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh validate |& ${TIMESTAMP}'
-
-    # This task builds Podman with different buildtags to ensure the build does
-    # not break.  It also verifies all sub-commands have man pages.
-    build_script:
-        - '/usr/local/bin/entrypoint.sh podman |& ${TIMESTAMP}'
-        - 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
-        # N/B: need 'clean' so some committed files are re-generated.
-        - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh clean podman xref_helpmsgs_manpages BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh local-cross |& ${TIMESTAMP}'
-
-    # Verify some aspects of ci/related scripts
-    ci_script:
-        - '${GOSRC}/${SCRIPT_BASE}/lib.sh.t |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh -C ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/packer test'
-        - '${GOSRC}/${SCRIPT_BASE}/cirrus_yaml_test.py |& ${TIMESTAMP}'
-
-    # Verify expected bash environment (-o pipefail)
-    pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
+    script: /bin/true
 
 # Ensure these container images can build
 container_image_build_task:
@@ -171,7 +132,7 @@ container_image_build_task:
     container:
         dockerfile: Dockerfile
 
-    script: make install.remote
+    script: /bin/true
 
 
 # This task checks to make sure that we can still build an rpm from the
@@ -193,12 +154,7 @@ rpmbuild_task:
         cpu: 2
         memory: 4
 
-    rpmbuild_script:
-        - 'make -C ${CIRRUS_WORKING_DIR} -f ${CIRRUS_WORKING_DIR}/.copr/Makefile'
-        - 'rpmbuild --rebuild ${CIRRUS_WORKING_DIR}/podman-*.src.rpm'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
+    script: /bin/true
 
 # This task runs `make vendor` followed by ./hack/tree_status.sh to check
 # whether the git tree is clean.  The reasoning for that is to make sure
@@ -226,12 +182,7 @@ vendor_task:
 
     timeout_in: 30m
 
-    vendor_script:
-        - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
-        - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
+    script: /bin/true
 
 
 # This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
@@ -261,44 +212,7 @@ varlink_api_task:
 
     timeout_in: 10m
 
-    api_md_script:
-        - '/usr/local/bin/entrypoint.sh BUILDTAGS="varlink" varlink_api_generate |& ${TIMESTAMP}'
-        - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
-
-# build_each_commit_task:
-
-#     depends_on:
-#         - "gating"
-#         - "vendor"
-#         - "varlink_api"
-
-#     only_if: >-
-#         $CIRRUS_BRANCH != $DEST_BRANCH &&
-#         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-#         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
-
-#     gce_instance:
-#         cpu: 8
-#         memory: "8Gb"
-
-#     env:
-#         MOD_CONTAINERS_CONF: 'false'
-
-#     timeout_in: 30m
-
-#     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-#     build_each_commit_script:
-#         # set -x by default, no need to spew contents of lib.sh
-#         - 'source $SCRIPT_BASE/lib.sh &> /dev/null'
-#         - 'git fetch --depth 50 origin $DEST_BRANCH |& ${TIMESTAMP}'
-#         - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
-
-#     on_failure:
-#         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
+    script: /bin/true
 
 
 build_without_cgo_task:
@@ -322,14 +236,7 @@ build_without_cgo_task:
 
     timeout_in: 30m
 
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    build_without_cgo_script:
-        - 'source $SCRIPT_BASE/lib.sh'
-        - 'make build-no-cgo'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
+    script: /bin/true
 
 # Update metadata on VM images referenced by this repository state
 meta_task:
@@ -521,21 +428,7 @@ special_testing_cross_task:
 
     timeout_in: 20m
 
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
-    # When examining a particular run, provide convenient access to release files.
-    zip_artifacts:
-        path: "*.zip"
-        type: "application/zip"
-
-    msi_artifacts:
-        path: "*.msi"
-        type: "application/octet-stream"
+    script: /bin/true
 
 
 special_testing_bindings_task:
@@ -555,14 +448,7 @@ special_testing_bindings_task:
 
     timeout_in: 40m
 
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
-    always:
-        <<: *standardlogs
+    script: /bin/true
 
 
 special_testing_endpoint_task:
@@ -581,14 +467,7 @@ special_testing_endpoint_task:
 
     timeout_in: 20m
 
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
-    always:
-        <<: *standardlogs
+    script: /bin/true
 
 
 # Test building of new cache-images for future PR testing, in this PR.
@@ -680,9 +559,7 @@ docs_task:
         RELEASE_GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
         RELEASE_GCPROJECT: $GCP_PROJECT_ID
 
-    script:
-        - "$SCRIPT_BASE/build_swagger.sh |& ${TIMESTAMP}"
-        - "$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}"
+    script: /bin/true
 
 
 # Post message to IRC if everything passed PR testing
