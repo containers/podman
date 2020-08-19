@@ -10,7 +10,7 @@ _SOCAT_PID=
 _SOCAT_LOG=
 
 function setup() {
-    skip_if_remote
+    skip_if_remote "systemd tests are meaningless over remote"
 
     skip "FIXME FIXME FIXME, is this what's causing the CI hang???"
 

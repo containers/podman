@@ -7,7 +7,7 @@ load helpers
 
 # Copied from tsweeney's https://github.com/containers/podman/issues/4827
 @test "podman networking: port on localhost" {
-    skip_if_remote
+    skip_if_remote "FIXME: reevaluate this one after #7360 is fixed"
     random_1=$(random_string 30)
     random_2=$(random_string 30)
 
@@ -62,8 +62,6 @@ load helpers
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 @test "podman networking: port with --userns=keep-id" {
-    skip_if_remote
-
     # FIXME: randomize port, and create second random host port
     myport=54321
 

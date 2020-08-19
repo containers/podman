@@ -96,9 +96,8 @@ function teardown() {
     run_podman rm $cid1
 
     # ...then, from pause container, find the image ID of the pause image...
-    # FIXME: if #6283 gets implemented, use 'inspect --format ...'
-    run_podman pod inspect $podname
-    pause_cid=$(jq -r '.Containers[0].Id' <<<"$output")
+    run_podman pod inspect --format '{{(index .Containers 0).ID}}' $podname
+    pause_cid="$output"
     run_podman container inspect --format '{{.Image}}' $pause_cid
     pause_iid="$output"
 

@@ -75,8 +75,6 @@ Size        | [0-9]\\\+
 }
 
 @test "podman images - filter" {
-    skip_if_remote "podman commit -q is broken in podman-remote"
-
     run_podman inspect --format '{{.ID}}' $IMAGE
     iid=$output
 

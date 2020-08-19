@@ -27,13 +27,25 @@ verify_iid_and_name() {
 }
 
 @test "podman save to pipe and load" {
+    get_iid_and_name
+
     # We can't use run_podman because that uses the BATS 'run' function
     # which redirects stdout and stderr. Here we need to guarantee
     # that podman's stdout is a pipe, not any other form of redirection
-    $PODMAN save --format oci-archive $IMAGE | cat >$PODMAN_TMPDIR/test.tar
-    [ $status -eq 0 ]
+    $PODMAN save --format oci-archive $IMAGE | cat >$archive
+    if [ "$status" -ne 0 ]; then
+        die "Command failed: podman save ... | cat"
+    fi
 
-    run_podman load -i $PODMAN_TMPDIR/test.tar
+    # Make sure we can reload it
+    # FIXME: when/if 7337 gets fixed, add a random tag instead of rmi'ing
+    # FIXME: when/if 7371 gets fixed, use verify_iid_and_name()
+    run_podman rmi $iid
+    run_podman load -i $archive
+
+    # FIXME: cannot compare IID, see #7371
+    run_podman images -a --format '{{.Repository}}:{{.Tag}}'
+    is "$output" "$IMAGE" "image preserves name across save/load"
 }
 
 

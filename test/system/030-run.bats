@@ -63,7 +63,7 @@ echo $rand        |   0 | $rand
 
 # 'run --preserve-fds' passes a number of additional file descriptors into the container
 @test "podman run --preserve-fds" {
-    skip_if_remote
+    skip_if_remote "preserve-fds is meaningless over remote"
 
     content=$(random_string 20)
     echo "$content" > $PODMAN_TMPDIR/tempfile
@@ -150,8 +150,6 @@ echo $rand        |   0 | $rand
 
 # 'run --rmi' deletes the image in the end unless it's used by another container
 @test "podman run --rmi" {
-    skip_if_remote
-
     # Name of a nonlocal image. It should be pulled in by the first 'run'
     NONLOCAL_IMAGE=busybox
     run_podman 1 image exists $NONLOCAL_IMAGE
