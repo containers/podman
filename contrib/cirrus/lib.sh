@@ -393,6 +393,11 @@ install_test_configs() {
     # by default in google cloud.  https://cloud.google.com/vpc/docs/vpc#ip-ranges
     install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist /etc/cni/net.d/
     install -v -D -m 644 ./test/registries.conf /etc/containers/
+    # This needs to removed when we have a seccomp profile
+    # that works on ubuntu with runc
+    if [[ -f "seccomp.json" ]]; then
+	install -v -D -m 644 ./seccomp.json /usr/share/containers
+    fi
 }
 
 # Remove all files provided by the distro version of podman.
