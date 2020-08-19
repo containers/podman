@@ -32,7 +32,7 @@ func setUMask() {
 
 func earlyInitHook() {
 	if err := setRLimits(); err != nil {
-		fmt.Fprint(os.Stderr, "Failed to set rlimits: "+err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to set rlimits: %s\n", err.Error())
 	}
 
 	setUMask()
