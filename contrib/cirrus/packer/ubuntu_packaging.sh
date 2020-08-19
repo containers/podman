@@ -64,7 +64,7 @@ INSTALL_PACKAGES=(\
     gettext
     git
     go-md2man
-    golang-1.13
+    golang-1.14
     iproute2
     iptables
     jq
@@ -161,7 +161,7 @@ echo "Configuring Go environment"
 # There are multiple (otherwise conflicting) versions of golang available
 # on Ubuntu.  Being primarily localized by env. vars and defaults, dropping
 # a symlink is the appropriate way to "install" a specific version system-wide.
-$SUDO ln -sf /usr/lib/go-1.13/bin/go /usr/bin/go
+$SUDO ln -sf /usr/lib/go-1.14/bin/go /usr/bin/go
 # Initially go was not installed
 cd $GOSRC
 source $SCRIPT_BASE/lib.sh
@@ -171,4 +171,4 @@ go env
 echo "Building/Installing runtime tooling"
 $SUDO hack/install_catatonit.sh
 $SUDO make install.libseccomp.sudo
-$SUDO make install.tools
+$SUDO make install.tools GO_BUILD='go build'  # -mod=vendor breaks this
