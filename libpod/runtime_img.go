@@ -140,6 +140,10 @@ func storageContainers(imageID string, store storage.Store) ([]string, error) {
 // Removes the containers passed in the array.
 func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 	for _, ctrID := range ctrIDs {
+		if _, err := store.Unmount(ctrID, true); err != nil {
+			return errors.Wrapf(err, "could not unmount container %q to remove it", ctrID)
+		}
+
 		if err := store.DeleteContainer(ctrID); err != nil {
 			return errors.Wrapf(err, "could not remove container %q", ctrID)
 		}
