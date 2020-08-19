@@ -344,10 +344,11 @@ github.com/opencontainers/runc v1.0.0-rc91.0.20200708210054-ce54a9d4d79b/go.mod 
 github.com/opencontainers/runtime-spec v0.1.2-0.20190507144316-5b71a03e2700/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2 h1:9mv9SC7GWmRWE0J/+oD8w3GsN2KYGKtg6uwLN7hfP5E=
 github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
+github.com/opencontainers/runtime-spec v1.0.3-0.20200817204227-f9c09b4ea1df h1:5AW5dMFSXVH4Mg3WYe4z7ui64bK8n66IoWK8i6T4QZ8=
+github.com/opencontainers/runtime-spec v1.0.3-0.20200817204227-f9c09b4ea1df/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-tools v0.0.0-20181011054405-1d69bd0f9c39/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
+github.com/opencontainers/runtime-tools v0.9.0 h1:FYgwVsKRI/H9hU32MJ/4MLOzXWodKK5zsQavY8NPMkU=
 github.com/opencontainers/runtime-tools v0.9.0/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
-github.com/opencontainers/runtime-tools v0.9.1-0.20200714183735-07406c5828aa h1:iyj+fFHVBn0xOalz9UChYzSU1K0HJ+d75b4YqShBRhI=
-github.com/opencontainers/runtime-tools v0.9.1-0.20200714183735-07406c5828aa/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/selinux v1.3.0/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
 github.com/opencontainers/selinux v1.5.1/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.5.2/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
