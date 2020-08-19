@@ -571,7 +571,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			Destination: dest,
 			Type:        "tmpfs",
 			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup", "size=65536k"),
+			Options:     append(options, "tmpcopyup"),
 		}
 		g.AddMount(tmpfsMnt)
 	}
