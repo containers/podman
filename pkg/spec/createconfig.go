@@ -31,12 +31,13 @@ const (
 type CreateResourceConfig struct {
 	BlkioWeight       uint16   // blkio-weight
 	BlkioWeightDevice []string // blkio-weight-device
-	CPUPeriod         uint64   // cpu-period
-	CPUQuota          int64    // cpu-quota
-	CPURtPeriod       uint64   // cpu-rt-period
-	CPURtRuntime      int64    // cpu-rt-runtime
-	CPUShares         uint64   // cpu-shares
-	CPUs              float64  // cpus
+	CgroupConf        map[string]string
+	CPUPeriod         uint64  // cpu-period
+	CPUQuota          int64   // cpu-quota
+	CPURtPeriod       uint64  // cpu-rt-period
+	CPURtRuntime      int64   // cpu-rt-runtime
+	CPUShares         uint64  // cpu-shares
+	CPUs              float64 // cpus
 	CPUsetCPUs        string
 	CPUsetMems        string   // cpuset-mems
 	DeviceCgroupRules []string //device-cgroup-rule

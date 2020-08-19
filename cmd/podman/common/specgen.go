@@ -450,7 +450,20 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		s.ResourceLimits.Pids = &pids
 	}
 	s.ResourceLimits.CPU = getCPULimits(c)
-	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil {
+
+	unifieds := make(map[string]string)
+	for _, unified := range c.CgroupConf {
+		splitUnified := strings.SplitN(unified, "=", 2)
+		if len(splitUnified) < 2 {
+			return errors.Errorf("--cgroup-conf must be formatted KEY=VALUE")
+		}
+		unifieds[splitUnified[0]] = splitUnified[1]
+	}
+	if len(unifieds) > 0 {
+		s.ResourceLimits.Unified = unifieds
+	}
+
+	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil && s.ResourceLimits.Unified == nil {
 		s.ResourceLimits = nil
 	}
 

@@ -23,6 +23,12 @@ func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
 		return warnings, nil
 	}
 
+	if s.ResourceLimits.Unified != nil {
+		if !cgroup2 {
+			return nil, errors.New("Cannot use --cgroup-conf without cgroup v2")
+		}
+	}
+
 	// Memory checks
 	if s.ResourceLimits.Memory != nil {
 		memory := s.ResourceLimits.Memory

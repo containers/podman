@@ -106,4 +106,6 @@ type ContainerCLIOpts struct {
 	SeccompPolicy     string
 
 	Net *entities.NetOptions
+
+	CgroupConf []string
 }

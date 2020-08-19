@@ -518,6 +518,8 @@ type InspectContainerHostConfig struct {
 	IOMaximumIOps uint64 `json:"IOMaximumIOps"`
 	// IOMaximumBandwidth is Windows-only and not presently implemented.
 	IOMaximumBandwidth uint64 `json:"IOMaximumBandwidth"`
+	// CgroupConf is the configuration for cgroup v2.
+	CgroupConf map[string]string `json:"CgroupConf"`
 }
 
 // InspectBasicNetworkConfig holds basic configuration information (e.g. IP

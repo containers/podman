@@ -516,5 +516,10 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"seccomp-policy", "default",
 		"Policy for selecting a seccomp profile (experimental)",
 	)
+	createFlags.StringSliceVar(
+		&cf.CgroupConf,
+		"cgroup-conf", []string{},
+		"Configure cgroup v2 (key=value)",
+	)
 	return &createFlags
 }
