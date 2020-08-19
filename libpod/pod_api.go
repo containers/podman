@@ -6,6 +6,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/cgroups"
+	"github.com/containers/podman/v2/pkg/parallel"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -99,46 +100,51 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		return nil, err
 	}
 
-	ctrErrors := make(map[string]error)
-
 	// TODO: There may be cases where it makes sense to order stops based on
 	// dependencies. Should we bother with this?
 
-	// Stop to all containers
+	ctrErrChan := make(map[string]<-chan error)
+
+	// Enqueue a function for each container with the parallel executor.
 	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-
-		if err := ctr.syncContainer(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		// Ignore containers that are not running
-		if ctr.state.State != define.ContainerStateRunning {
-			ctr.lock.Unlock()
-			continue
-		}
-		stopTimeout := ctr.config.StopTimeout
-		if timeout > -1 {
-			stopTimeout = uint(timeout)
-		}
-		if err := ctr.stop(stopTimeout); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		if cleanup {
-			if err := ctr.cleanup(ctx); err != nil {
-				ctrErrors[ctr.ID()] = err
+		c := ctr
+		logrus.Debugf("Adding parallel job to stop container %s", c.ID())
+		retChan := parallel.Enqueue(ctx, func() error {
+			// TODO: Might be better to batch stop and cleanup
+			// together?
+			if timeout > -1 {
+				if err := c.StopWithTimeout(uint(timeout)); err != nil {
+					return err
+				}
+			} else {
+				if err := c.Stop(); err != nil {
+					return err
+				}
 			}
-		}
 
-		ctr.lock.Unlock()
+			if cleanup {
+				return c.Cleanup(ctx)
+			}
+
+			return nil
+		})
+
+		ctrErrChan[c.ID()] = retChan
 	}
 
 	p.newPodEvent(events.Stop)
+
+	ctrErrors := make(map[string]error)
+
+	// Get returned error for every container we worked on
+	for id, channel := range ctrErrChan {
+		if err := <-channel; err != nil {
+			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+				continue
+			}
+			ctrErrors[id] = err
+		}
+	}
 
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error stopping some containers")
@@ -169,45 +175,29 @@ func (p *Pod) Cleanup(ctx context.Context) (map[string]error, error) {
 		return nil, err
 	}
 
+	ctrErrChan := make(map[string]<-chan error)
+
+	// Enqueue a function for each container with the parallel executor.
+	for _, ctr := range allCtrs {
+		c := ctr
+		logrus.Debugf("Adding parallel job to clean up container %s", c.ID())
+		retChan := parallel.Enqueue(ctx, func() error {
+			return c.Cleanup(ctx)
+		})
+
+		ctrErrChan[c.ID()] = retChan
+	}
+
 	ctrErrors := make(map[string]error)
 
-	// Clean up all containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-
-		if err := ctr.syncContainer(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
+	// Get returned error for every container we worked on
+	for id, channel := range ctrErrChan {
+		if err := <-channel; err != nil {
+			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+				continue
+			}
+			ctrErrors[id] = err
 		}
-
-		// Ignore containers that are running/paused
-		if !ctr.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
-			ctr.lock.Unlock()
-			continue
-		}
-
-		// Check for running exec sessions, ignore containers with them.
-		sessions, err := ctr.getActiveExecSessions()
-		if err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-		if len(sessions) > 0 {
-			ctr.lock.Unlock()
-			continue
-		}
-
-		// TODO: Should we handle restart policy here?
-
-		ctr.newContainerEvent(events.Cleanup)
-
-		if err := ctr.cleanup(ctx); err != nil {
-			ctrErrors[ctr.ID()] = err
-		}
-
-		ctr.lock.Unlock()
 	}
 
 	if len(ctrErrors) > 0 {
@@ -229,7 +219,7 @@ func (p *Pod) Cleanup(ctx context.Context) (map[string]error, error) {
 // containers. The container ID is mapped to the error encountered. The error is
 // set to ErrPodPartialFail.
 // If both error and the map are nil, all containers were paused without error
-func (p *Pod) Pause() (map[string]error, error) {
+func (p *Pod) Pause(ctx context.Context) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -252,37 +242,34 @@ func (p *Pod) Pause() (map[string]error, error) {
 		return nil, err
 	}
 
+	ctrErrChan := make(map[string]<-chan error)
+
+	// Enqueue a function for each container with the parallel executor.
+	for _, ctr := range allCtrs {
+		c := ctr
+		logrus.Debugf("Adding parallel job to pause container %s", c.ID())
+		retChan := parallel.Enqueue(ctx, c.Pause)
+
+		ctrErrChan[c.ID()] = retChan
+	}
+
+	p.newPodEvent(events.Pause)
+
 	ctrErrors := make(map[string]error)
 
-	// Pause to all containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-
-		if err := ctr.syncContainer(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
+	// Get returned error for every container we worked on
+	for id, channel := range ctrErrChan {
+		if err := <-channel; err != nil {
+			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+				continue
+			}
+			ctrErrors[id] = err
 		}
-
-		// Ignore containers that are not running
-		if ctr.state.State != define.ContainerStateRunning {
-			ctr.lock.Unlock()
-			continue
-		}
-
-		if err := ctr.pause(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		ctr.lock.Unlock()
 	}
 
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error pausing some containers")
 	}
-	defer p.newPodEvent(events.Pause)
 	return nil, nil
 }
 
@@ -298,7 +285,7 @@ func (p *Pod) Pause() (map[string]error, error) {
 // containers. The container ID is mapped to the error encountered. The error is
 // set to ErrPodPartialFail.
 // If both error and the map are nil, all containers were unpaused without error.
-func (p *Pod) Unpause() (map[string]error, error) {
+func (p *Pod) Unpause(ctx context.Context) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -311,38 +298,34 @@ func (p *Pod) Unpause() (map[string]error, error) {
 		return nil, err
 	}
 
+	ctrErrChan := make(map[string]<-chan error)
+
+	// Enqueue a function for each container with the parallel executor.
+	for _, ctr := range allCtrs {
+		c := ctr
+		logrus.Debugf("Adding parallel job to unpause container %s", c.ID())
+		retChan := parallel.Enqueue(ctx, c.Unpause)
+
+		ctrErrChan[c.ID()] = retChan
+	}
+
+	p.newPodEvent(events.Unpause)
+
 	ctrErrors := make(map[string]error)
 
-	// Pause to all containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-
-		if err := ctr.syncContainer(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
+	// Get returned error for every container we worked on
+	for id, channel := range ctrErrChan {
+		if err := <-channel; err != nil {
+			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+				continue
+			}
+			ctrErrors[id] = err
 		}
-
-		// Ignore containers that are not paused
-		if ctr.state.State != define.ContainerStatePaused {
-			ctr.lock.Unlock()
-			continue
-		}
-
-		if err := ctr.unpause(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		ctr.lock.Unlock()
 	}
 
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error unpausing some containers")
 	}
-
-	defer p.newPodEvent(events.Unpause)
 	return nil, nil
 }
 
@@ -411,7 +394,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 // containers. The container ID is mapped to the error encountered. The error is
 // set to ErrPodPartialFail.
 // If both error and the map are nil, all containers were signalled successfully.
-func (p *Pod) Kill(signal uint) (map[string]error, error) {
+func (p *Pod) Kill(ctx context.Context, signal uint) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -424,44 +407,36 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 		return nil, err
 	}
 
+	ctrErrChan := make(map[string]<-chan error)
+
+	// Enqueue a function for each container with the parallel executor.
+	for _, ctr := range allCtrs {
+		c := ctr
+		logrus.Debugf("Adding parallel job to kill container %s", c.ID())
+		retChan := parallel.Enqueue(ctx, func() error {
+			return c.Kill(signal)
+		})
+
+		ctrErrChan[c.ID()] = retChan
+	}
+
+	p.newPodEvent(events.Kill)
+
 	ctrErrors := make(map[string]error)
 
-	// Send a signal to all containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-
-		if err := ctr.syncContainer(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
+	// Get returned error for every container we worked on
+	for id, channel := range ctrErrChan {
+		if err := <-channel; err != nil {
+			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+				continue
+			}
+			ctrErrors[id] = err
 		}
-
-		// Ignore containers that are not running
-		if ctr.state.State != define.ContainerStateRunning {
-			ctr.lock.Unlock()
-			continue
-		}
-
-		if err := ctr.ociRuntime.KillContainer(ctr, signal, false); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		logrus.Debugf("Killed container %s with signal %d", ctr.ID(), signal)
-
-		ctr.state.StoppedByUser = true
-		if err := ctr.save(); err != nil {
-			ctrErrors[ctr.ID()] = err
-		}
-
-		ctr.lock.Unlock()
 	}
 
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error killing some containers")
 	}
-	defer p.newPodEvent(events.Kill)
 	return nil, nil
 }
 

@@ -23,7 +23,7 @@ import (
 	"github.com/containers/podman/v2/pkg/checkpoint"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi/terminal"
-	"github.com/containers/podman/v2/pkg/parallel"
+	parallelctr "github.com/containers/podman/v2/pkg/parallel/ctr"
 	"github.com/containers/podman/v2/pkg/ps"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/signal"
@@ -157,7 +157,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
 	}
-	errMap, err := parallel.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		var err error
 		if options.Timeout != nil {
 			err = c.StopWithTimeout(*options.Timeout)
@@ -321,7 +321,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		return reports, nil
 	}
 
-	errMap, err := parallel.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		err := ic.Libpod.RemoveContainer(ctx, c, options.Force, options.Volumes)
 		if err != nil {
 			if options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {

@@ -270,7 +270,7 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-	responses, err := pod.Pause()
+	responses, err := pod.Pause(r.Context())
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
@@ -294,7 +294,7 @@ func PodUnpause(w http.ResponseWriter, r *http.Request) {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-	responses, err := pod.Unpause()
+	responses, err := pod.Unpause(r.Context())
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 		utils.Error(w, "failed to pause pod", http.StatusInternalServerError, err)
 		return
@@ -402,7 +402,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responses, err := pod.Kill(uint(sig))
+	responses, err := pod.Kill(r.Context(), uint(sig))
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 		utils.Error(w, "failed to kill pod", http.StatusInternalServerError, err)
 		return
