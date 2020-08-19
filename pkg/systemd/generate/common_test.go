@@ -28,3 +28,28 @@ func TestFilterPodFlags(t *testing.T) {
 		}
 	}
 }
+
+func TestQuoteArguments(t *testing.T) {
+	tests := []struct {
+		input  []string
+		output []string
+	}{
+		{
+			[]string{"foo", "bar=\"arg\""},
+			[]string{"foo", "bar=\"arg\""},
+		},
+		{
+			[]string{"foo", "bar=\"arg with space\""},
+			[]string{"foo", "\"bar=\\\"arg with space\\\"\""},
+		},
+		{
+			[]string{"foo", "bar=\"arg with\ttab\""},
+			[]string{"foo", "\"bar=\\\"arg with\\ttab\\\"\""},
+		},
+	}
+
+	for _, test := range tests {
+		quoted := quoteArguments(test.input)
+		assert.Equal(t, test.output, quoted)
+	}
+}

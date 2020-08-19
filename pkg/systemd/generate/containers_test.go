@@ -117,7 +117,7 @@ After=network-online.target
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 42
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
 PIDFile=%t/jadda-jadda.pid
@@ -296,7 +296,7 @@ WantedBy=multi-user.target default.target`
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       42,
 				PodmanVersion:     "CI",
-				CreateCommand:     []string{"I'll get stripped", "container", "run", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
+				CreateCommand:     []string{"I'll get stripped", "container", "run", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN", "foo=arg \"with \" space"},
 				EnvVariable:       EnvVariable,
 			},
 			goodWithNameAndGeneric,
