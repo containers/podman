@@ -65,9 +65,11 @@
 				"chmod",
 				"chown",
 				"chown32",
+				"clock_adjtime",
 				"clock_getres",
 				"clock_gettime",
 				"clock_nanosleep",
+			        "clone",
 				"close",
 				"connect",
 				"copy_file_range",
@@ -167,6 +169,7 @@
 				"io_setup",
 				"io_submit",
 				"ipc",
+				"keyctl",
 				"kill",
 				"lchown",
 				"lchown32",
@@ -218,6 +221,7 @@
 				"pause",
 				"pipe",
 				"pipe2",
+				"pivot_root",
 				"poll",
 				"ppoll",
 				"prctl",
@@ -329,6 +333,7 @@
 				"sync_file_range",
 				"syncfs",
 				"sysinfo",
+				"syslog",
 				"tee",
 				"tgkill",
 				"time",
@@ -525,7 +530,8 @@
 			"names": [
 				"s390_pci_mmio_read",
 				"s390_pci_mmio_write",
-				"s390_runtime_instr"
+		                "s390_runtime_instr",
+			        "clone"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [],
@@ -565,7 +571,6 @@
 				"setdomainname",
 				"sethostname",
 				"setns",
-				"syslog",
 				"umount",
 				"umount2",
 				"unshare"
@@ -678,6 +683,23 @@
 		},
 		{
 			"names": [
+				"get_mempolicy",
+				"mbind",
+				"name_to_handle_at",
+				"set_mempolicy"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [],
+			"comment": "",
+			"includes": {
+				"caps": [
+					"CAP_SYS_NICE"
+				]
+			},
+			"excludes": {}
+		},
+		{
+			"names": [
 				"acct"
 			],
 			"action": "SCMP_ACT_ALLOW",
@@ -726,7 +748,9 @@
 			"names": [
 				"settimeofday",
 				"stime",
-				"clock_settime"
+				"clock_settime",
+				"clock_adjtime",
+				"adjtimex"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [],
@@ -748,36 +772,6 @@
 			"includes": {
 				"caps": [
 					"CAP_SYS_TTY_CONFIG"
-				]
-			},
-			"excludes": {}
-		},
-		{
-			"names": [
-				"get_mempolicy",
-				"mbind",
-				"set_mempolicy"
-			],
-			"action": "SCMP_ACT_ALLOW",
-			"args": [],
-			"comment": "",
-			"includes": {
-				"caps": [
-					"CAP_SYS_NICE"
-				]
-			},
-			"excludes": {}
-		},
-		{
-			"names": [
-				"syslog"
-			],
-			"action": "SCMP_ACT_ALLOW",
-			"args": [],
-			"comment": "",
-			"includes": {
-				"caps": [
-					"CAP_SYSLOG"
 				]
 			},
 			"excludes": {}
