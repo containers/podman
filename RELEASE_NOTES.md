@@ -3,6 +3,7 @@
 ## 2.0.5
 ### Features
 - Rootless Podman will now add an entry to `/etc/passwd` for the user who ran Podman if run with `--userns=keep-id`.
+- The `podman system connection` command has been reworked to support multiple connections, and reenabled for use!
 
 ### Changes
 - Podman's automatic systemd integration (activated by the `--systemd=true` flag, set by default) will now activate for containers using `/usr/local/sbin/init` as their command, instead of just `/usr/sbin/init` and `/sbin/init` (and any path ending in `systemd`).
@@ -33,6 +34,10 @@
 - Fixed a bug where Podman did not clear `CMD` from the container image if the user overrode `ENTRYPOINT` ([#7115](https://github.com/containers/podman/issues/7115)).
 - Fixed a bug where error parsing image names were not fully reported (part of the error message containing the exact issue was dropped).
 - Fixed a bug where the `podman images` command with remote Podman did not support printing image tags in Go templates supplied to the `--format` flag ([#7123](https://github.com/containers/podman/issues/7123)).
+- Fixed a bug where the `podman rmi --force` command would not attempt to unmount containers it was removing, which could cause a failure to remove the image.
+- Fixed a bug where the `podman generate systemd --new` command could incorrectly quote arguments to Podman that contained whitespace, leading to nonfunctional unit files ([#7285](https://github.com/containers/podman/issues/7285)).
+- Fixed a bug where the `podman version` command did not properly include build time and Git commit.
+- Fixed a bug where running systemd in a Podman container on a system that did not use the `systemd` cgroup manager would fail ([#6734](https://github.com/containers/podman/issues/6734)).
 
 ### API
 - Fixed a bug where the libpod and compat Build endpoints did not accept the `application/tar` content type (instead only accepting `application/x-tar`) ([#7185](https://github.com/containers/podman/issues/7185)).
