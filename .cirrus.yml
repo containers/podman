@@ -179,8 +179,8 @@ container_image_build_task:
 rpmbuild_task:
 
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_BRANCH != $DEST_BRANCH
 
     depends_on:
@@ -207,8 +207,8 @@ rpmbuild_task:
 vendor_task:
 
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     depends_on:
         - "gating"
@@ -239,8 +239,8 @@ vendor_task:
 varlink_api_task:
 
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     depends_on:
         - "gating"
@@ -278,8 +278,8 @@ build_each_commit_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     gce_instance:
         cpu: 8
@@ -310,8 +310,8 @@ build_without_cgo_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     gce_instance:
         cpu: 8
@@ -400,8 +400,8 @@ testing_task:
 
     # Only test build cache-images, if that's what's requested
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     matrix:
         - name: "test ${FEDORA_NAME}"
@@ -461,8 +461,8 @@ special_testing_rootless_task:
         - "build_without_cgo"
 
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     env:
         ADD_SECOND_PARTITION: 'true'
@@ -495,8 +495,8 @@ special_testing_in_podman_task:
         - "build_without_cgo"
 
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     matrix:
         - name: "in-podman ${PRIOR_FEDORA_NAME}"
@@ -531,8 +531,8 @@ special_testing_cross_task:
         - "vendor"
 
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     matrix:
         - name: 'cross-platform: windows'
@@ -569,8 +569,8 @@ special_testing_bindings_task:
         - "vendor"
 
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     env:
         SPECIALMODE: 'bindings'  # See docs
@@ -596,8 +596,8 @@ special_testing_endpoint_task:
         - "vendor"
 
     only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     env:
         SPECIALMODE: 'endpoint'  # See docs
@@ -619,8 +619,8 @@ test_build_cache_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     depends_on:
         - "gating"
@@ -653,8 +653,8 @@ verify_test_built_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
 
     depends_on:
@@ -694,7 +694,7 @@ verify_test_built_images_task:
 docs_task:
 
     # Don't run this when building/testing new VM images
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*'
 
     depends_on:
         - "gating"
