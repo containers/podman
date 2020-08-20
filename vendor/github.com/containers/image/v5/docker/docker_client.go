@@ -331,7 +331,6 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		// Results holds the results returned by the /v1/search endpoint
 		Results []SearchResult `json:"results"`
 	}
-	v2Res := &V2Results{}
 	v1Res := &V1Results{}
 
 	// Get credentials from authfile for the underlying hostname
@@ -388,31 +387,55 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	}
 
 	logrus.Debugf("trying to talk to v2 search endpoint")
-	resp, err := client.makeRequest(ctx, "GET", "/v2/_catalog", nil, nil, v2Auth, nil)
-	if err != nil {
-		logrus.Debugf("error getting search results from v2 endpoint %q: %v", registry, err)
-	} else {
+	searchRes := []SearchResult{}
+	path := "/v2/_catalog"
+	for len(searchRes) < limit {
+		resp, err := client.makeRequest(ctx, "GET", path, nil, nil, v2Auth, nil)
+		if err != nil {
+			logrus.Debugf("error getting search results from v2 endpoint %q: %v", registry, err)
+			return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
+		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			logrus.Errorf("error getting search results from v2 endpoint %q: %v", registry, httpResponseToError(resp, ""))
-		} else {
-			if err := json.NewDecoder(resp.Body).Decode(v2Res); err != nil {
-				return nil, err
+			return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
+		}
+		v2Res := &V2Results{}
+		if err := json.NewDecoder(resp.Body).Decode(v2Res); err != nil {
+			return nil, err
+		}
+
+		for _, repo := range v2Res.Repositories {
+			if len(searchRes) == limit {
+				break
 			}
-			searchRes := []SearchResult{}
-			for _, repo := range v2Res.Repositories {
-				if strings.Contains(repo, image) {
-					res := SearchResult{
-						Name: repo,
-					}
-					searchRes = append(searchRes, res)
+			if strings.Contains(repo, image) {
+				res := SearchResult{
+					Name: repo,
 				}
+				searchRes = append(searchRes, res)
 			}
-			return searchRes, nil
+		}
+
+		link := resp.Header.Get("Link")
+		if link == "" {
+			break
+		}
+		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
+		linkURL, err := url.Parse(linkURLStr)
+		if err != nil {
+			return searchRes, err
+		}
+
+		// can be relative or absolute, but we only want the path (and I
+		// guess we're in trouble if it forwards to a new place...)
+		path = linkURL.Path
+		if linkURL.RawQuery != "" {
+			path += "?"
+			path += linkURL.RawQuery
 		}
 	}
-
-	return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
+	return searchRes, nil
 }
 
 // makeRequest creates and executes a http.Request with the specified parameters, adding authentication and TLS options for the Docker client.
