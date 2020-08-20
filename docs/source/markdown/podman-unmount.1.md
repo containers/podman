@@ -1,23 +1,23 @@
-% podman-umount(1)
+% podman-unmount(1)
 
 ## NAME
-podman\-umount - Unmount a working container's root filesystem
+podman\-unmount - Unmount a working container's root filesystem
 
 ## SYNOPSIS
-**podman umount** *container* [...]
+**podman unmount** [*options*] *container* [...]
 
-**podman container umount** *container* [...]
+**podman umount** [*options*] *container* [...]
 
-**podman container unmount** *container* [...]
+**podman container unmount** [*options*] *container* [...]
 
-**podman unmount** *container* [...]
+**podman container umount** [*options*] *container* [...]
 
 ## DESCRIPTION
 Unmounts the specified containers' root file system, if no other processes
 are using it.
 
 Container storage increments a mount counter each time a container is mounted.
-When a container is unmounted, the mount counter is decremented and the
+When a container is unmounted, the mount counter is decremented, and the
 container's root filesystem is physically unmounted only when the mount
 counter reaches zero indicating no other processes are using the mount.
 An unmount can be forced with the --force flag.
@@ -45,11 +45,11 @@ The latest option is not supported on the remote client.
 
 ## EXAMPLE
 
-podman umount containerID
+podman container unmount containerID
 
-podman umount containerID1 containerID2 containerID3
+podman unmount containerID1 containerID2 containerID3
 
-podman umount --all
+podman unmount --all
 
 ## SEE ALSO
-podman(1), podman-mount(1)
+podman(1), podman-container-mount(1), podman-image-mount(1)
