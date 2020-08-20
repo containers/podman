@@ -40,7 +40,9 @@ function check_help() {
         [ -n "$usage" ] || die "podman $cmd: no Usage message found"
 
         # e.g. 'podman ps' should not show 'podman container ps' in usage
-        is "$usage" "  $command_string .*" "Usage string matches command"
+        # Trailing space in usage handles 'podman system renumber' which
+        # has no ' [flags]'
+        is "$usage " "  $command_string .*" "Usage string matches command"
 
         # If usage ends in '[command]', recurse into subcommands
         if expr "$usage" : '.*\[command\]$' >/dev/null; then
