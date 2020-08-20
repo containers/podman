@@ -835,6 +835,14 @@ USER mail`
 		Expect(match).To(BeTrue())
 	})
 
+	It("podman run --pod new with hostname", func() {
+		hostname := "abc"
+		session := podmanTest.Podman([]string{"run", "--pod", "new:foobar", "--hostname", hostname, ALPINE, "cat", "/etc/hostname"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
+	})
+
 	It("podman run --rm should work", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
