@@ -4,6 +4,7 @@
 ### Features
 - Rootless Podman will now add an entry to `/etc/passwd` for the user who ran Podman if run with `--userns=keep-id`.
 - The `podman system connection` command has been reworked to support multiple connections, and reenabled for use!
+- Podman now has a new global flag, `--connection`, to specify a connection to a remote Podman API instance.
 
 ### Changes
 - Podman's automatic systemd integration (activated by the `--systemd=true` flag, set by default) will now activate for containers using `/usr/local/sbin/init` as their command, instead of just `/usr/sbin/init` and `/sbin/init` (and any path ending in `systemd`).
@@ -50,6 +51,7 @@
 
 ### Misc
 - Updated Buildah to v1.15.1
+- Updated containers/image library to v5.5.2
 
 ## 2.0.4
 ### Bugfixes
