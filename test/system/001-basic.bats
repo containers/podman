@@ -24,6 +24,13 @@ function setup() {
     is "${lines[0]}" "Version:[ ]\+[1-9][0-9.]\+" "Version line 1"
     is "$output" ".*Go Version: \+"               "'Go Version' in output"
     is "$output" ".*API Version: \+"		  "API version in output"
+
+    # Test that build date is reasonable, e.g. after 2019-01-01
+    local built=$(expr "$output" : ".*Built: \+\(.*\)" | head -n1)
+    local built_t=$(date --date="$built" +%s)
+    if [ $built_t -lt 1546300800 ]; then
+        die "Preposterous 'Built' time in podman version: '$built'"
+    fi
 }
 
 

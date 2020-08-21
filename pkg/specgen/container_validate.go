@@ -43,6 +43,9 @@ func (s *SpecGenerator) Validate() error {
 	}
 	// Cannot set hostname and utsns
 	if len(s.ContainerBasicConfig.Hostname) > 0 && !s.ContainerBasicConfig.UtsNS.IsPrivate() {
+		if s.ContainerBasicConfig.UtsNS.IsPod() {
+			return errors.Wrap(ErrInvalidSpecConfig, "cannot set hostname when joining the pod UTS namespace")
+		}
 		return errors.Wrap(ErrInvalidSpecConfig, "cannot set hostname when running in the host UTS namespace")
 	}
 	// systemd values must be true, false, or always
@@ -133,11 +136,6 @@ func (s *SpecGenerator) Validate() error {
 	}
 	if err := validateUserNS(&s.UserNS); err != nil {
 		return err
-	}
-
-	// The following are defaults as needed by container creation
-	if len(s.WorkDir) < 1 {
-		s.WorkDir = "/"
 	}
 
 	// Set defaults if network info is not provided

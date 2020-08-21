@@ -6,7 +6,6 @@ import (
 	"path"
 	"runtime"
 	"runtime/pprof"
-	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -112,13 +111,28 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	cfg := registry.PodmanConfig()
 
-	// Validate --remote and --latest not given on same command
-	latest := cmd.Flags().Lookup("latest")
-	if latest != nil {
-		value, _ := strconv.ParseBool(latest.Value.String())
-		if cfg.Remote && value {
-			return errors.Errorf("For %s \"--remote\" and \"--latest\", are mutually exclusive flags", cmd.CommandPath())
+	// --connection is not as "special" as --remote so we can wait and process it here
+	var connErr error
+	conn := cmd.Root().LocalFlags().Lookup("connection")
+	if conn != nil && conn.Changed {
+		cfg.Engine.ActiveService = conn.Value.String()
+
+		var err error
+		cfg.URI, cfg.Identity, err = cfg.ActiveDestination()
+		if err != nil {
+			connErr = errors.Wrap(err, "failed to resolve active destination")
 		}
+
+		if err := cmd.Root().LocalFlags().Set("url", cfg.URI); err != nil {
+			connErr = errors.Wrap(err, "failed to override --url flag")
+		}
+
+		if err := cmd.Root().LocalFlags().Set("identity", cfg.Identity); err != nil {
+			connErr = errors.Wrap(err, "failed to override --identity flag")
+		}
+	}
+	if connErr != nil {
+		return connErr
 	}
 
 	// Prep the engines
@@ -221,16 +235,13 @@ func loggingHook() {
 
 func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	cfg := opts.Config
+	srv, uri, ident := resolveDestination()
 
 	lFlags := cmd.Flags()
-	custom, _ := config.ReadCustomConfig()
-	defaultURI := custom.Engine.RemoteURI
-	if defaultURI == "" {
-		defaultURI = registry.DefaultAPIAddress()
-	}
 	lFlags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
-	lFlags.StringVar(&opts.URI, "url", defaultURI, "URL to access Podman service (CONTAINER_HOST)")
-	lFlags.StringVar(&opts.Identity, "identity", custom.Engine.RemoteIdentity, "path to SSH identity file, (CONTAINER_SSHKEY)")
+	lFlags.StringVarP(&opts.Engine.ActiveService, "connection", "c", srv, "Connection to use for remote Podman service")
+	lFlags.StringVar(&opts.URI, "url", uri, "URL to access Podman service (CONTAINER_HOST)")
+	lFlags.StringVar(&opts.Identity, "identity", ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
 
 	pFlags := cmd.PersistentFlags()
 	pFlags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
@@ -276,4 +287,26 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	if !registry.IsRemote() {
 		pFlags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
 	}
+}
+
+func resolveDestination() (string, string, string) {
+	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
+		var ident string
+		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
+			ident = v
+		}
+		return "", uri, ident
+	}
+
+	cfg, err := config.ReadCustomConfig()
+	if err != nil {
+		logrus.Warning(errors.Wrap(err, "unable to read local containers.conf"))
+		return "", registry.DefaultAPIAddress(), ""
+	}
+
+	uri, ident, err := cfg.ActiveDestination()
+	if err != nil {
+		return "", registry.DefaultAPIAddress(), ""
+	}
+	return cfg.Engine.ActiveService, uri, ident
 }

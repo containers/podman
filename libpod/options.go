@@ -1395,6 +1395,19 @@ func WithCreateCommand(cmd []string) CtrCreateOption {
 	}
 }
 
+// WithCreateWorkingDir tells Podman to create the container's working directory
+// if it does not exist.
+func WithCreateWorkingDir() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.CreateWorkingDir = true
+		return nil
+	}
+}
+
 // Volume Creation Options
 
 // WithVolumeName sets the name of the volume.

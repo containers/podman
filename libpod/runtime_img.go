@@ -10,18 +10,18 @@ import (
 	"os"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/image/v5/directory"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
+	ociarchive "github.com/containers/image/v5/oci/archive"
 	"github.com/containers/libpod/v2/libpod/define"
+	"github.com/containers/libpod/v2/libpod/events"
 	"github.com/containers/libpod/v2/libpod/image"
 	"github.com/containers/libpod/v2/pkg/util"
 	"github.com/containers/storage"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	"github.com/containers/image/v5/directory"
-	dockerarchive "github.com/containers/image/v5/docker/archive"
-	ociarchive "github.com/containers/image/v5/oci/archive"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Runtime API
@@ -140,6 +140,10 @@ func storageContainers(imageID string, store storage.Store) ([]string, error) {
 // Removes the containers passed in the array.
 func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 	for _, ctrID := range ctrIDs {
+		if _, err := store.Unmount(ctrID, true); err != nil {
+			return errors.Wrapf(err, "could not unmount container %q to remove it", ctrID)
+		}
+
 		if err := store.DeleteContainer(ctrID); err != nil {
 			return errors.Wrapf(err, "could not remove container %q", ctrID)
 		}
@@ -147,9 +151,21 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 	return nil
 }
 
+// newBuildEvent creates a new event based on completion of a built image
+func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
+	e := events.NewEvent(events.Build)
+	e.Type = events.Image
+	e.Name = idOrName
+	if err := r.eventer.Write(e); err != nil {
+		logrus.Errorf("unable to write build event: %q", err)
+	}
+}
+
 // Build adds the runtime to the imagebuildah call
 func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
 	id, ref, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	// Write event for build completion
+	r.newImageBuildCompleteEvent(id)
 	return id, ref, err
 }
 

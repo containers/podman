@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/containers/libpod/v2/pkg/api/handlers"
 	"github.com/containers/libpod/v2/pkg/api/server/idletracker"
 	"github.com/coreos/go-systemd/v22/activation"
+	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -147,8 +149,31 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 	return &server, nil
 }
 
-// Serve starts responding to HTTP requests
+// If the NOTIFY_SOCKET is set, communicate the PID and readiness, and
+// further unset NOTIFY_SOCKET to prevent containers from sending
+// messages and unset INVOCATION_ID so conmon and containers are in
+// the correct cgroup.
+func setupSystemd() {
+	if len(os.Getenv("NOTIFY_SOCKET")) == 0 {
+		return
+	}
+	payload := fmt.Sprintf("MAINPID=%d", os.Getpid())
+	payload += "\n"
+	payload += daemon.SdNotifyReady
+	if sent, err := daemon.SdNotify(true, payload); err != nil {
+		logrus.Errorf("Error notifying systemd of Conmon PID: %s", err.Error())
+	} else if sent {
+		logrus.Debugf("Notify sent successfully")
+	}
+
+	if err := os.Unsetenv("INVOCATION_ID"); err != nil {
+		logrus.Errorf("Error unsetting INVOCATION_ID: %s", err.Error())
+	}
+}
+
+// Serve starts responding to HTTP requests.
 func (s *APIServer) Serve() error {
+	setupSystemd()
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	errChan := make(chan error, 1)

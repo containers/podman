@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -52,4 +53,16 @@ func filterPodFlags(command []string) []string {
 		processed = append(processed, s)
 	}
 	return processed
+}
+
+// quoteArguments makes sure that all arguments with at least one whitespace
+// are quoted to make sure those are interpreted as one argument instead of
+// multiple ones.
+func quoteArguments(command []string) []string {
+	for i := range command {
+		if strings.ContainsAny(command[i], " \t") {
+			command[i] = strconv.Quote(command[i])
+		}
+	}
+	return command
 }

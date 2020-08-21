@@ -31,6 +31,9 @@ Note: CGroup manager is not supported in rootless mode when using CGroups Versio
 **--cni-config-dir**
 Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d`)
 
+**--connection**, **-c**
+Connection to use for remote podman (Default connection is configured in `containers.conf`)
+
 **--conmon**
 Path of the conmon binary (Default path is configured in `containers.conf`)
 

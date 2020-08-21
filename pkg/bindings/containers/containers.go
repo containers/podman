@@ -24,7 +24,7 @@ var (
 // the most recent number of containers.  The pod and size booleans indicate that pod information and rootfs
 // size information should also be included.  Finally, the sync bool synchronizes the OCI runtime and
 // container state.
-func List(ctx context.Context, filters map[string][]string, all *bool, last *int, pod, size, sync *bool) ([]entities.ListContainer, error) { // nolint:typecheck
+func List(ctx context.Context, filters map[string][]string, all *bool, last *int, size, sync *bool) ([]entities.ListContainer, error) { // nolint:typecheck
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -36,9 +36,6 @@ func List(ctx context.Context, filters map[string][]string, all *bool, last *int
 	}
 	if last != nil {
 		params.Set("last", strconv.Itoa(*last))
-	}
-	if pod != nil {
-		params.Set("pod", strconv.FormatBool(*pod))
 	}
 	if size != nil {
 		params.Set("size", strconv.FormatBool(*size))

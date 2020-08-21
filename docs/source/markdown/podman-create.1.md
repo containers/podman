@@ -336,7 +336,7 @@ value can be expressed in a time format such as `1m22s`.  The default value is `
 
 Container host name
 
-Sets the container host name that is available inside the container.
+Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pods hostname will be used.
 
 **--help**
 
@@ -777,8 +777,8 @@ Run container in systemd mode. The default is *true*.
 
 The value *always* enforces the systemd mode is enforced without
 looking at the executable name.  Otherwise, if set to true and the
-command you are running inside the container is systemd, /usr/sbin/init
-or /sbin/init.
+command you are running inside the container is systemd, /usr/sbin/init,
+/sbin/init or /usr/local/sbin/init.
 
 If the command you are running inside of the container is systemd,
 Podman will setup tmpfs mount points in the following directories:
@@ -862,12 +862,14 @@ Set the user namespace mode for the container.  It defaults to the **PODMAN_USER
 
 This option is incompatible with --gidmap, --uidmap, --subuid and --subgid
 
-**--uts**=*host*
+**--uts**=*mode*
 
-Set the UTS mode for the container
-    **host**: use the host's UTS namespace inside the container.
-    **ns**: specify the user namespace to use.
-    Note: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
+Set the UTS namespace mode for the container. The following values are supported:
+
+- **host**: use the host's UTS namespace inside the container.
+- **private**: create a new namespace for the container (default).
+- **ns:[path]**: run the container in the given existing UTS namespace.
+- **container:[container]**: join the UTS namespace of the specified container.
 
 **--volume**, **-v**[=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
 

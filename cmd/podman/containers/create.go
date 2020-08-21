@@ -292,7 +292,12 @@ func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions
 		Infra:         true,
 		Net:           netOpts,
 		CreateCommand: os.Args,
+		Hostname:      s.ContainerBasicConfig.Hostname,
 	}
+	// Unset config values we passed to the pod to prevent them being used twice for the container and pod.
+	s.ContainerBasicConfig.Hostname = ""
+	s.ContainerNetworkConfig = specgen.ContainerNetworkConfig{}
+
 	s.Pod = podName
 	return registry.ContainerEngine().PodCreate(context.Background(), createOptions)
 }

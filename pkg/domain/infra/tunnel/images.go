@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
@@ -65,8 +66,16 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entiti
 	}
 
 	for i, layer := range results {
-		hold := entities.ImageHistoryLayer{}
-		_ = utils.DeepCopy(&hold, layer)
+		// Created time comes over as an int64 so needs conversion to time.time
+		t := time.Unix(layer.Created, 0)
+		hold := entities.ImageHistoryLayer{
+			ID:        layer.ID,
+			Created:   t.UTC(),
+			CreatedBy: layer.CreatedBy,
+			Tags:      layer.Tags,
+			Size:      layer.Size,
+			Comment:   layer.Comment,
+		}
 		history.Layers[i] = hold
 	}
 	return &history, nil

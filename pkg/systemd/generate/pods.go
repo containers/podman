@@ -292,6 +292,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		}
 
 		startCommand = append(startCommand, podCreateArgs...)
+		startCommand = quoteArguments(startCommand)
 
 		info.ExecStartPre1 = "/bin/rm -f {{.PIDFile}} {{.PodIDFile}}"
 		info.ExecStartPre2 = strings.Join(startCommand, " ")

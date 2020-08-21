@@ -308,9 +308,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	//
 	// Precedence order (higher index wins):
 	//  1) env-host, 2) image data, 3) env-file, 4) env
-	env := map[string]string{
-		"container": "podman",
-	}
+	env := make(map[string]string)
+	env["container"] = "podman"
 
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
@@ -387,8 +386,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Annotations = annotations
 
 	s.WorkDir = c.Workdir
-	userCommand := []string{}
-	var command []string
 	if c.Entrypoint != nil {
 		entrypoint := []string{}
 		if ep := *c.Entrypoint; len(ep) > 0 {
@@ -398,27 +395,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			}
 		}
 		s.Entrypoint = entrypoint
-		// Build the command
-		// If we have an entry point, it goes first
-		command = entrypoint
 	}
 
 	// Include the command used to create the container.
 	s.ContainerCreateCommand = os.Args
 
 	if len(inputCommand) > 0 {
-		// User command overrides data CMD
-		command = append(command, inputCommand...)
-		userCommand = append(userCommand, inputCommand...)
-	}
-
-	switch {
-	case len(inputCommand) > 0:
-		s.Command = userCommand
-	case c.Entrypoint != nil:
-		s.Command = []string{}
-	default:
-		s.Command = command
+		s.Command = inputCommand
 	}
 
 	// SHM Size
