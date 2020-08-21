@@ -45,7 +45,7 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport
 	}
 
 	if len(pods) == 0 {
-		return nil, nil
+		return []*entities.ListPodsReport{}, nil
 	}
 
 	lps := make([]*entities.ListPodsReport, 0, len(pods))

@@ -3,7 +3,7 @@
 # test pod-related endpoints
 #
 
-t GET  "libpod/pods/json (clean slate at start)"   200 null
+t GET  "libpod/pods/json (clean slate at start)"   200 '[]'
 
 t POST libpod/pods/create name=foo 201 .Id~[0-9a-f]\\{64\\}
 pod_id=$(jq -r .Id <<<"$output")
