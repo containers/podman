@@ -39,6 +39,8 @@
 - Fixed a bug where the `podman generate systemd --new` command could incorrectly quote arguments to Podman that contained whitespace, leading to nonfunctional unit files ([#7285](https://github.com/containers/podman/issues/7285)).
 - Fixed a bug where the `podman version` command did not properly include build time and Git commit.
 - Fixed a bug where running systemd in a Podman container on a system that did not use the `systemd` cgroup manager would fail ([#6734](https://github.com/containers/podman/issues/6734)).
+- Fixed a bug where capabilities from `--cap-add` were not properly added when a container was started as a non-root user via `--user`.
+- Fixed a bug where Pod infra containers were not properly cleaned up when they stopped, causing networking issues ([#7103](https://github.com/containers/podman/issues/7103)).
 
 ### API
 - Fixed a bug where the libpod and compat Build endpoints did not accept the `application/tar` content type (instead only accepting `application/x-tar`) ([#7185](https://github.com/containers/podman/issues/7185)).
