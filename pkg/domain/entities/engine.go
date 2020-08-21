@@ -46,6 +46,7 @@ type PodmanConfig struct {
 	RegistriesConf string           // allows for specifying a custom registries.conf
 	Remote         bool             // Connection to Podman API Service will use RESTful API
 	RuntimePath    string           // --runtime flag will set Engine.RuntimePath
+	RuntimeFlags   []string         // global flags for the container runtime
 	Span           opentracing.Span // tracing object
 	SpanCloser     io.Closer        // Close() for tracing object
 	SpanCtx        context.Context  // context to use when tracing

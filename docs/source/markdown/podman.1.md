@@ -99,6 +99,16 @@ Default state dir configured in `/etc/containers/storage.conf`.
 
 Name of the OCI runtime as specified in containers.conf or absolute path to the OCI compatible binary used to run containers.
 
+**--runtime-flag**=*flag*
+
+Adds global flags for the container runtime. To list the supported flags, please
+consult the manpages of the selected container runtime (`runc` is the default
+runtime, the manpage to consult is `runc(8)`.  When the machine is configured
+for cgroup V2, the default runtime is `crun`, the manpage to consult is `crun(8)`.).
+
+Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
+to podman build, the option given would be `--runtime-flag log-format=json`.
+
 **--storage-driver**=*value*
 
 Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
@@ -285,7 +295,7 @@ The Network File System (NFS) and other distributed file systems (for example: L
 For more information, please refer to the [Podman Troubleshooting Page](https://github.com/containers/podman/blob/master/troubleshooting.md).
 
 ## SEE ALSO
-`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `buildah(1)`, `containers.conf(5)`, `oci-hooks(5)`, `containers-policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
+`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `buildah(1)`, `containers.conf(5)`, `oci-hooks(5)`, `containers-policy.json(5)`, `crun(8)`, `runc(8)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>

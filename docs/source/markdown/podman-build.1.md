@@ -420,16 +420,6 @@ commands specified by the **RUN** instruction.
 Note: You can also override the default runtime by setting the BUILDAH\_RUNTIME
 environment variable.  `export BUILDAH_RUNTIME=/usr/local/bin/runc`
 
-**--runtime-flag**=*flag*
-
-Adds global flags for the container runtime. To list the supported flags, please
-consult the manpages of the selected container runtime (`runc` is the default
-runtime, the manpage to consult is `runc(8)`.  When the machine is configured
-for cgroup V2, the default runtime is `crun`, the manpage to consult is `crun(8)`.).
-
-Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
-to podman build, the option given would be `--runtime-flag log-format=json`.
-
 **--security-opt**=*option*
 
 Security Options
