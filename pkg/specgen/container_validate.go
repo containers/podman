@@ -37,6 +37,23 @@ func (s *SpecGenerator) Validate() error {
 		}
 	}
 
+	// Containers being added to a pod cannot have certain network attributes
+	// associated with them because those should be on the infra container.
+	if len(s.Pod) > 0 && s.NetNS.NSMode == FromPod {
+		if s.StaticIP != nil || s.StaticIPv6 != nil {
+			return errors.Wrap(define.ErrNetworkOnPodContainer, "static ip addresses must be defined when the pod is created")
+		}
+		if s.StaticMAC != nil {
+			return errors.Wrap(define.ErrNetworkOnPodContainer, "MAC addresses must be defined when the pod is created")
+		}
+		if len(s.CNINetworks) > 0 {
+			return errors.Wrap(define.ErrNetworkOnPodContainer, "networks must be defined when the pod is created")
+		}
+		if len(s.PortMappings) > 0 || s.PublishExposedPorts {
+			return errors.Wrap(define.ErrNetworkOnPodContainer, "published or exposed ports must be defined when the pod is created")
+		}
+	}
+
 	//
 	// ContainerBasicConfig
 	//

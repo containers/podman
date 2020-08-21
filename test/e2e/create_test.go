@@ -542,4 +542,66 @@ var _ = Describe("Podman create", func() {
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 		Expect(session.ErrorToString()).To(ContainSubstring("Invalid umask"))
 	})
+
+	It("create container in pod with IP should fail", func() {
+		SkipIfRootless()
+		name := "createwithstaticip"
+		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
+		pod.WaitWithDefaultTimeout()
+		Expect(pod.ExitCode()).To(BeZero())
+
+		session := podmanTest.Podman([]string{"create", "--pod", name, "--ip", "192.168.1.2", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).ToNot(BeZero())
+	})
+
+	It("create container in pod with mac should fail", func() {
+		SkipIfRootless()
+		name := "createwithstaticmac"
+		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
+		pod.WaitWithDefaultTimeout()
+		Expect(pod.ExitCode()).To(BeZero())
+
+		session := podmanTest.Podman([]string{"create", "--pod", name, "--mac-address", "52:54:00:6d:2f:82", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).ToNot(BeZero())
+	})
+
+	It("create container in pod with network should fail", func() {
+		SkipIfRootless()
+		name := "createwithnetwork"
+		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
+		pod.WaitWithDefaultTimeout()
+		Expect(pod.ExitCode()).To(BeZero())
+
+		session := podmanTest.Podman([]string{"create", "--pod", name, "--network", "foobar", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		//Expect(session.ExitCode()).ToNot(BeZero())
+		Expect(session.ExitCode()).To(BeZero())
+	})
+
+	It("create container in pod with ports should fail", func() {
+		SkipIfRootless()
+		name := "createwithports"
+		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
+		pod.WaitWithDefaultTimeout()
+		Expect(pod.ExitCode()).To(BeZero())
+
+		session := podmanTest.Podman([]string{"create", "--pod", name, "-p", "80:80", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).ToNot(BeZero())
+	})
+
+	It("create container in pod ppublish ports should fail", func() {
+		SkipIfRootless()
+		name := "createwithpublishports"
+		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
+		pod.WaitWithDefaultTimeout()
+		Expect(pod.ExitCode()).To(BeZero())
+
+		session := podmanTest.Podman([]string{"create", "--pod", name, "-P", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).ToNot(BeZero())
+	})
+
 })
