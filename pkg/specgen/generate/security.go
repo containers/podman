@@ -112,7 +112,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			// Pass capRequiredRequested in CapAdd field to normalize capabilities names
 			capsRequired, err := capabilities.MergeCapabilities(nil, capsRequiredRequested, nil)
 			if err != nil {
-				logrus.Errorf("capabilities requested by user or image are not valid: %q", strings.Join(capsRequired, ","))
+				return errors.Wrapf(err, "capabilities requested by user or image are not valid: %q", strings.Join(capsRequired, ","))
 			} else {
 				// Verify all capRequiered are in the capList
 				for _, cap := range capsRequired {
@@ -129,12 +129,6 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 	}
 
-	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
-
-	if err := setupApparmor(s, rtc, g); err != nil {
-		return err
-	}
-
 	configSpec := g.Config
 	configSpec.Process.Capabilities.Bounding = caplist
 
@@ -142,13 +136,22 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		configSpec.Process.Capabilities.Effective = caplist
 		configSpec.Process.Capabilities.Permitted = caplist
 		configSpec.Process.Capabilities.Inheritable = caplist
-		configSpec.Process.Capabilities.Ambient = caplist
 	} else {
-		configSpec.Process.Capabilities.Effective = []string{}
-		configSpec.Process.Capabilities.Permitted = []string{}
-		configSpec.Process.Capabilities.Inheritable = []string{}
-		configSpec.Process.Capabilities.Ambient = []string{}
+		userCaps, err := capabilities.NormalizeCapabilities(s.CapAdd)
+		if err != nil {
+			return errors.Wrapf(err, "capabilities requested by user are not valid: %q", strings.Join(s.CapAdd, ","))
+		}
+		configSpec.Process.Capabilities.Effective = userCaps
+		configSpec.Process.Capabilities.Permitted = userCaps
+		configSpec.Process.Capabilities.Inheritable = userCaps
 	}
+
+	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
+
+	if err := setupApparmor(s, rtc, g); err != nil {
+		return err
+	}
+
 	// HANDLE SECCOMP
 	if s.SeccompProfilePath != "unconfined" {
 		seccompConfig, err := getSeccompConfig(s, configSpec, newImage)
