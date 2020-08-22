@@ -3671,6 +3671,7 @@ _podman_podman() {
     start
     stats
     stop
+    system
     tag
     top
     umount
