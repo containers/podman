@@ -874,21 +874,6 @@ func Path() string {
 	return OverrideContainersConfig
 }
 
-func customConfigFile() (string, error) {
-	path := os.Getenv("CONTAINERS_CONF")
-	if path != "" {
-		return path, nil
-	}
-	if unshare.IsRootless() {
-		path, err := rootlessConfigPath()
-		if err != nil {
-			return "", err
-		}
-		return path, nil
-	}
-	return OverrideContainersConfig, nil
-}
-
 // ReadCustomConfig reads the custom config and only generates a config based on it
 // If the custom config file does not exists, function will return an empty config
 func ReadCustomConfig() (*Config, error) {
