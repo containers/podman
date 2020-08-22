@@ -151,4 +151,31 @@ t DELETE images/localhost/newrepo:v2?force=true 200
 t DELETE libpod/containers/$cid 204
 t DELETE libpod/containers/myctr 204
 
+
+# test apiv2 create container with correct entrypoint and cmd
+# --data '{"Image":"quay.io/libpod/alpine_labels:latest","Entrypoint":["echo"],"Cmd":["param1","param2"]}'
+t POST containers/create '"Image":"'$IMAGE'","Entrypoint":["echo"],"Cmd":["param1","param2"]' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Config.Entrypoint[0]="echo" \
+  .Config.Cmd[0]="param1" \
+  .Config.Cmd[1]="param2" \
+  .Path="echo" \
+  .Args[0]="param1" \
+  .Args[1]="param2"
+t DELETE containers/$cid 204
+
+# test only set the entrpoint, Cmd should be []
+t POST containers/create '"Image":"'$IMAGE'","Entrypoint":["echo","param1"]' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Config.Entrypoint[0]="echo" \
+  .Config.Entrypoint[1]="param1" \
+  .Config.Cmd='[]' \
+  .Path="echo" \
+  .Args[0]="param1"
+t DELETE containers/$cid 204
+
 # vim: filetype=sh
