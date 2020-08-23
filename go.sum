@@ -73,8 +73,8 @@ github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHV
 github.com/containers/buildah v1.15.1-0.20200731151214-29f4d01c621c h1:+V9RQOhg1LyhyHHU33OVjO+Uan1MoVbkjufH8E/BeLU=
 github.com/containers/buildah v1.15.1-0.20200731151214-29f4d01c621c/go.mod h1:XVOKQHd1sP/7tFpCXIaNsUJZdTNCwVZ7YZiLnnEfrVg=
 github.com/containers/common v0.15.2/go.mod h1:rhpXuGLTEKsk/xX/x0iKGHjRadMHpBd2ZiNDugwXPEM=
-github.com/containers/common v0.18.0 h1:pZB6f17N5QV43TcT06gtx1lb0rxd/4StFdVhP9CtgQg=
-github.com/containers/common v0.18.0/go.mod h1:H2Wqvx6wkqdzT4RcTCqIG4W0HSOZwUbbNiUTX1+VohU=
+github.com/containers/common v0.20.3 h1:d8vSReNkrySKE3ZPya2vt6Wc/xuQiB30pNXTYHz2iHM=
+github.com/containers/common v0.20.3/go.mod h1:+NUHV8V5Kmo260ja9Dxtr8ialrDnK4RNzyeEbSgmLac=
 github.com/containers/conmon v2.0.19+incompatible h1:1bDVRvHy2MUNTUT/SW6LlHsJHQBTSwXvnKNdcB/a1vQ=
 github.com/containers/conmon v2.0.19+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.5.1 h1:h1FCOXH6Ux9/p/E4rndsQOC4yAdRU0msRTfLVeQ7FDQ=
@@ -89,8 +89,6 @@ github.com/containers/ocicrypt v1.0.3/go.mod h1:CUBa+8MRNL/VkpxYIpaMtgn1WgXGyvPQ
 github.com/containers/psgo v1.5.1 h1:MQNb7FLbXqBdqz6u4lI2QWizVz4RSTzs1+Nk9XT1iVA=
 github.com/containers/psgo v1.5.1/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzPUWfawVU=
 github.com/containers/storage v1.20.2/go.mod h1:oOB9Ie8OVPojvoaKWEGSEtHbXUAs+tSyr7RO7ZGteMc=
-github.com/containers/storage v1.21.2 h1:bf9IqA+g6ClBviqVG5lVCp5tTH9lvWwjYws7mVYSti0=
-github.com/containers/storage v1.21.2/go.mod h1:I1EIAA7B4OwWRSA0b4yq2AW1wjvvfcY0zLWQuwTa4zw=
 github.com/containers/storage v1.23.0 h1:gYyNkBiihC2FvGiHOjOjpnfojYwgxpLVooTUlmD6pxs=
 github.com/containers/storage v1.23.0/go.mod h1:I1EIAA7B4OwWRSA0b4yq2AW1wjvvfcY0zLWQuwTa4zw=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
@@ -566,6 +564,8 @@ golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 h1:DYfZAGf2WMFjMxbgTjaC+2HC7NkNAQs+6Q8b9WEB/F4=
 golang.org/x/sys v0.0.0-20200519105757-fe76b779f299/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1 h1:sIky/MyNRSHTrdxfsiUSS4WIAMvInbeXljJz+jDjeYE=
+golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.0.0-20160726164857-2910a502d2bf/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=

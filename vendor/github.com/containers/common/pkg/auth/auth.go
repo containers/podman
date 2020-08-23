@@ -150,9 +150,6 @@ func getRegistryName(server string) string {
 	// gets the registry from the input. If the input is of the form
 	// quay.io/myuser/myimage, it will parse it and just return quay.io
 	split := strings.Split(server, "/")
-	if len(split) > 1 {
-		return split[0]
-	}
 	return split[0]
 }
 

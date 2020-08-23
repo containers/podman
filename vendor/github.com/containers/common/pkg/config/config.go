@@ -244,6 +244,11 @@ type EngineConfig struct {
 	// LockType is the type of locking to use.
 	LockType string `toml:"lock_type,omitempty"`
 
+	// MultiImageArchive - if true, the container engine allows for storing
+	// archives (e.g., of the docker-archive transport) with multiple
+	// images.  By default, Podman creates single-image archives.
+	MultiImageArchive bool `toml:"multi_image_archive,omitempty"`
+
 	// Namespace is the engine namespace to use. Namespaces are used to create
 	// scopes to separate containers and pods in the state. When namespace is
 	// set, engine will only view containers and pods in the same namespace. All

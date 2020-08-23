@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"syscall"
 
 	units "github.com/docker/go-units"
@@ -81,12 +82,24 @@ func (c *ContainersConfig) validateTZ() error {
 	if c.TZ == "local" {
 		return nil
 	}
-	zonePath := filepath.Join("/usr/share/zoneinfo", c.TZ)
-	_, err := os.Stat(zonePath)
-	if err != nil {
-		return fmt.Errorf("Unrecognized timezone %s", zonePath)
+
+	lookupPaths := []string{
+		"/usr/share/zoneinfo",
+		"/etc/zoneinfo",
 	}
-	return nil
+
+	for _, paths := range lookupPaths {
+		zonePath := filepath.Join(paths, c.TZ)
+		if _, err := os.Stat(zonePath); err == nil {
+			// found zone information
+			return nil
+		}
+	}
+
+	return fmt.Errorf(
+		"unable to find timezone %s in paths: %s",
+		c.TZ, strings.Join(lookupPaths, ", "),
+	)
 }
 
 func (c *ContainersConfig) validateUmask() error {

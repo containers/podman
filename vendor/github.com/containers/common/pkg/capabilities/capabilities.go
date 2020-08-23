@@ -57,9 +57,9 @@ func AllCapabilities() []string {
 	return capabilityList
 }
 
-// normalizeCapabilities normalizes caps by adding a "CAP_" prefix (if not yet
+// NormalizeCapabilities normalizes caps by adding a "CAP_" prefix (if not yet
 // present).
-func normalizeCapabilities(caps []string) ([]string, error) {
+func NormalizeCapabilities(caps []string) ([]string, error) {
 	normalized := make([]string, len(caps))
 	for i, c := range caps {
 		c = strings.ToUpper(c)
@@ -98,7 +98,7 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 	var caps []string
 
 	// Normalize the base capabilities
-	base, err := normalizeCapabilities(base)
+	base, err := NormalizeCapabilities(base)
 	if err != nil {
 		return nil, err
 	}
@@ -106,11 +106,11 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 		// Nothing to tweak; we're done
 		return base, nil
 	}
-	capDrop, err := normalizeCapabilities(drops)
+	capDrop, err := NormalizeCapabilities(drops)
 	if err != nil {
 		return nil, err
 	}
-	capAdd, err := normalizeCapabilities(adds)
+	capAdd, err := NormalizeCapabilities(adds)
 	if err != nil {
 		return nil, err
 	}
