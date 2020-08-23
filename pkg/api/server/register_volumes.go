@@ -9,8 +9,10 @@ import (
 )
 
 func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
-	// swagger:operation POST /libpod/volumes/create volumes libpodCreateVolume
+	// swagger:operation POST /libpod/volumes/create libpod libpodCreateVolume
 	// ---
+	// tags:
+	//  - volumes
 	// summary: Create a volume
 	// parameters:
 	//  - in: body
@@ -26,8 +28,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/volumes/create"), s.APIHandler(libpod.CreateVolume)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/volumes/json volumes libpodListVolumes
+	// swagger:operation GET /libpod/volumes/json libpod libpodListVolumes
 	// ---
+	// tags:
+	//  - volumes
 	// summary: List volumes
 	// description: Returns a list of volumes
 	// produces:
@@ -48,8 +52,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/volumes/json"), s.APIHandler(libpod.ListVolumes)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/volumes/prune volumes libpodPruneVolumes
+	// swagger:operation POST /libpod/volumes/prune libpod libpodPruneVolumes
 	// ---
+	// tags:
+	//  - volumes
 	// summary: Prune volumes
 	// produces:
 	// - application/json
@@ -59,8 +65,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/volumes/prune"), s.APIHandler(libpod.PruneVolumes)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/volumes/{name}/json volumes libpodInspectVolume
+	// swagger:operation GET /libpod/volumes/{name}/json libpod libpodInspectVolume
 	// ---
+	// tags:
+	//  - volumes
 	// summary: Inspect volume
 	// parameters:
 	//  - in: path
@@ -78,8 +86,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   '500':
 	//     "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/volumes/{name}/json"), s.APIHandler(libpod.InspectVolume)).Methods(http.MethodGet)
-	// swagger:operation DELETE /libpod/volumes/{name} volumes libpodRemoveVolume
+	// swagger:operation DELETE /libpod/volumes/{name} libpod libpodRemoveVolume
 	// ---
+	// tags:
+	//  - volumes
 	// summary: Remove volume
 	// parameters:
 	//  - in: path
@@ -110,6 +120,8 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 
 	// swagger:operation GET /volumes compat listVolumes
 	// ---
+	// tags:
+	//  - volumes (compat)
 	// summary: List volumes
 	// description: Returns a list of volume
 	// produces:
@@ -134,8 +146,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/volumes"), s.APIHandler(compat.ListVolumes)).Methods(http.MethodGet)
 	r.Handle("/volumes", s.APIHandler(compat.ListVolumes)).Methods(http.MethodGet)
 
-	// swagger:operation POST /volumes/create volumes createVolume
+	// swagger:operation POST /volumes/create compat createVolume
 	// ---
+	// tags:
+	//  - volumes (compat)
 	// summary: Create a volume
 	// parameters:
 	//  - in: body
@@ -153,8 +167,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/volumes/create"), s.APIHandler(compat.CreateVolume)).Methods(http.MethodPost)
 	r.Handle("/volumes/create", s.APIHandler(compat.CreateVolume)).Methods(http.MethodPost)
 
-	// swagger:operation GET /volumes/{name} volumes inspectVolume
+	// swagger:operation GET /volumes/{name} compat inspectVolume
 	// ---
+	// tags:
+	//  - volumes (compat)
 	// summary: Inspect volume
 	// parameters:
 	//  - in: path
@@ -174,8 +190,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/volumes/{name}"), s.APIHandler(compat.InspectVolume)).Methods(http.MethodGet)
 	r.Handle("/volumes/{name}", s.APIHandler(compat.InspectVolume)).Methods(http.MethodGet)
 
-	// swagger:operation DELETE /volumes/{name} volumes removeVolume
+	// swagger:operation DELETE /volumes/{name} compat removeVolume
 	// ---
+	// tags:
+	//  - volumes (compat)
 	// summary: Remove volume
 	// parameters:
 	//  - in: path
@@ -204,8 +222,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/volumes/{name}"), s.APIHandler(compat.RemoveVolume)).Methods(http.MethodDelete)
 	r.Handle("/volumes/{name}", s.APIHandler(compat.RemoveVolume)).Methods(http.MethodDelete)
 
-	// swagger:operation POST /volumes/prune volumes pruneVolumes
+	// swagger:operation POST /volumes/prune compat pruneVolumes
 	// ---
+	// tags:
+	//  - volumes (compat)
 	// summary: Prune volumes
 	// produces:
 	// - application/json

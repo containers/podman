@@ -625,7 +625,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// swagger:operation POST /libpod/images/{name:.*}/push libpod libpodPushImage
 	// ---
 	// tags:
-	//  - images (libpod)
+	//  - images
 	// summary: Push Image
 	// description: Push an image to a container registry
 	// parameters:
