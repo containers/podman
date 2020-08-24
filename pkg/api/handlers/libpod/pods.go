@@ -123,9 +123,16 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 	} else {
 		responses, stopError = pod.Stop(r.Context(), false)
 	}
-	if stopError != nil {
+	if stopError != nil && errors.Cause(stopError) != define.ErrPodPartialFail {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
+	}
+	// Try to clean up the pod - but only warn on failure, it's nonfatal.
+	if cleanupCtrs, cleanupErr := pod.Cleanup(r.Context()); cleanupErr != nil {
+		logrus.Errorf("Error cleaning up pod %s: %v", pod.ID(), cleanupErr)
+		for id, err := range cleanupCtrs {
+			logrus.Errorf("Error cleaning up pod %s container %s: %v", pod.ID(), id, err)
+		}
 	}
 	var errs []error //nolint
 	for _, err := range responses {
