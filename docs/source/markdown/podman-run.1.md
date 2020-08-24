@@ -608,6 +608,12 @@ Whether to disable OOM Killer for the container or not.
 
 Tune the host's OOM preferences for containers (accepts values from **-1000** to **1000**).
 
+**--override-arch**=*ARCH*
+Override the machine's default architecture of the image to be pulled. For example, `arm`.
+
+**--override-os**=*OS*
+Use OS instead of the running OS for choosing images
+
 **--pid**=*mode*
 
 Set the PID namespace mode for the container.
