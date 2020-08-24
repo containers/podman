@@ -90,7 +90,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	}
 	st, err := os.Stat(resolvedDevicePath)
 	if err != nil {
-		return errors.Wrapf(err, "cannot stat %s", devicePath)
+		return errors.Wrapf(err, "cannot stat device path %s", devicePath)
 	}
 	if st.IsDir() {
 		found := false
