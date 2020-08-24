@@ -204,34 +204,34 @@ rpmbuild_task:
 # whether the git tree is clean.  The reasoning for that is to make sure
 # that the vendor.conf, the code and the vendored packages in ./vendor are
 # in sync at all times.
-vendor_task:
+# vendor_task:
 
-    only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+#     only_if: >-
+#         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+#         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
-    depends_on:
-        - "gating"
+#     depends_on:
+#         - "gating"
 
-    env:
-        CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/libpod"
-        GOPATH: "/var/tmp/go"
-        GOSRC: "$CIRRUS_WORKING_DIR"
+#     env:
+#         CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/libpod"
+#         GOPATH: "/var/tmp/go"
+#         GOSRC: "$CIRRUS_WORKING_DIR"
 
-    # Runs within Cirrus's "community cluster"
-    container:
-        image: docker.io/library/golang:1.13
-        cpu: 4
-        memory: 12
+#     # Runs within Cirrus's "community cluster"
+#     container:
+#         image: docker.io/library/golang:1.13
+#         cpu: 4
+#         memory: 12
 
-    timeout_in: 30m
+#     timeout_in: 30m
 
-    vendor_script:
-        - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
-        - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
+#     vendor_script:
+#         - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
+#         - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
+#     on_failure:
+#         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
 
 
 # This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
@@ -305,7 +305,6 @@ build_without_cgo_task:
 
     depends_on:
         - "gating"
-        - "vendor"
         - "varlink_api"
 
     only_if: >-
@@ -366,7 +365,6 @@ testing_task:
     alias: "testing"
     depends_on:
         - "gating"
-        - "vendor"
         - "varlink_api"
         - "build_without_cgo"
         - "container_image_build"
@@ -431,7 +429,6 @@ special_testing_rootless_task:
     depends_on:
         - "gating"
         - "varlink_api"
-        - "vendor"
         - "build_without_cgo"
 
     only_if: >-
@@ -466,7 +463,6 @@ special_testing_in_podman_task:
     depends_on:
         - "gating"
         - "varlink_api"
-        - "vendor"
         - "build_without_cgo"
 
     only_if: >-
@@ -505,7 +501,6 @@ special_testing_cross_task:
     depends_on:
         - "gating"
         - "varlink_api"
-        - "vendor"
 
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
@@ -543,7 +538,6 @@ special_testing_bindings_task:
     depends_on:
         - "gating"
         - "varlink_api"
-        - "vendor"
 
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
@@ -570,7 +564,6 @@ special_testing_endpoint_task:
     depends_on:
         - "gating"
         - "varlink_api"
-        - "vendor"
 
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
@@ -695,7 +688,6 @@ success_task:
     # ignores any dependent task conditions
     depends_on:
         - "gating"
-        - "vendor"
         - "varlink_api"
         - "build_without_cgo"
         - "container_image_build"
