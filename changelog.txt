@@ -1,3 +1,83 @@
+- Changelog for v2.0.5 (2020-08-24):
+  * HACK: Manually include c/storage #698
+  * Final release notes update for v2.0.5.
+  * Clean up pods before returning from Pod Stop API call
+  * Ensure pod infra containers have an exit command
+  * error when adding container to pod with network information
+  * Vendor in containers/common v0.14.9
+  * In podman 1.* regression on --cap-add
+  * fix pod creation with "new:" syntax followup + allow hostname
+  * Fix a Makefile issue
+  * Fix a system test failure
+  * Cleanup handling of podman mount/unmount
+  * Fix imports (podman -> libpod for v2.0 branch)
+  * Final set of updates to release notes
+  * Add support for --connection
+  * remove --latest for all remote commands
+  * Further release notes updates for v2.0.5
+  * fix podman create/run UTS NS docs
+  * abi: fix detection for systemd
+  * fix podman version output to include git commit and builttime
+  * generate systemd: quote arguments with whitespace
+  * Unmount c/storage containers before removing them
+  * [WIP] Refactor podman system connection
+  * Fix `podman system connection` panic
+  * Revert "remove podman system connection"
+  * Bump github.com/containers/common to v0.14.7
+  * Fix imports for runtime_img.go
+  * Fix one import path pointing to containers/podman
+  * HACK: Disable build-each-commit
+  * Ensure DefaultEnvVariables is used in Specgen
+  * Update release notes for v2.0.5
+  * [CI:DOCS] BZ1860126 - Fix userns defaults in run man page
+  * Unconditionally retrieve pod names via API
+  * Default .Repository and .Tag values to <none>
+  * Error pass through for more accurate error reporting
+  * Fix handling of working dir
+  * Do not use image CMD if user gave ENTRYPOINT
+  * Ensure WORKDIR from images is created
+  * Allow specifying seccomp profiles for privileged containers
+  * Use set for systemd commands
+  * Enable systemd mode for /usr/local/sbin/init
+  * Replace deepcopy on history results
+  * Add parameter verification for api creation network
+  * add event for image build
+  * Change /sys/fs/cgroup/systemd mount to rprivate
+  * podman save use named pipe
+  * Fix hang when `path` doesn't exist
+  * podman.service: use sdnotiy
+  * podman support for IPv6 networks
+  * vendor c/image v5.5.2
+  * Fix v2.0.x CI
+  * system tests: invoke with abs path to podman
+  * Make changes to /etc/passwd on disk for non-read only
+  * Add username to /etc/passwd inside of container if --userns keep-id
+  * Fix close fds of exec --preserve-fds
+  * fix pod creation with "new:" syntax
+  * Fix podman service --valink timeout
+  * Add versioned _ping endpoint
+  * Change recommended systemd unit path for root.
+  * API returns 500 in case network is not found instead of 404
+  * podman.service: drop install section
+  * Handle podman-remote run --rm
+  * correct go-binding key for volumes
+  * cherry-pick: Reenable remote system tests
+  * system tests: new tests for run, exec
+  * implement the exitcode when start a container with attach
+  * Do not set host IP on ports when 0.0.0.0 requested
+  * Missing return after early exit
+  * docker-compose uses application/tar
+  * rootless: system service joins immediately the namespaces
+  * fix bug podman sign storage path
+  * podman-remote send name and tag
+  * Ensure that exec errors write exit codes to the DB
+  * fix podman logs --tail when log is bigger than pagesize
+  * image list: speed up
+  * generate systemd: fix error handling
+  * Publish IP from YAML (podman play kube)
+  * Add containers.conf default file for windows and MAC Installs
+  * Bump Buildah to v1.15.1 on v2.0 branch
+
 - Changelog for v2.0.4 (2020-07-31):
   * Update release notes for v2.0.4
   * Disable a nonfunctional build test
