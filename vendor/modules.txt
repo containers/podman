@@ -305,7 +305,7 @@ github.com/google/shlex
 github.com/google/uuid
 # github.com/gorilla/mux v1.7.4
 github.com/gorilla/mux
-# github.com/gorilla/schema v1.1.0
+# github.com/gorilla/schema v1.2.0
 github.com/gorilla/schema
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
