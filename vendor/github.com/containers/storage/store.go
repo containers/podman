@@ -2630,6 +2630,9 @@ func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	s.graphLock.Lock()
+	defer s.graphLock.Unlock()
 	rlstore.Lock()
 	defer rlstore.Unlock()
 	if modified, err := rlstore.Modified(); modified || err != nil {
