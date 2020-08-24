@@ -1,9 +1,8 @@
 package libpod
 
 import (
-	"bufio"
 	"io/ioutil"
-	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -373,17 +372,12 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachS
 }
 
 // ExecHTTPStartAndAttach starts and performs an HTTP attach to an exec session.
-func (c *Container) ExecHTTPStartAndAttach(sessionID string, httpCon net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) (deferredErr error) {
+func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool) error {
 	// TODO: How do we combine streams with the default streams set in the exec session?
 
-	// The flow here is somewhat strange, because we need to determine if
-	// there's a terminal ASAP (for error handling).
-	// Until we know, assume it's true (don't add standard stream headers).
-	// Add a defer to ensure our invariant (HTTP session is closed) is
-	// maintained.
-	isTerminal := true
+	// Ensure that we don't leak a goroutine here
 	defer func() {
-		hijackWriteErrorAndClose(deferredErr, c.ID(), isTerminal, httpCon, httpBuf)
+		close(hijackDone)
 	}()
 
 	if !c.batched {
@@ -399,8 +393,6 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, httpCon net.Conn, h
 	if !ok {
 		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
 	}
-	// We can now finally get the real value of isTerminal.
-	isTerminal = session.Config.Terminal
 
 	// Verify that we are in a good state to continue
 	if !c.ensureState(define.ContainerStateRunning) {
@@ -432,7 +424,13 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, httpCon net.Conn, h
 		streams.Stderr = session.Config.AttachStderr
 	}
 
-	pid, attachChan, err := c.ociRuntime.ExecContainerHTTP(c, session.ID(), execOpts, httpCon, httpBuf, streams, cancel)
+	holdConnOpen := make(chan bool)
+
+	defer func() {
+		close(holdConnOpen)
+	}()
+
+	pid, attachChan, err := c.ociRuntime.ExecContainerHTTP(c, session.ID(), execOpts, r, w, streams, cancel, hijackDone, holdConnOpen)
 	if err != nil {
 		session.State = define.ExecStateStopped
 		session.ExitCode = define.TranslateExecErrorToExitCode(define.ExecErrorCodeGeneric, err)

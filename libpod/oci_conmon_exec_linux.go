@@ -1,9 +1,9 @@
 package libpod
 
 import (
-	"bufio"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -80,7 +80,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 // ExecContainerHTTP executes a new command in an existing container and
 // forwards its standard streams over an attach
-func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, cancel <-chan bool) (int, chan error, error) {
+func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool) (int, chan error, error) {
 	if streams != nil {
 		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
 			return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
@@ -129,7 +129,7 @@ func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, o
 	attachChan := make(chan error)
 	go func() {
 		// attachToExec is responsible for closing pipes
-		attachChan <- attachExecHTTP(ctr, sessionID, httpBuf, streams, pipes, detachKeys, options.Terminal, cancel)
+		attachChan <- attachExecHTTP(ctr, sessionID, req, w, streams, pipes, detachKeys, options.Terminal, cancel, hijackDone, holdConnOpen)
 		close(attachChan)
 	}()
 
@@ -496,7 +496,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 }
 
 // Attach to a container over HTTP
-func attachExecHTTP(c *Container, sessionID string, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool) error {
+func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool) (deferredErr error) {
 	if pipes == nil || pipes.startPipe == nil || pipes.attachPipe == nil {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide a start and attach pipe to finish an exec attach")
 	}
@@ -548,6 +548,37 @@ func attachExecHTTP(c *Container, sessionID string, httpBuf *bufio.ReadWriter, s
 		attachStderr = streams.Stderr
 		attachStdin = streams.Stdin
 	}
+
+	// Perform hijack
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		return errors.Errorf("unable to hijack connection")
+	}
+
+	httpCon, httpBuf, err := hijacker.Hijack()
+	if err != nil {
+		return errors.Wrapf(err, "error hijacking connection")
+	}
+
+	hijackDone <- true
+
+	// Write a header to let the client know what happened
+	writeHijackHeader(r, httpBuf)
+
+	// Force a flush after the header is written.
+	if err := httpBuf.Flush(); err != nil {
+		return errors.Wrapf(err, "error flushing HTTP hijack header")
+	}
+
+	go func() {
+		// We need to hold the connection open until the complete exec
+		// function has finished. This channel will be closed in a defer
+		// in that function, so we can wait for it here.
+		// Can't be a defer, because this would block the function from
+		// returning.
+		<-holdConnOpen
+		hijackWriteErrorAndClose(deferredErr, c.ID(), isTerminal, httpCon, httpBuf)
+	}()
 
 	// Next, STDIN. Avoid entirely if attachStdin unset.
 	if attachStdin {

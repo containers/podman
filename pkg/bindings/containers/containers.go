@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -180,6 +181,7 @@ func Restart(ctx context.Context, nameOrID string, timeout *int) error {
 // or a partial/full ID. The optional parameter for detach keys are to override the default
 // detach key sequence.
 func Start(ctx context.Context, nameOrID string, detachKeys *string) error {
+	logrus.Infof("Going to start container %q", nameOrID)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err

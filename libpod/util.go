@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -255,6 +256,27 @@ func makeHTTPAttachHeader(stream byte, length uint32) []byte {
 	header[0] = stream
 	binary.BigEndian.PutUint32(header[4:], length)
 	return header
+}
+
+// writeHijackHeader writes a header appropriate for the type of HTTP Hijack
+// that occurred in a hijacked HTTP connection used for attach.
+func writeHijackHeader(r *http.Request, conn io.Writer) {
+	// AttachHeader is the literal header sent for upgraded/hijacked connections for
+	// attach, sourced from Docker at:
+	// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
+	// Using literally to ensure compatibility with existing clients.
+	c := r.Header.Get("Connection")
+	proto := r.Header.Get("Upgrade")
+	if len(proto) == 0 || !strings.EqualFold(c, "Upgrade") {
+		// OK - can't upgrade if not requested or protocol is not specified
+		fmt.Fprintf(conn,
+			"HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n")
+	} else {
+		// Upraded
+		fmt.Fprintf(conn,
+			"HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: %s\r\n\r\n",
+			proto)
+	}
 }
 
 // Convert OCICNI port bindings into Inspect-formatted port bindings.
