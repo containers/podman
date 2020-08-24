@@ -104,6 +104,10 @@ The **split** option splits the current cgroup in two sub-cgroups: one for conmo
 
 Path to cgroups under which the cgroup for the container will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
+**--cgroup-conf**=*KEY=VALUE*
+
+When running on cgroup v2, specify the cgroup file to write to and its value.  For example **--cgroup-conf=memory.high=1073741824** sets the memory.high limit to 1GB.
+
 **--cidfile**=*file*
 
 Write the container ID to *file*.

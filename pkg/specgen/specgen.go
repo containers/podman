@@ -415,6 +415,10 @@ type ContainerResourceConfig struct {
 	ThrottleReadIOPSDevice map[string]spec.LinuxThrottleDevice `json:"throttleReadIOPSDevice,omitempty"`
 	// IO write rate limit per cgroup per device, IO per second
 	ThrottleWriteIOPSDevice map[string]spec.LinuxThrottleDevice `json:"throttleWriteIOPSDevice,omitempty"`
+	// CgroupConf are key-value options passed into the container runtime
+	// that are used to configure cgroup v2.
+	// Optional.
+	CgroupConf map[string]string `json:"unified,omitempty"`
 }
 
 // ContainerHealthCheckConfig describes a container healthcheck with attributes

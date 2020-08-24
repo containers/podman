@@ -2107,6 +2107,7 @@ _podman_container_run() {
 		--cap-add
 		--cap-drop
 		--cgroup-parent
+		--cgroup-conf
 		--cidfile
 		--conmon-pidfile
 		--cpu-period

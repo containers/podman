@@ -385,7 +385,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "Invalid Umask Value")
 		}
-		g.SetProcessUmask(uint32(decVal))
+		umask := uint32(decVal)
+		g.Config.Process.User.Umask = &umask
 	}
 
 	// Add addition groups if c.config.GroupAdd is not empty

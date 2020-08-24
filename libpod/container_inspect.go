@@ -465,6 +465,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 			if ctrSpec.Linux.Resources.Pids != nil {
 				hostConfig.PidsLimit = ctrSpec.Linux.Resources.Pids.Limit
 			}
+			hostConfig.CgroupConf = ctrSpec.Linux.Resources.Unified
 			if ctrSpec.Linux.Resources.BlockIO != nil {
 				if ctrSpec.Linux.Resources.BlockIO.Weight != nil {
 					hostConfig.BlkioWeight = *ctrSpec.Linux.Resources.BlockIO.Weight
