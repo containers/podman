@@ -282,7 +282,9 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	stdin = os.Stdin
 	stdout = os.Stdout
 	stderr = os.Stderr
-	reporter = os.Stderr
+	if !flags.Quiet {
+		reporter = os.Stderr
+	}
 
 	if c.Flag("logfile").Changed {
 		f, err := os.OpenFile(flags.Logfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
