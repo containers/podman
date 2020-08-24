@@ -4,7 +4,7 @@ package version
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-const Version = "2.0.5"
+const Version = "2.0.6-dev"
 
 // APIVersion is the version for the remote
 // client API.  It is used to determine compatibility
