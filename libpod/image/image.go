@@ -466,6 +466,14 @@ func (ir *Runtime) getImage(image string) (*storage.Image, error) {
 	return img, nil
 }
 
+func (ir *Runtime) ImageNames(id string) ([]string, error) {
+	myImage, err := ir.getImage(id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting image %s ", id)
+	}
+	return myImage.Names, nil
+}
+
 // GetImages retrieves all images present in storage
 func (ir *Runtime) GetImages() ([]*Image, error) {
 	return ir.getImages(false)

@@ -8,11 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -904,4 +906,35 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int
 		}
 	}
 	return prunedContainers, pruneErrors, nil
+}
+
+// StorageContainers returns a list of containers from containers/storage that
+// are not currently known to Podman.
+func (r *Runtime) StorageContainers() ([]storage.Container, error) {
+
+	if r.store == nil {
+		return nil, define.ErrStoreNotInitialized
+	}
+
+	storeContainers, err := r.store.Containers()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading list of all storage containers")
+	}
+	retCtrs := []storage.Container{}
+	for _, container := range storeContainers {
+		exists, err := r.state.HasContainer(container.ID)
+		if err != nil && err != define.ErrNoSuchCtr {
+			return nil, errors.Wrapf(err, "failed to check if %s container exists in database", container.ID)
+		}
+		if exists {
+			continue
+		}
+		retCtrs = append(retCtrs, container)
+	}
+
+	return retCtrs, nil
+}
+
+func (r *Runtime) IsBuildahContainer(id string) (bool, error) {
+	return buildah.IsContainer(id, r.store)
 }

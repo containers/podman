@@ -23,6 +23,8 @@ When the URL is an Containerfile, the Containerfile is downloaded to a temporary
 
 When a Git repository is set as the URL, the repository is cloned locally and then set as the context.
 
+NOTE: `podman build` uses code sourced from the `buildah` project to build container images.  This `buildah` code creates `buildah` containers for the `RUN` options in container storage. In certain situations, when the `podman build` crashes or users kill the `podman build` process, these external containers can be left in container storage. Use the `podman ps --all --storage` command to see these contaienrs. External containers can be removed with the `podman rm --storage` command.
+
 ## OPTIONS
 
 **--add-host**=*host*
@@ -804,7 +806,7 @@ If you are using a useradd command within a Containerfile with a large UID/GID, 
 If you are using `useradd` within your build script, you should pass the `--no-log-init or -l` option to the `useradd` command.  This option tells useradd to stop creating the lastlog file.
 
 ## SEE ALSO
-podman(1), buildah(1), containers-registries.conf(5), crun(8), runc(8), useradd(8)
+podman(1), buildah(1), containers-registries.conf(5), crun(8), runc(8), useradd(8), podman-ps(1), podman-rm(1)
 
 ## HISTORY
 Aug 2020, Additional options and .dockerignore added by Dan Walsh <dwalsh@redhat.com>

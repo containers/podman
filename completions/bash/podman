@@ -2679,6 +2679,7 @@ _podman_ps() {
 	  --pod -p
 	  --quiet -q
 	  --size -s
+	  --storage
 	  --namespace --ns
 	  --sync
      "

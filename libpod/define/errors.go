@@ -161,4 +161,8 @@ var (
 	// ErrNetworkOnPodContainer indicates the user wishes to alter network attributes on a container
 	// in a pod.  This cannot be done as the infra container has all the network information
 	ErrNetworkOnPodContainer = errors.New("network cannot be configured when it is shared with a pod")
+
+	// ErrStoreNotInitialized indicates that the container storage was never
+	// initilized.
+	ErrStoreNotInitialized = errors.New("the container storage was never initilized")
 )

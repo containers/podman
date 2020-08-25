@@ -45,9 +45,9 @@ The latest option is not supported on the remote client.
 
 **--storage**
 
-Remove the container from the storage library only.
-This is only possible with containers that are not present in libpod (cannot be seen by **podman ps**).
-It is used to remove containers from **podman build** and **buildah**, and orphan containers which were only partially removed by **podman rm**.
+Remove external containers from the storage library.
+This is only possible with containers that are not present in libpod can be seen by **podman ps --all --storage**).
+It is used to remove external containers from **podman build** and **buildah**, and orphan containers which were only partially removed by **podman rm**.
 The storage option conflicts with the **--all**, **--latest**, and **--volumes** options.
 
 **--volumes**, **-v**
@@ -96,7 +96,7 @@ $ podman rm -f --latest
   **125** The command fails for a reason other than container did not exist or is paused/running
 
 ## SEE ALSO
-podman(1), podman-image-rm(1)
+podman(1), podman-image-rm(1), podman-ps(1), podman-build(1)
 
 ## HISTORY
 August 2017, Originally compiled by Ryan Cole <rycole@redhat.com>

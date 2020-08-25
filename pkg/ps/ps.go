@@ -14,6 +14,7 @@ import (
 	lpfilters "github.com/containers/podman/v2/libpod/filters"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	psdefine "github.com/containers/podman/v2/pkg/ps/define"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -54,12 +55,12 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 		return nil, err
 	}
 	if options.Last > 0 {
-		// Sort the containers we got
+		// Sort the libpod containers
 		sort.Sort(SortCreateTime{SortContainers: cons})
 		// we should perform the lopping before we start getting
 		// the expensive information on containers
 		if options.Last < len(cons) {
-			cons = cons[len(cons)-options.Last:]
+			cons = cons[:options.Last]
 		}
 	}
 	for _, con := range cons {
@@ -68,7 +69,31 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 			return nil, err
 		}
 		pss = append(pss, listCon)
+	}
 
+	if options.All && options.Storage {
+		externCons, err := runtime.StorageContainers()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, con := range externCons {
+			listCon, err := ListStorageContainer(runtime, con, options)
+			if err != nil {
+				return nil, err
+			}
+			pss = append(pss, listCon)
+		}
+	}
+
+	// Sort the containers we got
+	sort.Sort(SortPSCreateTime{SortPSContainers: pss})
+
+	if options.Last > 0 {
+		// only return the "last" containers caller requested
+		if options.Last < len(pss) {
+			pss = pss[:options.Last]
+		}
 	}
 	return pss, nil
 }
@@ -199,6 +224,48 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 	return ps, nil
 }
 
+func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container, opts entities.ContainerListOptions) (entities.ListContainer, error) {
+	name := "unknown"
+	if len(ctr.Names) > 0 {
+		name = ctr.Names[0]
+	}
+
+	ps := entities.ListContainer{
+		ID:      ctr.ID,
+		Created: ctr.Created.Unix(),
+		ImageID: ctr.ImageID,
+		State:   "storage",
+		Names:   []string{name},
+	}
+
+	buildahCtr, err := rt.IsBuildahContainer(ctr.ID)
+	if err != nil {
+		return ps, errors.Wrapf(err, "error determining buildah container for container %s", ctr.ID)
+	}
+
+	if buildahCtr {
+		ps.Command = []string{"buildah"}
+	} else {
+		ps.Command = []string{"storage"}
+	}
+
+	imageName := ""
+	if ctr.ImageID != "" {
+		names, err := rt.ImageRuntime().ImageNames(ctr.ImageID)
+		if err != nil {
+			return ps, err
+		}
+		if len(names) > 0 {
+			imageName = names[0]
+		}
+	} else if buildahCtr {
+		imageName = "scratch"
+	}
+
+	ps.Image = imageName
+	return ps, nil
+}
+
 func getNamespaceInfo(path string) (string, error) {
 	val, err := os.Readlink(path)
 	if err != nil {
@@ -223,5 +290,17 @@ func (a SortContainers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 type SortCreateTime struct{ SortContainers }
 
 func (a SortCreateTime) Less(i, j int) bool {
-	return a.SortContainers[i].CreatedTime().Before(a.SortContainers[j].CreatedTime())
+	return a.SortContainers[i].CreatedTime().After(a.SortContainers[j].CreatedTime())
+}
+
+// SortPSContainers helps us set-up ability to sort by createTime
+type SortPSContainers []entities.ListContainer
+
+func (a SortPSContainers) Len() int      { return len(a) }
+func (a SortPSContainers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+type SortPSCreateTime struct{ SortPSContainers }
+
+func (a SortPSCreateTime) Less(i, j int) bool {
+	return a.SortPSContainers[i].Created > a.SortPSContainers[j].Created
 }
