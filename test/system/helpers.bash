@@ -67,7 +67,7 @@ function basic_teardown() {
     run_podman '?' pod rm --all --force
     run_podman '?'     rm --all --force
 
-    /bin/rm -rf $PODMAN_TMPDIR
+    command rm -rf $PODMAN_TMPDIR
 }
 
 
