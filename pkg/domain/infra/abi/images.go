@@ -251,6 +251,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 		DockerCertPath:              options.CertDir,
 		OSChoice:                    options.OverrideOS,
 		ArchitectureChoice:          options.OverrideArch,
+		VariantChoice:               options.OverrideVariant,
 		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
 	}
 

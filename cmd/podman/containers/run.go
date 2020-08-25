@@ -71,7 +71,6 @@ func runFlags(flags *pflag.FlagSet) {
 		_ = flags.MarkHidden("preserve-fds")
 	}
 }
-
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},

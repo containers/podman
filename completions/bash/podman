@@ -1984,6 +1984,7 @@ _podman_pull() {
     --creds
     --override-arch
     --override-os
+    --override-variant
     "
     local boolean_options="
 	--all-tags
@@ -2165,6 +2166,7 @@ _podman_container_run() {
 		--oom-score-adj
 		--override-arch
 		--override-os
+		--override-variant
 		--pid
 		--pids-limit
 		--pod

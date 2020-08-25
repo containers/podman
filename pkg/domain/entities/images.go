@@ -137,6 +137,8 @@ type ImagePullOptions struct {
 	// OverrideOS will overwrite the local operating system (OS) for image
 	// pulls.
 	OverrideOS string
+	// OverrideVariant will overwrite the local variant for image pulls.
+	OverrideVariant string
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet bool

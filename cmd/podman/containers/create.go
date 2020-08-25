@@ -251,10 +251,11 @@ func pullImage(imageName string) (string, error) {
 			return "", errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", imageName)
 		}
 		pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
-			Authfile:     cliVals.Authfile,
-			Quiet:        cliVals.Quiet,
-			OverrideArch: cliVals.OverrideArch,
-			OverrideOS:   cliVals.OverrideOS,
+			Authfile:        cliVals.Authfile,
+			Quiet:           cliVals.Quiet,
+			OverrideArch:    cliVals.OverrideArch,
+			OverrideOS:      cliVals.OverrideOS,
+			OverrideVariant: cliVals.OverrideVariant,
 		})
 		if pullErr != nil {
 			return "", pullErr

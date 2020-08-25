@@ -328,6 +328,11 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"override-os", "",
 		"use `OS` instead of the running OS for choosing images",
 	)
+	createFlags.StringVar(
+		&cf.OverrideVariant,
+		"override-variant", "",
+		"Use _VARIANT_ instead of the running architecture variant for choosing images",
+	)
 	createFlags.String(
 		"pid", "",
 		"PID namespace to use",
