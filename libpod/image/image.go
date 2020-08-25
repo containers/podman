@@ -1242,6 +1242,14 @@ func areParentAndChild(parent, child *imgspecv1.Image) bool {
 	// the child and candidate parent should share all of the
 	// candidate parent's diff IDs, which together would have
 	// controlled which layers were used
+
+	// Both, child and parent, may be nil when the storage is left in an
+	// incoherent state.  Issue #7444 describes such a case when a build
+	// has been killed.
+	if child == nil || parent == nil {
+		return false
+	}
+
 	if len(parent.RootFS.DiffIDs) > len(child.RootFS.DiffIDs) {
 		return false
 	}
