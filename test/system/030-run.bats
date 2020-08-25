@@ -286,10 +286,10 @@ echo $rand        |   0 | $rand
     cid="$output"
 
     gecos="$(random_string 6) $(random_string 8)"
-    run_podman exec --user root $cid adduser -D -g "$gecos" -s /bin/sh newuser3
+    run_podman exec --user root $cid adduser -u 4242 -G ping -D -g "$gecos" -s /bin/sh newuser3
     is "$output" "" "output from adduser"
     run_podman exec $cid tail -1 /etc/passwd
-    is "$output" "newuser3:x:1000:1000:$gecos:/home/newuser3:/bin/sh" \
+    is "$output" "newuser3:x:4242:999:$gecos:/home/newuser3:/bin/sh" \
        "newuser3 added to /etc/passwd in container"
 
     run_podman exec $cid touch /stop
