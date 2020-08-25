@@ -269,36 +269,36 @@ varlink_api_task:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
-# build_each_commit_task:
+build_each_commit_task:
 
-#     depends_on:
-#         - "gating"
-#         - "vendor"
-#         - "varlink_api"
+    depends_on:
+        - "gating"
+        - "vendor"
+        - "varlink_api"
 
-#     only_if: >-
-#         $CIRRUS_BRANCH != $DEST_BRANCH &&
-#         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-#         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+    only_if: >-
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
-#     gce_instance:
-#         cpu: 8
-#         memory: "8Gb"
+    gce_instance:
+        cpu: 8
+        memory: "8Gb"
 
-#     env:
-#         MOD_CONTAINERS_CONF: 'false'
+    env:
+        MOD_CONTAINERS_CONF: 'false'
 
-#     timeout_in: 30m
+    timeout_in: 30m
 
-#     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-#     build_each_commit_script:
-#         # set -x by default, no need to spew contents of lib.sh
-#         - 'source $SCRIPT_BASE/lib.sh &> /dev/null'
-#         - 'git fetch --depth 50 origin $DEST_BRANCH |& ${TIMESTAMP}'
-#         - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    build_each_commit_script:
+        # set -x by default, no need to spew contents of lib.sh
+        - 'source $SCRIPT_BASE/lib.sh &> /dev/null'
+        - 'git fetch --depth 50 origin $DEST_BRANCH |& ${TIMESTAMP}'
+        - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
 
-#     on_failure:
-#         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
+    on_failure:
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 build_without_cgo_task:
@@ -368,6 +368,7 @@ testing_task:
         - "gating"
         - "vendor"
         - "varlink_api"
+        - "build_each_commit"
         - "build_without_cgo"
         - "container_image_build"
 
@@ -432,6 +433,7 @@ special_testing_rootless_task:
         - "gating"
         - "varlink_api"
         - "vendor"
+        - "build_each_commit"
         - "build_without_cgo"
 
     only_if: >-
@@ -467,6 +469,7 @@ special_testing_in_podman_task:
         - "gating"
         - "varlink_api"
         - "vendor"
+        - "build_each_commit"
         - "build_without_cgo"
 
     only_if: >-
@@ -697,6 +700,7 @@ success_task:
         - "gating"
         - "vendor"
         - "varlink_api"
+        - "build_each_commit"
         - "build_without_cgo"
         - "container_image_build"
         - "meta"
