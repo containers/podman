@@ -420,3 +420,21 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 	}
 	return nil
 }
+
+// IsContainer identifies if the specified container id is a buildah container
+// in the specified store.
+func IsContainer(id string, store storage.Store) (bool, error) {
+	cdir, err := store.ContainerDirectory(id)
+	if err != nil {
+		return false, err
+	}
+	// Assuming that if the stateFile exists, that this is a Buildah
+	// container.
+	if _, err = os.Stat(filepath.Join(cdir, stateFile)); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "error stating %q", filepath.Join(cdir, stateFile))
+	}
+	return true, nil
+}

@@ -10,7 +10,7 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.6
-	github.com/containers/buildah v1.15.1-0.20200731151214-29f4d01c621c
+	github.com/containers/buildah v1.15.1-0.20200813183340-0a8dc1f8064c
 	github.com/containers/common v0.20.3
 	github.com/containers/conmon v2.0.19+incompatible
 	github.com/containers/image/v5 v5.5.2
@@ -47,7 +47,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/rootless-containers/rootlesskit v0.10.0
-	github.com/seccomp/containers-golang v0.5.0
+	github.com/seccomp/containers-golang v0.6.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5

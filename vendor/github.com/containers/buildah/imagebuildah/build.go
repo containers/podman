@@ -168,6 +168,9 @@ type BuildOptions struct {
 	SignBy string
 	// Architecture specifies the target architecture of the image to be built.
 	Architecture string
+	// OmitTimestamp forces epoch 0 as created timestamp to allow for
+	// deterministic, content-addressable builds.
+	OmitTimestamp bool
 	// OS is the specifies the operating system of the image to be built.
 	OS string
 	// MaxPullPushRetries is the maximum number of attempts we'll make to pull or push any one

@@ -1,6 +1,7 @@
 package buildah
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -284,6 +285,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	if err != nil {
 		return nil, err
 	}
+	omitTimestamp := i.created.Equal(time.Unix(0, 0))
 
 	// Extract each layer and compute its digests, both compressed (if requested) and uncompressed.
 	for _, layerID := range layers {
@@ -356,7 +358,6 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			}
 		}
 		srcHasher := digest.Canonical.Digester()
-		reader := io.TeeReader(rc, srcHasher.Hash())
 		// Set up to write the possibly-recompressed blob.
 		layerFile, err := os.OpenFile(filepath.Join(path, "layer"), os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
@@ -367,14 +368,40 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		counter := ioutils.NewWriteCounter(layerFile)
 		multiWriter := io.MultiWriter(counter, destHasher.Hash())
 		// Compress the layer, if we're recompressing it.
-		writer, err := archive.CompressStream(multiWriter, i.compression)
+		writeCloser, err := archive.CompressStream(multiWriter, i.compression)
 		if err != nil {
 			layerFile.Close()
 			rc.Close()
 			return nil, errors.Wrapf(err, "error compressing %s", what)
 		}
-		size, err := io.Copy(writer, reader)
-		writer.Close()
+		writer := io.MultiWriter(writeCloser, srcHasher.Hash())
+		// Zero out timestamps in the layer, if we're doing that for
+		// history entries.
+		if omitTimestamp {
+			nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
+			writeCloser = newTarFilterer(nestedWriteCloser, func(hdr *tar.Header) (bool, bool, io.Reader) {
+				// Changing a zeroed field to a non-zero field
+				// can affect the format that the library uses
+				// for writing the header, so only change
+				// fields that are already set to avoid
+				// changing the format (and as a result,
+				// changing the length) of the header that we
+				// write.
+				if !hdr.ModTime.IsZero() {
+					hdr.ModTime = i.created
+				}
+				if !hdr.AccessTime.IsZero() {
+					hdr.AccessTime = i.created
+				}
+				if !hdr.ChangeTime.IsZero() {
+					hdr.ChangeTime = i.created
+				}
+				return false, false, nil
+			})
+			writer = io.Writer(writeCloser)
+		}
+		size, err := io.Copy(writer, rc)
+		writeCloser.Close()
 		layerFile.Close()
 		rc.Close()
 		if err != nil {
@@ -679,7 +706,7 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 	}
 
 	if options.OmitTimestamp {
-		created = time.Unix(0, 0)
+		created = time.Unix(0, 0).UTC()
 	}
 
 	parent := ""
@@ -714,5 +741,6 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 		preEmptyLayers:        b.PrependedEmptyLayers,
 		postEmptyLayers:       b.AppendedEmptyLayers,
 	}
+
 	return ref, nil
 }

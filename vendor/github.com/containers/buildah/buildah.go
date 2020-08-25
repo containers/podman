@@ -310,6 +310,9 @@ type CommonBuildOptions struct {
 	// LabelOpts is the a slice of fields of an SELinux context, given in "field:pair" format, or "disable".
 	// Recognized field names are "role", "type", and "level".
 	LabelOpts []string
+	// OmitTimestamp forces epoch 0 as created timestamp to allow for
+	// deterministic, content-addressable builds.
+	OmitTimestamp bool
 	// SeccompProfilePath is the pathname of a seccomp profile.
 	SeccompProfilePath string
 	// ApparmorProfile is the name of an apparmor profile.
