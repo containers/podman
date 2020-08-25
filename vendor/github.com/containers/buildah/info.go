@@ -64,12 +64,12 @@ func hostInfo() map[string]interface{} {
 	if err != nil {
 		logrus.Error(err, "err reading memory info")
 		info["MemTotal"] = ""
-		info["MenFree"] = ""
+		info["MemFree"] = ""
 		info["SwapTotal"] = ""
 		info["SwapFree"] = ""
 	} else {
 		info["MemTotal"] = mi.MemTotal
-		info["MenFree"] = mi.MemFree
+		info["MemFree"] = mi.MemFree
 		info["SwapTotal"] = mi.SwapTotal
 		info["SwapFree"] = mi.SwapFree
 	}

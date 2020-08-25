@@ -192,7 +192,10 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		if err != nil {
 			return err
 		}
-		bindFiles["/etc/hosts"] = hostFile
+		// Only bind /etc/hosts if there's a network
+		if options.ConfigureNetwork != NetworkDisabled {
+			bindFiles["/etc/hosts"] = hostFile
+		}
 	}
 
 	if !(contains(volumes, "/etc/resolv.conf") || (len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none")) {
@@ -200,7 +203,10 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		if err != nil {
 			return err
 		}
-		bindFiles["/etc/resolv.conf"] = resolvFile
+		// Only bind /etc/resolv.conf if there's a network
+		if options.ConfigureNetwork != NetworkDisabled {
+			bindFiles["/etc/resolv.conf"] = resolvFile
+		}
 	}
 	// Empty file, so no need to recreate if it exists
 	if _, ok := bindFiles["/run/.containerenv"]; !ok {
@@ -1453,9 +1459,10 @@ func runUsingRuntimeMain() {
 	if err := setChildProcess(); err != nil {
 		os.Exit(1)
 	}
-	var ospec *specs.Spec
-	if options.Spec != nil {
-		ospec = options.Spec
+	ospec := options.Spec
+	if ospec == nil {
+		fmt.Fprintf(os.Stderr, "options spec not specified\n")
+		os.Exit(1)
 	}
 
 	// Run the container, start to finish.

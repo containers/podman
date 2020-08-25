@@ -101,7 +101,7 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 	}
 
 	dnsOptions := []string{}
-	if c.Flag("dns-search").Changed {
+	if c.Flag("dns-option").Changed {
 		dnsOptions, _ = c.Flags().GetStringSlice("dns-option")
 		if noDNS && len(dnsOptions) > 0 {
 			return nil, errors.Errorf("invalid --dns-option, --dns-option may not be used with --dns=none")
@@ -784,11 +784,14 @@ func IDMappingOptions(c *cobra.Command, isolation buildah.Isolation) (usernsOpti
 	if c.Flag("userns").Changed {
 		how := c.Flag("userns").Value.String()
 		switch how {
-		case "", "container":
+		case "", "container", "private":
 			usernsOption.Host = false
 		case "host":
 			usernsOption.Host = true
 		default:
+			if strings.HasPrefix(how, "ns:") {
+				how = how[3:]
+			}
 			if _, err := os.Stat(how); err != nil {
 				return nil, nil, errors.Wrapf(err, "error checking for %s namespace at %q", string(specs.UserNamespace), how)
 			}
@@ -798,11 +801,8 @@ func IDMappingOptions(c *cobra.Command, isolation buildah.Isolation) (usernsOpti
 	}
 	usernsOptions = buildah.NamespaceOptions{usernsOption}
 
-	// Because --net and --network are technically two different flags, we need
-	// to check each for nil and .Changed
-	usernet := c.Flags().Lookup("net")
 	usernetwork := c.Flags().Lookup("network")
-	if (usernet != nil && usernetwork != nil) && (!usernet.Changed && !usernetwork.Changed) {
+	if usernetwork != nil && !usernetwork.Changed {
 		usernsOptions = append(usernsOptions, buildah.NamespaceOption{
 			Name: string(specs.NetworkNamespace),
 			Host: usernsOption.Host,
@@ -851,15 +851,15 @@ func parseIDMap(spec []string) (m [][3]uint32, err error) {
 func NamespaceOptions(c *cobra.Command) (namespaceOptions buildah.NamespaceOptions, networkPolicy buildah.NetworkConfigurationPolicy, err error) {
 	options := make(buildah.NamespaceOptions, 0, 7)
 	policy := buildah.NetworkDefault
-	for _, what := range []string{string(specs.IPCNamespace), "net", "network", string(specs.PIDNamespace), string(specs.UTSNamespace)} {
+	for _, what := range []string{string(specs.IPCNamespace), "network", string(specs.PIDNamespace), string(specs.UTSNamespace)} {
 		if c.Flags().Lookup(what) != nil && c.Flag(what).Changed {
 			how := c.Flag(what).Value.String()
 			switch what {
-			case "net", "network":
+			case "network":
 				what = string(specs.NetworkNamespace)
 			}
 			switch how {
-			case "", "container":
+			case "", "container", "private":
 				logrus.Debugf("setting %q namespace to %q", what, "")
 				options.AddOrReplace(buildah.NamespaceOption{
 					Name: what,
@@ -889,6 +889,9 @@ func NamespaceOptions(c *cobra.Command) (namespaceOptions buildah.NamespaceOptio
 						logrus.Debugf("setting network configuration to %q", how)
 						break
 					}
+				}
+				if strings.HasPrefix(how, "ns:") {
+					how = how[3:]
 				}
 				if _, err := os.Stat(how); err != nil {
 					return nil, buildah.NetworkDefault, errors.Wrapf(err, "error checking for %s namespace at %q", what, how)

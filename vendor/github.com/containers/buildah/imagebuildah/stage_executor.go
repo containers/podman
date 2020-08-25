@@ -296,6 +296,14 @@ func (s *StageExecutor) digestSpecifiedContent(ctx context.Context, node *parser
 			// container.  Update the ID mappings and
 			// all-content-comes-from-below-this-directory value.
 			from := strings.TrimPrefix(flag, "--from=")
+
+			// If from has an argument within it, resolve it to its
+			// value.  Otherwise just return the value found.
+			var fromErr error
+			from, fromErr = imagebuilder.ProcessWord(from, s.stage.Builder.Arguments())
+			if fromErr != nil {
+				return "", errors.Wrapf(fromErr, "unable to resolve argument %q", from)
+			}
 			if isStage, err := s.executor.waitForStage(ctx, from, s.stages[:s.index]); isStage && err != nil {
 				return "", err
 			}
@@ -886,6 +894,14 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// If the source's name corresponds to the
 				// result of an earlier stage, wait for that
 				// stage to finish being built.
+
+				// If arr[1] has an argument within it, resolve it to its
+				// value.  Otherwise just return the value found.
+				var arr1Err error
+				arr[1], arr1Err = imagebuilder.ProcessWord(arr[1], s.stage.Builder.Arguments())
+				if arr1Err != nil {
+					return "", nil, errors.Wrapf(arr1Err, "unable to resolve argument %q", arr[1])
+				}
 				if isStage, err := s.executor.waitForStage(ctx, arr[1], s.stages[:s.index]); isStage && err != nil {
 					return "", nil, err
 				}
@@ -1064,6 +1080,31 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	return imgID, ref, nil
 }
 
+func historyEntriesEqual(base, derived v1.History) bool {
+	if base.CreatedBy != derived.CreatedBy {
+		return false
+	}
+	if base.Comment != derived.Comment {
+		return false
+	}
+	if base.Author != derived.Author {
+		return false
+	}
+	if base.EmptyLayer != derived.EmptyLayer {
+		return false
+	}
+	if base.Created != nil && derived.Created == nil {
+		return false
+	}
+	if base.Created == nil && derived.Created != nil {
+		return false
+	}
+	if base.Created != nil && derived.Created != nil && !base.Created.Equal(*derived.Created) {
+		return false
+	}
+	return true
+}
+
 // historyMatches returns true if a candidate history matches the history of our
 // base image (if we have one), plus the current instruction.
 // Used to verify whether a cache of the intermediate image exists and whether
@@ -1076,25 +1117,7 @@ func (s *StageExecutor) historyMatches(baseHistory []v1.History, child *parser.N
 		return false
 	}
 	for i := range baseHistory {
-		if baseHistory[i].CreatedBy != history[i].CreatedBy {
-			return false
-		}
-		if baseHistory[i].Comment != history[i].Comment {
-			return false
-		}
-		if baseHistory[i].Author != history[i].Author {
-			return false
-		}
-		if baseHistory[i].EmptyLayer != history[i].EmptyLayer {
-			return false
-		}
-		if baseHistory[i].Created != nil && history[i].Created == nil {
-			return false
-		}
-		if baseHistory[i].Created == nil && history[i].Created != nil {
-			return false
-		}
-		if baseHistory[i].Created != nil && history[i].Created != nil && *baseHistory[i].Created != *history[i].Created {
+		if !historyEntriesEqual(baseHistory[i], history[i]) {
 			return false
 		}
 	}
@@ -1290,6 +1313,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		s.builder.SetHealthcheck(nil)
 	}
 	s.builder.ClearLabels()
+	s.builder.SetLabel(buildah.BuilderIdentityAnnotation, buildah.Version)
 	for k, v := range config.Labels {
 		s.builder.SetLabel(k, v)
 	}
@@ -1331,6 +1355,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		SignBy:                s.executor.signBy,
 		MaxRetries:            s.executor.maxPullPushRetries,
 		RetryDelay:            s.executor.retryPullPushDelay,
+		OmitTimestamp:         s.executor.omitTimestamp,
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {

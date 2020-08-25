@@ -370,11 +370,13 @@ func (s *supplementedImageSource) GetSignatures(ctx context.Context, instanceDig
 func (s *supplementedImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
 	var src types.ImageSource
 	requestInstanceDigest := instanceDigest
+	errMsgDigest := ""
 	if instanceDigest == nil {
 		if sourceInstance, ok := s.sourceInstancesByInstance[""]; ok {
 			src = sourceInstance
 		}
 	} else {
+		errMsgDigest = string(*instanceDigest)
 		if sourceInstance, ok := s.sourceInstancesByInstance[*instanceDigest]; ok {
 			src = sourceInstance
 		}
@@ -396,5 +398,5 @@ func (s *supplementedImageSource) LayerInfosForCopy(ctx context.Context, instanc
 		}
 		return blobInfos, nil
 	}
-	return nil, errors.Wrapf(ErrDigestNotFound, "error finding instance for instance digest %q to copy layers", *instanceDigest)
+	return nil, errors.Wrapf(ErrDigestNotFound, "error finding instance for instance digest %q to copy layers", errMsgDigest)
 }

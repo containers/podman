@@ -351,6 +351,15 @@ another process.
 
 Do not use existing cached images for the container build. Build from the start with a new set of cached layers.
 
+**--omit-timestamp** *bool-value*
+
+Set the create timestamp to epoch 0 to allow for deterministic builds (defaults to false).
+By default, the created timestamp is changed and written into the image manifest with every commit,
+causing the image's sha256 hash to be different even if the sources are exactly the same otherwise.
+When --omit-timestamp is set to true, the created timestamp is always set to the epoch and therefore not
+changed, allowing the image's sha256 to remain the same. All files committed to the layers of the image
+will get the epoch 0 timestamp.
+
 **--os**=*string*
 
 Set the OS to the provided value instead of the current operating system of the host.
@@ -736,6 +745,52 @@ $ podman build -f dev/Containerfile https://10.10.10.1/podman/context.tar.gz
 
 ## Files
 
+### `.dockerignore`
+
+If the file .dockerignore exists in the context directory, `podman build` reads
+its contents. Podman uses the content to exclude files and directories from
+the context directory, when executing COPY and ADD directives in the
+Containerfile/Dockerfile
+
+Users can specify a series of Unix shell globals in a .dockerignore file to
+identify files/directories to exclude.
+
+Podman supports a special wildcard string `**` which matches any number of
+directories (including zero). For example, **/*.go will exclude all files that
+end with .go that are found in all directories.
+
+Example .dockerignore file:
+
+```
+# exclude this content for image
+*/*.c
+**/output*
+src
+```
+
+`*/*.c`
+Excludes files and directories whose names ends with .c in any top level subdirectory. For example, the source file include/rootless.c.
+
+`**/output*`
+Excludes files and directories starting with `output` from any directory.
+
+`src`
+Excludes files named src and the directory src as well as any content in it.
+
+Lines starting with ! (exclamation mark) can be used to make exceptions to
+exclusions. The following is an example .dockerignore file that uses this
+mechanism:
+```
+*.doc
+!Help.doc
+```
+
+Exclude all doc files except Help.doc from the image.
+
+This functionality is compatible with the handling of .dockerignore files described here:
+
+https://docs.docker.com/engine/reference/builder/#dockerignore-file
+
 **registries.conf** (`/etc/containers/registries.conf`)
 
 registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
@@ -752,6 +807,8 @@ If you are using `useradd` within your build script, you should pass the `--no-l
 podman(1), buildah(1), containers-registries.conf(5), crun(8), runc(8), useradd(8)
 
 ## HISTORY
+Aug 2020, Additional options and .dockerignore added by Dan Walsh <dwalsh@redhat.com>
+
 May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
 
 December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>
