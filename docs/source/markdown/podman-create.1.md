@@ -652,6 +652,14 @@ Host port does not have to be specified (e.g. `podman run -p 127.0.0.1::80`).
 If it is not, the container port will be randomly assigned a port on the host.
 Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
 
+**Note:** if a container will be run within a pod, it is not necessary to publish the port for
+the containers in the pod. The port must only be published by the pod itself.  Pod network
+stacks act like the network stack on the host - you have a variety of containers in the pod,
+and programs in the container, all sharing a single interface and IP address, and
+associated ports. If one container binds to a port, no other container can use that port
+within the pod while it is in use. Containers in the pod can also communicate over localhost
+by having one container bind to localhost in the pod, and another connect to that port.
+
 **--publish-all**, **-P**=*true|false*
 
 Publish all exposed ports to random ports on the host interfaces. The default is *false*.
