@@ -180,8 +180,9 @@ func pingNewConnection(ctx context.Context) error {
 }
 
 func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (Connection, error) {
+	// if you modify the authmethods or their conditionals, you will also need to make similar
+	// changes in the client (currently cmd/podman/system/connection/add getUDS).
 	authMethods := []ssh.AuthMethod{}
-
 	if len(identity) > 0 {
 		auth, err := terminal.PublicKey(identity, []byte(passPhrase))
 		if err != nil {
@@ -204,6 +205,13 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (
 
 	if pw, found := _url.User.Password(); found {
 		authMethods = append(authMethods, ssh.Password(pw))
+	}
+	if len(authMethods) == 0 {
+		pass, err := terminal.ReadPassword("Login password:")
+		if err != nil {
+			return Connection{}, err
+		}
+		authMethods = append(authMethods, ssh.Password(string(pass)))
 	}
 
 	callback := ssh.InsecureIgnoreHostKey()

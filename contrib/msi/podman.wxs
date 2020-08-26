@@ -24,8 +24,7 @@
               <CreateFolder/>
             </Component>
             <Component Id="MainExecutable" Guid="73752F94-6589-4C7B-ABED-39D655A19714">
-              <File Id="520C6E17-77A2-4F41-9611-30FA763A0702" Name="podman-remote-windows.exe" Source="bin/podman-remote-windows.exe"/>
-              <File Id="A14218A0-4180-44AC-B109-7C63B3099DCA" Name="podman.bat" Source="podman.bat" KeyPath="yes"/>
+              <File Id="520C6E17-77A2-4F41-9611-30FA763A0702" Name="podman.exe" Source="bin/podman-remote-windows.exe" KeyPath="yes"/>
             </Component>
           </Directory>
         </Directory>
@@ -33,7 +32,7 @@
     </Directory>
 
     <Property Id="setx" Value="setx.exe"/>
-    <CustomAction Id="ChangePath" ExeCommand="PATH &quot;%PATH%;[INSTALLDIR] &quot;" Property="setx" Execute="deferred" Impersonate="yes" Return="check"/>
+    <CustomAction Id="ChangePath" ExeCommand="PATH &quot;%PATH%;[INSTALLDIR]&quot;" Property="setx" Execute="deferred" Impersonate="yes" Return="check"/>
 
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="INSTALLDIR_Component"/>
