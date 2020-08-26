@@ -74,7 +74,6 @@ var _ = Describe("Podman network create", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -180,6 +179,7 @@ var _ = Describe("Podman network create", func() {
 
 	It("podman network create with name and IPv6 subnet", func() {
 		SkipIfRemote()
+		SkipIfRootless()
 		var (
 			results []network.NcList
 		)

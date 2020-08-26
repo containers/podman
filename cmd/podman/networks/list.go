@@ -25,9 +25,6 @@ var (
 		Long:    networklistDescription,
 		RunE:    networkList,
 		Example: `podman network list`,
-		Annotations: map[string]string{
-			registry.ParentNSRequired: "",
-		},
 	}
 )
 

@@ -19,9 +19,6 @@ var (
 		RunE:    networkRm,
 		Example: `podman network rm podman`,
 		Args:    cobra.MinimumNArgs(1),
-		Annotations: map[string]string{
-			registry.ParentNSRequired: "",
-		},
 	}
 )
 

@@ -84,7 +84,11 @@ func (c *Container) prepare() error {
 		// Set up network namespace if not already set up
 		noNetNS := c.state.NetNS == nil
 		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
-			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
+			if rootless.IsRootless() && len(c.config.Networks) > 0 {
+				netNS, networkStatus, createNetNSErr = AllocRootlessCNI(context.Background(), c)
+			} else {
+				netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
+			}
 			if createNetNSErr != nil {
 				return
 			}
@@ -98,8 +102,12 @@ func (c *Container) prepare() error {
 		}
 
 		// handle rootless network namespace setup
-		if noNetNS && c.config.NetMode.IsSlirp4netns() && !c.config.PostConfigureNetNS {
-			createNetNSErr = c.runtime.setupRootlessNetNS(c)
+		if noNetNS && !c.config.PostConfigureNetNS {
+			if rootless.IsRootless() {
+				createNetNSErr = c.runtime.setupRootlessNetNS(c)
+			} else if c.config.NetMode.IsSlirp4netns() {
+				createNetNSErr = c.runtime.setupSlirp4netns(c)
+			}
 		}
 	}()
 	// Mount storage if not mounted

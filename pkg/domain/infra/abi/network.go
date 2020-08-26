@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -214,6 +215,9 @@ func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreate
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")
 	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(network.GetCNIConfDir(runtimeConfig), 0755); err != nil {
 		return "", err
 	}
 	cniPathName := filepath.Join(network.GetCNIConfDir(runtimeConfig), fmt.Sprintf("%s.conflist", name))

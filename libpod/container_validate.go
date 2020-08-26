@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -66,16 +65,6 @@ func (c *Container) validate() error {
 		if !foundPid {
 			return errors.Wrapf(define.ErrInvalidArg, "containers not creating CGroups must create a private PID namespace")
 		}
-	}
-
-	// Rootless has some requirements, compared to networks.
-	if rootless.IsRootless() {
-		if len(c.config.Networks) > 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot join CNI networks if running rootless")
-		}
-
-		// TODO: Should we make sure network mode is set to Slirp if set
-		// at all?
 	}
 
 	// Can only set static IP or MAC is creating a network namespace.

@@ -21,9 +21,6 @@ var (
 		RunE:    networkCreate,
 		Args:    cobra.MaximumNArgs(1),
 		Example: `podman network create podman1`,
-		Annotations: map[string]string{
-			registry.ParentNSRequired: "",
-		},
 	}
 )
 

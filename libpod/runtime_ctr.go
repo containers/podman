@@ -770,7 +770,11 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
+	return r.GetContainersWithoutLock(filters...)
+}
 
+// GetContainersWithoutLock is same as GetContainers but without lock
+func (r *Runtime) GetContainersWithoutLock(filters ...ContainerFilter) ([]*Container, error) {
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}

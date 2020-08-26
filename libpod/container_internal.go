@@ -957,8 +957,10 @@ func (c *Container) completeNetworkSetup() error {
 	if err := c.syncContainer(); err != nil {
 		return err
 	}
-	if c.config.NetMode.IsSlirp4netns() {
+	if rootless.IsRootless() {
 		return c.runtime.setupRootlessNetNS(c)
+	} else if c.config.NetMode.IsSlirp4netns() {
+		return c.runtime.setupSlirp4netns(c)
 	}
 	if err := c.runtime.setupNetNS(c); err != nil {
 		return err

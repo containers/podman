@@ -4,6 +4,7 @@ package libpod
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -208,6 +209,20 @@ func checkSlirpFlags(path string) (*slirpFeatures, error) {
 
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
+	if ctr.config.NetMode.IsSlirp4netns() {
+		return r.setupSlirp4netns(ctr)
+	}
+	if len(ctr.config.Networks) > 0 {
+		// set up port forwarder for CNI-in-slirp4netns
+		netnsPath := ctr.state.NetNS.Path()
+		// TODO: support slirp4netns port forwarder as well
+		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
+	}
+	return nil
+}
+
+// setupSlirp4netns can be called in rootful as well as in rootless
+func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	path := r.config.Engine.NetworkCmdPath
 
 	if path == "" {
@@ -711,7 +726,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
-	// rootless containers do not use the CNI plugin
+	// rootless containers do not use the CNI plugin directly
 	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		var requestedIP net.IP
 		if ctr.requestedIP != nil {
@@ -735,6 +750,13 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
 			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
+		}
+	}
+
+	// CNI-in-slirp4netns
+	if rootless.IsRootless() && len(ctr.config.Networks) != 0 {
+		if err := DeallocRootlessCNI(context.Background(), ctr); err != nil {
+			return errors.Wrapf(err, "error tearing down CNI-in-slirp4netns for container %s", ctr.ID())
 		}
 	}
 

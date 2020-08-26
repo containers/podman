@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
@@ -34,7 +35,6 @@ var _ = Describe("Podman network", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -76,13 +76,12 @@ var _ = Describe("Podman network", func() {
       }
     ]
 }`
-		cniPath = "/etc/cni/net.d"
 	)
 
 	It("podman network list", func() {
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
 		writeConf([]byte(secondConf), secondPath)
 		defer removeConf(secondPath)
 
@@ -95,7 +94,7 @@ var _ = Describe("Podman network", func() {
 	It("podman network list -q", func() {
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
 		writeConf([]byte(secondConf), secondPath)
 		defer removeConf(secondPath)
 
@@ -108,7 +107,7 @@ var _ = Describe("Podman network", func() {
 	It("podman network list --filter success", func() {
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
 		writeConf([]byte(secondConf), secondPath)
 		defer removeConf(secondPath)
 
@@ -121,7 +120,7 @@ var _ = Describe("Podman network", func() {
 	It("podman network list --filter failure", func() {
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
 		writeConf([]byte(secondConf), secondPath)
 		defer removeConf(secondPath)
 
@@ -140,7 +139,7 @@ var _ = Describe("Podman network", func() {
 	It("podman network rm", func() {
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
 		writeConf([]byte(secondConf), secondPath)
 		defer removeConf(secondPath)
 
@@ -168,11 +167,16 @@ var _ = Describe("Podman network", func() {
 	It("podman network inspect", func() {
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
 		writeConf([]byte(secondConf), secondPath)
 		defer removeConf(secondPath)
 
-		session := podmanTest.Podman([]string{"network", "inspect", "podman-integrationtest", "podman"})
+		expectedNetworks := []string{"podman-integrationtest"}
+		if !rootless.IsRootless() {
+			// rootful image contains "podman/cni/87-podman-bridge.conflist" for "podman" network
+			expectedNetworks = append(expectedNetworks, "podman")
+		}
+		session := podmanTest.Podman(append([]string{"network", "inspect"}, expectedNetworks...))
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
@@ -181,7 +185,7 @@ var _ = Describe("Podman network", func() {
 	It("podman network inspect", func() {
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
 		writeConf([]byte(secondConf), secondPath)
 		defer removeConf(secondPath)
 
