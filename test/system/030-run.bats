@@ -294,11 +294,22 @@ echo $rand        |   0 | $rand
     run_podman run -d --userns=keep-id $IMAGE sh -c 'while ! test -e /stop; do sleep 0.1; done'
     cid="$output"
 
+    # Assign a UID that is (a) not in our image /etc/passwd and (b) not
+    # the same as that of the user running the test script; this guarantees
+    # that the added passwd entry will be what we expect.
+    #
+    # For GID, we have to use one that already exists in the container. And
+    # unfortunately, 'adduser' requires a string name. We use 999:ping
+    local uid=4242
+    if [[ $uid == $(id -u) ]]; then
+        uid=4343
+    fi
+
     gecos="$(random_string 6) $(random_string 8)"
-    run_podman exec --user root $cid adduser -D -g "$gecos" -s /bin/sh newuser3
+    run_podman exec --user root $cid adduser -u $uid -G ping -D -g "$gecos" -s /bin/sh newuser3
     is "$output" "" "output from adduser"
     run_podman exec $cid tail -1 /etc/passwd
-    is "$output" "newuser3:x:1000:1000:$gecos:/home/newuser3:/bin/sh" \
+    is "$output" "newuser3:x:$uid:999:$gecos:/home/newuser3:/bin/sh" \
        "newuser3 added to /etc/passwd in container"
 
     run_podman exec $cid touch /stop

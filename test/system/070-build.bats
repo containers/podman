@@ -12,7 +12,7 @@ load helpers
     rand_content=$(random_string 50)
 
     tmpdir=$PODMAN_TMPDIR/build-test
-    run mkdir -p $tmpdir || die "Could not mkdir $tmpdir"
+    mkdir -p $tmpdir
     dockerfile=$tmpdir/Dockerfile
     cat >$dockerfile <<EOF
 FROM $IMAGE
