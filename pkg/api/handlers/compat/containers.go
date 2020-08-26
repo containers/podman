@@ -319,6 +319,14 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		SizeRootFs:      &inspect.SizeRootFs,
 	}
 
+	// set Path and Args
+	processArgs := l.Config().Spec.Process.Args
+	if len(processArgs) > 0 {
+		cb.Path = processArgs[0]
+	}
+	if len(processArgs) > 1 {
+		cb.Args = processArgs[1:]
+	}
 	stopTimeout := int(l.StopTimeout())
 
 	exposedPorts := make(nat.PortSet)
@@ -346,7 +354,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		OpenStdin:       inspect.Config.OpenStdin,
 		StdinOnce:       inspect.Config.StdinOnce,
 		Env:             inspect.Config.Env,
-		Cmd:             inspect.Config.Cmd,
+		Cmd:             l.Command(),
 		Healthcheck:     nil,
 		ArgsEscaped:     false,
 		Image:           imageName,

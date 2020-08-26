@@ -180,7 +180,16 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		g.AddMount(cgroupMnt)
 	}
 	g.SetProcessCwd(config.WorkDir)
-	g.SetProcessArgs(config.Command)
+
+	ProcessArgs := make([]string, 0)
+	if len(config.Entrypoint) > 0 {
+		ProcessArgs = config.Entrypoint
+	}
+	if len(config.Command) > 0 {
+		ProcessArgs = append(ProcessArgs, config.Command...)
+	}
+	g.SetProcessArgs(ProcessArgs)
+
 	g.SetProcessTerminal(config.Tty)
 
 	for key, val := range config.Annotations {

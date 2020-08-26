@@ -87,20 +87,21 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		workDir = input.WorkingDir
 	}
 
+	// Only use image's Cmd when the user does not set the entrypoint
+	if input.Entrypoint == nil && len(input.Cmd) == 0 {
+		cmdSlice, err := newImage.Cmd(ctx)
+		if err != nil {
+			return createconfig.CreateConfig{}, err
+		}
+		input.Cmd = cmdSlice
+	}
+
 	if input.Entrypoint == nil {
 		entrypointSlice, err := newImage.Entrypoint(ctx)
 		if err != nil {
 			return createconfig.CreateConfig{}, err
 		}
 		input.Entrypoint = entrypointSlice
-	}
-
-	if len(input.Cmd) == 0 {
-		cmdSlice, err := newImage.Cmd(ctx)
-		if err != nil {
-			return createconfig.CreateConfig{}, err
-		}
-		input.Cmd = cmdSlice
 	}
 
 	stopTimeout := containerConfig.Engine.StopTimeout
