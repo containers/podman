@@ -215,6 +215,10 @@ Note: if the user only has access rights via a group, accessing the device
 from inside a rootless container will fail. The **crun**(1) runtime offers a
 workaround for this by adding the option **--annotation run.oci.keep_original_groups=1**.
 
+Podman may load kernel modules required for using the specified
+device. The devices that podman will load modules when necessary are:
+/dev/fuse.
+
 **--device-cgroup-rule**="type major:minor mode"
 
 Add a rule to the cgroup allowed devices list. The rule is expected to be in the format specified in the Linux kernel documentation (Documentation/cgroup-v1/devices.txt):
