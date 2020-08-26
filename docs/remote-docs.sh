@@ -87,6 +87,16 @@ function pub_pages() {
     done
 }
 
+## sed syntax is different on darwin and linux
+## sed --help fails on mac, meaning we have to use mac syntax
+function sed_os(){
+    if sed --help > /dev/null 2>&1 ; then
+        $(sed -i "$@")
+    else
+        $(sed -i "" "$@")
+    fi
+}
+
 ## rename renames podman-remote.ext to podman.ext, and fixes up contents to reflect change
 function rename (){
     if [[ "$PLATFORM" != linux ]]; then
@@ -94,14 +104,14 @@ function rename (){
         local ext=${remote##*.}
         mv $remote $TARGET/podman.$ext
 
-        $(sed -i "s/podman\\\*-remote/podman/g" $TARGET/podman.$ext)
-        $(sed -i "s/A\ remote\ CLI\ for\ Podman\:\ //g" $TARGET/podman.$ext)
+        sed_os "s/podman\\\*-remote/podman/g" $TARGET/podman.$ext
+        sed_os "s/A\ remote\ CLI\ for\ Podman\:\ //g" $TARGET/podman.$ext
         case $PLATFORM in
         darwin|linux)
-            $(sed -i "s/Podman\\\*-remote/Podman\ for\ Mac/g" $TARGET/podman.$ext)
+            sed_os "s/Podman\\\*-remote/Podman\ for\ Mac/g" $TARGET/podman.$ext
         ;;
         windows)
-            $(sed -i "s/Podman\\\*-remote/Podman\ for\ Windows/g" $TARGET/podman.$ext)
+            sed_os "s/Podman\\\*-remote/Podman\ for\ Windows/g" $TARGET/podman.$ext
         ;;
         esac
     fi
