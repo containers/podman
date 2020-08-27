@@ -436,6 +436,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		Quiet:                   flags.Quiet,
 		RemoveIntermediateCtrs:  flags.Rm,
 		ReportWriter:            reporter,
+		Runtime:                 containerConfig.RuntimePath,
 		RuntimeArgs:             runtimeFlags,
 		SignBy:                  flags.SignBy,
 		SignaturePolicyPath:     flags.SignaturePolicy,
