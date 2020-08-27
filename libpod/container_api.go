@@ -1,18 +1,14 @@
 package libpod
 
 import (
-	"bufio"
 	"context"
 	"io/ioutil"
-	"net"
+	"net/http"
 	"os"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
-	"github.com/containers/podman/v2/libpod/logs"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -267,15 +263,10 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 // over the socket; if this is not set, but streamLogs is, only the logs will be
 // sent.
 // At least one of streamAttach and streamLogs must be set.
-func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, streamAttach, streamLogs bool) (deferredErr error) {
-	isTerminal := false
-	if c.config.Spec.Process != nil {
-		isTerminal = c.config.Spec.Process.Terminal
-	}
-	// Ensure our contract of writing errors to and closing the HTTP conn is
-	// honored.
+func (c *Container) HTTPAttach(r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, streamAttach, streamLogs bool, hijackDone chan<- bool) error {
+	// Ensure we don't leak a goroutine if we exit before hijack completes.
 	defer func() {
-		hijackWriteErrorAndClose(deferredErr, c.ID(), isTerminal, httpCon, httpBuf)
+		close(hijackDone)
 	}()
 
 	if !c.batched {
@@ -299,74 +290,8 @@ func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, stre
 
 	logrus.Infof("Performing HTTP Hijack attach to container %s", c.ID())
 
-	logSize := 0
-	if streamLogs {
-		// Get all logs for the container
-		logChan := make(chan *logs.LogLine)
-		logOpts := new(logs.LogOptions)
-		logOpts.Tail = -1
-		logOpts.WaitGroup = new(sync.WaitGroup)
-		errChan := make(chan error)
-		go func() {
-			var err error
-			// In non-terminal mode we need to prepend with the
-			// stream header.
-			logrus.Debugf("Writing logs for container %s to HTTP attach", c.ID())
-			for logLine := range logChan {
-				if !isTerminal {
-					device := logLine.Device
-					var header []byte
-					headerLen := uint32(len(logLine.Msg))
-					logSize += len(logLine.Msg)
-					switch strings.ToLower(device) {
-					case "stdin":
-						header = makeHTTPAttachHeader(0, headerLen)
-					case "stdout":
-						header = makeHTTPAttachHeader(1, headerLen)
-					case "stderr":
-						header = makeHTTPAttachHeader(2, headerLen)
-					default:
-						logrus.Errorf("Unknown device for log line: %s", device)
-						header = makeHTTPAttachHeader(1, headerLen)
-					}
-					_, err = httpBuf.Write(header)
-					if err != nil {
-						break
-					}
-				}
-				_, err = httpBuf.Write([]byte(logLine.Msg))
-				if err != nil {
-					break
-				}
-				_, err = httpBuf.Write([]byte("\n"))
-				if err != nil {
-					break
-				}
-				err = httpBuf.Flush()
-				if err != nil {
-					break
-				}
-			}
-			errChan <- err
-		}()
-		go func() {
-			logOpts.WaitGroup.Wait()
-			close(logChan)
-		}()
-		if err := c.ReadLog(context.Background(), logOpts, logChan); err != nil {
-			return err
-		}
-		logrus.Debugf("Done reading logs for container %s, %d bytes", c.ID(), logSize)
-		if err := <-errChan; err != nil {
-			return err
-		}
-	}
-	if !streamAttach {
-		return nil
-	}
-
 	c.newContainerEvent(events.Attach)
-	return c.ociRuntime.HTTPAttach(c, httpCon, httpBuf, streams, detachKeys, cancel)
+	return c.ociRuntime.HTTPAttach(c, r, w, streams, detachKeys, cancel, hijackDone, streamAttach, streamLogs)
 }
 
 // AttachResize resizes the container's terminal, which is displayed by Attach

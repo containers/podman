@@ -1,9 +1,8 @@
 package libpod
 
 import (
-	"bufio"
 	"fmt"
-	"net"
+	"net/http"
 	"path/filepath"
 	"sync"
 
@@ -111,7 +110,7 @@ func (r *MissingRuntime) UnpauseContainer(ctr *Container) error {
 }
 
 // HTTPAttach is not available as the runtime is missing
-func (r *MissingRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) error {
+func (r *MissingRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) error {
 	return r.printError()
 }
 
@@ -126,7 +125,7 @@ func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options
 }
 
 // ExecContainerHTTP is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, cancel <-chan bool) (int, chan error, error) {
+func (r *MissingRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 

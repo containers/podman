@@ -46,6 +46,8 @@ func Attach(ctx context.Context, nameOrID string, detachKeys *string, logs, stre
 		stderr = (io.Writer)(nil)
 	}
 
+	logrus.Infof("Going to attach to container %q", nameOrID)
+
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err

@@ -1,8 +1,7 @@
 package libpod
 
 import (
-	"bufio"
-	"net"
+	"net/http"
 
 	"github.com/containers/podman/v2/libpod/define"
 	"k8s.io/client-go/tools/remotecommand"
@@ -63,7 +62,7 @@ type OCIRuntime interface {
 	// used instead. Detach keys of "" will disable detaching via keyboard.
 	// The streams parameter will determine which streams to forward to the
 	// client.
-	HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) error
+	HTTPAttach(ctr *Container, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) error
 	// AttachResize resizes the terminal in use by the given container.
 	AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error
 
@@ -80,7 +79,7 @@ type OCIRuntime interface {
 	// Maintains the same invariants as ExecContainer (returns on session
 	// start, with a goroutine running in the background to handle attach).
 	// The HTTP attach itself maintains the same invariants as HTTPAttach.
-	ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, cancel <-chan bool) (int, chan error, error)
+	ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool) (int, chan error, error)
 	// ExecContainerDetached executes a command in a running container, but
 	// does not attach to it. Returns the PID of the exec session and an
 	// error (if starting the exec session failed)

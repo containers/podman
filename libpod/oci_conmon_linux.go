@@ -5,16 +5,19 @@ package libpod
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"text/template"
 	"time"
@@ -22,6 +25,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/logs"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/lookup"
@@ -503,7 +507,9 @@ func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
 // this function returns.
 // If this is a container with a terminal, we will stream raw. If it is not, we
 // will stream with an 8-byte header to multiplex STDOUT and STDERR.
-func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) (deferredErr error) {
+// Returns any errors that occurred, and whether the connection was successfully
+// hijacked before that error occurred.
+func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) (deferredErr error) {
 	isTerminal := false
 	if ctr.config.Spec.Process != nil {
 		isTerminal = ctr.config.Spec.Process.Terminal
@@ -521,17 +527,21 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf
 	}
 	socketPath := buildSocketPath(attachSock)
 
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
-	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
-	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			logrus.Errorf("unable to close container %s attach socket: %q", ctr.ID(), err)
+	var conn *net.UnixConn
+	if streamAttach {
+		newConn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
+		if err != nil {
+			return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
 		}
-	}()
+		conn = newConn
+		defer func() {
+			if err := conn.Close(); err != nil {
+				logrus.Errorf("unable to close container %s attach socket: %q", ctr.ID(), err)
+			}
+		}()
 
-	logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), socketPath)
+		logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), socketPath)
+	}
 
 	detachString := ctr.runtime.config.Engine.DetachKeys
 	if detachKeys != nil {
@@ -553,6 +563,111 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf
 		attachStderr = streams.Stderr
 		attachStdin = streams.Stdin
 	}
+
+	logrus.Debugf("Going to hijack container %s attach connection", ctr.ID())
+
+	// Alright, let's hijack.
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		return errors.Errorf("unable to hijack connection")
+	}
+
+	httpCon, httpBuf, err := hijacker.Hijack()
+	if err != nil {
+		return errors.Wrapf(err, "error hijacking connection")
+	}
+
+	hijackDone <- true
+
+	writeHijackHeader(req, httpBuf)
+
+	// Force a flush after the header is written.
+	if err := httpBuf.Flush(); err != nil {
+		return errors.Wrapf(err, "error flushing HTTP hijack header")
+	}
+
+	defer func() {
+		hijackWriteErrorAndClose(deferredErr, ctr.ID(), isTerminal, httpCon, httpBuf)
+	}()
+
+	logrus.Debugf("Hijack for container %s attach session done, ready to stream", ctr.ID())
+
+	// TODO: This is gross. Really, really gross.
+	// I want to say we should read all the logs into an array before
+	// calling this, in container_api.go, but that could take a lot of
+	// memory...
+	// On the whole, we need to figure out a better way of doing this,
+	// though.
+	logSize := 0
+	if streamLogs {
+		logrus.Debugf("Will stream logs for container %s attach session", ctr.ID())
+
+		// Get all logs for the container
+		logChan := make(chan *logs.LogLine)
+		logOpts := new(logs.LogOptions)
+		logOpts.Tail = -1
+		logOpts.WaitGroup = new(sync.WaitGroup)
+		errChan := make(chan error)
+		go func() {
+			var err error
+			// In non-terminal mode we need to prepend with the
+			// stream header.
+			logrus.Debugf("Writing logs for container %s to HTTP attach", ctr.ID())
+			for logLine := range logChan {
+				if !isTerminal {
+					device := logLine.Device
+					var header []byte
+					headerLen := uint32(len(logLine.Msg))
+					logSize += len(logLine.Msg)
+					switch strings.ToLower(device) {
+					case "stdin":
+						header = makeHTTPAttachHeader(0, headerLen)
+					case "stdout":
+						header = makeHTTPAttachHeader(1, headerLen)
+					case "stderr":
+						header = makeHTTPAttachHeader(2, headerLen)
+					default:
+						logrus.Errorf("Unknown device for log line: %s", device)
+						header = makeHTTPAttachHeader(1, headerLen)
+					}
+					_, err = httpBuf.Write(header)
+					if err != nil {
+						break
+					}
+				}
+				_, err = httpBuf.Write([]byte(logLine.Msg))
+				if err != nil {
+					break
+				}
+				_, err = httpBuf.Write([]byte("\n"))
+				if err != nil {
+					break
+				}
+				err = httpBuf.Flush()
+				if err != nil {
+					break
+				}
+			}
+			errChan <- err
+		}()
+		go func() {
+			logOpts.WaitGroup.Wait()
+			close(logChan)
+		}()
+		if err := ctr.ReadLog(context.Background(), logOpts, logChan); err != nil {
+			return err
+		}
+		logrus.Debugf("Done reading logs for container %s, %d bytes", ctr.ID(), logSize)
+		if err := <-errChan; err != nil {
+			return err
+		}
+	}
+	if !streamAttach {
+		logrus.Debugf("Done streaming logs for container %s attach, exiting as attach streaming not requested", ctr.ID())
+		return nil
+	}
+
+	logrus.Debugf("Forwarding attach output for container %s", ctr.ID())
 
 	// Handle STDOUT/STDERR
 	go func() {

@@ -1,12 +1,7 @@
 package compat
 
 import (
-	"bufio"
-	"fmt"
-	"io"
-	"net"
 	"net/http"
-	"strings"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
@@ -97,75 +92,30 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	connection, buffer, err := AttachConnection(w, r)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	logrus.Debugf("Hijack for attach of container %s successful", ctr.ID())
+	idleTracker := r.Context().Value("idletracker").(*idletracker.IdleTracker)
+	hijackChan := make(chan bool, 1)
 
 	// Perform HTTP attach.
 	// HTTPAttach will handle everything about the connection from here on
 	// (including closing it and writing errors to it).
-	if err := ctr.HTTPAttach(connection, buffer, streams, detachKeys, nil, query.Stream, query.Logs); err != nil {
+	if err := ctr.HTTPAttach(r, w, streams, detachKeys, nil, query.Stream, query.Logs, hijackChan); err != nil {
+		hijackComplete := <-hijackChan
+
 		// We can't really do anything about errors anymore. HTTPAttach
 		// should be writing them to the connection.
 		logrus.Errorf("Error attaching to container %s: %v", ctr.ID(), err)
+
+		if hijackComplete {
+			// We do need to tell the idle tracker that the
+			// connection has been closed, though. We can guarantee
+			// that is true after HTTPAttach exits.
+			idleTracker.TrackHijackedClosed()
+		} else {
+			// A hijack was not successfully completed. We need to
+			// report the error normally.
+			utils.InternalServerError(w, err)
+		}
 	}
 
 	logrus.Debugf("Attach for container %s completed successfully", ctr.ID())
-}
-
-type HijackedConnection struct {
-	net.Conn                             // Connection
-	idleTracker *idletracker.IdleTracker // Connection tracker
-}
-
-func (c HijackedConnection) Close() error {
-	logrus.Debugf("Hijacked connection closed")
-
-	c.idleTracker.TrackHijackedClosed()
-	return c.Conn.Close()
-}
-
-func AttachConnection(w http.ResponseWriter, r *http.Request) (net.Conn, *bufio.ReadWriter, error) {
-	idleTracker := r.Context().Value("idletracker").(*idletracker.IdleTracker)
-
-	// Hijack the connection
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		return nil, nil, errors.Errorf("unable to hijack connection")
-	}
-
-	connection, buffer, err := hijacker.Hijack()
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error hijacking connection")
-	}
-	trackedConnection := HijackedConnection{
-		Conn:        connection,
-		idleTracker: idleTracker,
-	}
-
-	WriteAttachHeaders(r, trackedConnection)
-
-	return trackedConnection, buffer, nil
-}
-
-func WriteAttachHeaders(r *http.Request, connection io.Writer) {
-	// AttachHeader is the literal header sent for upgraded/hijacked connections for
-	// attach, sourced from Docker at:
-	// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
-	// Using literally to ensure compatibility with existing clients.
-	c := r.Header.Get("Connection")
-	proto := r.Header.Get("Upgrade")
-	if len(proto) == 0 || !strings.EqualFold(c, "Upgrade") {
-		// OK - can't upgrade if not requested or protocol is not specified
-		fmt.Fprintf(connection,
-			"HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n")
-	} else {
-		// Upraded
-		fmt.Fprintf(connection,
-			"HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: %s\r\n\r\n",
-			proto)
-	}
 }
