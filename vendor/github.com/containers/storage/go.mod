@@ -1,3 +1,5 @@
+go 1.15
+
 module github.com/containers/storage
 
 require (
@@ -6,7 +8,7 @@ require (
 	github.com/Microsoft/hcsshim v0.8.9
 	github.com/docker/go-units v0.4.0
 	github.com/hashicorp/go-multierror v1.1.0
-	github.com/klauspost/compress v1.10.10
+	github.com/klauspost/compress v1.10.11
 	github.com/klauspost/pgzip v1.2.4
 	github.com/mattn/go-shellwords v1.0.10
 	github.com/mistifyio/go-zfs v2.1.1+incompatible
@@ -25,5 +27,3 @@ require (
 	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775
 	gotest.tools v2.2.0+incompatible
 )
-
-go 1.13

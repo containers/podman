@@ -612,11 +612,11 @@ func (c *ContainersConfig) Validate() error {
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
-		return fmt.Errorf("log size max should be negative or >= %d", OCIBufSize)
+		return errors.Errorf("log size max should be negative or >= %d", OCIBufSize)
 	}
 
 	if _, err := units.FromHumanSize(c.ShmSize); err != nil {
-		return fmt.Errorf("invalid --shm-size %s, %q", c.ShmSize, err)
+		return errors.Errorf("invalid --shm-size %s, %q", c.ShmSize, err)
 	}
 
 	return nil
@@ -759,15 +759,13 @@ func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []s
 //    '/dev/sdc:/dev/xvdc"
 //    '/dev/sdc:/dev/xvdc:rwm"
 //    '/dev/sdc:rm"
-func Device(device string) (string, string, string, error) {
-	src := ""
-	dst := ""
-	permissions := "rwm"
+func Device(device string) (src, dst, permissions string, err error) {
+	permissions = "rwm"
 	split := strings.Split(device, ":")
 	switch len(split) {
 	case 3:
 		if !IsValidDeviceMode(split[2]) {
-			return "", "", "", fmt.Errorf("invalid device mode: %s", split[2])
+			return "", "", "", errors.Errorf("invalid device mode: %s", split[2])
 		}
 		permissions = split[2]
 		fallthrough
@@ -775,19 +773,19 @@ func Device(device string) (string, string, string, error) {
 		if IsValidDeviceMode(split[1]) {
 			permissions = split[1]
 		} else {
-			if len(split[1]) == 0 || split[1][0] != '/' {
-				return "", "", "", fmt.Errorf("invalid device mode: %s", split[1])
+			if split[1] == "" || split[1][0] != '/' {
+				return "", "", "", errors.Errorf("invalid device mode: %s", split[1])
 			}
 			dst = split[1]
 		}
 		fallthrough
 	case 1:
 		if !strings.HasPrefix(split[0], "/dev/") {
-			return "", "", "", fmt.Errorf("invalid device mode: %s", split[0])
+			return "", "", "", errors.Errorf("invalid device mode: %s", split[0])
 		}
 		src = split[0]
 	default:
-		return "", "", "", fmt.Errorf("invalid device specification: %s", device)
+		return "", "", "", errors.Errorf("invalid device specification: %s", device)
 	}
 
 	if dst == "" {
@@ -908,21 +906,6 @@ func Path() string {
 	return OverrideContainersConfig
 }
 
-func customConfigFile() (string, error) {
-	path := os.Getenv("CONTAINERS_CONF")
-	if path != "" {
-		return path, nil
-	}
-	if unshare.IsRootless() {
-		path, err := rootlessConfigPath()
-		if err != nil {
-			return "", err
-		}
-		return path, nil
-	}
-	return OverrideContainersConfig, nil
-}
-
 // ReadCustomConfig reads the custom config and only generates a config based on it
 // If the custom config file does not exists, function will return an empty config
 func ReadCustomConfig() (*Config, error) {
@@ -943,7 +926,7 @@ func ReadCustomConfig() (*Config, error) {
 
 	newConfig := &Config{}
 	if _, err := os.Stat(path); err == nil {
-		if err = readConfigFromFile(path, newConfig); err != nil {
+		if err := readConfigFromFile(path, newConfig); err != nil {
 			return nil, err
 		}
 	} else {
@@ -990,13 +973,12 @@ func Reload() (*Config, error) {
 	return defConfig()
 }
 
-func (c *Config) ActiveDestination() (string, string, error) {
+func (c *Config) ActiveDestination() (uri, identity string, err error) {
 	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
-		var ident string
 		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
-			ident = v
+			identity = v
 		}
-		return uri, ident, nil
+		return uri, identity, nil
 	}
 
 	switch {

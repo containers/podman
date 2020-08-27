@@ -1,7 +1,6 @@
 package sysinfo
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroupv2"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -16,7 +16,7 @@ import (
 func findCgroupMountpoints() (map[string]string, error) {
 	cgMounts, err := cgroups.GetCgroupMounts(false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse cgroup information: %v", err)
+		return nil, errors.Wrap(err, "parse cgroup information")
 	}
 	mps := make(map[string]string)
 	for _, m := range cgMounts {
@@ -253,8 +253,8 @@ func cgroupEnabled(mountPoint, name string) bool {
 	return err == nil
 }
 
-func readProcBool(path string) bool {
-	val, err := ioutil.ReadFile(path)
+func readProcBool(file string) bool {
+	val, err := ioutil.ReadFile(file)
 	if err != nil {
 		return false
 	}

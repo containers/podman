@@ -5,10 +5,10 @@ package createconfig
 import (
 	"io/ioutil"
 
+	goSeccomp "github.com/containers/common/pkg/seccomp"
 	"github.com/containers/podman/v2/pkg/seccomp"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	goSeccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
 )
 

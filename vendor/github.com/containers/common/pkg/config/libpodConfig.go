@@ -3,7 +3,6 @@ package config
 /* libpodConfig.go contains deprecated functionality and should not be used any longer */
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -168,7 +167,7 @@ type ConfigFromLibpod struct {
 	// EventsLogFilePath is where the events log is stored.
 	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
 
-	//DetachKeys is the sequence of keys used to detach a container.
+	// DetachKeys is the sequence of keys used to detach a container.
 	DetachKeys string `toml:"detach_keys,omitempty"`
 
 	// SDNotify tells Libpod to allow containers to notify the host systemd of
@@ -247,7 +246,7 @@ func readLibpodConfigFromFile(path string, config *ConfigFromLibpod) (*ConfigFro
 	logrus.Debugf("Reading configuration file %q", path)
 	_, err := toml.DecodeFile(path, config)
 	if err != nil {
-		return nil, fmt.Errorf("unable to decode configuration %v: %v", path, err)
+		return nil, errors.Wrapf(err, "decode configuration %s", path)
 	}
 
 	return config, err

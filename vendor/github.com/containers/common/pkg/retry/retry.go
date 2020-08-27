@@ -2,6 +2,7 @@ package retry
 
 import (
 	"context"
+	"io"
 	"math"
 	"net"
 	"net/url"
@@ -17,7 +18,8 @@ import (
 
 // RetryOptions defines the option to retry
 type RetryOptions struct {
-	MaxRetry int // The number of times to possibly retry
+	MaxRetry int           // The number of times to possibly retry
+	Delay    time.Duration // The delay to use between retries, if set
 }
 
 // RetryIfNecessary retries the operation in exponential backoff with the retryOptions
@@ -25,6 +27,9 @@ func RetryIfNecessary(ctx context.Context, operation func() error, retryOptions 
 	err := operation()
 	for attempt := 0; err != nil && isRetryable(err) && attempt < retryOptions.MaxRetry; attempt++ {
 		delay := time.Duration(int(math.Pow(2, float64(attempt)))) * time.Second
+		if retryOptions.Delay != 0 {
+			delay = retryOptions.Delay
+		}
 		logrus.Infof("Warning: failed, retrying in %s ... (%d/%d)", delay, attempt+1, retryOptions.MaxRetry)
 		select {
 		case <-time.After(delay):
@@ -58,7 +63,10 @@ func isRetryable(err error) bool {
 		return true
 	case *net.OpError:
 		return isRetryable(e.Err)
-	case *url.Error:
+	case *url.Error: // This includes errors returned by the net/http client.
+		if e.Err == io.EOF { // Happens when a server accepts a HTTP connection and sends EOF
+			return true
+		}
 		return isRetryable(e.Err)
 	case syscall.Errno:
 		return e != syscall.ECONNREFUSED

@@ -1,0 +1,37 @@
+# Travis CI configuration for libseccomp-golang
+
+# https://docs.travis-ci.com/user/reference/bionic
+# https://wiki.ubuntu.com/Releases
+
+dist: bionic
+sudo: false
+
+notifications:
+  email:
+    on_success: always
+    on_failure: always
+
+arch:
+  - amd64
+
+os:
+  - linux
+
+language: go
+
+addons:
+  apt:
+    packages:
+      - build-essential
+      # TODO: use the main libseccomp git repo instead of a distro package
+      - libseccomp2
+      - libseccomp-dev
+
+install:
+  - go get -u golang.org/x/lint/golint
+
+# run all of the tests independently, fail if any of the tests error
+script:
+  - make check-syntax
+  - make lint
+  - make check
