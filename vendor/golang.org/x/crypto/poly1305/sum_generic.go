@@ -41,7 +41,8 @@ func newMACGeneric(key *[32]byte) macGeneric {
 // the value of [x0, x1, x2] is x[0] + x[1] * 2⁶⁴ + x[2] * 2¹²⁸.
 type macState struct {
 	// h is the main accumulator. It is to be interpreted modulo 2¹³⁰ - 5, but
-	// can grow larger during and after rounds.
+	// can grow larger during and after rounds. It must, however, remain below
+	// 2 * (2¹³⁰ - 5).
 	h [3]uint64
 	// r and s are the private key components.
 	r [2]uint64
