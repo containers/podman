@@ -12,21 +12,22 @@ function usage() {
     echo >&2 "$0 PLATFORM TARGET SOURCES..."
     echo >&2 "PLATFORM: Is either linux, darwin or windows."
     echo >&2 "TARGET: Is the directory where files will be staged. eg, docs/build/remote/linux"
-    echo >&2 "SOURCES: Are the directories of source files. eg, docs/markdown"
+    echo >&2 "SOURCES: Are the directories of source files. eg, docs/source/markdown"
 }
 
 function fail() {
-    echo >&2 -e "$@\n"
-    usage
+    echo >&2 -e "$(dirname $0): $@\n"
     exit 1
 }
 
 case $PLATFORM in
 darwin|linux)
     PUBLISHER=man_fn
+    ext=1
     ;;
 windows)
     PUBLISHER=html_fn
+    ext=1.md
     ;;
 -help)
     usage
@@ -54,7 +55,7 @@ function man_fn() {
     local dir=$(dirname $page)
 
     if [[ ! -f $page ]]; then
-        page=$dir/links/${file%.*}.1
+        page=$dir/links/${file%.*}.$ext
     fi
     install $page $TARGET/${file%%.*}.1
 }
@@ -72,6 +73,22 @@ function html_fn() {
     pandoc --ascii --lua-filter=docs/links-to-html.lua -o $TARGET/${file%%.*}.html $markdown
 }
 
+# Run 'podman help' (possibly against a subcommand, e.g. 'podman help image')
+# and return a list of each first word under 'Available Commands', that is,
+# the command name but not its description.
+function podman_commands() {
+    $PODMAN help "$@" |\
+        awk '/^Available Commands:/{ok=1;next}/^Flags:/{ok=0}ok { print $1 }' |\
+        grep .
+}
+
+function podman_all_commands(){
+    for cmd in $(podman_commands "$@") ; do
+		echo $@ $cmd
+        podman_all_commands $@ $cmd
+	done
+}
+
 ## pub_pages finds and publishes the remote manual pages
 function pub_pages() {
     local source=$1
@@ -80,12 +97,19 @@ function pub_pages() {
         $publisher $f
     done
 
-    for c in "container" "image" "pod" "volume" ""; do
-        local cmd=${c:+-$c}
-        for s in $($PODMAN $c --help | sed -n '/^Available Commands:/,/^Flags:/p' | sed -e '1d;$d' -e '/^$/d' | awk '{print $1}'); do
-            $publisher $(echo $source/podman$cmd-$s.*)
-        done
-    done
+
+    while IFS= read -r cmd; do
+        file="podman-${cmd// /-}"
+
+        # Source dir may have man (.1) files (linux/darwin) or .1.md (windows)
+        # but the links subdir will always be .1 (man) files
+        if [ -f $source/$file.$ext -o -f $source/links/$file.1 ]; then
+            $publisher $(echo $source/$file.$ext)
+        else
+            # This is worth failing CI for
+            fail "no doc file nor link $source/$file.$ext for 'podman $cmd'"
+        fi
+    done <<< "$(podman_all_commands)"
 }
 
 ## sed syntax is different on darwin and linux
