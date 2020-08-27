@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/v2/libpod/define"
@@ -73,7 +74,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 
 			initCommand, err := ioutil.ReadFile("/proc/1/comm")
 			// On errors, default to systemd
-			runsUnderSystemd := err != nil || string(initCommand) == "systemd"
+			runsUnderSystemd := err != nil || strings.TrimRight(string(initCommand), "\n") == "systemd"
 
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
 			if runsUnderSystemd || conf.Engine.CgroupManager == config.SystemdCgroupsManager {
