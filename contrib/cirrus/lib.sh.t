@@ -84,7 +84,7 @@ BAR=1
 test_rev "FOO BAR" 0 ''
 
 ###############################################################################
-# tests for test_okay()
+# tests for item_test()
 
 function test_item_test {
     local exp_msg=$1
@@ -117,47 +117,5 @@ line2"
 test_item_test "ok okay enough" 0 "okay enough" "line 1
 line2" "=" "line 1
 line2"
-
-###############################################################################
-# tests for is_release()
-
-# N/B: Assuming tests run in their own process, so wiping out the local
-# CIRRUS_BASE_SHA CIRRUS_CHANGE_IN_REPO and CIRRUS_TAG will be okay.
-function test_is_release() {
-    CIRRUS_BASE_SHA="$1"
-    CIRRUS_CHANGE_IN_REPO="$2"
-    CIRRUS_TAG="$3"
-    local exp_status=$4
-    local exp_msg=$5
-    local msg
-    msg=$(is_release)
-    local status=$?
-
-    check_result "$msg" "$exp_msg" "is_release(CIRRUS_BASE_SHA='$1' CIRRUS_CHANGE_IN_REPO='$2' CIRRUS_TAG='$3')"
-    check_result "$status" "$exp_status" "is_release(...) returned $status"
-}
-
-#                FROM    TO    TAG    RET    MSG
-test_is_release  ""      ""    ""     "9"     "FATAL: is_release() requires \$CIRRUS_CHANGE_IN_REPO to be non-empty"
-test_is_release  "x"     ""    ""     "9"     "FATAL: is_release() requires \$CIRRUS_CHANGE_IN_REPO to be non-empty"
-
-# post-merge / tag-push testing, FROM will be set 'unknown' by (lib.sh default)
-test_is_release  "unknown" "x" ""     "1"    ""
-# post-merge / tag-push testing, oddball tag is set, FROM will be set 'unknown'
-test_is_release "unknown"  "unknown" "test-tag" "2"    "Found \$RELVER test-tag"
-# post-merge / tag-push testing, sane tag is set, FROM will be set 'unknown'
-test_is_release "unknown"  "unknown" "0.0.0" "0"    "Found \$RELVER 0.0.0"
-# hack/get_ci_vm or PR testing, FROM and TO are set, no tag is set
-test_is_release  "x"     "x"   ""     "1"    ""
-
-# Negative-testing git with this function is very difficult, assume git works
-# test_is_release ... "is_release() failed to fetch tags"
-# test_is_release ... "is_release() failed to parse tags"
-
-BF_V1=$(git rev-parse v1.0.0^)
-AT_V1=$(git rev-parse v1.0.0)
-test_is_release  "$BF_V1" "$BF_V1" "v9.8.7-dev" "2"     "Found \$RELVER v9.8.7-dev"
-test_is_release  "$BF_V1" "$AT_V1" "v9.8.7-dev" "2"     "Found \$RELVER v9.8.7-dev"
-test_is_release  "$BF_V1" "$AT_V1" ""           "0"     "Found \$RELVER v1.0.0"
 
 exit $rc

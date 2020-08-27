@@ -33,9 +33,6 @@ done
 
 # Sometimes environment setup needs to vary between distros
 # Note: This should only be used for environment variables, and temporary workarounds.
-#       Anything externally dependent, should be made fixed-in-time by adding to
-#       contrib/cirrus/packer/*_setup.sh to be incorporated into VM cache-images
-#       (see docs).
 cd "${GOSRC}/"
 case "${OS_RELEASE_ID}" in
     ubuntu)
@@ -43,8 +40,6 @@ case "${OS_RELEASE_ID}" in
     fedora)
         # All SELinux distros need this for systemd-in-a-container
         setsebool container_manage_cgroup true
-
-        workaround_bfq_bug
 
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
             bash "$SCRIPT_BASE/add_second_partition.sh"
@@ -67,14 +62,14 @@ source "$SCRIPT_BASE/lib.sh"
 case "$CG_FS_TYPE" in
     tmpfs)
         warn "Forcing testing with runc instead of crun"
-	# On ubuntu, the default runc is usually not new enough.
-	if [[ "${OS_RELEASE_ID}" == "ubuntu" ]]; then
-        X=$(echo "export OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" | \
-            tee -a /etc/environment) && eval "$X" && echo "$X"
-	else
-        X=$(echo "export OCI_RUNTIME=/usr/bin/runc" | \
-            tee -a /etc/environment) && eval "$X" && echo "$X"
-	fi
+        # On ubuntu, the default runc is usually not new enough.
+        if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
+            X=$(echo "export OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+        else
+            X=$(echo "export OCI_RUNTIME=/usr/bin/runc" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+        fi
         ;;
     cgroup2fs)
         # This is necessary since we've built/installed from source, which uses runc as the default.

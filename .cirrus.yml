@@ -46,16 +46,6 @@ env:
     PRIOR_UBUNTU_CACHE_IMAGE_NAME: "${PRIOR_UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
 
     ####
-    #### Variables for composing new cache-images (used in PR testing) from
-    #### base-images (pre-existing in GCE)
-    ####
-    BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"
-    # Special image w/ nested-libvirt + tools for creating new cache and base images
-    IMAGE_BUILDER_CACHE_IMAGE_NAME: "image-builder-image-1541772081"
-    # Name where this repositories VM images are stored
-    GCP_PROJECT_ID: libpod-218412
-
-    ####
     #### Default to NOT operating in any special-case testing mode
     ####
     SPECIALMODE: "none"  # don't do anything special
@@ -66,8 +56,8 @@ env:
     ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
     ####
-    # Freenode IRC credentials for posting status messages
-    IRCID: ENCRYPTED[0c4a3cc4ecda08bc47cd3d31592be8ae5c2bd0151bf3def00a9afd139ef1ab23a1bd0523319d076c027f9749ddb1f3c8]
+    # Name where this repositories VM images are stored
+    GCP_PROJECT_ID: libpod-218412
     # Service-account client_email - needed to build images
     SERVICE_ACCOUNT: ENCRYPTED[702a8e07e27a6faf7988fcddcc068c2ef2bb182a5aa671f5ccb7fbbfb891c823aa4a7856fb17240766845dbd68bd3f90]
     # Service account username part of client_email - for ssh'ing into VMs
@@ -138,38 +128,24 @@ gating_task:
     # Verify some aspects of ci/related scripts
     ci_script:
         - '${GOSRC}/${SCRIPT_BASE}/lib.sh.t |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh -C ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/packer test'
         - '${GOSRC}/${SCRIPT_BASE}/cirrus_yaml_test.py |& ${TIMESTAMP}'
 
     # Verify expected bash environment (-o pipefail)
     pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
 
 # Ensure these container images can build
 container_image_build_task:
     alias: 'container_image_build'
+    name: "build gate image $DEST_BRANCH branch"
     depends_on:
         - "gating"
 
     # Only run for PRs, quay.io will automatically build after branch-push
     only_if: $CIRRUS_BRANCH != $DEST_BRANCH
 
-    matrix:
-        - name: "build in_podman image ${FEDORA_NAME} "
-          container:
-              dockerfile: Dockerfile
-        - name: "build in_podman image ${UBUNTU_NAME}"
-          container:
-              dockerfile: Dockerfile.ubuntu
-        - name: "build gate image $DEST_BRANCH branch"
-          container:
-              dockerfile: contrib/gate/Dockerfile
-
     container:
-        dockerfile: Dockerfile
+        dockerfile: contrib/gate/Dockerfile
 
     script: make install.remote
 
@@ -179,7 +155,6 @@ container_image_build_task:
 rpmbuild_task:
 
     only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_BRANCH != $DEST_BRANCH
 
@@ -197,18 +172,13 @@ rpmbuild_task:
         - 'make -C ${CIRRUS_WORKING_DIR} -f ${CIRRUS_WORKING_DIR}/.copr/Makefile'
         - 'rpmbuild --rebuild ${CIRRUS_WORKING_DIR}/podman-*.src.rpm'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
-
 # This task runs `make vendor` followed by ./hack/tree_status.sh to check
 # whether the git tree is clean.  The reasoning for that is to make sure
 # that the vendor.conf, the code and the vendored packages in ./vendor are
 # in sync at all times.
 vendor_task:
 
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     depends_on:
         - "gating"
@@ -230,17 +200,12 @@ vendor_task:
         - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
         - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
-
 
 # This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
 # whether the git tree is clean.
 varlink_api_task:
 
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     depends_on:
         - "gating"
@@ -265,9 +230,6 @@ varlink_api_task:
         - '/usr/local/bin/entrypoint.sh BUILDTAGS="varlink" varlink_api_generate |& ${TIMESTAMP}'
         - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
 
 build_each_commit_task:
 
@@ -278,7 +240,6 @@ build_each_commit_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     gce_instance:
@@ -297,9 +258,6 @@ build_each_commit_task:
         - 'git fetch --depth 50 origin $DEST_BRANCH |& ${TIMESTAMP}'
         - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
 
 build_without_cgo_task:
 
@@ -310,7 +268,6 @@ build_without_cgo_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     gce_instance:
@@ -326,9 +283,6 @@ build_without_cgo_task:
     build_without_cgo_script:
         - 'source $SCRIPT_BASE/lib.sh'
         - 'make build-no-cgo'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 # Update metadata on VM images referenced by this repository state
@@ -360,32 +314,6 @@ meta_task:
     script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/update_meta.sh |& ${TIMESTAMP}'
 
 
-# Remove old and disused images based on labels set by meta_task
-image_prune_task:
-
-    # This should ONLY ever run from the master branch, and never
-    # anywhere else so it's behavior is always consistent, even
-    # as new branches are created.
-    only_if: $CIRRUS_BRANCH == "master"
-
-    depends_on:
-        - "meta"
-
-    container:
-        image: "quay.io/libpod/imgprune:master"  # see contrib/imgprune
-        cpu: 1
-        memory: 1
-
-    env:
-        <<: *meta_env_vars
-        GCPJSON: ENCRYPTED[766916fedf780cbc16ac3152f7f73c5d9dcf64768fc6e80b0858c5badd31e7b41f3c864405c814189fd340e5a056ba18]
-        GCPNAME: ENCRYPTED[d6869741209b8cf380adb8a3858cbce4542c9cf115452fcd2024a176b08fce10112e8bf0fbcc2f0033e7b87ef4342b3a]
-
-    timeout_in: 10m
-
-    script: '/usr/local/bin/entrypoint.sh |& ${TIMESTAMP}'
-
-
 # This task does the unit and integration testing for every platform
 testing_task:
 
@@ -399,9 +327,7 @@ testing_task:
         - "container_image_build"
 
     # Only test build cache-images, if that's what's requested
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     matrix:
         - name: "test ${FEDORA_NAME}"
@@ -435,9 +361,6 @@ testing_task:
         path: "*.tar.gz"
         type: "application/x-tar"
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
     always: &standardlogs
         package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
         ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
@@ -460,9 +383,7 @@ special_testing_rootless_task:
         - "build_each_commit"
         - "build_without_cgo"
 
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     env:
         ADD_SECOND_PARTITION: 'true'
@@ -476,9 +397,6 @@ special_testing_rootless_task:
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} system_test'
     apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} apiv2_test'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -494,9 +412,7 @@ special_testing_in_podman_task:
         - "build_each_commit"
         - "build_without_cgo"
 
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     matrix:
         - name: "in-podman ${PRIOR_FEDORA_NAME}"
@@ -515,9 +431,6 @@ special_testing_in_podman_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
     always:
         <<: *standardlogs
 
@@ -530,9 +443,7 @@ special_testing_cross_task:
         - "varlink_api"
         - "vendor"
 
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     matrix:
         - name: 'cross-platform: windows'
@@ -547,9 +458,6 @@ special_testing_cross_task:
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     # When examining a particular run, provide convenient access to release files.
     zip_artifacts:
@@ -568,9 +476,7 @@ special_testing_bindings_task:
         - "varlink_api"
         - "vendor"
 
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     env:
         SPECIALMODE: 'bindings'  # See docs
@@ -580,9 +486,6 @@ special_testing_bindings_task:
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -595,9 +498,7 @@ special_testing_endpoint_task:
         - "varlink_api"
         - "vendor"
 
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     env:
         SPECIALMODE: 'endpoint'  # See docs
@@ -606,95 +507,11 @@ special_testing_endpoint_task:
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
-    always:
-        <<: *standardlogs
-
-
-# Test building of new cache-images for future PR testing, in this PR.
-test_build_cache_images_task:
-
-    only_if: >-
-        $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_TITLE =~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    depends_on:
-        - "gating"
-        - 'container_image_build'
-
-    # VMs created by packer are not cleaned up by cirrus, must allow task to complete
-    auto_cancellation: $CI != "true"
-
-    gce_instance:
-        image_project: $GCP_PROJECT_ID
-        zone: "us-central1-a"
-        cpu: 4
-        memory: "4Gb"
-        disk: 200
-        image_name: "${IMAGE_BUILDER_CACHE_IMAGE_NAME}"
-        scopes:  # required for image building
-            - compute
-            - devstorage.full_control
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_df_script: '${DFCMD}'
-        failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
-
-
-# Test building of new cache-images for future PR testing, in this PR.
-verify_test_built_images_task:
-
-    only_if: >-
-        $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_TITLE =~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-
-    depends_on:
-        - "gating"
-        - "test_build_cache_images"
-
-    gce_instance:
-        # Images generated by test_build_cache_images_task (above)
-        image_name: "${PACKER_BUILDER_NAME}${BUILT_IMAGE_SUFFIX}"
-
-    env:
-        ADD_SECOND_PARTITION: 'true'
-        matrix:
-          - RCLI: 'true'
-          - RCLI: 'false'
-        matrix:
-            PACKER_BUILDER_NAME: "${FEDORA_NAME}"
-            PACKER_BUILDER_NAME: "${PRIOR_FEDORA_NAME}"
-            PACKER_BUILDER_NAME: "${UBUNTU_NAME}"
-            PACKER_BUILDER_NAME: "${PRIOR_UBUNTU_NAME}"
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    installed_packages_script: '$SCRIPT_BASE/logcollector.sh packages'
-    environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    # Verify expectations of built images
-    check_image_script: '$SCRIPT_BASE/check_image.sh |& ${TIMESTAMP}'
-    # Note: A truncated form of normal testing. It only needs to confirm new images
-    # "probably" work.  A full round of testing will happen again after $*_CACHE_IMAGE_NAME
-    # are updated in this or another PR (w/o '***CIRRUS: TEST IMAGES***').
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
-    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
-
     always:
         <<: *standardlogs
 
 
 docs_task:
-
-    # Don't run this when building/testing new VM images
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:IMG.*'
 
     depends_on:
         - "gating"
@@ -724,7 +541,6 @@ success_task:
         - "build_without_cgo"
         - "container_image_build"
         - "meta"
-        - "image_prune"
         - "testing"
         - "rpmbuild"
         - "special_testing_rootless"
@@ -732,8 +548,6 @@ success_task:
         - "special_testing_cross"
         - "special_testing_endpoint"
         - "special_testing_bindings"
-        - "test_build_cache_images"
-        - "verify_test_built_images"
         - "docs"
         - "static_build"
         - "darwin_build"
@@ -749,7 +563,7 @@ success_task:
         cpu: 1
         memory: 1
 
-    success_script: '/usr/local/bin/entrypoint.sh ./$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
+    success_script: /bin/true
 
 # Build the static binary
 static_build_task:
