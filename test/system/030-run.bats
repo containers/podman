@@ -305,4 +305,28 @@ echo $rand        |   0 | $rand
     run_podman wait $cid
 }
 
+@test "podman run --log-driver" {
+    randomlog=$(random_string 30)
+
+    run_podman run --log-driver k8s-file --log-opt path=$PODMAN_TMPDIR/podmantest.log --rm $IMAGE echo $randomlog
+    run grep $randomlog $PODMAN_TMPDIR/podmantest.log
+    is "$output" ".*stdout.*$randomlog" "log should exist in log file"
+
+    run_podman run --log-driver journald --name test-journald $IMAGE echo $randomlog
+    run grep $randomlog <(journalctl)
+    is "$output" ".*$randomlog" "log should exist in journalctl output"
+    run_podman logs test-journald
+    is "$output" ".*$randomlog" "logs can be read from journald"
+
+    run_podman run --log-driver none --name test-none $IMAGE sleep 1
+    run_podman 125 logs test-none
+    is "$output" ".*this container is not logging output" "can not read log when set --log-driver to none"
+
+    run_podman run --log-driver json-file --log-opt path=$PODMAN_TMPDIR/json-file.log --name test-jsonfile $IMAGE echo $randomlog
+    run grep $randomlog $PODMAN_TMPDIR/json-file.log
+    is "$output" ".*stdout.*$randomlog" "json-file aliased to k8s-file for scripting compatibility."
+    run_podman logs test-jsonfile
+    is "$output" ".*stdout.*$randomlog" "logs can be read from log file"
+}
+
 # vim: filetype=sh
