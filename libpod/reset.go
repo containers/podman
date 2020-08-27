@@ -2,12 +2,14 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -103,14 +105,16 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		prevError = err
 	}
 
-	if rootless.IsRootless() {
-		configPath := filepath.Join(os.Getenv("HOME"), ".config/containers")
-		if err := os.RemoveAll(configPath); err != nil {
-			if prevError != nil {
-				logrus.Error(prevError)
-			}
-			prevError = err
+	if storageConfPath, err := storage.DefaultConfigFile(rootless.IsRootless()); err == nil {
+		if _, err = os.Stat(storageConfPath); err == nil {
+			fmt.Printf("A storage.conf file exists at %s\n", storageConfPath)
+			fmt.Println("You should remove this file if you did not modified the configuration.")
 		}
+	} else {
+		if prevError != nil {
+			logrus.Error(prevError)
+		}
+		prevError = err
 	}
 
 	return prevError
