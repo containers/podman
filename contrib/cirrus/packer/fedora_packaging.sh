@@ -153,6 +153,7 @@ INSTALL_PACKAGES=(\
 DOWNLOAD_PACKAGES=(\
     "cri-o-$(get_kubernetes_version)*"
     cri-tools
+    crun
     "kubernetes-$(get_kubernetes_version)*"
     runc
     oci-umount
@@ -169,7 +170,7 @@ $BIGTO ooe.sh $SUDO dnf install -y ${INSTALL_PACKAGES[@]}
 # then re-comment it on the second (once we have the built images).
 # That way this will be dead code in future CI:IMG PRs but will
 # serve as an example for anyone in a similar future situation.
-#   $BIGTO ooe.sh $SUDO dnf --enablerepo=updates-testing -y upgrade crun
+$BIGTO ooe.sh $SUDO dnf --enablerepo=updates-testing -y upgrade crun
 
 [[ ${#REMOVE_PACKAGES[@]} -eq 0 ]] || \
     $LILTO ooe.sh $SUDO dnf erase -y "${REMOVE_PACKAGES[@]}"
