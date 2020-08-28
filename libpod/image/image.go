@@ -1246,7 +1246,12 @@ func areParentAndChild(parent, child *imgspecv1.Image) bool {
 	// the child and candidate parent should share all of the
 	// candidate parent's diff IDs, which together would have
 	// controlled which layers were used
-	if len(parent.RootFS.DiffIDs) > len(child.RootFS.DiffIDs) {
+
+	// issue #7444 describes a panic where the length of child.RootFS.DiffIDs
+	// is checked but child is nil.  Adding a simple band-aid approach to prevent
+	// the problem until the origin of the problem can be worked out in the issue
+	// itself.
+	if child == nil || len(parent.RootFS.DiffIDs) > len(child.RootFS.DiffIDs) {
 		return false
 	}
 	childUsesCandidateDiffs := true
