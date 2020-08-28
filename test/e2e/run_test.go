@@ -1204,4 +1204,16 @@ WORKDIR /madethis`
 		// nonprintables seem to work their way in.
 		Expect(session.OutputToString()).To(Not(ContainSubstring("/bin/sh")))
 	})
+
+	It("podman run a container with log-level (lower case)", func() {
+		session := podmanTest.Podman([]string{"--log-level=info", "run", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run a container with log-level (upper case)", func() {
+		session := podmanTest.Podman([]string{"--log-level=INFO", "run", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })

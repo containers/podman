@@ -226,7 +226,7 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 func loggingHook() {
 	var found bool
 	for _, l := range logLevels {
-		if l == logLevel {
+		if l == strings.ToLower(logLevel) {
 			found = true
 			break
 		}
