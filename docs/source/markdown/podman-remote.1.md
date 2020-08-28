@@ -17,7 +17,9 @@ Podman uses Buildah(1) internally to create container images. Both tools share i
 (not container) storage, hence each can use or manipulate images (but not containers)
 created by the other.
 
-Podman-remote provides a local client interacting with a Podman backend node through a RESTful API tunneled through a ssh connection. In this context, a Podman node is a Linux system with Podman installed on it and the API service activated. Credentials for this session can be passed in using flags, environment variables, or in `podman-remote.conf`
+Podman-remote provides a local client interacting with a Podman backend node through a RESTful API tunneled through a ssh connection. In this context, a Podman node is a Linux system with Podman installed on it and the API service activated. Credentials for this session can be passed in using flags, environment variables, or in `containers.conf`.
+
+The `containers.conf` file should be placed under `$HOME/.config/containers/containers.conf` on Linux and Mac and `%APPDATA%\containers\containers.conf` on Windows.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -31,29 +33,19 @@ Remote connection name
 
 Print usage statement
 
+**--identity**=*path*
+
+Path to ssh identity file. If the identity file has been encrypted, Podman prompts the user for the passphrase.
+If no identity file is provided and no user is given, Podman defaults to the user running the podman command.
+Podman prompts for the login password on the remote server.
+
 **--log-level**=*level*
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic
 
-**--port**=*integer*
+**--url**=*value*
 
-Use an alternative port for the ssh connections.  The default port is 22
-
-**--remote-config-path**=*path*
-
-Alternate path for configuration file
-
-**--remote-host**=*ip*
-
-Remote host IP
-
-**--syslog**
-
-Output logging information to syslog as well as the console
-
-**--username**=*string*
-
-Username on the remote host (defaults to current username)
+URL to access Podman service (default from `containers.conf`, rootless "unix://run/user/$UID/podman/podman.sock" or as root "unix://run/podman/podman.sock).
 
 **--version**
 
