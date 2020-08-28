@@ -45,11 +45,12 @@ func newPodmanConfig() {
 	case "linux":
 		// Some linux clients might only be compiled without ABI
 		// support (e.g., podman-remote).
-		if abiSupport && !remoteOverride {
+		if abiSupport && !IsRemote() {
 			mode = entities.ABIMode
 		} else {
 			mode = entities.TunnelMode
 		}
+
 	default:
 		fmt.Fprintf(os.Stderr, "%s is not a supported OS", runtime.GOOS)
 		os.Exit(1)
