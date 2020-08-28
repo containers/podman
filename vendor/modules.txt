@@ -284,6 +284,8 @@ github.com/fsnotify/fsnotify
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
+# github.com/go-logr/logr v0.2.0
+github.com/go-logr/logr
 # github.com/godbus/dbus/v5 v5.0.3
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.1
@@ -565,7 +567,7 @@ go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
 # go.uber.org/atomic v1.4.0
 go.uber.org/atomic
-# golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
+# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
@@ -585,7 +587,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
+# golang.org/x/net v0.0.0-20200707034311-ab3426394381
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -642,7 +644,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+# google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.27.1
 google.golang.org/grpc/codes
@@ -650,7 +652,7 @@ google.golang.org/grpc/connectivity
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/internal
 google.golang.org/grpc/status
-# google.golang.org/protobuf v1.23.0
+# google.golang.org/protobuf v1.24.0
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -698,7 +700,7 @@ gopkg.in/yaml.v3
 # k8s.io/api v0.18.8
 k8s.io/api/apps/v1
 k8s.io/api/core/v1
-# k8s.io/apimachinery v0.18.8
+# k8s.io/apimachinery v0.19.0
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/apis/meta/v1
@@ -757,9 +759,11 @@ k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 # k8s.io/klog v1.0.0
 k8s.io/klog
+# k8s.io/klog/v2 v2.2.0
+k8s.io/klog/v2
 # k8s.io/utils v0.0.0-20190221042446-c2654d5206da
 k8s.io/utils/integer
-# sigs.k8s.io/structured-merge-diff/v3 v3.0.0
-sigs.k8s.io/structured-merge-diff/v3/value
+# sigs.k8s.io/structured-merge-diff/v4 v4.0.1
+sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
