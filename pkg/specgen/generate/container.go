@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"os"
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/libpod"
@@ -62,14 +63,24 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if err != nil {
 		return nil, err
 	}
-	// Get Default Environment
-	defaultEnvs, err := envLib.ParseSlice(rtc.Containers.Env)
+	// First transform the os env into a map. We need it for the labels later in
+	// any case.
+	osEnv, err := envLib.ParseSlice(os.Environ())
 	if err != nil {
-		return nil, errors.Wrap(err, "Env fields in containers.conf failed to parse")
+		return nil, errors.Wrap(err, "error parsing host environment variables")
 	}
 
+	// Get Default Environment from containers.conf
+	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnv())
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing fields in containers.conf")
+	}
+	if defaultEnvs["containers"] == "" {
+		defaultEnvs["containers"] = "podman"
+	}
 	var envs map[string]string
 
+	// Image Environment defaults
 	if newImage != nil {
 		// Image envs from the image if they don't exist
 		// already, overriding the default environments
@@ -82,9 +93,30 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		if err != nil {
 			return nil, errors.Wrap(err, "Env fields from image failed to parse")
 		}
+		defaultEnvs = envLib.Join(defaultEnvs, envs)
 	}
 
-	s.Env = envLib.Join(envLib.Join(defaultEnvs, envs), s.Env)
+	// Caller Specified defaults
+	if s.EnvHost {
+		defaultEnvs = envLib.Join(defaultEnvs, osEnv)
+	} else if s.HTTPProxy {
+		for _, envSpec := range []string{
+			"http_proxy",
+			"HTTP_PROXY",
+			"https_proxy",
+			"HTTPS_PROXY",
+			"ftp_proxy",
+			"FTP_PROXY",
+			"no_proxy",
+			"NO_PROXY",
+		} {
+			if v, ok := osEnv[envSpec]; ok {
+				defaultEnvs[envSpec] = v
+			}
+		}
+	}
+
+	s.Env = envLib.Join(defaultEnvs, s.Env)
 
 	// Labels and Annotations
 	annotations := make(map[string]string)

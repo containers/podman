@@ -43,6 +43,13 @@ type ContainerBasicConfig struct {
 	// image's configuration.
 	// Optional.
 	Command []string `json:"command,omitempty"`
+	// EnvHost indicates that the host environment should be added to container
+	// Optional.
+	EnvHost bool `json:"env_host,omitempty"`
+	// EnvHTTPProxy indicates that the http host proxy environment variables
+	// should be added to container
+	// Optional.
+	HTTPProxy bool `json:"httpproxy,omitempty"`
 	// Env is a set of environment variables that will be set in the
 	// container.
 	// Optional.
