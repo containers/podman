@@ -55,6 +55,9 @@ const (
 	// ReusePolicyNone will disable re-use of tables.
 	// This is slightly faster than ReusePolicyAllow but may produce larger output.
 	ReusePolicyNone
+
+	// ReusePolicyMust must allow reuse and produce smaller output.
+	ReusePolicyMust
 )
 
 type Scratch struct {

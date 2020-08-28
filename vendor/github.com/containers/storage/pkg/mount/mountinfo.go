@@ -1,40 +1,21 @@
 package mount
 
-// Info reveals information about a particular mounted filesystem. This
-// struct is populated from the content in the /proc/<pid>/mountinfo file.
-type Info struct {
-	// ID is a unique identifier of the mount (may be reused after umount).
-	ID int
+import (
+	"github.com/containers/storage/pkg/fileutils"
+	"github.com/moby/sys/mountinfo"
+)
 
-	// Parent indicates the ID of the mount parent (or of self for the top of the
-	// mount tree).
-	Parent int
+type Info = mountinfo.Info
 
-	// Major indicates one half of the device ID which identifies the device class.
-	Major int
+func GetMounts() ([]*Info, error) {
+	return mountinfo.GetMounts(nil)
+}
 
-	// Minor indicates one half of the device ID which identifies a specific
-	// instance of device.
-	Minor int
-
-	// Root of the mount within the filesystem.
-	Root string
-
-	// Mountpoint indicates the mount point relative to the process's root.
-	Mountpoint string
-
-	// Opts represents mount-specific options.
-	Opts string
-
-	// Optional represents optional fields.
-	Optional string
-
-	// Fstype indicates the type of filesystem, such as EXT3.
-	Fstype string
-
-	// Source indicates filesystem specific information or "none".
-	Source string
-
-	// VfsOpts represents per super block options.
-	VfsOpts string
+// Mounted determines if a specified mountpoint has been mounted.
+func Mounted(mountpoint string) (bool, error) {
+	mountpoint, err := fileutils.ReadSymlinkedPath(mountpoint)
+	if err != nil {
+		return false, err
+	}
+	return mountinfo.Mounted(mountpoint)
 }

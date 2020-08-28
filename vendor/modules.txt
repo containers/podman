@@ -156,7 +156,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.23.0
+# github.com/containers/storage v1.23.3
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -325,7 +325,7 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.10.10
+# github.com/klauspost/compress v1.10.11
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -346,6 +346,8 @@ github.com/mattn/go-shellwords
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mistifyio/go-zfs v2.1.1+incompatible
 github.com/mistifyio/go-zfs
+# github.com/moby/sys/mountinfo v0.1.3
+github.com/moby/sys/mountinfo
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
