@@ -1,5 +1,12 @@
 # Release Notes
 
+## 2.0.6
+### Bugfixes
+- Fixed a bug where running systemd in a container on a cgroups v1 system would fail.
+
+### Misc
+- Updated the containers/common library to v0.14.10
+
 ## 2.0.5
 ### Features
 - Rootless Podman will now add an entry to `/etc/passwd` for the user who ran Podman if run with `--userns=keep-id`.
