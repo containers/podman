@@ -27,6 +27,8 @@ const lockPath = "/libpod_test"
 
 // We need a test main to ensure that the SHM is created before the tests run
 func TestMain(m *testing.M) {
+	// Remove prior /dev/shm/libpod_test
+	os.RemoveAll("/dev/shm" + lockPath)
 	shmLock, err := CreateSHMLock(lockPath, numLocks)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating SHM for tests: %v\n", err)
@@ -73,6 +75,8 @@ func runLockTest(t *testing.T, testFunc func(*testing.T, *SHMLocks)) {
 
 // Test that creating an SHM with a bad size rounds up to a good size
 func TestCreateNewSHMBadSizeRoundsUp(t *testing.T) {
+	// Remove prior /dev/shm/test1
+	os.RemoveAll("/dev/shm/test1")
 	// Odd number, not a power of 2, should never be a word size on a system
 	lock, err := CreateSHMLock("/test1", 7)
 	assert.NoError(t, err)
