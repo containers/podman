@@ -241,7 +241,7 @@ sub handle_handle {
     }
 
     # Special case: the following endpoints all get a custom tag
-    if ($endpoint =~ m!/(volumes|pods|manifests)/!) {
+    if ($endpoint =~ m!/(pods|manifests)/!) {
         $tag = $1;
         $operation =~ s/^libpod//;
         $operation = lcfirst $operation;
