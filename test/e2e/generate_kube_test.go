@@ -151,6 +151,38 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(numContainers).To(Equal(1))
 	})
 
+	It("podman generate kube on pod with hostAliases", func() {
+		podName := "testHost"
+		testIP := "127.0.0.1"
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName,
+			"--add-host", "test1.podman.io" + ":" + testIP,
+			"--add-host", "test2.podman.io" + ":" + testIP,
+		})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession.ExitCode()).To(Equal(0))
+
+		ctr1Name := "ctr1"
+		ctr1Session := podmanTest.Podman([]string{"create", "--name", ctr1Name, "--pod", podName, ALPINE, "top"})
+		ctr1Session.WaitWithDefaultTimeout()
+		Expect(ctr1Session.ExitCode()).To(Equal(0))
+
+		ctr2Name := "ctr2"
+		ctr2Session := podmanTest.Podman([]string{"create", "--name", ctr2Name, "--pod", podName, ALPINE, "top"})
+		ctr2Session.WaitWithDefaultTimeout()
+		Expect(ctr2Session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(len(pod.Spec.HostAliases)).To(Equal(2))
+		Expect(pod.Spec.HostAliases[0].IP).To(Equal(testIP))
+		Expect(pod.Spec.HostAliases[1].IP).To(Equal(testIP))
+	})
+
 	It("podman generate service kube on pod", func() {
 		_, rc, _ := podmanTest.CreatePod("toppod")
 		Expect(rc).To(Equal(0))

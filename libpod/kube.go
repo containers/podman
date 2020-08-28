@@ -48,12 +48,22 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 		return nil, servicePorts, errors.Errorf("pod %s only has an infra container", p.ID())
 	}
 
+	extraHost := make([]v1.HostAlias, 0)
 	if p.HasInfraContainer() {
 		infraContainer, err := p.getInfraContainer()
 		if err != nil {
 			return nil, servicePorts, err
 		}
-
+		for _, host := range infraContainer.config.ContainerNetworkConfig.HostAdd {
+			hostSli := strings.SplitN(host, ":", 2)
+			if len(hostSli) != 2 {
+				return nil, servicePorts, errors.New("invalid hostAdd")
+			}
+			extraHost = append(extraHost, v1.HostAlias{
+				IP:        hostSli[1],
+				Hostnames: []string{hostSli[0]},
+			})
+		}
 		ports, err = ocicniPortMappingToContainerPort(infraContainer.config.PortMappings)
 		if err != nil {
 			return nil, servicePorts, err
@@ -61,7 +71,11 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 		servicePorts = containerPortsToServicePorts(ports)
 	}
 	pod, err := p.podWithContainers(allContainers, ports)
-	return pod, servicePorts, err
+	if err != nil {
+		return nil, servicePorts, err
+	}
+	pod.Spec.HostAliases = extraHost
+	return pod, servicePorts, nil
 }
 
 func (p *Pod) getInfraContainer() (*Container, error) {
