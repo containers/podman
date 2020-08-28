@@ -1,5 +1,5 @@
 ![PODMAN logo](logo/podman-logo-source.svg)
-# Contributing to libpod
+# Contributing to Podman
 
 We'd love to have you join the community! Below summarizes the processes
 that we follow.
@@ -7,8 +7,8 @@ that we follow.
 ## Topics
 
 * [Reporting Issues](#reporting-issues)
-* [Contributing to libpod](#contributing-to-libpod)
-* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
+* [Contributing to Podman](#contributing-to-podman)
+* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
 
@@ -28,9 +28,9 @@ The easier it is for us to reproduce it, the faster it'll be fixed!
 
 Please don't include any private/sensitive information in your issue!
 
-## Contributing to libpod
+## Contributing to Podman
 
-This section describes how to start a contribution to libpod.
+This section describes how to start a contribution to Podman.
 
 ### Prepare your environment
 
@@ -40,25 +40,25 @@ The install documentation will illustrate the following steps:
 - install libs and tools
 - check installed versions
 - configure network
-- how to install libpod from sources
+- how to install Podman from sources
 
-### Fork and clone libpod
+### Fork and clone Podman
 
 First you need to fork this project on GitHub.
 
 Be sure to have [defined your `$GOPATH` environment variable](https://github.com/golang/go/wiki/GOPATH).
 
-Create a path that corresponds to the go import paths of libpod: `mkdir -p $GOPATH/src/github.com/containers`.
+Create a path that corresponds to the go import paths of Podman: `mkdir -p $GOPATH/src/github.com/containers`.
 
 Then clone your fork locally:
 ```shell
-$ git clone git@github.com:<you>/libpod $GOPATH/src/github.com/containers/podman
+$ git clone git@github.com:<you>/podman $GOPATH/src/github.com/containers/podman
 $ cd $GOPATH/src/github.com/containers/podman
 ```
 
 ### Deal with make
 
-Libpod use a Makefile to realize common action like building etc...
+Podman use a Makefile to realize common action like building etc...
 
 You can list available actions by using:
 ```shell
@@ -180,7 +180,7 @@ Commit f641c2d9384e ("fix bug in rm -fa parallel deletes") [...]
 ```
 
 You should also be sure to use at least the first twelve characters of the
-SHA-1 ID. The libpod repository holds a lot of objects, making collisions with
+SHA-1 ID. The Podman repository holds a lot of objects, making collisions with
 shorter IDs a real possibility. Bear in mind that, even if there is no
 collision with your six-character ID now, that condition may change five years
 from now.
@@ -284,13 +284,13 @@ leaving build artifacts in your hosts working directory.  It also guarantees
 every execution is based upon pristine code provided from the host.
 
 Execution does not require any special permissions from the host. However,
-your libpod repository clone's root must be bind-mounted to the container at
+your Podman repository clone's root must be bind-mounted to the container at
 '/usr/src/libpod'.  The copy will be made into /var/tmp/go (`$GOSRC` in container)
 before running your make target.  For example, running `make lint` from a
-repository clone at $HOME/devel/libpod could be done with the commands:
+repository clone at $HOME/devel/podman could be done with the commands:
 
 ```bash
-$ cd $HOME/devel/libpod
+$ cd $HOME/devel/podman
 $ podman run -it --rm -v $PWD:/usr/src/libpod:ro \
     --security-opt label=disable quay.io/libpod/gate:master \
     lint
@@ -310,7 +310,7 @@ For example, assuming your have a remote called `upstream` running the
 validate target should be done like this:
 
 ```bash
-$ cd $HOME/devel/libpod
+$ cd $HOME/devel/podman
 $ git remote update upstream
 $ export EPOCH_TEST_COMMIT=$(git merge-base upstream/master HEAD)
 $ podman run -it --rm -e EPOCH_TEST_COMMIT -v $PWD:/usr/src/libpod:ro \
@@ -320,7 +320,7 @@ $ podman run -it --rm -e EPOCH_TEST_COMMIT -v $PWD:/usr/src/libpod:ro \
 
 ### Integration Tests
 
-Our primary means of performing integration testing for libpod is with the
+Our primary means of performing integration testing for Podman is with the
 [Ginkgo](https://github.com/onsi/ginkgo) BDD testing framework. This allows
 us to use native Golang to perform our tests and there is a strong affiliation
 between Ginkgo and the Go test framework.  Adequate test cases are expected to
@@ -344,7 +344,7 @@ documentation.](contrib/cirrus/README.md)
 There is always additional complexity added by automation, and so it sometimes
 can fail for any number of reasons.  This includes post-merge testing on all
 branches, which you may occasionally see [red bars on the status graph
-.](https://cirrus-ci.com/github/containers/libpod/master)
+.](https://cirrus-ci.com/github/containers/podman/master)
 
 When the graph shows mostly green bars on the right, it's a good indication
 the master branch is currently stable.  Alternating red/green bars is indicative
