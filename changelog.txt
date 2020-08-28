@@ -1,3 +1,15 @@
+- Changelog for v2.0.6-rc1 (2020-08-28):
+  * Update release notes for v2.0.6
+  * Bump c/common to v0.14.10 and c/conmon to v2.0.20
+  * [CI:DOCS] Update podman-remote docs
+  * [CI:DOCS] Making docs build on mac
+  * abi: trim init command
+  * podman-remote fixes for msi and client
+  * Update c/storage to v1.20.3
+  * Revert "HACK: Disable build-each-commit"
+  * Revert "HACK: Manually include c/storage #698"
+  * run test: use explicit uid/gid
+
 - Changelog for v2.0.5 (2020-08-24):
   * HACK: Manually include c/storage #698
   * Final release notes update for v2.0.5.
