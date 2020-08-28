@@ -250,13 +250,22 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 				if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
 					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
 				}
+			case v1.HostPathSocket:
+				st, err := os.Stat(hostPath.Path)
+				if err != nil {
+					return nil, errors.Wrapf(err, "Error checking HostPathSocket")
+				}
+				if st.Mode()&os.ModeSocket != os.ModeSocket {
+					return nil, errors.Errorf("Error checking HostPathSocket: path %s is not a socket", hostPath.Path)
+				}
+
 			case v1.HostPathDirectory:
 			case v1.HostPathFile:
 			case v1.HostPathUnset:
 				// do nothing here because we will verify the path exists in validateVolumeHostDir
 				break
 			default:
-				return nil, errors.Errorf("Directories are the only supported HostPath type")
+				return nil, errors.Errorf("Invalid HostPath type %v", hostPath.Type)
 			}
 		}
 

@@ -94,6 +94,15 @@ spec:
     {{ end }}
   {{ end }}
 {{ end }}
+{{ with .Volumes }}
+  volumes:
+  {{ range . }}
+  - name: {{ .Name }}
+    hostPath:
+      path: {{ .Path }}
+      type: {{ .Type }}
+  {{ end }}
+{{ end }}
 status: {}
 `
 
@@ -186,6 +195,7 @@ var (
 	defaultCtrArg         = []string{"-d", "1.5"}
 	defaultCtrImage       = ALPINE
 	defaultPodName        = "testPod"
+	defaultVolName        = "testVol"
 	defaultDeploymentName = "testDeployment"
 	seccompPwdEPERM       = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 )
@@ -240,6 +250,7 @@ type Pod struct {
 	Name        string
 	Hostname    string
 	Ctrs        []*Ctr
+	Volumes     []*Volume
 	Annotations map[string]string
 }
 
@@ -247,7 +258,7 @@ type Pod struct {
 // and the configured options
 // if no containers are added, it will add the default container
 func getPod(options ...podOption) *Pod {
-	p := Pod{defaultPodName, "", make([]*Ctr, 0), make(map[string]string)}
+	p := Pod{defaultPodName, "", make([]*Ctr, 0), make([]*Volume, 0), make(map[string]string)}
 	for _, option := range options {
 		option(&p)
 	}
@@ -274,6 +285,12 @@ func withCtr(c *Ctr) podOption {
 func withAnnotation(k, v string) podOption {
 	return func(pod *Pod) {
 		pod.Annotations[k] = v
+	}
+}
+
+func withVolume(v *Volume) podOption {
+	return func(pod *Pod) {
+		pod.Volumes = append(pod.Volumes, v)
 	}
 }
 
@@ -410,6 +427,22 @@ func withHostIP(ip string, port string) ctrOption {
 
 func getCtrNameInPod(pod *Pod) string {
 	return fmt.Sprintf("%s-%s", pod.Name, defaultCtrName)
+}
+
+type Volume struct {
+	Name string
+	Path string
+	Type string
+}
+
+// getVolume takes a type and a location for a volume
+// giving it a default name of volName
+func getVolume(vType, vPath string) *Volume {
+	return &Volume{
+		Name: defaultVolName,
+		Path: vPath,
+		Type: vType,
+	}
 }
 
 var _ = Describe("Podman generate kube", func() {
@@ -852,5 +885,107 @@ spec:
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(Equal("5000/tcp -> 127.0.0.100:5000"))
+	})
+
+	It("podman play kube test with non-existent empty HostPath type volume", func() {
+		hostPathLocation := filepath.Join(tempdir, "file")
+
+		pod := getPod(withVolume(getVolume(`""`, hostPathLocation)))
+		err := generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).NotTo(Equal(0))
+	})
+
+	It("podman play kube test with empty HostPath type volume", func() {
+		hostPathLocation := filepath.Join(tempdir, "file")
+		f, err := os.Create(hostPathLocation)
+		Expect(err).To(BeNil())
+		f.Close()
+
+		pod := getPod(withVolume(getVolume(`""`, hostPathLocation)))
+		err = generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+	})
+
+	It("podman play kube test with non-existent File HostPath type volume", func() {
+		hostPathLocation := filepath.Join(tempdir, "file")
+
+		pod := getPod(withVolume(getVolume("File", hostPathLocation)))
+		err := generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).NotTo(Equal(0))
+	})
+
+	It("podman play kube test with File HostPath type volume", func() {
+		hostPathLocation := filepath.Join(tempdir, "file")
+		f, err := os.Create(hostPathLocation)
+		Expect(err).To(BeNil())
+		f.Close()
+
+		pod := getPod(withVolume(getVolume("File", hostPathLocation)))
+		err = generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+	})
+
+	It("podman play kube test with FileOrCreate HostPath type volume", func() {
+		hostPathLocation := filepath.Join(tempdir, "file")
+
+		pod := getPod(withVolume(getVolume("FileOrCreate", hostPathLocation)))
+		err := generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		// the file should have been created
+		_, err = os.Stat(hostPathLocation)
+		Expect(err).To(BeNil())
+	})
+
+	It("podman play kube test with DirectoryOrCreate HostPath type volume", func() {
+		hostPathLocation := filepath.Join(tempdir, "file")
+
+		pod := getPod(withVolume(getVolume("DirectoryOrCreate", hostPathLocation)))
+		err := generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		// the file should have been created
+		st, err := os.Stat(hostPathLocation)
+		Expect(err).To(BeNil())
+		Expect(st.Mode().IsDir()).To(Equal(true))
+	})
+
+	It("podman play kube test with Socket HostPath type volume should fail if not socket", func() {
+		hostPathLocation := filepath.Join(tempdir, "file")
+		f, err := os.Create(hostPathLocation)
+		Expect(err).To(BeNil())
+		f.Close()
+
+		pod := getPod(withVolume(getVolume("Socket", hostPathLocation)))
+		err = generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).NotTo(Equal(0))
 	})
 })
