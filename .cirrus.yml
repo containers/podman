@@ -34,12 +34,12 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-32"
-    PRIOR_FEDORA_NAME: "fedora-31"
-    UBUNTU_NAME: "ubuntu-20"
-    PRIOR_UBUNTU_NAME: "ubuntu-19"
+    FEDORA_NAME: "fedora"
+    PRIOR_FEDORA_NAME: "prior-fedora"
+    UBUNTU_NAME: "ubuntu"
+    PRIOR_UBUNTU_NAME: "prior-ubuntu"
 
-    _BUILT_IMAGE_SUFFIX: "podman-6530021898584064"
+    _BUILT_IMAGE_SUFFIX: "c4781511801044992"
     FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
