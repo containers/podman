@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/pkg/config/shortnames"
 	"github.com/containers/common/pkg/retry"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/directory"
@@ -238,7 +239,17 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 		if srcTransport != nil && srcTransport.Name() != DockerTransport {
 			return nil, err
 		}
+
+		fullnames, err := shortnames.Search(inputName)
+		if err != nil {
+			return nil, errors.Wrap(err, "error searching config file")
+		}
+		if fullnames != nil {
+			io.WriteString(writer, fmt.Sprintf("Fully Qualified Name Found: %s\n", fullnames[0]))
+			inputName = fullnames[0]
+		}
 		goal, err = ir.pullGoalFromPossiblyUnqualifiedName(inputName)
+
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
@@ -352,6 +363,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 // pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
 func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullGoal, error) {
+
 	decomposedImage, err := decompose(inputName)
 	if err != nil {
 		return nil, err
