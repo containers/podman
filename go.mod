@@ -8,8 +8,8 @@ require (
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
-	github.com/containernetworking/plugins v0.8.6
+	github.com/containernetworking/cni v0.8.0
+	github.com/containernetworking/plugins v0.8.7
 	github.com/containers/buildah v1.15.1-0.20200813183340-0a8dc1f8064c
 	github.com/containers/common v0.20.3-0.20200827091701-a550d6a98aa3
 	github.com/containers/conmon v2.0.19+incompatible
