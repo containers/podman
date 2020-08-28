@@ -79,12 +79,15 @@ This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
 solely for scripting compatibility.
 
-**--override-os**=*OS*
-Use OS instead of the running OS for choosing images
-
 **--override-arch**=*ARCH*
+Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
 
-Override the machine's default architecture of the image to be pulled. For example, `arm`.
+**--override-os**=*OS*
+Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
+
+**--override-variant**=*VARIANT*
+
+Use _VARIANT_ instead of the default architecture variant of the container image.  Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
 **--quiet**, **-q**
 

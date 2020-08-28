@@ -228,6 +228,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 	if dockerOptions != nil {
 		sc.OSChoice = dockerOptions.OSChoice
 		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
+		sc.VariantChoice = dockerOptions.VariantChoice
 	}
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
@@ -260,6 +261,7 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 	if dockerOptions != nil {
 		sc.OSChoice = dockerOptions.OSChoice
 		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
+		sc.VariantChoice = dockerOptions.VariantChoice
 	}
 	goal, err := ir.pullGoalFromImageReference(ctx, srcRef, transports.ImageName(srcRef), sc)
 	if err != nil {

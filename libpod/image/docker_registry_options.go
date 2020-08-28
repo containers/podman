@@ -30,6 +30,8 @@ type DockerRegistryOptions struct {
 	OSChoice string
 	// If not "", overrides the use of platform.GOARCH when choosing an image or verifying architecture match.
 	ArchitectureChoice string
+	// If not "", overrides_VARIANT_ instead of the running architecture variant for choosing images.
+	VariantChoice string
 	// RegistriesConfPath can be used to override the default path of registries.conf.
 	RegistriesConfPath string
 }
@@ -43,6 +45,7 @@ func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, add
 		DockerArchiveAdditionalTags: additionalDockerArchiveTags,
 		OSChoice:                    o.OSChoice,
 		ArchitectureChoice:          o.ArchitectureChoice,
+		VariantChoice:               o.VariantChoice,
 		BigFilesTemporaryDir:        parse.GetTempDir(),
 	}
 	if parent != nil {

@@ -365,6 +365,7 @@ func Pull(ctx context.Context, rawImage string, options entities.ImagePullOption
 	params.Set("reference", rawImage)
 	params.Set("overrideArch", options.OverrideArch)
 	params.Set("overrideOS", options.OverrideOS)
+	params.Set("overrideVariant", options.OverrideVariant)
 	if options.SkipTLSVerify != types.OptionalBoolUndefined {
 		// Note: we have to verify if skipped is false.
 		verifyTLS := bool(options.SkipTLSVerify == types.OptionalBoolFalse)

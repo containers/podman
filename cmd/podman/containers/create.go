@@ -66,9 +66,6 @@ func createFlags(flags *pflag.FlagSet) {
 		_ = flags.MarkHidden("env-host")
 		_ = flags.MarkHidden("http-proxy")
 	}
-	// Not sure we want these exposed yet.  If we do, they need to be documented in man pages
-	_ = flags.MarkHidden("override-arch")
-	_ = flags.MarkHidden("override-os")
 }
 
 func init() {
@@ -254,10 +251,11 @@ func pullImage(imageName string) (string, error) {
 			return "", errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", imageName)
 		}
 		pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
-			Authfile:     cliVals.Authfile,
-			Quiet:        cliVals.Quiet,
-			OverrideArch: cliVals.OverrideArch,
-			OverrideOS:   cliVals.OverrideOS,
+			Authfile:        cliVals.Authfile,
+			Quiet:           cliVals.Quiet,
+			OverrideArch:    cliVals.OverrideArch,
+			OverrideOS:      cliVals.OverrideOS,
+			OverrideVariant: cliVals.OverrideVariant,
 		})
 		if pullErr != nil {
 			return "", pullErr

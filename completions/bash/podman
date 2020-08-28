@@ -1980,12 +1980,16 @@ _podman_manifest_remove() {
 _podman_pull() {
     local options_with_args="
     --authfile
-    --creds
     --cert-dir
+    --creds
+    --override-arch
+    --override-os
+    --override-variant
     "
     local boolean_options="
 	--all-tags
 	-a
+	--disable-content-trust
 	--help
 	-h
 	--quiet
@@ -2160,6 +2164,9 @@ _podman_container_run() {
 		--no-healthcheck
 		--no-hosts
 		--oom-score-adj
+		--override-arch
+		--override-os
+		--override-variant
 		--pid
 		--pids-limit
 		--pod

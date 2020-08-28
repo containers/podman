@@ -65,6 +65,7 @@ type ContainerCLIOpts struct {
 	OOMScoreAdj       int
 	OverrideArch      string
 	OverrideOS        string
+	OverrideVariant   string
 	PID               string
 	PIDsLimit         *int64
 	Pod               string
