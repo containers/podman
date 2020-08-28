@@ -13,6 +13,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/containers/common/pkg/apparmor/internal/supported"
 	"github.com/containers/storage/pkg/unshare"
 	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/pkg/errors"
@@ -22,12 +23,11 @@ import (
 // profileDirectory is the file store for apparmor profiles and macros.
 var profileDirectory = "/etc/apparmor.d"
 
-// IsEnabled returns true if AppArmor is enabled on the host.
+// IsEnabled returns true if AppArmor is enabled on the host. It also checks
+// for the existence of the `apparmor_parser` binary, which will be required to
+// apply profiles.
 func IsEnabled() bool {
-	if unshare.IsRootless() {
-		return false
-	}
-	return runcaa.IsEnabled()
+	return supported.NewAppArmorVerifier().IsSupported() == nil
 }
 
 // profileData holds information about the given profile for generation.
@@ -43,7 +43,7 @@ type profileData struct {
 }
 
 // generateDefault creates an apparmor profile from ProfileData.
-func (p *profileData) generateDefault(out io.Writer) error {
+func (p *profileData) generateDefault(apparmorParserPath string, out io.Writer) error {
 	compiled, err := template.New("apparmor_profile").Parse(defaultProfileTemplate)
 	if err != nil {
 		return errors.Wrap(err, "create AppArmor profile from template")
@@ -59,7 +59,7 @@ func (p *profileData) generateDefault(out io.Writer) error {
 		p.InnerImports = append(p.InnerImports, "#include <abstractions/base>")
 	}
 
-	ver, err := getAAParserVersion()
+	ver, err := getAAParserVersion(apparmorParserPath)
 	if err != nil {
 		return errors.Wrap(err, "get AppArmor version")
 	}
@@ -85,18 +85,23 @@ func InstallDefault(name string) error {
 		Name: name,
 	}
 
-	cmd := exec.Command("apparmor_parser", "-Kr")
+	apparmorParserPath, err := supported.NewAppArmorVerifier().FindAppArmorParserBinary()
+	if err != nil {
+		return errors.Wrap(err, "find `apparmor_parser` binary")
+	}
+
+	cmd := exec.Command(apparmorParserPath, "-Kr")
 	pipe, err := cmd.StdinPipe()
 	if err != nil {
-		return errors.Wrap(err, "execute apparmor_parser")
+		return errors.Wrapf(err, "execute %s", apparmorParserPath)
 	}
 	if err := cmd.Start(); err != nil {
 		if pipeErr := pipe.Close(); pipeErr != nil {
 			logrus.Errorf("unable to close AppArmor pipe: %q", pipeErr)
 		}
-		return errors.Wrap(err, "start apparmor_parser command")
+		return errors.Wrapf(err, "start %s command", apparmorParserPath)
 	}
-	if err := p.generateDefault(pipe); err != nil {
+	if err := p.generateDefault(apparmorParserPath, pipe); err != nil {
 		if pipeErr := pipe.Close(); pipeErr != nil {
 			logrus.Errorf("unable to close AppArmor pipe: %q", pipeErr)
 		}
@@ -118,11 +123,17 @@ func InstallDefault(name string) error {
 // generation fails.
 func DefaultContent(name string) ([]byte, error) {
 	p := profileData{Name: name}
-	var bytes bytes.Buffer
-	if err := p.generateDefault(&bytes); err != nil {
+	buffer := &bytes.Buffer{}
+
+	apparmorParserPath, err := supported.NewAppArmorVerifier().FindAppArmorParserBinary()
+	if err != nil {
+		return nil, errors.Wrap(err, "find `apparmor_parser` binary")
+	}
+
+	if err := p.generateDefault(apparmorParserPath, buffer); err != nil {
 		return nil, errors.Wrap(err, "generate default AppAmor profile")
 	}
-	return bytes.Bytes(), nil
+	return buffer.Bytes(), nil
 }
 
 // IsLoaded checks if a profile with the given name has been loaded into the
@@ -159,8 +170,8 @@ func IsLoaded(name string) (bool, error) {
 }
 
 // execAAParser runs `apparmor_parser` with the passed arguments.
-func execAAParser(dir string, args ...string) (string, error) {
-	c := exec.Command("apparmor_parser", args...)
+func execAAParser(apparmorParserPath, dir string, args ...string) (string, error) {
+	c := exec.Command(apparmorParserPath, args...)
 	c.Dir = dir
 
 	output, err := c.Output()
@@ -172,8 +183,8 @@ func execAAParser(dir string, args ...string) (string, error) {
 }
 
 // getAAParserVersion returns the major and minor version of apparmor_parser.
-func getAAParserVersion() (int, error) {
-	output, err := execAAParser("", "--version")
+func getAAParserVersion(apparmorParserPath string) (int, error) {
+	output, err := execAAParser(apparmorParserPath, "", "--version")
 	if err != nil {
 		return -1, errors.Wrap(err, "execute apparmor_parser")
 	}

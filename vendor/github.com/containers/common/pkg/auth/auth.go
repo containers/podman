@@ -40,8 +40,8 @@ func CheckAuthFile(authfile string) error {
 // data with the original parameter.
 func systemContextWithOptions(sys *types.SystemContext, authFile, certDir string) *types.SystemContext {
 	if sys != nil {
-		copy := *sys
-		sys = &copy
+		sysCopy := *sys
+		sys = &sysCopy
 	} else {
 		sys = &types.SystemContext{}
 	}
@@ -126,7 +126,7 @@ func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginO
 
 	if err = docker.CheckAuth(ctx, systemContext, username, password, server); err == nil {
 		// Write the new credentials to the authfile
-		if err = config.SetAuthentication(systemContext, server, username, password); err != nil {
+		if err := config.SetAuthentication(systemContext, server, username, password); err != nil {
 			return err
 		}
 	}
@@ -156,8 +156,7 @@ func getRegistryName(server string) string {
 // getUserAndPass gets the username and password from STDIN if not given
 // using the -u and -p flags.  If the username prompt is left empty, the
 // displayed userFromAuthFile will be used instead.
-func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (string, string, error) {
-	var err error
+func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (user, pass string, err error) {
 	reader := bufio.NewReader(opts.Stdin)
 	username := opts.Username
 	if username == "" {

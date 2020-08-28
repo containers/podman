@@ -49,7 +49,7 @@ func getRuntimeDir() (string, error) {
 		if runtimeDir == "" {
 			home := os.Getenv("HOME")
 			if home == "" {
-				rootlessRuntimeDirError = fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
+				rootlessRuntimeDirError = errors.New("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
 				return
 			}
 			resolvedHome, err := filepath.EvalSymlinks(home)

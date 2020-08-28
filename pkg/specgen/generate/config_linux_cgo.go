@@ -6,12 +6,12 @@ import (
 	"context"
 	"io/ioutil"
 
+	goSeccomp "github.com/containers/common/pkg/seccomp"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/seccomp"
 	"github.com/containers/podman/v2/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	goSeccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
 )
 

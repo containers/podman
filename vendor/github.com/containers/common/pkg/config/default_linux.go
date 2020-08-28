@@ -32,10 +32,8 @@ func getDefaultProcessLimits() []string {
 	defaultLimits := []string{}
 	if err := unix.Setrlimit(unix.RLIMIT_NPROC, &rlim); err == nil {
 		defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", rlim.Cur, rlim.Max))
-	} else {
-		if err := unix.Setrlimit(unix.RLIMIT_NPROC, &oldrlim); err == nil {
-			defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", oldrlim.Cur, oldrlim.Max))
-		}
+	} else if err := unix.Setrlimit(unix.RLIMIT_NPROC, &oldrlim); err == nil {
+		defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", oldrlim.Cur, oldrlim.Max))
 	}
 	return defaultLimits
 }
