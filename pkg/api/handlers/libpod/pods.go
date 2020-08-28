@@ -135,8 +135,8 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var errs []error //nolint
-	for _, err := range responses {
-		errs = append(errs, err)
+	for id, err := range responses {
+		errs = append(errs, errors.Wrapf(err, "error stopping container %s", id))
 	}
 	report := entities.PodStopReport{
 		Errs: errs,
@@ -164,12 +164,12 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responses, err := pod.Start(r.Context())
-	if err != nil {
+	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	for _, err := range responses {
-		errs = append(errs, err)
+	for id, err := range responses {
+		errs = append(errs, errors.Wrapf(err, "error starting container %s", id))
 	}
 	report := entities.PodStartReport{
 		Errs: errs,
@@ -220,12 +220,12 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responses, err := pod.Restart(r.Context())
-	if err != nil {
+	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	for _, err := range responses {
-		errs = append(errs, err)
+	for id, err := range responses {
+		errs = append(errs, errors.Wrapf(err, "error restarting container %s", id))
 	}
 	report := entities.PodRestartReport{
 		Errs: errs,
@@ -271,12 +271,12 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responses, err := pod.Pause()
-	if err != nil {
+	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	for _, v := range responses {
-		errs = append(errs, v)
+	for id, v := range responses {
+		errs = append(errs, errors.Wrapf(v, "error pausing container %s", id))
 	}
 	report := entities.PodPauseReport{
 		Errs: errs,
@@ -295,12 +295,12 @@ func PodUnpause(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responses, err := pod.Unpause()
-	if err != nil {
+	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 		utils.Error(w, "failed to pause pod", http.StatusInternalServerError, err)
 		return
 	}
-	for _, v := range responses {
-		errs = append(errs, v)
+	for id, v := range responses {
+		errs = append(errs, errors.Wrapf(v, "error unpausing container %s", id))
 	}
 	report := entities.PodUnpauseReport{
 		Errs: errs,
@@ -403,7 +403,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responses, err := pod.Kill(uint(sig))
-	if err != nil {
+	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 		utils.Error(w, "failed to kill pod", http.StatusInternalServerError, err)
 		return
 	}
