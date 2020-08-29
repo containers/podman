@@ -95,7 +95,7 @@ If this is required, the administrator must verify that the UID of the user is p
 
 To change its value the administrator can use a call similar to: `sysctl -w "net.ipv4.ping_group_range=0 2000000"`.
 
-To make the change persistent, the administrator will need to add a file in `/etc/sysctl.d` that contains `net.ipv4.ping_group_range=0 $MAX_UID`.
+To make the change persistent, the administrator will need to add a file with the `.conf` file extension in `/etc/sysctl.d` that contains `net.ipv4.ping_group_range=0 $MAX_UID`, where `$MAX_UID` is the highest assignable UID of the user running the container.
 
 
 ## User Actions
