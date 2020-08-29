@@ -74,8 +74,8 @@ github.com/containers/buildah v1.15.1-0.20200813183340-0a8dc1f8064c/go.mod h1:+I
 github.com/containers/common v0.19.0/go.mod h1:+NUHV8V5Kmo260ja9Dxtr8ialrDnK4RNzyeEbSgmLac=
 github.com/containers/common v0.20.3-0.20200827091701-a550d6a98aa3 h1:rTSiIMOH3fbCBN+2L8Xr9BJ19AejEIaBQvzkAXZCz/k=
 github.com/containers/common v0.20.3-0.20200827091701-a550d6a98aa3/go.mod h1:z5HJtHWU8sopAHO0Od5s9EpVkXPrLIcNszVvN1Fc3fQ=
-github.com/containers/conmon v2.0.19+incompatible h1:1bDVRvHy2MUNTUT/SW6LlHsJHQBTSwXvnKNdcB/a1vQ=
-github.com/containers/conmon v2.0.19+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
+github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
+github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.5.1/go.mod h1:4PyNYR0nwlGq/ybVJD9hWlhmIsNra4Q8uOQX2s6E2uM=
 github.com/containers/image/v5 v5.5.2 h1:fv7FArz0zUnjH0W0l8t90CqWFlFcQrPP6Pug+9dUtVI=
 github.com/containers/image/v5 v5.5.2/go.mod h1:4PyNYR0nwlGq/ybVJD9hWlhmIsNra4Q8uOQX2s6E2uM=
@@ -87,7 +87,6 @@ github.com/containers/ocicrypt v1.0.3/go.mod h1:CUBa+8MRNL/VkpxYIpaMtgn1WgXGyvPQ
 github.com/containers/psgo v1.5.1 h1:MQNb7FLbXqBdqz6u4lI2QWizVz4RSTzs1+Nk9XT1iVA=
 github.com/containers/psgo v1.5.1/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzPUWfawVU=
 github.com/containers/storage v1.20.2/go.mod h1:oOB9Ie8OVPojvoaKWEGSEtHbXUAs+tSyr7RO7ZGteMc=
-github.com/containers/storage v1.23.0 h1:gYyNkBiihC2FvGiHOjOjpnfojYwgxpLVooTUlmD6pxs=
 github.com/containers/storage v1.23.0/go.mod h1:I1EIAA7B4OwWRSA0b4yq2AW1wjvvfcY0zLWQuwTa4zw=
 github.com/containers/storage v1.23.2 h1:GPZ8PXYezML1gmZ/uFaXQpyps7AH645lmdvvOJwJYNc=
 github.com/containers/storage v1.23.2/go.mod h1:AyTMMiE5ANvZJiqvatQgSZ85wAl5yHucY3NDN/kemr4=
@@ -266,7 +265,6 @@ github.com/kisielk/errcheck v1.2.0/go.mod h1:/BMXB+zMLi60iA8Vv6Ksmxu/1UDYcXs4uQL
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/klauspost/compress v1.10.7/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.10.8/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
-github.com/klauspost/compress v1.10.10 h1:a/y8CglcM7gLGYmlbP/stPE5sR3hbhFRUjCBfd/0B3I=
 github.com/klauspost/compress v1.10.10/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.10.11 h1:K9z59aO18Aywg2b/WSgBaUX99mHy2BES18Cr5lBKZHk=
 github.com/klauspost/compress v1.10.11/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
@@ -410,7 +408,6 @@ github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8 h1:2c1EFnZHIPCW8q
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8/go.mod h1:Z0q5wiBQGYcxhMZ6gUqHn6pYNLypFAvaL3UvgZLR0U4=
 github.com/seccomp/containers-golang v0.6.0 h1:VWPMMIDr8pAtNjCX0WvLEEK9EQi5lAm4HtJbDtAtFvQ=
 github.com/seccomp/containers-golang v0.6.0/go.mod h1:Dd9mONHvW4YdbSzdm23yf2CFw0iqvqLhO0mEFvPIvm4=
-github.com/seccomp/libseccomp-golang v0.9.1 h1:NJjM5DNFOs0s3kYE1WUOr6G8V97sdt46rlXTMfXGWBo=
 github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
 github.com/seccomp/libseccomp-golang v0.9.2-0.20200616122406-847368b35ebf h1:b0+ZBD3rohnkQ4q5duD1+RyTXTg9yk+qTOPMSQtapO0=
 github.com/seccomp/libseccomp-golang v0.9.2-0.20200616122406-847368b35ebf/go.mod h1:JA8cRccbGaA1s33RQf7Y1+q9gHmZX1yB/z9WDN1C6fg=
