@@ -97,7 +97,6 @@ To change its value the administrator can use a call similar to: `sysctl -w "net
 
 To make the change persistent, the administrator will need to add a file with the `.conf` file extension in `/etc/sysctl.d` that contains `net.ipv4.ping_group_range=0 $MAX_GID`, where `$MAX_GID` is the highest assignable GID of the user running the container.
 
-
 ## User Actions
 
 The majority of the work necessary to run Podman in a rootless environment is on the shoulders of the machine’s administrator.
