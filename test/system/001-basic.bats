@@ -38,6 +38,37 @@ function setup() {
     run_podman pull $IMAGE
 }
 
+# PR #7212: allow --remote anywhere before subcommand, not just as 1st flag
+@test "podman-remote : really is remote, works as --remote option" {
+    if ! is_remote; then
+        skip "only applicable on podman-remote"
+    fi
+
+    # First things first: make sure our podman-remote actually is remote!
+    run_podman version
+    is "$output" ".*Server:" "the given podman path really contacts a server"
+
+    # $PODMAN may be a space-separated string, e.g. if we include a --url.
+    # Split it into its components; remove "-remote" from the command path;
+    # and preserve any other args if present.
+    local -a podman_as_array=($PODMAN)
+    local    podman_path=${podman_as_array[0]}
+    local    podman_non_remote=${podman_path%%-remote}
+    local -a podman_args=("${podman_as_array[@]:1}")
+
+    # This always worked: running "podman --remote ..."
+    PODMAN="${podman_non_remote} --remote ${podman_args[@]}" run_podman version
+    is "$output" ".*Server:" "podman --remote: contacts server"
+
+    # This was failing: "podman --foo --bar --remote".
+    PODMAN="${podman_non_remote} --tmpdir /var/tmp --log-level=error ${podman_args[@]} --remote" run_podman version
+    is "$output" ".*Server:" "podman [flags] --remote: contacts server"
+
+    # ...but no matter what, --remote is never allowed after subcommand
+    PODMAN="${podman_non_remote} ${podman_args[@]}" run_podman 125 version --remote
+    is "$output" "Error: unknown flag: --remote" "podman version --remote"
+}
+
 # This is for development only; it's intended to make sure our timeout
 # in run_podman continues to work. This test should never run in production
 # because it will, by definition, fail.
