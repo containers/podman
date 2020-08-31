@@ -2,7 +2,6 @@ package test_bindings
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
 	"github.com/containers/podman/v2/pkg/specgen"
-	"github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -182,14 +180,6 @@ var _ = Describe("Podman containers ", func() {
 	})
 
 	It("podman remove a paused container by id with force", func() {
-		// FIXME: Skip on F31 and later
-		host := utils.GetHostDistributionInfo()
-		osVer, err := strconv.Atoi(host.Version)
-		Expect(err).To(BeNil())
-		if host.Distribution == "fedora" && osVer >= 31 {
-			Skip("FIXME: https://github.com/containers/podman/issues/5325")
-		}
-
 		// Removing a paused container with force should work
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
@@ -280,7 +270,6 @@ var _ = Describe("Podman containers ", func() {
 	})
 
 	It("podman wait to pause|unpause condition", func() {
-		Skip("FIXME: https://github.com/containers/podman/issues/6518")
 		var (
 			name           = "top"
 			exitCode int32 = -1
