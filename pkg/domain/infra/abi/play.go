@@ -144,6 +144,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		podOptions = append(podOptions, libpod.WithPodHostNetwork())
 	}
 
+	if podYAML.Spec.HostAliases != nil {
+		hosts := make([]string, 0, len(podYAML.Spec.HostAliases))
+		for _, hostAlias := range podYAML.Spec.HostAliases {
+			for _, host := range hostAlias.Hostnames {
+				hosts = append(hosts, host+":"+hostAlias.IP)
+			}
+		}
+		podOptions = append(podOptions, libpod.WithPodHosts(hosts))
+	}
+
 	nsOptions, err := generate.GetNamespaceOptions(strings.Split(createconfig.DefaultKernelNamespaces, ","))
 	if err != nil {
 		return nil, err

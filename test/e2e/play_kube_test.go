@@ -42,6 +42,14 @@ metadata:
 
 spec:
   hostname: {{ .Hostname }}
+  hostAliases:
+{{ range .HostAliases }}
+  - hostnames:
+  {{ range .HostName }}
+    - {{ . }}
+  {{ end }}
+    ip: {{ .IP }}
+{{ end }}
   containers:
 {{ with .Ctrs }}
   {{ range . }}
@@ -249,16 +257,22 @@ func generateDeploymentKubeYaml(deployment *Deployment, fileName string) error {
 type Pod struct {
 	Name        string
 	Hostname    string
+	HostAliases []HostAlias
 	Ctrs        []*Ctr
 	Volumes     []*Volume
 	Annotations map[string]string
+}
+
+type HostAlias struct {
+	IP       string
+	HostName []string
 }
 
 // getPod takes a list of podOptions and returns a pod with sane defaults
 // and the configured options
 // if no containers are added, it will add the default container
 func getPod(options ...podOption) *Pod {
-	p := Pod{defaultPodName, "", make([]*Ctr, 0), make([]*Volume, 0), make(map[string]string)}
+	p := Pod{defaultPodName, "", nil, make([]*Ctr, 0), make([]*Volume, 0), make(map[string]string)}
 	for _, option := range options {
 		option(&p)
 	}
@@ -273,6 +287,15 @@ type podOption func(*Pod)
 func withHostname(h string) podOption {
 	return func(pod *Pod) {
 		pod.Hostname = h
+	}
+}
+
+func withHostAliases(ip string, host []string) podOption {
+	return func(pod *Pod) {
+		pod.HostAliases = append(pod.HostAliases, HostAlias{
+			IP:       ip,
+			HostName: host,
+		})
 	}
 }
 
@@ -595,6 +618,30 @@ var _ = Describe("Podman generate kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(Equal(hostname))
+	})
+
+	It("podman play kube test HostAliases", func() {
+		pod := getPod(withHostAliases("192.168.1.2", []string{
+			"test1.podman.io",
+			"test2.podman.io",
+		}),
+			withHostAliases("192.168.1.3", []string{
+				"test3.podman.io",
+				"test4.podman.io",
+			}),
+		)
+		err := generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ .HostConfig.ExtraHosts }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).
+			To(Equal("[test1.podman.io:192.168.1.2 test2.podman.io:192.168.1.2 test3.podman.io:192.168.1.3 test4.podman.io:192.168.1.3]"))
 	})
 
 	It("podman play kube cap add", func() {

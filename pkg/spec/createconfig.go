@@ -267,6 +267,16 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, runtime.WithPod(pod))
 	}
 
+	// handle some spec from the InfraContainer when it's a pod
+	if pod != nil && pod.HasInfraContainer() {
+		InfraCtr, err := pod.InfraContainer()
+		if err != nil {
+			return nil, err
+		}
+		// handle the pod.spec.hostAliases
+		options = append(options, libpod.WithHosts(InfraCtr.HostsAdd()))
+	}
+
 	if len(mounts) != 0 || len(namedVolumes) != 0 {
 		destinations := []string{}
 
