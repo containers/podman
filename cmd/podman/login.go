@@ -131,7 +131,7 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	}
 
 	// If no username and no password is specified, try to use existing ones.
-	if c.Username == "" && password == "" && authConfig.Username == "" && authConfig.Password != "" {
+	if c.Username == "" && password == "" && authConfig.Username != "" && authConfig.Password != "" {
 		fmt.Println("Authenticating with existing credentials...")
 		if err := docker.CheckAuth(ctx, sc, authConfig.Username, authConfig.Password, server); err == nil {
 			fmt.Println("Existing credentials are valid. Already logged in to", server)
