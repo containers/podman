@@ -1584,6 +1584,17 @@ func (c *Container) generatePasswd() (string, error) {
 	if _, err := os.Stat(passwdPath); err == nil {
 		return passwdPath, nil
 	}
+	// Check if container has a /etc/passwd - if it doesn't do nothing.
+	passwdPath, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd")
+	if err != nil {
+		return "", errors.Wrapf(err, "error creating path to container %s /etc/passwd", c.ID())
+	}
+	if _, err := os.Stat(passwdPath); err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", errors.Wrapf(err, "unable to access container %s /etc/passwd", c.ID())
+	}
 	pwd := ""
 	if c.config.User != "" {
 		entry, err := c.generateUserPasswdEntry()

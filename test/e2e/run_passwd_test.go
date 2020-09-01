@@ -58,4 +58,17 @@ var _ = Describe("Podman run passwd", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.LineInOutputContains("passwd")).To(BeTrue())
 	})
+
+	It("podman can run container without /etc/passwd", func() {
+		SkipIfRemote()
+		dockerfile := `FROM alpine
+RUN rm -f /etc/passwd /etc/shadow /etc/group
+USER 1000`
+		imgName := "testimg"
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+		session := podmanTest.Podman([]string{"run", "--rm", imgName, "ls", "/etc/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring("passwd")))
+	})
 })
