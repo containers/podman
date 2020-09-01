@@ -75,6 +75,21 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	flush := func() {
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+
+	// set up the header information and send it
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+	flush()
+
+	// set up an encoder for streaming the data back
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(true)
+
 	for ok := true; ok; ok = query.Stream {
 		// Container stats
 		stats, err := ctnr.GetContainerStats(stats)
@@ -174,11 +189,13 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			ID:       stats.ContainerID,
 			Networks: net,
 		}
-
-		utils.WriteJSON(w, http.StatusOK, s)
-		if flusher, ok := w.(http.Flusher); ok {
-			flusher.Flush()
+		// encode data
+		if err := enc.Encode(s); err != nil {
+			utils.Error(w, "failed stat encoding", http.StatusBadRequest, err)
+			return
 		}
+		// send data
+		flush()
 
 		preRead = s.Read
 		bits, err := json.Marshal(s.CPUStats)
