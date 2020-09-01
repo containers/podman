@@ -1,3 +1,12 @@
+- Changelog for v2.0.6 (2020-09-01):
+  * Update release notes for v2.0.6
+  * Ensure rootless containers without a passwd can start
+  * Preserve passwd on container restart
+  * Remove help/usage from --remote pre-check
+  * system tests: podman-remote, image tree
+  * Refactor parsing to not require --remote to be first
+  * Enable --remote flag
+
 - Changelog for v2.0.6-rc1 (2020-08-28):
   * Update release notes for v2.0.6
   * Bump c/common to v0.14.10 and c/conmon to v2.0.20
