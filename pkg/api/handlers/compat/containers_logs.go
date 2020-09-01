@@ -1,7 +1,6 @@
 package compat
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"net/http"
@@ -104,7 +103,6 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	var frame strings.Builder
-	header := make([]byte, 8)
 	for line := range logChannel {
 		if _, found := r.URL.Query()["until"]; found {
 			if line.Time.After(until) {
@@ -119,12 +117,10 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 			if !query.Stdout {
 				continue
 			}
-			header[0] = 1
 		case "stderr":
 			if !query.Stderr {
 				continue
 			}
-			header[0] = 2
 		default:
 			// Logging and moving on is the best we can do here. We may have already sent
 			// a Status and Content-Type to client therefore we can no longer report an error.
@@ -136,12 +132,8 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 			frame.WriteString(line.Time.Format(time.RFC3339))
 			frame.WriteString(" ")
 		}
-		frame.WriteString(line.Msg)
+		frame.WriteString(line.Msg + "\n")
 
-		binary.BigEndian.PutUint32(header[4:], uint32(frame.Len()))
-		if _, err := w.Write(header[0:8]); err != nil {
-			log.Errorf("unable to write log output header: %q", err)
-		}
 		if _, err := io.WriteString(w, frame.String()); err != nil {
 			log.Errorf("unable to write frame string: %q", err)
 		}
