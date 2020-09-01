@@ -67,8 +67,14 @@ source "$SCRIPT_BASE/lib.sh"
 case "$CG_FS_TYPE" in
     tmpfs)
         warn "Forcing testing with runc instead of crun"
+	# On ubuntu, the default runc is usually not new enough.
+	if ${OS_RELEASE_ID} == "ubuntu"; then
+        X=$(echo "export OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" | \
+            tee -a /etc/environment) && eval "$X" && echo "$X"
+	else
         X=$(echo "export OCI_RUNTIME=/usr/bin/runc" | \
             tee -a /etc/environment) && eval "$X" && echo "$X"
+	fi
         ;;
     cgroup2fs)
         # This is necessary since we've built/installed from source, which uses runc as the default.
