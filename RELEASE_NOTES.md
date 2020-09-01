@@ -1,5 +1,15 @@
 # Release Notes
 
+## 2.0.6
+### Bugfixes
+- Fixed a bug where running systemd in a container on a cgroups v1 system would fail.
+- Fixed a bug where `/etc/passwd` could be re-created every time a container is restarted if the container's `/etc/passwd` did not contain an entry for the user the container was started as.
+- Fixed a bug where containers without an `/etc/passwd` file specifying a non-root user would not start.
+- Fixed a bug where the `--remote` flag would sometimes not make remote connections and would instead attempt to run Podman locally.
+
+### Misc
+- Updated the containers/common library to v0.14.10
+
 ## 2.0.5
 ### Features
 - Rootless Podman will now add an entry to `/etc/passwd` for the user who ran Podman if run with `--userns=keep-id`.
