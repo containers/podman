@@ -305,7 +305,7 @@ github.com/google/gofuzz
 github.com/google/shlex
 # github.com/google/uuid v1.1.2
 github.com/google/uuid
-# github.com/gorilla/mux v1.7.4
+# github.com/gorilla/mux v1.8.0
 github.com/gorilla/mux
 # github.com/gorilla/schema v1.2.0
 github.com/gorilla/schema
