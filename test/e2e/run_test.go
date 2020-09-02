@@ -919,6 +919,14 @@ USER mail`
 		Expect(session.OutputToString()).To(Not(ContainSubstring("/dev/shm type tmpfs (ro,")))
 	})
 
+	It("podman run readonly container should NOT mount /run noexec", func() {
+		session := podmanTest.Podman([]string{"run", "--read-only", ALPINE, "sh", "-c", "mount  | grep \"/run \""})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		Expect(session.OutputToString()).To(Not(ContainSubstring("noexec")))
+	})
+
 	It("podman run with bad healthcheck retries", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--health-cmd", "[\"foo\"]", "--health-retries", "0", ALPINE, "top"})
 		session.Wait()

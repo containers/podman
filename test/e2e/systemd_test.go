@@ -146,4 +146,12 @@ WantedBy=multi-user.target
 		Expect(len(conData)).To(Equal(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
 	})
+
+	It("podman run --systemd container should NOT mount /run noexec", func() {
+		session := podmanTest.Podman([]string{"run", "--systemd", "always", ALPINE, "sh", "-c", "mount  | grep \"/run \""})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		Expect(session.OutputToString()).To(Not(ContainSubstring("noexec")))
+	})
 })
