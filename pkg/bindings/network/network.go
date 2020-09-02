@@ -70,7 +70,7 @@ func Remove(ctx context.Context, nameOrID string, force *bool) ([]*entities.Netw
 }
 
 // List returns a summary of all CNI network configurations
-func List(ctx context.Context) ([]*entities.NetworkListReport, error) {
+func List(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
 	var (
 		netList []*entities.NetworkListReport
 	)
@@ -78,7 +78,11 @@ func List(ctx context.Context) ([]*entities.NetworkListReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/json", nil, nil)
+	params := url.Values{}
+	if options.Filter != "" {
+		params.Set("filter", options.Filter)
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/json", params, nil)
 	if err != nil {
 		return netList, err
 	}

@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 
@@ -177,9 +178,11 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+
+	filterNames, nameFilterExists := query.Filters["name"]
 	// TODO remove when filters are implemented
-	if len(query.Filters) > 0 {
-		utils.InternalServerError(w, errors.New("filters for listing networks is not implemented"))
+	if (!nameFilterExists && len(query.Filters) > 0) || len(query.Filters) > 1 {
+		utils.InternalServerError(w, errors.New("only the name filter for listing networks is implemented"))
 		return
 	}
 	netNames, err := network.GetNetworkNamesFromFileSystem(config)
@@ -187,6 +190,21 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+
+	// filter by name
+	if nameFilterExists {
+		names := []string{}
+		for _, name := range netNames {
+			for _, filter := range filterNames {
+				if strings.Contains(name, filter) {
+					names = append(names, name)
+					break
+				}
+			}
+		}
+		netNames = names
+	}
+
 	reports := make([]*types.NetworkResource, 0, len(netNames))
 	for _, name := range netNames {
 		report, err := getNetworkResourceByName(name, runtime)

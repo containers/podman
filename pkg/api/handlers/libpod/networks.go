@@ -42,7 +42,21 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 }
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	options := entities.NetworkListOptions{}
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Filter string `schema:"filter"`
+	}{
+		// override any golang type defaults
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	options := entities.NetworkListOptions{
+		Filter: query.Filter,
+	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	reports, err := ic.NetworkList(r.Context(), options)
 	if err != nil {
