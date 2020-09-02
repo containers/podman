@@ -563,7 +563,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) error {
-	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
+	options := []string{"rw", "rprivate", "nosuid", "nodev"}
 	for _, dest := range []string{"/run", "/run/lock"} {
 		if MountExists(mounts, dest) {
 			continue
@@ -627,7 +627,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			Destination: "/sys/fs/cgroup/systemd",
 			Type:        "bind",
 			Source:      "/sys/fs/cgroup/systemd",
-			Options:     []string{"bind", "nodev", "noexec", "nosuid", "rprivate"},
+			Options:     []string{"bind", "nodev", "nosuid", "rprivate"},
 		}
 		g.AddMount(systemdMnt)
 		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
