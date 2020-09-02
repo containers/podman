@@ -14,6 +14,8 @@ load helpers
 --format {{.ID}}                  |        [0-9a-f]\\\{12\\\}
 --format {{.ID}} --no-trunc       | sha256:[0-9a-f]\\\{64\\\}
 --format {{.Repository}}:{{.Tag}} | $PODMAN_TEST_IMAGE_FQN
+--format {{.Labels.created_by}}   | test/system/build-testimage
+--format {{.Labels.created_at}}   | 20[0-9-]\\\+T[0-9:]\\\+Z
 "
 
     parse_table "$tests" | while read fmt expect; do
@@ -27,11 +29,13 @@ load helpers
 @test "podman images - json" {
     # 'created': podman includes fractional seconds, podman-remote does not
     tests="
-Names[0]    | $PODMAN_TEST_IMAGE_FQN
-Id          |        [0-9a-f]\\\{64\\\}
-Digest      | sha256:[0-9a-f]\\\{64\\\}
-CreatedAt   | [0-9-]\\\+T[0-9:.]\\\+Z
-Size        | [0-9]\\\+
+Names[0]          | $PODMAN_TEST_IMAGE_FQN
+Id                |        [0-9a-f]\\\{64\\\}
+Digest            | sha256:[0-9a-f]\\\{64\\\}
+CreatedAt         | [0-9-]\\\+T[0-9:.]\\\+Z
+Size              | [0-9]\\\+
+Labels.created_by | test/system/build-testimage
+Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 "
 
     run_podman images -a --format json

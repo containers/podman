@@ -12,7 +12,7 @@ load helpers
     random_2=$(random_string 30)
 
     HOST_PORT=8080
-    SERVER=http://localhost:$HOST_PORT
+    SERVER=http://127.0.0.1:$HOST_PORT
 
     # Create a test file with random content
     INDEX1=$PODMAN_TMPDIR/hello.txt
@@ -22,7 +22,7 @@ load helpers
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
                -v $INDEX1:/var/www/index.txt \
                -w /var/www \
-               busybox httpd -f -p 80
+               $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
 
     # In that container, create a second file, using exec and redirection
@@ -33,14 +33,14 @@ load helpers
 
     # Verify http contents: curl from localhost
     run curl -s $SERVER/index.txt
-    is "$output" "$random_1" "curl localhost:/index.txt"
+    is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
     run curl -s $SERVER/index2.txt
-    is "$output" "$random_2" "curl localhost:/index2.txt"
+    is "$output" "$random_2" "curl 127.0.0.1:/index2.txt"
 
     # Verify http contents: wget from a second container
-    run_podman run --rm --net=host busybox wget -qO - $SERVER/index.txt
+    run_podman run --rm --net=host $IMAGE wget -qO - $SERVER/index.txt
     is "$output" "$random_1" "podman wget /index.txt"
-    run_podman run --rm --net=host busybox wget -qO - $SERVER/index2.txt
+    run_podman run --rm --net=host $IMAGE wget -qO - $SERVER/index2.txt
     is "$output" "$random_2" "podman wget /index2.txt"
 
     # Tests #4889 - two-argument form of "podman ports" was broken
@@ -57,7 +57,6 @@ load helpers
     # Clean up
     run_podman stop -t 1 myweb
     run_podman rm myweb
-    run_podman rmi busybox
 }
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d

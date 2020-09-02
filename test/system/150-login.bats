@@ -56,14 +56,17 @@ function setup() {
     AUTHDIR=${PODMAN_LOGIN_WORKDIR}/auth
     mkdir -p $AUTHDIR
 
+    # Registry image; copy of docker.io, but on our own registry
+    local REGISTRY_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/registry:2.7"
+
     # Pull registry image, but into a separate container storage
     mkdir -p ${PODMAN_LOGIN_WORKDIR}/root
     mkdir -p ${PODMAN_LOGIN_WORKDIR}/runroot
     PODMAN_LOGIN_ARGS="--root ${PODMAN_LOGIN_WORKDIR}/root --runroot ${PODMAN_LOGIN_WORKDIR}/runroot"
     # Give it three tries, to compensate for flakes
-    run_podman ${PODMAN_LOGIN_ARGS} pull registry:2.6 ||
-        run_podman ${PODMAN_LOGIN_ARGS} pull registry:2.6 ||
-        run_podman ${PODMAN_LOGIN_ARGS} pull registry:2.6
+    run_podman ${PODMAN_LOGIN_ARGS} pull $REGISTRY_IMAGE ||
+        run_podman ${PODMAN_LOGIN_ARGS} pull $REGISTRY_IMAGE ||
+        run_podman ${PODMAN_LOGIN_ARGS} pull $REGISTRY_IMAGE
 
     # Registry image needs a cert. Self-signed is good enough.
     CERT=$AUTHDIR/domain.crt
@@ -76,10 +79,8 @@ function setup() {
 
     # Store credentials where container will see them
     if [ ! -e $AUTHDIR/htpasswd ]; then
-        run_podman ${PODMAN_LOGIN_ARGS} run --rm                  \
-                   --entrypoint htpasswd registry:2.6             \
-                   -Bbn ${PODMAN_LOGIN_USER} ${PODMAN_LOGIN_PASS} \
-                   > $AUTHDIR/htpasswd
+        htpasswd -Bbn ${PODMAN_LOGIN_USER} ${PODMAN_LOGIN_PASS} \
+                 > $AUTHDIR/htpasswd
 
         # In case $PODMAN_TEST_KEEP_LOGIN_REGISTRY is set, for testing later
         echo "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" \
@@ -97,7 +98,7 @@ function setup() {
                -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
                -e REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt \
                -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
-               registry:2.6
+               $REGISTRY_IMAGE
 }
 
 # END   first "test" - start a registry for use by other tests
@@ -189,38 +190,26 @@ EOF
 }
 
 @test "podman push ok" {
-    # ARGH! We can't push $IMAGE (alpine_labels) to this registry; error is:
-    #
-    #    Writing manifest to image destination
-    #    Error: Error copying image to the remote destination: Error writing manifest: Error uploading manifest latest to localhost:${PODMAN_LOGIN_REGISTRY_PORT}/okpush: received unexpected HTTP status: 500 Internal Server Error
-    #
-    # Root cause: something to do with v1/v2 s1/s2:
-    #
-    #   https://github.com/containers/skopeo/issues/651
-    #
-
-    run_podman pull busybox
-
-    # Preserve its ID for later comparison against push/pulled image
-    run_podman inspect --format '{{.Id}}' busybox
-    id_busybox=$output
+    # Preserve image ID for later comparison against push/pulled image
+    run_podman inspect --format '{{.Id}}' $IMAGE
+    iid=$output
 
     destname=ok-$(random_string 10 | tr A-Z a-z)-ok
     # Use command-line credentials
     run_podman push --tls-verify=false \
                --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
-               busybox localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
+               $IMAGE localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
     # Yay! Pull it back
     run_podman pull --tls-verify=false \
                --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
                localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
-    # Compare to original busybox
+    # Compare to original image
     run_podman inspect --format '{{.Id}}' $destname
-    is "$output" "$id_busybox" "Image ID of pulled image == busybox"
+    is "$output" "$iid" "Image ID of pulled image == original IID"
 
-    run_podman rmi busybox $destname
+    run_podman rmi $destname
 }
 
 # END   primary podman login/push/pull tests

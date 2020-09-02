@@ -115,9 +115,10 @@ function _assert_mainpid_is_conmon() {
 
 @test "sdnotify : container" {
     # Sigh... we need to pull a humongous image because it has systemd-notify.
+    # (IMPORTANT: fedora:32 and above silently removed systemd-notify; this
+    # caused CI to hang. That's why we explicitly require fedora:31)
     # FIXME: is there a smaller image we could use?
-    _FEDORA=registry.fedoraproject.org/fedora:31
-
+    local _FEDORA="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/fedora:31"
     # Pull that image. Retry in case of flakes.
     run_podman pull $_FEDORA || \
         run_podman pull $_FEDORA || \
