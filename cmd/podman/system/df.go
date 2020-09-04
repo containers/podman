@@ -134,7 +134,7 @@ func printSummary(reports *entities.SystemDfReport, userFormat string) error {
 	for _, v := range reports.Volumes {
 		activeVolumes += v.Links
 		volumesSize += v.Size
-		volumesReclaimable += v.Size
+		volumesReclaimable += v.ReclaimableSize
 	}
 	volumeSummary := dfSummary{
 		Type:        "Local Volumes",
@@ -182,7 +182,7 @@ func printVerbose(reports *entities.SystemDfReport) error {
 		dfContainers = append(dfContainers, &dfContainer{SystemDfContainerReport: d})
 	}
 	containerHeaders := "CONTAINER ID\tIMAGE\tCOMMAND\tLOCAL VOLUMES\tSIZE\tCREATED\tSTATUS\tNAMES\n"
-	containerRow := "{{.ContainerID}}\t{{.Image}}\t{{.Command}}\t{{.LocalVolumes}}\t{{.Size}}\t{{.Created}}\t{{.Status}}\t{{.Names}}\n"
+	containerRow := "{{.ContainerID}}\t{{.Image}}\t{{.Command}}\t{{.LocalVolumes}}\t{{.RWSize}}\t{{.Created}}\t{{.Status}}\t{{.Names}}\n"
 	format = containerHeaders + "{{range . }}" + containerRow + "{{end}}"
 	if err := writeTemplate(w, format, dfContainers); err != nil {
 		return nil
@@ -257,8 +257,8 @@ func (d *dfContainer) Command() string {
 	return strings.Join(d.SystemDfContainerReport.Command, " ")
 }
 
-func (d *dfContainer) Size() string {
-	return units.HumanSize(float64(d.SystemDfContainerReport.Size))
+func (d *dfContainer) RWSize() string {
+	return units.HumanSize(float64(d.SystemDfContainerReport.RWSize))
 }
 
 func (d *dfContainer) Created() string {

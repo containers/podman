@@ -75,9 +75,10 @@ type SystemDfContainerReport struct {
 
 // SystemDfVolumeReport describes a volume and its size
 type SystemDfVolumeReport struct {
-	VolumeName string
-	Links      int
-	Size       int64
+	VolumeName      string
+	Links           int
+	Size            int64
+	ReclaimableSize int64
 }
 
 // SystemResetOptions describes the options for resetting your
