@@ -36,7 +36,7 @@ import (
 	"github.com/containers/podman/v2/utils"
 	"github.com/containers/storage/pkg/archive"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	User "github.com/opencontainers/runc/libcontainer/user"
+	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1268,7 +1268,7 @@ func (c *Container) makeBindMounts() error {
 	// SHM is always added when we mount the container
 	c.state.BindMounts["/dev/shm"] = c.config.ShmDir
 
-	newPasswd, err := c.generatePasswd()
+	newPasswd, newGroup, err := c.generatePasswdAndGroup()
 	if err != nil {
 		return errors.Wrapf(err, "error creating temporary passwd file for container %s", c.ID())
 	}
@@ -1278,8 +1278,15 @@ func (c *Container) makeBindMounts() error {
 			// If it already exists, delete so we can recreate
 			delete(c.state.BindMounts, "/etc/passwd")
 		}
-		logrus.Debugf("adding entry to /etc/passwd for non existent default user")
 		c.state.BindMounts["/etc/passwd"] = newPasswd
+	}
+	if newGroup != "" {
+		// Make /etc/group
+		if _, ok := c.state.BindMounts["/etc/group"]; ok {
+			// If it already exists, delete so we can recreate
+			delete(c.state.BindMounts, "/etc/group")
+		}
+		c.state.BindMounts["/etc/group"] = newGroup
 	}
 
 	// Make /etc/hostname
@@ -1499,23 +1506,171 @@ func (c *Container) getHosts() string {
 	return hosts
 }
 
-// generateCurrentUserPasswdEntry generates an /etc/passwd entry for the user
-// running the container engine
-func (c *Container) generateCurrentUserPasswdEntry() (string, error) {
-	uid := rootless.GetRootlessUID()
-	if uid == 0 {
-		return "", nil
+// generateGroupEntry generates an entry or entries into /etc/group as
+// required by container configuration.
+// Generatlly speaking, we will make an entry under two circumstances:
+// 1. The container is started as a specific user:group, and that group is both
+//    numeric, and does not already exist in /etc/group.
+// 2. It is requested that Libpod add the group that launched Podman to
+//    /etc/group via AddCurrentUserPasswdEntry (though this does not trigger if
+//    the group in question already exists in /etc/passwd).
+// Returns group entry (as a string that can be appended to /etc/group) and any
+// error that occurred.
+func (c *Container) generateGroupEntry() (string, error) {
+	groupString := ""
+
+	// Things we *can't* handle: adding the user we added in
+	// generatePasswdEntry to any *existing* groups.
+	addedGID := 0
+	if c.config.AddCurrentUserPasswdEntry {
+		entry, gid, err := c.generateCurrentUserGroupEntry()
+		if err != nil {
+			return "", err
+		}
+		groupString += entry
+		addedGID = gid
+	}
+	if c.config.User != "" {
+		entry, _, err := c.generateUserGroupEntry(addedGID)
+		if err != nil {
+			return "", err
+		}
+		groupString += entry
 	}
 
-	u, err := user.LookupId(strconv.Itoa(rootless.GetRootlessUID()))
+	return groupString, nil
+}
+
+// Make an entry in /etc/group for the group of the user running podman iff we
+// are rootless.
+func (c *Container) generateCurrentUserGroupEntry() (string, int, error) {
+	gid := rootless.GetRootlessGID()
+	if gid == 0 {
+		return "", 0, nil
+	}
+
+	g, err := user.LookupGroupId(strconv.Itoa(gid))
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get current user")
+		return "", 0, errors.Wrapf(err, "failed to get current group")
+	}
+
+	// Lookup group name to see if it exists in the image.
+	_, err = lookup.GetGroup(c.state.Mountpoint, g.Name)
+	if err != runcuser.ErrNoGroupEntries {
+		return "", 0, err
+	}
+
+	// Lookup GID to see if it exists in the image.
+	_, err = lookup.GetGroup(c.state.Mountpoint, g.Gid)
+	if err != runcuser.ErrNoGroupEntries {
+		return "", 0, err
+	}
+
+	// We need to get the username of the rootless user so we can add it to
+	// the group.
+	username := ""
+	uid := rootless.GetRootlessUID()
+	if uid != 0 {
+		u, err := user.LookupId(strconv.Itoa(uid))
+		if err != nil {
+			return "", 0, errors.Wrapf(err, "failed to get current user to make group entry")
+		}
+		username = u.Username
+	}
+
+	// Make the entry.
+	return fmt.Sprintf("%s:x:%s:%s\n", g.Name, g.Gid, username), gid, nil
+}
+
+// Make an entry in /etc/group for the group the container was specified to run
+// as.
+func (c *Container) generateUserGroupEntry(addedGID int) (string, int, error) {
+	if c.config.User == "" {
+		return "", 0, nil
+	}
+
+	splitUser := strings.SplitN(c.config.User, ":", 2)
+	group := splitUser[0]
+	if len(splitUser) > 1 {
+		group = splitUser[1]
+	}
+
+	gid, err := strconv.ParseUint(group, 10, 32)
+	if err != nil {
+		return "", 0, nil
+	}
+
+	if addedGID != 0 && addedGID == int(gid) {
+		return "", 0, nil
+	}
+
+	// Check if the group already exists
+	_, err = lookup.GetGroup(c.state.Mountpoint, group)
+	if err != runcuser.ErrNoGroupEntries {
+		return "", 0, err
+	}
+
+	return fmt.Sprintf("%d:x:%d:%s\n", gid, gid, splitUser[0]), int(gid), nil
+}
+
+// generatePasswdEntry generates an entry or entries into /etc/passwd as
+// required by container configuration.
+// Generally speaking, we will make an entry under two circumstances:
+// 1. The container is started as a specific user who is not in /etc/passwd.
+//    This only triggers if the user is given as a *numeric* ID.
+// 2. It is requested that Libpod add the user that launched Podman to
+//    /etc/passwd via AddCurrentUserPasswdEntry (though this does not trigger if
+//    the user in question already exists in /etc/passwd) or the UID to be added
+//    is 0).
+// Returns password entry (as a string that can be appended to /etc/passwd) and
+// any error that occurred.
+func (c *Container) generatePasswdEntry() (string, error) {
+	passwdString := ""
+
+	addedUID := 0
+	if c.config.AddCurrentUserPasswdEntry {
+		entry, uid, _, err := c.generateCurrentUserPasswdEntry()
+		if err != nil {
+			return "", err
+		}
+		passwdString += entry
+		addedUID = uid
+	}
+	if c.config.User != "" {
+		entry, _, _, err := c.generateUserPasswdEntry(addedUID)
+		if err != nil {
+			return "", err
+		}
+		passwdString += entry
+	}
+
+	return passwdString, nil
+}
+
+// generateCurrentUserPasswdEntry generates an /etc/passwd entry for the user
+// running the container engine.
+// Returns a passwd entry for the user, and the UID and GID of the added entry.
+func (c *Container) generateCurrentUserPasswdEntry() (string, int, int, error) {
+	uid := rootless.GetRootlessUID()
+	if uid == 0 {
+		return "", 0, 0, nil
+	}
+
+	u, err := user.LookupId(strconv.Itoa(uid))
+	if err != nil {
+		return "", 0, 0, errors.Wrapf(err, "failed to get current user")
 	}
 
 	// Lookup the user to see if it exists in the container image.
 	_, err = lookup.GetUser(c.state.Mountpoint, u.Username)
-	if err != User.ErrNoPasswdEntries {
-		return "", err
+	if err != runcuser.ErrNoPasswdEntries {
+		return "", 0, 0, err
+	}
+
+	// Lookup the UID to see if it exists in the container image.
+	_, err = lookup.GetUser(c.state.Mountpoint, u.Uid)
+	if err != runcuser.ErrNoPasswdEntries {
+		return "", 0, 0, err
 	}
 
 	// If the user's actual home directory exists, or was mounted in - use
@@ -1525,18 +1680,22 @@ func (c *Container) generateCurrentUserPasswdEntry() (string, error) {
 		homeDir = u.HomeDir
 	}
 
-	return fmt.Sprintf("%s:x:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Username, homeDir), nil
+	return fmt.Sprintf("%s:*:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Username, homeDir), uid, rootless.GetRootlessGID(), nil
 }
 
 // generateUserPasswdEntry generates an /etc/passwd entry for the container user
 // to run in the container.
-func (c *Container) generateUserPasswdEntry() (string, error) {
+// The UID and GID of the added entry will also be returned.
+// Accepts one argument, that being any UID that has already been added to the
+// passwd file by other functions; if it matches the UID we were given, we don't
+// need to do anything.
+func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, error) {
 	var (
 		groupspec string
 		gid       int
 	)
 	if c.config.User == "" {
-		return "", nil
+		return "", 0, 0, nil
 	}
 	splitSpec := strings.SplitN(c.config.User, ":", 2)
 	userspec := splitSpec[0]
@@ -1546,13 +1705,17 @@ func (c *Container) generateUserPasswdEntry() (string, error) {
 	// If a non numeric User, then don't generate passwd
 	uid, err := strconv.ParseUint(userspec, 10, 32)
 	if err != nil {
-		return "", nil
+		return "", 0, 0, nil
+	}
+
+	if addedUID != 0 && int(uid) == addedUID {
+		return "", 0, 0, nil
 	}
 
 	// Lookup the user to see if it exists in the container image
 	_, err = lookup.GetUser(c.state.Mountpoint, userspec)
-	if err != User.ErrNoPasswdEntries {
-		return "", err
+	if err != runcuser.ErrNoPasswdEntries {
+		return "", 0, 0, err
 	}
 
 	if groupspec != "" {
@@ -1562,96 +1725,180 @@ func (c *Container) generateUserPasswdEntry() (string, error) {
 		} else {
 			group, err := lookup.GetGroup(c.state.Mountpoint, groupspec)
 			if err != nil {
-				return "", errors.Wrapf(err, "unable to get gid %s from group file", groupspec)
+				return "", 0, 0, errors.Wrapf(err, "unable to get gid %s from group file", groupspec)
 			}
 			gid = group.Gid
 		}
 	}
-	return fmt.Sprintf("%d:x:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), nil
+	return fmt.Sprintf("%d:*:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), int(uid), gid, nil
 }
 
-// generatePasswd generates a container specific passwd file,
-// iff g.config.User is a number
-func (c *Container) generatePasswd() (string, error) {
+// generatePasswdAndGroup generates container-specific passwd and group files
+// iff g.config.User is a number or we are configured to make a passwd entry for
+// the current user.
+// Returns path to file to mount at /etc/passwd, path to file to mount at
+// /etc/group, and any error that occurred. If no passwd/group file were
+// required, the empty string will be returned for those path (this may occur
+// even if no error happened).
+// This may modify the mounted container's /etc/passwd and /etc/group instead of
+// making copies to bind-mount in, so we don't break useradd (it wants to make a
+// copy of /etc/passwd and rename the copy to /etc/passwd, which is impossible
+// with a bind mount). This is done in cases where the container is *not*
+// read-only. In this case, the function will return nothing ("", "", nil).
+func (c *Container) generatePasswdAndGroup() (string, string, error) {
 	if !c.config.AddCurrentUserPasswdEntry && c.config.User == "" {
-		return "", nil
+		return "", "", nil
 	}
+
+	needPasswd := true
+	needGroup := true
+
+	// First, check if there's a mount at /etc/passwd or group, we don't
+	// want to interfere with user mounts.
 	if MountExists(c.config.Spec.Mounts, "/etc/passwd") {
-		return "", nil
+		needPasswd = false
 	}
-	// Re-use passwd if possible
-	passwdPath := filepath.Join(c.config.StaticDir, "passwd")
-	if _, err := os.Stat(passwdPath); err == nil {
-		return passwdPath, nil
+	if MountExists(c.config.Spec.Mounts, "/etc/group") {
+		needGroup = false
 	}
-	// Check if container has a /etc/passwd - if it doesn't do nothing.
-	passwdPath, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd")
-	if err != nil {
-		return "", errors.Wrapf(err, "error creating path to container %s /etc/passwd", c.ID())
-	}
-	if _, err := os.Stat(passwdPath); err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
+
+	// Next, check if we already made the files. If we didn, don't need to
+	// do anything more.
+	if needPasswd {
+		passwdPath := filepath.Join(c.config.StaticDir, "passwd")
+		if _, err := os.Stat(passwdPath); err == nil {
+			needPasswd = false
 		}
-		return "", errors.Wrapf(err, "unable to access container %s /etc/passwd", c.ID())
 	}
-	pwd := ""
-	if c.config.User != "" {
-		entry, err := c.generateUserPasswdEntry()
+	if needGroup {
+		groupPath := filepath.Join(c.config.StaticDir, "group")
+		if _, err := os.Stat(groupPath); err == nil {
+			needGroup = false
+		}
+	}
+
+	// Next, check if the container even has a /etc/passwd or /etc/group.
+	// If it doesn't we don't want to create them ourselves.
+	if needPasswd {
+		exists, err := c.checkFileExistsInRootfs("/etc/passwd")
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
-		pwd += entry
+		needPasswd = exists
 	}
-	if c.config.AddCurrentUserPasswdEntry {
-		entry, err := c.generateCurrentUserPasswdEntry()
+	if needGroup {
+		exists, err := c.checkFileExistsInRootfs("/etc/group")
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
-		pwd += entry
-	}
-	if pwd == "" {
-		return "", nil
+		needGroup = exists
 	}
 
-	// If we are *not* read-only - edit /etc/passwd in the container.
-	// This is *gross* (shows up in changes to the container, will be
-	// committed to images based on the container) but it actually allows us
-	// to add users to the container (a bind mount breaks useradd).
-	// We should never get here twice, because generateUserPasswdEntry will
-	// not return anything if the user already exists in /etc/passwd.
-	if !c.IsReadOnly() {
-		containerPasswd, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd")
+	// If we don't need a /etc/passwd or /etc/group at this point we can
+	// just return.
+	if !needPasswd && !needGroup {
+		return "", "", nil
+	}
+
+	passwdPath := ""
+	groupPath := ""
+
+	ro := c.IsReadOnly()
+
+	if needPasswd {
+		passwdEntry, err := c.generatePasswdEntry()
 		if err != nil {
-			return "", errors.Wrapf(err, "error looking up location of container %s /etc/passwd", c.ID())
+			return "", "", err
 		}
 
-		f, err := os.OpenFile(containerPasswd, os.O_APPEND|os.O_WRONLY, 0600)
+		needsWrite := passwdEntry != ""
+		switch {
+		case ro && needsWrite:
+			logrus.Debugf("Making /etc/passwd for container %s", c.ID())
+			originPasswdFile, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd")
+			if err != nil {
+				return "", "", errors.Wrapf(err, "error creating path to container %s /etc/passwd", c.ID())
+			}
+			orig, err := ioutil.ReadFile(originPasswdFile)
+			if err != nil && !os.IsNotExist(err) {
+				return "", "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
+			}
+			passwdFile, err := c.writeStringToStaticDir("passwd", string(orig)+passwdEntry)
+			if err != nil {
+				return "", "", errors.Wrapf(err, "failed to create temporary passwd file")
+			}
+			if err := os.Chmod(passwdFile, 0644); err != nil {
+				return "", "", err
+			}
+			passwdPath = passwdFile
+		case !ro && needsWrite:
+			logrus.Debugf("Modifying container %s /etc/passwd", c.ID())
+			containerPasswd, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd")
+			if err != nil {
+				return "", "", errors.Wrapf(err, "error looking up location of container %s /etc/passwd", c.ID())
+			}
+
+			f, err := os.OpenFile(containerPasswd, os.O_APPEND|os.O_WRONLY, 0600)
+			if err != nil {
+				return "", "", errors.Wrapf(err, "error opening container %s /etc/passwd", c.ID())
+			}
+			defer f.Close()
+
+			if _, err := f.WriteString(passwdEntry); err != nil {
+				return "", "", errors.Wrapf(err, "unable to append to container %s /etc/passwd", c.ID())
+			}
+		default:
+			logrus.Debugf("Not modifying container %s /etc/passwd", c.ID())
+		}
+	}
+	if needGroup {
+		groupEntry, err := c.generateGroupEntry()
 		if err != nil {
-			return "", errors.Wrapf(err, "error opening container %s /etc/passwd", c.ID())
-		}
-		defer f.Close()
-
-		if _, err := f.WriteString(pwd); err != nil {
-			return "", errors.Wrapf(err, "unable to append to container %s /etc/passwd", c.ID())
+			return "", "", err
 		}
 
-		return "", nil
+		needsWrite := groupEntry != ""
+		switch {
+		case ro && needsWrite:
+			logrus.Debugf("Making /etc/group for container %s", c.ID())
+			originGroupFile, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/group")
+			if err != nil {
+				return "", "", errors.Wrapf(err, "error creating path to container %s /etc/group", c.ID())
+			}
+			orig, err := ioutil.ReadFile(originGroupFile)
+			if err != nil && !os.IsNotExist(err) {
+				return "", "", errors.Wrapf(err, "unable to read group file %s", originGroupFile)
+			}
+			groupFile, err := c.writeStringToStaticDir("group", string(orig)+groupEntry)
+			if err != nil {
+				return "", "", errors.Wrapf(err, "failed to create temporary group file")
+			}
+			if err := os.Chmod(groupFile, 0644); err != nil {
+				return "", "", err
+			}
+			groupPath = groupFile
+		case !ro && needsWrite:
+			logrus.Debugf("Modifying container %s /etc/group", c.ID())
+			containerGroup, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/group")
+			if err != nil {
+				return "", "", errors.Wrapf(err, "error looking up location of container %s /etc/group", c.ID())
+			}
+
+			f, err := os.OpenFile(containerGroup, os.O_APPEND|os.O_WRONLY, 0600)
+			if err != nil {
+				return "", "", errors.Wrapf(err, "error opening container %s /etc/group", c.ID())
+			}
+			defer f.Close()
+
+			if _, err := f.WriteString(groupEntry); err != nil {
+				return "", "", errors.Wrapf(err, "unable to append to container %s /etc/group", c.ID())
+			}
+		default:
+			logrus.Debugf("Not modifying container %s /etc/group", c.ID())
+		}
 	}
 
-	originPasswdFile := filepath.Join(c.state.Mountpoint, "/etc/passwd")
-	orig, err := ioutil.ReadFile(originPasswdFile)
-	if err != nil && !os.IsNotExist(err) {
-		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
-	}
-	passwdFile, err := c.writeStringToStaticDir("passwd", string(orig)+pwd)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to create temporary passwd file")
-	}
-	if err := os.Chmod(passwdFile, 0644); err != nil {
-		return "", err
-	}
-	return passwdFile, nil
+	return passwdPath, groupPath, nil
 }
 
 func (c *Container) copyOwnerAndPerms(source, dest string) error {
@@ -1742,4 +1989,24 @@ func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
 
 func (c *Container) cleanupOverlayMounts() error {
 	return overlay.CleanupContent(c.config.StaticDir)
+}
+
+// Check if a file exists at the given path in the container's root filesystem.
+// Container must already be mounted for this to be used.
+func (c *Container) checkFileExistsInRootfs(file string) (bool, error) {
+	checkPath, err := securejoin.SecureJoin(c.state.Mountpoint, file)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot create path to container %s file %q", c.ID(), file)
+	}
+	stat, err := os.Stat(checkPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "error accessing container %s file %q", c.ID(), file)
+	}
+	if stat.IsDir() {
+		return false, nil
+	}
+	return true, nil
 }

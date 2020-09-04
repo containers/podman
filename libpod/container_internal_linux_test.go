@@ -29,16 +29,42 @@ func TestGenerateUserPasswdEntry(t *testing.T) {
 			Mountpoint: "/does/not/exist/tmp/",
 		},
 	}
-	user, err := c.generateUserPasswdEntry()
+	user, _, _, err := c.generateUserPasswdEntry(0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, user, "123:x:123:456:container user:/:/bin/sh\n")
+	assert.Equal(t, user, "123:*:123:456:container user:/:/bin/sh\n")
 
 	c.config.User = "567"
-	user, err = c.generateUserPasswdEntry()
+	user, _, _, err = c.generateUserPasswdEntry(0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, user, "567:x:567:0:container user:/:/bin/sh\n")
+	assert.Equal(t, user, "567:*:567:0:container user:/:/bin/sh\n")
+}
+
+func TestGenerateUserGroupEntry(t *testing.T) {
+	c := Container{
+		config: &ContainerConfig{
+			Spec: &spec.Spec{},
+			ContainerSecurityConfig: ContainerSecurityConfig{
+				User: "123:456",
+			},
+		},
+		state: &ContainerState{
+			Mountpoint: "/does/not/exist/tmp/",
+		},
+	}
+	group, _, err := c.generateUserGroupEntry(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, group, "456:x:456:123\n")
+
+	c.config.User = "567"
+	group, _, err = c.generateUserGroupEntry(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, group, "567:x:567:567\n")
 }

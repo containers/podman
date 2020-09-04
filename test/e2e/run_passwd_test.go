@@ -71,4 +71,58 @@ USER 1000`
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Not(ContainSubstring("passwd")))
 	})
+
+	It("podman run with no user specified does not change --group specified", func() {
+		session := podmanTest.Podman([]string{"run", "--read-only", BB, "mount"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("/etc/group")).To(BeFalse())
+	})
+
+	It("podman run group specified in container", func() {
+		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "root:bin", BB, "mount"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("/etc/group")).To(BeFalse())
+	})
+
+	It("podman run non-numeric group not specified in container", func() {
+		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "root:doesnotexist", BB, "mount"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman run numeric group specified in container", func() {
+		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "root:11", BB, "mount"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("/etc/group")).To(BeFalse())
+	})
+
+	It("podman run numeric group not specified in container", func() {
+		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "20001:20001", BB, "mount"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("/etc/group")).To(BeTrue())
+	})
+
+	It("podman run numeric user not specified in container modifies group", func() {
+		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "20001", BB, "mount"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("/etc/group")).To(BeTrue())
+	})
+
+	It("podman run numeric group from image and no group file", func() {
+		SkipIfRemote()
+		dockerfile := `FROM alpine
+RUN rm -f /etc/passwd /etc/shadow /etc/group
+USER 1000`
+		imgName := "testimg"
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+		session := podmanTest.Podman([]string{"run", "--rm", imgName, "ls", "/etc/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring("/etc/group")))
+	})
 })
