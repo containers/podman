@@ -154,7 +154,7 @@ container_image_build_task:
     depends_on:
         - "gating"
 
-    # Only run for PRs, quay.io will automatically build after bramch-push
+    # Only run for PRs, quay.io will automatically build after branch-push
     only_if: $CIRRUS_BRANCH != $DEST_BRANCH
 
     matrix:
@@ -736,6 +736,7 @@ success_task:
         - "verify_test_built_images"
         - "docs"
         - "static_build"
+        - "darwin_build"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
@@ -784,3 +785,18 @@ static_build_task:
 
     binaries_artifacts:
         path: "result/bin/podman"
+
+
+darwin_build_task:
+    depends_on:
+        - "gating"
+    osx_instance:
+        image: catalina-base
+    setup-script:
+        - brew install go
+        - brew install go-md2man
+    build-script:
+        - make podman-remote-darwin
+        - make install-podman-remote-darwin-docs
+    binaries_artifacts:
+        path: "bin/podman-remote-darwin"
