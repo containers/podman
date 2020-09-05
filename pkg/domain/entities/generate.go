@@ -4,8 +4,6 @@ import "io"
 
 // GenerateSystemdOptions control the generation of systemd unit files.
 type GenerateSystemdOptions struct {
-	// Files - generate files instead of printing to stdout.
-	Files bool
 	// Name - use container/pod name instead of its ID.
 	Name bool
 	// New - create a new container instead of starting a new one.
@@ -24,9 +22,8 @@ type GenerateSystemdOptions struct {
 
 // GenerateSystemdReport
 type GenerateSystemdReport struct {
-	// Output of the generate process. Either the generated files or their
-	// entire content.
-	Output string
+	// Units of the generate process. key = unit name -> value = unit content
+	Units map[string]string
 }
 
 // GenerateKubeOptions control the generation of Kubernetes YAML files.

@@ -3,9 +3,7 @@ package generate
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
@@ -87,17 +85,22 @@ KillMode=none
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target`
+WantedBy=multi-user.target default.target
+`
 
 // ContainerUnit generates a systemd unit for the specified container.  Based
 // on the options, the return value might be the entire unit or a file it has
 // been written to.
-func ContainerUnit(ctr *libpod.Container, options entities.GenerateSystemdOptions) (string, error) {
+func ContainerUnit(ctr *libpod.Container, options entities.GenerateSystemdOptions) (string, string, error) {
 	info, err := generateContainerInfo(ctr, options)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return executeContainerTemplate(info, options)
+	content, err := executeContainerTemplate(info, options)
+	if err != nil {
+		return "", "", err
+	}
+	return info.ServiceName, content, nil
 }
 
 func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSystemdOptions) (*containerInfo, error) {
@@ -288,18 +291,5 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		return "", err
 	}
 
-	if !options.Files {
-		return buf.String(), nil
-	}
-
-	buf.WriteByte('\n')
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", errors.Wrap(err, "error getting current working directory")
-	}
-	path := filepath.Join(cwd, fmt.Sprintf("%s.service", info.ServiceName))
-	if err := ioutil.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		return "", errors.Wrap(err, "error generating systemd unit")
-	}
-	return path, nil
+	return buf.String(), nil
 }

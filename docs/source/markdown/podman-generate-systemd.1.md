@@ -10,7 +10,7 @@ podman\-generate\-systemd - Generate systemd unit file(s) for a container or pod
 **podman generate systemd** will create a systemd unit file that can be used to control a container or pod.
 By default, the command will print the content of the unit files to stdout.
 
-Note that this command is not supported for the remote client.
+_Note: If you use this command with the remote client, you would still have to place the generated units on the remote system._
 
 ## OPTIONS:
 
@@ -19,6 +19,10 @@ Note that this command is not supported for the remote client.
 Generate files instead of printing to stdout.  The generated files are named {container,pod}-{ID,name}.service and will be placed in the current working directory.
 
 Note: On a system with SELinux enabled, the generated files will inherit contexts from the current working directory. Depending on the SELinux setup, changes to the generated files using `restorecon`, `chcon`, or `semanage` may be required to allow systemd to access these files. Alternatively, use the `-Z` option when running `mv` or `cp`.
+
+**--format**=*format*
+
+Print the created units in specified format (json). If `--files` is specified the paths to the created files will be printed instead of the unit content.
 
 **--name**, **-n**
 

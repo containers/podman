@@ -19,11 +19,11 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	ctr, ctrErr := ic.Libpod.LookupContainer(nameOrID)
 	if ctrErr == nil {
 		// Generate the unit for the container.
-		s, err := generate.ContainerUnit(ctr, options)
+		name, content, err := generate.ContainerUnit(ctr, options)
 		if err != nil {
 			return nil, err
 		}
-		return &entities.GenerateSystemdReport{Output: s}, nil
+		return &entities.GenerateSystemdReport{Units: map[string]string{name: content}}, nil
 	}
 
 	// If it's not a container, we either have a pod or garbage.
@@ -34,11 +34,11 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	}
 
 	// Generate the units for the pod and all its containers.
-	s, err := generate.PodUnits(pod, options)
+	units, err := generate.PodUnits(pod, options)
 	if err != nil {
 		return nil, err
 	}
-	return &entities.GenerateSystemdReport{Output: s}, nil
+	return &entities.GenerateSystemdReport{Units: units}, nil
 }
 
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrID string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {

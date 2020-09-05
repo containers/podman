@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -61,7 +59,7 @@ var _ = Describe("Podman generate systemd", func() {
 		session = podmanTest.Podman([]string{"generate", "systemd", "--restart-policy", "bogus", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		found, _ := session.ErrorGrepString("Error: bogus is not a valid restart policy")
+		found, _ := session.ErrorGrepString("bogus is not a valid restart policy")
 		Expect(found).Should(BeTrue())
 	})
 
@@ -382,5 +380,16 @@ var _ = Describe("Podman generate systemd", func() {
 
 		found, _ = session.GrepString("pod rm --ignore -f --pod-id-file %t/pod-foo.pod-id")
 		Expect(found).To(BeTrue())
+	})
+
+	It("podman generate systemd --format json", func() {
+		n := podmanTest.Podman([]string{"create", "--name", "foo", ALPINE})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--format", "json", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
 	})
 })
