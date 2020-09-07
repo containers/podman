@@ -49,3 +49,8 @@ podman images
 
 exit
 ```
+
+**Note:** If you encounter a `fuse: device not found` error when running the container image, it is likely that
+the fuse kernel module has not been loaded on your host system.  Use the command `modprobe fuse` to load the
+module and then run the container image.  To enable this automatically at boot time, you can add a configuration
+file to `/etc/modules.load.d`.  See `man modules-load.d` for more details.

@@ -592,3 +592,28 @@ access to that port.  For example:
 ```
 $ podman run --pod srcview --name src-expose -v "${PWD}:/var/opt/localrepo":Z,ro sourcegraph/src-expose:latest serve /var/opt/localrepo
 ```
+
+### 24) Podman container images fail with `fuse: device not found` when run
+
+Some container images require that the fuse kernel module is loaded in the kernel
+before they will run with the fuse filesystem in play.
+
+#### Symptom
+
+When trying to run the container images found at quay.io/podman, quay.io/containers
+registry.access.redhat.com/ubi8 or other locations, an error will sometimes be returned:
+
+```
+ERRO error unmounting /var/lib/containers/storage/overlay/30c058cdadc888177361dd14a7ed7edab441c58525b341df321f07bc11440e68/merged: invalid argument
+error mounting container "1ae176ca72b3da7c70af31db7434bcf6f94b07dbc0328bc7e4e8fc9579d0dc2e": error mounting build container "1ae176ca72b3da7c70af31db7434bcf6f94b07dbc0328bc7e4e8fc9579d0dc2e": error creating overlay mount to /var/lib/containers/storage/overlay/30c058cdadc888177361dd14a7ed7edab441c58525b341df321f07bc11440e68/merged: using mount program /usr/bin/fuse-overlayfs: fuse: device not found, try 'modprobe fuse' first
+fuse-overlayfs: cannot mount: No such device
+: exit status 1
+ERRO exit status 1
+```
+
+#### Solution
+
+If you encounter a `fuse: device not found` error when running the container image, it is likely that
+the fuse kernel module has not been loaded on your host system.  Use the command `modprobe fuse` to load the
+module and then run the container image afterwards.  To enable this automatically at boot time, you can add a configuration
+file to `/etc/modules.load.d`.  See `man modules-load.d` for more details.
