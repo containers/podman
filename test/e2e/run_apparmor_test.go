@@ -155,4 +155,17 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 		inspect := podmanTest.InspectContainer(cid)
 		Expect(inspect[0].AppArmorProfile).To(Equal(""))
 	})
+
+	It("podman run apparmor disabled unconfined", func() {
+		skipIfAppArmorEnabled()
+
+		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=unconfined", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		cid := session.OutputToString()
+		// Verify that apparmor.Profile is being set
+		inspect := podmanTest.InspectContainer(cid)
+		Expect(inspect[0].AppArmorProfile).To(Equal(""))
+	})
 })

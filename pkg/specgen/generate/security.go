@@ -60,7 +60,7 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 func setupApparmor(s *specgen.SpecGenerator, rtc *config.Config, g *generate.Generator) error {
 	hasProfile := len(s.ApparmorProfile) > 0
 	if !apparmor.IsEnabled() {
-		if hasProfile {
+		if hasProfile && s.ApparmorProfile != "unconfined" {
 			return errors.Errorf("Apparmor profile %q specified, but Apparmor is not enabled on this system", s.ApparmorProfile)
 		}
 		return nil
