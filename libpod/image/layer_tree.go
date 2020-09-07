@@ -32,7 +32,9 @@ func (t *layerTree) toOCI(ctx context.Context, i *Image) (*ociv1.Image, error) {
 	oci, exists := t.ociCache[i.ID()]
 	if !exists {
 		oci, err = i.ociv1Image(ctx)
-		t.ociCache[i.ID()] = oci
+		if err == nil {
+			t.ociCache[i.ID()] = oci
+		}
 	}
 	return oci, err
 }
