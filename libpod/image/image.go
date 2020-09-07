@@ -1247,11 +1247,14 @@ func areParentAndChild(parent, child *imgspecv1.Image) bool {
 	// candidate parent's diff IDs, which together would have
 	// controlled which layers were used
 
-	// issue #7444 describes a panic where the length of child.RootFS.DiffIDs
-	// is checked but child is nil.  Adding a simple band-aid approach to prevent
-	// the problem until the origin of the problem can be worked out in the issue
-	// itself.
-	if child == nil || len(parent.RootFS.DiffIDs) > len(child.RootFS.DiffIDs) {
+	// Both, child and parent, may be nil when the storage is left in an
+	// incoherent state.  Issue #7444 describes such a case when a build
+	// has been killed.
+	if child == nil || parent == nil {
+		return false
+	}
+
+	if len(parent.RootFS.DiffIDs) > len(child.RootFS.DiffIDs) {
 		return false
 	}
 	childUsesCandidateDiffs := true
