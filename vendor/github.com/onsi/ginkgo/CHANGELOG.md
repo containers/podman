@@ -1,3 +1,8 @@
+## 1.14.1
+
+### Fixes
+- Discard exported method declaration when running ginkgo bootstrap (#558) [f4b0240]
+
 ## 1.14.0
 
 ### Features

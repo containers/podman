@@ -186,7 +186,9 @@ func getExportedDeclarationsForFile(path string) ([]string, error) {
 				declarations = append(declarations, s.Names[0].Name)
 			}
 		case *ast.FuncDecl:
-			declarations = append(declarations, x.Name.Name)
+			if x.Recv == nil {
+				declarations = append(declarations, x.Name.Name)
+			}
 		}
 	}
 
