@@ -134,24 +134,29 @@ echo $rand        |   0 | $rand
     run_podman run --pull=never $IMAGE true
     is "$output" "" "--pull=never [present]: no output"
 
-    # Now test with busybox, which we don't have present
-    run_podman 125 run --pull=never busybox true
-    is "$output" "Error: unable to find a name and tag match for busybox in repotags: no such image" "--pull=never [busybox/missing]: error"
+    # Now test with a remote image which we don't have present (the 00 tag)
+    NONLOCAL_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:00000000"
 
-    run_podman run --pull=missing busybox true
-    is "$output" "Trying to pull .*" "--pull=missing [busybox/missing]: fetches"
+    run_podman 125 run --pull=never $NONLOCAL_IMAGE true
+    is "$output" "Error: unable to find a name and tag match for $NONLOCAL_IMAGE in repotags: no such image" "--pull=never [with image not present]: error"
 
-    run_podman run --pull=always busybox true
-    is "$output" "Trying to pull .*" "--pull=always [busybox/present]: fetches"
+    run_podman run --pull=missing $NONLOCAL_IMAGE true
+    is "$output" "Trying to pull .*" "--pull=missing [with image NOT PRESENT]: fetches"
+
+    run_podman run --pull=missing $NONLOCAL_IMAGE true
+    is "$output" "" "--pull=missing [with image PRESENT]: does not re-fetch"
+
+    run_podman run --pull=always $NONLOCAL_IMAGE true
+    is "$output" "Trying to pull .*" "--pull=always [with image PRESENT]: re-fetches"
 
     run_podman rm -a
-    run_podman rmi busybox
+    run_podman rmi $NONLOCAL_IMAGE
 }
 
 # 'run --rmi' deletes the image in the end unless it's used by another container
 @test "podman run --rmi" {
     # Name of a nonlocal image. It should be pulled in by the first 'run'
-    NONLOCAL_IMAGE=busybox
+    NONLOCAL_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:00000000"
     run_podman 1 image exists $NONLOCAL_IMAGE
 
     # Run a container, without --rm; this should block subsequent --rmi

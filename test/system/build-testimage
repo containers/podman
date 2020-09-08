@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# build-testimage - script for producing a test image for podman CI
+#
+# The idea is to have a small multi-purpose image that can be pulled once
+# by system tests and used for as many tests as possible. This image
+# should live on quay.io, should be small in size, and should include
+# as many components as needed by system tests so they don't have to
+# pull other images.
+#
+# Unfortunately, "small" is incompatible with "systemd" so tests
+# still need a fedora image for that.
+#
+
+# Tag for this new image
+YMD=$(date +%Y%m%d)
+
+# git-relative path to this script
+create_script=$(cd $(dirname $0) && git ls-files --full-name $(basename $0))
+if [ -z "$create_script" ]; then
+    create_script=$0
+fi
+
+# Creation timestamp, Zulu time
+create_time_z=$(env TZ=UTC date +'%Y-%m-%dT%H:%M:%SZ')
+
+set -ex
+
+# Please document the reason for all flags, apk's, and anything non-obvious
+#
+#    --squash-all    : needed by 'tree' test in 070-build.bats
+#    busybox-extras  : provides httpd needed in 500-networking.bats
+#
+podman rmi -f testimage &> /dev/null || true
+podman build --squash-all -t testimage - <<EOF
+FROM docker.io/library/alpine:3.12.0
+RUN apk add busybox-extras
+LABEL created_by=$create_script
+LABEL created_at=$create_time_z
+CMD ["/bin/echo", "This container is intended for podman CI testing"]
+EOF
+
+# Tag and push to quay.
+podman tag testimage quay.io/edsantiago/testimage:$YMD
+podman push quay.io/edsantiago/testimage:$YMD
+
+# Side note: there should always be a testimage tagged ':00000000'
+# (eight zeroes) in the same location; this is used by tests which
+# need to pull a non-locally-cached image. This image will rarely
+# if ever need to change, nor in fact does it even have to be a
+# copy of this testimage since all we use it for is 'true'.
+#
+# As of 2020-09-02 it is simply busybox, because it is super small:
+#
+#    podman pull docker.io/library/busybox:1.32.0
+#    podman tag  docker.io/library/busybox:1.32.0 \
+#                quay.io/edsantiago/testimage:00000000
+#    podman push quay.io/edsantiago/testimage:00000000
+#

@@ -22,9 +22,10 @@ load helpers
 }
 
 @test "podman history - json" {
+    # Sigh. Timestamp in .created can be '...Z' or '...-06:00'
     tests="
 id        | [0-9a-f]\\\{64\\\}
-created   | [0-9-]\\\+T[0-9:.]\\\+Z
+created   | [0-9-]\\\+T[0-9:.]\\\+[Z0-9:+-]\\\+
 size      | -\\\?[0-9]\\\+
 "
 
