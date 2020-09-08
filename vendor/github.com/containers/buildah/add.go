@@ -1,21 +1,25 @@
 package buildah
 
 import (
+	"archive/tar"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/pkg/chrootuser"
-	"github.com/containers/buildah/util"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/hashicorp/go-multierror"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -25,17 +29,22 @@ import (
 type AddAndCopyOptions struct {
 	// Chown is a spec for the user who should be given ownership over the
 	// newly-added content, potentially overriding permissions which would
-	// otherwise match those of local files and directories being copied.
+	// otherwise be set to 0:0.
 	Chown string
+	// PreserveOwnership, if Chown is not set, tells us to avoid setting
+	// ownership of copied items to 0:0, instead using whatever ownership
+	// information is already set.  Not meaningful for remote sources.
+	PreserveOwnership bool
 	// All of the data being copied will pass through Hasher, if set.
 	// If the sources are URLs or files, their contents will be passed to
 	// Hasher.
 	// If the sources include directory trees, Hasher will be passed
 	// tar-format archives of the directory trees.
 	Hasher io.Writer
-	// Excludes is the contents of the .dockerignore file
+	// Excludes is the contents of the .dockerignore file.
 	Excludes []string
-	// ContextDir is the base directory for Excludes for content being copied
+	// ContextDir is the base directory for content being copied and
+	// Excludes patterns.
 	ContextDir string
 	// ID mapping options to use when contents to be copied are part of
 	// another container, and need ownerships to be mapped from the host to
@@ -44,74 +53,93 @@ type AddAndCopyOptions struct {
 	// DryRun indicates that the content should be digested, but not actually
 	// copied into the container.
 	DryRun bool
+	// Clear the setuid bit on items being copied.  Has no effect on
+	// archives being extracted, where the bit is always preserved.
+	StripSetuidBit bool
+	// Clear the setgid bit on items being copied.  Has no effect on
+	// archives being extracted, where the bit is always preserved.
+	StripSetgidBit bool
+	// Clear the sticky bit on items being copied.  Has no effect on
+	// archives being extracted, where the bit is always preserved.
+	StripStickyBit bool
 }
 
-// addURL copies the contents of the source URL to the destination.  This is
-// its own function so that deferred closes happen after we're done pulling
-// down each item of potentially many.
-func (b *Builder) addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer, dryRun bool) error {
-	resp, err := http.Get(srcurl)
+// sourceIsRemote returns true if "source" is a remote location.
+func sourceIsRemote(source string) bool {
+	return strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://")
+}
+
+// getURL writes a tar archive containing the named content
+func getURL(src, mountpoint, renameTarget string, writer io.Writer) error {
+	url, err := url.Parse(src)
 	if err != nil {
-		return errors.Wrapf(err, "error getting %q", srcurl)
+		return errors.Wrapf(err, "error parsing URL %q", url)
 	}
-	defer resp.Body.Close()
-
-	thisHasher := hasher
-	if thisHasher != nil && b.ContentDigester.Hash() != nil {
-		thisHasher = io.MultiWriter(thisHasher, b.ContentDigester.Hash())
+	response, err := http.Get(src)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing URL %q", url)
 	}
-	if thisHasher == nil {
-		thisHasher = b.ContentDigester.Hash()
+	defer response.Body.Close()
+	// Figure out what to name the new content.
+	name := renameTarget
+	if name == "" {
+		name = path.Base(url.Path)
 	}
-	thisWriter := thisHasher
-
-	if !dryRun {
-		logrus.Debugf("saving %q to %q", srcurl, destination)
-		f, err := os.Create(destination)
+	// If there's a date on the content, use it.  If not, use the Unix epoch
+	// for compatibility.
+	date := time.Unix(0, 0).UTC()
+	lastModified := response.Header.Get("Last-Modified")
+	if lastModified != "" {
+		d, err := time.Parse(time.RFC1123, lastModified)
 		if err != nil {
-			return errors.Wrapf(err, "error creating %q", destination)
+			return errors.Wrapf(err, "error parsing last-modified time %q", lastModified)
 		}
+		date = d
+	}
+	// Figure out the size of the content.
+	size := response.ContentLength
+	responseBody := response.Body
+	if size < 0 {
+		// Create a temporary file and copy the content to it, so that
+		// we can figure out how much content there is.
+		f, err := ioutil.TempFile(mountpoint, "download")
+		if err != nil {
+			return errors.Wrapf(err, "error creating temporary file to hold %q", src)
+		}
+		defer os.Remove(f.Name())
 		defer f.Close()
-		if err = f.Chown(owner.UID, owner.GID); err != nil {
-			return errors.Wrapf(err, "error setting owner of %q to %d:%d", destination, owner.UID, owner.GID)
+		size, err = io.Copy(f, response.Body)
+		if err != nil {
+			return errors.Wrapf(err, "error writing %q to temporary file %q", src, f.Name())
 		}
-		if last := resp.Header.Get("Last-Modified"); last != "" {
-			if mtime, err2 := time.Parse(time.RFC1123, last); err2 != nil {
-				logrus.Debugf("error parsing Last-Modified time %q: %v", last, err2)
-			} else {
-				defer func() {
-					if err3 := os.Chtimes(destination, time.Now(), mtime); err3 != nil {
-						logrus.Debugf("error setting mtime on %q to Last-Modified time %q: %v", destination, last, err3)
-					}
-				}()
-			}
+		_, err = f.Seek(0, io.SeekStart)
+		if err != nil {
+			return errors.Wrapf(err, "error setting up to read %q from temporary file %q", src, f.Name())
 		}
-		defer func() {
-			if err2 := f.Chmod(0600); err2 != nil {
-				logrus.Debugf("error setting permissions on %q: %v", destination, err2)
-			}
-		}()
-		thisWriter = io.MultiWriter(f, thisWriter)
+		responseBody = f
 	}
-
-	n, err := io.Copy(thisWriter, resp.Body)
+	// Write the output archive.  Set permissions for compatibility.
+	tw := tar.NewWriter(writer)
+	defer tw.Close()
+	hdr := tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     name,
+		Size:     size,
+		Mode:     0600,
+		ModTime:  date,
+	}
+	err = tw.WriteHeader(&hdr)
 	if err != nil {
-		return errors.Wrapf(err, "error reading contents for %q from %q", destination, srcurl)
+		return errors.Wrapf(err, "error writing header")
 	}
-	if resp.ContentLength >= 0 && n != resp.ContentLength {
-		return errors.Errorf("error reading contents for %q from %q: wrong length (%d != %d)", destination, srcurl, n, resp.ContentLength)
-	}
-	return nil
+	_, err = io.Copy(tw, responseBody)
+	return errors.Wrapf(err, "error writing content from %q to tar stream", src)
 }
 
 // Add copies the contents of the specified sources into the container's root
 // filesystem, optionally extracting contents of local files that look like
 // non-empty archives.
-func (b *Builder) Add(destination string, extract bool, options AddAndCopyOptions, source ...string) error {
-	excludes, err := dockerIgnoreMatcher(options.Excludes, options.ContextDir)
-	if err != nil {
-		return err
-	}
+func (b *Builder) Add(destination string, extract bool, options AddAndCopyOptions, sources ...string) error {
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
 		return err
@@ -121,64 +149,310 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			logrus.Errorf("error unmounting container: %v", err2)
 		}
 	}()
+
+	contextDir := options.ContextDir
+	if contextDir == "" {
+		contextDir = string(os.PathSeparator)
+	}
+
+	// Figure out what sorts of sources we have.
+	var localSources, remoteSources []string
+	for _, src := range sources {
+		if sourceIsRemote(src) {
+			remoteSources = append(remoteSources, src)
+			continue
+		}
+		localSources = append(localSources, src)
+	}
+
+	// Check how many items our local source specs matched.  Each spec
+	// should have matched at least one item, otherwise we consider it an
+	// error.
+	var localSourceStats []*copier.StatsForGlob
+	if len(localSources) > 0 {
+		statOptions := copier.StatOptions{
+			CheckForArchives: extract,
+		}
+		localSourceStats, err = copier.Stat(contextDir, contextDir, statOptions, localSources)
+		if err != nil {
+			return errors.Wrapf(err, "error checking on sources %v under %q", localSources, contextDir)
+		}
+	}
+	numLocalSourceItems := 0
+	for _, localSourceStat := range localSourceStats {
+		if localSourceStat.Error != "" {
+			errorText := localSourceStat.Error
+			rel, err := filepath.Rel(contextDir, localSourceStat.Glob)
+			if err != nil {
+				errorText = fmt.Sprintf("%v; %s", err, errorText)
+			}
+			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+				errorText = fmt.Sprintf("possible escaping context directory error: %s", errorText)
+			}
+			return errors.Errorf("error checking on source %v under %q: %v", localSourceStat.Glob, contextDir, errorText)
+		}
+		if len(localSourceStat.Globbed) == 0 {
+			return errors.Wrapf(syscall.ENOENT, "error checking on source %v under %q: no glob matches", localSourceStat.Glob, contextDir)
+		}
+		numLocalSourceItems += len(localSourceStat.Globbed)
+	}
+	if numLocalSourceItems+len(remoteSources) == 0 {
+		return errors.Wrapf(syscall.ENOENT, "no sources %v found", sources)
+	}
+
 	// Find out which user (and group) the destination should belong to.
-	user, _, err := b.user(mountPoint, options.Chown)
-	if err != nil {
-		return err
+	var chownDirs, chownFiles *idtools.IDPair
+	var chmodDirs, chmodFiles *os.FileMode
+	var user specs.User
+	if options.Chown != "" {
+		user, _, err = b.user(mountPoint, options.Chown)
+		if err != nil {
+			return errors.Wrapf(err, "error looking up UID/GID for %q", options.Chown)
+		}
 	}
-	containerOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
-	hostUID, hostGID, err := util.GetHostIDs(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap, user.UID, user.GID)
-	if err != nil {
-		return err
+	chownDirs = &idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	chownFiles = &idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	if options.Chown == "" && options.PreserveOwnership {
+		chownDirs = nil
+		chownFiles = nil
 	}
-	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
-	dest := mountPoint
-	if !options.DryRun {
-		// Resolve the destination if it was specified as a relative path.
-		if destination != "" && filepath.IsAbs(destination) {
-			dir := filepath.Dir(destination)
-			if dir != "." && dir != "/" {
-				if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, dir), 0755, hostOwner); err != nil {
-					return errors.Wrapf(err, "error creating directory %q", filepath.Join(dest, dir))
+
+	// If we have a single source archive to extract, or more than one
+	// source item, or the destination has a path separator at the end of
+	// it, and it's not a remote URL, the destination needs to be a
+	// directory.
+	if destination == "" || !filepath.IsAbs(destination) {
+		tmpDestination := filepath.Join(string(os.PathSeparator)+b.WorkDir(), destination)
+		if destination == "" || strings.HasSuffix(destination, string(os.PathSeparator)) {
+			destination = tmpDestination + string(os.PathSeparator)
+		} else {
+			destination = tmpDestination
+		}
+	}
+	destMustBeDirectory := (len(sources) > 1) || strings.HasSuffix(destination, string(os.PathSeparator))
+	destCanBeFile := false
+	if len(sources) == 1 {
+		if len(remoteSources) == 1 {
+			destCanBeFile = sourceIsRemote(sources[0])
+		}
+		if len(localSources) == 1 {
+			item := localSourceStats[0].Results[localSourceStats[0].Globbed[0]]
+			if item.IsDir || (item.IsArchive && extract) {
+				destMustBeDirectory = true
+			}
+			if item.IsRegular {
+				destCanBeFile = true
+			}
+		}
+	}
+
+	// We care if the destination either doesn't exist, or exists and is a
+	// file.  If the source can be a single file, for those cases we treat
+	// the destination as a file rather than as a directory tree.
+	renameTarget := ""
+	extractDirectory := filepath.Join(mountPoint, destination)
+	statOptions := copier.StatOptions{
+		CheckForArchives: extract,
+	}
+	destStats, err := copier.Stat(mountPoint, filepath.Join(mountPoint, b.WorkDir()), statOptions, []string{extractDirectory})
+	if err != nil {
+		return errors.Wrapf(err, "error checking on destination %v", extractDirectory)
+	}
+	if (len(destStats) == 0 || len(destStats[0].Globbed) == 0) && !destMustBeDirectory && destCanBeFile {
+		// destination doesn't exist - extract to parent and rename the incoming file to the destination's name
+		renameTarget = filepath.Base(extractDirectory)
+		extractDirectory = filepath.Dir(extractDirectory)
+	}
+	if len(destStats) == 1 && len(destStats[0].Globbed) == 1 && destStats[0].Results[destStats[0].Globbed[0]].IsRegular {
+		if destMustBeDirectory {
+			return errors.Errorf("destination %v already exists but is not a directory", destination)
+		}
+		// destination exists - it's a file, we need to extract to parent and rename the incoming file to the destination's name
+		renameTarget = filepath.Base(extractDirectory)
+		extractDirectory = filepath.Dir(extractDirectory)
+	}
+
+	pm, err := fileutils.NewPatternMatcher(options.Excludes)
+	if err != nil {
+		return errors.Wrapf(err, "error processing excludes list %v", options.Excludes)
+	}
+
+	// Copy each source in turn.
+	var srcUIDMap, srcGIDMap []idtools.IDMap
+	if options.IDMappingOptions != nil {
+		srcUIDMap, srcGIDMap = convertRuntimeIDMaps(options.IDMappingOptions.UIDMap, options.IDMappingOptions.GIDMap)
+	}
+	destUIDMap, destGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
+
+	for _, src := range sources {
+		var multiErr *multierror.Error
+		var getErr, closeErr, renameErr, putErr error
+		var wg sync.WaitGroup
+		if sourceIsRemote(src) {
+			pipeReader, pipeWriter := io.Pipe()
+			wg.Add(1)
+			go func() {
+				getErr = getURL(src, mountPoint, renameTarget, pipeWriter)
+				pipeWriter.Close()
+				wg.Done()
+			}()
+			wg.Add(1)
+			go func() {
+				b.ContentDigester.Start("")
+				hashCloser := b.ContentDigester.Hash()
+				hasher := io.Writer(hashCloser)
+				if options.Hasher != nil {
+					hasher = io.MultiWriter(hasher, options.Hasher)
+				}
+				if options.DryRun {
+					_, putErr = io.Copy(hasher, pipeReader)
+				} else {
+					putOptions := copier.PutOptions{
+						UIDMap:     destUIDMap,
+						GIDMap:     destGIDMap,
+						ChownDirs:  chownDirs,
+						ChmodDirs:  chmodDirs,
+						ChownFiles: chownFiles,
+						ChmodFiles: chmodFiles,
+					}
+					putErr = copier.Put(mountPoint, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
+				}
+				hashCloser.Close()
+				pipeReader.Close()
+				wg.Done()
+			}()
+			wg.Wait()
+			if getErr != nil {
+				getErr = errors.Wrapf(getErr, "error reading %q", src)
+			}
+			if putErr != nil {
+				putErr = errors.Wrapf(putErr, "error storing %q", src)
+			}
+			multiErr = multierror.Append(getErr, putErr)
+			if multiErr != nil && multiErr.ErrorOrNil() != nil {
+				if len(multiErr.Errors) > 1 {
+					return multiErr.ErrorOrNil()
+				}
+				return multiErr.Errors[0]
+			}
+			continue
+		}
+
+		// Dig out the result of running glob+stat on this source spec.
+		var localSourceStat *copier.StatsForGlob
+		for _, st := range localSourceStats {
+			if st.Glob == src {
+				localSourceStat = st
+				break
+			}
+		}
+		if localSourceStat == nil {
+			return errors.Errorf("internal error: should have statted %s, but we didn't?", src)
+		}
+
+		// Iterate through every item that matched the glob.
+		itemsCopied := 0
+		for _, glob := range localSourceStat.Globbed {
+			rel, err := filepath.Rel(contextDir, glob)
+			if err != nil {
+				return errors.Wrapf(err, "error computing path of %q", glob)
+			}
+			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+				return errors.Errorf("possible escaping context directory error: %q is outside of %q", glob, contextDir)
+			}
+			// Check for dockerignore-style exclusion of this item.
+			if rel != "." {
+				matches, err := pm.Matches(filepath.ToSlash(rel)) // nolint:staticcheck
+				if err != nil {
+					return errors.Wrapf(err, "error checking if %q(%q) is excluded", glob, rel)
+				}
+				if matches {
+					continue
 				}
 			}
-			dest = filepath.Join(dest, destination)
-		} else {
-			if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, b.WorkDir()), 0755, hostOwner); err != nil {
-				return errors.Wrapf(err, "error creating directory %q", filepath.Join(dest, b.WorkDir()))
+			st := localSourceStat.Results[glob]
+			pipeReader, pipeWriter := io.Pipe()
+			wg.Add(1)
+			go func() {
+				renamedItems := 0
+				writer := io.WriteCloser(pipeWriter)
+				if renameTarget != "" {
+					writer = newTarFilterer(writer, func(hdr *tar.Header) (bool, bool, io.Reader) {
+						hdr.Name = renameTarget
+						renamedItems++
+						return false, false, nil
+					})
+				}
+				getOptions := copier.GetOptions{
+					UIDMap:         srcUIDMap,
+					GIDMap:         srcGIDMap,
+					Excludes:       options.Excludes,
+					ExpandArchives: extract,
+					StripSetuidBit: options.StripSetuidBit,
+					StripSetgidBit: options.StripSetgidBit,
+					StripStickyBit: options.StripStickyBit,
+				}
+				getErr = copier.Get(contextDir, contextDir, getOptions, []string{glob}, writer)
+				closeErr = writer.Close()
+				if renameTarget != "" && renamedItems > 1 {
+					renameErr = errors.Errorf("internal error: renamed %d items when we expected to only rename 1", renamedItems)
+				}
+				wg.Done()
+			}()
+			wg.Add(1)
+			go func() {
+				if st.IsDir {
+					b.ContentDigester.Start("dir")
+				} else {
+					b.ContentDigester.Start("file")
+				}
+				hashCloser := b.ContentDigester.Hash()
+				hasher := io.Writer(hashCloser)
+				if options.Hasher != nil {
+					hasher = io.MultiWriter(hasher, options.Hasher)
+				}
+				if options.DryRun {
+					_, putErr = io.Copy(hasher, pipeReader)
+				} else {
+					putOptions := copier.PutOptions{
+						UIDMap:     destUIDMap,
+						GIDMap:     destGIDMap,
+						ChownDirs:  chownDirs,
+						ChmodDirs:  chmodDirs,
+						ChownFiles: chownFiles,
+						ChmodFiles: chmodFiles,
+					}
+					putErr = copier.Put(mountPoint, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
+				}
+				hashCloser.Close()
+				pipeReader.Close()
+				wg.Done()
+			}()
+			wg.Wait()
+			if getErr != nil {
+				getErr = errors.Wrapf(getErr, "error reading %q", src)
 			}
-			dest = filepath.Join(dest, b.WorkDir(), destination)
-		}
-		// If the destination was explicitly marked as a directory by ending it
-		// with a '/', create it so that we can be sure that it's a directory,
-		// and any files we're copying will be placed in the directory.
-		if len(destination) > 0 && destination[len(destination)-1] == os.PathSeparator {
-			if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
-				return errors.Wrapf(err, "error creating directory %q", dest)
+			if closeErr != nil {
+				closeErr = errors.Wrapf(closeErr, "error closing %q", src)
 			}
+			if renameErr != nil {
+				renameErr = errors.Wrapf(renameErr, "error renaming %q", src)
+			}
+			if putErr != nil {
+				putErr = errors.Wrapf(putErr, "error storing %q", src)
+			}
+			multiErr = multierror.Append(getErr, closeErr, renameErr, putErr)
+			if multiErr != nil && multiErr.ErrorOrNil() != nil {
+				if len(multiErr.Errors) > 1 {
+					return multiErr.ErrorOrNil()
+				}
+				return multiErr.Errors[0]
+			}
+			itemsCopied++
 		}
-		// Make sure the destination's parent directory is usable.
-		if destpfi, err2 := os.Stat(filepath.Dir(dest)); err2 == nil && !destpfi.IsDir() {
-			return errors.Errorf("%q already exists, but is not a subdirectory)", filepath.Dir(dest))
+		if itemsCopied == 0 {
+			return errors.Wrapf(syscall.ENOENT, "no items matching glob %q copied (%d filtered)", localSourceStat.Glob, len(localSourceStat.Globbed))
 		}
-	}
-	// Now look at the destination itself.
-	destfi, err := os.Stat(dest)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "couldn't determine what %q is", dest)
-		}
-		destfi = nil
-	}
-	if len(source) > 1 && (destfi == nil || !destfi.IsDir()) {
-		return errors.Errorf("destination %q is not a directory", dest)
-	}
-	copyFileWithTar := b.copyFileWithTar(options.IDMappingOptions, &containerOwner, options.Hasher, options.DryRun)
-	copyWithTar := b.copyWithTar(options.IDMappingOptions, &containerOwner, options.Hasher, options.DryRun)
-	untarPath := b.untarPath(nil, options.Hasher, options.DryRun)
-	err = b.addHelper(excludes, extract, dest, destfi, hostOwner, options, copyFileWithTar, copyWithTar, untarPath, source...)
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -207,181 +481,4 @@ func (b *Builder) user(mountPoint string, userspec string) (specs.User, string, 
 
 	}
 	return u, homeDir, err
-}
-
-// dockerIgnoreMatcher returns a matcher based on the contents of the .dockerignore file under contextDir
-func dockerIgnoreMatcher(lines []string, contextDir string) (*fileutils.PatternMatcher, error) {
-	// if there's no context dir, there's no .dockerignore file to consult
-	if contextDir == "" {
-		return nil, nil
-	}
-	// If there's no .dockerignore file, then we don't have to add a
-	// pattern to tell copy logic to ignore it later.
-	var patterns []string
-	if _, err := os.Stat(filepath.Join(contextDir, ".dockerignore")); err == nil || !os.IsNotExist(err) {
-		patterns = []string{".dockerignore"}
-	}
-	for _, ignoreSpec := range lines {
-		ignoreSpec = strings.TrimSpace(ignoreSpec)
-		// ignore comments passed back from .dockerignore
-		if ignoreSpec == "" || ignoreSpec[0] == '#' {
-			continue
-		}
-		// if the spec starts with '!' it means the pattern
-		// should be included. make a note so that we can move
-		// it to the front of the updated pattern, and insert
-		// the context dir's path in between
-		includeFlag := ""
-		if strings.HasPrefix(ignoreSpec, "!") {
-			includeFlag = "!"
-			ignoreSpec = ignoreSpec[1:]
-		}
-		if ignoreSpec == "" {
-			continue
-		}
-		patterns = append(patterns, includeFlag+filepath.Join(contextDir, ignoreSpec))
-	}
-	// if there are no patterns, save time by not constructing the object
-	if len(patterns) == 0 {
-		return nil, nil
-	}
-	// return a matcher object
-	matcher, err := fileutils.NewPatternMatcher(patterns)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating file matcher using patterns %v", patterns)
-	}
-	return matcher, nil
-}
-
-func (b *Builder) addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
-	for n, src := range source {
-		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
-			b.ContentDigester.Start("")
-			// We assume that source is a file, and we're copying
-			// it to the destination.  If the destination is
-			// already a directory, create a file inside of it.
-			// Otherwise, the destination is the file to which
-			// we'll save the contents.
-			url, err := url.Parse(src)
-			if err != nil {
-				return errors.Wrapf(err, "error parsing URL %q", src)
-			}
-			d := dest
-			if destfi != nil && destfi.IsDir() {
-				d = filepath.Join(dest, path.Base(url.Path))
-			}
-			if err = b.addURL(d, src, hostOwner, options.Hasher, options.DryRun); err != nil {
-				return err
-			}
-			continue
-		}
-
-		glob, err := filepath.Glob(src)
-		if err != nil {
-			return errors.Wrapf(err, "invalid glob %q", src)
-		}
-		if len(glob) == 0 {
-			return errors.Wrapf(syscall.ENOENT, "no files found matching %q", src)
-		}
-
-		for _, gsrc := range glob {
-			esrc, err := filepath.EvalSymlinks(gsrc)
-			if err != nil {
-				return errors.Wrapf(err, "error evaluating symlinks %q", gsrc)
-			}
-			srcfi, err := os.Stat(esrc)
-			if err != nil {
-				return errors.Wrapf(err, "error reading %q", esrc)
-			}
-			if srcfi.IsDir() {
-				b.ContentDigester.Start("dir")
-				// The source is a directory, so copy the contents of
-				// the source directory into the target directory.  Try
-				// to create it first, so that if there's a problem,
-				// we'll discover why that won't work.
-				if !options.DryRun {
-					if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
-						return errors.Wrapf(err, "error creating directory %q", dest)
-					}
-				}
-				logrus.Debugf("copying[%d] %q to %q", n, esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-
-				// Copy the whole directory because we do not exclude anything
-				if excludes == nil {
-					if err = copyWithTar(esrc, dest); err != nil {
-						return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
-					}
-					continue
-				}
-				err := filepath.Walk(esrc, func(path string, info os.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
-
-					res, err := excludes.MatchesResult(path)
-					if err != nil {
-						return errors.Wrapf(err, "error checking if %s is an excluded path", path)
-					}
-					// The latest match result has the highest priority,
-					// which means that we only skip the filepath if
-					// the last result matched.
-					if res.IsMatched() {
-						return nil
-					}
-
-					// combine the source's basename with the dest directory
-					fpath, err := filepath.Rel(esrc, path)
-					if err != nil {
-						return errors.Wrapf(err, "error converting %s to a path relative to %s", path, esrc)
-					}
-					if err = copyFileWithTar(path, filepath.Join(dest, fpath)); err != nil {
-						return errors.Wrapf(err, "error copying %q to %q", path, dest)
-					}
-					return nil
-				})
-				if err != nil {
-					return err
-				}
-				continue
-			}
-
-			// This source is a file
-			// Check if the path matches the .dockerignore
-			if excludes != nil {
-				res, err := excludes.MatchesResult(esrc)
-				if err != nil {
-					return errors.Wrapf(err, "error checking if %s is an excluded path", esrc)
-				}
-				// Skip the file if the pattern matches
-				if res.IsMatched() {
-					continue
-				}
-			}
-
-			b.ContentDigester.Start("file")
-
-			if !extract || !archive.IsArchivePath(esrc) {
-				// This source is a file, and either it's not an
-				// archive, or we don't care whether or not it's an
-				// archive.
-				d := dest
-				if destfi != nil && destfi.IsDir() {
-					d = filepath.Join(dest, filepath.Base(gsrc))
-				}
-				// Copy the file, preserving attributes.
-				logrus.Debugf("copying[%d] %q to %q", n, esrc, d)
-				if err = copyFileWithTar(esrc, d); err != nil {
-					return errors.Wrapf(err, "error copying %q to %q", esrc, d)
-				}
-				continue
-			}
-
-			// We're extracting an archive into the destination directory.
-			logrus.Debugf("extracting contents[%d] of %q into %q", n, esrc, dest)
-			if err = untarPath(esrc, dest); err != nil {
-				return errors.Wrapf(err, "error extracting %q into %q", esrc, dest)
-			}
-		}
-	}
-	return nil
 }
