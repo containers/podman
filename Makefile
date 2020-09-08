@@ -106,7 +106,10 @@ GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
 CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.amd64 \
 	bin/podman.cross.linux.ppc64le \
-	bin/podman.cross.linux.arm
+	bin/podman.cross.linux.arm \
+	bin/podman.cross.linux.arm64 \
+	bin/podman.cross.linux.386 \
+	bin/podman.cross.linux.s390x
 
 .PHONY: all
 all: binaries docs
