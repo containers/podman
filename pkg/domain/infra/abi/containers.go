@@ -174,6 +174,12 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				return err
 			}
 		}
+		if c.AutoRemove() {
+			// Issue #7384: if the container is configured for
+			// auto-removal, it might already have been removed at
+			// this point.
+			return nil
+		}
 		return c.Cleanup(ctx)
 	})
 	if err != nil {
