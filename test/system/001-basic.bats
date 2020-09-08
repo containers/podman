@@ -69,6 +69,17 @@ function setup() {
     is "$output" "Error: unknown flag: --remote" "podman version --remote"
 }
 
+# Check that just calling "podman-remote" prints the usage message even
+# without a running endpoint. Use "podman --remote" for this as this works the same.
+@test "podman-remote: check for command usage message without a running endpoint" {
+    if is_remote; then
+        skip "only applicable on a local run since this requires no endpoint"
+    fi
+
+    run_podman 125 --remote
+    is "$output" "Error: missing command 'podman COMMAND'" "podman remote show usage message without running endpoint"
+}
+
 # This is for development only; it's intended to make sure our timeout
 # in run_podman continues to work. This test should never run in production
 # because it will, by definition, fail.
