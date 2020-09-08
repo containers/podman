@@ -1,12 +1,14 @@
 package containers
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
+	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -105,5 +107,10 @@ func logs(_ *cobra.Command, args []string) error {
 		logsOptions.Since = since
 	}
 	logsOptions.Writer = os.Stdout
-	return registry.ContainerEngine().ContainerLogs(registry.GetContext(), args, logsOptions.ContainerLogsOptions)
+
+	err := registry.ContainerEngine().ContainerLogs(registry.GetContext(), args, logsOptions.ContainerLogsOptions)
+	if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()) {
+		fmt.Printf("\033[0m\n")
+	}
+	return err
 }
