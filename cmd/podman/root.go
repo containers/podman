@@ -104,8 +104,8 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPreRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
-	// Help is a special case, no need for more setup
-	if cmd.Name() == "help" {
+	// Help and commands with subcommands are special cases, no need for more setup
+	if cmd.Name() == "help" || cmd.HasSubCommands() {
 		return nil
 	}
 
@@ -204,8 +204,8 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPostRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
-	// Help is a special case, no need for more cleanup
-	if cmd.Name() == "help" {
+	// Help and commands with subcommands are special cases, no need for more cleanup
+	if cmd.Name() == "help" || cmd.HasSubCommands() {
 		return nil
 	}
 
