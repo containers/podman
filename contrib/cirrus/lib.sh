@@ -35,10 +35,8 @@ export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"
 export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 # Saves typing / in case location ever moves
 SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
-PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 # Important filepaths
 SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
-AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
 # Downloaded, but not installed packages.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
@@ -61,22 +59,15 @@ CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
 CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-unknown$(date +%s)}  # difficult to reliably discover
 CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
-# Vars. for image-building
-PACKER_VER="1.4.2"
-# CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
-# List of cache imaes to build for 'CI:IMG' mode via build_vm_images.sh
-# Exists to support manual single-image building in case of emergency
-export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-20,ubuntu-19,fedora-32,fedora-31}"
-# Google cloud provides these, we just make copies (see $SCRIPT_BASE/README.md) for use
-export UBUNTU_BASE_IMAGE="ubuntu-2004-focal-v20200506"
-export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1910-eoan-v20200211"
-# Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export FEDORA_BASE_IMAGE="fedora-cloud-base-32-1-6-1588257430"
-export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1588257430"
-export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
+OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
+# GCE image-name compatible string representation of distribution _major_ version
+OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
+# Combined to ease soe usage
+OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
+
 # IN_PODMAN container image
-IN_PODMAN_IMAGE="quay.io/libpod/in_podman:$DEST_BRANCH"
+IN_PODMAN_IMAGE="quay.io/libpod/${OS_RELEASE_ID}_podman:$_BUILT_IMAGE_SUFFIX"
 # Image for uploading releases
 UPLDREL_IMAGE="quay.io/libpod/upldrel:master"
 
@@ -98,7 +89,7 @@ BIGTO="timeout_attempt_delay_command 300s 5 60s"
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separately)
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(REMOTE.*)'
 # Unsafe env. vars for display
-SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(GC[EP]..+)|(SSH)'
+SECRET_ENV_RE='(ACCOUNT)|(GC[EP]..+)|(SSH)'
 
 SPECIALMODE="${SPECIALMODE:-none}"
 RCLI="${RCLI:-false}"
@@ -111,22 +102,9 @@ then
 else
     ROOTLESS_USER="${ROOTLESS_USER:-$USER}"
 fi
-
-# GCE image-name compatible string representation of distribution name
-OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
-# GCE image-name compatible string representation of distribution _major_ version
-OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
-# Combined to ease soe usage
-OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 # Type of filesystem used for cgroups
 CG_FS_TYPE="$(stat -f -c %T /sys/fs/cgroup)"
 
-# When building images, the version of automation tooling to install
-INSTALL_AUTOMATION_VERSION=1.1.3
-
-# Installed into cache-images, supports overrides
-# by user-data in case of breakage or for debugging.
-CUSTOM_CLOUD_CONFIG_DEFAULTS="$GOSRC/$PACKER_BASE/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
 # Pass in a list of one or more envariable names; exit non-zero with
 # helpful error message if any value is empty
 req_env_var() {
@@ -237,67 +215,6 @@ timeout_attempt_delay_command() {
     fi
 }
 
-ircmsg() {
-    req_env_var CIRRUS_TASK_ID IRCID
-    [[ -n "$*" ]] || die 9 "ircmsg() invoked without message text argument"
-    # Sometimes setup_environment.sh didn't run
-    SCRIPT="$(dirname $0)/podbot.py"
-    NICK="podbot_$CIRRUS_TASK_ID"
-    NICK="${NICK:0:15}"  # Any longer will break things
-    set +e
-    $SCRIPT $NICK $@
-    echo "Ignoring exit($?)"
-    set -e
-}
-
-# This covers all possible human & CI workflow parallel & serial combinations
-# where at least one caller must definitively discover if within a commit range
-# there is at least one release tag not having any '-' characters (return 0)
-# or otherwise (return non-0).
-is_release() {
-    unset RELVER
-    local ret
-    req_env_var CIRRUS_CHANGE_IN_REPO
-    if [[ -n "$CIRRUS_TAG" ]]; then
-        RELVER="$CIRRUS_TAG"
-    elif [[ ! "$CIRRUS_BASE_SHA" =~ "unknown" ]]
-    then
-        # Normally not possible for this to be empty, except when unittesting.
-        req_env_var CIRRUS_BASE_SHA
-        local range="${CIRRUS_BASE_SHA}..${CIRRUS_CHANGE_IN_REPO}"
-        if echo "${range}$CIRRUS_TAG" | grep -iq 'unknown'; then
-            die 11 "is_release() unusable range ${range} or tag $CIRRUS_TAG"
-        fi
-
-        if type -P git &> /dev/null
-        then
-            git fetch --all --tags &> /dev/null|| \
-                die 12 "is_release() failed to fetch tags"
-            RELVER=$(git log --pretty='format:%d' $range | \
-                     grep '(tag:' | sed -r -e 's/\s+[(]tag:\s+(v[0-9].*)[)]/\1/' | \
-                     sort -uV | tail -1)
-            ret=$?
-        else
-            warn -1 "Git command not found while checking for release"
-            ret="-1"
-        fi
-        [[ "$ret" -eq "0" ]] || \
-            die 13 "is_release() failed to parse tags"
-    else  # Not testing a PR, but neither CIRRUS_BASE_SHA or CIRRUS_TAG are set
-        return 1
-    fi
-    if [[ -n "$RELVER" ]]; then
-        echo "Found \$RELVER $RELVER"
-        if echo "$RELVER" | grep -q '-'; then
-            return 2  # development tag
-        else
-            return 0
-        fi
-    else
-        return 1  # not a release
-    fi
-}
-
 setup_rootless() {
     req_env_var ROOTLESS_USER GOPATH GOSRC SECRET_ENV_RE ROOTLESS_ENV_RE
 
@@ -367,20 +284,6 @@ setup_rootless() {
     done
     [[ "$(date +%s)" -lt "$TIMEOUT" ]] || \
         die 11 "Timeout exceeded waiting for localhost ssh capability"
-}
-
-# Grab a newer version of git from software collections
-# https://www.softwarecollections.org/en/
-# and use it with a wrapper
-install_scl_git() {
-    echo "Installing SoftwareCollections updated 'git' version."
-    ooe.sh $SUDO yum -y install rh-git29
-    cat << "EOF" | $SUDO tee /usr/bin/git
-#!/usr/bin/env bash
-
-scl enable rh-git29 -- git $@
-EOF
-    $SUDO chmod 755 /usr/bin/git
 }
 
 install_test_configs() {
@@ -456,67 +359,4 @@ $PRIOR_UBUNTU_BASE_IMAGE
 $FEDORA_BASE_IMAGE
 $PRIOR_FEDORA_BASE_IMAGE
 "
-}
-
-systemd_banish() {
-    $GOSRC/$PACKER_BASE/systemd_banish.sh
-}
-
-# This can be removed when the kernel bug fix is included in Fedora
-workaround_bfq_bug() {
-    if [[ "$OS_RELEASE_ID" == "fedora" ]] && [[ $OS_RELEASE_VER -le 32 ]]; then
-        warn "Switching io scheduler to 'deadline' to avoid RHBZ 1767539"
-        warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
-        echo "mq-deadline" | sudo tee /sys/block/sda/queue/scheduler > /dev/null
-        echo -n "IO Scheduler set to: "
-        $SUDO cat /sys/block/sda/queue/scheduler
-    fi
-}
-
-# Warning: DO NOT USE.
-# This is called by other functions as the very last step during the VM Image build
-# process.  It's purpose is to "reset" the image, so all the first-boot operations
-# happen at test runtime (like generating new ssh host keys, resizing partitions, etc.)
-_finalize() {
-    set +e  # Don't fail at the very end
-    if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
-    then
-        echo "Installing custom cloud-init defaults"
-        $SUDO cp -v "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* /etc/cloud/cloud.cfg.d/
-    else
-        echo "Could not find any files in $CUSTOM_CLOUD_CONFIG_DEFAULTS"
-    fi
-    echo "Re-initializing so next boot does 'first-boot' setup again."
-    cd /
-    $SUDO rm -rf $GOPATH/src  # Actual source will be cloned at runtime
-    $SUDO rm -rf /var/lib/cloud/instanc*
-    $SUDO rm -rf /root/.ssh/*
-    $SUDO rm -rf /etc/ssh/*key*
-    $SUDO rm -rf /etc/ssh/moduli
-    $SUDO rm -rf /home/*
-    $SUDO rm -rf /tmp/*
-    $SUDO rm -rf /tmp/.??*
-    $SUDO sync
-    $SUDO fstrim -av
-}
-
-# Called during VM Image setup, not intended for general use.
-rh_finalize() {
-    set +e  # Don't fail at the very end
-    echo "Resetting to fresh-state for usage as cloud-image."
-    PKG=$(type -P dnf || type -P yum || echo "")
-    $SUDO $PKG clean all
-    $SUDO rm -rf /var/cache/{yum,dnf}
-    $SUDO rm -f /etc/udev/rules.d/*-persistent-*.rules
-    $SUDO touch /.unconfigured  # force firstboot to run
-    _finalize
-}
-
-# Called during VM Image setup, not intended for general use.
-ubuntu_finalize() {
-    set +e  # Don't fail at the very end
-    echo "Resetting to fresh-state for usage as cloud-image."
-    $LILTO $SUDOAPTGET autoremove
-    $SUDO rm -rf /var/cache/apt
-    _finalize
 }

@@ -7,8 +7,7 @@
 SLASH_DEVICE="/dev/sda"  # Always the case on GCP
 
 # The unallocated space results from the difference in disk-size between VM Image
-# and runtime request.  The check_image.sh test includes a minimum-space check,
-# with the Image size set initially lower by contrib/cirrus/packer/libpod_images.yml
+# and runtime request.
 NEW_PART_START="50%"
 NEW_PART_END="100%"
 
