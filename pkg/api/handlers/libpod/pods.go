@@ -327,7 +327,7 @@ func PodTop(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
-		utils.ContainerNotFound(w, name, err)
+		utils.PodNotFound(w, name, err)
 		return
 	}
 
