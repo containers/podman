@@ -57,6 +57,29 @@ var _ = Describe("Podman build", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman build with logfile", func() {
+		SkipIfRemote()
+		logfile := filepath.Join(podmanTest.TempDir, "logfile")
+		session := podmanTest.PodmanNoCache([]string{"build", "--tag", "test", "--logfile", logfile, "build/basicalpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Verify that OS and Arch are being set
+		inspect := podmanTest.PodmanNoCache([]string{"inspect", "test"})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectImageJSON()
+		Expect(data[0].Os).To(Equal(runtime.GOOS))
+		Expect(data[0].Architecture).To(Equal(runtime.GOARCH))
+
+		st, err := os.Stat(logfile)
+		Expect(err).To(BeNil())
+		Expect(st.Size()).To(Not(Equal(0)))
+
+		session = podmanTest.PodmanNoCache([]string{"rmi", "alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	// If the context directory is pointing at a file and not a directory,
 	// that's a no no, fail out.
 	It("podman build context directory a file", func() {
