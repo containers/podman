@@ -72,6 +72,21 @@ var _ = Describe("podman container runlabel", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 	})
+
+	It("podman container runlabel --display", func() {
+		SkipIfRemote()
+		image := "podman-runlabel-test:ls"
+		podmanTest.BuildImage(LsDockerfile, image, "false")
+
+		result := podmanTest.Podman([]string{"container", "runlabel", "--display", "RUN", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring(podmanTest.PodmanBinary + " -la"))
+
+		result = podmanTest.Podman([]string{"rmi", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
 	It("podman container runlabel bogus label should result in non-zero exit code", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", ALPINE})
 		result.WaitWithDefaultTimeout()

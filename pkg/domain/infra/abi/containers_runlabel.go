@@ -36,6 +36,11 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 		return err
 	}
 
+	if options.Display {
+		fmt.Printf("command: %s\n", strings.Join(append([]string{os.Args[0]}, cmd[1:]...), " "))
+		return nil
+	}
+
 	stdErr := os.Stderr
 	stdOut := os.Stdout
 	stdIn := os.Stdin
