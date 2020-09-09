@@ -208,6 +208,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts en
 	}
 	sys.AuthFilePath = opts.Authfile
 	sys.DockerInsecureSkipTLSVerify = opts.SkipTLSVerify
+	sys.DockerCertPath = opts.CertDir
 
 	if opts.Username != "" && opts.Password != "" {
 		sys.DockerAuthConfig = &types.DockerAuthConfig{
