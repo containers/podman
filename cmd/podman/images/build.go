@@ -211,7 +211,16 @@ func build(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	apiBuildOpts, err := buildFlagsWrapperToOptions(cmd, contextDir, &buildOpts)
+	var logfile *os.File
+	if cmd.Flag("logfile").Changed {
+		logfile, err = os.OpenFile(buildOpts.Logfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+		if err != nil {
+			return errors.Errorf("error opening logfile %q: %v", buildOpts.Logfile, err)
+		}
+		defer logfile.Close()
+	}
+
+	apiBuildOpts, err := buildFlagsWrapperToOptions(cmd, contextDir, &buildOpts, logfile)
 	if err != nil {
 		return err
 	}
@@ -225,7 +234,7 @@ func build(cmd *cobra.Command, args []string) error {
 // conversion here prevents the API from doing that (redundantly).
 //
 // TODO: this code should really be in Buildah.
-func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buildFlagsWrapper) (*entities.BuildOptions, error) {
+func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buildFlagsWrapper, logfile *os.File) (*entities.BuildOptions, error) {
 	output := ""
 	tags := []string{}
 	if c.Flag("tag").Changed {
@@ -284,16 +293,11 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	stderr = os.Stderr
 	reporter = os.Stderr
 
-	if c.Flag("logfile").Changed {
-		f, err := os.OpenFile(flags.Logfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
-		if err != nil {
-			return nil, errors.Errorf("error opening logfile %q: %v", flags.Logfile, err)
-		}
-		defer f.Close()
-		logrus.SetOutput(f)
-		stdout = f
-		stderr = f
-		reporter = f
+	if logfile != nil {
+		logrus.SetOutput(logfile)
+		stdout = logfile
+		stderr = logfile
+		reporter = logfile
 	}
 
 	var memoryLimit, memorySwap int64
