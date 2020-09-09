@@ -102,7 +102,24 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 		}
 		manifestAddOpts.Annotation = annotations
 	}
-	listID, err := listImage.AddManifest(*ir.Libpod.SystemContext(), manifestAddOpts)
+
+	// Set the system context.
+	sys := ir.Libpod.SystemContext()
+	if sys != nil {
+		sys = &types.SystemContext{}
+	}
+	sys.AuthFilePath = opts.Authfile
+	sys.DockerInsecureSkipTLSVerify = opts.SkipTLSVerify
+	sys.DockerCertPath = opts.CertDir
+
+	if opts.Username != "" && opts.Password != "" {
+		sys.DockerAuthConfig = &types.DockerAuthConfig{
+			Username: opts.Username,
+			Password: opts.Password,
+		}
+	}
+
+	listID, err := listImage.AddManifest(*sys, manifestAddOpts)
 	if err != nil {
 		return listID, err
 	}
