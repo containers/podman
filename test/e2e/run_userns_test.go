@@ -277,6 +277,13 @@ var _ = Describe("Podman UserNS support", func() {
 
 		ok, _ := session.GrepString("4998")
 		Expect(ok).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--userns=container:" + ctrName, "--net=container:" + ctrName, "alpine", "cat", "/proc/self/uid_map"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		ok, _ = session.GrepString("4998")
+		Expect(ok).To(BeTrue())
 	})
 
 	It("podman --user with volume", func() {

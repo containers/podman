@@ -380,6 +380,8 @@ func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
 			}
 			dest.GIDMap = append(dest.GIDMap, g)
 		}
+		dest.HostUIDMapping = false
+		dest.HostGIDMapping = false
 	}
 }
 

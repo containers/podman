@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -897,6 +898,17 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		ctr.config.UserNsCtr = nsCtr.ID()
 		ctr.config.IDMappings = nsCtr.config.IDMappings
 
+		g := generate.NewFromSpec(ctr.config.Spec)
+
+		g.ClearLinuxUIDMappings()
+		for _, uidmap := range nsCtr.config.IDMappings.UIDMap {
+			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
+		g.ClearLinuxGIDMappings()
+		for _, gidmap := range nsCtr.config.IDMappings.GIDMap {
+			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+		ctr.config.IDMappings = nsCtr.config.IDMappings
 		return nil
 	}
 }
