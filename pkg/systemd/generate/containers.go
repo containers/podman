@@ -220,6 +220,9 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			case "--replace":
 				hasReplaceParam = true
 			}
+			if strings.HasPrefix(p, "--name=") {
+				hasNameParam = true
+			}
 		}
 
 		if !hasDetachParam {
