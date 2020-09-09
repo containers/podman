@@ -798,6 +798,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
+	if options.Latest {
+		options.Last = 1
+	}
 	return ps.GetContainerLists(ic.Libpod, options)
 }
 
