@@ -30,7 +30,7 @@ var (
 		RunE:  runlabel,
 		Args:  cobra.MinimumNArgs(2),
 		Example: `podman container runlabel run imageID
-  podman container runlabel --pull install imageID arg1 arg2
+  podman container runlabel install imageID arg1 arg2
   podman container runlabel --display run myImage`,
 	}
 )
@@ -51,7 +51,7 @@ func init() {
 	flags.StringVar(&runlabelOptions.Optional1, "opt1", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelOptions.Optional2, "opt2", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelOptions.Optional3, "opt3", "", "Optional parameter to pass for install")
-	flags.BoolP("pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")
+	flags.BoolVarP(&runlabelOptions.Pull, "pull", "p", true, "Pull the image if it does not exist locally prior to executing the label contents")
 	flags.BoolVarP(&runlabelOptions.Quiet, "quiet", "q", false, "Suppress output information when installing images")
 	flags.BoolVar(&runlabelOptions.Replace, "replace", false, "Replace existing container with a new one from the image")
 	flags.StringVar(&runlabelOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
@@ -61,6 +61,7 @@ func init() {
 	_ = flags.MarkHidden("opt1")
 	_ = flags.MarkHidden("opt2")
 	_ = flags.MarkHidden("opt3")
+	_ = flags.MarkHidden("pull")
 	_ = flags.MarkHidden("signature-policy")
 
 	if err := flags.MarkDeprecated("pull", "podman will pull if not found in local storage"); err != nil {
