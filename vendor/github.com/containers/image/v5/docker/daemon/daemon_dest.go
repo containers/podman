@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/containers/image/v5/docker/internal/tarfile"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/docker/tarfile"
 	"github.com/containers/image/v5/types"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
@@ -16,6 +16,7 @@ type daemonImageDestination struct {
 	ref                  daemonReference
 	mustMatchRuntimeOS   bool
 	*tarfile.Destination // Implements most of types.ImageDestination
+	archive              *tarfile.Writer
 	// For talking to imageLoadGoroutine
 	goroutineCancel context.CancelFunc
 	statusChannel   <-chan error
@@ -45,6 +46,7 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref daem
 	}
 
 	reader, writer := io.Pipe()
+	archive := tarfile.NewWriter(writer)
 	// Commit() may never be called, so we may never read from this channel; so, make this buffered to allow imageLoadGoroutine to write status and terminate even if we never read it.
 	statusChannel := make(chan error, 1)
 
@@ -54,7 +56,8 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref daem
 	return &daemonImageDestination{
 		ref:                ref,
 		mustMatchRuntimeOS: mustMatchRuntimeOS,
-		Destination:        tarfile.NewDestinationWithContext(sys, writer, namedTaggedRef),
+		Destination:        tarfile.NewDestination(sys, archive, namedTaggedRef),
+		archive:            archive,
 		goroutineCancel:    goroutineCancel,
 		statusChannel:      statusChannel,
 		writer:             writer,
@@ -130,7 +133,7 @@ func (d *daemonImageDestination) Reference() types.ImageReference {
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
 func (d *daemonImageDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
 	logrus.Debugf("docker-daemon: Closing tar stream")
-	if err := d.Destination.Commit(ctx); err != nil {
+	if err := d.archive.Close(); err != nil {
 		return err
 	}
 	if err := d.writer.Close(); err != nil {

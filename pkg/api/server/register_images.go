@@ -1028,6 +1028,40 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/get"), s.APIHandler(libpod.ExportImage)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/images/export libpod libpodExportImages
+	// ---
+	// tags:
+	//  - images
+	// summary: Export multiple images
+	// description: Export multiple images into a single object. Only `docker-archive` is currently supported.
+	// parameters:
+	//  - in: query
+	//    name: format
+	//    type: string
+	//    description: format for exported image (only docker-archive is supported)
+	//  - in: query
+	//    name: references
+	//    description: references to images to export
+	//    type: array
+	//    items:
+	//      type: string
+	//  - in: query
+	//    name: compress
+	//    type: boolean
+	//    description: use compression on image
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//     schema:
+	//      type: string
+	//      format: binary
+	//   404:
+	//     $ref: '#/responses/NoSuchImage'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/images/export"), s.APIHandler(libpod.ExportImages)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/images/{name:.*}/json libpod libpodInspectImage
 	// ---
 	// tags:

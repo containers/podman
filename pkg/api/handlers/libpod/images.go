@@ -234,6 +234,76 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, rdr)
 }
 
+func ExportImages(w http.ResponseWriter, r *http.Request) {
+	var (
+		output string
+	)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Compress   bool     `schema:"compress"`
+		Format     string   `schema:"format"`
+		References []string `schema:"references"`
+	}{
+		Format: define.OCIArchive,
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	// References are mandatory!
+	if len(query.References) == 0 {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.New("No references"))
+		return
+	}
+
+	// Format is mandatory! Currently, we only support multi-image docker
+	// archives.
+	switch query.Format {
+	case define.V2s2Archive:
+		tmpfile, err := ioutil.TempFile("", "api.tar")
+		if err != nil {
+			utils.Error(w, "unable to create tmpfile", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+			return
+		}
+		output = tmpfile.Name()
+		if err := tmpfile.Close(); err != nil {
+			utils.Error(w, "unable to close tmpfile", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+			return
+		}
+	default:
+		utils.Error(w, "unsupported format", http.StatusInternalServerError, errors.Errorf("unsupported format %q", query.Format))
+		return
+	}
+	defer os.RemoveAll(output)
+
+	// Use the ABI image engine to share as much code as possible.
+	opts := entities.ImageSaveOptions{
+		Compress:          query.Compress,
+		Format:            query.Format,
+		MultiImageArchive: true,
+		Output:            output,
+	}
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	if err := imageEngine.Save(r.Context(), query.References[0], query.References[1:], opts); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		return
+	}
+
+	rdr, err := os.Open(output)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
+		return
+	}
+	defer rdr.Close()
+	utils.WriteResponse(w, http.StatusOK, rdr)
+}
+
 func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)

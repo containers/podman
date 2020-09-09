@@ -141,6 +141,10 @@ func (s *ociImageSource) GetSignatures(ctx context.Context, instanceDigest *dige
 }
 
 func (s *ociImageSource) getExternalBlob(ctx context.Context, urls []string) (io.ReadCloser, int64, error) {
+	if len(urls) == 0 {
+		return nil, 0, errors.New("internal error: getExternalBlob called with no URLs")
+	}
+
 	errWrap := errors.New("failed fetching external blob from all urls")
 	for _, url := range urls {
 

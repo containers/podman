@@ -269,4 +269,12 @@ var _ = Describe("Podman load", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 	})
+
+	It("podman load multi-image archive", func() {
+		result := podmanTest.PodmanNoCache([]string{"load", "-i", "./testdata/image/docker-two-images.tar.xz"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.LineInOutputContains("example.com/empty:latest")).To(BeTrue())
+		Expect(result.LineInOutputContains("example.com/empty/but:different")).To(BeTrue())
+	})
 })

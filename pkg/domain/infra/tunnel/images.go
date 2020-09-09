@@ -251,12 +251,23 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 		return err
 	}
 
-	exErr := images.Export(ir.ClientCxt, nameOrID, f, &options.Format, &options.Compress)
-	if err := f.Close(); err != nil {
-		return err
-	}
-	if exErr != nil {
-		return exErr
+	if options.MultiImageArchive {
+		exErr := images.MultiExport(ir.ClientCxt, append([]string{nameOrID}, tags...), f, &options.Format, &options.Compress)
+		if err := f.Close(); err != nil {
+			return err
+		}
+		if exErr != nil {
+			return exErr
+		}
+	} else {
+		// FIXME: tags are entirely ignored here but shouldn't.
+		exErr := images.Export(ir.ClientCxt, nameOrID, f, &options.Format, &options.Compress)
+		if err := f.Close(); err != nil {
+			return err
+		}
+		if exErr != nil {
+			return exErr
+		}
 	}
 
 	if options.Format != "oci-dir" && options.Format != "docker-dir" {

@@ -128,4 +128,51 @@ var _ = Describe("Podman save", func() {
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
+
+	It("podman save --multi-image-archive (tagged images)", func() {
+		multiImageSave(podmanTest, RESTORE_IMAGES)
+	})
+
+	It("podman save --multi-image-archive (untagged images)", func() {
+		// Refer to images via ID instead of tag.
+		session := podmanTest.PodmanNoCache([]string{"images", "--format", "{{.ID}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ids := session.OutputToStringArray()
+
+		Expect(len(RESTORE_IMAGES), len(ids))
+		multiImageSave(podmanTest, ids)
+	})
 })
+
+// Create a multi-image archive, remove all images, load it and
+// make sure that all images are (again) present.
+func multiImageSave(podmanTest *PodmanTestIntegration, images []string) {
+	// Create the archive.
+	outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
+	session := podmanTest.PodmanNoCache(append([]string{"save", "-o", outfile, "--multi-image-archive"}, images...))
+	session.WaitWithDefaultTimeout()
+	Expect(session.ExitCode()).To(Equal(0))
+
+	// Remove all images.
+	session = podmanTest.PodmanNoCache([]string{"rmi", "-af"})
+	session.WaitWithDefaultTimeout()
+	Expect(session.ExitCode()).To(Equal(0))
+
+	// Now load the archive.
+	session = podmanTest.PodmanNoCache([]string{"load", "-i", outfile})
+	session.WaitWithDefaultTimeout()
+	Expect(session.ExitCode()).To(Equal(0))
+	// Grep for each image in the `podman load` output.
+	for _, image := range images {
+		found, _ := session.GrepString(image)
+		Expect(found).Should(BeTrue())
+	}
+
+	// Make sure that each image has really been loaded.
+	for _, image := range images {
+		session = podmanTest.PodmanNoCache([]string{"image", "exists", image})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	}
+}

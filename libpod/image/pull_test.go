@@ -150,7 +150,7 @@ func TestPullGoalFromImageReference(t *testing.T) {
 		{ // RepoTags is empty
 			"docker-archive:testdata/docker-unnamed.tar.xz",
 			[]expected{{"@ec9293436c2e66da44edb9efb8d41f6b13baf62283ebe846468bc992d76d7951", "@ec9293436c2e66da44edb9efb8d41f6b13baf62283ebe846468bc992d76d7951"}},
-			false,
+			true,
 		},
 		{ // RepoTags is a [docker.io/library/]name:latest, normalized to the short format.
 			"docker-archive:testdata/docker-name-only.tar.xz",
@@ -170,11 +170,37 @@ func TestPullGoalFromImageReference(t *testing.T) {
 			},
 			true,
 		},
-		{ // FIXME: Two images in a single archive - only the "first" one (whichever it is) is returned
-			// (and docker-archive: then refuses to read anything when the manifest has more than 1 item)
+		{ // Reference image by name in multi-image archive
+			"docker-archive:testdata/docker-two-images.tar.xz:example.com/empty:latest",
+			[]expected{
+				{"example.com/empty:latest", "example.com/empty:latest"},
+			},
+			true,
+		},
+		{ // Reference image by name in multi-image archive
+			"docker-archive:testdata/docker-two-images.tar.xz:example.com/empty/but:different",
+			[]expected{
+				{"example.com/empty/but:different", "example.com/empty/but:different"},
+			},
+			true,
+		},
+		{ // Reference image by index in multi-image archive
+			"docker-archive:testdata/docker-two-images.tar.xz:@0",
+			[]expected{
+				{"example.com/empty:latest", "example.com/empty:latest"},
+			},
+			true,
+		},
+		{ // Reference image by index in multi-image archive
+			"docker-archive:testdata/docker-two-images.tar.xz:@1",
+			[]expected{
+				{"example.com/empty/but:different", "example.com/empty/but:different"},
+			},
+			true,
+		},
+		{ // Reference entire multi-image archive must fail (more than one manifest)
 			"docker-archive:testdata/docker-two-images.tar.xz",
-			[]expected{{"example.com/empty:latest", "example.com/empty:latest"}},
-			// "example.com/empty/but:different" exists but is ignored
+			[]expected{},
 			true,
 		},
 
@@ -248,7 +274,7 @@ func TestPullGoalFromImageReference(t *testing.T) {
 			for i, e := range c.expected {
 				testDescription := fmt.Sprintf("%s #%d", c.srcName, i)
 				assert.Equal(t, e.image, res.refPairs[i].image, testDescription)
-				assert.Equal(t, srcRef, res.refPairs[i].srcRef, testDescription)
+				assert.Equal(t, transports.ImageName(srcRef), transports.ImageName(res.refPairs[i].srcRef), testDescription)
 				assert.Equal(t, e.dstName, storageReferenceWithoutLocation(res.refPairs[i].dstRef), testDescription)
 			}
 			assert.Equal(t, c.expectedPullAllPairs, res.pullAllPairs, c.srcName)

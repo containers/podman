@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/ghodss/yaml"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -25,6 +26,9 @@ var systemRegistriesDirPath = builtinRegistriesDirPath
 // builtinRegistriesDirPath is the path to registries.d.
 // DO NOT change this, instead see systemRegistriesDirPath above.
 const builtinRegistriesDirPath = "/etc/containers/registries.d"
+
+// userRegistriesDirPath is the path to the per user registries.d.
+var userRegistriesDir = filepath.FromSlash(".config/containers/registries.d")
 
 // registryConfiguration is one of the files in registriesDirPath configuring lookaside locations, or the result of merging them all.
 // NOTE: Keep this in sync with docs/registries.d.md!
@@ -75,14 +79,17 @@ func configuredSignatureStorageBase(sys *types.SystemContext, ref dockerReferenc
 
 // registriesDirPath returns a path to registries.d
 func registriesDirPath(sys *types.SystemContext) string {
-	if sys != nil {
-		if sys.RegistriesDirPath != "" {
-			return sys.RegistriesDirPath
-		}
-		if sys.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
-		}
+	if sys != nil && sys.RegistriesDirPath != "" {
+		return sys.RegistriesDirPath
 	}
+	userRegistriesDirPath := filepath.Join(homedir.Get(), userRegistriesDir)
+	if _, err := os.Stat(userRegistriesDirPath); err == nil {
+		return userRegistriesDirPath
+	}
+	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
+		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
+	}
+
 	return systemRegistriesDirPath
 }
 

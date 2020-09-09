@@ -17,7 +17,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
-	"github.com/docker/distribution/registry/client"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -193,7 +192,7 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	logrus.Debugf("Content-Type from manifest GET is %q", res.Header.Get("Content-Type"))
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, "", errors.Wrapf(client.HandleErrorResponse(res), "Error reading manifest %s in %s", tagOrDigest, s.physicalRef.ref.Name())
+		return nil, "", errors.Wrapf(registryHTTPResponseToError(res), "Error reading manifest %s in %s", tagOrDigest, s.physicalRef.ref.Name())
 	}
 
 	manblob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxManifestBodySize)
@@ -235,6 +234,9 @@ func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) 
 		resp *http.Response
 		err  error
 	)
+	if len(urls) == 0 {
+		return nil, 0, errors.New("internal error: getExternalBlob called with no URLs")
+	}
 	for _, url := range urls {
 		resp, err = s.c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth, nil)
 		if err == nil {

@@ -16,7 +16,10 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-var validFormats = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive}
+var (
+	validFormats    = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive}
+	containerConfig = registry.PodmanConfig()
+)
 
 var (
 	saveDescription = `Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
@@ -79,7 +82,7 @@ func saveFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&saveOpts.Format, "format", define.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
 	flags.StringVarP(&saveOpts.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")
 	flags.BoolVarP(&saveOpts.Quiet, "quiet", "q", false, "Suppress the output")
-
+	flags.BoolVarP(&saveOpts.MultiImageArchive, "multi-image-archive", "m", containerConfig.Engine.MultiImageArchive, "Interpret additional arguments as images not tags and create a multi-image-archive (only for docker-archive)")
 }
 
 func save(cmd *cobra.Command, args []string) (finalErr error) {
@@ -117,6 +120,13 @@ func save(cmd *cobra.Command, args []string) (finalErr error) {
 	}
 	if len(args) > 1 {
 		tags = args[1:]
+	}
+
+	// Decide whether c/image's progress bars should use stderr or stdout.
+	// If the output is set of stdout, any log message there would corrupt
+	// the tarfile.
+	if saveOpts.Output == os.Stdout.Name() {
+		saveOpts.Quiet = true
 	}
 	err := registry.ImageEngine().Save(context.Background(), args[0], tags, saveOpts)
 	if err == nil {

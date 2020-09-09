@@ -251,6 +251,49 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.PodmanNoCache([]string{"rmi", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		// Pulling a multi-image archive without further specifying
+		// which image _must_ error out. Pulling is restricted to one
+		// image.
+		session = podmanTest.PodmanNoCache([]string{"pull", fmt.Sprintf("docker-archive:./testdata/image/docker-two-images.tar.xz")})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		expectedError := "Unexpected tar manifest.json: expected 1 item, got 2"
+		found, _ := session.ErrorGrepString(expectedError)
+		Expect(found).To(Equal(true))
+
+		// Now pull _one_ image from a multi-image archive via the name
+		// and index syntax.
+		session = podmanTest.PodmanNoCache([]string{"pull", fmt.Sprintf("docker-archive:./testdata/image/docker-two-images.tar.xz:@0")})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.PodmanNoCache([]string{"pull", fmt.Sprintf("docker-archive:./testdata/image/docker-two-images.tar.xz:example.com/empty:latest")})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.PodmanNoCache([]string{"pull", fmt.Sprintf("docker-archive:./testdata/image/docker-two-images.tar.xz:@1")})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.PodmanNoCache([]string{"pull", fmt.Sprintf("docker-archive:./testdata/image/docker-two-images.tar.xz:example.com/empty/but:different")})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Now check for some errors.
+		session = podmanTest.PodmanNoCache([]string{"pull", fmt.Sprintf("docker-archive:./testdata/image/docker-two-images.tar.xz:foo.com/does/not/exist:latest")})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		expectedError = "Tag \"foo.com/does/not/exist:latest\" not found"
+		found, _ = session.ErrorGrepString(expectedError)
+		Expect(found).To(Equal(true))
+
+		session = podmanTest.PodmanNoCache([]string{"pull", fmt.Sprintf("docker-archive:./testdata/image/docker-two-images.tar.xz:@2")})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		expectedError = "Invalid source index @2, only 2 manifest items available"
+		found, _ = session.ErrorGrepString(expectedError)
+		Expect(found).To(Equal(true))
 	})
 
 	It("podman pull from oci-archive", func() {

@@ -271,11 +271,22 @@ type ImageImportReport struct {
 	Id string //nolint
 }
 
+// ImageSaveOptions provide options for saving images.
 type ImageSaveOptions struct {
+	// Compress layers when saving to a directory.
 	Compress bool
-	Format   string
-	Output   string
-	Quiet    bool
+	// Format of saving the image: oci-archive, oci-dir (directory with oci
+	// manifest type), docker-archive, docker-dir (directory with v2s2
+	// manifest type).
+	Format string
+	// MultiImageArchive denotes if the created archive shall include more
+	// than one image.  Additional tags will be interpreted as references
+	// to images which are added to the archive.
+	MultiImageArchive bool
+	// Output - write image to the specified path.
+	Output string
+	// Quiet - suppress output when copying images
+	Quiet bool
 }
 
 // ImageTreeOptions provides options for ImageEngine.Tree()

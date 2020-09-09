@@ -40,6 +40,10 @@ Save image to **oci-archive, oci-dir** (directory with oci manifest type), or **
 --format docker-dir
 ```
 
+**--multi-image-archive**, **-m**
+
+Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **docker-archive**.
+
 **--quiet**, **-q**
 
 Suppress the output
