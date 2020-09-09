@@ -312,10 +312,10 @@ USER bin`
 			Expect(session.ExitCode()).To(Equal(0))
 		}
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--oom-score-adj=100", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--oom-score-adj=111", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("100"))
+		Expect(session.OutputToString()).To(Equal("111"))
 	})
 
 	It("podman run limits host test", func() {
