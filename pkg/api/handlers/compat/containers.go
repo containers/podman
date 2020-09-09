@@ -174,7 +174,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill Container %s", name))
 	}
 
-	if utils.IsLibpodRequest(r) {
+	if !utils.IsLibpodRequest(r) {
 		// the kill behavior for docker differs from podman in that they appear to wait
 		// for the Container to croak so the exit code is accurate immediately after the
 		// kill is sent.  libpod does not.  but we can add a wait here only for the docker

@@ -6,8 +6,6 @@
 load helpers
 
 @test "podman kill - test signal handling in containers" {
-    skip_if_remote "FIXME: pending #7135"
-
     # podman-remote and crun interact poorly in f31: crun seems to gobble up
     # some signals.
     # Workaround: run 'env --default-signal sh' instead of just 'sh' in
