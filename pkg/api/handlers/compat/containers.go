@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"syscall"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
@@ -169,16 +170,16 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = con.Kill(uint(sig))
+	signal := uint(sig)
+
+	err = con.Kill(signal)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill Container %s", name))
 	}
 
-	if utils.IsLibpodRequest(r) {
-		// the kill behavior for docker differs from podman in that they appear to wait
-		// for the Container to croak so the exit code is accurate immediately after the
-		// kill is sent.  libpod does not.  but we can add a wait here only for the docker
-		// side of things and mimic that behavior
+	// Docker waits for the container to stop if the signal is 0 or
+	// SIGKILL.
+	if !utils.IsLibpodRequest(r) && (signal == 0 || syscall.Signal(signal) == syscall.SIGKILL) {
 		if _, err = con.Wait(); err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to wait for Container %s", con.ID()))
 			return
