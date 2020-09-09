@@ -19,6 +19,8 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "network"
 	case "timeout":
 		name = "time"
+	case "namespace":
+		name = "ns"
 	}
 	return pflag.NormalizedName(name)
 }

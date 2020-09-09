@@ -282,6 +282,7 @@ type ContainerListOptions struct {
 	Quiet     bool
 	Size      bool
 	Sort      string
+	Storage   bool
 	Sync      bool
 	Watch     uint
 }

@@ -13,6 +13,7 @@ import (
 	tm "github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -56,9 +57,9 @@ func init() {
 func listFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVarP(&listOpts.All, "all", "a", false, "Show all the containers, default is only running containers")
 	flags.StringSliceVarP(&filters, "filter", "f", []string{}, "Filter output based on conditions given")
+	flags.BoolVar(&listOpts.Storage, "storage", false, "Show containers in storage not controlled by Podman")
 	flags.StringVar(&listOpts.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
 	flags.IntVarP(&listOpts.Last, "last", "n", -1, "Print the n last created containers (all states)")
-	flags.BoolVar(&listOpts.Namespace, "namespace", false, "Display namespace information")
 	flags.BoolVar(&listOpts.Namespace, "ns", false, "Display namespace information")
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Display the extended information")
 	flags.BoolVarP(&listOpts.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
@@ -69,6 +70,7 @@ func listFlagSet(flags *pflag.FlagSet) {
 
 	sort := validate.Value(&listOpts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
 	flags.Var(sort, "sort", "Sort output by: "+sort.Choices())
+	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 func checkFlags(c *cobra.Command) error {
 	// latest, and last are mutually exclusive.
@@ -102,6 +104,14 @@ func checkFlags(c *cobra.Command) error {
 	if listOpts.Watch > 0 && listOpts.Latest {
 		return errors.New("the watch and latest flags cannot be used together")
 	}
+	cfg := registry.PodmanConfig()
+	if cfg.Engine.Namespace != "" {
+		if c.Flag("storage").Changed && listOpts.Storage {
+			return errors.New("--namespace and --storage flags can not both be set")
+		}
+		listOpts.Storage = false
+	}
+
 	return nil
 }
 
