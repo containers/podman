@@ -99,6 +99,12 @@ spec:
       hostPort: {{ .Port }}
       protocol: TCP
     workingDir: /
+    volumeMounts:
+    {{ if .VolumeMount }}
+    - name: {{.VolumeName}}
+      mountPath: {{ .VolumeMountPath }}
+      readonly: {{.VolumeReadOnly}}
+      {{ end }}
     {{ end }}
   {{ end }}
 {{ end }}
@@ -383,12 +389,16 @@ type Ctr struct {
 	PullPolicy      string
 	HostIP          string
 	Port            string
+	VolumeMount     bool
+	VolumeMountPath string
+	VolumeName      string
+	VolumeReadOnly  bool
 }
 
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
 // and the configured options
 func getCtr(options ...ctrOption) *Ctr {
-	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, defaultCtrArg, true, false, nil, nil, "", "", ""}
+	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, defaultCtrArg, true, false, nil, nil, "", "", "", false, "", "", false}
 	for _, option := range options {
 		option(&c)
 	}
@@ -445,6 +455,15 @@ func withHostIP(ip string, port string) ctrOption {
 	return func(c *Ctr) {
 		c.HostIP = ip
 		c.Port = port
+	}
+}
+
+func withVolumeMount(mountPath string, readonly bool) ctrOption {
+	return func(c *Ctr) {
+		c.VolumeMountPath = mountPath
+		c.VolumeName = defaultVolName
+		c.VolumeReadOnly = readonly
+		c.VolumeMount = true
 	}
 }
 
@@ -1034,5 +1053,28 @@ spec:
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).NotTo(Equal(0))
+	})
+
+	It("podman play kube test with read only volume", func() {
+		hostPathLocation := filepath.Join(tempdir, "file")
+		f, err := os.Create(hostPathLocation)
+		Expect(err).To(BeNil())
+		f.Close()
+
+		ctr := getCtr(withVolumeMount(hostPathLocation, true), withImage(BB))
+		pod := getPod(withVolume(getVolume("File", hostPathLocation)), withCtr(ctr))
+		err = generatePodKubeYaml(pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{.HostConfig.Binds}}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		correct := fmt.Sprintf("%s:%s:%s", hostPathLocation, hostPathLocation, "ro")
+		Expect(inspect.OutputToString()).To(ContainSubstring(correct))
 	})
 })

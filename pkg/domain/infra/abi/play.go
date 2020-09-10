@@ -556,6 +556,7 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.Env = envs
 
 	for _, volume := range containerYAML.VolumeMounts {
+		var readonly string
 		hostPath, exists := volumes[volume.Name]
 		if !exists {
 			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
@@ -563,7 +564,10 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		if err := parse.ValidateVolumeCtrDir(volume.MountPath); err != nil {
 			return nil, errors.Wrapf(err, "error in parsing MountPath")
 		}
-		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s", hostPath, volume.MountPath))
+		if volume.ReadOnly {
+			readonly = ":ro"
+		}
+		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s%s", hostPath, volume.MountPath, readonly))
 	}
 	return &containerConfig, nil
 }
