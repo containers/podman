@@ -7,12 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	envLib "github.com/containers/podman/v2/pkg/env"
-	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
 	"github.com/google/shlex"
 	"github.com/pkg/errors"
@@ -89,29 +87,17 @@ func (ic *ContainerEngine) runlabelImage(ctx context.Context, label string, imag
 		// Fallthrough and pull!
 	}
 
-	// Parse credentials if specified.
-	var credentials *types.DockerAuthConfig
-	if options.Credentials != "" {
-		credentials, err = util.ParseRegistryCreds(options.Credentials)
-		if err != nil {
-			return nil, err
-		}
+	pullOptions := entities.ImagePullOptions{
+		Quiet:           options.Quiet,
+		CertDir:         options.CertDir,
+		SkipTLSVerify:   options.SkipTLSVerify,
+		SignaturePolicy: options.SignaturePolicy,
+		Authfile:        options.Authfile,
 	}
-
-	// Suppress pull progress bars if requested.
-	pullOutput := os.Stdout
-	if options.Quiet {
-		pullOutput = nil // c/image/copy takes care of the rest
+	if _, err := pull(ctx, ic.Libpod.ImageRuntime(), imageRef, pullOptions, &label); err != nil {
+		return nil, err
 	}
-
-	// Pull the image.
-	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerCertPath:              options.CertDir,
-		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
-		DockerRegistryCreds:         credentials,
-	}
-
-	return ic.Libpod.ImageRuntime().New(ctx, imageRef, options.SignaturePolicy, options.Authfile, pullOutput, &dockerRegistryOptions, image.SigningOptions{}, &label, util.PullImageMissing)
+	return ic.Libpod.ImageRuntime().NewFromLocal(imageRef)
 }
 
 // generateRunlabelCommand generates the to-be-executed command as a string

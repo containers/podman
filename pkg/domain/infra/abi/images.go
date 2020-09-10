@@ -214,7 +214,7 @@ func ToDomainHistoryLayer(layer *libpodImage.History) entities.ImageHistoryLayer
 	return l
 }
 
-func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+func pull(ctx context.Context, runtime *image.Runtime, rawImage string, options entities.ImagePullOptions, label *string) (*entities.ImagePullReport, error) {
 	var writer io.Writer
 	if !options.Quiet {
 		writer = os.Stderr
@@ -246,7 +246,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	}
 
 	if !options.AllTags {
-		newImage, err := ir.Libpod.ImageRuntime().New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
+		newImage, err := runtime.New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, label, util.PullImageAlways)
 		if err != nil {
 			return nil, err
 		}
@@ -280,7 +280,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	foundIDs := []string{}
 	for _, tag := range tags {
 		name := rawImage + ":" + tag
-		newImage, err := ir.Libpod.ImageRuntime().New(ctx, name, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
+		newImage, err := runtime.New(ctx, name, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
 		if err != nil {
 			logrus.Errorf("error pulling image %q", name)
 			continue
@@ -292,6 +292,10 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 		return nil, err
 	}
 	return &entities.ImagePullReport{Images: foundIDs}, nil
+}
+
+func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+	return pull(ctx, ir.Libpod.ImageRuntime(), rawImage, options, nil)
 }
 
 func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
