@@ -497,7 +497,7 @@ github.com/seccomp/libseccomp-golang
 # github.com/sirupsen/logrus v1.7.0
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
-# github.com/spf13/cobra v1.1.1
+# github.com/spf13/cobra v1.1.1 => github.com/Luap99/cobra v1.0.1-0.20201110155035-83a59186c706
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
@@ -570,7 +570,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# go.uber.org/atomic v1.4.0
+# go.uber.org/atomic v1.7.0
 go.uber.org/atomic
 # golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 golang.org/x/crypto/blowfish

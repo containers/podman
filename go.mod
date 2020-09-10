@@ -60,6 +60,7 @@ require (
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
 	github.com/vishvananda/netlink v1.1.0
 	go.etcd.io/bbolt v1.3.5
+	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
@@ -74,3 +75,5 @@ require (
 )
 
 replace github.com/cri-o/ocicni => github.com/cri-o/ocicni v0.2.1-0.20201109200316-afdc16ba66df
+
+replace github.com/spf13/cobra => github.com/Luap99/cobra v1.0.1-0.20201110155035-83a59186c706
