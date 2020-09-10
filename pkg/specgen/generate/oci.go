@@ -340,6 +340,10 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseFalse
 	}
 
+	if s.OOMScoreAdj != nil {
+		g.SetProcessOOMScoreAdj(*s.OOMScoreAdj)
+	}
+
 	return configSpec, nil
 }
 
