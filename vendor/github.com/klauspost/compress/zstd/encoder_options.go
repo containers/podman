@@ -24,6 +24,7 @@ type encoderOptions struct {
 	allLitEntropy   bool
 	customWindow    bool
 	customALEntropy bool
+	dict            *dict
 }
 
 func (o *encoderOptions) setDefault() {
@@ -262,6 +263,19 @@ func WithNoEntropyCompression(b bool) EOption {
 func WithSingleSegment(b bool) EOption {
 	return func(o *encoderOptions) error {
 		o.single = &b
+		return nil
+	}
+}
+
+// WithEncoderDict allows to register a dictionary that will be used for the encode.
+// The encoder *may* choose to use no dictionary instead for certain payloads.
+func WithEncoderDict(dict []byte) EOption {
+	return func(o *encoderOptions) error {
+		d, err := loadDict(dict)
+		if err != nil {
+			return err
+		}
+		o.dict = d
 		return nil
 	}
 }

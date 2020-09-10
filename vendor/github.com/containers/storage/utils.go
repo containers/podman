@@ -198,7 +198,7 @@ func getRootlessDirInfo(rootlessUID int) (string, string, error) {
 }
 
 // getRootlessStorageOpts returns the storage opts for containers running as non root
-func getRootlessStorageOpts(rootlessUID int) (StoreOptions, error) {
+func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOptions, error) {
 	var opts StoreOptions
 
 	dataDir, rootlessRuntime, err := getRootlessDirInfo(rootlessUID)
@@ -207,10 +207,20 @@ func getRootlessStorageOpts(rootlessUID int) (StoreOptions, error) {
 	}
 	opts.RunRoot = rootlessRuntime
 	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	opts.RootlessStoragePath = opts.GraphRoot
+	if systemOpts.RootlessStoragePath != "" {
+		opts.RootlessStoragePath = systemOpts.RootlessStoragePath
+	} else {
+		opts.RootlessStoragePath = opts.GraphRoot
+	}
 	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
 		opts.GraphDriverName = "overlay"
 		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
+		for _, o := range systemOpts.GraphDriverOptions {
+			if strings.Contains(o, "ignore_chown_errors") {
+				opts.GraphDriverOptions = append(opts.GraphDriverOptions, o)
+				break
+			}
+		}
 	} else {
 		opts.GraphDriverName = "vfs"
 	}
@@ -242,7 +252,7 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 	)
 	storageOpts := defaultStoreOptions
 	if rootless && rootlessUID != 0 {
-		storageOpts, err = getRootlessStorageOpts(rootlessUID)
+		storageOpts, err = getRootlessStorageOpts(rootlessUID, storageOpts)
 		if err != nil {
 			return storageOpts, err
 		}
