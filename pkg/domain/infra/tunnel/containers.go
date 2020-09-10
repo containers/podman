@@ -8,11 +8,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
@@ -507,33 +509,90 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	for _, w := range con.Warnings {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
+
 	report := entities.ContainerRunReport{Id: con.ID}
-	// Attach
-	if !opts.Detach {
-		err = startAndAttach(ic, con.ID, &opts.DetachKeys, opts.InputStream, opts.OutputStream, opts.ErrorStream)
-		if err == nil {
-			exitCode, err := containers.Wait(ic.ClientCxt, con.ID, nil)
-			if err == nil {
-				report.ExitCode = int(exitCode)
-			}
+
+	if opts.Detach {
+		// Detach and return early
+		err := containers.Start(ic.ClientCxt, con.ID, nil)
+		if err != nil {
+			report.ExitCode = define.ExitCode(err)
 		}
-	} else {
-		err = containers.Start(ic.ClientCxt, con.ID, nil)
-	}
-	if err != nil {
-		report.ExitCode = define.ExitCode(err)
-	}
-	if opts.Rm {
-		if err := containers.Remove(ic.ClientCxt, con.ID, bindings.PFalse, bindings.PTrue); err != nil {
-			if errors.Cause(err) == define.ErrNoSuchCtr ||
-				errors.Cause(err) == define.ErrCtrRemoved {
-				logrus.Warnf("Container %s does not exist: %v", con.ID, err)
-			} else {
-				logrus.Errorf("Error removing container %s: %v", con.ID, err)
-			}
-		}
+		return &report, err
 	}
 
+	// Attach
+	if err := startAndAttach(ic, con.ID, &opts.DetachKeys, opts.InputStream, opts.OutputStream, opts.ErrorStream); err != nil {
+		report.ExitCode = define.ExitCode(err)
+		if opts.Rm {
+			if rmErr := containers.Remove(ic.ClientCxt, con.ID, bindings.PFalse, bindings.PTrue); rmErr != nil {
+				logrus.Debugf("unable to remove container %s after failing to start and attach to it", con.ID)
+			}
+		}
+		return &report, err
+	}
+
+	if opts.Rm {
+		// Defer the removal, so we can return early if needed and
+		// de-spaghetti the code.
+		defer func() {
+			if err := containers.Remove(ic.ClientCxt, con.ID, bindings.PFalse, bindings.PTrue); err != nil {
+				if errors.Cause(err) == define.ErrNoSuchCtr ||
+					errors.Cause(err) == define.ErrCtrRemoved {
+					logrus.Warnf("Container %s does not exist: %v", con.ID, err)
+				} else {
+					logrus.Errorf("Error removing container %s: %v", con.ID, err)
+				}
+			}
+		}()
+	}
+
+	// Wait
+	exitCode, waitErr := containers.Wait(ic.ClientCxt, con.ID, nil)
+	if waitErr == nil {
+		report.ExitCode = int(exitCode)
+		return &report, nil
+	}
+
+	// Determine why the wait failed.  If the container doesn't exist,
+	// consult the events.
+	if !strings.Contains(waitErr.Error(), define.ErrNoSuchCtr.Error()) {
+		return &report, waitErr
+	}
+
+	// Events
+	eventsChannel := make(chan *events.Event)
+	eventOptions := entities.EventsOptions{
+		EventChan: eventsChannel,
+		Filter: []string{
+			"type=container",
+			fmt.Sprintf("container=%s", con.ID),
+			fmt.Sprintf("event=%s", events.Exited),
+		},
+	}
+
+	var lastEvent *events.Event
+	var mutex sync.Mutex
+	mutex.Lock()
+	// Read the events.
+	go func() {
+		for e := range eventsChannel {
+			lastEvent = e
+		}
+		mutex.Unlock()
+	}()
+
+	eventsErr := ic.Events(ctx, eventOptions)
+
+	// Wait for all events to be read
+	mutex.Lock()
+	if eventsErr != nil || lastEvent == nil {
+		logrus.Errorf("Cannot get exit code: %v", err)
+		report.ExitCode = define.ExecErrorCodeNotFound
+		return &report, nil // compat with local client
+	}
+
+	report.ExitCode = lastEvent.ContainerExitCode
 	return &report, err
 }
 
