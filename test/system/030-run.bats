@@ -189,9 +189,19 @@ echo $rand        |   0 | $rand
 
     is "$(< $cidfile)" "$cid" "contents of cidfile == container ID"
 
-    conmon_pid=$(< $pidfile)
-    is "$(readlink /proc/$conmon_pid/exe)" ".*/conmon"  \
-       "conmon pidfile (= PID $conmon_pid) points to conmon process"
+    # Cross-check --conmon-pidfile against 'podman inspect'
+    local conmon_pid_from_file=$(< $pidfile)
+    run_podman inspect --format '{{.State.ConmonPid}}' $cid
+    local conmon_pid_from_inspect="$output"
+    is "$conmon_pid_from_file" "$conmon_pid_from_inspect" \
+       "Conmon pid in pidfile matches what 'podman inspect' claims"
+
+    # /proc/PID/exe should be a symlink to a conmon executable
+    # FIXME: 'echo' and 'ls' are to help debug #7580, a CI flake
+    echo "conmon pid = $conmon_pid_from_file"
+    ls -l /proc/$conmon_pid_from_file
+    is "$(readlink /proc/$conmon_pid_from_file/exe)" ".*/conmon"  \
+       "conmon pidfile (= PID $conmon_pid_from_file) points to conmon process"
 
     # All OK. Kill container.
     run_podman rm -f $cid
@@ -204,7 +214,7 @@ echo $rand        |   0 | $rand
 }
 
 @test "podman run docker-archive" {
-    skip_if_remote "FIXME: pending #7116"
+    skip_if_remote "podman-remote does not support docker-archive (#7116)"
 
     # Create an image that, when run, outputs a random magic string
     expect=$(random_string 20)

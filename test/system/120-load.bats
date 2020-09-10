@@ -27,25 +27,43 @@ verify_iid_and_name() {
 }
 
 @test "podman save to pipe and load" {
-    get_iid_and_name
+    # Generate a random name and tag (must be lower-case)
+    local random_name=x$(random_string 12 | tr A-Z a-z)
+    local random_tag=t$(random_string 7 | tr A-Z a-z)
+    local fqin=localhost/$random_name:$random_tag
+    run_podman tag $IMAGE $fqin
+
+    archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
 
     # We can't use run_podman because that uses the BATS 'run' function
     # which redirects stdout and stderr. Here we need to guarantee
     # that podman's stdout is a pipe, not any other form of redirection
-    $PODMAN save --format oci-archive $IMAGE | cat >$archive
+    $PODMAN save --format oci-archive $fqin | cat >$archive
     if [ "$status" -ne 0 ]; then
         die "Command failed: podman save ... | cat"
     fi
 
     # Make sure we can reload it
-    # FIXME: when/if 7337 gets fixed, add a random tag instead of rmi'ing
-    # FIXME: when/if 7371 gets fixed, use verify_iid_and_name()
-    run_podman rmi $iid
+    run_podman rmi $fqin
     run_podman load -i $archive
 
-    # FIXME: cannot compare IID, see #7371
-    run_podman images -a --format '{{.Repository}}:{{.Tag}}'
-    is "$output" "$IMAGE" "image preserves name across save/load"
+    # FIXME: cannot compare IID, see #7371, so we check only the tag
+    run_podman images $fqin --format '{{.Repository}}:{{.Tag}}'
+    is "$output" "$fqin" "image preserves name across save/load"
+
+    # FIXME: when/if 7337 gets fixed, load with a new tag
+    if false; then
+    local new_name=x$(random_string 14 | tr A-Z a-z)
+    local new_tag=t$(random_string 6 | tr A-Z a-z)
+    run_podman rmi $fqin
+    fqin=localhost/$new_name:$new_tag
+    run_podman load -i $archive $fqin
+    run_podman images $fqin --format '{{.Repository}}:{{.Tag}}'
+    is "$output" "$fqin" "image can be loaded with new name:tag"
+    fi
+
+    # Clean up
+    run_podman rmi $fqin
 }
 
 
