@@ -61,6 +61,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//  - networks (compat)
 	// summary: List networks
 	// description: Display summary of network configurations
+	// parameters:
+	//  - in: query
+	//    name: filters
+	//    type: string
+	//    description: JSON encoded value of the filters (a map[string][]string) to process on the networks list. Only the name filter is supported.
 	// produces:
 	// - application/json
 	// responses:
@@ -106,7 +111,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name of the network
 	//  - in: query
-	//    name: Force
+	//    name: force
 	//    type: boolean
 	//    description: remove containers associated with network
 	// produces:
@@ -152,6 +157,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//  - networks
 	// summary: List networks
 	// description: Display summary of network configurations
+	// parameters:
+	//  - in: query
+	//    name: filter
+	//    type: string
+	//    description: Provide filter values (e.g. 'name=podman')
 	// produces:
 	// - application/json
 	// responses:

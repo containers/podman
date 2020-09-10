@@ -8,7 +8,7 @@ import (
 )
 
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
-	return network.List(ic.ClientCxt)
+	return network.List(ic.ClientCxt, options)
 }
 
 func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.NetworkInspectOptions) ([]entities.NetworkInspectReport, error) {
