@@ -8,6 +8,10 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	return define.ErrNotImplemented
 }
 
+func (r *Runtime) setupSlirp4netns(ctr *Container) error {
+	return define.ErrNotImplemented
+}
+
 func (r *Runtime) setupNetNS(ctr *Container) error {
 	return define.ErrNotImplemented
 }

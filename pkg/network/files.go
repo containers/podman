@@ -14,11 +14,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-func GetCNIConfDir(config *config.Config) string {
-	if len(config.Network.NetworkConfigDir) < 1 {
-		return CNIConfigDir
+func GetCNIConfDir(configArg *config.Config) string {
+	if len(configArg.Network.NetworkConfigDir) < 1 {
+		dc, err := config.DefaultConfig()
+		if err != nil {
+			// Fallback to hard-coded dir
+			return CNIConfigDir
+		}
+		return dc.Network.NetworkConfigDir
 	}
-	return config.Network.NetworkConfigDir
+	return configArg.Network.NetworkConfigDir
 }
 
 // LoadCNIConfsFromDir loads all the CNI configurations from a dir

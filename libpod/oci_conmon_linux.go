@@ -1086,7 +1086,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childSyncPipe, childStartPipe)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, envFiles...)
 
-	if r.reservePorts && !ctr.config.NetMode.IsSlirp4netns() {
+	if r.reservePorts && !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		ports, err := bindPorts(ctr.config.PortMappings)
 		if err != nil {
 			return err
@@ -1098,7 +1098,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
 	}
 
-	if ctr.config.NetMode.IsSlirp4netns() {
+	if ctr.config.NetMode.IsSlirp4netns() || rootless.IsRootless() {
 		if ctr.config.PostConfigureNetNS {
 			havePortMapping := len(ctr.Config().PortMappings) > 0
 			if havePortMapping {

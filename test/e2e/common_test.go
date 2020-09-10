@@ -245,6 +245,12 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 	os.Setenv("DISABLE_HC_SYSTEMD", "true")
 	CNIConfigDir := "/etc/cni/net.d"
+	if rootless.IsRootless() {
+		CNIConfigDir = filepath.Join(os.Getenv("HOME"), ".config/cni/net.d")
+	}
+	if err := os.MkdirAll(CNIConfigDir, 0755); err != nil {
+		panic(err)
+	}
 
 	storageFs := STORAGE_FS
 	if rootless.IsRootless() {
