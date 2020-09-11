@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
+	"github.com/containers/podman/v2/pkg/signal"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -129,7 +130,7 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachSt
 
 	// Attach to the container before starting it
 	go func() {
-		if err := c.attach(streams, keys, resize, true, startedChan); err != nil {
+		if err := c.attach(streams, keys, resize, true, startedChan, nil); err != nil {
 			attachChan <- err
 		}
 		close(attachChan)
@@ -243,8 +244,23 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
+	// HACK: This is really gross, but there isn't a better way without
+	// splitting attach into separate versions for StartAndAttach and normal
+	// attaching, and I really do not want to do that right now.
+	// Send a SIGWINCH after attach succeeds so that most programs will
+	// redraw the screen for the new attach session.
+	attachRdy := make(chan bool)
+	if c.config.Spec.Process != nil && c.config.Spec.Process.Terminal {
+		go func() {
+			<-attachRdy
+			if err := c.ociRuntime.KillContainer(c, uint(signal.SIGWINCH), false); err != nil {
+				logrus.Warnf("Unable to send SIGWINCH to container %s after attach: %v", c.ID(), err)
+			}
+		}()
+	}
+
 	c.newContainerEvent(events.Attach)
-	return c.attach(streams, keys, resize, false, nil)
+	return c.attach(streams, keys, resize, false, nil, attachRdy)
 }
 
 // HTTPAttach forwards an attach session over a hijacked HTTP session.

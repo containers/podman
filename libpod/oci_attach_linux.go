@@ -31,7 +31,7 @@ const (
 // Attach to the given container
 // Does not check if state is appropriate
 // started is only required if startContainer is true
-func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool) error {
+func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool, attachRdy chan<- bool) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -74,6 +74,9 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 	}
 
 	receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)
+	if attachRdy != nil {
+		attachRdy <- true
+	}
 	return readStdio(streams, receiveStdoutError, stdinDone)
 }
 
