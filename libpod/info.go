@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/linkmode"
 	"github.com/containers/podman/v2/pkg/cgroups"
@@ -62,6 +63,13 @@ func (r *Runtime) info() (*define.Info, error) {
 	}
 
 	info.Registries = registries
+
+	apparmorDefaultProfile, err := apparmorInfo()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting AppArmor")
+	}
+	info.AppArmor = string(apparmorDefaultProfile)
+
 	return &info, nil
 }
 
@@ -332,4 +340,8 @@ func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 		}
 	}
 	return dist
+}
+
+func apparmorInfo() ([]byte, error) {
+	return apparmor.DefaultContent("default")
 }

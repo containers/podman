@@ -9,6 +9,7 @@ type Info struct {
 	Store      *StoreInfo             `json:"store"`
 	Registries map[string]interface{} `json:"registries"`
 	Version    Version                `json:"version"`
+	AppArmor   string                 `json:"AppArmor"`
 }
 
 //HostInfo describes the libpod host
