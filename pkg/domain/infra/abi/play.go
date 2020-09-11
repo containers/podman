@@ -132,7 +132,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		libpod.WithInfraContainer(),
 		libpod.WithPodName(podName),
 	}
-	// TODO for now we just used the default kernel namespaces; we need to add/subtract this from yaml
+	// TODO we only configure Process namespace. We also need to account for Host{IPC,Network,PID}
+	// which is not currently possible with pod create
+	if podYAML.Spec.ShareProcessNamespace != nil && *podYAML.Spec.ShareProcessNamespace {
+		podOptions = append(podOptions, libpod.WithPodPID())
+	}
 
 	hostname := podYAML.Spec.Hostname
 	if hostname == "" {

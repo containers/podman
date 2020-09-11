@@ -348,4 +348,33 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(vol1))
 	})
+
+	It("podman generate kube sharing pid namespace", func() {
+		podName := "test"
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--share", "pid"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"create", "--pod", podName, "--name", "test1", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		kube := podmanTest.Podman([]string{"generate", "kube", podName, "-f", outputFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		rm := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm.ExitCode()).To(Equal(0))
+
+		play := podmanTest.Podman([]string{"play", "kube", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"pod", "inspect", podName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"pid"`))
+	})
 })

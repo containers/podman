@@ -69,12 +69,20 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 			return nil, servicePorts, err
 		}
 		servicePorts = containerPortsToServicePorts(ports)
+
 	}
 	pod, err := p.podWithContainers(allContainers, ports)
 	if err != nil {
 		return nil, servicePorts, err
 	}
 	pod.Spec.HostAliases = extraHost
+
+	if p.SharesPID() {
+		// unfortunately, go doesn't have a nice way to specify a pointer to a bool
+		b := true
+		pod.Spec.ShareProcessNamespace = &b
+	}
+
 	return pod, servicePorts, nil
 }
 
