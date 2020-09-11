@@ -61,6 +61,12 @@ echo $rand        |   0 | $rand
     is "$tests_run" "$(grep . <<<$tests | wc -l)" "Ran the full set of tests"
 }
 
+@test "podman run - globle runtime option" {
+    skip_if_remote "runtime flag is not passing over remote"
+    run_podman 126 --runtime-flag invalidflag run --rm $IMAGE
+    is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
+}
+
 # 'run --preserve-fds' passes a number of additional file descriptors into the container
 @test "podman run --preserve-fds" {
     skip_if_remote "preserve-fds is meaningless over remote"

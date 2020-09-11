@@ -64,6 +64,7 @@ type ConmonOCIRuntime struct {
 	logSizeMax        int64
 	noPivot           bool
 	reservePorts      bool
+	runtimeFlags      []string
 	supportsJSON      bool
 	supportsKVM       bool
 	supportsNoCgroups bool
@@ -76,7 +77,7 @@ type ConmonOCIRuntime struct {
 // The first path that points to a valid executable will be used.
 // Deliberately private. Someone should not be able to construct this outside of
 // libpod.
-func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *config.Config) (OCIRuntime, error) {
+func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtimeFlags []string, runtimeCfg *config.Config) (OCIRuntime, error) {
 	if name == "" {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "the OCI runtime must be provided a non-empty name")
 	}
@@ -98,6 +99,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime := new(ConmonOCIRuntime)
 	runtime.name = name
 	runtime.conmonPath = conmonPath
+	runtime.runtimeFlags = runtimeFlags
 
 	runtime.conmonEnv = runtimeCfg.Engine.ConmonEnvVars
 	runtime.cgroupManager = runtimeCfg.Engine.CgroupManager
@@ -378,7 +380,7 @@ func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
 	if path, ok := os.LookupEnv("PATH"); ok {
 		env = append(env, fmt.Sprintf("PATH=%s", path))
 	}
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "start", ctr.ID()); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "start", ctr.ID())...); err != nil {
 		return err
 	}
 
@@ -398,10 +400,11 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
 	var args []string
+	args = append(args, r.runtimeFlags...)
 	if all {
-		args = []string{"kill", "--all", ctr.ID(), fmt.Sprintf("%d", signal)}
+		args = append(args, "kill", "--all", ctr.ID(), fmt.Sprintf("%d", signal))
 	} else {
-		args = []string{"kill", ctr.ID(), fmt.Sprintf("%d", signal)}
+		args = append(args, "kill", ctr.ID(), fmt.Sprintf("%d", signal))
 	}
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...); err != nil {
 		return errors.Wrapf(err, "error sending signal to container %s", ctr.ID())
@@ -478,7 +481,7 @@ func (r *ConmonOCIRuntime) DeleteContainer(ctr *Container) error {
 		return err
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "delete", "--force", ctr.ID())
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "delete", "--force", ctr.ID())...)
 }
 
 // PauseContainer pauses the given container.
@@ -488,7 +491,7 @@ func (r *ConmonOCIRuntime) PauseContainer(ctr *Container) error {
 		return err
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "pause", ctr.ID())
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "pause", ctr.ID())...)
 }
 
 // UnpauseContainer unpauses the given container.
@@ -498,7 +501,7 @@ func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
 		return err
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "resume", ctr.ID())
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "resume", ctr.ID())...)
 }
 
 // HTTPAttach performs an attach for the HTTP API.
@@ -765,6 +768,7 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	logrus.Debugf("Writing checkpoint to %s", imagePath)
 	logrus.Debugf("Writing checkpoint logs to %s", workPath)
 	args := []string{}
+	args = append(args, r.runtimeFlags...)
 	args = append(args, "checkpoint")
 	args = append(args, "--image-path")
 	args = append(args, imagePath)
@@ -1309,6 +1313,13 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		"-n", ctr.Name(),
 		"--exit-dir", exitDir,
 		"--socket-dir-path", r.socketsDir,
+	}
+	if len(r.runtimeFlags) > 0 {
+		rFlags := []string{}
+		for _, arg := range r.runtimeFlags {
+			rFlags = append(rFlags, "--runtime-arg", arg)
+		}
+		args = append(args, rFlags...)
 	}
 
 	if r.cgroupManager == config.SystemdCgroupsManager && !ctr.config.NoCgroups && ctr.config.CgroupsMode != cgroupSplit {

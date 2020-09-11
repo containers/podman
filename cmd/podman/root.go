@@ -273,6 +273,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	pFlags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
 	pFlags.StringVar(&opts.Runroot, "runroot", "", "Path to the 'run directory' where all state information is stored")
 	pFlags.StringVar(&opts.RuntimePath, "runtime", "", "Path to the OCI-compatible binary used to run containers, default is /usr/bin/runc")
+	pFlags.StringArrayVar(&opts.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
 	// -s is deprecated due to conflict with -s on subcommands
 	pFlags.StringVar(&opts.StorageDriver, "storage-driver", "", "Select which storage driver is used to manage storage of images and containers (default is overlay)")
 	pFlags.StringArrayVar(&opts.StorageOpts, "storage-opt", []string{}, "Used to pass an option to the storage driver")

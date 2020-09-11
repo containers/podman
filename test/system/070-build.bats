@@ -30,9 +30,26 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman build - global runtime flags test" {
+    skip_if_remote "FIXME: pending #7136"
+
+    rand_content=$(random_string 50)
+
+    tmpdir=$PODMAN_TMPDIR/build-test
+    run mkdir -p $tmpdir
+    containerfile=$tmpdir/Containerfile
+    cat >$containerfile <<EOF
+FROM $IMAGE
+RUN echo $rand_content
+EOF
+
+    run_podman 125 --runtime-flag invalidflag build -t build_test $tmpdir
+    is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
+}
+
 # Regression from v1.5.0. This test passes fine in v1.5.0, fails in 1.6
 @test "podman build - cache (#3920)" {
-    skip_if_remote "FIXME: pending #7136"
+    skip_if_remote "FIXME: pending #7136, runtime flag is not passing over remote"
     if is_remote && is_rootless; then
         skip "unreliable with podman-remote and rootless; #2972"
     fi

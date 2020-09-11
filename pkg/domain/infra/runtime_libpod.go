@@ -156,6 +156,14 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		options = append(options, libpod.WithRenumber())
 	}
 
+	if len(cfg.RuntimeFlags) > 0 {
+		runtimeFlags := []string{}
+		for _, arg := range cfg.RuntimeFlags {
+			runtimeFlags = append(runtimeFlags, "--"+arg)
+		}
+		options = append(options, libpod.WithRuntimeFlags(runtimeFlags))
+	}
+
 	// Only set this if the user changes storage config on the command line
 	if storageSet {
 		options = append(options, libpod.WithStorageConfig(storageOpts))

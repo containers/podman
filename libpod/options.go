@@ -530,6 +530,17 @@ func WithEnableSDNotify() RuntimeOption {
 	}
 }
 
+// WithRuntimeFlags adds the global runtime flags to the container config
+func WithRuntimeFlags(runtimeFlags []string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+		rt.runtimeFlags = runtimeFlags
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.
