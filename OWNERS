@@ -1,5 +1,6 @@
 approvers:
   - baude
+  - edsantiago
   - giuseppe
   - jwhonce
   - mheon
@@ -10,6 +11,7 @@ approvers:
   - vrothberg
 reviewers:
   - baude
+  - edsantiago
   - giuseppe
   - jwhonce
   - mheon
