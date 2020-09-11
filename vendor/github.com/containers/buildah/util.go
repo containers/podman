@@ -1,26 +1,20 @@
 package buildah
 
 import (
-	"archive/tar"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
-	"github.com/containers/buildah/util"
+	"github.com/containers/buildah/copier"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/pkg/system"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -109,245 +103,6 @@ func convertRuntimeIDMaps(UIDMap, GIDMap []rspec.LinuxIDMapping) ([]idtools.IDMa
 	return uidmap, gidmap
 }
 
-// copyFileWithTar returns a function which copies a single file from outside
-// of any container, or another container, into our working container, mapping
-// read permissions using the passed-in ID maps, writing using the container's
-// ID mappings, possibly overridden using the passed-in chownOpts
-func (b *Builder) copyFileWithTar(tarIDMappingOptions *IDMappingOptions, chownOpts *idtools.IDPair, hasher io.Writer, dryRun bool) func(src, dest string) error {
-	if tarIDMappingOptions == nil {
-		tarIDMappingOptions = &IDMappingOptions{
-			HostUIDMapping: true,
-			HostGIDMapping: true,
-		}
-	}
-
-	var hardlinkChecker util.HardlinkChecker
-	return func(src, dest string) error {
-		var f *os.File
-
-		logrus.Debugf("copyFileWithTar(%s, %s)", src, dest)
-		fi, err := os.Lstat(src)
-		if err != nil {
-			return errors.Wrapf(err, "error reading attributes of %q", src)
-		}
-
-		sysfi, err := system.Lstat(src)
-		if err != nil {
-			return errors.Wrapf(err, "error reading attributes of %q", src)
-		}
-
-		hostUID := sysfi.UID()
-		hostGID := sysfi.GID()
-		containerUID, containerGID, err := util.GetContainerIDs(tarIDMappingOptions.UIDMap, tarIDMappingOptions.GIDMap, hostUID, hostGID)
-		if err != nil {
-			return errors.Wrapf(err, "error mapping owner IDs of %q: %d/%d", src, hostUID, hostGID)
-		}
-
-		hdr, err := tar.FileInfoHeader(fi, filepath.Base(src))
-		if err != nil {
-			return errors.Wrapf(err, "error generating tar header for: %q", src)
-		}
-		chrootedDest, err := filepath.Rel(b.MountPoint, dest)
-		if err != nil {
-			return errors.Wrapf(err, "error generating relative-to-chroot target name for %q", dest)
-		}
-		hdr.Name = chrootedDest
-		hdr.Uid = int(containerUID)
-		hdr.Gid = int(containerGID)
-
-		if fi.Mode().IsRegular() && hdr.Typeflag == tar.TypeReg {
-			if linkname := hardlinkChecker.Check(fi); linkname != "" {
-				hdr.Typeflag = tar.TypeLink
-				hdr.Linkname = linkname
-			} else {
-				hardlinkChecker.Add(fi, chrootedDest)
-				f, err = os.Open(src)
-				if err != nil {
-					return errors.Wrapf(err, "error opening %q to copy its contents", src)
-				}
-			}
-		}
-
-		if fi.Mode()&os.ModeSymlink == os.ModeSymlink && hdr.Typeflag == tar.TypeSymlink {
-			hdr.Typeflag = tar.TypeSymlink
-			linkName, err := os.Readlink(src)
-			if err != nil {
-				return errors.Wrapf(err, "error reading destination from symlink %q", src)
-			}
-			hdr.Linkname = linkName
-		}
-
-		pipeReader, pipeWriter := io.Pipe()
-		writer := tar.NewWriter(pipeWriter)
-		var copyErr error
-		go func(srcFile *os.File) {
-			err := writer.WriteHeader(hdr)
-			if err != nil {
-				logrus.Debugf("error writing header for %s: %v", srcFile.Name(), err)
-				copyErr = err
-			}
-			if srcFile != nil {
-				n, err := pools.Copy(writer, srcFile)
-				if n != hdr.Size {
-					logrus.Debugf("expected to write %d bytes for %s, wrote %d instead", hdr.Size, srcFile.Name(), n)
-				}
-				if err != nil {
-					logrus.Debugf("error copying contents of %s: %v", fi.Name(), err)
-					copyErr = err
-				}
-				if err = srcFile.Close(); err != nil {
-					logrus.Debugf("error closing %s: %v", fi.Name(), err)
-				}
-			}
-			if err = writer.Close(); err != nil {
-				logrus.Debugf("error closing write pipe for %s: %v", hdr.Name, err)
-			}
-			pipeWriter.Close()
-			pipeWriter = nil
-		}(f)
-
-		untar := b.untar(chownOpts, hasher, dryRun)
-		err = untar(pipeReader, b.MountPoint)
-		if err == nil {
-			err = copyErr
-		}
-		if pipeWriter != nil {
-			pipeWriter.Close()
-		}
-		return err
-	}
-}
-
-// copyWithTar returns a function which copies a directory tree from outside of
-// our container or from another container, into our working container, mapping
-// permissions at read-time using the container's ID maps, with ownership at
-// write-time possibly overridden using the passed-in chownOpts
-func (b *Builder) copyWithTar(tarIDMappingOptions *IDMappingOptions, chownOpts *idtools.IDPair, hasher io.Writer, dryRun bool) func(src, dest string) error {
-	tar := b.tarPath(tarIDMappingOptions)
-	return func(src, dest string) error {
-		thisHasher := hasher
-		if thisHasher != nil && b.ContentDigester.Hash() != nil {
-			thisHasher = io.MultiWriter(thisHasher, b.ContentDigester.Hash())
-		}
-		if thisHasher == nil {
-			thisHasher = b.ContentDigester.Hash()
-		}
-		untar := b.untar(chownOpts, thisHasher, dryRun)
-		rc, err := tar(src)
-		if err != nil {
-			return errors.Wrapf(err, "error archiving %q for copy", src)
-		}
-		return untar(rc, dest)
-	}
-}
-
-// untarPath returns a function which extracts an archive in a specified
-// location into our working container, mapping permissions using the
-// container's ID maps, possibly overridden using the passed-in chownOpts
-func (b *Builder) untarPath(chownOpts *idtools.IDPair, hasher io.Writer, dryRun bool) func(src, dest string) error {
-	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
-	if dryRun {
-		return func(src, dest string) error {
-			thisHasher := hasher
-			if thisHasher != nil && b.ContentDigester.Hash() != nil {
-				thisHasher = io.MultiWriter(thisHasher, b.ContentDigester.Hash())
-			}
-			if thisHasher == nil {
-				thisHasher = b.ContentDigester.Hash()
-			}
-			f, err := os.Open(src)
-			if err != nil {
-				return errors.Wrapf(err, "error opening %q", src)
-			}
-			defer f.Close()
-			_, err = io.Copy(thisHasher, f)
-			return err
-		}
-	}
-	return func(src, dest string) error {
-		thisHasher := hasher
-		if thisHasher != nil && b.ContentDigester.Hash() != nil {
-			thisHasher = io.MultiWriter(thisHasher, b.ContentDigester.Hash())
-		}
-		if thisHasher == nil {
-			thisHasher = b.ContentDigester.Hash()
-		}
-		untarPathAndChown := chrootarchive.UntarPathAndChown(chownOpts, thisHasher, convertedUIDMap, convertedGIDMap)
-		return untarPathAndChown(src, dest)
-	}
-}
-
-// tarPath returns a function which creates an archive of a specified location,
-// which is often somewhere in the container's filesystem, mapping permissions
-// using the container's ID maps, or the passed-in maps if specified
-func (b *Builder) tarPath(idMappingOptions *IDMappingOptions) func(path string) (io.ReadCloser, error) {
-	var uidmap, gidmap []idtools.IDMap
-	if idMappingOptions == nil {
-		idMappingOptions = &IDMappingOptions{
-			HostUIDMapping: true,
-			HostGIDMapping: true,
-		}
-	}
-	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(idMappingOptions.UIDMap, idMappingOptions.GIDMap)
-	tarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
-	uidmap = tarMappings.UIDs()
-	gidmap = tarMappings.GIDs()
-	options := &archive.TarOptions{
-		Compression: archive.Uncompressed,
-		UIDMaps:     uidmap,
-		GIDMaps:     gidmap,
-	}
-	return func(path string) (io.ReadCloser, error) {
-		return archive.TarWithOptions(path, options)
-	}
-}
-
-// untar returns a function which extracts an archive stream to a specified
-// location in the container's filesystem, mapping permissions using the
-// container's ID maps, possibly overridden using the passed-in chownOpts
-func (b *Builder) untar(chownOpts *idtools.IDPair, hasher io.Writer, dryRun bool) func(tarArchive io.ReadCloser, dest string) error {
-	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
-	untarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
-	options := &archive.TarOptions{
-		UIDMaps:   untarMappings.UIDs(),
-		GIDMaps:   untarMappings.GIDs(),
-		ChownOpts: chownOpts,
-	}
-	untar := chrootarchive.Untar
-	if dryRun {
-		untar = func(tarArchive io.Reader, dest string, options *archive.TarOptions) error {
-			if _, err := io.Copy(ioutil.Discard, tarArchive); err != nil {
-				return errors.Wrapf(err, "error digesting tar stream")
-			}
-			return nil
-		}
-	}
-	originalUntar := untar
-	untarWithHasher := func(tarArchive io.Reader, dest string, options *archive.TarOptions, untarHasher io.Writer) error {
-		reader := tarArchive
-		if untarHasher != nil {
-			reader = io.TeeReader(tarArchive, untarHasher)
-		}
-		return originalUntar(reader, dest, options)
-	}
-	return func(tarArchive io.ReadCloser, dest string) error {
-		thisHasher := hasher
-		if thisHasher != nil && b.ContentDigester.Hash() != nil {
-			thisHasher = io.MultiWriter(thisHasher, b.ContentDigester.Hash())
-		}
-		if thisHasher == nil {
-			thisHasher = b.ContentDigester.Hash()
-		}
-		err := untarWithHasher(tarArchive, dest, options, thisHasher)
-		if err2 := tarArchive.Close(); err2 != nil {
-			if err == nil {
-				err = err2
-			}
-		}
-		return err
-	}
-}
-
 // isRegistryBlocked checks if the named registry is marked as blocked
 func isRegistryBlocked(registry string, sc *types.SystemContext) (bool, error) {
 	reginfo, err := sysregistriesv2.FindRegistry(sc, registry)
@@ -389,10 +144,10 @@ func isReferenceBlocked(ref types.ImageReference, sc *types.SystemContext) (bool
 	return false, nil
 }
 
-// ReserveSELinuxLabels reads containers storage and reserves SELinux containers
-// fall all existing buildah containers
+// ReserveSELinuxLabels reads containers storage and reserves SELinux contexts
+// which are already being used by buildah containers.
 func ReserveSELinuxLabels(store storage.Store, id string) error {
-	if selinux.GetEnabled() {
+	if selinuxGetEnabled() {
 		containers, err := store.Containers()
 		if err != nil {
 			return errors.Wrapf(err, "error getting list of containers")
@@ -437,4 +192,36 @@ func IsContainer(id string, store storage.Store) (bool, error) {
 		return false, errors.Wrapf(err, "error stating %q", filepath.Join(cdir, stateFile))
 	}
 	return true, nil
+}
+
+// Copy content from the directory "src" to the directory "dest", ensuring that
+// content from outside of "root" (which is a parent of "src" or "src" itself)
+// isn't read.
+func extractWithTar(root, src, dest string) error {
+	var getErr, putErr error
+	var wg sync.WaitGroup
+
+	pipeReader, pipeWriter := io.Pipe()
+
+	wg.Add(1)
+	go func() {
+		getErr = copier.Get(root, src, copier.GetOptions{}, []string{"."}, pipeWriter)
+		pipeWriter.Close()
+		wg.Done()
+	}()
+	wg.Add(1)
+	go func() {
+		putErr = copier.Put(dest, dest, copier.PutOptions{}, pipeReader)
+		pipeReader.Close()
+		wg.Done()
+	}()
+	wg.Wait()
+
+	if getErr != nil {
+		return errors.Wrapf(getErr, "error reading %q", src)
+	}
+	if putErr != nil {
+		return errors.Wrapf(putErr, "error copying contents of %q to %q", src, dest)
+	}
+	return nil
 }

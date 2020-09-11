@@ -280,7 +280,7 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	}()
 
 	logrus.Debugf("copying %q to %q", transports.ImageName(srcRef), destName)
-	if _, err := retryCopyImage(ctx, policyContext, maybeCachedDestRef, srcRef, srcRef, "pull", getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, "", nil, nil, options.OciDecryptConfig), options.MaxRetries, options.RetryDelay); err != nil {
+	if _, err := retryCopyImage(ctx, policyContext, maybeCachedDestRef, srcRef, srcRef, getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, "", nil, nil, options.OciDecryptConfig), options.MaxRetries, options.RetryDelay); err != nil {
 		logrus.Debugf("error copying src image [%q] to dest image [%q] err: %v", transports.ImageName(srcRef), destName, err)
 		return nil, err
 	}

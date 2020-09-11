@@ -6,6 +6,7 @@ import (
 	"hash"
 	"io"
 	"sync"
+	"time"
 
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -82,6 +83,10 @@ func (t *tarFilterer) Close() error {
 // newTarFilterer passes one or more tar archives through to an io.WriteCloser
 // as a single archive, potentially calling filter to modify headers and
 // contents as it goes.
+//
+// Note: if "filter" indicates that a given item should be skipped, there is no
+// guarantee that there will not be a subsequent item of type TypeLink, which
+// is a hard link, which points to the skipped item as the link target.
 func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (skip, replaceContents bool, replacementContents io.Reader)) io.WriteCloser {
 	pipeReader, pipeWriter := io.Pipe()
 	tarWriter := tar.NewWriter(writeCloser)
@@ -153,12 +158,20 @@ type tarDigester struct {
 	tarFilterer io.WriteCloser
 }
 
+func modifyTarHeaderForDigesting(hdr *tar.Header) (skip, replaceContents bool, replacementContents io.Reader) {
+	zeroTime := time.Time{}
+	hdr.ModTime = zeroTime
+	hdr.AccessTime = zeroTime
+	hdr.ChangeTime = zeroTime
+	return false, false, nil
+}
+
 func newTarDigester(contentType string) digester {
 	nested := newSimpleDigester(contentType)
 	digester := &tarDigester{
 		isOpen:      true,
 		nested:      nested,
-		tarFilterer: nested,
+		tarFilterer: newTarFilterer(nested, modifyTarHeaderForDigesting),
 	}
 	return digester
 }

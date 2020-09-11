@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "master"
+    DEST_BRANCH: "release-1.16"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -295,11 +295,11 @@ gce_instance:
 
     build_script: |
         set -ex
-        mkdir -p /nix
         mkdir -p .cache
-        mount --bind .cache /nix
+        mv .cache /nix
         if [[ -z $(ls -A /nix) ]]; then podman run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
         podman run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
+        mv /nix .cache
         chown -Rf $(whoami) .cache
 
     binaries_artifacts:

@@ -7,6 +7,10 @@ import (
 	selinux "github.com/opencontainers/selinux/go-selinux"
 )
 
+func selinuxGetEnabled() bool {
+	return selinux.GetEnabled()
+}
+
 func setupSelinux(g *generate.Generator, processLabel, mountLabel string) {
 	if processLabel != "" && selinux.GetEnabled() {
 		g.SetProcessSelinuxLabel(processLabel)

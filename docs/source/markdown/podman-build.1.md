@@ -353,15 +353,6 @@ another process.
 
 Do not use existing cached images for the container build. Build from the start with a new set of cached layers.
 
-**--omit-timestamp** *bool-value*
-
-Set the create timestamp to epoch 0 to allow for deterministic builds (defaults to false).
-By default, the created timestamp is changed and written into the image manifest with every commit,
-causing the image's sha256 hash to be different even if the sources are exactly the same otherwise.
-When --omit-timestamp is set to true, the created timestamp is always set to the epoch and therefore not
-changed, allowing the image's sha256 to remain the same. All files committed to the layers of the image
-will get the epoch 0 timestamp.
-
 **--os**=*string*
 
 Set the OS to the provided value instead of the current operating system of the host.
@@ -469,6 +460,13 @@ If _imageName_ does not include a registry name, the registry name *localhost* w
 Set the target build stage to build.  When building a Containerfile with multiple build stages, --target
 can be used to specify an intermediate build stage by name as the final stage for the resulting image.
 Commands after the target stage will be skipped.
+
+**--timestamp** *seconds*
+
+Set the create timestamp to seconds since epoch to allow for deterministic builds (defaults to current time).
+By default, the created timestamp is changed and written into the image manifest with every commit,
+causing the image's sha256 hash to be different even if the sources are exactly the same otherwise.
+When --timestamp is set, the created timestamp is always set to the time specified and therefore not changed, allowing the image's sha256 to remain the same. All files committed to the layers of the image will be created with the timestamp.
 
 **--tls-verify**=*true|false*
 
