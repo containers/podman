@@ -594,11 +594,13 @@ static_build_task:
         mv .cache /nix
         if [[ -z $(ls -A /nix) ]]; then podman run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
         podman run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
-        mv /nix .cache
-        chown -Rf $(whoami) .cache
 
     binaries_artifacts:
         path: "result/bin/podman"
+
+    save_cache_script: |
+        mv /nix .cache
+        chown -Rf $(whoami) .cache
 
 
 darwin_build_task:
