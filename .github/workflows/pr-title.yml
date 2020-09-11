@@ -1,0 +1,15 @@
+name: "PR Title"
+
+on: pull_request_target
+
+jobs:
+  update_pr:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: tzkhan/pr-update-action@v1.1.1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        branch-regex: '^(?!master).*$'
+        title-template: '[v2.0.5-rhel]'
+        replace-title: true
+        title-prefix-space: true
