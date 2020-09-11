@@ -65,7 +65,7 @@ type BudResults struct {
 	Logfile             string
 	Loglevel            int
 	NoCache             bool
-	OmitTimestamp       bool
+	Timestamp           int64
 	OS                  string
 	Platform            string
 	Pull                bool
@@ -82,6 +82,7 @@ type BudResults struct {
 	Target              string
 	TLSVerify           bool
 	Jobs                int
+	LogRusage           bool
 }
 
 // FromAndBugResults represents the results for common flags
@@ -164,7 +165,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.NoCache, "no-cache", false, "Do not use existing cached images for the container build. Build from the start with a new set of cached layers.")
 	fs.StringVar(&flags.Logfile, "logfile", "", "log to `file` instead of stdout/stderr")
 	fs.IntVar(&flags.Loglevel, "loglevel", 0, "adjust logging level (range from -2 to 3)")
-	fs.BoolVar(&flags.OmitTimestamp, "omit-timestamp", false, "set created timestamp to epoch 0 to allow for deterministic builds")
+	fs.Int64Var(&flags.Timestamp, "timestamp", 0, "set created timestamp to the specified epoch seconds to allow for deterministic builds, defaults to current time")
 	fs.StringVar(&flags.OS, "os", runtime.GOOS, "set the OS to the provided value instead of the current operating system of the host")
 	fs.StringVar(&flags.Platform, "platform", parse.DefaultPlatform(), "set the OS/ARCH to the provided value instead of the current operating system and architecture of the host (for example `linux/arm`)")
 	fs.BoolVar(&flags.Pull, "pull", true, "pull the image from the registry if newer or not present in store, if false, only pull the image if not present")
@@ -181,6 +182,10 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
 	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	fs.IntVar(&flags.Jobs, "jobs", 1, "how many stages to run in parallel")
+	fs.BoolVar(&flags.LogRusage, "log-rusage", false, "log resource usage at each build step")
+	if err := fs.MarkHidden("log-rusage"); err != nil {
+		panic(fmt.Sprintf("error marking the log-rusage flag as hidden: %v", err))
+	}
 	return fs
 }
 

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
@@ -21,6 +22,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
@@ -50,7 +52,7 @@ type containerImageRef struct {
 	layerID               string
 	oconfig               []byte
 	dconfig               []byte
-	created               time.Time
+	created               *time.Time
 	createdBy             string
 	historyComment        string
 	annotations           map[string]string
@@ -58,7 +60,7 @@ type containerImageRef struct {
 	exporting             bool
 	squash                bool
 	emptyLayer            bool
-	tarPath               func(path string) (io.ReadCloser, error)
+	idMappingOptions      *IDMappingOptions
 	parent                string
 	blobDirectory         string
 	preEmptyLayers        []v1.History
@@ -142,16 +144,25 @@ func computeLayerMIMEType(what string, layerCompression archive.Compression) (om
 
 // Extract the container's whole filesystem as if it were a single layer.
 func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
+	var uidMap, gidMap []idtools.IDMap
 	mountPoint, err := i.store.Mount(i.containerID, i.mountLabel)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error mounting container %q", i.containerID)
 	}
-	rc, err := i.tarPath(mountPoint)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error extracting rootfs from container %q", i.containerID)
-	}
-	return ioutils.NewReadCloserWrapper(rc, func() error {
-		if err = rc.Close(); err != nil {
+	pipeReader, pipeWriter := io.Pipe()
+	go func() {
+		if i.idMappingOptions != nil {
+			uidMap, gidMap = convertRuntimeIDMaps(i.idMappingOptions.UIDMap, i.idMappingOptions.GIDMap)
+		}
+		copierOptions := copier.GetOptions{
+			UIDMap: uidMap,
+			GIDMap: gidMap,
+		}
+		err = copier.Get(mountPoint, mountPoint, copierOptions, []string{"."}, pipeWriter)
+		pipeWriter.Close()
+	}()
+	return ioutils.NewReadCloserWrapper(pipeReader, func() error {
+		if err = pipeReader.Close(); err != nil {
 			err = errors.Wrapf(err, "error closing tar archive of container %q", i.containerID)
 		}
 		if _, err2 := i.store.Unmount(i.containerID, false); err == nil {
@@ -167,7 +178,10 @@ func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
 // Build fresh copies of the container configuration structures so that we can edit them
 // without making unintended changes to the original Builder.
 func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, docker.V2Image, docker.V2S2Manifest, error) {
-	created := i.created
+	created := time.Now().UTC()
+	if i.created != nil {
+		created = *i.created
+	}
 
 	// Build an empty image, and then decode over it.
 	oimage := v1.Image{}
@@ -285,7 +299,6 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	if err != nil {
 		return nil, err
 	}
-	omitTimestamp := i.created.Equal(time.Unix(0, 0))
 
 	// Extract each layer and compute its digests, both compressed (if requested) and uncompressed.
 	for _, layerID := range layers {
@@ -375,9 +388,9 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			return nil, errors.Wrapf(err, "error compressing %s", what)
 		}
 		writer := io.MultiWriter(writeCloser, srcHasher.Hash())
-		// Zero out timestamps in the layer, if we're doing that for
+		// Use specified timestamps in the layer, if we're doing that for
 		// history entries.
-		if omitTimestamp {
+		if i.created != nil {
 			nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
 			writeCloser = newTarFilterer(nestedWriteCloser, func(hdr *tar.Header) (bool, bool, io.Reader) {
 				// Changing a zeroed field to a non-zero field
@@ -388,13 +401,13 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 				// changing the length) of the header that we
 				// write.
 				if !hdr.ModTime.IsZero() {
-					hdr.ModTime = i.created
+					hdr.ModTime = *i.created
 				}
 				if !hdr.AccessTime.IsZero() {
-					hdr.AccessTime = i.created
+					hdr.AccessTime = *i.created
 				}
 				if !hdr.ChangeTime.IsZero() {
-					hdr.ChangeTime = i.created
+					hdr.ChangeTime = *i.created
 				}
 				return false, false, nil
 			})
@@ -414,7 +427,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		} else {
 			size = counter.Count
 		}
-		logrus.Debugf("%s size is %d bytes", what, size)
+		logrus.Debugf("%s size is %d bytes, uncompressed digest %s, possibly-compressed digest %s", what, size, srcHasher.Digest().String(), destHasher.Digest().String())
 		// Rename the layer so that we can more easily find it by digest later.
 		finalBlobName := filepath.Join(path, destHasher.Digest().String())
 		if err = os.Rename(filepath.Join(path, "layer"), finalBlobName); err != nil {
@@ -469,8 +482,12 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		}
 	}
 	appendHistory(i.preEmptyLayers)
+	created := time.Now().UTC()
+	if i.created != nil {
+		created = (*i.created).UTC()
+	}
 	onews := v1.History{
-		Created:    &i.created,
+		Created:    &created,
 		CreatedBy:  i.createdBy,
 		Author:     oimage.Author,
 		Comment:    i.historyComment,
@@ -478,7 +495,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	}
 	oimage.History = append(oimage.History, onews)
 	dnews := docker.V2S2History{
-		Created:    i.created,
+		Created:    created,
 		CreatedBy:  i.createdBy,
 		Author:     dimage.Author,
 		Comment:    i.historyComment,
@@ -693,9 +710,10 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 	if err != nil {
 		return nil, errors.Wrapf(err, "error encoding docker-format image configuration %#v", b.Docker)
 	}
-	created := time.Now().UTC()
+	var created *time.Time
 	if options.HistoryTimestamp != nil {
-		created = options.HistoryTimestamp.UTC()
+		historyTimestampUTC := options.HistoryTimestamp.UTC()
+		created = &historyTimestampUTC
 	}
 	createdBy := b.CreatedBy()
 	if createdBy == "" {
@@ -703,10 +721,6 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 		if createdBy == "" {
 			createdBy = "/bin/sh"
 		}
-	}
-
-	if options.OmitTimestamp {
-		created = time.Unix(0, 0).UTC()
 	}
 
 	parent := ""
@@ -735,12 +749,11 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 		exporting:             exporting,
 		squash:                options.Squash,
 		emptyLayer:            options.EmptyLayer && !options.Squash,
-		tarPath:               b.tarPath(&b.IDMappingOptions),
+		idMappingOptions:      &b.IDMappingOptions,
 		parent:                parent,
 		blobDirectory:         options.BlobDirectory,
 		preEmptyLayers:        b.PrependedEmptyLayers,
 		postEmptyLayers:       b.AppendedEmptyLayers,
 	}
-
 	return ref, nil
 }

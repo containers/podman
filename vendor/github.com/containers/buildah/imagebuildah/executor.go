@@ -24,6 +24,7 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/openshift/imagebuilder"
@@ -100,7 +101,7 @@ type Executor struct {
 	devices                        []configs.Device
 	signBy                         string
 	architecture                   string
-	omitTimestamp                  bool
+	timestamp                      *time.Time
 	os                             string
 	maxPullPushRetries             int
 	retryPullPushDelay             time.Duration
@@ -110,6 +111,7 @@ type Executor struct {
 	stagesLock                     sync.Mutex
 	stagesSemaphore                *semaphore.Weighted
 	jobs                           int
+	logRusage                      bool
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
@@ -152,6 +154,11 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		jobs = *options.Jobs
 	}
 
+	writer := options.ReportWriter
+	if options.Quiet {
+		writer = ioutil.Discard
+	}
+
 	exec := Executor{
 		stages:                         make(map[string]*StageExecutor),
 		store:                          store,
@@ -174,7 +181,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		in:                             options.In,
 		out:                            options.Out,
 		err:                            options.Err,
-		reportWriter:                   options.ReportWriter,
+		reportWriter:                   writer,
 		isolation:                      options.Isolation,
 		namespaceOptions:               options.NamespaceOptions,
 		configureNetwork:               options.ConfigureNetwork,
@@ -201,13 +208,14 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		devices:                        devices,
 		signBy:                         options.SignBy,
 		architecture:                   options.Architecture,
-		omitTimestamp:                  options.OmitTimestamp,
+		timestamp:                      options.Timestamp,
 		os:                             options.OS,
 		maxPullPushRetries:             options.MaxPullPushRetries,
 		retryPullPushDelay:             options.PullPushRetryDelay,
 		ociDecryptConfig:               options.OciDecryptConfig,
 		terminatedStage:                make(map[string]struct{}),
 		jobs:                           jobs,
+		logRusage:                      options.LogRusage,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -328,22 +336,22 @@ func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebu
 	}
 }
 
-// getImageHistory returns the history of imageID.
-func (b *Executor) getImageHistory(ctx context.Context, imageID string) ([]v1.History, error) {
+// getImageHistoryAndDiffIDs returns the history and diff IDs list of imageID.
+func (b *Executor) getImageHistoryAndDiffIDs(ctx context.Context, imageID string) ([]v1.History, []digest.Digest, error) {
 	imageRef, err := is.Transport.ParseStoreReference(b.store, "@"+imageID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting image reference %q", imageID)
+		return nil, nil, errors.Wrapf(err, "error getting image reference %q", imageID)
 	}
 	ref, err := imageRef.NewImage(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating new image from reference to image %q", imageID)
+		return nil, nil, errors.Wrapf(err, "error creating new image from reference to image %q", imageID)
 	}
 	defer ref.Close()
 	oci, err := ref.OCIConfig(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting possibly-converted OCI config of image %q", imageID)
+		return nil, nil, errors.Wrapf(err, "error getting possibly-converted OCI config of image %q", imageID)
 	}
-	return oci.History, nil
+	return oci.History, oci.RootFS.DiffIDs, nil
 }
 
 func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageExecutor, stages imagebuilder.Stages, stageIndex int) (imageID string, ref reference.Canonical, err error) {

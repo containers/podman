@@ -5,9 +5,9 @@ package buildah
 import (
 	"io/ioutil"
 
+	"github.com/containers/common/pkg/seccomp"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	seccomp "github.com/seccomp/containers-golang"
 )
 
 func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
