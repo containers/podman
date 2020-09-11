@@ -42,7 +42,7 @@ $ podman run -v ~/mycontent:/content:Z fedora touch /content/file
 
 Make sure the content is private for the container.  Do not relabel system directories and content.
 Relabeling system content might cause other confined services on your machine to fail.  For these
-types of containers we recommmend that disable SELinux separation.  The option `--security-opt label=disable`
+types of containers we recommend that disable SELinux separation.  The option `--security-opt label=disable`
 will disable SELinux separation for the container.
 
 $ podman run --security-opt label=disable -v ~:/home/user fedora touch /home/user/file
@@ -533,7 +533,7 @@ With the default detach key combo ctrl-p,ctrl-q, shell history navigation
 display this previous command. Or anything else.  Conmon is waiting for an
 additional character to see if the user wants to detach from the container.
 Adding additional characters to the command will cause it to be displayed along
-with the additonal character. If the user types ctrl-p a second time the shell
+with the additional character. If the user types ctrl-p a second time the shell
 display the 2nd to last command.
 
 #### Solution

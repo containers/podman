@@ -32,7 +32,7 @@ type PlayKubePod struct {
 	ID string
 	// Containers - the IDs of the containers running in the created pod.
 	Containers []string
-	// Logs - non-fatal erros and log messages while processing.
+	// Logs - non-fatal errors and log messages while processing.
 	Logs []string
 }
 

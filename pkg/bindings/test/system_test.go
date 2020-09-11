@@ -119,7 +119,7 @@ var _ = Describe("Podman system", func() {
 		// Alpine image should not be pruned as used by running container
 		Expect(systemPruneResponse.ImagePruneReport.Report.Id).
 			ToNot(ContainElement("docker.io/library/alpine:latest"))
-		// Though unsed volume is available it should not be pruned as flag set to false.
+		// Though unused volume is available it should not be pruned as flag set to false.
 		Expect(len(systemPruneResponse.VolumePruneReport)).To(Equal(0))
 	})
 

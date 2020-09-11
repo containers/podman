@@ -1900,7 +1900,7 @@ insecure [[]string](#[]string)
 blocked [[]string](#[]string)
 ### <a name="InfoStore"></a>type InfoStore
 
-InfoStore describes the host's storage informatoin
+InfoStore describes the host's storage information
 
 containers [int](https://godoc.org/builtin#int)
 

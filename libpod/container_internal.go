@@ -1269,7 +1269,7 @@ func (c *Container) stop(timeout uint) error {
 	c.state.StoppedByUser = true
 
 	if !conmonAlive {
-		// Conmon is dead, so we can't epect an exit code.
+		// Conmon is dead, so we can't expect an exit code.
 		c.state.ExitCode = -1
 		c.state.FinishedTime = time.Now()
 		c.state.State = define.ContainerStateStopped

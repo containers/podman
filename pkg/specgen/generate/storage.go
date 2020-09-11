@@ -46,7 +46,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 		return nil, nil, err
 	}
 
-	// Supercede from --volumes-from.
+	// Supersede from --volumes-from.
 	for dest, mount := range volFromMounts {
 		baseMounts[dest] = mount
 	}

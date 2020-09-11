@@ -51,7 +51,7 @@ Set the systemd unit name prefix for pods. The default is *pod*.
 
 **--separator**=*separator*
 
-Set the systemd unit name seperator between the name/id of a container/pod and the prefix. The default is *-*.
+Set the systemd unit name separator between the name/id of a container/pod and the prefix. The default is *-*.
 
 ## Examples
 

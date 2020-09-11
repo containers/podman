@@ -261,7 +261,7 @@ var _ = Describe("Podman prune", func() {
 		// Two as pods infra container and one newly created.
 		Expect(podmanTest.NumberOfContainers()).To(Equal(3))
 
-		// image list current count should not be pruned if all flag isnt enabled
+		// image list current count should not be pruned if all flag isn't enabled
 		session = podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
 		numberOfImages := len(session.OutputToStringArray())

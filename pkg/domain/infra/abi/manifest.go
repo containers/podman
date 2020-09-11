@@ -130,7 +130,7 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opts entities.ManifestAnnotateOptions) (string, error) {
 	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(names[0])
 	if err != nil {
-		return "", errors.Wrapf(err, "error retreiving local image from image name %s", names[0])
+		return "", errors.Wrapf(err, "error retrieving local image from image name %s", names[0])
 	}
 	digest, err := digest.Parse(names[1])
 	if err != nil {

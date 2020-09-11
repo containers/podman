@@ -163,6 +163,6 @@ var (
 	ErrNetworkOnPodContainer = errors.New("network cannot be configured when it is shared with a pod")
 
 	// ErrStoreNotInitialized indicates that the container storage was never
-	// initilized.
-	ErrStoreNotInitialized = errors.New("the container storage was never initilized")
+	// initialized.
+	ErrStoreNotInitialized = errors.New("the container storage was never initialized")
 )

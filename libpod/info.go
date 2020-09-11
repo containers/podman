@@ -162,7 +162,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		return nil, errors.Wrapf(err, "error parsing system uptime")
 	}
 
-	// TODO Isnt there a simple lib for this, something like humantime?
+	// TODO Isn't there a simple lib for this, something like humantime?
 	hoursFound := false
 	var timeBuffer bytes.Buffer
 	var hoursBuffer bytes.Buffer

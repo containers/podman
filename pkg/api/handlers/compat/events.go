@@ -17,7 +17,7 @@ import (
 )
 
 // filtersFromRequests extracts the "filters" parameter from the specified
-// http.Request.  The paramater can either be a `map[string][]string` as done
+// http.Request.  The parameter can either be a `map[string][]string` as done
 // in new versions of Docker and libpod, or a `map[string]map[string]bool` as
 // done in older versions of Docker.  We have to do a bit of Yoga to support
 // both - just as Docker does as well.

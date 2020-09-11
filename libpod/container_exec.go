@@ -629,7 +629,7 @@ func (c *Container) ExecRemove(sessionID string, force bool) error {
 
 	logrus.Infof("Removing container %s exec session %s", c.ID(), session.ID())
 
-	// Update status of exec session if running, so we cna check if it
+	// Update status of exec session if running, so we can check if it
 	// stopped in the meantime.
 	if session.State == define.ExecStateRunning {
 		running, err := c.ociRuntime.ExecUpdateStatus(c, session.ID())

@@ -116,7 +116,7 @@ gsutil cors get gs://libpod-master-releases
 To function properly (allow client "trust" of content from `storage.googleapis.com`) the followiing
 metadata JSON should be used.  Following the JSON, is an example of the command used to set this
 metadata on the libpod-master-releases bucket.  For additional information about configuring CORS
-please referr to [the google-storage documentation](https://cloud.google.com/storage/docs/configuring-cors).
+please refer to [the google-storage documentation](https://cloud.google.com/storage/docs/configuring-cors).
 
 ```JSON
 [
