@@ -17,7 +17,6 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
-	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -199,71 +198,32 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		dfImages = []*entities.SystemDfImageReport{}
 	)
 
-	// Get Images and iterate them
+	// Compute disk-usage stats for all local images.
 	imgs, err := ic.Libpod.ImageRuntime().GetImages()
 	if err != nil {
 		return nil, err
 	}
-	for _, i := range imgs {
-		var sharedSize uint64
-		cons, err := i.Containers()
-		if err != nil {
-			return nil, err
-		}
-		imageSize, err := i.Size(ctx)
-		if err != nil {
-			return nil, err
-		}
-		uniqueSize := *imageSize
 
-		parent, err := i.GetParent(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if parent != nil {
-			parentSize, err := parent.Size(ctx)
-			if err != nil {
-				return nil, err
-			}
-			uniqueSize = *parentSize - *imageSize
-			sharedSize = *imageSize - uniqueSize
-		}
-		var name, repository, tag string
-		for _, n := range i.Names() {
-			if len(n) > 0 {
-				name = n
-				break
-			}
-		}
+	imageStats, err := ic.Libpod.ImageRuntime().DiskUsage(ctx, imgs)
+	if err != nil {
+		return nil, err
+	}
 
-		if len(name) > 0 {
-			named, err := reference.ParseNormalizedNamed(name)
-			if err != nil {
-				return nil, err
-			}
-			repository = named.Name()
-			if tagged, isTagged := named.(reference.NamedTagged); isTagged {
-				tag = tagged.Tag()
-			}
-		} else {
-			repository = "<none>"
-			tag = "<none>"
-		}
-
+	for _, stat := range imageStats {
 		report := entities.SystemDfImageReport{
-			Repository: repository,
-			Tag:        tag,
-			ImageID:    i.ID(),
-			Created:    i.Created(),
-			Size:       int64(*imageSize),
-			SharedSize: int64(sharedSize),
-			UniqueSize: int64(uniqueSize),
-			Containers: len(cons),
+			Repository: stat.Repository,
+			Tag:        stat.Tag,
+			ImageID:    stat.ID,
+			Created:    stat.Created,
+			Size:       int64(stat.Size),
+			SharedSize: int64(stat.SharedSize),
+			UniqueSize: int64(stat.UniqueSize),
+			Containers: stat.Containers,
 		}
 		dfImages = append(dfImages, &report)
 	}
 
-	//	GetContainers and iterate them
+	// Get Containers and iterate them
 	cons, err := ic.Libpod.GetAllContainers()
 	if err != nil {
 		return nil, err
