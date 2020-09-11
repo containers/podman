@@ -42,7 +42,7 @@ $ podman run -v ~/mycontent:/content:Z fedora touch /content/file
 
 Make sure the content is private for the container.  Do not relabel system directories and content.
 Relabeling system content might cause other confined services on your machine to fail.  For these
-types of containers we recommmend that disable SELinux separation.  The option `--security-opt label=disable`
+types of containers we recommend that disable SELinux separation.  The option `--security-opt label=disable`
 will disable SELinux separation for the container.
 
 $ podman run --security-opt label=disable -v ~:/home/user fedora touch /home/user/file
@@ -533,7 +533,7 @@ With the default detach key combo ctrl-p,ctrl-q, shell history navigation
 display this previous command. Or anything else.  Conmon is waiting for an
 additional character to see if the user wants to detach from the container.
 Adding additional characters to the command will cause it to be displayed along
-with the additonal character. If the user types ctrl-p a second time the shell
+with the additional character. If the user types ctrl-p a second time the shell
 display the 2nd to last command.
 
 #### Solution
@@ -546,7 +546,7 @@ podman run -ti --detach-keys ctrl-q,ctrl-q fedora sh
 ```
 
 To make this change the default for all containers, users can modify the
-containers.conf file. This can be done simply in your homedir, but adding the
+containers.conf file. This can be done simply in your home directory, but adding the
 following lines to users containers.conf
 
 ```
@@ -617,3 +617,30 @@ If you encounter a `fuse: device not found` error when running the container ima
 the fuse kernel module has not been loaded on your host system.  Use the command `modprobe fuse` to load the
 module and then run the container image afterwards.  To enable this automatically at boot time, you can add a configuration
 file to `/etc/modules.load.d`.  See `man modules-load.d` for more details.
+
+### 25) podman run --rootfs link/to//read/only/dir does not work
+
+An error such as "OCI runtime error" on a read-only filesystem or the error "{image} is not an absolute path or is a symlink" are often times indicators for this issue.  For more details, review this [issue](
+https://github.com/containers/podman/issues/5895).
+
+#### Symptom
+
+Rootless Podman requires certain files to exist in a file system in order to run.
+Podman will create /etc/resolv.conf, /etc/hosts and other file descriptors on the rootfs in order
+to mount volumes on them.
+
+#### Solution
+
+Run the container once in read/write mode, Podman will generate all of the FDs on the rootfs, and
+from that point forward you can run with a read-only rootfs.
+
+$ podman run --rm --rootfs /path/to/rootfs true
+
+The command above will create all the missing directories needed to run the container.
+
+After that, it can be used in read only mode, by multiple containers at the same time:
+
+$ podman run --read-only --rootfs /path/to/rootfs ....
+
+Another option would be to create an overlay file system on the directory as a lower and then
+then allow podman to create the files on the upper.
