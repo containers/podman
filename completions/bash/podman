@@ -2315,7 +2315,7 @@ _podman_container_run() {
 					__podman_complete_containers_running
 					;;
 				*)
-					COMPREPLY=( $( compgen -W 'host container:' -- "$cur" ) )
+					COMPREPLY=( $( compgen -W 'host private container:' -- "$cur" ) )
 					if [ "$COMPREPLY" = "container:" ]; then
 						__podman_nospace
 					fi
@@ -2337,7 +2337,7 @@ _podman_container_run() {
 					__podman_complete_containers_all --cur "${cur#*:}"
 					;;
 				*)
-					COMPREPLY=( $( compgen -W "$(__podman_plugins_bundled --type Network) $(__podman_networks) container:" -- "$cur") )
+					COMPREPLY=( $(compgen -W "bridge none host ns: private slirp4netns $(__podman_networks) container:" -- "$cur"))
 					if [ "${COMPREPLY[*]}" = "container:" ] ; then
 						__podman_nospace
 					fi
@@ -2355,7 +2355,7 @@ _podman_container_run() {
 					__podman_complete_containers_running --cur "${cur#*:}"
 					;;
 				*)
-					COMPREPLY=( $( compgen -W 'host container:' -- "$cur" ) )
+					COMPREPLY=( $( compgen -W 'host container: private' -- "$cur" ) )
 					if [ "$COMPREPLY" = "container:" ]; then
 						__podman_nospace
 					fi
@@ -2384,7 +2384,7 @@ _podman_container_run() {
 			return
 			;;
 		--userns)
-			COMPREPLY=( $( compgen -W "host" -- "$cur" ) )
+			COMPREPLY=( $( compgen -W "auto container: host keep-id ns: private" -- "$cur" ) )
 			return
 			;;
 		--volumes-from)
