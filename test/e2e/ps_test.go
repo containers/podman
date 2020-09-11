@@ -484,7 +484,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(ps.OutputToString()).To(ContainSubstring("0.0.0.0:8080->80/tcp"))
 	})
 
-	It("podman ps truncate long create commad", func() {
+	It("podman ps truncate long create command", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "echo", "very", "long", "create", "command"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

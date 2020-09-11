@@ -126,7 +126,7 @@ func encodeMultiAuthConfigs(authConfigs map[string]types.DockerAuthConfig) (stri
 // one or more container registries.  If tmpDir is empty, the system's default
 // TMPDIR will be used.
 func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (string, error) {
-	// Intitialize an empty temporary JSON file.
+	// Initialize an empty temporary JSON file.
 	tmpFile, err := ioutil.TempFile("", "auth.json.")
 	if err != nil {
 		return "", err

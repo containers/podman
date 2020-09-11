@@ -145,7 +145,7 @@ echo "\$1"
 printenv | grep MYENV | sort | sed -e 's/^MYENV.=//'
 EOF
 
-    # For overridding with --env-file
+    # For overriding with --env-file
     cat >$PODMAN_TMPDIR/env-file <<EOF
 MYENV3=$s_env3
 http_proxy=http-proxy-in-env-file

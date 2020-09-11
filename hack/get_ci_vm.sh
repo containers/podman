@@ -27,7 +27,7 @@ LIBPODROOT=$(realpath "$(dirname $0)/../")
 # else: Assume $PWD is the root of the libpod repository
 [[ "$LIBPODROOT" != "/" ]] || LIBPODROOT=$PWD
 
-# Command shortcuts save some typing (asumes $LIBPODROOT is subdir of $HOME)
+# Command shortcuts save some typing (assumes $LIBPODROOT is subdir of $HOME)
 PGCLOUD="$GCLOUD_SUDO podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER --security-opt label=disable -v $TMPDIR:$HOME -v $HOME/.config/gcloud:$HOME/.config/gcloud -v $HOME/.config/gcloud/ssh:$HOME/.ssh -v $LIBPODROOT:$LIBPODROOT $GCLOUD_IMAGE --configuration=libpod --project=$PROJECT"
 SCP_CMD="$PGCLOUD compute scp"
 

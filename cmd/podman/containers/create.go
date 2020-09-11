@@ -235,7 +235,7 @@ func pullImage(imageName string) (string, error) {
 	imageRef, err := alltransports.ParseImageName(imageName)
 	switch {
 	case err != nil:
-		// Assume we specified a local image withouth the explicit storage transport.
+		// Assume we specified a local image without the explicit storage transport.
 		fallthrough
 
 	case imageRef.Transport().Name() == storage.Transport.Name():

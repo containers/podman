@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetImageConfigStopSignal(t *testing.T) {
-	// Linux-only beause parsing signal names is not supported on non-Linux systems by
+	// Linux-only because parsing signal names is not supported on non-Linux systems by
 	// pkg/signal.
 	stopSignalValidInt, err := GetImageConfig([]string{"STOPSIGNAL 9"})
 	require.Nil(t, err)

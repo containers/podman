@@ -24,7 +24,7 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	//    name: tlsVerify
 	//    type: boolean
 	//    default: true
-	//    description: Require HTTPS and verify signatures when contating registries.
+	//    description: Require HTTPS and verify signatures when contacting registries.
 	//  - in: body
 	//    name: request
 	//    description: Kubernetes YAML file.

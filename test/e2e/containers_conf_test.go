@@ -93,7 +93,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).ToNot(Equal(cap.OutputToString()))
 	})
 
-	It("podman Regular capabilties", func() {
+	It("podman Regular capabilities", func() {
 		SkipIfRootless()
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		setup := podmanTest.RunTopContainer("test1")
@@ -105,7 +105,7 @@ var _ = Describe("Podman run", func() {
 		Expect(result.OutputToString()).To(ContainSubstring("NET_RAW"))
 	})
 
-	It("podman drop capabilties", func() {
+	It("podman drop capabilities", func() {
 		os.Setenv("CONTAINERS_CONF", "config/containers-caps.conf")
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()

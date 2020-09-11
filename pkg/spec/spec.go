@@ -334,7 +334,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	} else {
 		defaultEnv, err = env.ParseSlice(runtimeConfig.Containers.Env)
 		if err != nil {
-			return nil, errors.Wrap(err, "Env fields in containers.conf failed ot parse")
+			return nil, errors.Wrap(err, "Env fields in containers.conf failed to parse")
 		}
 		defaultEnv = env.Join(env.DefaultEnvVariables(), defaultEnv)
 	}

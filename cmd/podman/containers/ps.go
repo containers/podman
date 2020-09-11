@@ -414,7 +414,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 			continue
 		}
 	}
-	// For each portMapKey, format group list and appned to output string.
+	// For each portMapKey, format group list and append to output string.
 	for _, portKey := range groupKeyList {
 		group := portGroupMap[portKey]
 		portDisplay = append(portDisplay, formatGroup(portKey, group.first, group.last))

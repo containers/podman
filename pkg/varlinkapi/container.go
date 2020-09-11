@@ -750,7 +750,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 			continue
 		}
 	}
-	// For each portMapKey, format group list and appned to output string.
+	// For each portMapKey, format group list and append to output string.
 	for _, portKey := range groupKeyList {
 		group := portGroupMap[portKey]
 		portDisplay = append(portDisplay, formatGroup(portKey, group.first, group.last))
@@ -794,7 +794,7 @@ func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtim
 	return runLabel, imageName, err
 }
 
-// GenerateRunlabelCommand generates the command that will eventually be execucted by Podman.
+// GenerateRunlabelCommand generates the command that will eventually be executed by Podman.
 func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]string, extraArgs []string, globalOpts string) ([]string, []string, error) {
 	// If no name is provided, we use the image's basename instead.
 	if name == "" {

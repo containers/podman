@@ -59,7 +59,7 @@ class TestImages(unittest.TestCase):
         self.assertFalse
 
     # Validates if name updates when the image is retagged.
-    @unittest.skip("dosent work now")
+    @unittest.skip("doesn't work now")
     def test_retag_valid_image(self):
         client.tag(constant.ALPINE_SHORTNAME, "demo", "rename")
         alpine_image = client.inspect_image(constant.ALPINE)

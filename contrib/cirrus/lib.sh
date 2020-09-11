@@ -235,7 +235,7 @@ setup_rootless() {
     useradd -g $ROOTLESS_GID -u $ROOTLESS_UID --no-user-group --create-home $ROOTLESS_USER
     chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
 
-    echo "creating ssh keypair for $USER"
+    echo "creating ssh key pair for $USER"
     [[ -r "$HOME/.ssh/id_rsa" ]] || \
         ssh-keygen -P "" -f "$HOME/.ssh/id_rsa"
 

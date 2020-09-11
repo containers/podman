@@ -41,7 +41,7 @@ func init() {
 
 func autoUpdate(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
-		// Backwards compat. System tests expext this error string.
+		// Backwards compat. System tests expect this error string.
 		return errors.Errorf("`%s` takes no arguments", cmd.CommandPath())
 	}
 	report, failures := registry.ContainerEngine().AutoUpdate(registry.GetContext(), autoUpdateOptions)

@@ -206,7 +206,7 @@ func InspectNetwork(config *config.Config, name string) (map[string]interface{},
 }
 
 // Exists says whether a given network exists or not; it meant
-// specifically for restful reponses so 404s can be used
+// specifically for restful responses so 404s can be used
 func Exists(config *config.Config, name string) (bool, error) {
 	_, err := ReadRawCNIConfByName(config, name)
 	if err != nil {

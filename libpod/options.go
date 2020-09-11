@@ -619,7 +619,7 @@ func WithSecLabels(labelOpts []string) CtrCreateOption {
 	}
 }
 
-// WithUser sets the user identity field in configutation.
+// WithUser sets the user identity field in configuration.
 // Valid uses [user | user:group | uid | uid:gid | user:gid | uid:group ].
 func WithUser(user string) CtrCreateOption {
 	return func(ctr *Container) error {

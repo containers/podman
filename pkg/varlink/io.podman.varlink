@@ -257,7 +257,7 @@ type InfoRegistry (
     blocked: []string
 )
 
-# InfoStore describes the host's storage informatoin
+# InfoStore describes the host's storage information
 type InfoStore (
     containers: int,
     images: int,

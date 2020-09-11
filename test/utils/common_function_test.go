@@ -75,10 +75,10 @@ var _ = Describe("Common functions test", func() {
 			Expect(newer).To(Equal(expect), "Version compare results is not as expect.")
 			Expect(err == nil).To(Equal(isNil), "Error is not as expect.")
 		},
-		Entry("Invlid kernel version: 0", "0", false, false),
+		Entry("Invalid kernel version: 0", "0", false, false),
 		Entry("Older kernel version:0.0", "0.0", true, true),
 		Entry("Newer kernel version: 100.17.14", "100.17.14", false, true),
-		Entry("Invlid kernel version: I am not a kernel version", "I am not a kernel version", false, false),
+		Entry("Invalid kernel version: I am not a kernel version", "I am not a kernel version", false, false),
 	)
 
 	DescribeTable("Test TestIsCommandAvailable",
