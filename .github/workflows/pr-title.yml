@@ -1,0 +1,17 @@
+name: "add branch to title"
+
+on: pull_request
+
+jobs:
+  update_pr:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: tzkhan/pr-update-action@v1.1.1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        branch-regex: '^(?!master).*$'
+        title-template: '[v2.0.5-rhel]'
+        title-prefix-space: true
+        replace-title: false
+        body-template: "**Note that this PR targets a non-main branch**"
+        replace-body: false
