@@ -535,15 +535,12 @@ var _ = Describe("Podman run networking", func() {
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
 
 		run := podmanTest.Podman([]string{"run", "-t", "-i", "--rm", "--net", netName, "--ip", ipAddr, ALPINE, "ip", "addr"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(BeZero())
 		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
-
-		netrm := podmanTest.Podman([]string{"network", "rm", netName})
-		netrm.WaitWithDefaultTimeout()
-		Expect(netrm.ExitCode()).To(BeZero())
 	})
 
 	It("podman run with new:pod and static-ip", func() {
@@ -555,6 +552,7 @@ var _ = Describe("Podman run networking", func() {
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.40.0/24", netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
 
 		run := podmanTest.Podman([]string{"run", "-t", "-i", "--rm", "--pod", "new:" + podname, "--net", netName, "--ip", ipAddr, ALPINE, "ip", "addr"})
 		run.WaitWithDefaultTimeout()
@@ -564,9 +562,5 @@ var _ = Describe("Podman run networking", func() {
 		podrm := podmanTest.Podman([]string{"pod", "rm", "-f", podname})
 		podrm.WaitWithDefaultTimeout()
 		Expect(podrm.ExitCode()).To(BeZero())
-
-		netrm := podmanTest.Podman([]string{"network", "rm", netName})
-		netrm.WaitWithDefaultTimeout()
-		Expect(netrm.ExitCode()).To(BeZero())
 	})
 })
