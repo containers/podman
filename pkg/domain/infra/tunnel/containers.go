@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -537,8 +538,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		// de-spaghetti the code.
 		defer func() {
 			if err := containers.Remove(ic.ClientCxt, con.ID, bindings.PFalse, bindings.PTrue); err != nil {
-				if errors.Cause(err) == define.ErrNoSuchCtr ||
-					errors.Cause(err) == define.ErrCtrRemoved {
+				if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
+					errorhandling.Contains(err, define.ErrCtrRemoved) {
 					logrus.Warnf("Container %s does not exist: %v", con.ID, err)
 				} else {
 					logrus.Errorf("Error removing container %s: %v", con.ID, err)
@@ -556,7 +557,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 	// Determine why the wait failed.  If the container doesn't exist,
 	// consult the events.
-	if !strings.Contains(waitErr.Error(), define.ErrNoSuchCtr.Error()) {
+	if !errorhandling.Contains(waitErr, define.ErrNoSuchCtr) {
 		return &report, waitErr
 	}
 

@@ -57,3 +57,11 @@ func CloseQuiet(f *os.File) {
 		logrus.Errorf("unable to close file %s: %q", f.Name(), err)
 	}
 }
+
+// Contains checks if err's message contains sub's message. Contains should be
+// used iff either err or sub has lost type information (e.g., due to
+// marshaling).  For typed errors, please use `errors.Contains(...)` or `Is()`
+// in recent version of Go.
+func Contains(err error, sub error) bool {
+	return strings.Contains(err.Error(), sub.Error())
+}
