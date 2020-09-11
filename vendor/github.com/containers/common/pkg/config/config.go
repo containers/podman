@@ -658,10 +658,10 @@ func (c *NetworkConfig) Validate() error {
 // ValidatePullPolicy check if the pullPolicy from CLI is valid and returns the valid enum type
 // if the value from CLI or containers.conf is invalid returns the error
 func ValidatePullPolicy(pullPolicy string) (PullPolicy, error) {
-	switch pullPolicy {
+	switch strings.ToLower(pullPolicy) {
 	case "always":
 		return PullImageAlways, nil
-	case "missing":
+	case "missing", "ifnotpresent":
 		return PullImageMissing, nil
 	case "never":
 		return PullImageNever, nil
