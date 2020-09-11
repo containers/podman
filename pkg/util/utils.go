@@ -552,18 +552,8 @@ const (
 // ValidatePullType check if the pullType from CLI is valid and returns the valid enum type
 // if the value from CLI is invalid returns the error
 func ValidatePullType(pullType string) (PullType, error) {
-	switch pullType {
-	case "always":
-		return PullImageAlways, nil
-	case "missing", "IfNotPresent":
-		return PullImageMissing, nil
-	case "never":
-		return PullImageNever, nil
-	case "":
-		return PullImageMissing, nil
-	default:
-		return PullImageMissing, errors.Errorf("invalid pull type %q", pullType)
-	}
+	policy, err := config.ValidatePullPolicy(pullType)
+	return PullType(policy), err
 }
 
 // ExitCode reads the error message when failing to executing container process
