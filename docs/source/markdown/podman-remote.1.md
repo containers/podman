@@ -39,6 +39,11 @@ Path to ssh identity file. If the identity file has been encrypted, Podman promp
 If no identity file is provided and no user is given, Podman defaults to the user running the podman command.
 Podman prompts for the login password on the remote server.
 
+Identity value resolution precedence:
+ - command line value
+ - environment variable `CONTAINER_SSHKEY`, if `CONTAINER_HOST` is found
+ - `containers.conf`
+
 **--log-level**=*level*
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic
@@ -46,6 +51,21 @@ Log messages above specified level: debug, info, warn, error (default), fatal or
 **--url**=*value*
 
 URL to access Podman service (default from `containers.conf`, rootless "unix://run/user/$UID/podman/podman.sock" or as root "unix://run/podman/podman.sock).
+
+ - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
+
+Details:
+ - `user` will default to either `root` or current running user
+ - `password` has no default
+ - `host` must be provided and is either the IP or name of the machine hosting the Podman service
+ - `port` defaults to 22
+ - `path` defaults to either `/run/podman/podman.sock`, or `/run/user/<uid>/podman/podman.sock` if running rootless.
+
+URL value resolution precedence:
+ - command line value
+ - environment variable `CONTAINER_HOST`
+ - `containers.conf`
+ - `unix://run/podman/podman.sock`
 
 **--version**
 
@@ -124,3 +144,15 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-unpause(1)](podman-unpause.1.md)         | Unpause one or more containers.                                             |
 | [podman-version(1)](podman-version.1.md)         | Display the Podman version information.                                     |
 | [podman-volume(1)](podman-volume.1.md)           | Manage Volumes.                                                             |
+## FILES
+
+**containers.conf** (`$HOME/.config/containers/containers.conf`)
+
+Podman has builtin defaults for command line options. These defaults can be overridden using the containers.conf configuration files.
+
+Users can modify defaults by creating the `$HOME/.config/containers/containers.conf` file. Podman merges its builtin defaults with the specified fields from this file, if it exists. Fields specified in the users file override the built-in defaults.
+
+Podman uses builtin defaults if no containers.conf file is found.
+
+## SEE ALSO
+`containers.conf(5)`
