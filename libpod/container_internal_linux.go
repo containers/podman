@@ -1383,6 +1383,11 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", err
 	}
 
+	// Determine if symlink points to any of the systemd-resolved files
+	if strings.HasPrefix(resolvPath, "/run/systemd/resolve/") {
+		resolvPath = "/run/systemd/resolve/resolv.conf"
+	}
+
 	contents, err := ioutil.ReadFile(resolvPath)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to read %s", resolvPath)
