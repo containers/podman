@@ -64,6 +64,7 @@ func runFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&runRmi, "rmi", false, "Remove container image unless used by other containers")
 	flags.UintVar(&runOpts.PreserveFDs, "preserve-fds", 0, "Pass a number of additional file descriptors into the container")
 
+	_ = flags.MarkHidden("signature-policy")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("env-host")

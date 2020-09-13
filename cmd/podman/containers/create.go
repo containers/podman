@@ -61,6 +61,7 @@ func createFlags(flags *pflag.FlagSet) {
 	flags.AddFlagSet(common.GetNetFlags())
 	flags.SetNormalizeFunc(utils.AliasFlags)
 
+	_ = flags.MarkHidden("signature-policy")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("env-host")
@@ -256,6 +257,7 @@ func pullImage(imageName string) (string, error) {
 			OverrideArch:    cliVals.OverrideArch,
 			OverrideOS:      cliVals.OverrideOS,
 			OverrideVariant: cliVals.OverrideVariant,
+			SignaturePolicy: cliVals.SignaturePolicy,
 		})
 		if pullErr != nil {
 			return "", pullErr

@@ -259,12 +259,13 @@ type ImageLoadReport struct {
 }
 
 type ImageImportOptions struct {
-	Changes     []string
-	Message     string
-	Quiet       bool
-	Reference   string
-	Source      string
-	SourceIsURL bool
+	Changes         []string
+	Message         string
+	Quiet           bool
+	Reference       string
+	SignaturePolicy string
+	Source          string
+	SourceIsURL     bool
 }
 
 type ImageImportReport struct {

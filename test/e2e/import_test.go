@@ -152,4 +152,21 @@ var _ = Describe("Podman import", func() {
 		Expect(imageData[0].Config.Cmd[0]).To(Equal("/bin/bash"))
 	})
 
+	It("podman import with signature", func() {
+		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
+		_, ec, cid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+
+		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
+		export.WaitWithDefaultTimeout()
+		Expect(export.ExitCode()).To(Equal(0))
+
+		importImage := podmanTest.Podman([]string{"import", "--signature-policy", "/no/such/file", outfile})
+		importImage.WaitWithDefaultTimeout()
+		Expect(importImage.ExitCode()).To(Not(Equal(0)))
+
+		result := podmanTest.Podman([]string{"import", "--signature-policy", "/etc/containers/policy.json", outfile})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
 })

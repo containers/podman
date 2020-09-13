@@ -84,6 +84,7 @@ type ContainerCLIOpts struct {
 	SecurityOpt       []string
 	SdNotifyMode      string
 	ShmSize           string
+	SignaturePolicy   string
 	StopSignal        string
 	StopTimeout       uint
 	StoreageOpt       []string

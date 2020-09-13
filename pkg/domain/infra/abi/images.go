@@ -467,7 +467,7 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 }
 
 func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
-	id, err := ir.Libpod.Import(ctx, opts.Source, opts.Reference, opts.Changes, opts.Message, opts.Quiet)
+	id, err := ir.Libpod.Import(ctx, opts.Source, opts.Reference, opts.SignaturePolicy, opts.Changes, opts.Message, opts.Quiet)
 	if err != nil {
 		return nil, err
 	}
