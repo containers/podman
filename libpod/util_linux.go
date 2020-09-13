@@ -90,19 +90,23 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 	return final, nil
 }
 
+var lvpRelabel = label.Relabel
+var lvpInitLabels = label.InitLabels
+var lvpReleaseLabel = label.ReleaseLabel
+
 // LabelVolumePath takes a mount path for a volume and gives it an
 // selinux label of either shared or not
 func LabelVolumePath(path string) error {
-	_, mountLabel, err := label.InitLabels([]string{})
+	_, mountLabel, err := lvpInitLabels([]string{})
 	if err != nil {
 		return errors.Wrapf(err, "error getting default mountlabels")
 	}
-	if err := label.ReleaseLabel(mountLabel); err != nil {
+	if err := lvpReleaseLabel(mountLabel); err != nil {
 		return errors.Wrapf(err, "error releasing label %q", mountLabel)
 	}
 
-	if err := label.Relabel(path, mountLabel, true); err != nil {
-		if err != syscall.ENOTSUP {
+	if err := lvpRelabel(path, mountLabel, true); err != nil {
+		if err == syscall.ENOTSUP {
 			logrus.Debugf("Labeling not supported on %q", path)
 		} else {
 			return errors.Wrapf(err, "error setting selinux label for %s to %q as shared", path, mountLabel)
