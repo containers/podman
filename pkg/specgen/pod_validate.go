@@ -95,12 +95,5 @@ func (p *PodSpecGenerator) Validate() error {
 		return exclusivePodOptions("NoManageHosts", "HostAdd")
 	}
 
-	// Set Defaults
-	if len(p.InfraImage) < 1 {
-		p.InfraImage = containerConfig.Engine.InfraImage
-	}
-	if len(p.InfraCommand) < 1 {
-		p.InfraCommand = []string{containerConfig.Engine.InfraCommand}
-	}
 	return nil
 }

@@ -84,6 +84,15 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 	if len(p.CNINetworks) > 0 {
 		options = append(options, libpod.WithPodNetworks(p.CNINetworks))
 	}
+
+	if len(p.InfraImage) > 0 {
+		options = append(options, libpod.WithInfraImage(p.InfraImage))
+	}
+
+	if len(p.InfraCommand) > 0 {
+		options = append(options, libpod.WithInfraCommand(p.InfraCommand))
+	}
+
 	switch p.NetNS.NSMode {
 	case specgen.Bridge, specgen.Default, "":
 		logrus.Debugf("Pod using default network mode")

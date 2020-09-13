@@ -55,8 +55,8 @@ func init() {
 	flags.StringVar(&createOptions.CGroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
 	flags.BoolVar(&createOptions.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
 	flags.StringVar(&createOptions.InfraConmonPidFile, "infra-conmon-pidfile", "", "Path to the file that will receive the POD of the infra container's conmon")
-	flags.StringVar(&createOptions.InfraImage, "infra-image", containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
-	flags.StringVar(&createOptions.InfraCommand, "infra-command", containerConfig.Engine.InfraCommand, "The command to run on the infra container when the pod is started")
+	flags.String("infra-image", containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
+	flags.String("infra-command", containerConfig.Engine.InfraCommand, "The command to run on the infra container when the pod is started")
 	flags.StringSliceVar(&labelFile, "label-file", []string{}, "Read in a line delimited file of labels")
 	flags.StringSliceVarP(&labels, "label", "l", []string{}, "Set metadata on pod (default [])")
 	flags.StringVarP(&createOptions.Name, "name", "n", "", "Assign a name to the pod")
@@ -92,7 +92,6 @@ func create(cmd *cobra.Command, args []string) error {
 		if cmd.Flag("infra-command").Changed {
 			return errors.New("cannot set infra-command without an infra container")
 		}
-		createOptions.InfraCommand = ""
 		if cmd.Flag("infra-image").Changed {
 			return errors.New("cannot set infra-image without an infra container")
 		}
@@ -104,6 +103,20 @@ func create(cmd *cobra.Command, args []string) error {
 		createOptions.Share = nil
 	} else {
 		createOptions.Share = strings.Split(share, ",")
+		if cmd.Flag("infra-command").Changed {
+			// Only send content to server side if user changed defaults
+			createOptions.InfraCommand, err = cmd.Flags().GetString("infra-command")
+			if err != nil {
+				return err
+			}
+		}
+		if cmd.Flag("infra-image").Changed {
+			// Only send content to server side if user changed defaults
+			createOptions.InfraImage, err = cmd.Flags().GetString("infra-image")
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	if cmd.Flag("pod-id-file").Changed {

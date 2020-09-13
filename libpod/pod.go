@@ -105,6 +105,8 @@ type InfraContainerConfig struct {
 	HostAdd            []string             `json:"hostsAdd,omitempty"`
 	Networks           []string             `json:"networks,omitempty"`
 	ExitCommand        []string             `json:"exitCommand,omitempty"`
+	InfraImage         string               `json:"infraImage,omitempty"`
+	InfraCommand       []string             `json:"infraCommand,omitempty"`
 }
 
 // ID retrieves the pod's ID

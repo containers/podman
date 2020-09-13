@@ -329,4 +329,80 @@ var _ = Describe("Podman pod create", func() {
 			Expect(session.ExitCode()).To(Equal(0))
 		}
 	})
+
+	It("podman create pod with defaults", func() {
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--name", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"pod", "inspect", name})
+		check.WaitWithDefaultTimeout()
+		Expect(check.ExitCode()).To(Equal(0))
+		data := check.InspectPodToJSON()
+
+		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
+		check1.WaitWithDefaultTimeout()
+		Expect(check1.ExitCode()).To(Equal(0))
+		Expect(check1.OutputToString()).To(Equal("/pause"))
+	})
+
+	It("podman create pod with --infra-command", func() {
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--infra-command", "/pause1", "--name", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"pod", "inspect", name})
+		check.WaitWithDefaultTimeout()
+		Expect(check.ExitCode()).To(Equal(0))
+		data := check.InspectPodToJSON()
+
+		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
+		check1.WaitWithDefaultTimeout()
+		Expect(check1.ExitCode()).To(Equal(0))
+		Expect(check1.OutputToString()).To(Equal("/pause1"))
+	})
+
+	It("podman create pod with --infra-image", func() {
+		dockerfile := `FROM docker.io/library/alpine:latest
+entrypoint ["/fromimage"]
+`
+		podmanTest.BuildImage(dockerfile, "localhost/infra", "false")
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--infra-image", "localhost/infra", "--name", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"pod", "inspect", name})
+		check.WaitWithDefaultTimeout()
+		Expect(check.ExitCode()).To(Equal(0))
+		data := check.InspectPodToJSON()
+
+		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
+		check1.WaitWithDefaultTimeout()
+		Expect(check1.ExitCode()).To(Equal(0))
+		Expect(check1.OutputToString()).To(Equal("/fromimage"))
+	})
+
+	It("podman create pod with --infra-command --infra-image", func() {
+		dockerfile := `FROM docker.io/library/alpine:latest
+entrypoint ["/fromimage"]
+`
+		podmanTest.BuildImage(dockerfile, "localhost/infra", "false")
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--infra-image", "localhost/infra", "--infra-command", "/fromcommand", "--name", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"pod", "inspect", name})
+		check.WaitWithDefaultTimeout()
+		Expect(check.ExitCode()).To(Equal(0))
+		data := check.InspectPodToJSON()
+
+		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
+		check1.WaitWithDefaultTimeout()
+		Expect(check1.ExitCode()).To(Equal(0))
+		Expect(check1.OutputToString()).To(Equal("/fromcommand"))
+	})
 })
