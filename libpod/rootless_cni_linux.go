@@ -22,10 +22,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Built from ../contrib/rootless-cni-infra.
 var rootlessCNIInfraImage = map[string]string{
-	// Built from ../contrib/rootless-cni-infra
-	// TODO: move to Podman's official quay
-	"amd64": "ghcr.io/akihirosuda/podman-rootless-cni-infra:gd34868a13-amd64",
+	"amd64": "quay.io/libpod/rootless-cni-infra@sha256:8aa681c4c08dee3ec5d46ff592fddd0259a35626717006d6b77ee786b1d02967", // 1-amd64
 }
 
 const (
