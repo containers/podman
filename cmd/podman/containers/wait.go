@@ -23,7 +23,6 @@ var (
 		Short: "Block on one or more containers",
 		Long:  waitDescription,
 		RunE:  wait,
-		Args:  validate.IDOrLatestArgs,
 		Example: `podman wait --interval 5000 ctrID
   podman wait ctrID1 ctrID2`,
 	}
@@ -33,7 +32,6 @@ var (
 		Short: waitCommand.Short,
 		Long:  waitCommand.Long,
 		RunE:  waitCommand.RunE,
-		Args:  validate.IDOrLatestArgs,
 		Example: `podman container wait --interval 5000 ctrID
   podman container wait ctrID1 ctrID2`,
 	}
@@ -74,6 +72,13 @@ func wait(cmd *cobra.Command, args []string) error {
 	)
 	if waitOptions.Interval == 0 {
 		return errors.New("interval must be greater then 0")
+	}
+
+	if !waitOptions.Latest && len(args) == 0 {
+		return errors.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
+	}
+	if waitOptions.Latest && len(args) > 0 {
+		return errors.New("--latest and containers are not allowed")
 	}
 
 	waitOptions.Condition, err = define.StringToContainerStatus(waitCondition)
