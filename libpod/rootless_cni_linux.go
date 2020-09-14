@@ -13,6 +13,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v2/pkg/env"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/hashicorp/go-multierror"
@@ -257,9 +258,23 @@ func startRootlessCNIInfraContainer(ctx context.Context, r *Runtime) (*Container
 		Options:     []string{"ro"},
 	}
 	g.AddMount(etcCNINetD)
-	// FIXME: how to propagate ProcessArgs and Envs from Dockerfile?
-	g.SetProcessArgs([]string{"sleep", "infinity"})
-	g.AddProcessEnv("CNI_PATH", "/opt/cni/bin")
+
+	inspectData, err := newImage.Inspect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	imageEnv, err := env.ParseSlice(inspectData.Config.Env)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range imageEnv {
+		g.AddProcessEnv(k, v)
+	}
+	if len(inspectData.Config.Cmd) == 0 {
+		return nil, errors.Errorf("rootless CNI infra image %q has no command specified", imageName)
+	}
+	g.SetProcessArgs(inspectData.Config.Cmd)
+
 	var options []CtrCreateOption
 	options = append(options, WithRootFSFromImage(newImage.ID(), imageName, imageName))
 	options = append(options, WithCtrNamespace(rootlessCNIInfraContainerNamespace))
