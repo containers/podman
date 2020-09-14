@@ -2,7 +2,6 @@
 set -eu
 
 ARG0="$0"
-VERSION="0.1.0"
 BASE="/run/rootless-cni-infra"
 
 # CLI subcommand: "alloc $CONTAINER_ID $NETWORK_NAME $POD_NAME"
@@ -126,7 +125,7 @@ cmd_entrypoint_help() {
 
 # CLI subcommand: "version"
 cmd_entrypoint_version() {
-	echo "{\"version\": \"${VERSION}\"}"
+	echo "{\"version\": \"${ROOTLESS_CNI_INFRA_VERSION}\"}"
 }
 
 # parse args
