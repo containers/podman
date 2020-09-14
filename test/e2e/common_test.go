@@ -432,7 +432,7 @@ func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers 
 	Expect(err).To(BeNil())
 	session := p.PodmanNoCache([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
 	session.Wait(120)
-	Expect(session.ExitCode()).To(Equal(0))
+	Expect(session).Should(Exit(0), fmt.Sprintf("BuildImage session output: %q", session.OutputToString()))
 }
 
 // PodmanPID execs podman and returns its PID

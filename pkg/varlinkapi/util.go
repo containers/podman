@@ -11,7 +11,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/channelwriter"
+	"github.com/containers/podman/v2/pkg/channel"
 	iopodman "github.com/containers/podman/v2/pkg/varlink"
 	"github.com/containers/storage/pkg/archive"
 )
@@ -201,7 +201,7 @@ func makePsOpts(inOpts iopodman.PsOpts) PsOptions {
 // more.  it is capable of sending updates as the output writer gets them or append them
 // all to a log.  the chan error is the error from the libpod call so we can honor
 // and error event in that case.
-func forwardOutput(log []string, c chan error, wantsMore bool, output *channelwriter.Writer, reply func(br iopodman.MoreResponse) error) ([]string, error) {
+func forwardOutput(log []string, c chan error, wantsMore bool, output channel.WriteCloser, reply func(br iopodman.MoreResponse) error) ([]string, error) {
 	done := false
 	for {
 		select {
@@ -214,7 +214,7 @@ func forwardOutput(log []string, c chan error, wantsMore bool, output *channelwr
 			done = true
 		// if no error is found, we pull what we can from the log writer and
 		// append it to log string slice
-		case line := <-output.ByteChannel:
+		case line := <-output.Chan():
 			log = append(log, string(line))
 			// If the end point is being used in more mode, send what we have
 			if wantsMore {

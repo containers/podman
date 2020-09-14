@@ -535,6 +535,7 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
+
 	id, _, err := ir.Libpod.Build(ctx, opts.BuildOptions, containerFiles...)
 	if err != nil {
 		return nil, err

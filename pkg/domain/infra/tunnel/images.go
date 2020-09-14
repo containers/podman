@@ -1,13 +1,9 @@
 package tunnel
 
 import (
-	"archive/tar"
-	"bytes"
 	"context"
-	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -18,9 +14,7 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/utils"
 	utils2 "github.com/containers/podman/v2/utils"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
@@ -311,28 +305,8 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 	return config.Default()
 }
 
-func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
-	var tarReader io.Reader
-	tarfile, err := archive.Tar(opts.ContextDirectory, 0)
-	if err != nil {
-		return nil, err
-	}
-	tarReader = tarfile
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	if cwd != opts.ContextDirectory {
-		fn := func(h *tar.Header, r io.Reader) (data []byte, update bool, skip bool, err error) {
-			h.Name = filepath.Join(filepath.Base(opts.ContextDirectory), h.Name)
-			return nil, false, false, nil
-		}
-		tarReader, err = transformArchive(tarfile, false, fn)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return images.Build(ir.ClientCxt, containerFiles, opts, tarReader)
+func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
+	return images.Build(ir.ClientCxt, containerFiles, opts)
 }
 
 func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
@@ -345,66 +319,4 @@ func (ir *ImageEngine) Shutdown(_ context.Context) {
 
 func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entities.SignOptions) (*entities.SignReport, error) {
 	return nil, errors.New("not implemented yet")
-}
-
-// Sourced from openshift image builder
-
-// TransformFileFunc is given a chance to transform an arbitrary input file.
-type TransformFileFunc func(h *tar.Header, r io.Reader) (data []byte, update bool, skip bool, err error)
-
-// filterArchive transforms the provided input archive to a new archive,
-// giving the fn a chance to transform arbitrary files.
-func filterArchive(r io.Reader, w io.Writer, fn TransformFileFunc) error {
-	tr := tar.NewReader(r)
-	tw := tar.NewWriter(w)
-
-	var body io.Reader = tr
-
-	for {
-		h, err := tr.Next()
-		if err == io.EOF {
-			return tw.Close()
-		}
-		if err != nil {
-			return err
-		}
-
-		name := h.Name
-		data, ok, skip, err := fn(h, tr)
-		logrus.Debugf("Transform %q -> %q: data=%t ok=%t skip=%t err=%v", name, h.Name, data != nil, ok, skip, err)
-		if err != nil {
-			return err
-		}
-		if skip {
-			continue
-		}
-		if ok {
-			h.Size = int64(len(data))
-			body = bytes.NewBuffer(data)
-		}
-		if err := tw.WriteHeader(h); err != nil {
-			return err
-		}
-		if _, err := io.Copy(tw, body); err != nil {
-			return err
-		}
-	}
-}
-
-func transformArchive(r io.Reader, compressed bool, fn TransformFileFunc) (io.Reader, error) {
-	var cwe error
-	pr, pw := io.Pipe()
-	go func() {
-		if compressed {
-			in, err := archive.DecompressStream(r)
-			if err != nil {
-				cwe = pw.CloseWithError(err)
-				return
-			}
-			r = in
-		}
-		err := filterArchive(r, pw, fn)
-		cwe = pw.CloseWithError(err)
-	}()
-	return pr, cwe
 }

@@ -23,7 +23,7 @@ import (
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
-	"github.com/containers/podman/v2/pkg/channelwriter"
+	"github.com/containers/podman/v2/pkg/channel"
 	"github.com/containers/podman/v2/pkg/util"
 	iopodman "github.com/containers/podman/v2/pkg/varlink"
 	"github.com/containers/podman/v2/utils"
@@ -570,7 +570,7 @@ func (i *VarlinkAPI) Commit(call iopodman.VarlinkCall, name, imageName string, c
 		log      []string
 		mimeType string
 	)
-	output := channelwriter.NewChannelWriter()
+	output := channel.NewWriter(make(chan []byte))
 	channelClose := func() {
 		if err := output.Close(); err != nil {
 			logrus.Errorf("failed to close channel writer: %q", err)
@@ -704,7 +704,7 @@ func (i *VarlinkAPI) PullImage(call iopodman.VarlinkCall, name string, creds iop
 	if call.WantsMore() {
 		call.Continues = true
 	}
-	output := channelwriter.NewChannelWriter()
+	output := channel.NewWriter(make(chan []byte))
 	channelClose := func() {
 		if err := output.Close(); err != nil {
 			logrus.Errorf("failed to close channel writer: %q", err)
