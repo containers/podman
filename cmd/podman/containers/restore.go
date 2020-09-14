@@ -80,7 +80,7 @@ func restore(_ *cobra.Command, args []string) error {
 		}
 	}
 	if (restoreOptions.All || restoreOptions.Latest) && argLen > 0 {
-		return errors.Errorf("no arguments are needed with --all or --latest")
+		return errors.Errorf("--all or --latest and containers cannot be used together")
 	}
 	if argLen < 1 && !restoreOptions.All && !restoreOptions.Latest && restoreOptions.Import == "" {
 		return errors.Errorf("you must provide at least one name or id")

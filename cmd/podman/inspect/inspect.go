@@ -93,7 +93,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	tmpType := i.options.Type
 	if i.options.Latest {
 		if len(namesOrIDs) > 0 {
-			return errors.New("latest and containers are not allowed")
+			return errors.New("--latest and containers cannot be used together")
 		}
 		tmpType = ContainerType // -l works with --type=all
 	}

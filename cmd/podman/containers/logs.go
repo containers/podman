@@ -37,7 +37,7 @@ var (
 			case registry.IsRemote() && len(args) > 1:
 				return errors.New(cmd.Name() + " does not support multiple containers when run remotely")
 			case logsOptions.Latest && len(args) > 0:
-				return errors.New("no containers can be specified when using 'latest'")
+				return errors.New("--latest and containers cannot be used together")
 			case !logsOptions.Latest && len(args) < 1:
 				return errors.New("specify at least one container name or ID to log")
 			}
