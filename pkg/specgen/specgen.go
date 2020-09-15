@@ -89,6 +89,9 @@ type ContainerBasicConfig struct {
 	// If not given, a default location will be used.
 	// Optional.
 	ConmonPidFile string `json:"conmon_pid_file,omitempty"`
+	// RawImageName is the user-specified and unprocessed input referring
+	// to a local or a remote image.
+	RawImageName string `json:"raw_image_name,omitempty"`
 	// RestartPolicy is the container's restart policy - an action which
 	// will be taken when the container exits.
 	// If not given, the default policy, which does nothing, will be used.

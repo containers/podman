@@ -95,7 +95,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		if len(names) > 0 {
 			imgName = names[0]
 		}
-		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), imgName, s.Image))
+		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), imgName, s.RawImageName))
 	}
 	if err := s.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config provided")

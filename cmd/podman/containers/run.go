@@ -130,7 +130,9 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	imageName := args[0]
+	rawImageName := ""
 	if !cliVals.RootFS {
+		rawImageName = args[0]
 		name, err := pullImage(args[0])
 		if err != nil {
 			return err
@@ -177,6 +179,7 @@ func run(cmd *cobra.Command, args []string) error {
 	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}
+	s.RawImageName = rawImageName
 	runOpts.Spec = s
 
 	if _, err := createPodIfNecessary(s, cliVals.Net); err != nil {
