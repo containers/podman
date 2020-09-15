@@ -99,7 +99,7 @@ github.com/containers/common/pkg/sysinfo
 github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.5.2 => github.com/containers/image/v5 v5.5.2-0.20200902171422-1c313b2d23e0
+# github.com/containers/image/v5 v5.6.0 => github.com/containers/image/v5 v5.5.2-0.20200902171422-1c313b2d23e0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
