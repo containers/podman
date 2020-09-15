@@ -74,6 +74,9 @@ func start(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 && !startOptions.Latest {
 		return errors.New("start requires at least one argument")
 	}
+	if len(args) > 0 && startOptions.Latest {
+		return errors.Errorf("--latest and containers cannot be used together")
+	}
 	if len(args) > 1 && startOptions.Attach {
 		return errors.Errorf("you cannot start and attach multiple containers at once")
 	}

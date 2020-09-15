@@ -37,6 +37,9 @@ func IDOrLatestArgs(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 && !given {
 			return fmt.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
 		}
+		if len(args) > 0 && given {
+			return fmt.Errorf("--latest and containers cannot be used together")
+		}
 	}
 	return nil
 }
@@ -83,7 +86,7 @@ func CheckAllLatestAndCIDFile(c *cobra.Command, args []string, ignoreArgLen bool
 
 	if argLen > 0 {
 		if specifiedLatest {
-			return errors.Errorf("no arguments are needed with --latest")
+			return errors.Errorf("--latest and containers cannot be used together")
 		} else if cidfile && (specifiedLatest || specifiedCIDFile) {
 			return errors.Errorf("no arguments are needed with --latest or --cidfile")
 		}
@@ -138,7 +141,7 @@ func CheckAllLatestAndPodIDFile(c *cobra.Command, args []string, ignoreArgLen bo
 
 	if argLen > 0 {
 		if specifiedLatest {
-			return errors.Errorf("no arguments are needed with --latest")
+			return errors.Errorf("--latest and pods cannot be used together")
 		} else if withIDFile && (specifiedLatest || specifiedPodIDFile) {
 			return errors.Errorf("no arguments are needed with --latest or --pod-id-file")
 		}

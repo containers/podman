@@ -80,6 +80,9 @@ func restart(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 && !restartOptions.Latest && !restartOptions.All {
 		return errors.Wrapf(define.ErrInvalidArg, "you must provide at least one container name or ID")
 	}
+	if len(args) > 0 && restartOptions.Latest {
+		return errors.Wrapf(define.ErrInvalidArg, "--latest and containers cannot be used together")
+	}
 
 	if cmd.Flag("time").Changed {
 		restartOptions.Timeout = &restartTimeout

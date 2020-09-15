@@ -86,6 +86,20 @@ function check_help() {
             found[takes_no_args]=1
         fi
 
+        # If command lists "-l, --latest" in help output, combine -l with arg.
+        # This should be disallowed with a clear message.
+        if expr "$full_help" : ".*-l, --latest" >/dev/null; then
+            local nope="exec list port ps top"   # these can't be tested
+            if is_rootless; then
+                nope="$nope mount restore"       # these don't work rootless
+            fi
+            if ! grep -wq "$cmd" <<<$nope; then
+                run_podman 125 "$@" $cmd -l nonexistent-container
+                is "$output" "Error: .*--latest and \(containers\|pods\|arguments\) cannot be used together" \
+                   "'$command_string' with both -l and container"
+            fi
+        fi
+
         # If usage has required arguments, try running without them.
         # The expression here is 'first capital letter is not in [BRACKETS]'.
         # It is intended to handle 'podman foo [flags] ARG' but not ' [ARG]'.
