@@ -9,7 +9,7 @@ import (
 )
 
 func (s *APIServer) registerAchiveHandlers(r *mux.Router) error {
-	// swagger:operation POST /containers/{name}/archive compat putArchive
+	// swagger:operation PUT /containers/{name}/archive compat putArchive
 	// ---
 	//  summary: Put files into a container
 	//  description: Put a tar archive of files into a container
@@ -84,9 +84,9 @@ func (s *APIServer) registerAchiveHandlers(r *mux.Router) error {
 	//      $ref: "#/responses/NoSuchContainer"
 	//    500:
 	//      $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/archive"), s.APIHandler(compat.Archive)).Methods(http.MethodGet, http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/archive"), s.APIHandler(compat.Archive)).Methods(http.MethodGet, http.MethodPut, http.MethodHead)
 	// Added non version path to URI to support docker non versioned paths
-	r.HandleFunc("/containers/{name}/archive", s.APIHandler(compat.Archive)).Methods(http.MethodGet, http.MethodPost)
+	r.HandleFunc("/containers/{name}/archive", s.APIHandler(compat.Archive)).Methods(http.MethodGet, http.MethodPut, http.MethodHead)
 
 	/*
 		Libpod
