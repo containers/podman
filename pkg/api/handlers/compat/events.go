@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/events"
@@ -113,8 +112,13 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		errorChannel <- runtime.Events(r.Context(), readOpts)
 	}()
 
-	var coder *jsoniter.Encoder
-	var writeHeader sync.Once
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	coder := json.NewEncoder(w)
+	coder.SetEscapeHTML(true)
 
 	for stream := true; stream; stream = query.Stream {
 		select {
@@ -124,18 +128,6 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case evt := <-eventChannel:
-			writeHeader.Do(func() {
-				// Use a sync.Once so that we write the header
-				// only once.
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				if flusher, ok := w.(http.Flusher); ok {
-					flusher.Flush()
-				}
-				coder = json.NewEncoder(w)
-				coder.SetEscapeHTML(true)
-			})
-
 			if evt == nil {
 				continue
 			}
