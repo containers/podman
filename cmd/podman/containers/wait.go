@@ -78,7 +78,7 @@ func wait(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
 	}
 	if waitOptions.Latest && len(args) > 0 {
-		return errors.New("--latest and containers are not allowed")
+		return errors.New("--latest and containers cannot be used together")
 	}
 
 	waitOptions.Condition, err = define.StringToContainerStatus(waitCondition)
