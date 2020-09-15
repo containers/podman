@@ -4,14 +4,15 @@
 podman\-wait - Wait on one or more containers to stop and print their exit codes
 
 ## SYNOPSIS
-**podman wait** [*options*] *container*
+**podman wait** [*options*] *container* [...]
 
-**podman container wait** [*options*] *container*
+**podman container wait** [*options*] *container* [...]
 
 ## DESCRIPTION
 Waits on one or more containers to stop.  The container can be referred to by its
-name or ID.  In the case of multiple containers, podman will wait on each consecutively.
-After the container stops, the container's return code is printed.
+name or ID.  In the case of multiple containers, Podman will wait on each consecutively.
+After all specified containers are stopped, the containers' return codes are printed
+separated by newline in the same order as they were given to the command.
 
 ## OPTIONS
 
@@ -36,12 +37,17 @@ The latest option is not supported on the remote client.
 
 ```
 $ podman wait mywebserver
+0
 
 $ podman wait --latest
+0
 
 $ podman wait 860a4b23
+1
 
 $ podman wait mywebserver myftpserver
+0
+125
 ```
 
 ## SEE ALSO
