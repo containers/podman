@@ -1,4 +1,5 @@
 #!/usr/bin/env bats   -*- bats -*-
+# shellcheck disable=SC2096
 #
 # Tests for podman build
 #
@@ -6,8 +7,6 @@
 load helpers
 
 @test "podman build - basic test" {
-    skip_if_remote "FIXME: pending #7136"
-
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
 
@@ -31,7 +30,7 @@ EOF
 }
 
 @test "podman build - global runtime flags test" {
-    skip_if_remote "FIXME: pending #7136"
+    skip_if_remote "--runtime-flag flag not supported for remote"
 
     rand_content=$(random_string 50)
 
@@ -49,11 +48,6 @@ EOF
 
 # Regression from v1.5.0. This test passes fine in v1.5.0, fails in 1.6
 @test "podman build - cache (#3920)" {
-    skip_if_remote "FIXME: pending #7136, runtime flag is not passing over remote"
-    if is_remote && is_rootless; then
-        skip "unreliable with podman-remote and rootless; #2972"
-    fi
-
     # Make an empty test directory, with a subdirectory used for tar
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir/subtest || die "Could not mkdir $tmpdir/subtest"
@@ -97,8 +91,6 @@ EOF
 }
 
 @test "podman build - URLs" {
-    skip_if_remote "FIXME: pending #7137"
-
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
 
@@ -118,8 +110,6 @@ EOF
 
 
 @test "podman build - workdir, cmd, env, label" {
-    skip_if_remote "FIXME: pending #7137"
-
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
 
@@ -194,8 +184,15 @@ EOF
                build_test
     is "${lines[0]}" "$workdir" "container default command: pwd"
     is "${lines[1]}" "$s_echo"  "container default command: output from echo"
+
     is "${lines[2]}" "$s_env1"  "container default command: env1"
-    is "${lines[3]}" "$s_env2"  "container default command: env2"
+
+    if is_remote; then
+        is "${lines[3]}" "this-should-be-overridden-by-env-host" "podman-remote does not send local environment"
+    else
+        is "${lines[3]}" "$s_env2" "container default command: env2"
+    fi
+
     is "${lines[4]}" "$s_env3"  "container default command: env3 (from envfile)"
     is "${lines[5]}" "$s_env4"  "container default command: env4 (from cmdline)"
 
@@ -206,7 +203,12 @@ EOF
               printenv http_proxy https_proxy ftp_proxy
     is "${lines[0]}" "http-proxy-in-env-file"  "env-file overrides env"
     is "${lines[1]}" "https-proxy-in-env-file" "env-file sets proxy var"
-    is "${lines[2]}" "ftp-proxy-from-env"      "ftp-proxy is passed through"
+
+    if is_remote; then
+        is "${lines[2]}" "ftp-proxy-in-image" "podman-remote does not send local environment"
+    else
+        is "${lines[2]}" "ftp-proxy-from-env" "ftp-proxy is passed through"
+    fi
 
     # test that workdir is set for command-line commands also
     run_podman run --rm build_test pwd
@@ -271,8 +273,6 @@ Labels.$label_name | $label_value
 }
 
 @test "podman build - stdin test" {
-    skip_if_remote "FIXME: pending #7136"
-
     # Random workdir, and random string to verify build output
     workdir=/$(random_string 10)
     random_echo=$(random_string 15)

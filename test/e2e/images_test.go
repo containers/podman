@@ -185,6 +185,7 @@ RUN apk update && apk add strace
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray()) >= 1).To(BeTrue())
+
 	})
 
 	It("podman images workingdir from  image", func() {
@@ -226,7 +227,7 @@ WORKDIR /test
 		result := podmanTest.PodmanNoCache([]string{"image", "list", "-q", "-f", "after=docker.io/library/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(result.OutputToStringArray()).Should(HaveLen(0), "list filter output: %q", result.OutputToString())
 	})
 
 	It("podman images filter dangling", func() {
@@ -236,8 +237,8 @@ WORKDIR /test
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "dangling=true"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(result).Should(Exit(0), "dangling image output: %q", result.OutputToString())
+		Expect(result.OutputToStringArray()).Should(HaveLen(0), "dangling image output: %q", result.OutputToString())
 	})
 
 	It("podman check for image with sha256: prefix", func() {
