@@ -43,8 +43,8 @@ var (
 	//       clients to shop for the Version they wish to support
 	APIVersion = map[VersionTree]map[VersionLevel]semver.Version{
 		LibpodTree: {
-			CurrentAPIVersion: semver.MustParse("1.0.0"),
-			MinimalAPIVersion: semver.MustParse("1.0.0"),
+			CurrentAPIVersion: semver.MustParse("2.0.0"),
+			MinimalAPIVersion: semver.MustParse("2.0.0"),
 		},
 		CompatTree: {
 			CurrentAPIVersion: semver.MustParse("1.40.0"),
