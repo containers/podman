@@ -270,51 +270,6 @@ func Import(ctx context.Context, changes []string, message, reference, u *string
 	return &report, response.Process(&report)
 }
 
-// Pull is the binding for libpod's v2 endpoints for pulling images.  Note that
-// `rawImage` must be a reference to a registry (i.e., of docker transport or be
-// normalized to one).  Other transports are rejected as they do not make sense
-// in a remote context.
-func Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) ([]string, error) {
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-	params := url.Values{}
-	params.Set("reference", rawImage)
-	params.Set("overrideArch", options.OverrideArch)
-	params.Set("overrideOS", options.OverrideOS)
-	params.Set("overrideVariant", options.OverrideVariant)
-	if options.SkipTLSVerify != types.OptionalBoolUndefined {
-		// Note: we have to verify if skipped is false.
-		verifyTLS := bool(options.SkipTLSVerify == types.OptionalBoolFalse)
-		params.Set("tlsVerify", strconv.FormatBool(verifyTLS))
-	}
-	params.Set("allTags", strconv.FormatBool(options.AllTags))
-
-	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, options.Authfile, options.Username, options.Password)
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := conn.DoRequest(nil, http.MethodPost, "/images/pull", params, header)
-	if err != nil {
-		return nil, err
-	}
-
-	reports := []handlers.LibpodImagesPullReport{}
-	if err := response.Process(&reports); err != nil {
-		return nil, err
-	}
-
-	pulledImages := []string{}
-	for _, r := range reports {
-		pulledImages = append(pulledImages, r.ID)
-	}
-
-	return pulledImages, nil
-}
-
 // Push is the binding for libpod's v2 endpoints for push images.  Note that
 // `source` must be a referring to an image in the remote's container storage.
 // The destination must be a reference to a registry (i.e., of docker transport

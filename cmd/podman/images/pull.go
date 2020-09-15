@@ -44,10 +44,10 @@ var (
 	// child of the images command.
 	imagesPullCmd = &cobra.Command{
 		Use:   pullCmd.Use,
+		Args:  pullCmd.Args,
 		Short: pullCmd.Short,
 		Long:  pullCmd.Long,
 		RunE:  pullCmd.RunE,
-		Args:  cobra.ExactArgs(1),
 		Example: `podman image pull imageName
   podman image pull fedora:latest`,
 	}
@@ -77,8 +77,6 @@ func init() {
 // pullFlags set the flags for the pull command.
 func pullFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&pullOptions.AllTags, "all-tags", false, "All tagged images in the repository will be pulled")
-	flags.StringVar(&pullOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
-	flags.StringVar(&pullOptions.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&pullOptions.CredentialsCLI, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVar(&pullOptions.OverrideArch, "override-arch", "", "Use `ARCH` instead of the architecture of the machine for choosing images")
 	flags.StringVar(&pullOptions.OverrideOS, "override-os", "", "Use `OS` instead of the running OS for choosing images")
@@ -86,12 +84,11 @@ func pullFlags(flags *pflag.FlagSet) {
 	flags.Bool("disable-content-trust", false, "This is a Docker specific option and is a NOOP")
 	flags.BoolVarP(&pullOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.StringVar(&pullOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
-	flags.BoolVar(&pullOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("authfile")
-		_ = flags.MarkHidden("cert-dir")
-		_ = flags.MarkHidden("tls-verify")
+	if !registry.IsRemote() {
+		flags.StringVar(&pullOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pullOptions.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
+		flags.BoolVar(&pullOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	}
 	_ = flags.MarkHidden("signature-policy")
 }
