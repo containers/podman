@@ -47,12 +47,9 @@ func version(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		_, err = io.WriteString(os.Stdout, s)
+		_, err = io.WriteString(os.Stdout, s+"\n")
 		return err
 	case cmd.Flag("format").Changed:
-		if !strings.HasSuffix(versionFormat, "\n") {
-			versionFormat += "\n"
-		}
 		out := formats.StdoutTemplate{Output: versions, Template: versionFormat}
 		err := out.Out()
 		if err != nil {

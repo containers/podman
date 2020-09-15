@@ -80,10 +80,6 @@ func init() {
 	)
 
 	rootFlags(rootCmd, registry.PodmanConfig())
-
-	// "version" is a local flag to avoid collisions with sub-commands that use "-v"
-	var dummyVersion bool
-	rootCmd.Flags().BoolVarP(&dummyVersion, "version", "v", false, "Version of Podman")
 }
 
 func Execute() {
