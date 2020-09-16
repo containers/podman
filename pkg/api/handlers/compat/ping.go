@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/containers/buildah"
-	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 )
 
 // Ping returns headers to client about the service
@@ -14,13 +13,12 @@ import (
 // Clients will use the Header availability to test which backend engine is in use.
 // Note: Additionally handler supports GET and HEAD methods
 func Ping(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("API-Version", utils.APIVersion[utils.CompatTree][utils.CurrentAPIVersion].String())
+	// Note API-Version and Libpod-API-Version are set in handler_api.go
 	w.Header().Set("BuildKit-Version", "")
 	w.Header().Set("Docker-Experimental", "true")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Pragma", "no-cache")
 
-	w.Header().Set("Libpod-API-Version", utils.APIVersion[utils.LibpodTree][utils.CurrentAPIVersion].String())
 	w.Header().Set("Libpod-Buildha-Version", buildah.Version)
 	w.WriteHeader(http.StatusOK)
 

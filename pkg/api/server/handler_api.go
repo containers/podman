@@ -40,6 +40,10 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			c = context.WithValue(c, "idletracker", s.idleTracker)    //nolint
 			r = r.WithContext(c)
 
+			v := utils.APIVersion[utils.CompatTree][utils.CurrentAPIVersion]
+			w.Header().Set("API-Version", fmt.Sprintf("%d.%d", v.Major, v.Minor))
+			w.Header().Set("Libpod-API-Version", utils.APIVersion[utils.LibpodTree][utils.CurrentAPIVersion].String())
+
 			h(w, r)
 		}
 		fn(w, r)
