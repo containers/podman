@@ -238,6 +238,17 @@ WORKDIR /test
 		Expect(len(result.OutputToStringArray())).To(Equal(0))
 	})
 
+	It("podman pull by digest and list --all", func() {
+		session := podmanTest.Podman([]string{"pull", ALPINEAMD64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Prevent regressing on issue #7651.
+		result := podmanTest.Podman([]string{"images", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+	})
+
 	It("podman check for image with sha256: prefix", func() {
 		session := podmanTest.Podman([]string{"inspect", "--format=json", ALPINE})
 		session.WaitWithDefaultTimeout()
