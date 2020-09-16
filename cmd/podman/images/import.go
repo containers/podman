@@ -63,6 +63,8 @@ func importFlags(flags *pflag.FlagSet) {
 	flags.StringArrayVarP(&importOpts.Changes, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
 	flags.StringVarP(&importOpts.Message, "message", "m", "", "Set commit message for imported image")
 	flags.BoolVarP(&importOpts.Quiet, "quiet", "q", false, "Suppress output")
+	flags.StringVar(&importOpts.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
+	_ = flags.MarkHidden("signature-policy")
 }
 
 func importCon(cmd *cobra.Command, args []string) error {

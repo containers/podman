@@ -416,6 +416,11 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
 	createFlags.StringVar(
+		&cf.SignaturePolicy,
+		"signature-policy", "",
+		"`Pathname` of signature policy file (not usually used)",
+	)
+	createFlags.StringVar(
 		&cf.StopSignal,
 		"stop-signal", "",
 		"Signal to stop a container. Default is SIGTERM",

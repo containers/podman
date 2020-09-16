@@ -205,7 +205,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		}
 	}
-	iid, err := runtime.Import(r.Context(), source, "", query.Changes, "", false)
+	iid, err := runtime.Import(r.Context(), source, "", "", query.Changes, "", false)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import tarball"))
 		return

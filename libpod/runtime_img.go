@@ -174,7 +174,7 @@ func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, 
 }
 
 // Import is called as an intermediary to the image library Import
-func (r *Runtime) Import(ctx context.Context, source string, reference string, changes []string, history string, quiet bool) (string, error) {
+func (r *Runtime) Import(ctx context.Context, source, reference, signaturePolicyPath string, changes []string, history string, quiet bool) (string, error) {
 	var (
 		writer io.Writer
 		err    error
@@ -223,6 +223,7 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 		source = file
 	}
 
+	r.imageRuntime.SignaturePolicyPath = signaturePolicyPath
 	newImage, err := r.imageRuntime.Import(ctx, source, reference, writer, image.SigningOptions{}, config)
 	if err != nil {
 		return "", err

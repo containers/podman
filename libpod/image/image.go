@@ -1284,7 +1284,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 		return nil, errors.Wrapf(err, "error updating image config")
 	}
 
-	sc := GetSystemContext("", "", false)
+	sc := GetSystemContext(ir.SignaturePolicyPath, "", false)
 
 	// if reference not given, get the image digest
 	if reference == "" {

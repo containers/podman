@@ -255,6 +255,9 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
 		sc.VariantChoice = dockerOptions.VariantChoice
 	}
+	if signaturePolicyPath == "" {
+		sc.SignaturePolicyPath = ir.SignaturePolicyPath
+	}
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {

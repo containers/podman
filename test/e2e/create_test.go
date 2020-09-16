@@ -345,6 +345,17 @@ var _ = Describe("Podman create", func() {
 		Expect(session).To(Not(Equal(0)))
 	})
 
+	It("podman create --signature-policy", func() {
+		SkipIfRemote() // SigPolicy not handled by remote
+		session := podmanTest.Podman([]string{"create", "--pull=always", "--signature-policy", "/no/such/file", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"create", "--pull=always", "--signature-policy", "/etc/containers/policy.json", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman create with unset label", func() {
 		// Alpine is assumed to have no labels here, which seems safe
 		ctrName := "testctr"

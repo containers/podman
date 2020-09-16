@@ -391,7 +391,7 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 		tmpfile.Close()
 		source = tmpfile.Name()
 	}
-	importedImage, err := runtime.Import(context.Background(), source, query.Reference, query.Changes, query.Message, true)
+	importedImage, err := runtime.Import(context.Background(), source, query.Reference, "", query.Changes, query.Message, true)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import image"))
 		return
