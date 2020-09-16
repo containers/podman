@@ -30,9 +30,14 @@ apiVersion: v1
 kind: Pod
 metadata:
   creationTimestamp: "2019-07-17T14:44:08Z"
+  name: {{ .Name }}
   labels:
     app: {{ .Name }}
-  name: {{ .Name }}
+{{ with .Labels }}
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
 {{ with .Annotations }}
   annotations:
   {{ range $key, $value := . }}
@@ -125,9 +130,14 @@ apiVersion: v1
 kind: Deployment
 metadata:
   creationTimestamp: "2019-07-17T14:44:08Z"
+  name: {{ .Name }}
   labels:
     app: {{ .Name }}
-  name: {{ .Name }}
+{{ with .Labels }}
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
 {{ with .Annotations }}
   annotations:
   {{ range $key, $value := . }}
@@ -145,6 +155,9 @@ spec:
     metadata:
       labels:
         app: {{ .Name }}
+        {{- with .Labels }}{{ range $key, $value := . }}
+        {{ $key }}: {{ $value }}
+        {{- end }}{{ end }}
       {{ with .Annotations }}
         annotations:
         {{ range $key, $value := . }}
@@ -266,6 +279,7 @@ type Pod struct {
 	HostAliases []HostAlias
 	Ctrs        []*Ctr
 	Volumes     []*Volume
+	Labels      map[string]string
 	Annotations map[string]string
 }
 
@@ -278,7 +292,15 @@ type HostAlias struct {
 // and the configured options
 // if no containers are added, it will add the default container
 func getPod(options ...podOption) *Pod {
-	p := Pod{defaultPodName, "", nil, make([]*Ctr, 0), make([]*Volume, 0), make(map[string]string)}
+	p := Pod{
+		Name:        defaultPodName,
+		Hostname:    "",
+		HostAliases: nil,
+		Ctrs:        make([]*Ctr, 0),
+		Volumes:     make([]*Volume, 0),
+		Labels:      make(map[string]string),
+		Annotations: make(map[string]string),
+	}
 	for _, option := range options {
 		option(&p)
 	}
@@ -311,6 +333,12 @@ func withCtr(c *Ctr) podOption {
 	}
 }
 
+func withLabel(k, v string) podOption {
+	return func(pod *Pod) {
+		pod.Labels[k] = v
+	}
+}
+
 func withAnnotation(k, v string) podOption {
 	return func(pod *Pod) {
 		pod.Annotations[k] = v
@@ -327,12 +355,19 @@ func withVolume(v *Volume) podOption {
 type Deployment struct {
 	Name        string
 	Replicas    int32
+	Labels      map[string]string
 	Annotations map[string]string
 	PodTemplate *Pod
 }
 
 func getDeployment(options ...deploymentOption) *Deployment {
-	d := Deployment{defaultDeploymentName, 1, make(map[string]string), getPod()}
+	d := Deployment{
+		Name:        defaultDeploymentName,
+		Replicas:    1,
+		Labels:      make(map[string]string),
+		Annotations: make(map[string]string),
+		PodTemplate: getPod(),
+	}
 	for _, option := range options {
 		option(&d)
 	}
@@ -341,6 +376,12 @@ func getDeployment(options ...deploymentOption) *Deployment {
 }
 
 type deploymentOption func(*Deployment)
+
+func withDeploymentLabel(k, v string) deploymentOption {
+	return func(deployment *Deployment) {
+		deployment.Labels[k] = v
+	}
+}
 
 func withDeploymentAnnotation(k, v string) deploymentOption {
 	return func(deployment *Deployment) {
@@ -1076,5 +1117,30 @@ spec:
 
 		correct := fmt.Sprintf("%s:%s:%s", hostPathLocation, hostPathLocation, "ro")
 		Expect(inspect.OutputToString()).To(ContainSubstring(correct))
+	})
+
+	It("podman play kube applies labels to pods", func() {
+		SkipIfRemote()
+		var numReplicas int32 = 5
+		expectedLabelKey := "key1"
+		expectedLabelValue := "value1"
+		deployment := getDeployment(
+			withReplicas(numReplicas),
+			withPod(getPod(withLabel(expectedLabelKey, expectedLabelValue))),
+		)
+		err := generateDeploymentKubeYaml(deployment, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		correctLabels := expectedLabelKey + ":" + expectedLabelValue
+		for _, pod := range getPodNamesInDeployment(deployment) {
+			inspect := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "'{{ .Labels }}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect.ExitCode()).To(Equal(0))
+			Expect(inspect.OutputToString()).To(ContainSubstring(correctLabels))
+		}
 	})
 })
