@@ -255,7 +255,7 @@ func startRootlessCNIInfraContainer(ctx context.Context, r *Runtime) (*Container
 		Destination: "/etc/cni/net.d",
 		Type:        "bind",
 		Source:      r.config.Network.NetworkConfigDir,
-		Options:     []string{"ro"},
+		Options:     []string{"ro", "bind"},
 	}
 	g.AddMount(etcCNINetD)
 
