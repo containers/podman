@@ -4,10 +4,8 @@ approvers:
   - giuseppe
   - jwhonce
   - mheon
-  - mrunalp
   - rhatdan
   - TomSweeneyRedHat
-  - umohnani8
   - vrothberg
 reviewers:
   - baude
@@ -15,8 +13,8 @@ reviewers:
   - giuseppe
   - jwhonce
   - mheon
-  - mrunalp
   - rhatdan
   - TomSweeneyRedHat
-  - umohnani8
   - vrothberg
+  - ashley-cui
+  - QiWang19
