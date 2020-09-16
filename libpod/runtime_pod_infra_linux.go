@@ -36,22 +36,26 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 
 	isRootless := rootless.IsRootless()
 
-	entryCmd := []string{r.config.Engine.InfraCommand}
+	entrypointSet := len(p.config.InfraContainer.InfraCommand) > 0
+	entryPoint := p.config.InfraContainer.InfraCommand
+	entryCmd := []string{}
 	var options []CtrCreateOption
 	// I've seen circumstances where config is being passed as nil.
 	// Let's err on the side of safety and make sure it's safe to use.
 	if config != nil {
-		setEntrypoint := false
 		// default to entrypoint in image if there is one
-		if len(config.Entrypoint) > 0 {
-			entryCmd = config.Entrypoint
-			setEntrypoint = true
+		if !entrypointSet {
+			if len(config.Entrypoint) > 0 {
+				entrypointSet = true
+				entryPoint = config.Entrypoint
+				entryCmd = config.Entrypoint
+			}
 		}
 		if len(config.Cmd) > 0 {
 			// We can't use the default pause command, since we're
 			// sourcing from the image. If we didn't already set an
 			// entrypoint, set one now.
-			if !setEntrypoint {
+			if !entrypointSet {
 				// Use the Docker default "/bin/sh -c"
 				// entrypoint, as we're overriding command.
 				// If an image doesn't want this, it can
@@ -136,6 +140,9 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 	options = append(options, WithRootFSFromImage(imgID, imgName, rawImageName))
 	options = append(options, WithName(containerName))
 	options = append(options, withIsInfra())
+	if entrypointSet {
+		options = append(options, WithEntrypoint(entryPoint))
+	}
 	if len(p.config.InfraContainer.ConmonPidFile) > 0 {
 		options = append(options, WithConmonPidFile(p.config.InfraContainer.ConmonPidFile))
 	}
@@ -151,7 +158,11 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, define.ErrRuntimeStopped
 	}
 
-	newImage, err := r.ImageRuntime().New(ctx, r.config.Engine.InfraImage, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing)
+	img := p.config.InfraContainer.InfraImage
+	if img == "" {
+		img = r.config.Engine.InfraImage
+	}
+	newImage, err := r.ImageRuntime().New(ctx, img, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing)
 	if err != nil {
 		return nil, err
 	}

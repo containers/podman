@@ -227,23 +227,6 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 
 	// TODO flag to set CNI plugins dir?
 
-	// TODO I don't think these belong here?
-	// Will follow up with a different PR to address
-	//
-	// Pod create options
-
-	infraImageFlag := fs.Lookup("infra-image")
-	if infraImageFlag != nil && infraImageFlag.Changed {
-		infraImage, _ := fs.GetString("infra-image")
-		options = append(options, libpod.WithDefaultInfraImage(infraImage))
-	}
-
-	infraCommandFlag := fs.Lookup("infra-command")
-	if infraCommandFlag != nil && infraImageFlag.Changed {
-		infraCommand, _ := fs.GetString("infra-command")
-		options = append(options, libpod.WithDefaultInfraCommand(infraCommand))
-	}
-
 	if !opts.withFDS {
 		options = append(options, libpod.WithEnableSDNotify())
 	}

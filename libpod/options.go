@@ -1659,6 +1659,36 @@ func WithUmask(umask string) CtrCreateOption {
 
 // Pod Creation Options
 
+// WithInfraImage sets the infra image for libpod.
+// An infra image is used for inter-container kernel
+// namespace sharing within a pod. Typically, an infra
+// container is lightweight and is there to reap
+// zombie processes within its pid namespace.
+func WithInfraImage(img string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.InfraContainer.InfraImage = img
+
+		return nil
+	}
+}
+
+// WithInfraCommand sets the command to
+// run on pause container start up.
+func WithInfraCommand(cmd []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.InfraContainer.InfraCommand = cmd
+		return nil
+	}
+}
+
 // WithPodName sets the name of the pod.
 func WithPodName(name string) PodCreateOption {
 	return func(pod *Pod) error {
