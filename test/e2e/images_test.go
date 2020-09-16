@@ -241,6 +241,38 @@ WORKDIR /test
 		Expect(result.OutputToStringArray()).Should(HaveLen(0), "dangling image output: %q", result.OutputToString())
 	})
 
+	It("podman pull by digest and list --all", func() {
+		// Prevent regressing on issue #7651.
+		digestPullAndList := func(noneTag bool) {
+			session := podmanTest.Podman([]string{"pull", ALPINEAMD64DIGEST})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			result := podmanTest.Podman([]string{"images", "--all", ALPINEAMD64DIGEST})
+			result.WaitWithDefaultTimeout()
+			Expect(result).Should(Exit(0))
+
+			found, _ := result.GrepString("<none>")
+			if noneTag {
+				Expect(found).To(BeTrue())
+			} else {
+				Expect(found).To(BeFalse())
+			}
+		}
+		// No "<none>" tag as tagged alpine instances should be present.
+		session := podmanTest.Podman([]string{"pull", ALPINELISTTAG})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		digestPullAndList(false)
+
+		// Now remove all images, re-pull by digest and check for the "<none>" tag.
+		session = podmanTest.Podman([]string{"rmi", "-af"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		digestPullAndList(true)
+	})
+
 	It("podman check for image with sha256: prefix", func() {
 		session := podmanTest.Podman([]string{"inspect", "--format=json", ALPINE})
 		session.WaitWithDefaultTimeout()
