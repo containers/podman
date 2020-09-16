@@ -80,4 +80,33 @@ load helpers
     run_podman rm $cid
 }
 
+# "network create" now works rootless, with the help of a special container
+@test "podman network create" {
+    local mynetname=testnet-$(random_string 10)
+    local mysubnet=$(random_rfc1918_subnet)
+
+    run_podman network create --subnet "${mysubnet}.0/24" $mynetname
+    is "$output" ".*/cni/net.d/$mynetname.conflist" "output of 'network create'"
+
+    # WARNING: this pulls a ~100MB image from quay.io, hence is slow/flaky
+    run_podman run --rm --network $mynetname $IMAGE ip a
+    is "$output" ".* inet ${mysubnet}\.2/24 brd ${mysubnet}\.255 " \
+       "sdfsdf"
+
+    # Cannot create network with the same name
+    run_podman 125 network create $mynetname
+    is "$output" "Error: the network name $mynetname is already used" \
+       "Trying to create an already-existing network"
+
+    run_podman network rm $mynetname
+    run_podman 125 network rm $mynetname
+
+    # rootless CNI leaves behind an image pulled by SHA, hence with no tag.
+    # Remove it if present; we can only remove it by ID.
+    run_podman images --format '{{.Id}}' rootless-cni-infra
+    if [ -n "$output" ]; then
+        run_podman rmi $output
+    fi
+}
+
 # vim: filetype=sh

@@ -7,7 +7,7 @@ PODMAN=${PODMAN:-podman}
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
 PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
 PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
-PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20200902"}
+PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20200917"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
 
 # Because who wants to spell that out each time?
@@ -394,6 +394,35 @@ function random_string() {
     local length=${1:-10}
 
     head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
+}
+
+
+###########################
+#  random_rfc1918_subnet  #
+###########################
+#
+# Use the class B set, because much of our CI environment (Google, RH)
+# already uses up much of the class A, and it's really hard to test
+# if a block is in use.
+#
+# This returns THREE OCTETS! It is up to our caller to append .0/24, .255, &c.
+#
+function random_rfc1918_subnet() {
+    local retries=1024
+
+    while [ "$retries" -gt 0 ];do
+        local cidr=172.$(( 16 + $RANDOM % 16 )).$(( $RANDOM & 255 ))
+
+        in_use=$(ip route list | fgrep $cidr)
+        if [ -z "$in_use" ]; then
+            echo "$cidr"
+            return
+        fi
+
+        retries=$(( retries - 1 ))
+    done
+
+    die "Could not find a random not-in-use rfc1918 subnet"
 }
 
 

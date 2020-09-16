@@ -26,23 +26,51 @@ create_time_z=$(env TZ=UTC date +'%Y-%m-%dT%H:%M:%SZ')
 
 set -ex
 
+# We'll need to create a Containerfile plus various other files to add in
+#
 # Please document the reason for all flags, apk's, and anything non-obvious
+tmpdir=$(mktemp -t -d $(basename $0).tmp.XXXXXXX)
+cd $tmpdir
+
+# 'image mount' test will confirm that this file exists and has our YMD tag
+echo $YMD >testimage-id
+
+# 'pod' test will use this for --infra-command
+cat >pause <<EOF
+#!/bin/sh
 #
-#    --squash-all    : needed by 'tree' test in 070-build.bats
-#    busybox-extras  : provides httpd needed in 500-networking.bats
+# Trivial little pause script, used in one of the pod tests
 #
-podman rmi -f testimage &> /dev/null || true
-podman build --squash-all -t testimage - <<EOF
+echo Confirmed: testimage pause invoked as \$0
+while :; do
+    sleep 0.1
+done
+EOF
+chmod 755 pause
+
+# alpine because it's small and light and reliable
+# busybox-extras provides httpd needed in 500-networking.bats
+cat >Containerfile <<EOF
 FROM docker.io/library/alpine:3.12.0
 RUN apk add busybox-extras
+ADD testimage-id pause /home/podman/
 LABEL created_by=$create_script
 LABEL created_at=$create_time_z
+WORKDIR /home/podman
 CMD ["/bin/echo", "This container is intended for podman CI testing"]
 EOF
 
+# --squash-all    : needed by 'tree' test in 070-build.bats
+podman rmi -f testimage &> /dev/null || true
+podman build --squash-all -t testimage .
+
+# Clean up
+cd /tmp
+rm -rf $tmpdir
+
 # Tag and push to quay.
-podman tag testimage quay.io/edsantiago/testimage:$YMD
-podman push quay.io/edsantiago/testimage:$YMD
+podman tag testimage quay.io/libpod/testimage:$YMD
+podman push quay.io/libpod/testimage:$YMD
 
 # Side note: there should always be a testimage tagged ':00000000'
 # (eight zeroes) in the same location; this is used by tests which
@@ -54,6 +82,6 @@ podman push quay.io/edsantiago/testimage:$YMD
 #
 #    podman pull docker.io/library/busybox:1.32.0
 #    podman tag  docker.io/library/busybox:1.32.0 \
-#                quay.io/edsantiago/testimage:00000000
-#    podman push quay.io/edsantiago/testimage:00000000
+#                quay.io/libpod/testimage:00000000
+#    podman push quay.io/libpod/testimage:00000000
 #
