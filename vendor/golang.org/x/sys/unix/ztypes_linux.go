@@ -140,6 +140,48 @@ type FscryptGetKeyStatusArg struct {
 	_            [13]uint32
 }
 
+type DmIoctl struct {
+	Version      [3]uint32
+	Data_size    uint32
+	Data_start   uint32
+	Target_count uint32
+	Open_count   int32
+	Flags        uint32
+	Event_nr     uint32
+	_            uint32
+	Dev          uint64
+	Name         [128]byte
+	Uuid         [129]byte
+	Data         [7]byte
+}
+
+type DmTargetSpec struct {
+	Sector_start uint64
+	Length       uint64
+	Status       int32
+	Next         uint32
+	Target_type  [16]byte
+}
+
+type DmTargetDeps struct {
+	Count uint32
+	_     uint32
+}
+
+type DmTargetVersions struct {
+	Next    uint32
+	Version [3]uint32
+}
+
+type DmTargetMsg struct {
+	Sector uint64
+}
+
+const (
+	SizeofDmIoctl      = 0x138
+	SizeofDmTargetSpec = 0x28
+)
+
 type KeyctlDHParams struct {
 	Private int32
 	Prime   int32
@@ -268,6 +310,15 @@ type RawSockaddrL2TPIP6 struct {
 	Conn_id  uint32
 }
 
+type RawSockaddrIUCV struct {
+	Family  uint16
+	Port    uint16
+	Addr    uint32
+	Nodeid  [8]int8
+	User_id [8]int8
+	Name    [8]int8
+}
+
 type _Socklen uint32
 
 type Linger struct {
@@ -380,6 +431,7 @@ const (
 	SizeofSockaddrTIPC      = 0x10
 	SizeofSockaddrL2TPIP    = 0x10
 	SizeofSockaddrL2TPIP6   = 0x20
+	SizeofSockaddrIUCV      = 0x20
 	SizeofLinger            = 0x8
 	SizeofIPMreq            = 0x8
 	SizeofIPMreqn           = 0xc
@@ -964,6 +1016,13 @@ const (
 	PERF_SAMPLE_STREAM_ID    = 0x200
 	PERF_SAMPLE_RAW          = 0x400
 	PERF_SAMPLE_BRANCH_STACK = 0x800
+	PERF_SAMPLE_REGS_USER    = 0x1000
+	PERF_SAMPLE_STACK_USER   = 0x2000
+	PERF_SAMPLE_WEIGHT       = 0x4000
+	PERF_SAMPLE_DATA_SRC     = 0x8000
+	PERF_SAMPLE_IDENTIFIER   = 0x10000
+	PERF_SAMPLE_TRANSACTION  = 0x20000
+	PERF_SAMPLE_REGS_INTR    = 0x40000
 
 	PERF_SAMPLE_BRANCH_USER       = 0x1
 	PERF_SAMPLE_BRANCH_KERNEL     = 0x2
@@ -1691,6 +1750,21 @@ const (
 	NFTA_NG_OFFSET                    = 0x4
 	NFT_NG_INCREMENTAL                = 0x0
 	NFT_NG_RANDOM                     = 0x1
+)
+
+const (
+	NFTA_TARGET_UNSPEC = 0x0
+	NFTA_TARGET_NAME   = 0x1
+	NFTA_TARGET_REV    = 0x2
+	NFTA_TARGET_INFO   = 0x3
+	NFTA_MATCH_UNSPEC  = 0x0
+	NFTA_MATCH_NAME    = 0x1
+	NFTA_MATCH_REV     = 0x2
+	NFTA_MATCH_INFO    = 0x3
+	NFTA_COMPAT_UNSPEC = 0x0
+	NFTA_COMPAT_NAME   = 0x1
+	NFTA_COMPAT_REV    = 0x2
+	NFTA_COMPAT_TYPE   = 0x3
 )
 
 type RTCTime struct {
@@ -2452,4 +2526,13 @@ const (
 	NHA_ENCAP      = 0x8
 	NHA_GROUPS     = 0x9
 	NHA_MASTER     = 0xa
+)
+
+const (
+	CAN_RAW_FILTER        = 0x1
+	CAN_RAW_ERR_FILTER    = 0x2
+	CAN_RAW_LOOPBACK      = 0x3
+	CAN_RAW_RECV_OWN_MSGS = 0x4
+	CAN_RAW_FD_FRAMES     = 0x5
+	CAN_RAW_JOIN_FILTERS  = 0x6
 )
