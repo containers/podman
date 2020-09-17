@@ -1,0 +1,114 @@
+#! /usr/bin/env bash
+#
+# dependabot-dance - invoked to perform manual steps on podman dependabot PRs
+#
+# As best I can tell (please correct me if mistaken), dependabot's job is
+# to submit PRs with a change only in 'go.mod' but without actually
+# running 'make vendor' to update the source files under vendor. This
+# requires a human to run those steps.
+#
+# This script automates that, with a few safety checks.
+#
+ME=$(basename $0)
+missing=" argument is missing; see $ME --help for details"
+usage="Usage: $ME [--help] [-v|--verbose]
+
+$ME performs a series of magical steps to get dependabot PRs
+ready for merge. The important one is 'make vendor-in-container',
+everything else is scaffolding to check out the PR and push it back.
+
+Flags:
+  --help          display usage message
+  -v, --verbose   verbose output
+"
+
+verbose=
+for i
+do
+    value=$(expr "$i" : '[^=]*=\(.*\)')
+    case "$i" in
+    -h*|--help)	echo "$usage"; exit 0;;
+    -v|--verbose)	verbose=$i; shift;;
+    -*)	echo "$ME: unrecognized option $i" >&2
+	echo "$usage" >&2
+	exit 1;;
+    *)	break;;
+    esac
+done
+
+die () {
+    echo "$ME: $*" >&2
+    exit 1
+}
+
+function branch_dance() {
+    local branch="$1"
+
+    # User will appreciate seeing 'git' and 'make' commands, but nothing else
+    set -x
+    git checkout -t $branch
+    set +x
+
+    # Commit must be from dependabot
+    author=$(git show --no-patch --format='format:%an' HEAD)
+    if ! [[ $author =~ dependabot ]]; then
+        echo
+        echo "Commit author is '$author' (expected 'dependabot')"
+        echo -n "Continue? [y/N] "
+        read ans
+        case "$ans" in
+            [yY]*) ;;
+            *) exit 1;;
+        esac
+    fi
+
+    # This is what does all the work
+    set -x
+    make vendor-in-container
+    set +x
+
+    # Now make sure at least *something* changed under vendor
+    modified=$(git ls-files -m vendor)
+    if [[ -z "$modified" ]]; then
+        echo "No files changed under 'vendor' -- nothing to do!"
+        return
+    fi
+
+    # Okay, here we go
+    set -x
+    git add vendor
+    git commit -a --amend -s --no-edit
+    git push --force
+    set +x
+
+    # Try to leave things in relatively clean state; remove local branch copy
+    local tracking_branch=$(git branch --show-current)
+    git checkout master
+    git branch -d $tracking_branch
+}
+
+
+
+
+# Make sure we're cd'ed to the top level of a podman repo
+test -d .git || die "No .git subdirectory (please cd to top level)"
+
+# Clear all dependabot remote branches
+git branch -r | grep /dependabot/go_modules/ \
+    | xargs --no-run-if-empty git branch -r -d
+
+# ...and pull new ones
+git pull --all
+
+# Abort on any error from here on
+set -e
+
+# We cannot have any git-modified files
+modified=$(git ls-files -m)
+test -z "$modified" || die "Modified files exist: $modified"
+
+for branch in $(git branch -r | grep /dependabot/go_modules/); do
+    echo
+    echo ">>>>> $branch"
+    branch_dance $branch
+done
