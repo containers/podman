@@ -345,6 +345,12 @@ var _ = Describe("Podman pod create", func() {
 		check1.WaitWithDefaultTimeout()
 		Expect(check1.ExitCode()).To(Equal(0))
 		Expect(check1.OutputToString()).To(Equal("/pause"))
+
+		// check the Path and Args
+		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
+		check2.WaitWithDefaultTimeout()
+		Expect(check2.ExitCode()).To(Equal(0))
+		Expect(check2.OutputToString()).To(Equal("/pause:[/pause]"))
 	})
 
 	It("podman create pod with --infra-command", func() {
@@ -362,6 +368,12 @@ var _ = Describe("Podman pod create", func() {
 		check1.WaitWithDefaultTimeout()
 		Expect(check1.ExitCode()).To(Equal(0))
 		Expect(check1.OutputToString()).To(Equal("/pause1"))
+
+		// check the Path and Args
+		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
+		check2.WaitWithDefaultTimeout()
+		Expect(check2.ExitCode()).To(Equal(0))
+		Expect(check2.OutputToString()).To(Equal("/pause1:[/pause1]"))
 	})
 
 	It("podman create pod with --infra-image", func() {
@@ -383,6 +395,12 @@ entrypoint ["/fromimage"]
 		check1.WaitWithDefaultTimeout()
 		Expect(check1.ExitCode()).To(Equal(0))
 		Expect(check1.OutputToString()).To(Equal("/fromimage"))
+
+		// check the Path and Args
+		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
+		check2.WaitWithDefaultTimeout()
+		Expect(check2.ExitCode()).To(Equal(0))
+		Expect(check2.OutputToString()).To(Equal("/fromimage:[/fromimage]"))
 	})
 
 	It("podman create pod with --infra-command --infra-image", func() {
@@ -404,5 +422,11 @@ entrypoint ["/fromimage"]
 		check1.WaitWithDefaultTimeout()
 		Expect(check1.ExitCode()).To(Equal(0))
 		Expect(check1.OutputToString()).To(Equal("/fromcommand"))
+
+		// check the Path and Args
+		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
+		check2.WaitWithDefaultTimeout()
+		Expect(check2.ExitCode()).To(Equal(0))
+		Expect(check2.OutputToString()).To(Equal("/fromcommand:[/fromcommand]"))
 	})
 })

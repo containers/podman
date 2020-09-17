@@ -50,7 +50,11 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 				entryPoint = config.Entrypoint
 				entryCmd = config.Entrypoint
 			}
+		} else { // so use the InfraCommand
+			entrypointSet = true
+			entryCmd = entryPoint
 		}
+
 		if len(config.Cmd) > 0 {
 			// We can't use the default pause command, since we're
 			// sourcing from the image. If we didn't already set an
