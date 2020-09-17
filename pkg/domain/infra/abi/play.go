@@ -132,6 +132,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		libpod.WithInfraContainer(),
 		libpod.WithPodName(podName),
 	}
+
+	if podYAML.ObjectMeta.Labels != nil {
+		podOptions = append(podOptions, libpod.WithPodLabels(podYAML.ObjectMeta.Labels))
+	}
+
 	// TODO we only configure Process namespace. We also need to account for Host{IPC,Network,PID}
 	// which is not currently possible with pod create
 	if podYAML.Spec.ShareProcessNamespace != nil && *podYAML.Spec.ShareProcessNamespace {
