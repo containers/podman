@@ -14,6 +14,7 @@
 - The `podman run` and `podman create` commands can now create overlay volume mounts, by adding the `:O` option to a bind mount (e.g. `-v /test:/test:O`). Overlay volume mounts will mount a directory into a container from the host and allow changes to it, but not write those changes back to the directory on the host.
 - The `podman play kube` command now supports the Socket HostPath type ([#7112](https://github.com/containers/podman/issues/7112)).
 - The `podman play kube` command now supports read-only mounts.
+- The `podman play kube` command now supports setting labels on pods from Kubernetes metadata labels.
 - The `podman play kube` command now properly handles `HostAlias` entries.
 - The `podman generate kube` command now adds entries to `/etc/hosts` from `--host-add` generated YAML as `HostAlias` entries.
 - The `podman play kube` and `podman generate kube` commands now properly support `shareProcessNamespace` to share the PID namespace in pods.
@@ -66,6 +67,11 @@
 - Fixed a bug where the `podman play kube` command would trim underscores from container names ([#7020](https://github.com/containers/podman/issues/7020)).
 - Fixed a bug where the `podman attach` command would not show output when attaching to a container with a terminal ([#6523](https://github.com/containers/podman/issues/6253)).
 - Fixed a bug where the `podman system df` command could be extremely slow when large quantities of images were present ([#7406](https://github.com/containers/podman/issues/7406)).
+- Fixed a bug where `podman images -a` would break if any image pulled by digest was present in the store ([#7651](https://github.com/containers/podman/issues/7651)).
+- Fixed a bug where the `--mount` option to `podman run` and `podman create` required the `type=` parameter to be passed first ([#7628](https://github.com/containers/podman/issues/7628)).
+- Fixed a bug where the `--infra-command` parameter to `podman pod create` was nonfunctional.
+- Fixed a bug where `podman auto-update` would fail for any container started with `--pull=always` ([#7407](https://github.com/containers/podman/issues/7407)).
+- Fixed a bug where the `podman wait` command would only accept a single argument.
 
 ### API
 - Docker-compatible Volume Endpoints (Create, Inspect, List, Remove, Prune) are now available!
@@ -85,10 +91,16 @@
 - Fixed a bug where Pod endpoints that can operate on multiple containers at once (e.g. Kill, Pause, Unpause, Stop) would not forward errors from individual containers that failed.
 - The Compat List endpoint for networks now supports filtering results ([#7462](https://github.com/containers/podman/issues/7462)).
 - Fixed a bug where the Top endpoint for pods would return both a 500 and 404 when run on a non-existant pod.
+- Fixed a bug where Pull endpoints did not stream progress back to the client.
+- The Version endpoints (Libpod and Compat) now provide version in a format compatible with Docker.
+- All non-hijacking responses to API requests should not include headers with the version of the server.
+- Fixed a bug where Libpod and Compat Events endpoints did not send response headers until the first event occurred ([#7263](https://github.com/containers/podman/issues/7263)).
+- Fixed a bug where the Build endpoints (Compat and Libpod) did not stream progress to the client.
 
 ### Misc
 - Updated Buildah to v1.16.1
 - Updated the containers/storage library to v1.23.5
+- Updated the containers/image library to v5.6.0
 - Updated the containers/common library to v0.22.0
 
 ## 2.0.6
