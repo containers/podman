@@ -158,12 +158,12 @@ spec:
         {{- with .Labels }}{{ range $key, $value := . }}
         {{ $key }}: {{ $value }}
         {{- end }}{{ end }}
-      {{ with .Annotations }}
-        annotations:
-        {{ range $key, $value := . }}
-          {{ $key }}: {{ $value }}
-        {{ end }}
-      {{ end }}
+      {{- with .Annotations }}
+      annotations:
+      {{- range $key, $value := . }}
+        {{ $key }}: {{ $value }}
+      {{- end }}
+      {{- end }}
     spec:
       hostname: {{ .Hostname }}
       containers:
