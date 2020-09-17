@@ -1,3 +1,36 @@
+- Changelog for v2.1.0-rc2 (2020-09-17)
+  * Update release notes for Podman v2.1.0-RC2
+  * Fix play_kube_test deployment template
+  * fix missing completion in podman run
+  * Bump k8s.io/apimachinery from 0.19.1 to 0.19.2
+  * image list: return all associated names
+  * Add labels to a pod created via play kube
+  * Refactor remote pull to provide progress
+  * --mount: support arbitrary mount-argument order
+  * Fix podman pod create --infra-command and --infra-image
+  * Fix "rootless-cni-infra + runc fails with ENODEV"
+  * podman version and --version: fix format, exit
+  * Supports import&run--signature-policy
+  * Fix CI breakage due to PR collision
+  * [CI:DOCS]update owners file
+  * Refactor API version values
+  * Fix --systemd=always regression
+  * Correct HTTP methods for /containers/{id}/archive
+  * events endpoint: header: do not wait for events
+  * run/create: record raw image
+  * rootless CNI: extract env and cmd from image
+  * libpod: rootless CNI image: use quay
+  * move `rootless-cni-infra` image to quay.io
+  * vendor github.com/containers/image/v5@v5.6.0
+  * podman wait accept args > 1
+  * Usability: prevent "-l" with arguments
+  * Document the connection path for podman --remote
+  * Refactor API build endpoint to be more compliant
+  * pull types allow initial caps
+  * Determine if resolv.conf points to systemd-resolved
+  * Bump to v2.1.0-dev
+  * Fix completions for namespaces
+
 - Changelog for v2.1.0-rc1 (2020-09-11)
   * Add release notes for Podman v2.1.0-RC1
   * Vendor in containers/buildah 1.16.1
