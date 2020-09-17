@@ -404,6 +404,16 @@ __podman_local_interfaces() {
 	ip addr show scope global 2>/dev/null | sed -n 's| \+inet \([0-9.]\+\).* \([^ ]\+\)|\1 \2|p'
 }
 
+__podman_complete_restart() {
+	case "$prev" in
+		--restart)
+			COMPREPLY=( $( compgen -W "always no on-failure" -- "$cur") )
+			return
+			;;
+	esac
+	return 1
+}
+
 __podman_complete_local_interfaces() {
 	local additional_interface
 	if [ "$1" = "--add" ] ; then
@@ -2178,6 +2188,7 @@ _podman_container_run() {
 		--preserve-fds
 		--publish -p
 		--pull
+		--restart
 		--runtime
 		--rootfs
 		--security-opt
@@ -2232,6 +2243,7 @@ _podman_container_run() {
 			--sig-proxy=false
 		"
 		__podman_complete_detach_keys && return
+		__podman_complete_restart && return
 	fi
 
     case "$cur" in
