@@ -23,33 +23,13 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 
 	summaries := []*entities.ImageSummary{}
 	for _, img := range images {
-		var repoTags []string
-		if opts.All {
-			pairs, err := libpodImage.ReposToMap(img.Names())
-			if err != nil {
-				return nil, err
-			}
-
-			for repo, tags := range pairs {
-				for _, tag := range tags {
-					repoTags = append(repoTags, repo+":"+tag)
-				}
-			}
-		} else {
-			repoTags, err = img.RepoTags()
-			if err != nil {
-				return nil, err
-			}
-		}
-
 		digests := make([]string, len(img.Digests()))
 		for j, d := range img.Digests() {
 			digests[j] = string(d)
 		}
 
 		e := entities.ImageSummary{
-			ID: img.ID(),
-
+			ID:           img.ID(),
 			ConfigDigest: string(img.ConfigDigest),
 			Created:      img.Created().Unix(),
 			Dangling:     img.Dangling(),
@@ -61,7 +41,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 			ReadOnly:     img.IsReadOnly(),
 			SharedSize:   0,
 			VirtualSize:  img.VirtualSize,
-			RepoTags:     repoTags,
+			RepoTags:     img.Names(), // may include tags and digests
 		}
 		e.Labels, _ = img.Labels(context.TODO())
 

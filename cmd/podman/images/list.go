@@ -184,13 +184,26 @@ func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
 	for _, e := range imageS {
 		var h imageReporter
 		if len(e.RepoTags) > 0 {
+			tagged := []imageReporter{}
+			untagged := []imageReporter{}
 			for _, tag := range e.RepoTags {
 				h.ImageSummary = *e
 				h.Repository, h.Tag, err = tokenRepoTag(tag)
 				if err != nil {
 					return nil, errors.Wrapf(err, "error parsing repository tag %q:", tag)
 				}
-				imgs = append(imgs, h)
+				if h.Tag == "<none>" {
+					untagged = append(untagged, h)
+				} else {
+					tagged = append(tagged, h)
+				}
+			}
+			// Note: we only want to display "<none>" if we
+			// couldn't find any tagged name in RepoTags.
+			if len(tagged) > 0 {
+				imgs = append(imgs, tagged...)
+			} else {
+				imgs = append(imgs, untagged[0])
 			}
 		} else {
 			h.ImageSummary = *e
