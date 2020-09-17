@@ -299,6 +299,18 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, err
 	}
 
+	var ctrRestartPolicy string
+	switch podYAML.Spec.RestartPolicy {
+	case v1.RestartPolicyAlways:
+		ctrRestartPolicy = libpod.RestartPolicyAlways
+	case v1.RestartPolicyOnFailure:
+		ctrRestartPolicy = libpod.RestartPolicyOnFailure
+	case v1.RestartPolicyNever:
+		ctrRestartPolicy = libpod.RestartPolicyNo
+	default: // Default to Always
+		ctrRestartPolicy = libpod.RestartPolicyAlways
+	}
+
 	containers := make([]*libpod.Container, 0, len(podYAML.Spec.Containers))
 	for _, container := range podYAML.Spec.Containers {
 		pullPolicy := util.PullImageMissing
@@ -326,6 +338,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
+		conf.RestartPolicy = ctrRestartPolicy
 		ctr, err := createconfig.CreateContainerFromCreateConfig(ctx, ic.Libpod, conf, pod)
 		if err != nil {
 			return nil, err

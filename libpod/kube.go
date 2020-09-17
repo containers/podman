@@ -77,6 +77,24 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 	}
 	pod.Spec.HostAliases = extraHost
 
+	// vendor/k8s.io/api/core/v1/types.go: v1.Container cannot save restartPolicy
+	// so set it at here
+	for _, ctr := range allContainers {
+		if !ctr.IsInfra() {
+			switch ctr.Config().RestartPolicy {
+			case RestartPolicyAlways:
+				pod.Spec.RestartPolicy = v1.RestartPolicyAlways
+			case RestartPolicyOnFailure:
+				pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure
+			case RestartPolicyNo:
+				pod.Spec.RestartPolicy = v1.RestartPolicyNever
+			default: // some pod create from cmdline, such as "", so set it to Never
+				pod.Spec.RestartPolicy = v1.RestartPolicyNever
+			}
+			break
+		}
+	}
+
 	if p.SharesPID() {
 		// unfortunately, go doesn't have a nice way to specify a pointer to a bool
 		b := true

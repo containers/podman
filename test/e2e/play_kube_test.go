@@ -46,6 +46,7 @@ metadata:
 {{ end }}
 
 spec:
+  restartPolicy: {{ .RestartPolicy }}
   hostname: {{ .Hostname }}
   hostAliases:
 {{ range .HostAliases }}
@@ -165,6 +166,7 @@ spec:
       {{- end }}
       {{- end }}
     spec:
+      restartPolicy: {{ .RestartPolicy }}
       hostname: {{ .Hostname }}
       containers:
     {{ with .Ctrs }}
@@ -274,13 +276,14 @@ func generateDeploymentKubeYaml(deployment *Deployment, fileName string) error {
 
 // Pod describes the options a kube yaml can be configured at pod level
 type Pod struct {
-	Name        string
-	Hostname    string
-	HostAliases []HostAlias
-	Ctrs        []*Ctr
-	Volumes     []*Volume
-	Labels      map[string]string
-	Annotations map[string]string
+	Name          string
+	RestartPolicy string
+	Hostname      string
+	HostAliases   []HostAlias
+	Ctrs          []*Ctr
+	Volumes       []*Volume
+	Labels        map[string]string
+	Annotations   map[string]string
 }
 
 type HostAlias struct {
@@ -293,13 +296,14 @@ type HostAlias struct {
 // if no containers are added, it will add the default container
 func getPod(options ...podOption) *Pod {
 	p := Pod{
-		Name:        defaultPodName,
-		Hostname:    "",
-		HostAliases: nil,
-		Ctrs:        make([]*Ctr, 0),
-		Volumes:     make([]*Volume, 0),
-		Labels:      make(map[string]string),
-		Annotations: make(map[string]string),
+		Name:          defaultPodName,
+		RestartPolicy: "Never",
+		Hostname:      "",
+		HostAliases:   nil,
+		Ctrs:          make([]*Ctr, 0),
+		Volumes:       make([]*Volume, 0),
+		Labels:        make(map[string]string),
+		Annotations:   make(map[string]string),
 	}
 	for _, option := range options {
 		option(&p)
@@ -311,6 +315,12 @@ func getPod(options ...podOption) *Pod {
 }
 
 type podOption func(*Pod)
+
+func withPodName(name string) podOption {
+	return func(pod *Pod) {
+		pod.Name = name
+	}
+}
 
 func withHostname(h string) podOption {
 	return func(pod *Pod) {
@@ -330,6 +340,12 @@ func withHostAliases(ip string, host []string) podOption {
 func withCtr(c *Ctr) podOption {
 	return func(pod *Pod) {
 		pod.Ctrs = append(pod.Ctrs, c)
+	}
+}
+
+func withRestartPolicy(policy string) podOption {
+	return func(pod *Pod) {
+		pod.RestartPolicy = policy
 	}
 }
 
@@ -647,6 +663,30 @@ var _ = Describe("Podman generate kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello world]`))
+	})
+
+	It("podman play kube test restartPolicy", func() {
+		// podName,  set,  expect
+		testSli := [][]string{
+			{"testPod1", "", "always"}, // Default eqaul to always
+			{"testPod2", "Always", "always"},
+			{"testPod3", "OnFailure", "on-failure"},
+			{"testPod4", "Never", "no"},
+		}
+		for _, v := range testSli {
+			pod := getPod(withPodName(v[0]), withRestartPolicy(v[1]))
+			err := generatePodKubeYaml(pod, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube.ExitCode()).To(Equal(0))
+
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{.HostConfig.RestartPolicy.Name}}"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect.ExitCode()).To(Equal(0))
+			Expect(inspect.OutputToString()).To(Equal(v[2]))
+		}
 	})
 
 	It("podman play kube test hostname", func() {
