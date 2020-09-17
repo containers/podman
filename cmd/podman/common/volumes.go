@@ -28,6 +28,7 @@ var (
 	errDuplicateDest = errors.Errorf("duplicate mount destination")
 	optionArgError   = errors.Errorf("must provide an argument for option")
 	noDestError      = errors.Errorf("must set volume destination")
+	errInvalidSyntax = errors.Errorf("incorrect mount format: should be --mount type=<bind|tmpfs|volume>,[src=<host-dir|volume-name>,]target=<ctr-dir>[,options]")
 )
 
 // Parse all volume-related options in the create config into a set of mounts
@@ -147,6 +148,27 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 	return finalMounts, finalVolumes, finalOverlayVolume, nil
 }
 
+// findMountType parses the input and extracts the type of the mount type and
+// the remaining non-type tokens.
+func findMountType(input string) (mountType string, tokens []string, err error) {
+	// Split by comma, iterate over the slice and look for
+	// "type=$mountType". Everything else is appended to tokens.
+	found := false
+	for _, s := range strings.Split(input, ",") {
+		kv := strings.Split(s, "=")
+		if found || !(len(kv) == 2 && kv[0] == "type") {
+			tokens = append(tokens, s)
+			continue
+		}
+		mountType = kv[1]
+		found = true
+	}
+	if !found {
+		err = errInvalidSyntax
+	}
+	return
+}
+
 // getMounts takes user-provided input from the --mount flag and creates OCI
 // spec mounts and Libpod named volumes.
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
@@ -156,25 +178,13 @@ func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.N
 	finalMounts := make(map[string]spec.Mount)
 	finalNamedVolumes := make(map[string]*specgen.NamedVolume)
 
-	errInvalidSyntax := errors.Errorf("incorrect mount format: should be --mount type=<bind|tmpfs|volume>,[src=<host-dir|volume-name>,]target=<ctr-dir>[,options]")
-
-	// TODO(vrothberg): the manual parsing can be replaced with a regular expression
-	//                  to allow a more robust parsing of the mount format and to give
-	//                  precise errors regarding supported format versus supported options.
 	for _, mount := range mountFlag {
-		arr := strings.SplitN(mount, ",", 2)
-		if len(arr) < 2 {
-			return nil, nil, errors.Wrapf(errInvalidSyntax, "%q", mount)
+		// TODO: Docker defaults to "volume" if no mount type is specified.
+		mountType, tokens, err := findMountType(mount)
+		if err != nil {
+			return nil, nil, err
 		}
-		kv := strings.Split(arr[0], "=")
-		// TODO: type is not explicitly required in Docker.
-		// If not specified, it defaults to "volume".
-		if len(kv) != 2 || kv[0] != "type" {
-			return nil, nil, errors.Wrapf(errInvalidSyntax, "%q", mount)
-		}
-
-		tokens := strings.Split(arr[1], ",")
-		switch kv[1] {
+		switch mountType {
 		case TypeBind:
 			mount, err := getBindMount(tokens)
 			if err != nil {
@@ -212,7 +222,7 @@ func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.N
 			}
 			finalNamedVolumes[volume.Dest] = volume
 		default:
-			return nil, nil, errors.Errorf("invalid filesystem type %q", kv[1])
+			return nil, nil, errors.Errorf("invalid filesystem type %q", mountType)
 		}
 	}
 
