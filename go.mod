@@ -8,6 +8,7 @@ require (
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
+	github.com/containerd/containerd v1.4.1 // indirect
 	github.com/containernetworking/cni v0.8.0
 	github.com/containernetworking/plugins v0.8.7
 	github.com/containers/buildah v1.16.1
@@ -21,7 +22,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f
+	github.com/docker/docker v17.12.0-ce-rc1.0.20200917150144-3956a86b6235+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.9
@@ -34,6 +35,8 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.10
+	github.com/moby/sys/mount v0.1.1 // indirect
+	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
@@ -60,7 +63,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200810151505-1b9f1253b3ed
+	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab

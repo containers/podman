@@ -14,7 +14,7 @@ import (
 	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/kubeutils"
 	"github.com/containers/podman/v2/utils"
-	"github.com/docker/docker/pkg/term"
+	"github.com/moby/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"

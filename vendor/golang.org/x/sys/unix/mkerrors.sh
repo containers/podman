@@ -193,9 +193,12 @@ struct ltchars {
 #include <sys/xattr.h>
 #include <linux/bpf.h>
 #include <linux/can.h>
+#include <linux/can/error.h>
+#include <linux/can/raw.h>
 #include <linux/capability.h>
 #include <linux/cryptouser.h>
 #include <linux/devlink.h>
+#include <linux/dm-ioctl.h>
 #include <linux/errqueue.h>
 #include <linux/falloc.h>
 #include <linux/fanotify.h>
@@ -517,6 +520,7 @@ ccflags="$@"
 		$2 ~ /^FS_IOC_.*(ENCRYPTION|VERITY|[GS]ETFLAGS)/ ||
 		$2 ~ /^FS_VERITY_/ ||
 		$2 ~ /^FSCRYPT_/ ||
+		$2 ~ /^DM_/ ||
 		$2 ~ /^GRND_/ ||
 		$2 ~ /^RND/ ||
 		$2 ~ /^KEY_(SPEC|REQKEY_DEFL)_/ ||
