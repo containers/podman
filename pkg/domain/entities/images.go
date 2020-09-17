@@ -45,7 +45,7 @@ type Image struct {
 	HealthCheck   *manifest.Schema2HealthConfig `json:",omitempty"`
 }
 
-func (i *Image) Id() string { //nolint
+func (i *Image) Id() string { // nolint
 	return i.ID
 }
 
@@ -70,7 +70,7 @@ type ImageSummary struct {
 	History      []string `json:",omitempty"`
 }
 
-func (i *ImageSummary) Id() string { //nolint
+func (i *ImageSummary) Id() string { // nolint
 	return i.ID
 }
 
@@ -150,7 +150,12 @@ type ImagePullOptions struct {
 
 // ImagePullReport is the response from pulling one or more images.
 type ImagePullReport struct {
-	Images []string
+	// Stream used to provide output from c/image
+	Stream string `json:"stream,omitempty"`
+	// Error contains text of errors from c/image
+	Error string `json:"error,omitempty"`
+	// Images contains the ID's of the images pulled
+	Images []string `json:"images,omitempty"`
 }
 
 // ImagePushOptions are the arguments for pushing images.
@@ -269,7 +274,7 @@ type ImageImportOptions struct {
 }
 
 type ImageImportReport struct {
-	Id string //nolint
+	Id string // nolint
 }
 
 // ImageSaveOptions provide options for saving images.
@@ -349,7 +354,7 @@ type ImageUnmountOptions struct {
 // ImageMountReport describes the response from image mount
 type ImageMountReport struct {
 	Err          error
-	Id           string //nolint
+	Id           string // nolint
 	Name         string
 	Repositories []string
 	Path         string
@@ -358,5 +363,5 @@ type ImageMountReport struct {
 // ImageUnmountReport describes the response from umounting an image
 type ImageUnmountReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
