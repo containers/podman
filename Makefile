@@ -38,7 +38,7 @@ PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit 
 
 SOURCES = $(shell find . -path './.*' -prune -o -name "*.go")
 
-GO_BUILD ?= $(GO) build -mod=vendor
+BUILDFLAGS := -mod=vendor $(BUILDFLAGS)
 
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
@@ -170,11 +170,11 @@ gofmt: ## Verify the source code gofmt
 
 .PHONY: test/checkseccomp/checkseccomp
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO_BUILD) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
+	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
 .PHONY: test/goecho/goechoe
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
-	$(GO_BUILD) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
+	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
 
 
 .PHONY: bin/podman
@@ -184,18 +184,18 @@ ifeq (,$(findstring systemd,$(BUILDTAGS)))
 	@echo "Podman is being compiled without the systemd build tag. Install libsystemd on \
 		Ubuntu or systemd-devel on rpm based distro for journald support."
 endif
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./cmd/podman
+	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./cmd/podman
 
 .PHONY: podman
 podman: bin/podman
 
 .PHONY: bin/podman-remote
 bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ ./cmd/podman
+	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ ./cmd/podman
 
 .PHONY: bin/podman-remote-static
 podman-remote-static: bin/podman-remote-static
-	CGO_ENABLED=0 $(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN_STATIC)' -tags "${REMOTETAGS}" -o bin/podman-remote-static ./cmd/podman
+	CGO_ENABLED=0 $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN_STATIC)' -tags "${REMOTETAGS}" -o bin/podman-remote-static ./cmd/podman
 
 .PHONY: podman-remote
 podman-remote: bin/podman-remote
@@ -209,7 +209,7 @@ podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-do
 
 podman-remote-%: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build podman for a specific GOOS
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
-	CGO_ENABLED=0 GOOS=$* $(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/$@$(BINSFX) ./cmd/podman
+	CGO_ENABLED=0 GOOS=$* $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/$@$(BINSFX) ./cmd/podman
 
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross local compilation
 
@@ -217,7 +217,7 @@ bin/podman.cross.%: .gopathok
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" ./cmd/podman
+	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" ./cmd/podman
 
 # Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
@@ -622,7 +622,7 @@ endef
 .PHONY: .install.ginkgo
 .install.ginkgo: .gopathok
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
-		$(GO_BUILD) -o ${GOPATH}/bin/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo ; \
+		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo ; \
 	fi
 
 .PHONY: .install.gitvalidation
