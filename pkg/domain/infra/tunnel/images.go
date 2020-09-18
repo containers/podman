@@ -306,7 +306,22 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
-	return images.Build(ir.ClientCxt, containerFiles, opts)
+	report, err := images.Build(ir.ClientCxt, containerFiles, opts)
+	if err != nil {
+		return nil, err
+	}
+	// For remote clients, if the option for writing to a file was
+	// selected, we need to write to the *client's* filesystem.
+	if len(opts.IIDFile) > 0 {
+		f, err := os.Create(opts.IIDFile)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := f.WriteString(report.ID); err != nil {
+			return nil, err
+		}
+	}
+	return report, nil
 }
 
 func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
