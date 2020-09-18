@@ -18,7 +18,7 @@ Podman will first search for the username and password in the **${XDG\_RUNTIME\_
 Podman will then use any existing credentials found in **$HOME/.docker/config.json**.
 If those credentials are not present, Podman will create **${XDG\_RUNTIME\_DIR}/containers/auth.json** (if the file does not exist) and
 will then store the username and password from STDIN as a base64 encoded string in it.
-For more details about format and configurations of the auth,json file, please refer to containers-auth.json(5)
+For more details about format and configurations of the auth.json file, please refer to containers-auth.json(5)
 
 **podman [GLOBAL OPTIONS]**
 
@@ -108,7 +108,7 @@ Login Succeeded!
 ```
 
 ## SEE ALSO
-podman(1), podman-logout(1), containers-auth.json(5)
+podman(1), podman-logout(1), containers-auth.json(5), containers-registries.conf(5)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
