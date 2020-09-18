@@ -22,7 +22,7 @@ func (ic *ContainerEngine) VarlinkService(_ context.Context, opts entities.Servi
 	service, err := varlink.NewService(
 		"Atomic",
 		"podman",
-		version.Version,
+		version.Version.String(),
 		"https://github.com/containers/podman",
 	)
 	if err != nil {

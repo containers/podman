@@ -256,7 +256,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	}
 
 	if info.PodmanVersion == "" {
-		info.PodmanVersion = version.Version
+		info.PodmanVersion = version.Version.String()
 	}
 	if info.GenerateTimestamp {
 		info.TimeStamp = fmt.Sprintf("%v", time.Now().Format(time.UnixDate))

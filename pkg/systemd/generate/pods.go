@@ -299,7 +299,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		info.ExecStopPost = "{{.Executable}} pod rm --ignore -f --pod-id-file {{.PodIDFile}}"
 	}
 	if info.PodmanVersion == "" {
-		info.PodmanVersion = version.Version
+		info.PodmanVersion = version.Version.String()
 	}
 	if info.GenerateTimestamp {
 		info.TimeStamp = fmt.Sprintf("%v", time.Now().Format(time.UnixDate))

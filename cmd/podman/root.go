@@ -63,7 +63,7 @@ var (
 		PersistentPreRunE:  persistentPreRunE,
 		RunE:               validate.SubCommandExists,
 		PersistentPostRunE: persistentPostRunE,
-		Version:            version.Version,
+		Version:            version.Version.String(),
 	}
 
 	logLevels = []string{"debug", "info", "warn", "error", "fatal", "panic"}
