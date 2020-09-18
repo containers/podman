@@ -1,0 +1,44 @@
+# -*- sh -*-
+#
+# Tests for more image-related endpoints
+#
+
+podman pull -q $IMAGE
+
+t GET libpod/images/json 200 \
+  .[0].Id~[0-9a-f]\\{64\\}
+iid=$(jq -r '.[0].Id' <<<"$output")
+
+# Retrieve the image tree
+t GET libpod/images/$IMAGE/tree 200 \
+  .Tree~^Image
+
+# Tag nonesuch image
+t POST "libpod/images/nonesuch/tag?repo=myrepo&tag=mytag" '' 404
+
+# Tag the image
+t POST "libpod/images/$IMAGE/tag?repo=localhost:5000/myrepo&tag=mytag" '' 201
+
+t GET libpod/images/$IMAGE/json 200 \
+  .RepoTags[1]=localhost:5000/myrepo:mytag
+
+# Run registry container
+podman run -d --name registry -p 5000:5000 docker.io/library/registry:2.6 /entrypoint.sh /etc/docker/registry/config.yml
+
+# Push to local registry
+t POST libpod/images/localhost:5000/myrepo:mytag/push\?tlsVerify\=false '' 200
+
+# Untag the image
+t POST "libpod/images/$iid/untag?repo=localhost:5000/myrepo&tag=mytag" '' 201
+
+t GET libpod/images/$IMAGE/json 200 \
+  .RepoTags[-1]=$IMAGE
+
+# Remove the registry container
+t DELETE libpod/containers/registry?force=true 204
+
+# Remove images
+t DELETE libpod/images/$IMAGE 200 \
+  .ExitCode=0
+t DELETE libpod/images/docker.io/library/registry:2.6 200 \
+  .ExitCode=0
