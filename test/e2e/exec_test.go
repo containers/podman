@@ -282,6 +282,34 @@ var _ = Describe("Podman exec", func() {
 		Expect(strings.Contains(exec.OutputToString(), fmt.Sprintf("%s(%s)", gid, groupName))).To(BeTrue())
 	})
 
+	It("podman exec preserves container groups with --user and --group-add", func() {
+		SkipIfRemote()
+		dockerfile := `FROM fedora-minimal
+RUN groupadd -g 4000 first
+RUN groupadd -g 4001 second
+RUN useradd -u 1000 auser`
+		imgName := "testimg"
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+
+		ctrName := "testctr"
+		ctr := podmanTest.Podman([]string{"run", "-t", "-i", "-d", "--name", ctrName, "--user", "auser:first", "--group-add", "second", imgName, "sleep", "300"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(Equal(0))
+
+		exec := podmanTest.Podman([]string{"exec", "-t", ctrName, "id"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec.ExitCode()).To(Equal(0))
+		output := exec.OutputToString()
+		Expect(strings.Contains(output, "4000(first)")).To(BeTrue())
+		Expect(strings.Contains(output, "4001(second)")).To(BeTrue())
+		Expect(strings.Contains(output, "1000(auser)")).To(BeTrue())
+
+		// Kill the container just so the test does not take 15 seconds to stop.
+		kill := podmanTest.Podman([]string{"kill", ctrName})
+		kill.WaitWithDefaultTimeout()
+		Expect(kill.ExitCode()).To(Equal(0))
+	})
+
 	It("podman exec --detach", func() {
 		ctrName := "testctr"
 		ctr := podmanTest.Podman([]string{"run", "-t", "-i", "-d", "--name", ctrName, ALPINE, "top"})
