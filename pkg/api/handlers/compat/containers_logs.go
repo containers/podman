@@ -105,6 +105,18 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	var frame strings.Builder
 	header := make([]byte, 8)
+
+	writeHeader := true
+	// Docker does not write stream headers iff the container has a tty.
+	if !utils.IsLibpodRequest(r) {
+		inspectData, err := ctnr.Inspect(false)
+		if err != nil {
+			utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain logs for Container '%s'", name))
+			return
+		}
+		writeHeader = !inspectData.Config.Tty
+	}
+
 	for line := range logChannel {
 		if _, found := r.URL.Query()["until"]; found {
 			if line.Time.After(until) {
@@ -138,10 +150,13 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		}
 		frame.WriteString(line.Msg)
 
-		binary.BigEndian.PutUint32(header[4:], uint32(frame.Len()))
-		if _, err := w.Write(header[0:8]); err != nil {
-			log.Errorf("unable to write log output header: %q", err)
+		if writeHeader {
+			binary.BigEndian.PutUint32(header[4:], uint32(frame.Len()))
+			if _, err := w.Write(header[0:8]); err != nil {
+				log.Errorf("unable to write log output header: %q", err)
+			}
 		}
+
 		if _, err := io.WriteString(w, frame.String()); err != nil {
 			log.Errorf("unable to write frame string: %q", err)
 		}
