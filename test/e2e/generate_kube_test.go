@@ -3,6 +3,7 @@ package integration
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 
 	. "github.com/containers/podman/v2/test/utils"
 	"github.com/ghodss/yaml"
@@ -199,6 +200,39 @@ var _ = Describe("Podman generate kube", func() {
 		// structs that need to be unmarshalled...
 		// _, err := yaml.Marshal(kube.OutputToString())
 		// Expect(err).To(BeNil())
+	})
+
+	It("podman generate kube on pod with restartPolicy", func() {
+		// podName,  set,  expect
+		testSli := [][]string{
+			{"testPod1", "", "Never"}, // some pod create from cmdline, so set it to Never
+			{"testPod2", "always", "Always"},
+			{"testPod3", "on-failure", "OnFailure"},
+			{"testPod4", "no", "Never"},
+		}
+
+		for k, v := range testSli {
+			podName := v[0]
+			podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
+			podSession.WaitWithDefaultTimeout()
+			Expect(podSession.ExitCode()).To(Equal(0))
+
+			ctrName := "ctr" + strconv.Itoa(k)
+			ctr1Session := podmanTest.Podman([]string{"create", "--name", ctrName, "--pod", podName,
+				"--restart", v[1], ALPINE, "top"})
+			ctr1Session.WaitWithDefaultTimeout()
+			Expect(ctr1Session.ExitCode()).To(Equal(0))
+
+			kube := podmanTest.Podman([]string{"generate", "kube", podName})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube.ExitCode()).To(Equal(0))
+
+			pod := new(v1.Pod)
+			err := yaml.Unmarshal(kube.Out.Contents(), pod)
+			Expect(err).To(BeNil())
+
+			Expect(string(pod.Spec.RestartPolicy)).To(Equal(v[2]))
+		}
 	})
 
 	It("podman generate kube on pod with ports", func() {
