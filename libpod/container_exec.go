@@ -980,11 +980,6 @@ func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
 		capList = capabilities.AllCapabilities()
 	}
 
-	user := c.config.User
-	if session.Config.User != "" {
-		user = session.Config.User
-	}
-
 	if err := c.createExecBundle(session.ID()); err != nil {
 		return nil, err
 	}
@@ -995,7 +990,7 @@ func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
 	opts.Env = session.Config.Environment
 	opts.Terminal = session.Config.Terminal
 	opts.Cwd = session.Config.WorkDir
-	opts.User = user
+	opts.User = session.Config.User
 	opts.PreserveFDs = session.Config.PreserveFDs
 	opts.DetachKeys = session.Config.DetachKeys
 	opts.ExitCommand = session.Config.ExitCommand
