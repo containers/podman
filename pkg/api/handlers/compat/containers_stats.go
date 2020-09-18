@@ -86,7 +86,12 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 
-	for ok := true; ok; ok = query.Stream {
+streamLabel: // A label to flatten the scope
+	select {
+	case <-r.Context().Done():
+		logrus.Debugf("Client connection (container stats) cancelled")
+
+	default:
 		// Container stats
 		stats, err := ctnr.GetContainerStats(stats)
 		if err != nil {
@@ -194,6 +199,10 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 
+		if !query.Stream {
+			return
+		}
+
 		preRead = s.Read
 		bits, err := json.Marshal(s.CPUStats)
 		if err != nil {
@@ -203,10 +212,8 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			logrus.Errorf("Unable to unmarshal previous stats: %q", err)
 		}
 
-		// Only sleep when we're streaming.
-		if query.Stream {
-			time.Sleep(DefaultStatsPeriod)
-		}
+		time.Sleep(DefaultStatsPeriod)
+		goto streamLabel
 	}
 }
 
