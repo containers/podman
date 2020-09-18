@@ -156,6 +156,8 @@ type ImagePullReport struct {
 	Error string `json:"error,omitempty"`
 	// Images contains the ID's of the images pulled
 	Images []string `json:"images,omitempty"`
+	// ID contains image id (retained for backwards compatibility)
+	ID string `json:"id,omitempty"`
 }
 
 // ImagePushOptions are the arguments for pushing images.

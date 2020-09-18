@@ -33,7 +33,7 @@ type LibpodImagesLoadReport struct {
 }
 
 type LibpodImagesPullReport struct {
-	ID string `json:"id"`
+	entities.ImagePullReport
 }
 
 // LibpodImagesRemoveReport is the return type for image removal via the rest
