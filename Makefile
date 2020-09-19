@@ -11,7 +11,6 @@ PROJECT := github.com/containers/podman
 GIT_BASE_BRANCH ?= origin/master
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN ?= $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
-LIBPOD_IMAGE ?= libpod_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
 LIBPOD_INSTANCE := libpod_dev
 PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
@@ -264,46 +263,6 @@ clean: ## Clean artifacts
 		docs/build
 	make -C docs clean
 
-.PHONY: libpodimage
-libpodimage: ## Build the libpod image
-	${CONTAINER_RUNTIME} build -t ${LIBPOD_IMAGE} .
-
-.PHONY: dbuild
-dbuild: libpodimage
-	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} make all
-
-.PHONY: dbuild-podman-remote
-dbuild-podman-remote: libpodimage
-	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} $(GOBUILD) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(REMOTETAGS)" -o bin/podman-remote ./cmd/podman
-
-.PHONY: dbuild-podman-remote-darwin
-dbuild-podman-remote-darwin: libpodimage
-	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} env GOOS=darwin $(GOBUILD) -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/podman-remote-darwin ./cmd/podman
-
-.PHONY: test
-test: libpodimage ## Run tests on built image
-	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e OCI_RUNTIME -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all localunit install.catatonit localintegration
-
-.PHONY: integration
-integration: libpodimage ## Execute integration tests
-	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e OCI_RUNTIME -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all install.catatonit localintegration
-
-.PHONY: integration.fedora
-integration.fedora:
-	DIST=Fedora sh .papr_prepare.sh
-
-.PHONY: integration.centos
-integration.centos:
-	DIST=CentOS sh .papr_prepare.sh
-
-.PHONY: shell
-shell: libpodimage ## Run the built image and attach a shell
-	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e CGROUP_MANAGER=cgroupfs -e TESTFLAGS -e OCI_RUNTIME -e TRAVIS -it --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} sh
-
-.PHONY: testunit
-testunit: libpodimage ## Run unittest on the built image
-	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e OCI_RUNTIME -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localunit
-
 .PHONY: localunit
 localunit: test/goecho/goecho varlink_generate
 	hack/check_root.sh make localunit
@@ -321,6 +280,9 @@ localunit: test/goecho/goecho varlink_generate
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile > ${COVERAGE_PATH}/functions
 	cat ${COVERAGE_PATH}/functions | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
+
+.PHONY: test
+test: localunit localintegration remoteintegration localsystem remotesystem  ## Run unit, integration, and system tests.
 
 .PHONY: ginkgo
 ginkgo:
