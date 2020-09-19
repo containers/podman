@@ -3,12 +3,64 @@
 # volume-related tests
 #
 
-#
-# FIXME: endpoints seem to be unimplemented, return 404
-#
-if false; then
-t GET  libpod/volumes/json            200 null
-t POST libpod/volumes/create name=foo 201
-fi
+## create volume
+t GET libpod/info 200
+volumepath=$(jq -r ".store.volumePath" <<<"$output")
+t POST libpod/volumes/create name=foo1  201 \
+    .Name=foo1 \
+    .Driver=local \
+    .Mountpoint=$volumepath/foo1/_data \
+    .CreatedAt~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.* \
+    .Labels={} \
+    .Options=null
+t POST libpod/volumes/create ''  201
+t POST libpod/volumes/create \
+    '"Name":"foo2","Label":{"testlabel":"testonly"},"Options":{"type":"tmpfs","o":"nodev,noexec"}}' 201 \
+    .Name=foo2 \
+    .Labels.testlabel=testonly \
+    .Options.type=tmpfs \
+    .Options.o=nodev,noexec
+
+# Negative test
+# We have created a volume named "foo1"
+t POST libpod/volumes/create name=foo1 500 \
+    .cause="volume already exists" \
+    .message~.* \
+    .response=500
+
+## list volume
+t GET libpod/volumes/json 200 \
+    .[0].Name~.* \
+    .[0].Mountpoint~.* \
+    .[0].CreatedAt~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.*
+# -G --data-urlencode 'filters={"name":["foo1"]}'
+t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22foo1%22%5D%7D 200 length=1 .[0].Name=foo1
+# -G --data-urlencode 'filters={"name":["notexist"]}'
+t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22notexists%22%5D%7D 200 length=0
+
+## inspect volume
+t GET libpod/volumes/foo1/json 200 \
+    .Name=foo1 \
+    .Mountpoint=$volumepath/foo1/_data \
+    .CreatedAt~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.*
+t GET libpod/volumes/notexist/json 404 \
+    .cause="no such volume" \
+    .message~.* \
+    .response=404
+
+## Remove volumes
+t DELETE libpod/volumes/foo1 204
+#After remove foo1 volume, this volume should not exist
+t GET libpod/volumes/foo1/json 404
+# Negative test
+t DELETE libpod/volumes/foo1 404 \
+    .cause="no such volume" \
+    .message~.* \
+    .response=404
+
+## Prune volumes
+t POST libpod/volumes/prune "" 200
+#After prune volumes, there should be no volume existing
+t GET libpod/volumes/json 200 length=0
 
 # vim: filetype=sh
