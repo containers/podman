@@ -35,7 +35,7 @@ func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string)
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, options entities.WaitOptions) ([]entities.WaitReport, error) {
-	cons, err := getContainersByContext(ic.ClientCxt, false, namesOrIds)
+	cons, err := getContainersByContext(ic.ClientCxt, false, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +89,8 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		id := strings.Split(string(content), "\n")[0]
 		namesOrIds = append(namesOrIds, id)
 	}
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
-	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, options.Ignore, namesOrIds)
+	if err != nil {
 		return nil, err
 	}
 	for _, c := range ctrs {
@@ -120,7 +120,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 		timeout = &t
 	}
 
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -169,8 +169,8 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		id := strings.Split(string(content), "\n")[0]
 		namesOrIds = append(namesOrIds, id)
 	}
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
-	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, options.Ignore, namesOrIds)
+	if err != nil {
 		return nil, err
 	}
 	// TODO there is no endpoint for container eviction.  Need to discuss
@@ -283,7 +283,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	)
 
 	if options.All {
-		allCtrs, err := getContainersByContext(ic.ClientCxt, true, []string{})
+		allCtrs, err := getContainersByContext(ic.ClientCxt, true, false, []string{})
 		if err != nil {
 			return nil, err
 		}
@@ -295,7 +295,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		}
 
 	} else {
-		ctrs, err = getContainersByContext(ic.ClientCxt, false, namesOrIds)
+		ctrs, err = getContainersByContext(ic.ClientCxt, false, false, namesOrIds)
 		if err != nil {
 			return nil, err
 		}
@@ -317,7 +317,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		ctrs = []entities.ListContainer{}
 	)
 	if options.All {
-		allCtrs, err := getContainersByContext(ic.ClientCxt, true, []string{})
+		allCtrs, err := getContainersByContext(ic.ClientCxt, true, false, []string{})
 		if err != nil {
 			return nil, err
 		}
@@ -329,7 +329,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		}
 
 	} else {
-		ctrs, err = getContainersByContext(ic.ClientCxt, false, namesOrIds)
+		ctrs, err = getContainersByContext(ic.ClientCxt, false, false, namesOrIds)
 		if err != nil {
 			return nil, err
 		}
@@ -607,7 +607,7 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -647,7 +647,7 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 	if len(nameOrID) > 0 {
 		namesOrIds = append(namesOrIds, nameOrID)
 	}
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}

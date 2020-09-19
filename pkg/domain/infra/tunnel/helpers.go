@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getContainersByContext(contextWithConnection context.Context, all bool, namesOrIDs []string) ([]entities.ListContainer, error) {
+func getContainersByContext(contextWithConnection context.Context, all, ignore bool, namesOrIDs []string) ([]entities.ListContainer, error) {
 	var (
 		cons []entities.ListContainer
 	)
@@ -36,7 +36,7 @@ func getContainersByContext(contextWithConnection context.Context, all bool, nam
 				break
 			}
 		}
-		if !found {
+		if !found && !ignore {
 			return nil, errors.Wrapf(define.ErrNoSuchCtr, "unable to find container %q", id)
 		}
 	}
