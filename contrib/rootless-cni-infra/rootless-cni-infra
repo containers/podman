@@ -4,6 +4,23 @@ set -eu
 ARG0="$0"
 BASE="/run/rootless-cni-infra"
 
+wait_unshare_net() {
+	pid="$1"
+	# NOTE: busybox shell doesn't support the `for ((i=0; i < $MAX; i++)); do foo; done` statement
+	i=0
+	while :; do
+		if [ "$(readlink /proc/self/ns/net)" != "$(readlink /proc/${pid}/ns/net)" ]; then
+			break
+		fi
+		sleep 0.1
+		if [ $i -ge 10 ]; then
+			echo >&2 "/proc/${pid}/ns/net cannot be unshared"
+			exit 1
+		fi
+		i=$((i + 1))
+	done
+}
+
 # CLI subcommand: "alloc $CONTAINER_ID $NETWORK_NAME $POD_NAME"
 cmd_entrypoint_alloc() {
 	if [ "$#" -ne 3 ]; then
@@ -24,6 +41,7 @@ cmd_entrypoint_alloc() {
 	else
 		unshare -n sleep infinity &
 		pid="$!"
+		wait_unshare_net "${pid}"
 		echo "${pid}" >"${dir}/pid"
 		nsenter -t "${pid}" -n ip link set lo up
 	fi
