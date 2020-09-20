@@ -733,23 +733,85 @@ USER mail`
 		err := os.MkdirAll(vol, 0755)
 		Expect(err).To(BeNil())
 
-		volFile := filepath.Join(vol, "test.txt")
+		filename := "test.txt"
+		volFile := filepath.Join(vol, filename)
 		data := "Testing --volumes-from!!!"
 		err = ioutil.WriteFile(volFile, []byte(data), 0755)
 		Expect(err).To(BeNil())
+		mountpoint := "/myvol/"
 
-		session := podmanTest.Podman([]string{"create", "--volume", vol + ":/myvol", redis, "sh"})
+		session := podmanTest.Podman([]string{"create", "--volume", vol + ":" + mountpoint, ALPINE, "cat", mountpoint + filename})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		ctrID := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID, ALPINE, "echo", "'testing read-write!' >> myvol/test.txt"})
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID, ALPINE, "cat", mountpoint + filename})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(data))
+
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID, ALPINE, "sh", "-c", "echo test >> " + mountpoint + filename})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":z", ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"start", "--attach", ctrID})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(data + "test"))
+	})
+
+	It("podman run --volumes-from flag options", func() {
+		vol := filepath.Join(podmanTest.TempDir, "vol-test")
+		err := os.MkdirAll(vol, 0755)
+		Expect(err).To(BeNil())
+
+		filename := "test.txt"
+		volFile := filepath.Join(vol, filename)
+		data := "Testing --volumes-from!!!"
+		err = ioutil.WriteFile(volFile, []byte(data), 0755)
+		Expect(err).To(BeNil())
+		mountpoint := "/myvol/"
+
+		session := podmanTest.Podman([]string{"create", "--volume", vol + ":" + mountpoint, ALPINE, "cat", mountpoint + filename})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ctrID := session.OutputToString()
+
+		// check that the read only option works
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":ro", ALPINE, "touch", mountpoint + "abc.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+		Expect(session.ErrorToString()).To(ContainSubstring("Read-only file system"))
+
+		// check that both z and ro options work
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":ro,z", ALPINE, "cat", mountpoint + filename})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(data))
+
+		// check that multiple ro/rw are not working
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":ro,rw", ALPINE, "cat", mountpoint + filename})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("cannot set ro or rw options more than once"))
+
+		// check that multiple z options are not working
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":z,z,ro", ALPINE, "cat", mountpoint + filename})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("cannot set :z more than once in mount options"))
+
+		// create new read only volume
+		session = podmanTest.Podman([]string{"create", "--volume", vol + ":" + mountpoint + ":ro", ALPINE, "cat", mountpoint + filename})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ctrID = session.OutputToString()
+
+		// check if the original volume was mounted as read only that --volumes-from also mount it as read only
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID, ALPINE, "touch", mountpoint + "abc.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+		Expect(session.ErrorToString()).To(ContainSubstring("Read-only file system"))
 	})
 
 	It("podman run --volumes-from flag with built-in volumes", func() {

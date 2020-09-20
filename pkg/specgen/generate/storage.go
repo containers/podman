@@ -195,9 +195,9 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 		splitVol := strings.SplitN(volume, ":", 2)
 		if len(splitVol) == 2 {
 			splitOpts := strings.Split(splitVol[1], ",")
+			setRORW := false
+			setZ := false
 			for _, opt := range splitOpts {
-				setRORW := false
-				setZ := false
 				switch opt {
 				case "z":
 					if setZ {

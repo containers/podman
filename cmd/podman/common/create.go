@@ -509,7 +509,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"volume", "v", containerConfig.Volumes(),
 		"Bind mount a volume into the container",
 	)
-	createFlags.StringSliceVar(
+	createFlags.StringArrayVar(
 		&cf.VolumesFrom,
 		"volumes-from", []string{},
 		"Mount volumes from the specified container(s)",

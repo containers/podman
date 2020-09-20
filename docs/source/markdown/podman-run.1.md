@@ -1100,7 +1100,7 @@ will convert /foo into a shared mount point. Alternatively, one can directly
 change propagation properties of source mount. Say, if _/_ is source mount for
 _/foo_, then use **mount --make-shared /** to convert _/_ into a shared mount.
 
-**--volumes-from**[=*container-id*[:*options*]]
+**--volumes-from**[=*CONTAINER*[:*OPTIONS*]]
 
 Mount volumes from the specified container(s). Used to share volumes between
 containers. The *options* is a comma delimited list with the following available elements:
@@ -1108,19 +1108,23 @@ containers. The *options* is a comma delimited list with the following available
 * **rw**|**ro**
 * **z**
 
-You can share volumes even if the source container is not running.
+Mounts already mounted volumes from a source container onto another
+container. You must supply the source's container-id or container-name.
+To share a volume, use the --volumes-from option when running
+the target container. You can share volumes even if the source container
+is not running.
 
 By default, Podman mounts the volumes in the same mode (read-write or
 read-only) as it is mounted in the source container.
-You can change this by adding a **ro** or **rw** _option_.
+You can change this by adding a `ro` or `rw` _option_.
 
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
 prevent the processes running inside the container from using the content. By
 default, Podman does not change the labels set by the OS.
 
-To change a label in the container context, you can add **z** to the volume mount.
-This suffix tells Podman to relabel file objects on the shared volumes. The **z**
+To change a label in the container context, you can add `z` to the volume mount.
+This suffix tells Podman to relabel file objects on the shared volumes. The `z`
 option tells Podman that two containers share the volume content. As a result,
 podman labels the content with a shared content label. Shared volume labels allow
 all containers to read/write content.
