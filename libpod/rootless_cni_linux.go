@@ -25,7 +25,7 @@ import (
 
 // Built from ../contrib/rootless-cni-infra.
 var rootlessCNIInfraImage = map[string]string{
-	"amd64": "quay.io/libpod/rootless-cni-infra@sha256:8aa681c4c08dee3ec5d46ff592fddd0259a35626717006d6b77ee786b1d02967", // 1-amd64
+	"amd64": "quay.io/libpod/rootless-cni-infra@sha256:e92c3a6367f8e554121b96d39af1f19f0f9ac5a32922b290112e13bc661d3a29", // 2-amd64
 }
 
 const (
