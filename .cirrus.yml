@@ -65,16 +65,16 @@ env:
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
     ####
     # Freenode IRC credentials for posting status messages
-    IRCID: ENCRYPTED[1913f8a4572b6a6d2036232327789c4f6c0d98cde53f0336d860cd219b4cbd83863eefd93471aef8fa1079d4698e382d]
+    IRCID: disabled
     # Needed to build GCE images, within a GCE VM
-    SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
+    SERVICE_ACCOUNT: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
     # User ID for cirrus to ssh into VMs
     GCE_SSH_USERNAME: cirrus-ci
     # Name where this repositories cloud resources are located
-    GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-    RELEASE_GCPJSON: ENCRYPTED[789d8f7e9a5972ce350fd8e60f1032ccbf4a35c3938b604774b711aad280e12c21faf10e25af1e0ba33597ffb9e39e46]
-    RELEASE_GCPNAME: ENCRYPTED[417d50488a4bd197bcc925ba6574de5823b97e68db1a17e3a5fde4bcf26576987345e75f8d9ea1c15a156b4612c072a1]
-    RELEASE_GCPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
+    GCP_PROJECT_ID: libpod-218412
+    RELEASE_GCPJSON: disabled
+    RELEASE_GCPNAME: disabled
+    RELEASE_GCPROJECT: disabled
 
 
 
@@ -313,13 +313,6 @@ build_without_cgo_task:
 # Update metadata on VM images referenced by this repository state
 meta_task:
 
-    depends_on:
-        - "gating"
-        - "vendor"
-        - "varlink_api"
-        - "build_each_commit"
-        - "build_without_cgo"
-
     container:
         image: "quay.io/libpod/imgts:v1.9"  # see contrib/imgts
         cpu: 1
@@ -335,10 +328,10 @@ meta_task:
             ${IMAGE_BUILDER_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
-        GCPJSON: ENCRYPTED[950d9c64ad78f7b1f0c7e499b42dc058d2b23aa67e38b315e68f557f2aba0bf83068d4734f7b1e1bdd22deabe99629df]
+        GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
         # needed for output-masking purposes
-        GCPNAME: ENCRYPTED[b05d469a0dba8cb479cb00cc7c1f6747c91d17622fba260a986b976aa6c817d4077eacffd4613d6d5f23afc4084fab1d]
-        GCPPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
+        GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
+        GCPPROJECT: libpod-218412
 
     timeout_in: 10m
 
@@ -696,7 +689,8 @@ docs_task:
 
     script:
         - "$SCRIPT_BASE/build_swagger.sh |& ${TIMESTAMP}"
-        - "$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}"
+        # disabled
+        #- "$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}"
 
 
 # Post message to IRC if everything passed PR testing
