@@ -51,3 +51,15 @@ func parseMountTable(filter FilterFunc) ([]*Info, error) {
 	}
 	return out, nil
 }
+
+func mounted(path string) (bool, error) {
+	// Fast path: compare st.st_dev fields.
+	// This should always work for FreeBSD.
+	mounted, err := mountedByStat(path)
+	if err == nil {
+		return mounted, nil
+	}
+
+	// Fallback to parsing mountinfo
+	return mountedByMountinfo(path)
+}

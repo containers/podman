@@ -15,7 +15,7 @@ import "strings"
 type FilterFunc func(*Info) (skip, stop bool)
 
 // PrefixFilter discards all entries whose mount points
-// do not start with a specific prefix
+// do not start with a specific prefix.
 func PrefixFilter(prefix string) FilterFunc {
 	return func(m *Info) (bool, bool) {
 		skip := !strings.HasPrefix(m.Mountpoint, prefix)
@@ -23,7 +23,7 @@ func PrefixFilter(prefix string) FilterFunc {
 	}
 }
 
-// SingleEntryFilter looks for a specific entry
+// SingleEntryFilter looks for a specific entry.
 func SingleEntryFilter(mp string) FilterFunc {
 	return func(m *Info) (bool, bool) {
 		if m.Mountpoint == mp {

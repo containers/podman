@@ -183,7 +183,12 @@ func createUntarTempDir(sys *types.SystemContext, ref ociArchiveReference) (temp
 	src := ref.resolvedFile
 	dst := tempDirRef.tempDirectory
 	// TODO: This can take quite some time, and should ideally be cancellable using a context.Context.
-	if err := archive.UntarPath(src, dst); err != nil {
+	arch, err := os.Open(src)
+	if err != nil {
+		return tempDirOCIRef{}, err
+	}
+	defer arch.Close()
+	if err := archive.NewDefaultArchiver().Untar(arch, dst, &archive.TarOptions{NoLchown: true}); err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
 			return tempDirOCIRef{}, errors.Wrapf(err, "error deleting temp directory %q", tempDirRef.tempDirectory)
 		}

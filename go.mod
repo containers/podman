@@ -49,7 +49,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/rootless-containers/rootlesskit v0.10.0
+	github.com/rootless-containers/rootlesskit v0.10.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5
@@ -63,10 +63,8 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a
+	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
-
-replace github.com/containers/image/v5 => github.com/containers/image/v5 v5.5.2-0.20200902171422-1c313b2d23e0

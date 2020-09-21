@@ -1,6 +1,9 @@
 package mountinfo
 
-import "io"
+import (
+	"io"
+	"os"
+)
 
 // GetMounts retrieves a list of mounts for the current running process,
 // with an optional filter applied (use nil for no filter).
@@ -16,15 +19,17 @@ func GetMountsFromReader(reader io.Reader, f FilterFunc) ([]*Info, error) {
 	return parseInfoFile(reader, f)
 }
 
-// Mounted determines if a specified mountpoint has been mounted.
-// On Linux it looks at /proc/self/mountinfo.
-func Mounted(mountpoint string) (bool, error) {
-	entries, err := GetMounts(SingleEntryFilter(mountpoint))
-	if err != nil {
-		return false, err
+// Mounted determines if a specified path is a mount point.
+//
+// The argument must be an absolute path, with all symlinks resolved, and clean.
+// One way to ensure it is to process the path using filepath.Abs followed by
+// filepath.EvalSymlinks before calling this function.
+func Mounted(path string) (bool, error) {
+	// root is always mounted
+	if path == string(os.PathSeparator) {
+		return true, nil
 	}
-
-	return len(entries) > 0, nil
+	return mounted(path)
 }
 
 // Info reveals information about a particular mounted filesystem. This

@@ -10,3 +10,7 @@ func parseMountTable(_ FilterFunc) ([]*Info, error) {
 func parseInfoFile(_ io.Reader, f FilterFunc) ([]*Info, error) {
 	return parseMountTable(f)
 }
+
+func mounted(_ string) (bool, error) {
+	return false, nil
+}
