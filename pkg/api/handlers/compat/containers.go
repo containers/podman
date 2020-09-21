@@ -175,6 +175,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 	err = con.Kill(signal)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill Container %s", name))
+		return
 	}
 
 	// Docker waits for the container to stop if the signal is 0 or
