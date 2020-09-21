@@ -41,8 +41,6 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop --ignore bogus container", func() {
-		SkipIfRemote()
-
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
