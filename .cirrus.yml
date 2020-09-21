@@ -34,16 +34,16 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora"
-    PRIOR_FEDORA_NAME: "prior-fedora"
-    UBUNTU_NAME: "ubuntu"
-    PRIOR_UBUNTU_NAME: "prior-ubuntu"
+    FEDORA_NAME: "fedora-32"
+    PRIOR_FEDORA_NAME: "fedora-31"
+    UBUNTU_NAME: "ubuntu-20"
+    PRIOR_UBUNTU_NAME: "ubuntu-19"
 
-    _BUILT_IMAGE_SUFFIX: "c6110627968057344"
-    FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "${PRIOR_UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
+    _BUILT_IMAGE_SUFFIX: "c4948709391728640"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${_BUILT_IMAGE_SUFFIX}"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "prior-ubuntu-${_BUILT_IMAGE_SUFFIX}"
 
     ####
     #### Default to NOT operating in any special-case testing mode
@@ -290,7 +290,7 @@ build_without_cgo_task:
 meta_task:
 
     container:
-        image: "quay.io/libpod/imgts:master"  # see contrib/imgts
+        image: "quay.io/libpod/imgts:${_BUILT_IMAGE_SUFFIX}"
         cpu: 1
         memory: 1
 
@@ -301,7 +301,6 @@ meta_task:
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
-            ${IMAGE_BUILDER_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
