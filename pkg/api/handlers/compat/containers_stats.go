@@ -95,28 +95,28 @@ streamLabel: // A label to flatten the scope
 		// Container stats
 		stats, err := ctnr.GetContainerStats(stats)
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to get container stats: %v", err)
 			return
 		}
 		inspect, err := ctnr.Inspect(false)
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to inspect container: %v", err)
 			return
 		}
 		// Cgroup stats
 		cgroupPath, err := ctnr.CGroupPath()
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to get cgroup path of container: %v", err)
 			return
 		}
 		cgroup, err := cgroups.Load(cgroupPath)
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to load cgroup: %v", err)
 			return
 		}
 		cgroupStat, err := cgroup.Stat()
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to get cgroup stats: %v", err)
 			return
 		}
 
@@ -192,7 +192,7 @@ streamLabel: // A label to flatten the scope
 		}
 
 		if err := coder.Encode(s); err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to encode stats: %v", err)
 			return
 		}
 		if flusher, ok := w.(http.Flusher); ok {
