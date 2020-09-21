@@ -110,4 +110,55 @@ Size        | [0-9]\\\+
     run_podman rm  mytinycontainer
 }
 
+# Regression test for https://github.com/containers/podman/issues/7651
+# in which "podman pull image-with-sha" causes "images -a" to crash
+@test "podman images -a, after pulling by sha " {
+    # Get the digest of our local test image. We need to do this in two steps
+    # because 'podman inspect' only works reliably on *IMAGE ID*, not name.
+    # See https://github.com/containers/podman/issues/3761
+    run_podman inspect --format '{{.Id}}' $IMAGE
+    local iid="$output"
+    run_podman inspect --format '{{.Digest}}' $iid
+    local sha="$output"
+
+    local imgbase="${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}"
+    local fqin="${imgbase}@$sha"
+
+    # This will always pull, because even though it's the same image we
+    # already have, podman doesn't actually know that.
+    run_podman pull $fqin
+    is "$output" "Trying to pull ${fqin}\.\.\..*" "output of podman pull"
+
+    # Prior to #7654, this would crash and burn. Now it at least succeeds,
+    # although on the 2.0.5-rhel branch it lists two images: our original,
+    # and one with the same name but with a tag of '<none>'. (This differs
+    # from podman @ master branch, in which podman recognizes it as the
+    # same image and shows only one line).
+    #
+    # WARNING! If this test fails, we're going to see a lot of failures
+    # in subsequent tests due to 'podman ps' showing the '@sha' tag!
+    # I choose not to add a complicated teardown() (with 'rmi @sha')
+    # because the failure window here is small, and if it fails it
+    # needs attention anyway. So if you see lots of failures, but
+    # start here because this is the first one, fix this problem.
+    # You can (probably) ignore any subsequent failures showing '@sha'
+    # in the error output.
+    run_podman images -a --noheading --sort=tag
+    is "${lines[0]}" "${imgbase}  <none> \+${iid:0:12} .*" \
+       "images -a: first line: shows image with no tag"
+    is "${lines[1]}" "${imgbase}  ${PODMAN_TEST_IMAGE_TAG} \+${iid:0:12} " \
+       "images -a: second line: shows original image"
+
+    # Clean up: this should simply untag, not remove
+    run_podman rmi $fqin
+    is "$output" "Untagged: $fqin" "podman rmi untags, does not remove"
+
+    # ...and now we should still have our same image.
+    run_podman images -a
+
+    # ...and now we should be back to having exactly one image
+    run_podman images -a --format '{{.Names}}'
+    is "$output" "\[$IMAGE\]" "Back to our state with just the test image"
+}
+
 # vim: filetype=sh
