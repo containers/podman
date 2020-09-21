@@ -178,10 +178,19 @@ loop: // break out of for/select infinite loop
 			flush()
 		case <-runCtx.Done():
 			if !failed {
+				// Send all image id's pulled in 'images' stanza
 				report.Images = images
 				if err := enc.Encode(report); err != nil {
 					logrus.Warnf("Failed to json encode error %q", err.Error())
 				}
+
+				report.Images = nil
+				// Pull last ID from list and publish in 'id' stanza.  This maintains previous API contract
+				report.ID = images[len(images)-1]
+				if err := enc.Encode(report); err != nil {
+					logrus.Warnf("Failed to json encode error %q", err.Error())
+				}
+
 				flush()
 			}
 			break loop // break out of for/select infinite loop

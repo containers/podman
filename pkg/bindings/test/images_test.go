@@ -360,19 +360,19 @@ var _ = Describe("Podman images", func() {
 		rawImage := "docker.io/library/busybox:latest"
 
 		pulledImages, err := images.Pull(bt.conn, rawImage, entities.ImagePullOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pulledImages)).To(Equal(1))
 
 		exists, err := images.Exists(bt.conn, rawImage)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(exists).To(BeTrue())
 
 		// Make sure the normalization AND the full-transport reference works.
 		_, err = images.Pull(bt.conn, "docker://"+rawImage, entities.ImagePullOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		// The v2 endpoint only supports the docker transport.  Let's see if that's really true.
 		_, err = images.Pull(bt.conn, "bogus-transport:bogus.com/image:reference", entities.ImagePullOptions{})
-		Expect(err).To(Not(BeNil()))
+		Expect(err).To(HaveOccurred())
 	})
 })

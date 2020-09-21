@@ -89,6 +89,7 @@ func Pull(ctx context.Context, rawImage string, options entities.ImagePullOption
 			mErr = multierror.Append(mErr, errors.New(report.Error))
 		case len(report.Images) > 0:
 			images = report.Images
+		case report.ID != "":
 		default:
 			return images, errors.New("failed to parse pull results stream, unexpected input")
 		}
