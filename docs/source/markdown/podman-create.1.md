@@ -1070,11 +1070,11 @@ change propagation properties of source mount. Say `/` is source mount for
 
 **--volumes-from**[=*CONTAINER*[:*OPTIONS*]]
 
-Mount volumes from the specified container(s).
-*OPTIONS* is a comma delimited list with the following available elements:
+Mount volumes from the specified container(s). Used to share volumes between
+containers. The *options* is a comma delimited list with the following available elements:
 
-* [rw|ro]
-* z
+* **rw**|**ro**
+* **z**
 
 Mounts already mounted volumes from a source container onto another
 container. You must supply the source's container-id or container-name.
@@ -1083,9 +1083,8 @@ the target container. You can share volumes even if the source container
 is not running.
 
 By default, Podman mounts the volumes in the same mode (read-write or
-read-only) as it is mounted in the source container. Optionally, you
-can change this by suffixing the container-id with either the `ro` or
-`rw` keyword.
+read-only) as it is mounted in the source container.
+You can change this by adding a `ro` or `rw` _option_.
 
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
