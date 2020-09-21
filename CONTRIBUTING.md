@@ -7,6 +7,7 @@ that we follow.
 ## Topics
 
 * [Reporting Issues](#reporting-issues)
+* [Working On Issues](#working-on-issues)
 * [Contributing to Podman](#contributing-to-podman)
 * [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
 * [Submitting Pull Requests](#submitting-pull-requests)
@@ -27,6 +28,17 @@ to remove the extra stuff that doesn't really relate to the issue itself.
 The easier it is for us to reproduce it, the faster it'll be fixed!
 
 Please don't include any private/sensitive information in your issue!
+
+## Working On Issues
+
+Once you have decided to contribute to Podman by working on an issue, check our
+backlog of [open issues](https://github.com/containers/podman/issues) looking
+for any that do not have an "In Progress" label attached to it.  Often issues
+will be assigned to someone, to be worked on at a later time.  If you have the
+time to work on the issue now add yourself as an assignee, and set the
+"In Progress" label if you’re a member of the “Containers” GitHub organization.
+If you can not set the label, just  add a quick comment in the issue asking that
+the “In Progress” label be set and a member will do so for you.
 
 ## Contributing to Podman
 
