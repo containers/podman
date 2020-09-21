@@ -75,32 +75,48 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for ok := true; ok; ok = query.Stream {
+	// Write header and content type.
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+
+	// Setup JSON encoder for streaming.
+	coder := json.NewEncoder(w)
+	coder.SetEscapeHTML(true)
+
+streamLabel: // A label to flatten the scope
+	select {
+	case <-r.Context().Done():
+		logrus.Debugf("Client connection (container stats) cancelled")
+
+	default:
 		// Container stats
 		stats, err := ctnr.GetContainerStats(stats)
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to get container stats: %v", err)
 			return
 		}
 		inspect, err := ctnr.Inspect(false)
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to inspect container: %v", err)
 			return
 		}
 		// Cgroup stats
 		cgroupPath, err := ctnr.CGroupPath()
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to get cgroup path of container: %v", err)
 			return
 		}
 		cgroup, err := cgroups.Load(cgroupPath)
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to load cgroup: %v", err)
 			return
 		}
 		cgroupStat, err := cgroup.Stat()
 		if err != nil {
-			utils.InternalServerError(w, err)
+			logrus.Errorf("Unable to get cgroup stats: %v", err)
 			return
 		}
 
@@ -175,9 +191,16 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			Networks: net,
 		}
 
-		utils.WriteJSON(w, http.StatusOK, s)
+		if err := coder.Encode(s); err != nil {
+			logrus.Errorf("Unable to encode stats: %v", err)
+			return
+		}
 		if flusher, ok := w.(http.Flusher); ok {
 			flusher.Flush()
+		}
+
+		if !query.Stream {
+			return
 		}
 
 		preRead = s.Read
@@ -189,10 +212,8 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			logrus.Errorf("Unable to unmarshal previous stats: %q", err)
 		}
 
-		// Only sleep when we're streaming.
-		if query.Stream {
-			time.Sleep(DefaultStatsPeriod)
-		}
+		time.Sleep(DefaultStatsPeriod)
+		goto streamLabel
 	}
 }
 
