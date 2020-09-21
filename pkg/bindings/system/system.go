@@ -118,16 +118,22 @@ func Version(ctx context.Context) (*entities.SystemVersionReport, error) {
 	if err = response.Process(&component); err != nil {
 		return nil, err
 	}
-	f, _ := strconv.ParseFloat(component.APIVersion, 64)
+
 	b, _ := time.Parse(time.RFC3339, component.BuildTime)
 	report.Server = &define.Version{
-		APIVersion: int64(f),
+		APIVersion: component.APIVersion,
 		Version:    component.Version.Version,
 		GoVersion:  component.GoVersion,
 		GitCommit:  component.GitCommit,
 		BuiltTime:  time.Unix(b.Unix(), 0).Format(time.ANSIC),
 		Built:      b.Unix(),
 		OsArch:     fmt.Sprintf("%s/%s", component.Os, component.Arch),
+	}
+
+	for _, c := range component.Components {
+		if c.Name == "Podman Engine" {
+			report.Server.APIVersion = c.Details["APIVersion"]
+		}
 	}
 	return &report, err
 }

@@ -22,5 +22,5 @@ var (
 	PFalse = &pFalse
 
 	// APIVersion - podman will fail to run if this value is wrong
-	APIVersion = semver.MustParse("1.0.0")
+	APIVersion = semver.MustParse("2.0.0")
 )

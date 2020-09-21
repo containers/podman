@@ -37,21 +37,21 @@ var _ = Describe("Podman version", func() {
 		session := podmanTest.Podman([]string{"version"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version))
+		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version.String()))
 	})
 
 	It("podman -v", func() {
 		session := podmanTest.Podman([]string{"-v"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version))
+		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version.String()))
 	})
 
 	It("podman --version", func() {
 		session := podmanTest.Podman([]string{"--version"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version))
+		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version.String()))
 	})
 
 	It("podman version --format json", func() {

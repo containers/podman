@@ -83,7 +83,7 @@ func version(cmd *cobra.Command, args []string) error {
 
 func formatVersion(writer io.Writer, version *define.Version) {
 	fmt.Fprintf(writer, "Version:\t%s\n", version.Version)
-	fmt.Fprintf(writer, "API Version:\t%d\n", version.APIVersion)
+	fmt.Fprintf(writer, "API Version:\t%s\n", version.APIVersion)
 	fmt.Fprintf(writer, "Go Version:\t%s\n", version.GoVersion)
 	if version.GitCommit != "" {
 		fmt.Fprintf(writer, "Git Commit:\t%s\n", version.GitCommit)
