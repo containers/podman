@@ -19,6 +19,10 @@ import (
 	"github.com/onsi/ginkgo"
 )
 
+func IsRemote() bool {
+	return true
+}
+
 func SkipIfRemote() {
 	ginkgo.Skip("This function is not enabled for remote podman")
 }

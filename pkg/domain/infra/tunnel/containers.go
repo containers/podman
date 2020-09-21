@@ -389,6 +389,15 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, 
 }
 
 func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string, options entities.AttachOptions) error {
+	ctrs, err := getContainersByContext(ic.ClientCxt, false, false, []string{nameOrID})
+	if err != nil {
+		return err
+	}
+	ctr := ctrs[0]
+	if ctr.State != define.ContainerStateRunning.String() {
+		return errors.Errorf("you can only attach to running containers")
+	}
+
 	return containers.Attach(ic.ClientCxt, nameOrID, &options.DetachKeys, nil, bindings.PTrue, options.Stdin, options.Stdout, options.Stderr, nil)
 }
 
