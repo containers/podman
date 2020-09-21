@@ -47,6 +47,7 @@ func init() {
 	certDirFlagName := "cert-dir"
 	flags.StringVar(&signOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
 	_ = signCommand.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
+	flags.BoolVarP(&signOptions.All, "all", "a", false, "Sign all the manifests of the multi-architecture image")
 }
 
 func sign(cmd *cobra.Command, args []string) error {

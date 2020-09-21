@@ -19,6 +19,10 @@ By default, the signature will be written into `/var/lib/containers/sigstore` fo
 
 Print usage statement.
 
+#### **--all**, **-a**
+
+Sign all the manifests of the multi-architecture image (default false).
+
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.

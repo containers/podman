@@ -344,6 +344,7 @@ type SignOptions struct {
 	Directory string
 	SignBy    string
 	CertDir   string
+	All       bool
 }
 
 // SignReport describes the result of signing
