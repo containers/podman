@@ -3,6 +3,7 @@
 package abi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,15 +12,17 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/manifests"
+	buildahManifests "github.com/containers/buildah/pkg/manifests"
+	"github.com/containers/buildah/util"
 	buildahUtil "github.com/containers/buildah/util"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	libpodImage "github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/util"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 
@@ -41,28 +44,82 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, names, images []strin
 
 // ManifestInspect returns the content of a manifest list or image
 func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte, error) {
-	dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
-	_, err := alltransports.ParseImageName(name)
-	if err != nil {
-		_, err = alltransports.ParseImageName(dockerPrefix + name)
-		if err != nil {
-			return nil, errors.Errorf("invalid image reference %q", name)
+	if newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(name); err == nil {
+		// return the manifest in local storage
+		if list, err := newImage.InspectManifest(); err == nil {
+			buf, err := json.MarshalIndent(list, "", "    ")
+			if err != nil {
+				return buf, errors.Wrapf(err, "error rendering manifest %s for display", name)
+			}
+			return buf, nil
+			// no return if local image is not a list of images type
+			// continue on getting valid manifest through remote serice
+		} else if errors.Cause(err) != buildahManifests.ErrManifestTypeNotSupported {
+			return nil, errors.Wrapf(err, "loading manifest %q", name)
 		}
 	}
-	image, err := ir.Libpod.ImageRuntime().New(ctx, name, "", "", nil, nil, libpodImage.SigningOptions{}, nil, util.PullImageMissing)
+	sc := ir.Libpod.SystemContext()
+	refs, err := util.ResolveNameToReferences(ir.Libpod.GetStore(), sc, name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "reading image %q", name)
+		return nil, err
 	}
+	var (
+		latestErr error
+		result    []byte
+		manType   string
+		b         bytes.Buffer
+	)
+	appendErr := func(e error) {
+		if latestErr == nil {
+			latestErr = e
+		} else {
+			latestErr = errors.Wrapf(latestErr, "tried %v\n", e)
+		}
+	}
+	for _, ref := range refs {
+		src, err := ref.NewImageSource(ctx, sc)
+		if err != nil {
+			appendErr(errors.Wrapf(err, "reading image %q", transports.ImageName(ref)))
+			continue
+		}
+		defer src.Close()
 
-	list, err := image.InspectManifest()
-	if err != nil {
-		return nil, errors.Wrapf(err, "loading manifest %q", name)
+		manifestBytes, manifestType, err := src.GetManifest(ctx, nil)
+		if err != nil {
+			appendErr(errors.Wrapf(err, "loading manifest %q", transports.ImageName(ref)))
+			continue
+		}
+
+		if !manifest.MIMETypeIsMultiImage(manifestType) {
+			appendErr(errors.Errorf("manifest is of type %s (not a list type)", manifestType))
+			continue
+		}
+		result = manifestBytes
+		manType = manifestType
+		break
 	}
-	buf, err := json.MarshalIndent(list, "", "    ")
-	if err != nil {
-		return buf, errors.Wrapf(err, "error rendering manifest for display")
+	if len(result) == 0 && latestErr != nil {
+		return nil, latestErr
 	}
-	return buf, nil
+	if manType != manifest.DockerV2ListMediaType {
+		listBlob, err := manifest.ListFromBlob(result, manType)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing manifest blob %q as a %q", string(result), manType)
+		}
+		list, err := listBlob.ConvertToMIMEType(manifest.DockerV2ListMediaType)
+		if err != nil {
+			return nil, err
+		}
+		if result, err = list.Serialize(); err != nil {
+			return nil, err
+		}
+
+	}
+	err = json.Indent(&b, result, "", "    ")
+	if err != nil {
+		return nil, errors.Wrapf(err, "error rendering manifest %s for display", name)
+	}
+	return b.Bytes(), nil
 }
 
 // ManifestAdd adds images to the manifest list
