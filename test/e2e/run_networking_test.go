@@ -528,7 +528,6 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {
-		SkipIfRemote()
 		SkipIfRootless()
 		netName := "podmantestnetwork"
 		ipAddr := "10.25.30.128"
@@ -544,7 +543,6 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run with new:pod and static-ip", func() {
-		SkipIfRemote()
 		SkipIfRootless()
 		netName := "podmantestnetwork2"
 		ipAddr := "10.25.40.128"

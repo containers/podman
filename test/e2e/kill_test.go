@@ -100,12 +100,15 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill latest container", func() {
-		SkipIfRemote()
-		session := podmanTest.RunTopContainer("")
+		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"kill", "-l"})
+		cid := "-l"
+		if IsRemote() {
+			cid = "test1"
+		}
+		result := podmanTest.Podman([]string{"kill", cid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))

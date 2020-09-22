@@ -47,15 +47,17 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -l nginx", func() {
-		SkipIfRemote()
-		session, cid := podmanTest.RunNginxWithHealthCheck("")
+		session, cid := podmanTest.RunNginxWithHealthCheck("test1")
 		Expect(session.ExitCode()).To(Equal(0))
 
 		if err := podmanTest.RunHealthCheck(cid); err != nil {
 			Fail(err.Error())
 		}
 
-		result := podmanTest.Podman([]string{"port", "-l"})
+		if !IsRemote() {
+			cid = "-l"
+		}
+		result := podmanTest.Podman([]string{"port", cid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
@@ -63,7 +65,6 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman container port  -l nginx", func() {
-		SkipIfRemote()
 		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -71,7 +72,10 @@ var _ = Describe("Podman port", func() {
 			Fail(err.Error())
 		}
 
-		result := podmanTest.Podman([]string{"container", "port", "-l"})
+		if !IsRemote() {
+			cid = "-l"
+		}
+		result := podmanTest.Podman([]string{"container", "port", cid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
@@ -79,7 +83,6 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -l port nginx", func() {
-		SkipIfRemote()
 		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -87,7 +90,10 @@ var _ = Describe("Podman port", func() {
 			Fail(err.Error())
 		}
 
-		result := podmanTest.Podman([]string{"port", "-l", "80"})
+		if !IsRemote() {
+			cid = "-l"
+		}
+		result := podmanTest.Podman([]string{"port", cid, "80"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]

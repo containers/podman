@@ -237,7 +237,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {
-		SkipIfRemote()
+		SkipIfRemote() // FIXME This should work on podman-remote
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -278,7 +278,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if force secure is true", func() {
-		SkipIfRemote()
+		SkipIfRemote() // FIXME This should work on podman-remote
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -317,7 +317,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if registry is not listed as insecure", func() {
-		SkipIfRemote()
+		SkipIfRemote() // FIXME This should work on podman-remote
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -356,7 +356,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
-		SkipIfRemote()
+		SkipIfRemote() // FIXME This should work on podman-remote
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -407,7 +407,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 	// search should fail with nonexist authfile
 	It("podman search fail with nonexist --authfile", func() {
-		SkipIfRemote()
 		search := podmanTest.Podman([]string{"search", "--authfile", "/tmp/nonexist", ALPINE})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Not(Equal(0)))

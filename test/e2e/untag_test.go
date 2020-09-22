@@ -33,7 +33,7 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman untag all", func() {
-		SkipIfRemote()
+		SkipIfRemote() // FIXME This should work on podman-remote
 		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))

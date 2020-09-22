@@ -122,7 +122,6 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("Podman restart the latest container", func() {
-		SkipIfRemote()
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 
@@ -132,7 +131,11 @@ var _ = Describe("Podman restart", func() {
 		startTime := podmanTest.Podman([]string{"inspect", "--format='{{.State.StartedAt}}'", "test1", "test2"})
 		startTime.WaitWithDefaultTimeout()
 
-		session := podmanTest.Podman([]string{"restart", "-l"})
+		cid := "-l"
+		if IsRemote() {
+			cid = "test2"
+		}
+		session := podmanTest.Podman([]string{"restart", cid})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		restartTime := podmanTest.Podman([]string{"inspect", "--format='{{.State.StartedAt}}'", "test1", "test2"})

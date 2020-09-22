@@ -102,7 +102,7 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("podman manifest annotate", func() {
-		SkipIfRemote()
+		SkipIfRemote() // Not supporting annotate on remote connections
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -184,8 +184,7 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("podman manifest push purge", func() {
-		// remote does not support --purge
-		SkipIfRemote()
+		SkipIfRemote() // remote does not support --purge
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

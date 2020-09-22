@@ -137,7 +137,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and subnet", func() {
-		SkipIfRemote()
+		SkipIfRemote() // FIXME, this should work on --remote
 		var (
 			results []network.NcList
 		)
@@ -178,7 +178,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and IPv6 subnet", func() {
-		SkipIfRemote()
 		SkipIfRootless()
 		var (
 			results []network.NcList
