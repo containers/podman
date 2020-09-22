@@ -40,7 +40,6 @@ var _ = Describe("Podman attach", func() {
 	})
 
 	It("podman attach to non-running container", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"create", "--name", "test1", "-d", "-i", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -51,8 +50,8 @@ var _ = Describe("Podman attach", func() {
 	})
 
 	It("podman container attach to non-running container", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"container", "create", "--name", "test1", "-d", "-i", ALPINE, "ls"})
+
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -87,7 +86,6 @@ var _ = Describe("Podman attach", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 	})
 	It("podman attach to the latest container", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "test1", ALPINE, "/bin/sh", "-c", "while true; do echo test1; sleep 1; done"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -96,7 +94,11 @@ var _ = Describe("Podman attach", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		results := podmanTest.Podman([]string{"attach", "-l"})
+		cid := "-l"
+		if IsRemote() {
+			cid = "test2"
+		}
+		results := podmanTest.Podman([]string{"attach", cid})
 		time.Sleep(2 * time.Second)
 		results.Signal(syscall.SIGTSTP)
 		Expect(results.OutputToString()).To(ContainSubstring("test2"))

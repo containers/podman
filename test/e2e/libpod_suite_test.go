@@ -12,6 +12,10 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
+func IsRemote() bool {
+	return false
+}
+
 func SkipIfRemote() {
 }
 
