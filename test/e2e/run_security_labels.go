@@ -127,7 +127,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman container runlabel (podman --version)", func() {
-		SkipIfRemote()
+		SkipIfRemote() // runlabel not supported on podman-remote
 		PodmanDockerfile := `
 FROM  alpine:latest
 LABEL io.containers.capabilities=chown,mknod`

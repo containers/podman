@@ -61,14 +61,17 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod rm latest pod", func() {
-		SkipIfRemote()
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
-		_, ec2, podid2 := podmanTest.CreatePod("")
+		_, ec2, podid2 := podmanTest.CreatePod("pod2")
 		Expect(ec2).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "rm", "--latest"})
+		latest := "--latest"
+		if IsRemote() {
+			latest = "pod2"
+		}
+		result := podmanTest.Podman([]string{"pod", "rm", latest})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 

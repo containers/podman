@@ -123,7 +123,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load directory", func() {
-		SkipIfRemote()
+		SkipIfRemote() // FIXME: Remote Load is broken.
 		outdir := filepath.Join(podmanTest.TempDir, "alpine")
 
 		save := podmanTest.PodmanNoCache([]string{"save", "--format", "oci-dir", "-o", outdir, ALPINE})
@@ -243,7 +243,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load localhost registry from dir", func() {
-		SkipIfRemote()
+		SkipIfRemote() // FIXME: podman-remote load is currently broken.
 		outfile := filepath.Join(podmanTest.TempDir, "load")
 
 		setup := podmanTest.PodmanNoCache([]string{"tag", BB, "hello:world"})

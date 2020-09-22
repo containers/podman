@@ -87,7 +87,6 @@ var _ = Describe("Podman start", func() {
 	})
 
 	It("podman start single container with attach and test the signal", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"create", "--entrypoint", "sh", ALPINE, "-c", "exit 1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
