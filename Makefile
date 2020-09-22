@@ -135,8 +135,13 @@ export PRINT_HELP_PYSCRIPT
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
 .PHONY: help
+ifneq (, ${PYTHON})
 help:
 	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+else
+help:
+	$(error python required for 'make help', executable not found)
+endif
 
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
