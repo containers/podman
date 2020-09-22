@@ -15,6 +15,7 @@ type Info struct {
 type HostInfo struct {
 	Arch           string                 `json:"arch"`
 	BuildahVersion string                 `json:"buildahVersion"`
+	CgroupManager  string                 `json:"cgroupManager"`
 	CGroupsVersion string                 `json:"cgroupVersion"`
 	Conmon         *ConmonInfo            `json:"conmon"`
 	CPUs           int                    `json:"cpus"`
