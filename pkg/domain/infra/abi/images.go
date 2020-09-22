@@ -191,6 +191,15 @@ func (ir *ImageEngine) Unmount(ctx context.Context, nameOrIDs []string, options 
 	reports := []*entities.ImageUnmountReport{}
 	for _, img := range images {
 		report := entities.ImageUnmountReport{Id: img.ID()}
+		mounted, _, err := img.Mounted()
+		if err != nil {
+			// Errors will be caught in Unmount call below
+			// Default assumption to mounted
+			mounted = true
+		}
+		if !mounted {
+			continue
+		}
 		if err := img.Unmount(options.Force); err != nil {
 			if options.All && errors.Cause(err) == storage.ErrLayerNotMounted {
 				logrus.Debugf("Error umounting image %s, storage.ErrLayerNotMounted", img.ID())

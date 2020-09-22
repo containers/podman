@@ -348,6 +348,25 @@ var _ = Describe("Podman mount", func() {
 		Expect(umount.ExitCode()).To(Equal(0))
 	})
 
+	It("podman umount --all", func() {
+		setup := podmanTest.PodmanNoCache([]string{"pull", fedoraMinimal})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.PodmanNoCache([]string{"pull", ALPINE})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		mount := podmanTest.Podman([]string{"image", "mount", fedoraMinimal})
+		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).To(Equal(0))
+
+		umount := podmanTest.Podman([]string{"image", "umount", "--all"})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
+		Expect(len(umount.OutputToStringArray())).To(Equal(1))
+	})
+
 	It("podman mount many", func() {
 		setup := podmanTest.PodmanNoCache([]string{"pull", fedoraMinimal})
 		setup.WaitWithDefaultTimeout()
@@ -401,6 +420,10 @@ var _ = Describe("Podman mount", func() {
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(Equal(""))
+
+		umount = podmanTest.PodmanNoCache([]string{"image", "umount", fedoraMinimal, ALPINE})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
 
 		mount1 = podmanTest.PodmanNoCache([]string{"image", "mount", "--all"})
 		mount1.WaitWithDefaultTimeout()
