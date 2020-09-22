@@ -94,6 +94,7 @@ func save(cmd *cobra.Command, args []string) (finalErr error) {
 		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
 	}
 	if len(saveOpts.Output) == 0 {
+		saveOpts.Quiet = true
 		fi := os.Stdout
 		if terminal.IsTerminal(int(fi.Fd())) {
 			return errors.Errorf("refusing to save to terminal. Use -o flag or redirect")
@@ -122,12 +123,6 @@ func save(cmd *cobra.Command, args []string) (finalErr error) {
 		tags = args[1:]
 	}
 
-	// Decide whether c/image's progress bars should use stderr or stdout.
-	// If the output is set of stdout, any log message there would corrupt
-	// the tarfile.
-	if saveOpts.Output == os.Stdout.Name() {
-		saveOpts.Quiet = true
-	}
 	err := registry.ImageEngine().Save(context.Background(), args[0], tags, saveOpts)
 	if err == nil {
 		succeeded = true
