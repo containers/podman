@@ -15,6 +15,7 @@
 - The `podman play kube` command now supports the Socket HostPath type ([#7112](https://github.com/containers/podman/issues/7112)).
 - The `podman play kube` command now supports read-only mounts.
 - The `podman play kube` command now supports setting labels on pods from Kubernetes metadata labels.
+- The `podman play kube` command now supports setting container restart policy ([#7656](https://github.com/containers/podman/issues/7656)).
 - The `podman play kube` command now properly handles `HostAlias` entries.
 - The `podman generate kube` command now adds entries to `/etc/hosts` from `--host-add` generated YAML as `HostAlias` entries.
 - The `podman play kube` and `podman generate kube` commands now properly support `shareProcessNamespace` to share the PID namespace in pods.
@@ -28,6 +29,9 @@
 - The `podman create` and `podman run` commands now support a `--override-variant` option, to override the architecture variant of the image that will be pulled and ran.
 - A new global option has been added to Podman, `--runtime-flags`, which allows for setting flags to use when the OCI runtime is called.
 - The `podman manifest add` command now supports the `--cert-dir`, `--auth-file`, `--creds`, and `--tls-verify` options.
+
+### Security
+- This release resolves CVE-2020-14370, in which environment variables could be leaked between containers created using the Varlink API.
 
 ### Changes
 - Podman will now retry pulling an image 3 times if a pull fails due to network errors.
@@ -72,8 +76,12 @@
 - Fixed a bug where the `--infra-command` parameter to `podman pod create` was nonfunctional.
 - Fixed a bug where `podman auto-update` would fail for any container started with `--pull=always` ([#7407](https://github.com/containers/podman/issues/7407)).
 - Fixed a bug where the `podman wait` command would only accept a single argument.
+- Fixed a bug where the parsing of the `--volumes-from` option to `podman run` and `podman create` was broken, making it impossible to use multiple mount options at the same time ([#7701](https://github.com/containers/podman/issues/7701)).
+- Fixed a bug where the `podman exec` command would not join executed processes to the container's supplemental groups if the container was started with both the `--user` and `--group-add` options.
+- Fixed a bug where the `--iidfile` option to `podman-remote build` was nonfunctional.
 
 ### API
+- The Libpod API version has been bumped to v2.0.0 due to a breaking change in the Image List API.
 - Docker-compatible Volume Endpoints (Create, Inspect, List, Remove, Prune) are now available!
 - Added an endpoint for generating systemd unit files for containers.
 - The `last` parameter to the Libpod container list endpoint now has an alias, `limit` ([#6413](https://github.com/containers/podman/issues/6413)).
@@ -96,6 +104,9 @@
 - All non-hijacking responses to API requests should not include headers with the version of the server.
 - Fixed a bug where Libpod and Compat Events endpoints did not send response headers until the first event occurred ([#7263](https://github.com/containers/podman/issues/7263)).
 - Fixed a bug where the Build endpoints (Compat and Libpod) did not stream progress to the client.
+- Fixed a bug where the Stats endpoints (Compat and Libpod) did not properly handle clients disconnecting.
+- Fixed a bug where the Ignore parameter to the Libpod Stop endpoint was not performing properly.
+- Fixed a bug where the Compat Logs endpoint for containers did not stream its output in the correct format ([#7196](https://github.com/containers/podman/issues/7196)).
 
 ### Misc
 - Updated Buildah to v1.16.1
