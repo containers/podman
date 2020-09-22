@@ -34,15 +34,18 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			}
 
 			// TODO: Use r.ConnContext when ported to go 1.13
-			c := context.WithValue(r.Context(), "decoder", s.Decoder) //nolint
-			c = context.WithValue(c, "runtime", s.Runtime)            //nolint
-			c = context.WithValue(c, "shutdownFunc", s.Shutdown)      //nolint
-			c = context.WithValue(c, "idletracker", s.idleTracker)    //nolint
+			c := context.WithValue(r.Context(), "decoder", s.Decoder) // nolint
+			c = context.WithValue(c, "runtime", s.Runtime)            // nolint
+			c = context.WithValue(c, "shutdownFunc", s.Shutdown)      // nolint
+			c = context.WithValue(c, "idletracker", s.idleTracker)    // nolint
 			r = r.WithContext(c)
 
-			v := utils.APIVersion[utils.CompatTree][utils.CurrentAPIVersion]
-			w.Header().Set("API-Version", fmt.Sprintf("%d.%d", v.Major, v.Minor))
-			w.Header().Set("Libpod-API-Version", utils.APIVersion[utils.LibpodTree][utils.CurrentAPIVersion].String())
+			cv := utils.APIVersion[utils.CompatTree][utils.CurrentAPIVersion]
+			w.Header().Set("API-Version", fmt.Sprintf("%d.%d", cv.Major, cv.Minor))
+
+			lv := utils.APIVersion[utils.LibpodTree][utils.CurrentAPIVersion].String()
+			w.Header().Set("Libpod-API-Version", lv)
+			w.Header().Set("Server", "Libpod/"+lv+" ("+runtime.GOOS+")")
 
 			h(w, r)
 		}
