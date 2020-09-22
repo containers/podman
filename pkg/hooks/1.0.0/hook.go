@@ -67,7 +67,14 @@ func (hook *Hook) Validate(extensionStages []string) (err error) {
 		return errors.New("missing required property: stages")
 	}
 
-	validStages := map[string]bool{"prestart": true, "poststart": true, "poststop": true}
+	validStages := map[string]bool{
+		"createContainer": true,
+		"createRuntime":   true,
+		"prestart":        true,
+		"poststart":       true,
+		"poststop":        true,
+		"startContainer":  true,
+	}
 	for _, stage := range extensionStages {
 		validStages[stage] = true
 	}
