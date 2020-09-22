@@ -14,7 +14,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "master"
+    DEST_BRANCH: "v2.1"
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: "/var/tmp/go"
     GOBIN: "${GOPATH}/bin"
