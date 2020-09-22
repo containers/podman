@@ -28,6 +28,10 @@ The CGroup manager to use for container cgroups. Supported values are cgroupfs o
 Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
 Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
 
+**--cgroup-check-user**=*boolean*
+
+Whether or not to check if user owns current CGroup. If set to true and user doesn't own current CGroup, try switching to a CGroup the user owns. (Default: `true`)
+
 **--cni-config-dir**
 Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d`)
 
