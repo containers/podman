@@ -120,12 +120,18 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 					extensionStageHooks[stage] = append(extensionStageHooks[stage], namedHook.hook.Hook)
 				} else {
 					switch stage {
+					case "createContainer":
+						config.Hooks.CreateContainer = append(config.Hooks.CreateContainer, namedHook.hook.Hook)
+					case "createRuntime":
+						config.Hooks.CreateRuntime = append(config.Hooks.CreateRuntime, namedHook.hook.Hook)
 					case "prestart":
 						config.Hooks.Prestart = append(config.Hooks.Prestart, namedHook.hook.Hook)
 					case "poststart":
 						config.Hooks.Poststart = append(config.Hooks.Poststart, namedHook.hook.Hook)
 					case "poststop":
 						config.Hooks.Poststop = append(config.Hooks.Poststop, namedHook.hook.Hook)
+					case "startContainer":
+						config.Hooks.StartContainer = append(config.Hooks.StartContainer, namedHook.hook.Hook)
 					default:
 						return extensionStageHooks, fmt.Errorf("hook %q: unknown stage %q", namedHook.name, stage)
 					}
