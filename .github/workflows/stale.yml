@@ -22,3 +22,4 @@ jobs:
         stale-pr-label: 'stale-pr'
         days-before-stale: 30
         days-before-close: 365
+        remove-stale-when-updated: true
