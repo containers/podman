@@ -147,4 +147,45 @@ verify_iid_and_name() {
        "Diagnostic from 'podman load' without redirection or -i"
 }
 
+@test "podman load - multi-image archive" {
+    img1="quay.io/libpod/testimage:00000000"
+    img2="quay.io/libpod/testimage:20200902"
+    archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
+
+    run_podman pull $img1
+    run_podman pull $img2
+
+    run_podman save -m -o $archive $img1 $img2
+    run_podman rmi -f $img1 $img2
+    run_podman load -i $archive
+
+    run_podman image exists $img1
+    run_podman image exists $img2
+    run_podman rmi -f $img1 $img2
+}
+
+@test "podman load - multi-image archive with redirect" {
+    img1="quay.io/libpod/testimage:00000000"
+    img2="quay.io/libpod/testimage:20200902"
+    archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
+
+    run_podman pull $img1
+    run_podman pull $img2
+
+    # We can't use run_podman because that uses the BATS 'run' function
+    # which redirects stdout and stderr. Here we need to guarantee
+    # that podman's stdout is a pipe, not any other form of redirection
+    $PODMAN save -m $img1 $img2 | cat >$archive
+    if [ "$status" -ne 0 ]; then
+        die "Command failed: podman save ... | cat"
+    fi
+
+    run_podman rmi -f $img1 $img2
+    run_podman load -i $archive
+
+    run_podman image exists $img1
+    run_podman image exists $img2
+    run_podman rmi -f $img1 $img2
+}
+
 # vim: filetype=sh
