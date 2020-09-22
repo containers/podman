@@ -20,7 +20,6 @@ var _ = Describe("Podman systemd", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -48,6 +47,7 @@ WantedBy=multi-user.target
 	})
 
 	It("podman start container by systemd", func() {
+		SkipIfRootless()
 		if os.Getenv("SKIP_USERNS") != "" {
 			Skip("Skip userns tests.")
 		}
