@@ -1,3 +1,32 @@
+- Changelog for v2.1.0 (2020-09-22):
+  * Update release notes for v2.1.0 Final Release
+  * Fix up attach tests for podman remote
+  * update stale bot
+  * [CI:DOCS] Add 'In Progress' note to CONTRIBUTING.md
+  * Restore 'id' stanza in pull results
+  * Fix podman image unmount to only report images unmounted
+  * libpod: bumps up rootless-cni-infra to 2
+  * stats: log errors instead of sending 500
+  * Fix incorrect parsing of create/run --volumes-from
+  * rootless-cni-infra: fix flakiness during bringing up lo interface
+  * Fix handling of podman-remote stop --ignore
+  * Refactor version handling in cmd tree
+  * Preserve groups in exec sessions in ctrs with --user
+  * Install bats as root
+  * Makefile: Fix broken libpodimage targets
+  * stats: detect closed client connection
+  * stats endpoint: write OK header once
+  * handle the play kube and generate kube for with restartPolicy
+  * fix the .Path and .Args when use the infra-command
+  * Update nix pin with `make nixpkgs`
+  * fix a typo of login.1.md
+  * Bump github.com/rootless-containers/rootlesskit from 0.10.0 to 0.10.1
+  * enable --iidfile for podman-remote build
+  * update github.com/docker/docker and relevant deps
+  * Make Go builds more consistent
+  * dependabot-dance: new tool for managing revendor PRs
+  * WIP: Fix remote logs
+
 - Changelog for v2.1.0-rc2 (2020-09-17)
   * Update release notes for Podman v2.1.0-RC2
   * Fix play_kube_test deployment template
