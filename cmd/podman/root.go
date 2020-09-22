@@ -188,7 +188,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// 3) command doesn't require Parent Namespace
 	_, found := cmd.Annotations[registry.ParentNSRequired]
 	if !registry.IsRemote() && rootless.IsRootless() && !found {
-		err := registry.ContainerEngine().SetupRootless(registry.Context(), cmd)
+		err := registry.ContainerEngine().SetupRootless(registry.Context(), cmd, cfg.CgroupCheck)
 		if err != nil {
 			return err
 		}
@@ -256,6 +256,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 
 	pFlags := cmd.PersistentFlags()
 	pFlags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
+	pFlags.BoolVar(&opts.CgroupCheck, "cgroup-check-user", true, "If user doesn't own current cgroup, change cgroup to user.slice (if exists)")
 	pFlags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu profiling results")
 	pFlags.StringVar(&opts.ConmonPath, "conmon", "", "Path of the conmon binary")
 	pFlags.StringVar(&cfg.Engine.NetworkCmdPath, "network-cmd-path", cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")

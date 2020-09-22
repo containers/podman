@@ -42,6 +42,7 @@ type PodmanConfig struct {
 	CPUProfile     string           // Hidden: Should CPU profile be taken
 	EngineMode     EngineMode       // ABI or Tunneling mode
 	Identity       string           // ssh identity for connecting to server
+	CgroupCheck    bool             // whether to check ownership of cgroup
 	MaxWorks       int              // maximum number of parallel threads
 	RegistriesConf string           // allows for specifying a custom registries.conf
 	Remote         bool             // Connection to Podman API Service will use RESTful API

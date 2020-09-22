@@ -58,14 +58,14 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 	return info, err
 }
 
-func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {
+func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command, cgroupCheck bool) error {
 	// do it only after podman has already re-execed and running with uid==0.
 	if os.Geteuid() == 0 {
 		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
 		if err != nil {
 			logrus.Warnf("Failed to detect the owner for the current cgroup: %v", err)
 		}
-		if !ownsCgroup {
+		if !ownsCgroup && cgroupCheck {
 			conf, err := ic.Config(context.Background())
 			if err != nil {
 				return err

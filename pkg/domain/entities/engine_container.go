@@ -69,7 +69,7 @@ type ContainerEngine interface {
 	PodStop(ctx context.Context, namesOrIds []string, options PodStopOptions) ([]*PodStopReport, error)
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
-	SetupRootless(ctx context.Context, cmd *cobra.Command) error
+	SetupRootless(ctx context.Context, cmd *cobra.Command, cgroupCheck bool) error
 	Shutdown(ctx context.Context)
 	SystemDf(ctx context.Context, options SystemDfOptions) (*SystemDfReport, error)
 	Unshare(ctx context.Context, args []string) error

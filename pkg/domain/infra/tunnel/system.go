@@ -18,7 +18,7 @@ func (ic *ContainerEngine) VarlinkService(_ context.Context, _ entities.ServiceO
 	panic(errors.New("varlink service is not supported when tunneling"))
 }
 
-func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {
+func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command, cgroupCheck bool) error {
 	panic(errors.New("rootless engine mode is not supported when tunneling"))
 }
 
