@@ -61,8 +61,8 @@ echo $rand        |   0 | $rand
     is "$tests_run" "$(grep . <<<$tests | wc -l)" "Ran the full set of tests"
 }
 
-@test "podman run - globle runtime option" {
-    skip_if_remote "runtime flag is not passing over remote"
+@test "podman run - global runtime option" {
+    skip_if_remote "runtime flag is not passed over remote"
     run_podman 126 --runtime-flag invalidflag run --rm $IMAGE
     is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
 }
@@ -336,5 +336,56 @@ echo $rand        |   0 | $rand
     run_podman exec $cid touch /stop
     run_podman wait $cid
 }
+
+# For #7754: json-file was equating to 'none'
+@test "podman run --log-driver" {
+    # '-' means that LogPath will be blank and there's no easy way to test
+    tests="
+none      | -
+journald  | -
+k8s-file  | y
+json-file | f
+"
+    while read driver do_check; do
+        msg=$(random_string 15)
+        run_podman run --name myctr --log-driver $driver $IMAGE echo $msg
+
+        # Simple output check
+        # Special case: 'json-file' emits a warning, the rest do not
+        # ...but with podman-remote the warning is on the server only
+        if [[ $do_check == 'f' ]] && ! is_remote; then      # 'f' for 'fallback'
+            is "${lines[0]}" ".* level=error msg=\"json-file logging specified but not supported. Choosing k8s-file logging instead\"" \
+               "Fallback warning emitted"
+            is "${lines[1]}" "$msg" "basic output sanity check (driver=$driver)"
+        else
+            is "$output" "$msg" "basic output sanity check (driver=$driver)"
+        fi
+
+        # Simply confirm that podman preserved our argument as-is
+        run_podman inspect --format '{{.HostConfig.LogConfig.Type}}' myctr
+        is "$output" "$driver" "podman inspect: driver"
+
+        # If LogPath is non-null, check that it exists and has a valid log
+        run_podman inspect --format '{{.LogPath}}' myctr
+        if [[ $do_check != '-' ]]; then
+            is "$output" "/.*" "LogPath (driver=$driver)"
+            if ! test -e "$output"; then
+                die "LogPath (driver=$driver) does not exist: $output"
+            fi
+            # eg 2020-09-23T13:34:58.644824420-06:00 stdout F 7aiYtvrqFGJWpak
+            is "$(< $output)" "[0-9T:.+-]\+ stdout F $msg" \
+               "LogPath contents (driver=$driver)"
+        else
+            is "$output" "" "LogPath (driver=$driver)"
+        fi
+        run_podman rm myctr
+    done < <(parse_table "$tests")
+
+    # Invalid log-driver argument
+    run_podman 125 run --log-driver=InvalidDriver $IMAGE true
+    is "$output" "Error: error running container create option: invalid log driver: invalid argument" \
+       "--log-driver InvalidDriver"
+}
+
 
 # vim: filetype=sh
