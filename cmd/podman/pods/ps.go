@@ -73,7 +73,7 @@ func pods(cmd *cobra.Command, _ []string) error {
 	if cmd.Flag("filter").Changed {
 		psInput.Filters = make(map[string][]string)
 		for _, f := range inputFilters {
-			split := strings.Split(f, "=")
+			split := strings.SplitN(f, "=", 2)
 			if len(split) < 2 {
 				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 			}
