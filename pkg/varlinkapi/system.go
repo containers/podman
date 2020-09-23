@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	goruntime "runtime"
+	"strconv"
 	"time"
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
@@ -22,13 +23,18 @@ func (i *VarlinkAPI) GetVersion(call iopodman.VarlinkCall) error {
 		return err
 	}
 
+	int64APIVersion, err := strconv.ParseInt(versionInfo.APIVersion, 10, 64)
+	if err != nil {
+		return err
+	}
+
 	return call.ReplyGetVersion(
 		versionInfo.Version,
 		versionInfo.GoVersion,
 		versionInfo.GitCommit,
 		time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
 		versionInfo.OsArch,
-		versionInfo.APIVersion,
+		int64APIVersion,
 	)
 }
 
