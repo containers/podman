@@ -50,7 +50,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container on an image with a workdir", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		dockerfile := `FROM alpine
 RUN  mkdir -p /home/foobar
 WORKDIR  /etc/foobar`

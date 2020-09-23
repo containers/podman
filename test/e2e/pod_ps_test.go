@@ -83,7 +83,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman pod ps latest", func() {
-		SkipIfRemote() // Testing --latest flag
+		SkipIfRemote("--latest flag n/a")
 		_, ec, podid1 := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 

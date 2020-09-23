@@ -33,7 +33,7 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run -d mount cleanup test", func() {
-		SkipIfRemote() // podman-remote does not support mount
+		SkipIfRemote("podman-remote does not support mount")
 		SkipIfRootless()
 
 		result := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})

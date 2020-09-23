@@ -126,7 +126,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect -l with additional input should fail", func() {
-		SkipIfRemote() // testing --latest flag
+		SkipIfRemote("--latest flag n/a")
 		result := podmanTest.Podman([]string{"inspect", "-l", "1234foobar"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(125))
@@ -173,7 +173,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect --latest with no container fails", func() {
-		SkipIfRemote() // testing --latest flag
+		SkipIfRemote("testing --latest flag")
 
 		session := podmanTest.Podman([]string{"inspect", "--latest"})
 		session.WaitWithDefaultTimeout()

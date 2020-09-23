@@ -101,7 +101,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps latest flag", func() {
-		SkipIfRemote() // --latest is not supported on podman-remote
+		SkipIfRemote("--latest is not supported on podman-remote")
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		_, ec, _ = podmanTest.RunLsContainer("")

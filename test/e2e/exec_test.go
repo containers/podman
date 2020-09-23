@@ -285,7 +285,7 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec preserves container groups with --user and --group-add", func() {
-		SkipIfRemote() // FIXME: This is broken SECCOMP Failues?
+		SkipIfRemote("FIXME: This is broken SECCOMP Failues?")
 
 		dockerfile := `FROM fedora-minimal
 RUN groupadd -g 4000 first
