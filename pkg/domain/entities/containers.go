@@ -416,5 +416,10 @@ type ContainerStatsOptions struct {
 	Latest   bool
 	NoReset  bool
 	NoStream bool
-	StatChan chan []*define.ContainerStats
+}
+
+// ContainerStatsReport is used for streaming container stats.
+type ContainerStatsReport struct {
+	Error error
+	Stats []define.ContainerStats
 }

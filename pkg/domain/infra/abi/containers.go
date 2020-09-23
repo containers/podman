@@ -1142,12 +1142,11 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 	})
 }
 
-func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) error {
-	defer close(options.StatChan)
+func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
+	statsChan = make(chan entities.ContainerStatsReport, 1)
+
 	containerFunc := ic.Libpod.GetRunningContainers
 	switch {
-	case len(namesOrIds) > 0:
-		containerFunc = func() ([]*libpod.Container, error) { return ic.Libpod.GetContainersByList(namesOrIds) }
 	case options.Latest:
 		containerFunc = func() ([]*libpod.Container, error) {
 			lastCtr, err := ic.Libpod.GetLatestContainer()
@@ -1156,62 +1155,74 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 			}
 			return []*libpod.Container{lastCtr}, nil
 		}
+	case len(namesOrIds) > 0:
+		containerFunc = func() ([]*libpod.Container, error) { return ic.Libpod.GetContainersByList(namesOrIds) }
 	case options.All:
 		containerFunc = ic.Libpod.GetAllContainers
 	}
 
-	ctrs, err := containerFunc()
-	if err != nil {
-		return errors.Wrapf(err, "unable to get list of containers")
-	}
-	containerStats := map[string]*define.ContainerStats{}
-	for _, ctr := range ctrs {
-		initialStats, err := ctr.GetContainerStats(&define.ContainerStats{})
-		if err != nil {
-			// when doing "all", don't worry about containers that are not running
-			cause := errors.Cause(err)
-			if options.All && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
-				continue
-			}
-			if cause == cgroups.ErrCgroupV1Rootless {
-				err = cause
-			}
-			return err
+	go func() {
+		defer close(statsChan)
+		var (
+			err            error
+			containers     []*libpod.Container
+			containerStats map[string]*define.ContainerStats
+		)
+		containerStats = make(map[string]*define.ContainerStats)
+
+	stream: // label to flatten the scope
+		select {
+		case <-ctx.Done():
+			// client cancelled
+			logrus.Debugf("Container stats stopped: context cancelled")
+			return
+		default:
+			// just fall through and do work
 		}
-		containerStats[ctr.ID()] = initialStats
-	}
-	for {
-		reportStats := []*define.ContainerStats{}
-		for _, ctr := range ctrs {
-			id := ctr.ID()
-			if _, ok := containerStats[ctr.ID()]; !ok {
-				initialStats, err := ctr.GetContainerStats(&define.ContainerStats{})
-				if errors.Cause(err) == define.ErrCtrRemoved || errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrStateInvalid {
-					// skip dealing with a container that is gone
-					continue
+
+		// Anonymous func to easily use the return values for streaming.
+		computeStats := func() ([]define.ContainerStats, error) {
+			containers, err = containerFunc()
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to get list of containers")
+			}
+
+			reportStats := []define.ContainerStats{}
+			for _, ctr := range containers {
+				prev, ok := containerStats[ctr.ID()]
+				if !ok {
+					prev = &define.ContainerStats{}
 				}
+
+				stats, err := ctr.GetContainerStats(prev)
 				if err != nil {
-					return err
+					cause := errors.Cause(err)
+					if options.All && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
+						continue
+					}
+					if cause == cgroups.ErrCgroupV1Rootless {
+						err = cause
+					}
+					return nil, err
 				}
-				containerStats[id] = initialStats
+
+				containerStats[ctr.ID()] = stats
+				reportStats = append(reportStats, *stats)
 			}
-			stats, err := ctr.GetContainerStats(containerStats[id])
-			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
-				return err
-			}
-			// replace the previous measurement with the current one
-			containerStats[id] = stats
-			reportStats = append(reportStats, stats)
+			return reportStats, nil
 		}
-		ctrs, err = containerFunc()
-		if err != nil {
-			return err
-		}
-		options.StatChan <- reportStats
+
+		report := entities.ContainerStatsReport{}
+		report.Stats, report.Error = computeStats()
+		statsChan <- report
+
 		if options.NoStream {
-			break
+			return
 		}
+
 		time.Sleep(time.Second)
-	}
-	return nil
+		goto stream
+	}()
+
+	return statsChan, nil
 }
