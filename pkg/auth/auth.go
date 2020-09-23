@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,21 +16,98 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// XRegistryAuthHeader is the key to the encoded registry authentication
-// configuration in an http-request header.
-const XRegistryAuthHeader = "X-Registry-Auth"
+type HeaderAuthName string
 
-// GetCredentials extracts one or more DockerAuthConfigs from the request's
+func (h HeaderAuthName) String() string { return string(h) }
+
+// XRegistryAuthHeader is the key to the encoded registry authentication configuration in an http-request header.
+// This header supports one registry per header occurrence. To support N registries provided N headers, one per registry.
+// As of Docker API 1.40 and Libpod API 1.0.0, this header is supported by all endpoints.
+const XRegistryAuthHeader HeaderAuthName = "X-Registry-Auth"
+
+// XRegistryConfigHeader is the key to the encoded registry authentication configuration in an http-request header.
+// This header supports N registries in one header via a Base64 encoded, JSON map.
+// As of Docker API 1.40 and Libpod API 2.0.0, this header is supported by build endpoints.
+const XRegistryConfigHeader HeaderAuthName = "X-Registry-Config"
+
+// GetCredentials queries the http.Request for X-Registry-.* headers and extracts
+// the necessary authentication information for libpod operations
+func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, HeaderAuthName, error) {
+	has := func(key HeaderAuthName) bool { hdr, found := r.Header[string(key)]; return found && len(hdr) > 0 }
+	switch {
+	case has(XRegistryConfigHeader):
+		c, f, err := getConfigCredentials(r)
+		return c, f, XRegistryConfigHeader, err
+	case has(XRegistryAuthHeader):
+		c, f, err := getAuthCredentials(r)
+		return c, f, XRegistryAuthHeader, err
+
+	}
+	return nil, "", "", nil
+}
+
+// getConfigCredentials extracts one or more docker.AuthConfig from the request's
+// header.  An empty key will be used as default while a named registry will be
+// returned as types.DockerAuthConfig
+func getConfigCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
+	var auth *types.DockerAuthConfig
+	configs := make(map[string]types.DockerAuthConfig)
+
+	for _, h := range r.Header[string(XRegistryConfigHeader)] {
+		param, err := base64.URLEncoding.DecodeString(h)
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "failed to decode %q", XRegistryConfigHeader)
+		}
+
+		ac := make(map[string]dockerAPITypes.AuthConfig)
+		err = json.Unmarshal(param, &ac)
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "failed to unmarshal %q", XRegistryConfigHeader)
+		}
+
+		for k, v := range ac {
+			configs[k] = dockerAuthToImageAuth(v)
+		}
+	}
+
+	// Empty key implies no registry given in API
+	if c, found := configs[""]; found {
+		auth = &c
+	}
+
+	// Override any default given above if specialized credentials provided
+	if registries, found := r.URL.Query()["registry"]; found {
+		for _, r := range registries {
+			for k, v := range configs {
+				if strings.Contains(k, r) {
+					v := v
+					auth = &v
+					break
+				}
+			}
+			if auth != nil {
+				break
+			}
+		}
+
+		if auth == nil {
+			logrus.Debugf("%q header found in request, but \"registry=%v\" query parameter not provided",
+				XRegistryConfigHeader, registries)
+		} else {
+			logrus.Debugf("%q header found in request for username %q", XRegistryConfigHeader, auth.Username)
+		}
+	}
+
+	authfile, err := authConfigsToAuthFile(configs)
+	return auth, authfile, err
+}
+
+// getAuthCredentials extracts one or more DockerAuthConfigs from the request's
 // header.  The header could specify a single-auth config in which case the
 // first return value is set.  In case of a multi-auth header, the contents are
 // stored in a temporary auth file (2nd return value).  Note that the auth file
 // should be removed after usage.
-func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
-	authHeader := r.Header.Get(XRegistryAuthHeader)
-	if len(authHeader) == 0 {
-		return nil, "", nil
-	}
-
+func getAuthCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 	// First look for a multi-auth header (i.e., a map).
 	authConfigs, err := multiAuthHeader(r)
 	if err == nil {
@@ -51,38 +129,75 @@ func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 	return conf, "", nil
 }
 
-// Header returns a map with the XRegistryAuthHeader set which can
+// Header builds the requested Authentication Header
+func Header(sys *types.SystemContext, headerName HeaderAuthName, authfile, username, password string) (map[string]string, error) {
+	var (
+		content string
+		err     error
+	)
+	switch headerName {
+	case XRegistryAuthHeader:
+		content, err = headerAuth(sys, authfile, username, password)
+	case XRegistryConfigHeader:
+		content, err = headerConfig(sys, authfile, username, password)
+	default:
+		err = fmt.Errorf("unsupported authentication header: %q", headerName)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if len(content) > 0 {
+		return map[string]string{string(headerName): content}, nil
+	}
+	return nil, nil
+}
+
+// headerConfig returns a map with the XRegistryConfigHeader set which can
 // conveniently be used in the http stack.
-func Header(sys *types.SystemContext, authfile, username, password string) (map[string]string, error) {
-	var content string
-	var err error
+func headerConfig(sys *types.SystemContext, authfile, username, password string) (string, error) {
+	if sys == nil {
+		sys = &types.SystemContext{}
+	}
+	if authfile != "" {
+		sys.AuthFilePath = authfile
+	}
+	authConfigs, err := imageAuth.GetAllCredentials(sys)
+	if err != nil {
+		return "", err
+	}
 
 	if username != "" {
-		content, err = encodeSingleAuthConfig(types.DockerAuthConfig{Username: username, Password: password})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if sys == nil {
-			sys = &types.SystemContext{}
-		}
-		if authfile != "" {
-			sys.AuthFilePath = authfile
-		}
-		authConfigs, err := imageAuth.GetAllCredentials(sys)
-		if err != nil {
-			return nil, err
-		}
-		content, err = encodeMultiAuthConfigs(authConfigs)
-		if err != nil {
-			return nil, err
+		authConfigs[""] = types.DockerAuthConfig{
+			Username: username,
+			Password: password,
 		}
 	}
 
-	header := make(map[string]string)
-	header[XRegistryAuthHeader] = content
+	if len(authConfigs) == 0 {
+		return "", nil
+	}
+	return encodeMultiAuthConfigs(authConfigs)
+}
 
-	return header, nil
+// headerAuth returns a base64 encoded map with the XRegistryAuthHeader set which can
+// conveniently be used in the http stack.
+func headerAuth(sys *types.SystemContext, authfile, username, password string) (string, error) {
+	if username != "" {
+		return encodeSingleAuthConfig(types.DockerAuthConfig{Username: username, Password: password})
+	}
+
+	if sys == nil {
+		sys = &types.SystemContext{}
+	}
+	if authfile != "" {
+		sys.AuthFilePath = authfile
+	}
+	authConfigs, err := imageAuth.GetAllCredentials(sys)
+	if err != nil {
+		return "", err
+	}
+	return encodeMultiAuthConfigs(authConfigs)
 }
 
 // RemoveAuthfile is a convenience function that is meant to be called in a
@@ -180,7 +295,7 @@ func imageAuthToDockerAuth(authConfig types.DockerAuthConfig) dockerAPITypes.Aut
 // singleAuthHeader extracts a DockerAuthConfig from the request's header.
 // The header content is a single DockerAuthConfig.
 func singleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
-	authHeader := r.Header.Get(XRegistryAuthHeader)
+	authHeader := r.Header.Get(string(XRegistryAuthHeader))
 	authConfig := dockerAPITypes.AuthConfig{}
 	if len(authHeader) > 0 {
 		authJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(authHeader))
@@ -196,7 +311,7 @@ func singleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error
 // multiAuthHeader extracts a DockerAuthConfig from the request's header.
 // The header content is a map[string]DockerAuthConfigs.
 func multiAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
-	authHeader := r.Header.Get(XRegistryAuthHeader)
+	authHeader := r.Header.Get(string(XRegistryAuthHeader))
 	if len(authHeader) == 0 {
 		return nil, nil
 	}
