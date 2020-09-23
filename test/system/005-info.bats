@@ -19,8 +19,8 @@ graphRoot:
 graphStatus:
 imageStore:\\\s\\\+number: 1
 runRoot:
-cgroupManager:
-cgroupVersion: v
+cgroupManager: \\\(systemd\\\|cgroupfs\\\)
+cgroupVersion: v[12]
 "
     while read expect; do
         is "$output" ".*$expect" "output includes '$expect'"
@@ -36,6 +36,8 @@ cgroupVersion: v
     tests="
 host.buildahVersion       | [0-9.]
 host.conmon.path          | $expr_path
+host.cgroupManager        | \\\(systemd\\\|cgroupfs\\\)
+host.cgroupVersion        | v[12]
 host.ociRuntime.path      | $expr_path
 store.configFile          | $expr_path
 store.graphDriverName     | [a-z0-9]\\\+\\\$

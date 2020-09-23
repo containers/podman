@@ -85,7 +85,7 @@ while read x y z; do
     check_result "$x" "''" "empty string - left-hand"
     check_result "$y" "''" "empty string - middle"
     check_result "$z" "''" "empty string - right"
-done < <(parse_table " | |")
+done < <(parse_table "  |  |")
 
 # Quotes
 while read x y z;do
@@ -107,6 +107,13 @@ while read x y z;do
     check_result "$2" "e f"   "double quotes - token split - 2"
     check_result "$3" "g"     "double quotes - token split - 3"
 done < <(parse_table "a 'b c' | d \"e f\" g | h")
+
+# Split on '|' only when bracketed by spaces or at beginning/end of line
+while read x y z;do
+    check_result "$x" "|x"    "pipe in strings - pipe at start"
+    check_result "$y" "y|y1"  "pipe in strings - pipe in middle"
+    check_result "$z" "z|"    "pipe in strings - pipe at end"
+done < <(parse_table "|x | y|y1 | z|")
 
 # END   test the parse_table helper
 ###############################################################################
