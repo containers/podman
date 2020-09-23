@@ -15,7 +15,7 @@ var _ = Describe("Podman unshare", func() {
 		podmanTest *PodmanTestIntegration
 	)
 	BeforeEach(func() {
-		SkipIfRemote()
+		SkipIfRemote() // podman-remote unshare is not supported
 		if _, err := os.Stat("/proc/self/uid_map"); err != nil {
 			Skip("User namespaces not supported.")
 		}

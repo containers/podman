@@ -75,7 +75,7 @@ var _ = Describe("Podman init", func() {
 	})
 
 	It("podman init latest container", func() {
-		SkipIfRemote()
+		SkipIfRemote() // Testing --latest flag
 		session := podmanTest.Podman([]string{"create", "-d", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

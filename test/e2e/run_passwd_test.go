@@ -60,7 +60,6 @@ var _ = Describe("Podman run passwd", func() {
 	})
 
 	It("podman can run container without /etc/passwd", func() {
-		SkipIfRemote()
 		dockerfile := `FROM alpine
 RUN rm -f /etc/passwd /etc/shadow /etc/group
 USER 1000`
@@ -114,7 +113,6 @@ USER 1000`
 	})
 
 	It("podman run numeric group from image and no group file", func() {
-		SkipIfRemote()
 		dockerfile := `FROM alpine
 RUN rm -f /etc/passwd /etc/shadow /etc/group
 USER 1000`

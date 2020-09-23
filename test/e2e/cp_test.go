@@ -141,7 +141,7 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp stdin/stdout", func() {
-		SkipIfRemote()
+		SkipIfRemote() // podman-remote cp not implemented yet
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

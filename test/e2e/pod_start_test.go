@@ -107,7 +107,6 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start latest pod", func() {
-		SkipIfRemote()
 		_, ec, _ := podmanTest.CreatePod("foobar99")
 		Expect(ec).To(Equal(0))
 
@@ -122,7 +121,11 @@ var _ = Describe("Podman pod start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "start", "--latest"})
+		podid := "--latest"
+		if IsRemote() {
+			podid = "foobar100"
+		}
+		session = podmanTest.Podman([]string{"pod", "start", podid})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
