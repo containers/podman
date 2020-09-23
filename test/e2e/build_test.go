@@ -89,7 +89,7 @@ var _ = Describe("Podman build", func() {
 	// Check that builds with different values for the squash options
 	// create the appropriate number of layers, then clean up after.
 	It("podman build basic alpine with squash", func() {
-		SkipIfRemote() // FIXME: This is broken should be fixed
+		SkipIfRemote("FIXME: This is broken should be fixed")
 		session := podmanTest.PodmanNoCache([]string{"build", "-f", "build/squash/Dockerfile.squash-a", "-t", "test-squash-a:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -221,7 +221,7 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build --http_proxy flag", func() {
-		SkipIfRemote() // FIXME: This is broken should be fixed
+		SkipIfRemote("FIXME: This is broken should be fixed")
 		os.Setenv("http_proxy", "1.2.3.4")
 		podmanTest.RestoreAllArtifacts()
 		dockerfile := `FROM docker.io/library/alpine:latest

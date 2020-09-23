@@ -79,7 +79,7 @@ var _ = Describe("Podman Info", func() {
 		if !rootless.IsRootless() {
 			Skip("test of rootless_storage_path is only meaningful as rootless")
 		}
-		SkipIfRemote() // Only tests storage on local client
+		SkipIfRemote("Only tests storage on local client")
 		oldHOME, hasHOME := os.LookupEnv("HOME")
 		defer func() {
 			if hasHOME {

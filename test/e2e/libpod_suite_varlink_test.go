@@ -23,8 +23,8 @@ func IsRemote() bool {
 	return true
 }
 
-func SkipIfRemote() {
-	ginkgo.Skip("This function is not enabled for remote podman")
+func SkipIfRemote(reason string) {
+	ginkgo.Skip("[remote]: " + reason)
 }
 
 func SkipIfRootless() {
