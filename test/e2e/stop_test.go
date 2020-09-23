@@ -182,7 +182,7 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop latest containers", func() {
-		SkipIfRemote() // Testing --latest
+		SkipIfRemote("--latest flag n/a")
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -289,7 +289,7 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop invalid --latest and --cidfile and --all", func() {
-		SkipIfRemote() // testing --latest
+		SkipIfRemote("--latest flag n/a")
 
 		result := podmanTest.Podman([]string{"stop", "--cidfile", "foobar", "--latest"})
 		result.WaitWithDefaultTimeout()

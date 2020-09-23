@@ -197,7 +197,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with volumes and suid/dev/exec options", func() {
-		SkipIfRemote() // podman-remote does not support --volumes
+		SkipIfRemote("podman-remote does not support --volumes")
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 
@@ -227,7 +227,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with tmpfs named volume mounts and unmounts", func() {
-		SkipIfRemote() // podman-remote does not support --volumes this test could be simplified to be tested on Remote.
+		SkipIfRemote("podman-remote does not support --volumes this test could be simplified to be tested on Remote.")
 		SkipIfRootless()
 		volName := "testvol"
 		mkVolume := podmanTest.Podman([]string{"volume", "create", "--opt", "type=tmpfs", "--opt", "device=tmpfs", "--opt", "o=nodev", "testvol"})
@@ -453,7 +453,7 @@ VOLUME /test/`
 	})
 
 	It("podman run with overlay volume flag", func() {
-		SkipIfRemote() // Overlay volumes only work locally
+		SkipIfRemote("Overlay volumes only work locally")
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}

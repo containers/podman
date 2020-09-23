@@ -29,7 +29,7 @@ var _ = Describe("podman container runlabel", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRemote() // runlabel is not supported for remote connections
+		SkipIfRemote("runlabel is not supported for remote connections")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

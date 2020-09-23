@@ -185,7 +185,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi with cached images", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		session := podmanTest.PodmanNoCache([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -255,7 +255,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi -a with parent|child images", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		dockerfile := `FROM docker.io/library/alpine:latest AS base
 RUN touch /1
 ENV LOCAL=/1

@@ -59,7 +59,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run --signature-policy", func() {
-		SkipIfRemote() // SigPolicy not handled by remote
+		SkipIfRemote("SigPolicy not handled by remote")
 		session := podmanTest.Podman([]string{"run", "--pull=always", "--signature-policy", "/no/such/file", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
@@ -295,7 +295,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run user capabilities test with image", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		dockerfile := `FROM busybox
 USER bin`
 		podmanTest.BuildImage(dockerfile, "test", "false")
@@ -343,7 +343,7 @@ USER bin`
 	})
 
 	It("podman run limits host test", func() {
-		SkipIfRemote() // This can only be used for local tests
+		SkipIfRemote("This can only be used for local tests")
 
 		var l syscall.Rlimit
 
@@ -486,7 +486,7 @@ USER bin`
 	})
 
 	It("podman run notify_socket", func() {
-		SkipIfRemote() // This can only be used for local tests
+		SkipIfRemote("This can only be used for local tests")
 
 		host := GetHostDistributionInfo()
 		if host.Distribution != "rhel" && host.Distribution != "centos" && host.Distribution != "fedora" {
@@ -546,7 +546,7 @@ USER bin`
 	})
 
 	It("podman run with secrets", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		containersDir := filepath.Join(podmanTest.TempDir, "containers")
 		err := os.MkdirAll(containersDir, 0755)
 		Expect(err).To(BeNil())
@@ -711,7 +711,7 @@ USER bin`
 	})
 
 	It("podman run with built-in volume image", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		session := podmanTest.Podman([]string{"run", "--rm", redis, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -1028,7 +1028,7 @@ USER mail`
 	})
 
 	It("podman run with restart-policy always restarts containers", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		testDir := filepath.Join(podmanTest.RunRoot, "restart-test")
 		err := os.MkdirAll(testDir, 0755)
 		Expect(err).To(BeNil())

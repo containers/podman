@@ -196,7 +196,7 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm invalid --latest and --cidfile and --all", func() {
-		SkipIfRemote() // Verifying --latest flag
+		SkipIfRemote("Verifying --latest flag")
 
 		result := podmanTest.Podman([]string{"rm", "--cidfile", "foobar", "--latest"})
 		result.WaitWithDefaultTimeout()

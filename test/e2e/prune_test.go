@@ -88,7 +88,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman image prune skip cache images", func() {
-		SkipIfRemote() // FIXME should work on podman --remote
+		SkipIfRemote("FIXME should work on podman --remote")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 
 		none := podmanTest.Podman([]string{"images", "-a"})
@@ -110,7 +110,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman image prune dangling images", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 
@@ -147,7 +147,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system image prune unused images", func() {
-		SkipIfRemote() // FIXME This should work on podman-remote
+		SkipIfRemote("FIXME This should work on podman-remote")
 		podmanTest.RestoreAllArtifacts()
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		prune := podmanTest.PodmanNoCache([]string{"system", "prune", "-a", "--force"})
