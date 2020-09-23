@@ -85,7 +85,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	if _, found := r.URL.Query()["limit"]; found && query.Limit != -1 {
+	if _, found := r.URL.Query()["limit"]; found && query.Limit > 0 {
 		last := query.Limit
 		if len(containers) > last {
 			containers = containers[len(containers)-last:]
