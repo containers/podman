@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v2/pkg/cgroups"
 	. "github.com/containers/podman/v2/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/mrunalp/fileutils"
@@ -50,7 +49,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on a complex local image name", func() {
-		SkipIfRootless()
 		imageName := strings.TrimPrefix(nginx, "quay.io/")
 		session := podmanTest.Podman([]string{"run", imageName, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -311,12 +309,15 @@ USER bin`
 	})
 
 	It("podman run limits test", func() {
-		SkipIfRootless()
-		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", fedoraMinimal, "cat", "/proc/self/sched"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		SkipIfRootlessCgroupsV1()
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=2048:2048", fedoraMinimal, "ulimit", "-n"})
+		if !isRootless() {
+			session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", fedoraMinimal, "cat", "/proc/self/sched"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+		}
+
+		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=2048:2048", fedoraMinimal, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("2048"))
@@ -326,10 +327,7 @@ USER bin`
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("1024"))
 
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
-		if !cgroupsv2 {
+		if !CGROUPSV2 {
 			// --oom-kill-disable not supported on cgroups v2.
 			session = podmanTest.Podman([]string{"run", "--rm", "--oom-kill-disable=true", fedoraMinimal, "echo", "memory-hog"})
 			session.WaitWithDefaultTimeout()
@@ -370,7 +368,7 @@ USER bin`
 	})
 
 	It("podman run sysctl test", func() {
-		SkipIfRootless()
+		SkipIfRootless() // Network sysclts are not avalable root rootless
 		session := podmanTest.Podman([]string{"run", "--rm", "--sysctl", "net.core.somaxconn=65535", ALPINE, "sysctl", "net.core.somaxconn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -383,17 +381,15 @@ USER bin`
 	})
 
 	It("podman run blkio-weight test", func() {
-		SkipIfRootless()
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
-		if !cgroupsv2 {
+		SkipIfRootless() //  FIXME: This is blowing up because of no /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control file
+		// SkipIfRootlessCgroupsV1()
+		if !CGROUPSV2 {
 			if _, err := os.Stat("/sys/fs/cgroup/blkio/blkio.weight"); os.IsNotExist(err) {
 				Skip("Kernel does not support blkio.weight")
 			}
 		}
 
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			// convert linearly from [10-1000] to [1-10000]
 			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.bfq.weight"})
 			session.WaitWithDefaultTimeout()
@@ -408,14 +404,11 @@ USER bin`
 	})
 
 	It("podman run device-read-bps test", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
+		SkipIfRootless() //  FIXME: Missing /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control
+		SkipIfRootlessCgroupsV1()
 		var session *PodmanSessionIntegration
 
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/zero:1mb", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
 		} else {
 			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/zero:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device"})
@@ -423,40 +416,34 @@ USER bin`
 
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		if !cgroupsv2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
+		if !CGROUPSV2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
 			Expect(session.OutputToString()).To(ContainSubstring("1048576"))
 		}
 	})
 
 	It("podman run device-write-bps test", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
+		SkipIfRootless() //  FIXME /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control does not exist
+		SkipIfRootlessCgroupsV1()
 		var session *PodmanSessionIntegration
 
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/zero:1mb", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
 		} else {
 			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/zero:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_bps_device"})
 		}
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		if !cgroupsv2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
+		if !CGROUPSV2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
 			Expect(session.OutputToString()).To(ContainSubstring("1048576"))
 		}
 	})
 
 	It("podman run device-read-iops test", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
+		SkipIfRootless() //  FIXME /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control does not exist
+		SkipIfRootlessCgroupsV1()
 		var session *PodmanSessionIntegration
 
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/zero:100", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
 		} else {
 			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/zero:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_iops_device"})
@@ -464,20 +451,17 @@ USER bin`
 
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		if !cgroupsv2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
+		if !CGROUPSV2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
 			Expect(session.OutputToString()).To(ContainSubstring("100"))
 		}
 	})
 
 	It("podman run device-write-iops test", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
+		SkipIfRootless() //  FIXME /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control does not exist
+		SkipIfRootlessCgroupsV1()
 		var session *PodmanSessionIntegration
 
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/zero:100", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
 		} else {
 			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/zero:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_iops_device"})
@@ -485,7 +469,7 @@ USER bin`
 
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		if !cgroupsv2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
+		if !CGROUPSV2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
 			Expect(session.OutputToString()).To(ContainSubstring("100"))
 		}
 	})
@@ -591,7 +575,7 @@ USER bin`
 	})
 
 	It("podman run with FIPS mode secrets", func() {
-		SkipIfRootless()
+		SkipIfRootless() //  rootless can not manipulate system-fips file
 		fipsFile := "/etc/system-fips"
 		err = ioutil.WriteFile(fipsFile, []byte{}, 0755)
 		Expect(err).To(BeNil())
@@ -606,27 +590,24 @@ USER bin`
 	})
 
 	It("podman run without group-add", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal("uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)"))
+		Expect(session.LineInOutputContains("27(video),777,65533(nogroup)")).To(BeFalse())
 	})
 
 	It("podman run with group-add", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--group-add=audio", "--group-add=nogroup", "--group-add=777", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal("uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),18(audio),20(dialout),26(tape),27(video),777,65533(nogroup)"))
+		Expect(session.LineInOutputContains("777,65533(nogroup)")).To(BeTrue())
 	})
 
 	It("podman run with user (default)", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal("uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)"))
+		Expect(session.LineInOutputContains("uid=0(root) gid=0(root)")).To(BeTrue())
 	})
 
 	It("podman run with user (integer, not in /etc/passwd)", func() {
@@ -637,19 +618,17 @@ USER bin`
 	})
 
 	It("podman run with user (integer, in /etc/passwd)", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=8", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal("uid=8(mail) gid=12(mail) groups=12(mail)"))
+		Expect(session.LineInOutputContains("uid=8(mail) gid=12(mail)")).To(BeTrue())
 	})
 
 	It("podman run with user (username)", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=mail", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal("uid=8(mail) gid=12(mail) groups=12(mail)"))
+		Expect(session.LineInOutputContains("uid=8(mail) gid=12(mail)")).To(BeTrue())
 	})
 
 	It("podman run with user:group (username:integer)", func() {
@@ -915,7 +894,7 @@ USER mail`
 	})
 
 	It("podman run --mount type=bind,bind-nonrecursive", func() {
-		SkipIfRootless()
+		SkipIfRootless() // rootless users are not allowed to mount bind-nonrecursive (Could this be a Kernel bug?
 		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,bind-nonrecursive,slave,src=/,target=/host", fedoraMinimal, "findmnt", "-nR", "/host"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -923,7 +902,6 @@ USER mail`
 	})
 
 	It("podman run --mount type=devpts,target=/foo/bar", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--mount", "type=devpts,target=/foo/bar", fedoraMinimal, "stat", "-f", "-c%T", "/foo/bar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -1076,7 +1054,8 @@ USER mail`
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
-		SkipIfRootless()
+		SkipIfRootless() // FIXME:  I believe this should work but need to fix this test
+		SkipIfRootlessCgroupsV1()
 		// Only works on crun
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
 			Skip("Test only works on crun")
@@ -1108,7 +1087,7 @@ USER mail`
 	})
 
 	It("podman run with cgroups=enabled makes cgroups", func() {
-		SkipIfRootless()
+		SkipIfRootlessCgroupsV1()
 		// Only works on crun
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
 			Skip("Test only works on crun")
@@ -1151,7 +1130,7 @@ USER mail`
 	})
 
 	It("podman run --device-cgroup-rule", func() {
-		SkipIfRootless()
+		SkipIfRootless() // rootless users are not allowed to mknod
 		deviceCgroupRule := "c 42:* rwm"
 		session := podmanTest.Podman([]string{"run", "--name", "test", "-d", "--device-cgroup-rule", deviceCgroupRule, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
