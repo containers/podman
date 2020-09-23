@@ -151,18 +151,26 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	}()
 
 	contextDir := options.ContextDir
-	if contextDir == "" {
+	currentDir := options.ContextDir
+	if options.ContextDir == "" {
 		contextDir = string(os.PathSeparator)
+		currentDir, err = os.Getwd()
+		if err != nil {
+			return errors.Wrapf(err, "error determining current working directory")
+		}
 	}
 
 	// Figure out what sorts of sources we have.
 	var localSources, remoteSources []string
-	for _, src := range sources {
+	for i, src := range sources {
 		if sourceIsRemote(src) {
 			remoteSources = append(remoteSources, src)
 			continue
 		}
-		localSources = append(localSources, src)
+		if !filepath.IsAbs(src) && options.ContextDir == "" {
+			sources[i] = filepath.Join(currentDir, src)
+		}
+		localSources = append(localSources, sources[i])
 	}
 
 	// Check how many items our local source specs matched.  Each spec

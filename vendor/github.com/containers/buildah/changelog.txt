@@ -1,3 +1,5 @@
+- Changelog for v1.16.2 (2020-09-21)
+  * Add(): fix handling of relative paths with no ContextDir
 
 - Changelog for v1.16.1 (2020-09-10)
   * copier.Get(): hard link targets shouldn't be relative paths
