@@ -27,6 +27,9 @@ func SkipIfRemote(reason string) {
 	ginkgo.Skip("[remote]: " + reason)
 }
 
+func SkipIfRootlessCgroupsV1() {
+}
+
 func SkipIfRootless() {
 	if os.Geteuid() != 0 {
 		ginkgo.Skip("This function is not enabled for rootless podman")

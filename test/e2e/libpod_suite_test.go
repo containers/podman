@@ -19,6 +19,12 @@ func IsRemote() bool {
 func SkipIfRemote(string) {
 }
 
+func SkipIfRootlessCgroupsV1() {
+	if os.Geteuid() != 0 && !CGROUPSV2 {
+		Skip("Rooless requires cgroupsV2 to set limits")
+	}
+}
+
 func SkipIfRootless() {
 	if os.Geteuid() != 0 {
 		Skip("This function is not enabled for rootless podman")

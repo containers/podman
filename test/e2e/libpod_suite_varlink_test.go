@@ -23,6 +23,9 @@ func IsRemote() bool {
 	return true
 }
 
+func SkipIfRootlessCgroupsV1() {
+}
+
 func SkipIfRemote(reason string) {
 	ginkgo.Skip("[remote]: " + reason)
 }
