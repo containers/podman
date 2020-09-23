@@ -1217,7 +1217,7 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 		report.Stats, report.Error = computeStats()
 		statsChan <- report
 
-		if options.NoStream {
+		if report.Error != nil || options.NoStream {
 			return
 		}
 

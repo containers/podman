@@ -1,4 +1,4 @@
-// +build !remote
+// +build
 
 package integration
 

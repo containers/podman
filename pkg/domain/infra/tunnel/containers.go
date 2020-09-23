@@ -723,5 +723,6 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 }
 
 func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
-	return nil, errors.New("not implemented")
+	stream := !options.NoStream
+	return containers.Stats(ic.ClientCxt, namesOrIds, &stream)
 }

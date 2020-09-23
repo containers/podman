@@ -1013,7 +1013,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//  - containers
 	// summary: Get stats for a container
-	// description: This returns a live stream of a container’s resource usage statistics.
+	// description: DEPRECATED. This endpoint will be removed with the next major release. Please use /libpod/containers/stats instead.
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -1035,6 +1035,35 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stats"), s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/containers/stats libpod libpodStatsContainers
+	// ---
+	// tags:
+	//  - containers
+	// summary: Get stats for one or more containers
+	// description: Return a live stream of resource usage statistics of one or more container. If no container is specified, the statistics of all containers are returned.
+	// parameters:
+	//  - in: query
+	//    name: containers
+	//    description: names or IDs of containers
+	//    type: array
+	//    items:
+	//       type: string
+	//  - in: query
+	//    name: stream
+	//    type: boolean
+	//    default: true
+	//    description: Stream the output
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/stats"), s.APIHandler(libpod.StatsContainer)).Methods(http.MethodGet)
+
 	// swagger:operation GET /libpod/containers/{name}/top libpod libpodTopContainer
 	// ---
 	// tags:

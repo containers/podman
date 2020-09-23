@@ -200,7 +200,56 @@ func Start(ctx context.Context, nameOrID string, detachKeys *string) error {
 	return response.Process(nil)
 }
 
-func Stats() {}
+func Stats(ctx context.Context, containers []string, stream *bool) (chan entities.ContainerStatsReport, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	if stream != nil {
+		params.Set("stream", strconv.FormatBool(*stream))
+	}
+	for _, c := range containers {
+		params.Add("containers", c)
+	}
+
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/stats", params, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	statsChan := make(chan entities.ContainerStatsReport)
+
+	go func() {
+		defer close(statsChan)
+
+		dec := json.NewDecoder(response.Body)
+		doStream := true
+		if stream != nil {
+			doStream = *stream
+		}
+
+	streamLabel: // label to flatten the scope
+		select {
+		case <-response.Request.Context().Done():
+			return // lost connection - maybe the server quit
+		default:
+			// fall through and do some work
+		}
+		var report entities.ContainerStatsReport
+		if err := dec.Decode(&report); err != nil {
+			report = entities.ContainerStatsReport{Error: err}
+		}
+		statsChan <- report
+
+		if report.Error != nil || !doStream {
+			return
+		}
+		goto streamLabel
+	}()
+
+	return statsChan, nil
+}
 
 // Top gathers statistics about the running processes in a container. The nameOrID can be a container name
 // or a partial/full ID.  The descriptors allow for specifying which data to collect from the process.
