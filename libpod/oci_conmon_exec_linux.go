@@ -537,9 +537,6 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 		}
 	}()
 
-	// Make a channel to pass errors back
-	errChan := make(chan error)
-
 	attachStdout := true
 	attachStderr := true
 	attachStdin := true
@@ -580,13 +577,16 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 		hijackWriteErrorAndClose(deferredErr, c.ID(), isTerminal, httpCon, httpBuf)
 	}()
 
+	stdoutChan := make(chan error)
+	stdinChan := make(chan error)
+
 	// Next, STDIN. Avoid entirely if attachStdin unset.
 	if attachStdin {
 		go func() {
 			logrus.Debugf("Beginning STDIN copy")
 			_, err := utils.CopyDetachable(conn, httpBuf, detachKeys)
 			logrus.Debugf("STDIN copy completed")
-			errChan <- err
+			stdinChan <- err
 		}()
 	}
 
@@ -613,19 +613,24 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 			logrus.Debugf("Performing non-terminal HTTP attach for container %s", c.ID())
 			err = httpAttachNonTerminalCopy(conn, httpBuf, c.ID(), attachStdin, attachStdout, attachStderr)
 		}
-		errChan <- err
+		stdoutChan <- err
 		logrus.Debugf("STDOUT/ERR copy completed")
 	}()
 
-	if cancel != nil {
+	for {
 		select {
-		case err := <-errChan:
-			return err
+		case err := <-stdoutChan:
+			if err != nil {
+				return err
+			}
+
+			return nil
+		case err := <-stdinChan:
+			if err != nil {
+				return err
+			}
 		case <-cancel:
 			return nil
 		}
-	} else {
-		var connErr error = <-errChan
-		return connErr
 	}
 }
