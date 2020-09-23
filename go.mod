@@ -35,6 +35,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.10
+	github.com/kr/text v0.2.0 // indirect
 	github.com/moby/sys/mount v0.1.1 // indirect
 	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
@@ -53,6 +54,7 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
+	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
@@ -60,10 +62,15 @@ require (
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
 	github.com/vishvananda/netlink v1.1.0
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009
+	google.golang.org/appengine v1.6.6 // indirect
+	google.golang.org/protobuf v1.25.0 // indirect
+	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab

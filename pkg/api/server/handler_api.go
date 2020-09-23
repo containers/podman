@@ -7,7 +7,9 @@ import (
 	"runtime"
 
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
-	log "github.com/sirupsen/logrus"
+	"github.com/containers/podman/v2/pkg/auth"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 // APIHandler is a wrapper to enhance HandlerFunc's and remove redundant code
@@ -19,7 +21,7 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			if err != nil {
 				buf := make([]byte, 1<<20)
 				n := runtime.Stack(buf, true)
-				log.Warnf("Recovering from API handler panic: %v, %s", err, buf[:n])
+				logrus.Warnf("Recovering from API handler panic: %v, %s", err, buf[:n])
 				// Try to inform client things went south... won't work if handler already started writing response body
 				utils.InternalServerError(w, fmt.Errorf("%v", err))
 			}
@@ -27,10 +29,23 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 
 		// Wrapper to hide some boiler plate
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			log.Debugf("APIHandler -- Method: %s URL: %s", r.Method, r.URL.String())
+			rid := uuid.New().String()
+			if logrus.IsLevelEnabled(logrus.DebugLevel) {
+				logrus.Debugf("APIHandler(%s) -- Method: %s URL: %s", rid, r.Method, r.URL.String())
+				for k, v := range r.Header {
+					switch auth.HeaderAuthName(k) {
+					case auth.XRegistryConfigHeader, auth.XRegistryAuthHeader:
+						logrus.Debugf("APIHandler(%s) -- Header: %s: <hidden>", rid, k)
+					default:
+						logrus.Debugf("APIHandler(%s) -- Header: %s: %v", rid, k, v)
+					}
+				}
+			}
+			// Set in case handler wishes to correlate logging events
+			r.Header.Set("X-Reference-Id", rid)
 
 			if err := r.ParseForm(); err != nil {
-				log.Infof("Failed Request: unable to parse form: %q", err)
+				logrus.Infof("Failed Request: unable to parse form: %q (%s)", err, rid)
 			}
 
 			// TODO: Use r.ConnContext when ported to go 1.13
