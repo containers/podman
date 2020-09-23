@@ -722,6 +722,6 @@ func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string,
 func (ic *ContainerEngine) Shutdown(_ context.Context) {
 }
 
-func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) error {
-	return errors.New("not implemented")
+func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
+	return nil, errors.New("not implemented")
 }
