@@ -199,6 +199,13 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 		return nil, err
 	}
 	defer f.Close()
+	fInfo, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if fInfo.IsDir() {
+		return nil, errors.Errorf("remote client supports archives only but %q is a directory", opts.Input)
+	}
 	ref := opts.Name
 	if len(opts.Tag) > 0 {
 		ref += ":" + opts.Tag
