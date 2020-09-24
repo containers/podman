@@ -60,6 +60,7 @@ func init() {
 		flags.BoolVar(&kubeOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 		flags.StringVar(&kubeOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.StringVar(&kubeOptions.SeccompProfileRoot, "seccomp-profile-root", defaultSeccompRoot, "Directory path for seccomp profiles")
+		flags.StringSliceVar(&kubeOptions.ConfigMaps, "configmap", []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
 	}
 	_ = flags.MarkHidden("signature-policy")
 }
