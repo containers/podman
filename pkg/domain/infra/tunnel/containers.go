@@ -722,6 +722,9 @@ func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string,
 func (ic *ContainerEngine) Shutdown(_ context.Context) {
 }
 
-func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) error {
-	return errors.New("not implemented")
+func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
+	if options.Latest {
+		return nil, errors.New("latest is not supported for the remote client")
+	}
+	return containers.Stats(ic.ClientCxt, namesOrIds, &options.Stream)
 }

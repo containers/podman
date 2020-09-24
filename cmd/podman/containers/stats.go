@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"text/tabwriter"
 	"text/template"
 
@@ -48,8 +47,18 @@ var (
 	}
 )
 
+// statsOptionsCLI is used for storing CLI arguments. Some fields are later
+// used in the backend.
+type statsOptionsCLI struct {
+	All      bool
+	Format   string
+	Latest   bool
+	NoReset  bool
+	NoStream bool
+}
+
 var (
-	statsOptions       entities.ContainerStatsOptions
+	statsOptions       statsOptionsCLI
 	defaultStatsRow    = "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\n"
 	defaultStatsHeader = "ID\tNAME\tCPU %\tMEM USAGE / LIMIT\tMEM %\tNET IO\tBLOCK IO\tPIDS\n"
 )
@@ -107,32 +116,37 @@ func stats(cmd *cobra.Command, args []string) error {
 			return errors.New("stats is not supported in rootless mode without cgroups v2")
 		}
 	}
-	statsOptions.StatChan = make(chan []*define.ContainerStats, 1)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		for reports := range statsOptions.StatChan {
-			if err := outputStats(reports); err != nil {
-				logrus.Error(err)
-			}
-		}
-		wg.Done()
 
-	}()
-	err := registry.ContainerEngine().ContainerStats(registry.Context(), args, statsOptions)
-	wg.Wait()
-	return err
+	// Convert to the entities options.  We should not leak CLI-only
+	// options into the backend and separate concerns.
+	opts := entities.ContainerStatsOptions{
+		Latest: statsOptions.Latest,
+		Stream: !statsOptions.NoStream,
+	}
+	statsChan, err := registry.ContainerEngine().ContainerStats(registry.Context(), args, opts)
+	if err != nil {
+		return err
+	}
+	for report := range statsChan {
+		if report.Error != nil {
+			return report.Error
+		}
+		if err := outputStats(report.Stats); err != nil {
+			logrus.Error(err)
+		}
+	}
+	return nil
 }
 
-func outputStats(reports []*define.ContainerStats) error {
+func outputStats(reports []define.ContainerStats) error {
 	if len(statsOptions.Format) < 1 && !statsOptions.NoReset {
 		tm.Clear()
 		tm.MoveCursor(1, 1)
 		tm.Flush()
 	}
-	stats := make([]*containerStats, 0, len(reports))
+	stats := make([]containerStats, 0, len(reports))
 	for _, r := range reports {
-		stats = append(stats, &containerStats{r})
+		stats = append(stats, containerStats{r})
 	}
 	if statsOptions.Format == "json" {
 		return outputJSON(stats)
@@ -163,7 +177,7 @@ func outputStats(reports []*define.ContainerStats) error {
 }
 
 type containerStats struct {
-	*define.ContainerStats
+	define.ContainerStats
 }
 
 func (s *containerStats) ID() string {
@@ -213,7 +227,7 @@ func combineHumanValues(a, b uint64) string {
 	return fmt.Sprintf("%s / %s", units.HumanSize(float64(a)), units.HumanSize(float64(b)))
 }
 
-func outputJSON(stats []*containerStats) error {
+func outputJSON(stats []containerStats) error {
 	type jstat struct {
 		Id         string `json:"id"` //nolint
 		Name       string `json:"name"`

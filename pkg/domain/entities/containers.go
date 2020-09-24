@@ -411,10 +411,17 @@ type ContainerCpReport struct {
 // ContainerStatsOptions describes input options for getting
 // stats on containers
 type ContainerStatsOptions struct {
-	All      bool
-	Format   string
-	Latest   bool
-	NoReset  bool
-	NoStream bool
-	StatChan chan []*define.ContainerStats
+	// Operate on the latest known container.  Only supported for local
+	// clients.
+	Latest bool
+	// Stream stats.
+	Stream bool
+}
+
+// ContainerStatsReport is used for streaming container stats.
+type ContainerStatsReport struct {
+	// Error from reading stats.
+	Error error
+	// Results, set when there is no error.
+	Stats []define.ContainerStats
 }
