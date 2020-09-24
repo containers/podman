@@ -210,7 +210,7 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		ImageID:           newImage.ID(),
 		BuiltinImgVolumes: nil, // podman
 		ImageVolumeType:   "",  // podman
-		Interactive:       false,
+		Interactive:       input.OpenStdin,
 		// IpcMode:           input.HostConfig.IpcMode,
 		Labels:    input.Labels,
 		LogDriver: input.HostConfig.LogConfig.Type, // is this correct
