@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/libpod"
 	image2 "github.com/containers/podman/v2/libpod/image"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/util"
 	"github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
@@ -281,6 +281,16 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	if sys := runtime.SystemContext(); sys != nil {
 		registryOpts.DockerCertPath = sys.DockerCertPath
 	}
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	pullPolicy, err := config.ValidatePullPolicy(rtc.Engine.PullPolicy)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
 	img, err := runtime.ImageRuntime().New(r.Context(),
 		fromImage,
 		"", // signature policy
@@ -289,7 +299,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		&registryOpts,
 		image2.SigningOptions{},
 		nil, // label
-		util.PullImageMissing,
+		pullPolicy,
 	)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)

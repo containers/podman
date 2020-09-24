@@ -261,6 +261,7 @@ func pullImage(imageName string) (string, error) {
 			OverrideOS:      cliVals.OverrideOS,
 			OverrideVariant: cliVals.OverrideVariant,
 			SignaturePolicy: cliVals.SignaturePolicy,
+			PullPolicy:      pullPolicy,
 		})
 		if pullErr != nil {
 			return "", pullErr
