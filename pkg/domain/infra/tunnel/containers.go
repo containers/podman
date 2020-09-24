@@ -481,27 +481,67 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
-	for _, name := range namesOrIds {
+	var exitCode = define.ExecErrorCodeGeneric
+	ctrs, err := getContainersByContext(ic.ClientCxt, false, false, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	// There can only be one container if attach was used
+	for i, ctr := range ctrs {
+		name := ctr.ID
 		report := entities.ContainerStartReport{
 			Id:       name,
-			RawInput: name,
-			ExitCode: 125,
+			RawInput: namesOrIds[i],
+			ExitCode: exitCode,
 		}
+		ctrRunning := ctr.State == define.ContainerStateRunning.String()
 		if options.Attach {
-			report.Err = startAndAttach(ic, name, &options.DetachKeys, options.Stdin, options.Stdout, options.Stderr)
-			if report.Err == nil {
-				exitCode, err := containers.Wait(ic.ClientCxt, name, nil)
-				if err == nil {
-					report.ExitCode = int(exitCode)
+			err = startAndAttach(ic, name, &options.DetachKeys, options.Stdin, options.Stdout, options.Stderr)
+			if err == define.ErrDetach {
+				// User manually detached
+				// Exit cleanly immediately
+				report.Err = err
+				reports = append(reports, &report)
+				return reports, nil
+			}
+			if ctrRunning {
+				reports = append(reports, &report)
+				return reports, nil
+			}
+
+			if err != nil {
+				report.ExitCode = define.ExitCode(report.Err)
+				report.Err = err
+				reports = append(reports, &report)
+				return reports, errors.Wrapf(report.Err, "unable to start container %s", name)
+			}
+			exitCode, err := containers.Wait(ic.ClientCxt, name, nil)
+			if err == define.ErrNoSuchCtr {
+				// Check events
+				event, err := ic.GetLastContainerEvent(ctx, name, events.Exited)
+				if err != nil {
+					logrus.Errorf("Cannot get exit code: %v", err)
+					report.ExitCode = define.ExecErrorCodeNotFound
+				} else {
+					report.ExitCode = event.ContainerExitCode
 				}
 			} else {
-				report.ExitCode = define.ExitCode(report.Err)
+				report.ExitCode = int(exitCode)
 			}
 			reports = append(reports, &report)
 			return reports, nil
 		}
-		report.Err = containers.Start(ic.ClientCxt, name, &options.DetachKeys)
-		report.ExitCode = define.ExitCode(report.Err)
+		// Start the container if it's not running already.
+		if !ctrRunning {
+			err = containers.Start(ic.ClientCxt, name, &options.DetachKeys)
+			if err != nil {
+				report.Err = errors.Wrapf(err, "unable to start container %q", name)
+				report.ExitCode = define.ExitCode(err)
+				reports = append(reports, &report)
+				continue
+			}
+		}
+		report.ExitCode = 0
 		reports = append(reports, &report)
 	}
 	return reports, nil
