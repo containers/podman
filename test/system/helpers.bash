@@ -376,7 +376,12 @@ function parse_table() {
         while read col; do
             dprint "col=<<$col>>"
             row+=("$col")
-        done <  <(echo "$line" | tr '|' '\012' | sed -e 's/^ *//' -e 's/\\/\\\\/g')
+        done <  <(echo "$line" | sed -E -e 's/(^|\s)\|(\s|$)/\n /g' | sed -e 's/^ *//' -e 's/\\/\\\\/g')
+        # the above seds:
+        #   1) Convert '|' to newline, but only if bracketed by spaces or
+        #      at beginning/end of line (this allows 'foo|bar' in tests);
+        #   2) then remove leading whitespace;
+        #   3) then double-escape all backslashes
 
         printf "%q " "${row[@]}"
         printf "\n"
