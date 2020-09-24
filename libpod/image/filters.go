@@ -82,7 +82,7 @@ func LabelFilter(ctx context.Context, labelfilter string) ResultFilter {
 	// We need to handle both label=key and label=key=value
 	return func(i *Image) bool {
 		var value string
-		splitFilter := strings.Split(labelfilter, "=")
+		splitFilter := strings.SplitN(labelfilter, "=", 2)
 		key := splitFilter[0]
 		if len(splitFilter) > 1 {
 			value = splitFilter[1]
@@ -157,7 +157,7 @@ func (ir *Runtime) createFilterFuncs(filters []string, img *Image) ([]ResultFilt
 	var filterFuncs []ResultFilter
 	ctx := context.Background()
 	for _, filter := range filters {
-		splitFilter := strings.Split(filter, "=")
+		splitFilter := strings.SplitN(filter, "=", 2)
 		if len(splitFilter) < 2 {
 			return nil, errors.Errorf("invalid filter syntax %s", filter)
 		}

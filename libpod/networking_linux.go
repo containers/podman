@@ -254,9 +254,11 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	if ctr.config.NetworkOptions != nil {
 		slirpOptions := ctr.config.NetworkOptions["slirp4netns"]
 		for _, o := range slirpOptions {
-			parts := strings.Split(o, "=")
+			parts := strings.SplitN(o, "=", 2)
+			if len(parts) < 2 {
+				return errors.Errorf("unknown option for slirp4netns: %q", o)
+			}
 			option, value := parts[0], parts[1]
-
 			switch option {
 			case "cidr":
 				ipv4, _, err := net.ParseCIDR(value)

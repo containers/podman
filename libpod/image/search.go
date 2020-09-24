@@ -263,7 +263,7 @@ func searchRepositoryTags(registry, term string, sc *types.SystemContext, option
 func ParseSearchFilter(filter []string) (*SearchFilter, error) {
 	sFilter := new(SearchFilter)
 	for _, f := range filter {
-		arr := strings.Split(f, "=")
+		arr := strings.SplitN(f, "=", 2)
 		switch arr[0] {
 		case "stars":
 			if len(arr) < 2 {

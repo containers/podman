@@ -474,8 +474,8 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 	config.Storage.RunRoot = storeOptions.RunRoot
 	config.Storage.GraphRoot = storeOptions.GraphRoot
 	for _, i := range storeOptions.GraphDriverOptions {
-		s := strings.Split(i, "=")
-		if s[0] == "overlay.mount_program" {
+		s := strings.SplitN(i, "=", 2)
+		if s[0] == "overlay.mount_program" && len(s) == 2 {
 			config.Storage.Options.MountProgram = s[1]
 		}
 	}
