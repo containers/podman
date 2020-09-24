@@ -683,6 +683,8 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 }
 
 func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
-	stream := !options.NoStream
-	return containers.Stats(ic.ClientCxt, namesOrIds, &stream)
+	if options.Latest {
+		return nil, errors.New("latest is not supported for the remote client")
+	}
+	return containers.Stats(ic.ClientCxt, namesOrIds, &options.Stream)
 }

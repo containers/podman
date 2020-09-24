@@ -36,8 +36,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
 	statsOptions := entities.ContainerStatsOptions{
-		All:      len(query.Containers) == 0, // no containers -> query all of them
-		NoStream: !query.Stream,
+		Stream: query.Stream,
 	}
 
 	// Stats will stop if the connection is closed.

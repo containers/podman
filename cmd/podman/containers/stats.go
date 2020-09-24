@@ -47,8 +47,18 @@ var (
 	}
 )
 
+// statsOptionsCLI is used for storing CLI arguments. Some fields are later
+// used in the backend.
+type statsOptionsCLI struct {
+	All      bool
+	Format   string
+	Latest   bool
+	NoReset  bool
+	NoStream bool
+}
+
 var (
-	statsOptions       entities.ContainerStatsOptions
+	statsOptions       statsOptionsCLI
 	defaultStatsRow    = "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\n"
 	defaultStatsHeader = "ID\tNAME\tCPU %\tMEM USAGE / LIMIT\tMEM %\tNET IO\tBLOCK IO\tPIDS\n"
 )
@@ -107,7 +117,13 @@ func stats(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	statsChan, err := registry.ContainerEngine().ContainerStats(registry.Context(), args, statsOptions)
+	// Convert to the entities options.  We should not leak CLI-only
+	// options into the backend and separate concerns.
+	opts := entities.ContainerStatsOptions{
+		Latest: statsOptions.Latest,
+		Stream: !statsOptions.NoStream,
+	}
+	statsChan, err := registry.ContainerEngine().ContainerStats(registry.Context(), args, opts)
 	if err != nil {
 		return err
 	}

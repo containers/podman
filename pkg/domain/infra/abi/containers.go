@@ -1146,6 +1146,7 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 	statsChan = make(chan entities.ContainerStatsReport, 1)
 
 	containerFunc := ic.Libpod.GetRunningContainers
+	queryAll := false
 	switch {
 	case options.Latest:
 		containerFunc = func() ([]*libpod.Container, error) {
@@ -1157,7 +1158,9 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 		}
 	case len(namesOrIds) > 0:
 		containerFunc = func() ([]*libpod.Container, error) { return ic.Libpod.GetContainersByList(namesOrIds) }
-	case options.All:
+	default:
+		// No containers, no latest -> query all!
+		queryAll = true
 		containerFunc = ic.Libpod.GetAllContainers
 	}
 
@@ -1197,7 +1200,7 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 				stats, err := ctr.GetContainerStats(prev)
 				if err != nil {
 					cause := errors.Cause(err)
-					if options.All && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
+					if queryAll && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
 						continue
 					}
 					if cause == cgroups.ErrCgroupV1Rootless {
@@ -1216,7 +1219,7 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 		report.Stats, report.Error = computeStats()
 		statsChan <- report
 
-		if report.Error != nil || options.NoStream {
+		if report.Error != nil || !options.Stream {
 			return
 		}
 
