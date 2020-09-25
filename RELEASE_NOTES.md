@@ -1,5 +1,25 @@
 # Release Notes
 
+## 2.1.1
+### Changes
+- The `podman info` command now includes the cgroup manager Podman is using.
+
+### Bugfixes
+- Fixed a bug where Podman would not build with the `varlink` build tag enabled.
+- Fixed a bug where the `podman save` command could, when asked to save multiple images, write its progress bar to the archive instead of the terminal, producing a corrupted archive.
+- Fixed a bug where the `json-file` log driver did not write logs.
+- Fixed a bug where `podman-remote start --attach` did not properly handle detaching using the detach keys.
+- Fixed a bug where `podman pod ps --filter label=...` did not work.
+- Fixed a bug where the `podman build` command did not respect the `--runtime` flag.
+
+### API
+- The REST API now includes a Server header in all responses.
+- Fixed a bug where the Libpod and Compat Attach endpoints could terminate early, before sending all output from the container.
+- Fixed a bug where the Compat Create endpoint for containers did not properly handle the Interactive parameter.
+- Fixed a bug where the Compat Kill endpoint for containers could continue to run after a fatal error.
+- Fixed a bug where the Limit parameter of the Compat List endpoint for Containers did not properly handle a limit of 0 (returning nothing, instead of all containers) ([#7722](https://github.com/containers/podman/issues/7722)).
+- The Libpod Stats endpoint for containers is being deprecated and will be replaced by a similar endpoint with additional features in a future release.
+
 ## 2.1.0
 ### Features
 - A new command, `podman image mount`, has been added. This allows for an image to be mounted, read-only, to inspect its contents without creating a container from it ([#1433](https://github.com/containers/podman/issues/1433)).
