@@ -389,7 +389,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	createFlags.StringVar(
 		&cf.Restart,
 		"restart", "",
-		`Restart policy to apply when a container exits ("always"|"no"|"on-failure")`,
+		`Restart policy to apply when a container exits ("always"|"no"|"on-failure"|"unless-stopped")`,
 	)
 	createFlags.BoolVar(
 		&cf.Rm,
