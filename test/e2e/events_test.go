@@ -43,7 +43,6 @@ var _ = Describe("Podman events", func() {
 	// These tests are only known to work on Fedora ATM.  Other distributions
 	// will be skipped.
 	It("podman events", func() {
-		SkipIfRootless()
 		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
@@ -53,7 +52,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events with an event filter", func() {
-		SkipIfRootless()
 		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
@@ -65,7 +63,6 @@ var _ = Describe("Podman events", func() {
 
 	It("podman events with an event filter and container=cid", func() {
 		Skip("Does not work on v2")
-		SkipIfRootless()
 		SkipIfNotFedora()
 		_, ec, cid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
@@ -80,7 +77,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events with a type and filter container=id", func() {
-		SkipIfRootless()
 		SkipIfNotFedora()
 		_, ec, cid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
@@ -91,7 +87,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events with a type", func() {
-		SkipIfRootless()
 		SkipIfNotFedora()
 		setup := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:foobarpod", ALPINE, "top"})
 		setup.WaitWithDefaultTimeout()
@@ -107,7 +102,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events --since", func() {
-		SkipIfRootless()
 		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
@@ -117,7 +111,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events --until", func() {
-		SkipIfRootless()
 		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
@@ -130,7 +123,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events format", func() {
-		SkipIfRootless()
 		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))

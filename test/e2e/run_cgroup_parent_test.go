@@ -18,7 +18,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
+		SkipIfRootlessCgroupsV1() // cgroup parent is not supported in cgroups v1
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -48,6 +48,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	})
 
 	Specify("no --cgroup-parent", func() {
+		SkipIfRootless() // FIXME This seems to be broken in rootless mode
 		cgroup := "/libpod_parent"
 		if !Containerized() && podmanTest.CgroupManager != "cgroupfs" {
 			cgroup = "/machine.slice"

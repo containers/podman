@@ -17,17 +17,19 @@ import (
 // available than we are aware of, leading to host=FFF... and ctr=3FF...
 // because the latter is all we request. Accept that.
 func containerCapMatchesHost(ctr_cap string, host_cap string) {
+	if isRootless() {
+		return
+	}
 	ctr_cap_n, err := strconv.ParseUint(ctr_cap, 16, 64)
 	Expect(err).NotTo(HaveOccurred(), "Error parsing %q as hex", ctr_cap)
 
 	host_cap_n, err := strconv.ParseUint(host_cap, 16, 64)
 	Expect(err).NotTo(HaveOccurred(), "Error parsing %q as hex", host_cap)
 
-	// host caps can never be zero (except rootless, which we don't test).
+	// host caps can never be zero (except rootless).
 	// and host caps must always be a superset (inclusive) of container
 	Expect(host_cap_n).To(BeNumerically(">", 0), "host cap %q should be nonzero", host_cap)
 	Expect(host_cap_n).To(BeNumerically(">=", ctr_cap_n), "host cap %q should never be less than container cap %q", host_cap, ctr_cap)
-
 	host_cap_masked := host_cap_n & (1<<len(capability.List()) - 1)
 	Expect(ctr_cap_n).To(Equal(host_cap_masked), "container cap %q is not a subset of host cap %q", ctr_cap, host_cap)
 }
@@ -66,7 +68,6 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman privileged CapEff", func() {
-		SkipIfRootless()
 		host_cap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
 		Expect(host_cap.ExitCode()).To(Equal(0))
 
@@ -78,7 +79,6 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman cap-add CapEff", func() {
-		SkipIfRootless()
 		// Get caps of current process
 		host_cap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
 		Expect(host_cap.ExitCode()).To(Equal(0))
@@ -106,7 +106,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman privileged should inherit host devices", func() {
-		SkipIfRootless()
+		SkipIfRootless() // FIXME: This seems to be broken for rootless mode, /dev/ is close to the same
 		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "-l", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

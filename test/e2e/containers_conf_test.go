@@ -41,7 +41,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run limits test", func() {
-		SkipIfRootless()
+		SkipIfRootlessCgroupsV1()
 		//containers.conf is set to "nofile=500:500"
 		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
@@ -80,7 +80,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman Capabilities in containers.conf", func() {
-		SkipIfRootless()
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		cap := podmanTest.Podman([]string{"run", ALPINE, "grep", "CapEff", "/proc/self/status"})
 		cap.WaitWithDefaultTimeout()
@@ -94,7 +93,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman Regular capabilities", func() {
-		SkipIfRootless()
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
@@ -176,7 +174,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run containers.conf sysctl test", func() {
-		SkipIfRootless()
 		//containers.conf is set to   "net.ipv4.ping_group_range=0 1000"
 		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "cat", "/proc/sys/net/ipv4/ping_group_range"})
 		session.WaitWithDefaultTimeout()

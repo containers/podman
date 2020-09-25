@@ -34,7 +34,7 @@ var _ = Describe("Podman run exit", func() {
 
 	It("podman run -d mount cleanup test", func() {
 		SkipIfRemote("podman-remote does not support mount")
-		SkipIfRootless()
+		SkipIfRootless() // FIXME podman mount requires podman unshare first
 
 		result := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
 		result.WaitWithDefaultTimeout()
