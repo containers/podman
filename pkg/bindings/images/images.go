@@ -229,8 +229,12 @@ func Untag(ctx context.Context, nameOrID, tag, repo string) error {
 		return err
 	}
 	params := url.Values{}
-	params.Set("tag", tag)
-	params.Set("repo", repo)
+	if len(tag) > 0 {
+		params.Set("tag", tag)
+	}
+	if len(repo) > 0 {
+		params.Set("repo", repo)
+	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/images/%s/untag", params, nil, nameOrID)
 	if err != nil {
 		return err

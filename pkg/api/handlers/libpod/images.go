@@ -566,19 +566,22 @@ func UntagImage(w http.ResponseWriter, r *http.Request) {
 		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
-	tag := "latest"
-	if len(r.Form.Get("tag")) > 0 {
-		tag = r.Form.Get("tag")
+	tags := []string{}
+	if len(r.Form.Get("repo")) > 0 {
+		repo := r.Form.Get("repo")
+		tag := "latest"
+		if len(r.Form.Get("tag")) > 0 {
+			tag = r.Form.Get("tag")
+		}
+		tags = []string{fmt.Sprintf("%s:%s", repo, tag)}
+	} else {
+		tags = newImage.Names()
 	}
-	if len(r.Form.Get("repo")) < 1 {
-		utils.Error(w, "repo tag is required", http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
-		return
-	}
-	repo := r.Form.Get("repo")
-	tagName := fmt.Sprintf("%s:%s", repo, tag)
-	if err := newImage.UntagImage(tagName); err != nil {
-		utils.Error(w, "failed to untag", http.StatusInternalServerError, err)
-		return
+	for _, tag := range tags {
+		if err := newImage.UntagImage(tag); err != nil {
+			utils.Error(w, "failed to untag", http.StatusInternalServerError, err)
+			return
+		}
 	}
 	utils.WriteResponse(w, http.StatusCreated, "")
 }
