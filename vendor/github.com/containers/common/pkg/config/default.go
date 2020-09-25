@@ -250,6 +250,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	if cgroup2, _ := cgroupv2.Enabled(); cgroup2 {
 		c.OCIRuntime = "crun"
 	}
+	c.ImageBuildFormat = "oci"
+
 	c.CgroupManager = defaultCgroupManager()
 	c.StopTimeout = uint(10)
 
