@@ -173,6 +173,19 @@ function random_ip() {
     # FIXME: --ip=$ip fails:
     #      Error adding network: failed to allocate all requested IPs
     local mac_option="--mac-address=$mac"
+
+    # Create a custom image so we can test --infra-image and -command.
+    # It will have a randomly generated infra command, using the
+    # existing 'pause' script in our testimage. We assign a bogus
+    # entrypoint to confirm that --infra-command will override.
+    local infra_image="infra_$(random_string 10 | tr A-Z a-z)"
+    local infra_command="/pause_$(random_string 10)"
+    run_podman build -t $infra_image - << EOF
+FROM $IMAGE
+RUN ln /home/podman/pause $infra_command
+ENTRYPOINT ["/original-entrypoint-should-be-overridden"]
+EOF
+
     if is_rootless; then
         mac_option=
     fi
@@ -185,11 +198,20 @@ function random_ip() {
                --dns-search "$dns_search"                \
                --dns-opt    "$dns_opt"                   \
                --publish    "$port_out:$port_in"         \
-               --label      "${labelname}=${labelvalue}"
+               --label      "${labelname}=${labelvalue}" \
+               --infra-image   "$infra_image"            \
+               --infra-command "$infra_command"
     pod_id="$output"
 
     # Check --pod-id-file
     is "$(<$pod_id_file)" "$pod_id" "contents of pod-id-file"
+
+    # Get ID of infra container
+    run_podman pod inspect --format '{{(index .Containers 0).ID}}' mypod
+    local infra_cid="$output"
+    # confirm that entrypoint is what we set
+    run_podman container inspect --format '{{.Config.Entrypoint}}' $infra_cid
+    is "$output" "$infra_command" "infra-command took effect"
 
     # Check each of the options
     if [ -n "$mac_option" ]; then
@@ -249,9 +271,16 @@ function random_ip() {
     run_podman logs $cid
     is "$output" "$teststring" "test string received on container"
 
+    # Finally, confirm the infra-container and -command. We run this late,
+    # not at pod creation, to give the infra container time to start & log.
+    run_podman logs $infra_cid
+    is "$output" "Confirmed: testimage pause invoked as $infra_command" \
+       "pod ran with our desired infra container + command"
+
     # Clean up
     run_podman rm $cid
     run_podman pod rm -f mypod
+    run_podman rmi $infra_image
 }
 
 # vim: filetype=sh
