@@ -77,8 +77,11 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 		// Since user namespace sharing is not implemented, we only need to check if it's rootless
 		if !p.config.InfraContainer.HostNetwork {
 			netmode := "bridge"
-			if isRootless {
+			if isRootless || p.config.InfraContainer.Slirp4netns {
 				netmode = "slirp4netns"
+				if len(p.config.InfraContainer.NetworkOptions) != 0 {
+					options = append(options, WithNetworkOptions(p.config.InfraContainer.NetworkOptions))
+				}
 			}
 			// PostConfigureNetNS should not be set since user namespace sharing is not implemented
 			// and rootless networking no longer supports post configuration setup

@@ -89,6 +89,8 @@ type InspectPodInfraConfig struct {
 	HostAdd []string
 	// Networks is a list of CNI networks the pod will join.
 	Networks []string
+	// NetworkOptions are additional options for each network
+	NetworkOptions map[string][]string
 }
 
 // InspectPodContainerInfo contains information on a container in a pod.

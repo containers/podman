@@ -584,7 +584,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			infraConfig.Networks = make([]string, 0, len(p.config.InfraContainer.Networks))
 			infraConfig.Networks = append(infraConfig.Networks, p.config.InfraContainer.Networks...)
 		}
-
+		infraConfig.NetworkOptions = p.config.InfraContainer.NetworkOptions
 		infraConfig.PortBindings = makeInspectPortBindings(p.config.InfraContainer.PortBindings)
 	}
 

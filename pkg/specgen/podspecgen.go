@@ -134,6 +134,9 @@ type PodNetworkConfig struct {
 	// Conflicts with NoInfra=true and NoManageHosts.
 	// Optional.
 	HostAdd []string `json:"hostadd,omitempty"`
+	// NetworkOptions are additional options for each network
+	// Optional.
+	NetworkOptions map[string][]string `json:"network_options,omitempty"`
 }
 
 // PodCgroupConfig contains configuration options about a pod's cgroups.

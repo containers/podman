@@ -107,6 +107,8 @@ type InfraContainerConfig struct {
 	ExitCommand        []string             `json:"exitCommand,omitempty"`
 	InfraImage         string               `json:"infraImage,omitempty"`
 	InfraCommand       []string             `json:"infraCommand,omitempty"`
+	Slirp4netns        bool                 `json:"slirp4netns,omitempty"`
+	NetworkOptions     map[string][]string  `json:"network_options,omitempty"`
 }
 
 // ID retrieves the pod's ID

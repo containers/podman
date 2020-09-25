@@ -99,6 +99,9 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 	case specgen.Host:
 		logrus.Debugf("Pod will use host networking")
 		options = append(options, libpod.WithPodHostNetwork())
+	case specgen.Slirp:
+		logrus.Debugf("Pod will use slirp4netns")
+		options = append(options, libpod.WithPodSlirp4netns(p.NetworkOptions))
 	default:
 		return nil, errors.Errorf("pods presently do not support network mode %s", p.NetNS.NSMode)
 	}
