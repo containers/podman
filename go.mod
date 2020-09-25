@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v0.8.0
 	github.com/containernetworking/plugins v0.8.7
 	github.com/containers/buildah v1.16.2
-	github.com/containers/common v0.22.0
+	github.com/containers/common v0.23.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.6.0
 	github.com/containers/psgo v1.5.1
@@ -51,7 +51,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/rootless-containers/rootlesskit v0.10.1
 	github.com/sirupsen/logrus v1.6.0
-	github.com/spf13/cobra v0.0.7
+	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2

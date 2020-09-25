@@ -3,6 +3,7 @@ package auth
 import (
 	"io"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/spf13/pflag"
 )
 
@@ -49,10 +50,27 @@ func GetLoginFlags(flags *LoginOptions) *pflag.FlagSet {
 	return &fs
 }
 
+// GetLoginFlagsCompletions returns the FlagCompletions for the login flags
+func GetLoginFlagsCompletions() completion.FlagCompletions {
+	flagCompletion := completion.FlagCompletions{}
+	flagCompletion["authfile"] = completion.AutocompleteDefault
+	flagCompletion["cert-dir"] = completion.AutocompleteDefault
+	flagCompletion["password"] = completion.AutocompleteNone
+	flagCompletion["username"] = completion.AutocompleteNone
+	return flagCompletion
+}
+
 // GetLogoutFlags defines and returns logout flags for containers tools
 func GetLogoutFlags(flags *LogoutOptions) *pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.StringVar(&flags.AuthFile, "authfile", GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	fs.BoolVarP(&flags.All, "all", "a", false, "Remove the cached credentials for all registries in the auth file")
 	return &fs
+}
+
+// GetLogoutFlagsCompletions returns the FlagCompletions for the logout flags
+func GetLogoutFlagsCompletions() completion.FlagCompletions {
+	flagCompletion := completion.FlagCompletions{}
+	flagCompletion["authfile"] = completion.AutocompleteDefault
+	return flagCompletion
 }
