@@ -555,9 +555,6 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 		return err
 	}
 
-	// Make a channel to pass errors back
-	errChan := make(chan error)
-
 	attachStdout := true
 	attachStderr := true
 	attachStdin := true
@@ -672,6 +669,9 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 
 	logrus.Debugf("Forwarding attach output for container %s", ctr.ID())
 
+	stdoutChan := make(chan error)
+	stdinChan := make(chan error)
+
 	// Handle STDOUT/STDERR
 	go func() {
 		var err error
@@ -690,7 +690,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 			logrus.Debugf("Performing non-terminal HTTP attach for container %s", ctr.ID())
 			err = httpAttachNonTerminalCopy(conn, httpBuf, ctr.ID(), attachStdin, attachStdout, attachStderr)
 		}
-		errChan <- err
+		stdoutChan <- err
 		logrus.Debugf("STDOUT/ERR copy completed")
 	}()
 	// Next, STDIN. Avoid entirely if attachStdin unset.
@@ -698,20 +698,25 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 		go func() {
 			_, err := utils.CopyDetachable(conn, httpBuf, detach)
 			logrus.Debugf("STDIN copy completed")
-			errChan <- err
+			stdinChan <- err
 		}()
 	}
 
-	if cancel != nil {
+	for {
 		select {
-		case err := <-errChan:
-			return err
+		case err := <-stdoutChan:
+			if err != nil {
+				return err
+			}
+
+			return nil
+		case err := <-stdinChan:
+			if err != nil {
+				return err
+			}
 		case <-cancel:
 			return nil
 		}
-	} else {
-		var connErr error = <-errChan
-		return connErr
 	}
 }
 
@@ -1330,10 +1335,10 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	switch logDriver {
 	case define.JournaldLogging:
 		logDriverArg = define.JournaldLogging
-	case define.JSONLogging:
-		fallthrough
 	case define.NoLogging:
 		logDriverArg = define.NoLogging
+	case define.JSONLogging:
+		fallthrough
 	default: //nolint-stylecheck
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
 		logrus.Errorf("%s logging specified but not supported. Choosing k8s-file logging instead", ctr.LogDriver())

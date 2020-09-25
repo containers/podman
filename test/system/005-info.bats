@@ -19,6 +19,8 @@ graphRoot:
 graphStatus:
 imageStore:\\\s\\\+number: 1
 runRoot:
+cgroupManager:
+cgroupVersion: v
 "
     while read expect; do
         is "$output" ".*$expect" "output includes '$expect'"

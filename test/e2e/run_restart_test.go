@@ -33,7 +33,7 @@ var _ = Describe("Podman run restart containers", func() {
 	})
 
 	It("Podman start after successful run", func() {
-		SkipIfRemote()
+		SkipIfRemote("FIXME This should work on podman-remote")
 		session := podmanTest.Podman([]string{"run", "--name", "test", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

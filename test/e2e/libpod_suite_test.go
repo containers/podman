@@ -16,7 +16,7 @@ func IsRemote() bool {
 	return false
 }
 
-func SkipIfRemote() {
+func SkipIfRemote(string) {
 }
 
 func SkipIfRootless() {

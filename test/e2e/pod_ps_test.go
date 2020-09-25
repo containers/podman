@@ -83,7 +83,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman pod ps latest", func() {
-		SkipIfRemote()
+		SkipIfRemote("--latest flag n/a")
 		_, ec, podid1 := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
@@ -212,17 +212,17 @@ var _ = Describe("Podman ps", func() {
 		Expect(ec).To(Equal(0))
 
 		_, ec, podid2 := podmanTest.CreatePodWithLabels("", map[string]string{
-			"io.podman.test.label": "value1",
-			"io.podman.test.key":   "irrelevant-value",
+			"app":                "myapp",
+			"io.podman.test.key": "irrelevant-value",
 		})
 		Expect(ec).To(Equal(0))
 
 		_, ec, podid3 := podmanTest.CreatePodWithLabels("", map[string]string{
-			"io.podman.test.label": "value2",
+			"app": "test",
 		})
 		Expect(ec).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"pod", "ps", "--no-trunc", "--filter", "label=io.podman.test.key", "--filter", "label=io.podman.test.label=value1"})
+		session := podmanTest.Podman([]string{"pod", "ps", "--no-trunc", "--filter", "label=app", "--filter", "label=app=myapp"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid1)))

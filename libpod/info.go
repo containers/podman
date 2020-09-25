@@ -87,6 +87,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	info := define.HostInfo{
 		Arch:           runtime.GOARCH,
 		BuildahVersion: buildah.Version,
+		CgroupManager:  r.config.Engine.CgroupManager,
 		Linkmode:       linkmode.Linkmode(),
 		CPUs:           runtime.NumCPU(),
 		Distribution:   hostDistributionInfo,

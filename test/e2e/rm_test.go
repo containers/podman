@@ -123,15 +123,18 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm the latest container", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, cid := podmanTest.RunLsContainer("")
+		_, ec, cid := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"rm", "-l"})
+		latest := "-l"
+		if IsRemote() {
+			latest = "test1"
+		}
+		result := podmanTest.Podman([]string{"rm", latest})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		output := result.OutputToString()
@@ -193,7 +196,7 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm invalid --latest and --cidfile and --all", func() {
-		SkipIfRemote()
+		SkipIfRemote("Verifying --latest flag")
 
 		result := podmanTest.Podman([]string{"rm", "--cidfile", "foobar", "--latest"})
 		result.WaitWithDefaultTimeout()

@@ -67,13 +67,14 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec simple command using latest", func() {
-		// the remote client doesn't use latest
-		SkipIfRemote()
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
-
-		session := podmanTest.Podman([]string{"exec", "-l", "ls"})
+		cid := "-l"
+		if IsRemote() {
+			cid = "test1"
+		}
+		session := podmanTest.Podman([]string{"exec", cid, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -122,13 +123,12 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec terminal doesn't hang", func() {
-		Skip(v2remotefail)
-		setup := podmanTest.Podman([]string{"run", "-dti", fedoraMinimal, "sleep", "+Inf"})
+		setup := podmanTest.Podman([]string{"run", "-dti", "--name", "test1", fedoraMinimal, "sleep", "+Inf"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
 		for i := 0; i < 5; i++ {
-			session := podmanTest.Podman([]string{"exec", "-lti", "true"})
+			session := podmanTest.Podman([]string{"exec", "-ti", "test1", "true"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 		}
@@ -284,7 +284,8 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec preserves container groups with --user and --group-add", func() {
-		SkipIfRemote()
+		SkipIfRemote("FIXME: This is broken SECCOMP Failues?")
+
 		dockerfile := `FROM fedora-minimal
 RUN groupadd -g 4000 first
 RUN groupadd -g 4001 second

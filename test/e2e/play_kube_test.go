@@ -591,7 +591,6 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube test correct command", func() {
-		SkipIfRemote()
 		pod := getPod()
 		err := generatePodKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
@@ -609,7 +608,6 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube test correct command with only set command in yaml file", func() {
-		SkipIfRemote()
 		pod := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg(nil))))
 		err := generatePodKubeYaml(pod, kubeYaml)
 		Expect(err).To(BeNil())
@@ -644,7 +642,6 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube test correct output", func() {
-		SkipIfRemote()
 		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
 
 		err := generatePodKubeYaml(p, kubeYaml)
@@ -796,7 +793,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube seccomp container level", func() {
-		SkipIfRemote()
+		SkipIfRemote("FIXME This is broken")
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJson(seccompPwdEPERM)
 		if err != nil {
@@ -823,7 +820,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube seccomp pod level", func() {
-		SkipIfRemote()
+		SkipIfRemote("FIXME: This should work with --remote")
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJson(seccompPwdEPERM)
 		if err != nil {
@@ -975,7 +972,6 @@ spec:
 
 	// Deployment related tests
 	It("podman play kube deployment 1 replica test correct command", func() {
-		SkipIfRemote()
 		deployment := getDeployment()
 		err := generateDeploymentKubeYaml(deployment, kubeYaml)
 		Expect(err).To(BeNil())
@@ -994,7 +990,6 @@ spec:
 	})
 
 	It("podman play kube deployment more than 1 replica test correct command", func() {
-		SkipIfRemote()
 		var i, numReplicas int32
 		numReplicas = 5
 		deployment := getDeployment(withReplicas(numReplicas))
@@ -1160,7 +1155,6 @@ spec:
 	})
 
 	It("podman play kube applies labels to pods", func() {
-		SkipIfRemote()
 		var numReplicas int32 = 5
 		expectedLabelKey := "key1"
 		expectedLabelValue := "value1"

@@ -56,7 +56,6 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman pod top on pod", func() {
-		SkipIfRemote()
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
@@ -64,7 +63,10 @@ var _ = Describe("Podman top", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "top", "-l"})
+		if !IsRemote() {
+			podid = "-l"
+		}
+		result := podmanTest.Podman([]string{"pod", "top", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))

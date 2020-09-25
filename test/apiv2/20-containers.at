@@ -176,6 +176,31 @@ t GET containers/$cid/json 200 \
   .Config.Cmd='[]' \
   .Path="echo" \
   .Args[0]="param1"
+
+# create a running container for after
+t POST containers/create '"Image":"'$IMAGE'","Entrypoint":["top"]' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid_top=$(jq -r '.Id' <<<"$output")
+t GET containers/${cid_top}/json 200 \
+  .Config.Entrypoint[0]="top" \
+  .Config.Cmd='[]' \
+  .Path="top"
+t POST  containers/${cid_top}/start '' 204
+# make sure the container is running
+t GET containers/${cid_top}/json 200 \
+  .State.Status="running"
+
+# 0 means unlimited, need same with docker
+t GET containers/json?limit=0 200 \
+  .[0].Id~[0-9a-f]\\{64\\}
+
+t GET 'containers/json?limit=0&all=1' 200 \
+  .[0].Id~[0-9a-f]\\{64\\} \
+  .[1].Id~[0-9a-f]\\{64\\}
+
+t POST containers/${cid_top}/stop "" 204
+
 t DELETE containers/$cid 204
+t DELETE containers/$cid_top 204
 
 # vim: filetype=sh

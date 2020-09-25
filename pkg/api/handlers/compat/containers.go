@@ -17,6 +17,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
@@ -44,8 +45,25 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	con, err := runtime.LookupContainer(name)
-	if err != nil {
-		utils.ContainerNotFound(w, name, err)
+	if err != nil && errors.Cause(err) == define.ErrNoSuchCtr {
+		// Failed to get container. If force is specified, get the container's ID
+		// and evict it
+		if !query.Force {
+			utils.ContainerNotFound(w, name, err)
+			return
+		}
+
+		if _, err := runtime.EvictContainer(r.Context(), name, query.Vols); err != nil {
+			if errors.Cause(err) == define.ErrNoSuchCtr {
+				logrus.Debugf("Ignoring error (--allow-missing): %q", err)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			logrus.Warn(errors.Wrapf(err, "Failed to evict container: %q", name))
+			utils.InternalServerError(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -85,7 +103,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	if _, found := r.URL.Query()["limit"]; found && query.Limit != -1 {
+	if _, found := r.URL.Query()["limit"]; found && query.Limit > 0 {
 		last := query.Limit
 		if len(containers) > last {
 			containers = containers[len(containers)-last:]
@@ -175,6 +193,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 	err = con.Kill(signal)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill Container %s", name))
+		return
 	}
 
 	// Docker waits for the container to stop if the signal is 0 or

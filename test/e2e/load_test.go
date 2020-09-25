@@ -123,7 +123,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load directory", func() {
-		SkipIfRemote()
+		SkipIfRemote("FIXME: Remote Load is broken.")
 		outdir := filepath.Join(podmanTest.TempDir, "alpine")
 
 		save := podmanTest.PodmanNoCache([]string{"save", "--format", "oci-dir", "-o", outdir, ALPINE})
@@ -137,6 +137,22 @@ var _ = Describe("Podman load", func() {
 		result := podmanTest.Podman([]string{"load", "-i", outdir})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
+	})
+
+	It("podman-remote load directory", func() {
+		// Remote-only test looking for the specific remote error
+		// message when trying to load a directory.
+		if !IsRemote() {
+			Skip("Remote only test")
+		}
+
+		result := podmanTest.Podman([]string{"load", "-i", podmanTest.TempDir})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(125))
+
+		errMsg := fmt.Sprintf("remote client supports archives only but %q is a directory", podmanTest.TempDir)
+		found, _ := result.ErrorGrepString(errMsg)
+		Expect(found).Should(BeTrue())
 	})
 
 	It("podman load bogus file", func() {
@@ -227,7 +243,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load localhost registry from dir", func() {
-		SkipIfRemote()
+		SkipIfRemote("FIXME: podman-remote load is currently broken.")
 		outfile := filepath.Join(podmanTest.TempDir, "load")
 
 		setup := podmanTest.PodmanNoCache([]string{"tag", BB, "hello:world"})
