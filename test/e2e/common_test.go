@@ -39,6 +39,7 @@ var (
 	ARTIFACT_DIR       = "/tmp/.artifacts"
 	RESTORE_IMAGES     = []string{ALPINE, BB, nginx}
 	defaultWaitTimeout = 90
+	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
 )
 
 // PodmanTestIntegration struct for command line options
