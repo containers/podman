@@ -186,7 +186,7 @@ type ConfigFromLibpod struct {
 // with cgroupv2v2. Other OCI runtimes are not yet supporting cgroupv2v2. This
 // might change in the future.
 func newLibpodConfig(c *Config) error {
-	// Start with the default config and interatively merge
+	// Start with the default config and iteratively merge
 	// fields in the system configs.
 	config := c.libpodConfig()
 
