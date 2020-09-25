@@ -1,3 +1,21 @@
+- Changelog for v2.1.1 (2020-09-25):
+  * e2e tests: SkipIfRemote(): add a reason
+  * Examine all SkipIfRemote functions
+  * Update release notes for v2.1.1
+  * HTTP Attach: Wait until both STDIN and STDOUT finish
+  * Evict containers before removing via V2 API
+  * remote load: check if input is directory
+  * build: honor --runtime setting
+  * set interactive mode with compat create endpoint
+  * apiv2 container limit differ from docker-api
+  * Allow filtering on pod label values
+  * Remove final v2remotefail failures
+  * Fix a bug where log-driver json-file was made no logs
+  * add missing return for compat kill
+  * Include cgroup manager in `podman info` output
+  * Add Server header to API service responses
+  * podman save: fix redirect of multi-images
+
 - Changelog for v2.1.0 (2020-09-22):
   * Update release notes for v2.1.0 Final Release
   * Fix up attach tests for podman remote
