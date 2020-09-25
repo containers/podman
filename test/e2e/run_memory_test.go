@@ -17,6 +17,8 @@ var _ = Describe("Podman run memory", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRootlessCgroupsV1()
+
 		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {

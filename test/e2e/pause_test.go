@@ -24,7 +24,7 @@ var _ = Describe("Podman pause", func() {
 	createdState := "created"
 
 	BeforeEach(func() {
-		SkipIfRootless()
+		SkipIfRootlessCgroupsV1() // Pause is not supported in cgroups v1
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

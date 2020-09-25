@@ -55,7 +55,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network expose port 222", func() {
-		SkipIfRootless()
+		SkipIfRootless() // iptables is not supported for rootless users
 		session := podmanTest.Podman([]string{"run", "-dt", "--expose", "222-223", "-P", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
@@ -252,7 +252,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network expose host port 80 to container port 8000", func() {
-		SkipIfRootless()
+		SkipIfRootless() // iptables is not supported for rootless users
 		session := podmanTest.Podman([]string{"run", "-dt", "-p", "80:8000", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
@@ -367,7 +367,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network expose duplicate host port results in error", func() {
-		SkipIfRootless()
+		SkipIfRootless() // FIXME we should be able to run this test in rootless mode with different ports
 
 		session := podmanTest.Podman([]string{"run", "--name", "test", "-dt", "-p", "80", ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
@@ -441,7 +441,6 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run --net container: copies hosts and resolv", func() {
-		SkipIfRootless()
 		ctrName := "ctr1"
 		ctr1 := podmanTest.RunTopContainer(ctrName)
 		ctr1.WaitWithDefaultTimeout()
@@ -479,7 +478,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network in user created network namespace", func() {
-		SkipIfRootless()
+		SkipIfRootless() // ip netns is not supported for rootless users
 		if Containerized() {
 			Skip("Can not be run within a container.")
 		}
@@ -496,7 +495,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run n user created network namespace with resolv.conf", func() {
-		SkipIfRootless()
+		SkipIfRootless() // ip netns is not supported for rootless users
 		if Containerized() {
 			Skip("Can not be run within a container.")
 		}
@@ -528,7 +527,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {
-		SkipIfRootless()
+		SkipIfRootless() //Rootless mode does not support --ip
 		netName := "podmantestnetwork"
 		ipAddr := "10.25.30.128"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
@@ -543,7 +542,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run with new:pod and static-ip", func() {
-		SkipIfRootless()
+		SkipIfRootless() // Rootless does not support --ip
 		netName := "podmantestnetwork2"
 		ipAddr := "10.25.40.128"
 		podname := "testpod"

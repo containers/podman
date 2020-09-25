@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
+	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/pkg/errors"
@@ -62,7 +63,10 @@ func unpause(cmd *cobra.Command, args []string) error {
 		errs utils.OutputErrors
 	)
 	if rootless.IsRootless() && !registry.IsRemote() {
-		return errors.New("unpause is not supported for rootless containers")
+		cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
+		if !cgroupv2 {
+			return errors.New("unpause is not supported for cgroupv1 rootless containers")
+		}
 	}
 	if len(args) < 1 && !unPauseOptions.All {
 		return errors.Errorf("you must provide at least one container name or id")

@@ -18,6 +18,8 @@ var _ = Describe("Podman run cpu", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRootlessCgroupsV1()
+
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -45,13 +47,8 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpu-period", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
 		var result *PodmanSessionIntegration
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpu-period=5000", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpu.max"})
 		} else {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpu-period=5000", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_period_us"})
@@ -62,14 +59,9 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpu-quota", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
 		var result *PodmanSessionIntegration
 
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpu.max"})
 		} else {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"})
@@ -80,12 +72,7 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpus", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpu.max"})
 			result.WaitWithDefaultTimeout()
 			Expect(result.ExitCode()).To(Equal(0))
@@ -104,12 +91,7 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpu-shares", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			// [2-262144] is mapped to [1-10000]
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpu-shares=262144", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpu.weight"})
 			result.WaitWithDefaultTimeout()
@@ -124,14 +106,9 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpuset-cpus", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
 		var result *PodmanSessionIntegration
 
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpuset-cpus=0", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpuset.cpus.effective"})
 		} else {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpuset-cpus=0", ALPINE, "cat", "/sys/fs/cgroup/cpuset/cpuset.cpus"})
@@ -142,14 +119,9 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpuset-mems", func() {
-		SkipIfRootless()
-
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
 		var result *PodmanSessionIntegration
 
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpuset-mems=0", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpuset.mems.effective"})
 		} else {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpuset-mems=0", ALPINE, "cat", "/sys/fs/cgroup/cpuset/cpuset.mems"})

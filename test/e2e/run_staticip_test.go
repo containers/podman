@@ -19,7 +19,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
+		SkipIfRootless() //rootless does not support --ip
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
