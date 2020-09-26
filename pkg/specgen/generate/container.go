@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v2/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -33,7 +34,43 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 
 		_, mediaType, err := newImage.Manifest(ctx)
 		if err != nil {
-			return nil, err
+			if errors.Cause(err) != image.ErrImageIsBareList {
+				return nil, err
+			}
+			// if err is not runnable image
+			// use the local store image with repo@digest matches with the list, if exists
+			manifestByte, manifestType, err := newImage.GetManifest(ctx, nil)
+			if err != nil {
+				return nil, err
+			}
+			list, err := manifest.ListFromBlob(manifestByte, manifestType)
+			if err != nil {
+				return nil, err
+			}
+			images, err := r.ImageRuntime().GetImages()
+			if err != nil {
+				return nil, err
+			}
+			findLocal := false
+			listDigest, err := list.ChooseInstance(r.SystemContext())
+			if err != nil {
+				return nil, err
+			}
+			for _, img := range images {
+				for _, imageDigest := range img.Digests() {
+					if imageDigest == listDigest {
+						newImage = img
+						s.Image = img.ID()
+						mediaType = manifestType
+						findLocal = true
+						logrus.Debug("image contains manifest list, using image from local storage")
+						break
+					}
+				}
+			}
+			if !findLocal {
+				return nil, image.ErrImageIsBareList
+			}
 		}
 
 		if s.HealthConfig == nil && mediaType == manifest.DockerV2Schema2MediaType {

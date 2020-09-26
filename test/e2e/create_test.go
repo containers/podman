@@ -609,4 +609,21 @@ var _ = Describe("Podman create", func() {
 		Expect(session.ExitCode()).ToNot(BeZero())
 	})
 
+	It("create use local store image if input image contains a manifest list", func() {
+		session := podmanTest.Podman([]string{"pull", BB})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"manifest", "create", "mylist"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"manifest", "add", "--all", "mylist", BB})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"create", "mylist"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+	})
 })
