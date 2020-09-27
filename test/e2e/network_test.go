@@ -263,4 +263,35 @@ var _ = Describe("Podman network", func() {
 		rmAll.WaitWithDefaultTimeout()
 		Expect(rmAll.ExitCode()).To(BeZero())
 	})
+
+	It("podman network remove --force with pod", func() {
+		netName := "testnet"
+		session := podmanTest.Podman([]string{"network", "create", netName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"pod", "create", "--network", netName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		podID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"create", "--pod", podID, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "rm", "--force", netName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		// check if pod is deleted
+		session = podmanTest.Podman([]string{"pod", "exists", podID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+
+		// check if net is deleted
+		session = podmanTest.Podman([]string{"network", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(session.OutputToString()).To(Not(ContainSubstring(netName)))
+	})
 })

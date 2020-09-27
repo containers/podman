@@ -82,12 +82,21 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 		// We need to iterate containers looking to see if they belong to the given network
 		for _, c := range containers {
 			if util.StringInSlice(name, c.Config().Networks) {
-				// if user passes force, we nuke containers
+				// if user passes force, we nuke containers and pods
 				if !options.Force {
 					// Without the force option, we return an error
-					return reports, errors.Errorf("%q has associated containers with it. Use -f to forcibly delete containers", name)
+					return reports, errors.Errorf("%q has associated containers with it. Use -f to forcibly delete containers and pods", name)
 				}
-				if err := ic.Libpod.RemoveContainer(ctx, c, true, true); err != nil {
+				if c.IsInfra() {
+					// if we have a infra container we need to remove the pod
+					pod, err := ic.Libpod.GetPod(c.PodID())
+					if err != nil {
+						return reports, err
+					}
+					if err := ic.Libpod.RemovePod(ctx, pod, true, true); err != nil {
+						return reports, err
+					}
+				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true); err != nil {
 					return reports, err
 				}
 			}
