@@ -26,11 +26,16 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
 	reports := make([]*entities.NetworkRmReport, 0, len(namesOrIds))
 	for _, name := range namesOrIds {
-		report, err := network.Remove(ic.ClientCxt, name, &options.Force)
+		response, err := network.Remove(ic.ClientCxt, name, &options.Force)
 		if err != nil {
-			report[0].Err = err
+			report := &entities.NetworkRmReport{
+				Name: name,
+				Err:  err,
+			}
+			reports = append(reports, report)
+		} else {
+			reports = append(reports, response...)
 		}
-		reports = append(reports, report...)
 	}
 	return reports, nil
 }
