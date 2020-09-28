@@ -89,6 +89,14 @@ There are other equivalents for these tools
 
 **** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/podman-cp.1.md) for more information.
 
+## Behavioural differences and pitfalls
+
+These commands behave different from Docker:
+
+| Command | Description |
+| :--- | :--- |
+| `podman volume create` | While `docker volume create` is idempotent, `podman volume create` raises an error if the volume does already exist. See this [docker issue](https://github.com/moby/moby/issues/16068) on that.|
+
 ## Missing commands in podman
 
 Those Docker commands currently do not have equivalents in `podman`:
