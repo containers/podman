@@ -28,6 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 	v1apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -35,6 +36,8 @@ const (
 	kubeDirectoryPermission = 0755
 	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
 	kubeFilePermission = 0644
+	// Kubernetes sets CPUPeriod to 100000us (100ms): https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
+	defaultCPUPeriod = 100000
 )
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
@@ -506,6 +509,27 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	// but apply to the containers with the prefixed name
 	securityConfig.SeccompProfilePath = seccompPaths.findForContainer(containerYAML.Name)
 
+	var err error
+	milliCPU, err := quantityToInt64(containerYAML.Resources.Limits.Cpu())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to set CPU quota")
+	}
+	if milliCPU > 0 {
+		containerConfig.Resources.CPUPeriod = defaultCPUPeriod
+		// CPU quota is a fraction of the period: milliCPU / 1000.0 * period
+		// Or, without floating point math:
+		containerConfig.Resources.CPUQuota = milliCPU * defaultCPUPeriod / 1000
+	}
+
+	containerConfig.Resources.Memory, err = quantityToInt64(containerYAML.Resources.Limits.Memory())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to set memory limit")
+	}
+	containerConfig.Resources.MemoryReservation, err = quantityToInt64(containerYAML.Resources.Requests.Memory())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to set memory reservation")
+	}
+
 	containerConfig.Command = []string{}
 	if imageData != nil && imageData.Config != nil {
 		containerConfig.Command = imageData.Config.Entrypoint
@@ -747,4 +771,16 @@ func verifySeccompPath(path string, profileRoot string) (string, error) {
 		}
 		return "", errors.Errorf("invalid seccomp path: %s", path)
 	}
+}
+
+func quantityToInt64(quantity *resource.Quantity) (int64, error) {
+	if i, ok := quantity.AsInt64(); ok {
+		return i, nil
+	}
+
+	if i, ok := quantity.AsDec().Unscaled(); ok {
+		return i, nil
+	}
+
+	return 0, errors.Errorf("Quantity cannot be represented as int64: %v", quantity)
 }
