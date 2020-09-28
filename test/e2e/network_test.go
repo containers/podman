@@ -135,7 +135,7 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network rm", func() {
-		SkipIfRootless() // FIXME: This one is definitely broken in rootless mode
+		SkipIfRootless("FIXME: This one is definitely broken in rootless mode")
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
 		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))

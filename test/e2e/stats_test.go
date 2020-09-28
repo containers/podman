@@ -21,9 +21,7 @@ var _ = Describe("Podman stats", func() {
 	)
 
 	BeforeEach(func() {
-		if os.Geteuid() != 0 {
-			SkipIfCgroupV1()
-		}
+		SkipIfRootlessCgroupsV1("stats not supported on cgroupv1 for rootless users")
 		var err error
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {

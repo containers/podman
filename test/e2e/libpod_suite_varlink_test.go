@@ -23,17 +23,8 @@ func IsRemote() bool {
 	return true
 }
 
-func SkipIfRootlessCgroupsV1() {
-}
-
 func SkipIfRemote(reason string) {
 	ginkgo.Skip("[remote]: " + reason)
-}
-
-func SkipIfRootless() {
-	if os.Geteuid() != 0 {
-		ginkgo.Skip("This function is not enabled for rootless podman")
-	}
 }
 
 // Podman is the exec call to podman on the filesystem

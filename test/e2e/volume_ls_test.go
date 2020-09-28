@@ -56,7 +56,7 @@ var _ = Describe("Podman volume ls", func() {
 	})
 
 	It("podman ls volume with Go template", func() {
-		Skip(v2fail)
+		Skip("FIXME: table still not supported in podman volume command")
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

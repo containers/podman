@@ -41,7 +41,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run limits test", func() {
-		SkipIfRootlessCgroupsV1()
+		SkipIfRootlessCgroupsV1("Setting limits not supported on cgroupv1 for rootless users")
 		//containers.conf is set to "nofile=500:500"
 		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()

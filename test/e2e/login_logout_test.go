@@ -47,7 +47,7 @@ var _ = Describe("Podman login and logout", func() {
 				se := SystemExec("setenforce", []string{"0"})
 				se.WaitWithDefaultTimeout()
 				if se.ExitCode() != 0 {
-					Skip("Can not disable selinux, this may cause problem for reading cert files inside container.")
+					Skip("Cannot disable selinux, this may cause problem for reading cert files inside container.")
 				}
 				defer SystemExec("setenforce", []string{"1"})
 			}
@@ -87,7 +87,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 	})
 
@@ -116,8 +116,6 @@ var _ = Describe("Podman login and logout", func() {
 	})
 
 	It("podman login and logout without registry parameter", func() {
-		SkipIfRootless()
-
 		registriesConf, err := ioutil.TempFile("", "TestLoginWithoutParameter")
 		Expect(err).To(BeNil())
 		defer registriesConf.Close()
@@ -231,7 +229,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry1", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", server})
