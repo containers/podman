@@ -72,7 +72,7 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device host device and container device parameter are directories", func() {
-		SkipIfRootless()
+		SkipIfRootless() // Can not create devices in /dev in rootless mode
 		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
 		defer os.RemoveAll("/dev/foodevdir")
 

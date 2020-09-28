@@ -47,7 +47,7 @@ WantedBy=multi-user.target
 	})
 
 	It("podman start container by systemd", func() {
-		SkipIfRootless()
+		SkipIfRootless() // rootless can not write to /etc
 		if os.Getenv("SKIP_USERNS") != "" {
 			Skip("Skip userns tests.")
 		}

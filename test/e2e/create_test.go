@@ -552,7 +552,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("create container in pod with IP should fail", func() {
-		SkipIfRootless()
+		SkipIfRootless() //Setting IP not supported in rootless mode
 		name := "createwithstaticip"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()
@@ -564,7 +564,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("create container in pod with mac should fail", func() {
-		SkipIfRootless()
+		SkipIfRootless() //Setting MAC Address not supported in rootless mode
 		name := "createwithstaticmac"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()
@@ -576,7 +576,6 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("create container in pod with network should fail", func() {
-		SkipIfRootless()
 		name := "createwithnetwork"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()
@@ -589,19 +588,17 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("create container in pod with ports should fail", func() {
-		SkipIfRootless()
 		name := "createwithports"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()
 		Expect(pod.ExitCode()).To(BeZero())
 
-		session := podmanTest.Podman([]string{"create", "--pod", name, "-p", "80:80", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--pod", name, "-p", "8080:80", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(BeZero())
 	})
 
 	It("create container in pod ppublish ports should fail", func() {
-		SkipIfRootless()
 		name := "createwithpublishports"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()

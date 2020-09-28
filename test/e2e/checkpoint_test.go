@@ -27,7 +27,7 @@ var _ = Describe("Podman checkpoint", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
+		SkipIfRootless() //checkpoint not supported in rootless mode
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

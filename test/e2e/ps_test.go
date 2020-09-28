@@ -400,18 +400,17 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps test with port range", func() {
-		SkipIfRootless()
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"run", "-dt", "-p", "1000-1006:1000-1006", ALPINE, "top"})
+		session = podmanTest.Podman([]string{"run", "-dt", "-p", "2000-2006:2000-2006", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"ps", "--format", "{{.Ports}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(ContainSubstring("0.0.0.0:1000-1006"))
+		Expect(session.OutputToString()).To(ContainSubstring("0.0.0.0:2000-2006"))
 	})
 
 	It("podman ps sync flag", func() {

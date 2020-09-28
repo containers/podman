@@ -87,7 +87,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry with authorization", func() {
-		SkipIfRootless()
+		SkipIfRootless() // FIXME: Creating content in certs.d we use directories in homedir
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
