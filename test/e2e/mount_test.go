@@ -18,7 +18,7 @@ var _ = Describe("Podman mount", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
+		SkipIfRootless("Podman mount requires podman unshare first to work")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -189,7 +189,7 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman list running container", func() {
-		SkipIfRootless() // FIXME: We need to do a podman unshare before executing this code.
+		SkipIfRootless("FIXME: We need to do a podman unshare before executing this code.")
 
 		setup := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
 		setup.WaitWithDefaultTimeout()
@@ -212,7 +212,7 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman list multiple mounted containers", func() {
-		SkipIfRootless() // FIXME: We need to do a podman unshare before executing this code.
+		SkipIfRootless("FIXME: We need to do a podman unshare before executing this code.")
 
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()
@@ -257,7 +257,7 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman list mounted container", func() {
-		SkipIfRootless() // FIXME: We need to do a podman unshare before executing this code.
+		SkipIfRootless("FIXME: We need to do a podman unshare before executing this code.")
 
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()

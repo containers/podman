@@ -8,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	. "github.com/onsi/ginkgo"
 )
 
 func IsRemote() bool {
@@ -17,18 +15,6 @@ func IsRemote() bool {
 }
 
 func SkipIfRemote(string) {
-}
-
-func SkipIfRootlessCgroupsV1() {
-	if os.Geteuid() != 0 && !CGROUPSV2 {
-		Skip("Rooless requires cgroupsV2 to set limits")
-	}
-}
-
-func SkipIfRootless() {
-	if os.Geteuid() != 0 {
-		Skip("This function is not enabled for rootless podman")
-	}
 }
 
 // Podman is the exec call to podman on the filesystem

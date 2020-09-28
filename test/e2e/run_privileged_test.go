@@ -106,7 +106,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman privileged should inherit host devices", func() {
-		SkipIfRootless() // FIXME: This seems to be broken for rootless mode, /dev/ is close to the same
+		SkipIfRootless("FIXME: This seems to be broken for rootless mode, /dev/ is close to the same")
 		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "-l", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

@@ -186,7 +186,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(fakereg.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		search := podmanTest.Podman([]string{"search",
@@ -213,7 +213,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(registry.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry3", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
@@ -250,7 +250,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(registry.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry4", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
@@ -290,7 +290,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(registry.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry5", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
@@ -329,7 +329,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(registry.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry6", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
@@ -371,7 +371,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(registryLocal.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry7", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		registryLocal = podmanTest.Podman([]string{"run", "-d", "-p", "6000:5000", "--name", "registry8", registry})
@@ -379,7 +379,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(registryLocal.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry8", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)

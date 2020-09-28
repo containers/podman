@@ -17,7 +17,7 @@ var _ = Describe("Podman pod stats", func() {
 
 	BeforeEach(func() {
 		if os.Geteuid() != 0 {
-			SkipIfCgroupV2()
+			SkipIfCgroupV2("--cgroup-manager=cgroupfs which doesn't work in rootless mode")
 		}
 
 		tempdir, err = CreateTempDirInTempDir()
@@ -175,7 +175,7 @@ var _ = Describe("Podman pod stats", func() {
 
 	It("podman stats on net=host post", func() {
 		// --net=host not supported for rootless pods at present
-		SkipIfRootlessCgroupsV1() // Pause stats not supported in cgroups v1
+		SkipIfRootlessCgroupsV1("Pause stats not supported in cgroups v1")
 		podName := "testPod"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--net=host", "--name", podName})
 		podCreate.WaitWithDefaultTimeout()

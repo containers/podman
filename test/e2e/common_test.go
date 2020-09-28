@@ -599,6 +599,24 @@ func (p *PodmanTestIntegration) CreateSeccompJson(in []byte) (string, error) {
 	return jsonFile, nil
 }
 
+func SkipIfRootlessCgroupsV1(reason string) {
+	if len(reason) < 5 {
+		panic("SkipIfRootlessCgroupsV1 must specify a reason to skip")
+	}
+	if os.Geteuid() != 0 && !CGROUPSV2 {
+		Skip("[rootless]: " + reason)
+	}
+}
+
+func SkipIfRootless(reason string) {
+	if len(reason) < 5 {
+		panic("SkipIfRootless must specify a reason to skip")
+	}
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("[rootless]: " + reason)
+	}
+}
+
 func SkipIfNotFedora() {
 	info := GetHostDistributionInfo()
 	if info.Distribution != "fedora" {
@@ -610,21 +628,21 @@ func isRootless() bool {
 	return os.Geteuid() != 0
 }
 
-func SkipIfCgroupV1() {
-	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-	Expect(err).To(BeNil())
-
-	if !cgroupsv2 {
-		Skip("Skip on systems with cgroup V1 systems")
+func SkipIfCgroupV1(reason string) {
+	if len(reason) < 5 {
+		panic("SkipIfCgroupV1 must specify a reason to skip")
+	}
+	if !CGROUPSV2 {
+		Skip(reason)
 	}
 }
 
-func SkipIfCgroupV2() {
-	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-	Expect(err).To(BeNil())
-
-	if cgroupsv2 {
-		Skip("Skip on systems with cgroup V2 systems")
+func SkipIfCgroupV2(reason string) {
+	if len(reason) < 5 {
+		panic("SkipIfCgroupV2 must specify a reason to skip")
+	}
+	if CGROUPSV2 {
+		Skip(reason)
 	}
 }
 
