@@ -6,7 +6,9 @@
 load helpers
 
 @test "podman pause/unpause" {
-    skip_if_rootless "pause does not work rootless"
+    if is_rootless && ! is_cgroupsv2; then
+        skip "'podman pause' (rootless) only works with cgroups v2"
+    fi
 
     cname=$(random_string 10)
     run_podman run -d --name $cname $IMAGE \

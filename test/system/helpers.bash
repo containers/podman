@@ -240,6 +240,16 @@ function is_remote() {
     [[ "$PODMAN" =~ -remote ]]
 }
 
+function is_cgroupsv1() {
+    # WARNING: This will break if there's ever a cgroups v3
+    ! is_cgroupsv2
+}
+
+function is_cgroupsv2() {
+    cgroup_type=$(stat -f -c %T /sys/fs/cgroup)
+    test "$cgroup_type" = "cgroupfs"
+}
+
 ###########################
 #  _add_label_if_missing  #  make sure skip messages include rootless/remote
 ###########################

@@ -186,7 +186,6 @@ EOF
 # Confirm that container sees the correct id
 @test "podman volume with --userns=keep-id" {
     is_rootless || skip "only meaningful when run rootless"
-    skip_if_remote "FIXME: pending #7195"
 
     myvoldir=${PODMAN_TMPDIR}/volume_$(random_string)
     mkdir $myvoldir
