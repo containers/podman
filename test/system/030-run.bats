@@ -387,5 +387,18 @@ json-file | f
        "--log-driver InvalidDriver"
 }
 
+@test "podman run --log-driver journald" {
+    skip_if_remote "We cannot read journalctl over remote."
+
+    msg=$(random_string 20)
+    pidfile="${PODMAN_TMPDIR}/$(random_string 20)"
+
+    run_podman run --name myctr --log-driver journald --conmon-pidfile $pidfile $IMAGE echo $msg
+
+    journalctl --output cat  _PID=$(cat $pidfile)
+    is "$output" "$msg" "check that journalctl output equals the container output"
+
+    run_podman rm myctr
+}
 
 # vim: filetype=sh
