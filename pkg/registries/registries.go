@@ -1,5 +1,10 @@
 package registries
 
+// TODO: this package should not exist anymore.  Users should either use
+// c/image's `sysregistriesv2` package directly OR, even better, we cache a
+// config in libpod's image runtime so we don't need to parse the
+// registries.conf files redundantly.
+
 import (
 	"os"
 	"path/filepath"
