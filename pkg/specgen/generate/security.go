@@ -136,6 +136,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		configSpec.Process.Capabilities.Effective = caplist
 		configSpec.Process.Capabilities.Permitted = caplist
 		configSpec.Process.Capabilities.Inheritable = caplist
+		configSpec.Process.Capabilities.Ambient = caplist
 	} else {
 		userCaps, err := capabilities.NormalizeCapabilities(s.CapAdd)
 		if err != nil {
@@ -143,6 +144,8 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 		configSpec.Process.Capabilities.Effective = userCaps
 		configSpec.Process.Capabilities.Permitted = userCaps
+		configSpec.Process.Capabilities.Inheritable = userCaps
+		configSpec.Process.Capabilities.Ambient = userCaps
 	}
 
 	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
