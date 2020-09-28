@@ -91,11 +91,11 @@ There are other equivalents for these tools
 
 ## Behavioural differences and pitfalls
 
-These commands behave different from Docker:
+These commands behave differently from the commands in Docker:
 
 | Command | Description |
 | :--- | :--- |
-| `podman volume create` | While `docker volume create` is idempotent, `podman volume create` raises an error if the volume does already exist. See this [docker issue](https://github.com/moby/moby/issues/16068) on that.|
+| `podman volume create` | While `docker volume create` is idempotent, `podman volume create` raises an error if the volume does already exist. See this [docker issue](https://github.com/moby/moby/issues/16068) for more information.|
 
 ## Missing commands in podman
 
