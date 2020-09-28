@@ -294,4 +294,23 @@ var _ = Describe("Podman network", func() {
 		Expect(session.ExitCode()).To(BeZero())
 		Expect(session.OutputToString()).To(Not(ContainSubstring(netName)))
 	})
+
+	It("podman network remove with two networks", func() {
+		netName1 := "net1"
+		session := podmanTest.Podman([]string{"network", "create", netName1})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		netName2 := "net2"
+		session = podmanTest.Podman([]string{"network", "create", netName2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "rm", netName1, netName2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		lines := session.OutputToStringArray()
+		Expect(lines[0]).To(Equal(netName1))
+		Expect(lines[1]).To(Equal(netName2))
+	})
 })
