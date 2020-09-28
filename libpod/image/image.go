@@ -410,48 +410,92 @@ func (ir *Runtime) getLocalImage(inputName string) (string, *storage.Image, erro
 	if inputName == "" {
 		return "", nil, errors.Errorf("input name is blank")
 	}
+
 	// Check if the input name has a transport and if so strip it
 	dest, err := alltransports.ParseImageName(inputName)
 	if err == nil && dest.DockerReference() != nil {
 		inputName = dest.DockerReference().String()
 	}
 
-	img, err := ir.getImage(stripSha256(inputName))
+	// Early check for fully-qualified images and (short) IDs.
+	img, err := ir.store.Image(stripSha256(inputName))
 	if err == nil {
-		return inputName, img, err
+		return inputName, img, nil
 	}
 
-	// container-storage wasn't able to find it in its current form
-	// check if the input name has a tag, and if not, run it through
-	// again
+	// Note that it's crucial to first decompose the image and check if
+	// it's a fully-qualified one or a "short name".  The latter requires
+	// some normalization with search registries and the
+	// "localhost/prefix".
 	decomposedImage, err := decompose(inputName)
 	if err != nil {
+		// We may have a storage reference.  We can't parse it to a
+		// reference before. Otherwise, we'd normalize "alpine" to
+		// "docker.io/library/alpine:latest" which would break the
+		// order in which we should query local images below.
+		if ref, err := is.Transport.ParseStoreReference(ir.store, inputName); err == nil {
+			img, err = is.Transport.GetStoreImage(ir.store, ref)
+			if err == nil {
+				return inputName, img, nil
+			}
+		}
 		return "", nil, err
 	}
 
-	// The image has a registry name in it and we made sure we looked for it locally
-	// with a tag.  It cannot be local.
+	// The specified image is fully qualified, so it doesn't exist in the
+	// storage.
 	if decomposedImage.hasRegistry {
+		// However ... we may still need to normalize to docker.io:
+		// `docker.io/foo` -> `docker.io/library/foo`
+		if ref, err := is.Transport.ParseStoreReference(ir.store, inputName); err == nil {
+			img, err = is.Transport.GetStoreImage(ir.store, ref)
+			if err == nil {
+				return inputName, img, nil
+			}
+		}
 		return "", nil, errors.Wrapf(ErrNoSuchImage, imageError)
 	}
-	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
-	// We don't need to strip the sha because we have already determined it is not an ID
-	ref, err := decomposedImage.referenceWithRegistry(DefaultLocalRegistry)
+
+	// "Short-name image", so let's try out certain prefixes:
+	// 1) DefaultLocalRegistry (i.e., "localhost/)
+	// 2) Unqualified-search registries from registries.conf
+	unqualifiedSearchRegistries, err := registries.GetRegistries()
 	if err != nil {
 		return "", nil, err
 	}
-	img, err = ir.getImage(ref.String())
-	if err == nil {
-		return inputName, img, err
+
+	for _, candidate := range append([]string{DefaultLocalRegistry}, unqualifiedSearchRegistries...) {
+		ref, err := decomposedImage.referenceWithRegistry(candidate)
+		if err != nil {
+			return "", nil, err
+		}
+		img, err := ir.store.Image(ref.String())
+		if err == nil {
+			return ref.String(), img, nil
+		}
 	}
 
-	// grab all the local images
+	// Backwards compat: normalize to docker.io as some users may very well
+	// rely on that.
+	ref, err := is.Transport.ParseStoreReference(ir.store, inputName)
+	if err == nil {
+		img, err = is.Transport.GetStoreImage(ir.store, ref)
+		if err == nil {
+			return inputName, img, nil
+		}
+	}
+
+	// Last resort: look at the repotags of all images and try to find a
+	// match.
 	images, err := ir.GetImages()
 	if err != nil {
 		return "", nil, err
 	}
 
-	// check the repotags of all images for a match
+	decomposedImage, err = decompose(inputName)
+	if err != nil {
+		return "", nil, err
+	}
 	repoImage, err := findImageInRepotags(decomposedImage, images)
 	if err == nil {
 		return inputName, repoImage, nil
