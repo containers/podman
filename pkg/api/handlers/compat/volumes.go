@@ -93,6 +93,29 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// See if the volume exists already
+	existingVolume, err := runtime.GetVolume(input.Name)
+	if err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	// if using the compat layer and the volume already exists, we
+	// must return a 201 with the same information as create
+	if existingVolume != nil && !utils.IsLibpodRequest(r) {
+		response := docker_api_types.Volume{
+			CreatedAt:  existingVolume.CreatedTime().Format(time.RFC3339),
+			Driver:     existingVolume.Driver(),
+			Labels:     existingVolume.Labels(),
+			Mountpoint: existingVolume.MountPoint(),
+			Name:       existingVolume.Name(),
+			Options:    existingVolume.Options(),
+			Scope:      existingVolume.Scope(),
+		}
+		utils.WriteResponse(w, http.StatusCreated, response)
+		return
+	}
+
 	if len(input.Name) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeName(input.Name))
 	}
