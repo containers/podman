@@ -106,7 +106,7 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 		parse := SystemExec("apparmor_parser", []string{"-Kr", aaFile})
 		Expect(parse.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=aa-test-profile", "ls"})
+		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=aa-test-profile", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

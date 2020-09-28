@@ -1273,4 +1273,46 @@ WORKDIR /madethis`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman run a container with --pull never should fail if no local store", func() {
+		// Make sure ALPINE image does not exist. Ignore errors
+		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "never", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman run container with --pull missing and only pull once", func() {
+		// Make sure ALPINE image does not exist. Ignore errors
+		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "missing", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
+
+		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "missing", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
+	})
+
+	It("podman run container with --pull missing should pull image multiple times", func() {
+		// Make sure ALPINE image does not exist. Ignore errors
+		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "always", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
+
+		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "always", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
+	})
 })
