@@ -60,7 +60,7 @@ func Remove(ctx context.Context, nameOrID string, force *bool) ([]*entities.Netw
 	}
 	params := url.Values{}
 	if force != nil {
-		params.Set("size", strconv.FormatBool(*force))
+		params.Set("force", strconv.FormatBool(*force))
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/networks/%s", params, nil, nameOrID)
 	if err != nil {
