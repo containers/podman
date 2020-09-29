@@ -131,7 +131,7 @@ A brief how-to on using the Podman remote-client.
 A tutorial showing the setup and configuration necessary to run Rootless Podman.
 
 **[Release Notes](RELEASE_NOTES.md)**
-Release notes for recent Podman versions
+Release notes for recent Podman versions.
 
 **[Contributing](CONTRIBUTING.md)**
 Information about contributing to this project.
