@@ -228,11 +228,11 @@ var _ = Describe("Podman rm", func() {
 
 		session = podmanTest.Podman([]string{"rm", "bogus", "test1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ExitCode()).To(Equal(1))
 
 		session = podmanTest.Podman([]string{"rm", "test1", "bogus"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ExitCode()).To(Equal(1))
 	})
 
 	It("podman rm --ignore bogus container and a running container", func() {

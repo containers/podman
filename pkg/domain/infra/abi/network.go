@@ -12,6 +12,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	cniversion "github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/network"
 	"github.com/containers/podman/v2/pkg/util"
@@ -85,7 +86,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 				// if user passes force, we nuke containers and pods
 				if !options.Force {
 					// Without the force option, we return an error
-					return reports, errors.Errorf("%q has associated containers with it. Use -f to forcibly delete containers and pods", name)
+					return reports, errors.Wrapf(define.ErrNetworkInUse, "%q has associated containers with it. Use -f to forcibly delete containers and pods", name)
 				}
 				if c.IsInfra() {
 					// if we have a infra container we need to remove the pod

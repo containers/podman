@@ -39,6 +39,15 @@ $ podman volume rm --all
 $ podman volume rm --force myvol
 ```
 
+## Exit Status
+  **0**   All specified volumes removed
+
+  **1**   One of the specified volumes did not exist, and no other failures
+
+  **2**   One of the specified volumes is being used by a container
+
+  **125** The command fails for any other reason
+
 ## SEE ALSO
 podman-volume(1)
 

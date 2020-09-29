@@ -92,8 +92,8 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	if reports[0].Err != nil {
 		// If the network cannot be found, we return a 404.
-		if errors.Cause(err) == define.ErrNoSuchNetwork {
-			utils.Error(w, "Something went wrong", http.StatusNotFound, err)
+		if errors.Cause(reports[0].Err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "Something went wrong", http.StatusNotFound, reports[0].Err)
 			return
 		}
 	}

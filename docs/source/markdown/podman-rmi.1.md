@@ -47,7 +47,7 @@ $ podman rmi -a -f
 
   **2**   One of the specified images has child images or is being used by a container
 
-  **125** The command fails for a reason other than an image did not exist or is in use
+  **125** The command fails for any other reason
 
 ## SEE ALSO
 podman(1)
