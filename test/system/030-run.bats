@@ -153,8 +153,23 @@ echo $rand        |   0 | $rand
     run_podman run --pull=always $NONLOCAL_IMAGE true
     is "$output" "Trying to pull .*" "--pull=always [with image PRESENT]: re-fetches"
 
+    # Very weird corner case fixed by #7770: 'podman run foo' will run 'myfoo'
+    # if it exists, because the string 'foo' appears in 'myfoo'. This test
+    # covers that, as well as making sure that our testimage (which is always
+    # tagged :YYYYMMDD, never :latest) doesn't match either.
+    run_podman tag $IMAGE my${PODMAN_TEST_IMAGE_NAME}:latest
+    run_podman 125 run --pull=never $PODMAN_TEST_IMAGE_NAME true
+    is "$output" "Error: unable to find a name and tag match for $PODMAN_TEST_IMAGE_NAME in repotags: no such image" \
+       "podman run --pull=never with shortname (and implicit :latest)"
+
+    # ...but if we add a :latest tag (without 'my'), it should now work
+    run_podman tag $IMAGE ${PODMAN_TEST_IMAGE_NAME}:latest
+    run_podman run --pull=never ${PODMAN_TEST_IMAGE_NAME} cat /home/podman/testimage-id
+    is "$output" "$PODMAN_TEST_IMAGE_TAG" \
+       "podman run --pull=never, with shortname, succeeds if img is present"
+
     run_podman rm -a
-    run_podman rmi $NONLOCAL_IMAGE
+    run_podman rmi $NONLOCAL_IMAGE {my,}${PODMAN_TEST_IMAGE_NAME}:latest
 }
 
 # 'run --rmi' deletes the image in the end unless it's used by another container
