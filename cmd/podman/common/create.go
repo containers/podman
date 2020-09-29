@@ -363,7 +363,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.Pull,
-		"pull", containerConfig.Engine.PullPolicy,
+		"pull", "missing",
 		`Pull image before creating ("always"|"missing"|"never")`,
 	)
 	createFlags.BoolVarP(

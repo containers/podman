@@ -33,7 +33,7 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 				continue
 			}
 			// account for registry:/somedir/image
-			if strings.HasSuffix(dName, "/"+searchName) && dSuspiciousTagValueForSearch == searchSuspiciousTagValueForSearch {
+			if strings.HasSuffix(dName, searchName) && dSuspiciousTagValueForSearch == searchSuspiciousTagValueForSearch {
 				results = append(results, image.image)
 				continue
 			}

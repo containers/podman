@@ -3,7 +3,6 @@ package entities
 import (
 	"time"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/pkg/inspect"
@@ -120,8 +119,8 @@ type ImageHistoryReport struct {
 
 // ImagePullOptions are the arguments for pulling images.
 type ImagePullOptions struct {
-	// AllTags can be specified to pull all tags of an image. Note
-	// that this only works if the image does not include a tag.
+	// AllTags can be specified to pull all tags of the spiecifed image. Note
+	// that this only works if the specified image does not include a tag.
 	AllTags bool
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
@@ -147,8 +146,6 @@ type ImagePullOptions struct {
 	SignaturePolicy string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify types.OptionalBool
-	// PullPolicy whether to pull new image
-	PullPolicy config.PullPolicy
 }
 
 // ImagePullReport is the response from pulling one or more images.

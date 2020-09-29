@@ -255,7 +255,7 @@ func pull(ctx context.Context, runtime *image.Runtime, rawImage string, options 
 	}
 
 	if !options.AllTags {
-		newImage, err := runtime.New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, label, options.PullPolicy)
+		newImage, err := runtime.New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, label, util.PullImageAlways)
 		if err != nil {
 			return nil, err
 		}
