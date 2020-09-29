@@ -10,7 +10,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
-	"github.com/containers/podman/v2/pkg/api/server/idletracker"
+	"github.com/containers/podman/v2/pkg/api/server/idle"
 	"github.com/containers/podman/v2/pkg/specgen/generate"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -174,7 +174,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idleTracker := r.Context().Value("idletracker").(*idletracker.IdleTracker)
+	idleTracker := r.Context().Value("idletracker").(*idle.Tracker)
 	hijackChan := make(chan bool, 1)
 
 	if err := sessionCtr.ExecHTTPStartAndAttach(sessionID, r, w, nil, nil, nil, hijackChan); err != nil {
@@ -186,7 +186,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 			// We do need to tell the idle tracker that the
 			// connection has been closed, though. We can guarantee
 			// that is true after HTTPAttach exits.
-			idleTracker.TrackHijackedClosed()
+			idleTracker.Close()
 		} else {
 			// A hijack was not successfully completed. We need to
 			// report the error normally.

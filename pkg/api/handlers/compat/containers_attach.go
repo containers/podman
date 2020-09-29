@@ -6,7 +6,7 @@ import (
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
-	"github.com/containers/podman/v2/pkg/api/server/idletracker"
+	"github.com/containers/podman/v2/pkg/api/server/idle"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -92,7 +92,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idleTracker := r.Context().Value("idletracker").(*idletracker.IdleTracker)
+	idleTracker := r.Context().Value("idletracker").(*idle.Tracker)
 	hijackChan := make(chan bool, 1)
 
 	// Perform HTTP attach.
@@ -109,7 +109,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 			// We do need to tell the idle tracker that the
 			// connection has been closed, though. We can guarantee
 			// that is true after HTTPAttach exits.
-			idleTracker.TrackHijackedClosed()
+			idleTracker.Close()
 		} else {
 			// A hijack was not successfully completed. We need to
 			// report the error normally.
