@@ -75,8 +75,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing fields in containers.conf")
 	}
-	if defaultEnvs["containers"] == "" {
-		defaultEnvs["containers"] = "podman"
+	if defaultEnvs["container"] == "" {
+		defaultEnvs["container"] = "podman"
 	}
 	var envs map[string]string
 
