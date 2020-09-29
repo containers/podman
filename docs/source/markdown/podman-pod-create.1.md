@@ -81,7 +81,20 @@ Assign a name to the pod.
 
 **--network**=*mode*
 
-Set network mode for the pod. Supported values are *bridge* (the default), *host* (do not create a network namespace, all containers in the pod will use the host's network), or a comma-separated list of the names of CNI networks the pod should join.
+Set network mode for the pod. Supported values are
+- `bridge`: Create a network stack on the default bridge. This is the default for rootful containers.
+- `host`: Do not create a network namespace, all containers in the pod will use the host's network. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+- Comma-separated list of the names of CNI networks the pod should join.
+- `slirp4netns[:OPTIONS,...]`: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
+  - **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`). Default is false.
+  - **cidr=CIDR**: Specify ip range to use for this network. (Default is `10.0.2.0/24`).
+  - **enable_ipv6=true|false**: Enable IPv6. Default is false. (Required for `outbound_addr6`).
+  - **outbound_addr=INTERFACE**: Specify the outbound interface slirp should bind to (ipv4 traffic only).
+  - **outbound_addr=IPv4**: Specify the outbound ipv4 address slirp should bind to.
+  - **outbound_addr6=INTERFACE**: Specify the outbound interface slirp should bind to (ipv6 traffic only).
+  - **outbound_addr6=IPv6**: Specify the outbound ipv6 address slirp should bind to.
+  - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default.
+  - **port_handler=slirp4netns**: Use the slirp4netns port forwarding.
 
 **--no-hosts**=**true**|**false**
 
@@ -129,6 +142,10 @@ $ podman pod create --infra=false
 $ podman pod create --infra-command /top
 
 $ podman pod create --publish 8443:443
+
+$ podman pod create --network slirp4netns:outbound_addr=127.0.0.1,allow_host_loopback=true
+
+$ podman pod create --network slirp4netns:cidr=192.168.0.0/24
 ```
 
 ## SEE ALSO

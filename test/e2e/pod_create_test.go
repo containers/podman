@@ -416,4 +416,16 @@ entrypoint ["/fromimage"]
 		Expect(check2.ExitCode()).To(Equal(0))
 		Expect(check2.OutputToString()).To(Equal("/fromcommand:[/fromcommand]"))
 	})
+
+	It("podman create pod with slirp network option", func() {
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "--network", "slirp4netns:port_handler=slirp4netns", "-p", "8082:8000"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"pod", "inspect", "--format", "{{.InfraConfig.NetworkOptions.slirp4netns}}", name})
+		check.WaitWithDefaultTimeout()
+		Expect(check.ExitCode()).To(Equal(0))
+		Expect(check.OutputToString()).To(Equal("[port_handler=slirp4netns]"))
+	})
 })

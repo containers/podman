@@ -2203,3 +2203,23 @@ func WithPodInfraExitCommand(exitCmd []string) PodCreateOption {
 		return nil
 	}
 }
+
+// WithPodSlirp4netns tells the pod to use slirp4netns.
+func WithPodSlirp4netns(networkOptions map[string][]string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod networking as no infra container is being created")
+		}
+		if pod.config.InfraContainer.HostNetwork {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set both HostNetwork and Slirp4netns")
+		}
+		pod.config.InfraContainer.Slirp4netns = true
+		pod.config.InfraContainer.NetworkOptions = networkOptions
+
+		return nil
+	}
+}

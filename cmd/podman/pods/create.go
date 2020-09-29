@@ -141,14 +141,20 @@ func create(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+		parts := strings.SplitN(netInput, ":", 2)
+
 		n := specgen.Namespace{}
-		switch netInput {
-		case "bridge":
+		switch {
+		case netInput == "bridge":
 			n.NSMode = specgen.Bridge
-		case "host":
+		case netInput == "host":
 			n.NSMode = specgen.Host
-		case "slirp4netns":
+		case netInput == "slirp4netns", strings.HasPrefix(netInput, "slirp4netns:"):
 			n.NSMode = specgen.Slirp
+			if len(parts) > 1 {
+				createOptions.Net.NetworkOptions = make(map[string][]string)
+				createOptions.Net.NetworkOptions[parts[0]] = strings.Split(parts[1], ",")
+			}
 		default:
 			// Container and NS mode are presently unsupported
 			n.NSMode = specgen.Bridge
