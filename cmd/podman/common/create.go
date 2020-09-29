@@ -448,7 +448,7 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 
 	createFlags.StringSliceVar(
 		&cf.Sysctl,
-		"sysctl", containerConfig.Sysctls(),
+		"sysctl", []string{},
 		"Sysctl options",
 	)
 	createFlags.StringVar(

@@ -7,6 +7,7 @@ import (
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
@@ -167,7 +168,52 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	}
 
 	g.SetRootReadonly(s.ReadOnlyFilesystem)
+
+	// Add default sysctls
+	defaultSysctls, err := util.ValidateSysctls(rtc.Sysctls())
+	if err != nil {
+		return err
+	}
+	for sysctlKey, sysctlVal := range defaultSysctls {
+
+		// Ignore mqueue sysctls if --ipc=host
+		if s.IpcNS.IsHost() && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
+			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since IPC Namespace set to host", sysctlKey, sysctlVal)
+
+			continue
+		}
+
+		// Ignore net sysctls if --net=host
+		if s.NetNS.IsHost() && strings.HasPrefix(sysctlKey, "net.") {
+			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since Network Namespace set to host", sysctlKey, sysctlVal)
+			continue
+		}
+
+		// Ignore uts sysctls if --uts=host
+		if s.UtsNS.IsHost() && (strings.HasPrefix(sysctlKey, "kernel.domainname") || strings.HasPrefix(sysctlKey, "kernel.hostname")) {
+			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since UTS Namespace set to host", sysctlKey, sysctlVal)
+			continue
+		}
+
+		g.AddLinuxSysctl(sysctlKey, sysctlVal)
+	}
+
 	for sysctlKey, sysctlVal := range s.Sysctl {
+
+		if s.IpcNS.IsHost() && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
+			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since IPC Namespace set to host", sysctlKey, sysctlVal)
+		}
+
+		// Ignore net sysctls if --net=host
+		if s.NetNS.IsHost() && strings.HasPrefix(sysctlKey, "net.") {
+			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since Host Namespace set to host", sysctlKey, sysctlVal)
+		}
+
+		// Ignore uts sysctls if --uts=host
+		if s.UtsNS.IsHost() && (strings.HasPrefix(sysctlKey, "kernel.domainname") || strings.HasPrefix(sysctlKey, "kernel.hostname")) {
+			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since UTS Namespace set to host", sysctlKey, sysctlVal)
+		}
+
 		g.AddLinuxSysctl(sysctlKey, sysctlVal)
 	}
 
