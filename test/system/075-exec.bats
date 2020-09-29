@@ -92,14 +92,14 @@ load helpers
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
 @test "podman exec - with keep-id" {
     run_podman run -d --userns=keep-id $IMAGE sh -c \
-               "echo READY;while [ ! -f /stop ]; do sleep 1; done"
+               "echo READY;while [ ! -f /tmp/stop ]; do sleep 1; done"
     cid="$output"
     wait_for_ready $cid
 
     run_podman exec $cid id -un
     is "$output" "$(id -un)" "container is running as current user"
 
-    run_podman exec --user=$(id -un) $cid touch /stop
+    run_podman exec --user=$(id -un) $cid touch /tmp/stop
     run_podman wait $cid
     run_podman rm $cid
 }
