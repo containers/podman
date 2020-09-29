@@ -35,9 +35,8 @@ func (c *Container) createTimer() error {
 	conn.Close()
 	logrus.Debugf("creating systemd-transient files: %s %s", "systemd-run", cmd)
 	systemdRun := exec.Command("systemd-run", cmd...)
-	_, err = systemdRun.CombinedOutput()
-	if err != nil {
-		return err
+	if output, err := systemdRun.CombinedOutput(); err != nil {
+		return errors.Errorf("%s", output)
 	}
 	return nil
 }
