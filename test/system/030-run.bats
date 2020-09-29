@@ -393,4 +393,28 @@ json-file | f
     run_podman rm myctr
 }
 
+@test "podman run --tz" {
+    # This file will always have a constant reference timestamp
+    local testfile=/home/podman/testimage-id
+
+    run_podman run --rm $IMAGE date -r $testfile
+    is "$output" "Sun Sep 13 12:26:40 UTC 2020" "podman run with no TZ"
+
+    run_podman run --rm --tz=MST7MDT $IMAGE date -r $testfile
+    is "$output" "Sun Sep 13 06:26:40 MDT 2020" "podman run with --tz=MST7MDT"
+
+    # --tz=local pays attention to /etc/localtime, not $TZ. We set TZ anyway,
+    # to make sure podman ignores it; and, because this test is locale-
+    # dependent, we pick an obscure zone (+1245) that is unlikely to
+    # collide with any of our testing environments.
+    #
+    # To get a reference timestamp we run 'date' locally; note the explicit
+    # strftime() format. We can't use --iso=seconds because GNU date adds
+    # a colon to the TZ offset (eg -07:00) whereas alpine does not (-0700).
+    run date --date=@1600000000 +%Y-%m-%dT%H:%M:%S%z
+    expect="$output"
+    TZ=Pacific/Chatham run_podman run --rm --tz=local $IMAGE date -Iseconds -r $testfile
+    is "$output" "$expect" "podman run with --tz=local, matches host"
+}
+
 # vim: filetype=sh

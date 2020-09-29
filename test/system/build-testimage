@@ -35,6 +35,12 @@ cd $tmpdir
 # 'image mount' test will confirm that this file exists and has our YMD tag
 echo $YMD >testimage-id
 
+# ...but set the timestamp on the file itself to a constant well-known
+# value, for use by the 'run --tz' test. Date value chosen for nerdiness
+# and because it's in the past. (Much as I'd love FFFFFFFF, we can't
+# use any future date because of unpredictable leap second adjustments).
+touch --date=@1600000000 testimage-id
+
 # 'pod' test will use this for --infra-command
 cat >pause <<EOF
 #!/bin/sh
@@ -49,6 +55,7 @@ EOF
 chmod 755 pause
 
 # alpine because it's small and light and reliable
+#    - check for updates @ https://hub.docker.com/_/alpine
 # busybox-extras provides httpd needed in 500-networking.bats
 cat >Containerfile <<EOF
 FROM docker.io/library/alpine:3.12.0
