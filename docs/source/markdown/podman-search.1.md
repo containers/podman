@@ -56,6 +56,9 @@ Valid placeholders for the Go template are listed below:
 | .Stars          | Star count of image          |
 | .Official       | "[OK]" if image is official  |
 | .Automated      | "[OK]" if image is automated |
+| .Tag            | Repository tag               |
+
+Note: use .Tag only if the --list-tags is set.
 
 **--limit**=*limit*
 
@@ -64,6 +67,12 @@ Note: The results from each registry will be limited to this value.
 Example if limit is 10 and two registries are being searched, the total
 number of results will be 20, 10 from each (if there are at least 10 matches in each).
 The order of the search results is the order in which the API endpoint returns the results.
+
+**--list-tags**
+
+List the available tags in the repository for the specified image.
+**Note:** --list-tags requires the search term to be a fully specified image name.
+The result contains the Image name and its tag, one line for every tag associated with the image.
 
 **--no-trunc**
 
@@ -139,6 +148,15 @@ fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-node              
 fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-proxy                              0
 fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-scheduler                          0
 fedoraproject.org   registry.fedoraproject.org/f25/mariadb                                       0
+```
+
+```
+$ podman search --list-tags  registry.redhat.io/rhel
+NAME                      TAG
+registry.redhat.io/rhel   7.3-74
+registry.redhat.io/rhel   7.6-301
+registry.redhat.io/rhel   7.1-9
+...
 ```
 Note: This works only with registries that implement the v2 API. If tried with a v1 registry an error will be returned.
 
