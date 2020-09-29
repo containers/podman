@@ -304,7 +304,7 @@ echo $rand        |   0 | $rand
 
 # #6991 : /etc/passwd is modifiable
 @test "podman run : --userns=keep-id: passwd file is modifiable" {
-    run_podman run -d --userns=keep-id $IMAGE sh -c 'while ! test -e /stop; do sleep 0.1; done'
+    run_podman run -d --userns=keep-id --cap-add=dac_override $IMAGE sh -c 'while ! test -e /tmp/stop; do sleep 0.1; done'
     cid="$output"
 
     # Assign a UID that is (a) not in our image /etc/passwd and (b) not
@@ -325,7 +325,7 @@ echo $rand        |   0 | $rand
     is "$output" "newuser3:x:$uid:999:$gecos:/home/newuser3:/bin/sh" \
        "newuser3 added to /etc/passwd in container"
 
-    run_podman exec $cid touch /stop
+    run_podman exec $cid touch /tmp/stop
     run_podman wait $cid
 }
 
