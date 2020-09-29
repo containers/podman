@@ -132,8 +132,6 @@ echo $rand        |   0 | $rand
 }
 
 @test "podman run --pull" {
-    skip_if_remote "podman-remote does not emit 'Trying to pull' msgs"
-
     run_podman run --pull=missing $IMAGE true
     is "$output" "" "--pull=missing [present]: no output"
 
@@ -267,8 +265,6 @@ echo $rand        |   0 | $rand
 # symptom only manifests on a fedora container image -- we have no
 # reproducer on alpine. Checking directory ownership is good enough.
 @test "podman run : user namespace preserved root ownership" {
-    skip_if_remote "FIXME: pending #7195"
-
     for priv in "" "--privileged"; do
         for user in "--user=0" "--user=100"; do
             for keepid in "" "--userns=keep-id"; do
@@ -286,8 +282,6 @@ echo $rand        |   0 | $rand
 
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
 @test "podman run : add username to /etc/passwd if --userns=keep-id" {
-    skip_if_remote "FIXME: pending #7195"
-
     # Default: always run as root
     run_podman run --rm $IMAGE id -un
     is "$output" "root" "id -un on regular container"
@@ -310,8 +304,6 @@ echo $rand        |   0 | $rand
 
 # #6991 : /etc/passwd is modifiable
 @test "podman run : --userns=keep-id: passwd file is modifiable" {
-    skip_if_remote "FIXME: pending #7195"
-
     run_podman run -d --userns=keep-id $IMAGE sh -c 'while ! test -e /stop; do sleep 0.1; done'
     cid="$output"
 

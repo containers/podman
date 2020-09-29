@@ -268,6 +268,14 @@ Labels.$label_name | $label_value
     is "${lines[-1]}" "...  ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/build_test:latest]" \
        "image tree: last layer line"
 
+    # FIXME: 'image tree --whatrequires' does not work via remote
+    if ! is_remote; then
+        run_podman image tree --whatrequires $IMAGE
+        is "${lines[-1]}" \
+           ".*ID: .* Top Layer of: \\[localhost/build_test:latest\\]" \
+           "'image tree --whatrequires' shows our built image"
+    fi
+
     # Clean up
     run_podman rmi -f build_test
 }
