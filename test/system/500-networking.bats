@@ -99,7 +99,7 @@ load helpers
        "Trying to create an already-existing network"
 
     run_podman network rm $mynetname
-    run_podman 125 network rm $mynetname
+    run_podman 1 network rm $mynetname
 
     # rootless CNI leaves behind an image pulled by SHA, hence with no tag.
     # Remove it if present; we can only remove it by ID.

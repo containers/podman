@@ -49,6 +49,15 @@ podman pod rm -fa
 
 podman pod rm --pod-id-file /path/to/id/file
 
+## Exit Status
+  **0**   All specified pods removed
+
+  **1**   One of the specified pods did not exist, and no other failures
+
+  **2**   One of the specified pods is attached to a container
+
+  **125** The command fails for any other reason
+
 ## SEE ALSO
 podman-pod(1)
 

@@ -2,10 +2,13 @@ package network
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -47,14 +50,30 @@ func networkRm(cmd *cobra.Command, args []string) error {
 
 	responses, err := registry.ContainerEngine().NetworkRm(registry.Context(), args, networkRmOptions)
 	if err != nil {
+		setExitCode(err)
 		return err
 	}
 	for _, r := range responses {
 		if r.Err == nil {
 			fmt.Println(r.Name)
 		} else {
+			setExitCode(r.Err)
 			errs = append(errs, r.Err)
 		}
 	}
 	return errs.PrintErrors()
+}
+
+func setExitCode(err error) {
+	cause := errors.Cause(err)
+	switch {
+	case cause == define.ErrNoSuchNetwork:
+		registry.SetExitCode(1)
+	case strings.Contains(cause.Error(), define.ErrNoSuchNetwork.Error()):
+		registry.SetExitCode(1)
+	case cause == define.ErrNetworkInUse:
+		registry.SetExitCode(2)
+	case strings.Contains(cause.Error(), define.ErrNetworkInUse.Error()):
+		registry.SetExitCode(2)
+	}
 }

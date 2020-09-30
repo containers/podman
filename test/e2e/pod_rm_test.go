@@ -195,8 +195,7 @@ var _ = Describe("Podman pod rm", func() {
 	It("podman rm bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "rm", "bogus"})
 		session.WaitWithDefaultTimeout()
-		// TODO: `podman rm` returns 1 for a bogus container. Should the RC be consistent?
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ExitCode()).To(Equal(1))
 	})
 
 	It("podman rm bogus pod and a running pod", func() {
@@ -209,11 +208,11 @@ var _ = Describe("Podman pod rm", func() {
 
 		session = podmanTest.Podman([]string{"pod", "rm", "bogus", "test1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ExitCode()).To(Equal(1))
 
 		session = podmanTest.Podman([]string{"pod", "rm", "test1", "bogus"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ExitCode()).To(Equal(1))
 	})
 
 	It("podman rm --ignore bogus pod and a running pod", func() {

@@ -93,7 +93,7 @@ $ podman rm -f --latest
 
   **2**   One of the specified containers is paused or running
 
-  **125** The command fails for a reason other than container did not exist or is paused/running
+  **125** The command fails for any other reason
 
 ## SEE ALSO
 podman(1), podman-image-rm(1), podman-ps(1), podman-build(1)

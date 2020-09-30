@@ -105,7 +105,7 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 	}
 	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
-		if setExit && len(namesOrIDs) < 2 {
+		if setExit {
 			setExitCode(err)
 		}
 		return err
@@ -132,7 +132,7 @@ func setExitCode(err error) {
 	switch {
 	case cause == define.ErrNoSuchCtr:
 		registry.SetExitCode(1)
-	case strings.Contains(cause.Error(), define.ErrNoSuchImage.Error()):
+	case strings.Contains(cause.Error(), define.ErrNoSuchCtr.Error()):
 		registry.SetExitCode(1)
 	case cause == define.ErrCtrStateInvalid:
 		registry.SetExitCode(2)

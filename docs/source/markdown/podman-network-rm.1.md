@@ -31,6 +31,15 @@ Delete the `fred` network and all containers associated with the network.
 Deleted: fred
 ```
 
+## Exit Status
+  **0**   All specified networks removed
+
+  **1**   One of the specified networks did not exist, and no other failures
+
+  **2**   The network is in use by a container or a Pod
+
+  **125** The command fails for any other reason
+
 ## SEE ALSO
 podman(1), podman-network(1), podman-network-inspect(1)
 

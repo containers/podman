@@ -3,12 +3,15 @@ package pods
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -73,6 +76,7 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 
 	responses, err := registry.ContainerEngine().PodRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
+		setExitCode(err)
 		return err
 	}
 
@@ -83,8 +87,19 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 				fmt.Println(r.Id)
 			}
 		} else {
+			setExitCode(r.Err)
 			errs = append(errs, r.Err)
 		}
 	}
 	return errs.PrintErrors()
+}
+
+func setExitCode(err error) {
+	cause := errors.Cause(err)
+	switch {
+	case cause == define.ErrNoSuchPod:
+		registry.SetExitCode(1)
+	case strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()):
+		registry.SetExitCode(1)
+	}
 }
