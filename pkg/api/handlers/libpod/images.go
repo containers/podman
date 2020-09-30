@@ -560,24 +560,41 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 func UntagImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
-	name := utils.GetName(r)
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
-		return
-	}
-	tag := "latest"
-	if len(r.Form.Get("tag")) > 0 {
-		tag = r.Form.Get("tag")
-	}
-	if len(r.Form.Get("repo")) < 1 {
+	tags := []string{} // Note: if empty, all tags will be removed from the image.
+	repo := r.Form.Get("repo")
+	tag := r.Form.Get("tag")
+
+	// Do the parameter dance.
+	switch {
+	// If tag is set, repo must be as well.
+	case len(repo) == 0 && len(tag) > 0:
 		utils.Error(w, "repo tag is required", http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
 		return
+
+	case len(repo) == 0:
+		break
+
+	// If repo is specified, we need to add that to the tags.
+	default:
+		if len(tag) == 0 {
+			// Normalize tag to "latest" if empty.
+			tag = "latest"
+		}
+		tags = append(tags, fmt.Sprintf("%s:%s", repo, tag))
 	}
-	repo := r.Form.Get("repo")
-	tagName := fmt.Sprintf("%s:%s", repo, tag)
-	if err := newImage.UntagImage(tagName); err != nil {
-		utils.Error(w, "failed to untag", http.StatusInternalServerError, err)
+
+	// Now use the ABI implementation to prevent us from having duplicate
+	// code.
+	opts := entities.ImageUntagOptions{}
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+
+	name := utils.GetName(r)
+	if err := imageEngine.Untag(r.Context(), name, tags, opts); err != nil {
+		if errors.Cause(err) == define.ErrNoSuchImage {
+			utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
+		} else {
+			utils.Error(w, "failed to untag", http.StatusInternalServerError, err)
+		}
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, "")

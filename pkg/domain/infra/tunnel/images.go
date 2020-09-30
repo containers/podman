@@ -9,7 +9,6 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/podman/v2/pkg/bindings"
 	images "github.com/containers/podman/v2/pkg/bindings/images"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/utils"
@@ -139,13 +138,8 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 }
 
 func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, options entities.ImageUntagOptions) error {
-	// Remove all tags if none are provided
 	if len(tags) == 0 {
-		newImage, err := images.GetImage(ir.ClientCxt, nameOrID, bindings.PFalse)
-		if err != nil {
-			return err
-		}
-		tags = newImage.NamesHistory
+		return images.Untag(ir.ClientCxt, nameOrID, "", "")
 	}
 
 	for _, newTag := range tags {
