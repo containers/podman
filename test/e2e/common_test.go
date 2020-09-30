@@ -37,7 +37,7 @@ var (
 	INTEGRATION_ROOT   string
 	CGROUP_MANAGER     = "systemd"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	RESTORE_IMAGES     = []string{ALPINE, BB, nginx}
+	RESTORE_IMAGES     = []string{ALPINE, BB, nginx, fedoraMinimal}
 	defaultWaitTimeout = 90
 	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
 )
@@ -424,7 +424,7 @@ func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers 
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
 	err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).To(BeNil())
-	session := p.PodmanNoCache([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
+	session := p.Podman([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
 	session.Wait(120)
 	Expect(session).Should(Exit(0), fmt.Sprintf("BuildImage session output: %q", session.OutputToString()))
 }

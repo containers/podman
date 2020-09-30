@@ -206,39 +206,40 @@ var _ = Describe("Podman rmi", func() {
 		`
 		podmanTest.BuildImage(dockerfile, "test2", "true")
 
-		session = podmanTest.PodmanNoCache([]string{"images", "-q", "-a"})
+		session = podmanTest.Podman([]string{"images", "-q", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		numOfImages := len(session.OutputToStringArray())
 
-		session = podmanTest.PodmanNoCache([]string{"rmi", "test2"})
+		session = podmanTest.Podman([]string{"rmi", "test2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.PodmanNoCache([]string{"images", "-q", "-a"})
+		session = podmanTest.Podman([]string{"images", "-q", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(numOfImages - len(session.OutputToStringArray())).To(Equal(2))
 
-		session = podmanTest.PodmanNoCache([]string{"rmi", "test"})
+		session = podmanTest.Podman([]string{"rmi", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.PodmanNoCache([]string{"images", "-q", "-a"})
+		// NoCache is used here because we are counting the number of images
+		// in the main store.
+		session = podmanTest.PodmanNoCache([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		fmt.Println(session.OutputToString())
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 
 		podmanTest.BuildImage(dockerfile, "test3", "true")
 
-		session = podmanTest.PodmanNoCache([]string{"rmi", ALPINE})
+		session = podmanTest.Podman([]string{"rmi", "test3"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.PodmanNoCache([]string{"rmi", "test3"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-
+		// NoCache is used here because we are counting the number of images
+		// in the main store.
 		session = podmanTest.PodmanNoCache([]string{"images", "-q", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
