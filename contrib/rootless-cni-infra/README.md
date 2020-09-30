@@ -22,3 +22,4 @@ The container images live on `quay.io/libpod/rootless-cni-infra`.  The tags have
 
 * `/run/rootless-cni-infra/${CONTAINER_ID}/pid`: PID of the `sleep infinity` process that corresponds to the allocated netns
 * `/run/rootless-cni-infra/${CONTAINER_ID}/attached/${NETWORK_NAME}`: CNI result
+* `/run/rootless-cni-infra/${CONTAINER_ID}/attached-args/${NETWORK_NAME}`: CNI args
