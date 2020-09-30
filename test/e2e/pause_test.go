@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v2/pkg/cgroups"
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,16 +23,13 @@ var _ = Describe("Podman pause", func() {
 	createdState := "created"
 
 	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1() // Pause is not supported in cgroups v1
+		SkipIfRootlessCgroupsV1("Pause is not supported in cgroups v1")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
 		}
 
-		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-		Expect(err).To(BeNil())
-
-		if cgroupsv2 {
+		if CGROUPSV2 {
 			b, err := ioutil.ReadFile("/proc/self/cgroup")
 			if err != nil {
 				Skip("cannot read self cgroup")

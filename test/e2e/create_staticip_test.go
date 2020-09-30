@@ -49,7 +49,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 	})
 
 	It("Podman create --ip with non-allocatable IP", func() {
-		SkipIfRootless() // --ip is not supported in rootless mode
+		SkipIfRootless("--ip is not supported in rootless mode")
 		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", "203.0.113.124", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -81,7 +81,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 	})
 
 	It("Podman create two containers with the same IP", func() {
-		SkipIfRootless() // --ip not supported in rootless mode
+		SkipIfRootless("--ip not supported in rootless mode")
 		ip := GetRandomIPAddress()
 		result := podmanTest.Podman([]string{"create", "--name", "test1", "--ip", ip, ALPINE, "sleep", "999"})
 		result.WaitWithDefaultTimeout()

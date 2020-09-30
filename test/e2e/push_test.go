@@ -70,7 +70,7 @@ var _ = Describe("Podman push", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
@@ -87,7 +87,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry with authorization", func() {
-		SkipIfRootless() // FIXME: Creating content in certs.d we use directories in homedir
+		SkipIfRootless("FIXME: Creating content in certs.d we use directories in homedir")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -132,7 +132,7 @@ var _ = Describe("Podman push", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
-			Skip("Can not start docker registry.")
+			Skip("Cannot start docker registry.")
 		}
 
 		session = podmanTest.PodmanNoCache([]string{"logs", "registry"})

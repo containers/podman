@@ -206,7 +206,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps namespace flag with go template format", func() {
-		Skip(v2fail)
+		Skip("FIXME: table still not supported in podman ps command")
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 

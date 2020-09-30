@@ -18,7 +18,7 @@ var _ = Describe("Podman pod pause", func() {
 	pausedState := "paused"
 
 	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1() // Pause is not supported in cgroups v1
+		SkipIfRootlessCgroupsV1("Pause is not supported in cgroups v1")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

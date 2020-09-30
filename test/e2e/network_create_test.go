@@ -178,7 +178,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and IPv6 subnet", func() {
-		SkipIfRootless() // FIXME I believe this should work in rootlessmode
+		SkipIfRootless("FIXME I believe this should work in rootlessmode")
 
 		var (
 			results []network.NcList

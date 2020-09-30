@@ -34,9 +34,7 @@ var _ = Describe("Podman image tree", func() {
 	})
 
 	It("podman image tree", func() {
-		if podmanTest.RemoteTest {
-			Skip("Does not work on remote client")
-		}
+		SkipIfRemote("Does not work on remote client")
 		dockerfile := `FROM docker.io/library/busybox:latest
 RUN mkdir hello
 RUN touch test.txt
