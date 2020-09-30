@@ -33,7 +33,7 @@ cmd_entrypoint_alloc() {
 	K8S_POD_NAME="$3"
 
 	dir="${BASE}/${ID}"
-	mkdir -p "${dir}/attached"
+	mkdir -p "${dir}/attached" "${dir}/attached-args"
 
 	pid=""
 	if [ -f "${dir}/pid" ]; then
@@ -50,6 +50,7 @@ cmd_entrypoint_alloc() {
 	CNI_IFNAME="eth${nwcount}"
 	export CNI_ARGS CNI_IFNAME
 	cnitool add "${NET}" "/proc/${pid}/ns/net" >"${dir}/attached/${NET}"
+	echo "${CNI_ARGS}" >"${dir}/attached-args/${NET}"
 
 	# return the result
 	ns="/proc/${pid}/ns/net"
@@ -71,8 +72,12 @@ cmd_entrypoint_dealloc() {
 		exit 0
 	fi
 	pid=$(cat "${dir}/pid")
+	if [ -f "${dir}/attached-args/${NET}" ]; then
+		CNI_ARGS=$(cat "${dir}/attached-args/${NET}")
+		export CNI_ARGS
+	fi
 	cnitool del "${NET}" "/proc/${pid}/ns/net"
-	rm -f "${dir}/attached/${NET}"
+	rm -f "${dir}/attached/${NET}" "${dir}/attached-args/${NET}"
 
 	nwcount=$(find "${dir}/attached" -type f | wc -l)
 	if [ "${nwcount}" = 0 ]; then
