@@ -16,7 +16,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/pkg/api/handlers"
-	"github.com/containers/podman/v2/pkg/api/server/idletracker"
+	"github.com/containers/podman/v2/pkg/api/server/idle"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/gorilla/mux"
@@ -26,14 +26,14 @@ import (
 )
 
 type APIServer struct {
-	http.Server                                 // The  HTTP work happens here
-	*schema.Decoder                             // Decoder for Query parameters to structs
-	context.Context                             // Context to carry objects to handlers
-	*libpod.Runtime                             // Where the real work happens
-	net.Listener                                // mux for routing HTTP API calls to libpod routines
-	context.CancelFunc                          // Stop APIServer
-	idleTracker        *idletracker.IdleTracker // Track connections to support idle shutdown
-	pprof              *http.Server             // Sidecar http server for providing performance data
+	http.Server                      // The  HTTP work happens here
+	*schema.Decoder                  // Decoder for Query parameters to structs
+	context.Context                  // Context to carry objects to handlers
+	*libpod.Runtime                  // Where the real work happens
+	net.Listener                     // mux for routing HTTP API calls to libpod routines
+	context.CancelFunc               // Stop APIServer
+	idleTracker        *idle.Tracker // Track connections to support idle shutdown
+	pprof              *http.Server  // Sidecar http server for providing performance data
 }
 
 // Number of seconds to wait for next request, if exceeded shutdown server
@@ -70,13 +70,13 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 	}
 
 	router := mux.NewRouter().UseEncodedPath()
-	idle := idletracker.NewIdleTracker(duration)
+	idle := idle.NewTracker(duration)
 
 	server := APIServer{
 		Server: http.Server{
 			Handler:           router,
 			ReadHeaderTimeout: 20 * time.Second,
-			IdleTimeout:       duration,
+			IdleTimeout:       duration * 2,
 			ConnState:         idle.ConnState,
 			ErrorLog:          log.New(logrus.StandardLogger().Out, "", 0),
 		},
