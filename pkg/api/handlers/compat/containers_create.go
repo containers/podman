@@ -82,7 +82,13 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		}
 	}
 
-	workDir := "/"
+	workDir, err := newImage.WorkingDir(ctx)
+	if err != nil {
+		return createconfig.CreateConfig{}, err
+	}
+	if workDir == "" {
+		workDir = "/"
+	}
 	if len(input.WorkingDir) > 0 {
 		workDir = input.WorkingDir
 	}
@@ -169,6 +175,11 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 	// away incorrectly formatted variables so we cannot reuse the
 	// parsing of the env input
 	// [Foo Other=one Blank=]
+	imgEnv, err := newImage.Env(ctx)
+	if err != nil {
+		return createconfig.CreateConfig{}, err
+	}
+	input.Env = append(imgEnv, input.Env...)
 	for _, e := range input.Env {
 		splitEnv := strings.Split(e, "=")
 		switch len(splitEnv) {
