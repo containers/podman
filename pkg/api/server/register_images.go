@@ -1175,7 +1175,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images
 	// summary: Untag an image
-	// description: Untag an image
+	// description: Untag an image. If not repo and tag are specified, all tags are removed from the image.
 	// parameters:
 	//  - in: path
 	//    name: name:.*
