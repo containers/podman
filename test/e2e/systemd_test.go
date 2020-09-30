@@ -48,9 +48,7 @@ WantedBy=multi-user.target
 
 	It("podman start container by systemd", func() {
 		SkipIfRootless("rootless can not write to /etc")
-		if os.Getenv("SKIP_USERNS") != "" {
-			Skip("Skip userns tests.")
-		}
+		SkipIfContainerized("test does not have systemd as pid 1")
 
 		sys_file := ioutil.WriteFile("/etc/systemd/system/redis.service", []byte(systemd_unit_file), 0644)
 		Expect(sys_file).To(BeNil())

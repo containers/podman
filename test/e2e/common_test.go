@@ -599,19 +599,21 @@ func (p *PodmanTestIntegration) CreateSeccompJson(in []byte) (string, error) {
 	return jsonFile, nil
 }
 
-func SkipIfRootlessCgroupsV1(reason string) {
+func checkReason(reason string) {
 	if len(reason) < 5 {
-		panic("SkipIfRootlessCgroupsV1 must specify a reason to skip")
+		panic("Test must specify a reason to skip")
 	}
+}
+
+func SkipIfRootlessCgroupsV1(reason string) {
+	checkReason(reason)
 	if os.Geteuid() != 0 && !CGROUPSV2 {
 		Skip("[rootless]: " + reason)
 	}
 }
 
 func SkipIfRootless(reason string) {
-	if len(reason) < 5 {
-		panic("SkipIfRootless must specify a reason to skip")
-	}
+	checkReason(reason)
 	if os.Geteuid() != 0 {
 		ginkgo.Skip("[rootless]: " + reason)
 	}
@@ -629,19 +631,30 @@ func isRootless() bool {
 }
 
 func SkipIfCgroupV1(reason string) {
-	if len(reason) < 5 {
-		panic("SkipIfCgroupV1 must specify a reason to skip")
-	}
+	checkReason(reason)
 	if !CGROUPSV2 {
 		Skip(reason)
 	}
 }
 
 func SkipIfCgroupV2(reason string) {
-	if len(reason) < 5 {
-		panic("SkipIfCgroupV2 must specify a reason to skip")
-	}
+	checkReason(reason)
 	if CGROUPSV2 {
+		Skip(reason)
+	}
+}
+
+func isContainerized() bool {
+	// This is set to "podman" by podman automatically
+	if os.Getenv("container") != "" {
+		return true
+	}
+	return false
+}
+
+func SkipIfContainerized(reason string) {
+	checkReason(reason)
+	if isContainerized() {
 		Skip(reason)
 	}
 }
