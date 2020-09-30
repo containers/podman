@@ -643,7 +643,7 @@ install.libseccomp.sudo:
 pkg/varlink/iopodman.go: .gopathok pkg/varlink/io.podman.varlink
 ifneq (,$(findstring Linux,$(shell uname -s)))
 	# Only generate the varlink code on Linux (see issue #4814).
-	GO111MODULE=off $(GO) generate ./pkg/varlink/...
+	$(GO) generate ./pkg/varlink/...
 endif
 
 API.md: pkg/varlink/io.podman.varlink
