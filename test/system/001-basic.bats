@@ -61,7 +61,7 @@ function setup() {
     is "$output" ".*Server:" "podman --remote: contacts server"
 
     # This was failing: "podman --foo --bar --remote".
-    PODMAN="${podman_non_remote} --tmpdir /var/tmp --log-level=error ${podman_args[@]} --remote" run_podman version
+    PODMAN="${podman_non_remote} --log-level=error ${podman_args[@]} --remote" run_podman version
     is "$output" ".*Server:" "podman [flags] --remote: contacts server"
 
     # ...but no matter what, --remote is never allowed after subcommand
