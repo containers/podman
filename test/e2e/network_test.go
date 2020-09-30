@@ -135,7 +135,6 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network rm", func() {
-		SkipIfRootless("FIXME: This one is definitely broken in rootless mode")
 		// Setup, use uuid to prevent conflict with other tests
 		uuid := stringid.GenerateNonCryptoID()
 		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
@@ -276,6 +275,7 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
 
 		session = podmanTest.Podman([]string{"pod", "create", "--network", netName})
 		session.WaitWithDefaultTimeout()
@@ -311,11 +311,13 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", netName1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName1)
 
 		netName2 := "net2"
 		session = podmanTest.Podman([]string{"network", "create", netName2})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName2)
 
 		session = podmanTest.Podman([]string{"network", "rm", netName1, netName2})
 		session.WaitWithDefaultTimeout()
