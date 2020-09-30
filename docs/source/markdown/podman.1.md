@@ -160,6 +160,14 @@ Print the version
 
 Podman can set up environment variables from env of [engine] table in containers.conf. These variables can be overridden by passing  environment variables before the `podman` commands.
 
+## Remote Access
+
+The Podman command can be used with remote services using the `--remote` flag. Connections can
+be made using local unix domain sockets, ssh or directly to tcp sockets. When specifying the
+podman --remote flag, only the global options `--url`, `--identity`, `--log-level`, `--connection` are used.
+
+Connection information can also be managed using the containers.conf file.
+
 ## Exit Status
 
 The exit code from `podman` gives information about why the container
