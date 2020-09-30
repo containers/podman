@@ -60,7 +60,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Set("cpushares", strconv.Itoa(int(cpuShares)))
 	}
 	if cpuSetCpus := options.CommonBuildOpts.CPUSetCPUs; len(cpuSetCpus) > 0 {
-		params.Set("cpusetcpues", cpuSetCpus)
+		params.Set("cpusetcpus", cpuSetCpus)
 	}
 	if cpuPeriod := options.CommonBuildOpts.CPUPeriod; cpuPeriod > 0 {
 		params.Set("cpuperiod", strconv.Itoa(int(cpuPeriod)))
@@ -91,6 +91,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			return nil, err
 		}
 		params.Set("labels", l)
+	}
+	if options.CommonBuildOpts.HTTPProxy {
+		params.Set("httpproxy", "1")
 	}
 
 	stdout := io.Writer(os.Stdout)

@@ -70,37 +70,38 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	query := struct {
-		Dockerfile  string   `schema:"dockerfile"`
-		Tag         []string `schema:"t"`
-		ExtraHosts  string   `schema:"extrahosts"`
-		Remote      string   `schema:"remote"`
-		Quiet       bool     `schema:"q"`
-		NoCache     bool     `schema:"nocache"`
+		BuildArgs   string   `schema:"buildargs"`
 		CacheFrom   string   `schema:"cachefrom"`
-		Pull        bool     `schema:"pull"`
-		Rm          bool     `schema:"rm"`
-		ForceRm     bool     `schema:"forcerm"`
-		Memory      int64    `schema:"memory"`
-		MemSwap     int64    `schema:"memswap"`
-		CpuShares   uint64   `schema:"cpushares"`  // nolint
-		CpuSetCpus  string   `schema:"cpusetcpus"` // nolint
 		CpuPeriod   uint64   `schema:"cpuperiod"`  // nolint
 		CpuQuota    int64    `schema:"cpuquota"`   // nolint
-		BuildArgs   string   `schema:"buildargs"`
+		CpuSetCpus  string   `schema:"cpusetcpus"` // nolint
+		CpuShares   uint64   `schema:"cpushares"`  // nolint
+		Dockerfile  string   `schema:"dockerfile"`
+		ExtraHosts  string   `schema:"extrahosts"`
+		ForceRm     bool     `schema:"forcerm"`
+		HTTPProxy   bool     `schema:"httpproxy"`
+		Labels      string   `schema:"labels"`
+		MemSwap     int64    `schema:"memswap"`
+		Memory      int64    `schema:"memory"`
+		NetworkMode string   `schema:"networkmode"`
+		NoCache     bool     `schema:"nocache"`
+		Outputs     string   `schema:"outputs"`
+		Platform    string   `schema:"platform"`
+		Pull        bool     `schema:"pull"`
+		Quiet       bool     `schema:"q"`
+		Registry    string   `schema:"registry"`
+		Remote      string   `schema:"remote"`
+		Rm          bool     `schema:"rm"`
 		ShmSize     int      `schema:"shmsize"`
 		Squash      bool     `schema:"squash"`
-		Labels      string   `schema:"labels"`
-		NetworkMode string   `schema:"networkmode"`
-		Platform    string   `schema:"platform"`
+		Tag         []string `schema:"t"`
 		Target      string   `schema:"target"`
-		Outputs     string   `schema:"outputs"`
-		Registry    string   `schema:"registry"`
 	}{
 		Dockerfile: "Dockerfile",
-		Tag:        []string{},
+		Registry:   "docker.io",
 		Rm:         true,
 		ShmSize:    64 * 1024 * 1024,
-		Registry:   "docker.io",
+		Tag:        []string{},
 	}
 
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
@@ -184,6 +185,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			CPUQuota:   query.CpuQuota,
 			CPUShares:  query.CpuShares,
 			CPUSetCPUs: query.CpuSetCpus,
+			HTTPProxy:  query.HTTPProxy,
 			Memory:     query.Memory,
 			MemorySwap: query.MemSwap,
 			ShmSize:    strconv.Itoa(query.ShmSize),
