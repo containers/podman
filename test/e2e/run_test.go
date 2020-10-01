@@ -261,6 +261,8 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run user capabilities test", func() {
+		// We need to ignore the containers.conf on the test distribution for this test
+		os.Setenv("CONTAINERS_CONF", "/dev/null")
 		session := podmanTest.Podman([]string{"run", "--rm", "--user", "bin", ALPINE, "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -293,6 +295,8 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run user capabilities test with image", func() {
+		// We need to ignore the containers.conf on the test distribution for this test
+		os.Setenv("CONTAINERS_CONF", "/dev/null")
 		SkipIfRemote("FIXME This should work on podman-remote")
 		dockerfile := `FROM busybox
 USER bin`
@@ -1134,7 +1138,7 @@ USER mail`
 	It("podman run --device-cgroup-rule", func() {
 		SkipIfRootless("rootless users are not allowed to mknod")
 		deviceCgroupRule := "c 42:* rwm"
-		session := podmanTest.Podman([]string{"run", "--name", "test", "-d", "--device-cgroup-rule", deviceCgroupRule, ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "--cap-add", "mknod", "--name", "test", "-d", "--device-cgroup-rule", deviceCgroupRule, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"exec", "test", "mknod", "newDev", "c", "42", "1"})

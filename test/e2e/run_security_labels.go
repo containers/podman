@@ -130,7 +130,7 @@ var _ = Describe("Podman generate kube", func() {
 		SkipIfRemote("runlabel not supported on podman-remote")
 		PodmanDockerfile := `
 FROM  alpine:latest
-LABEL io.containers.capabilities=chown,mknod`
+LABEL io.containers.capabilities=chown,kill`
 
 		image := "podman-caps:podman"
 		podmanTest.BuildImage(PodmanDockerfile, image, "false")
@@ -145,7 +145,7 @@ LABEL io.containers.capabilities=chown,mknod`
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
-		Expect(caps).To(Equal("CAP_CHOWN,CAP_MKNOD"))
+		Expect(caps).To(Equal("CAP_CHOWN,CAP_KILL"))
 	})
 
 })
