@@ -18,7 +18,6 @@ var _ = Describe("Podman run memory", func() {
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Setting Memory not supported on cgroupv1 for rootless users")
 
-		SkipIfRootless("FIXME: This should work on cgroups V2 systems")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
