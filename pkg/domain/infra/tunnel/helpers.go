@@ -2,74 +2,118 @@ package tunnel
 
 import (
 	"context"
-	"strings"
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
 	"github.com/containers/podman/v2/pkg/bindings/pods"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/pkg/errors"
 )
 
+// FIXME: the `ignore` parameter is very likely wrong here as it should rather
+//        be used on *errors* from operations such as remove.
 func getContainersByContext(contextWithConnection context.Context, all, ignore bool, namesOrIDs []string) ([]entities.ListContainer, error) {
-	var (
-		cons []entities.ListContainer
-	)
 	if all && len(namesOrIDs) > 0 {
 		return nil, errors.New("cannot lookup containers and all")
 	}
-	c, err := containers.List(contextWithConnection, nil, bindings.PTrue, nil, nil, bindings.PTrue)
+
+	allContainers, err := containers.List(contextWithConnection, nil, bindings.PTrue, nil, nil, bindings.PTrue)
 	if err != nil {
 		return nil, err
 	}
 	if all {
-		return c, err
+		return allContainers, err
 	}
-	for _, id := range namesOrIDs {
-		var found bool
-		for _, con := range c {
-			if id == con.ID || strings.HasPrefix(con.ID, id) || util.StringInSlice(id, con.Names) {
-				cons = append(cons, con)
+
+	// Note: it would be nicer if the lists endpoint would support that as
+	// we could use the libpod backend for looking up containers rather
+	// than risking diverging the local and remote lookups.
+	//
+	// A `--filter nameOrId=abc` that can be specified multiple times would
+	// be awesome to have.
+	filtered := []entities.ListContainer{}
+	for _, nameOrID := range namesOrIDs {
+		// First determine if the container exists by doing an inspect.
+		// Inspect takes supports names and IDs and let's us determine
+		// a containers full ID.
+		inspectData, err := containers.Inspect(contextWithConnection, nameOrID, bindings.PFalse)
+		if err != nil {
+			if ignore && errorhandling.Contains(err, define.ErrNoSuchCtr) {
+				continue
+			}
+			return nil, err
+		}
+
+		// Now we can do a full match of the ID to find the right
+		// container. Note that we *really* need a full ID match to
+		// prevent any ambiguities between IDs and names (see #7837).
+		found := false
+		for _, ctr := range allContainers {
+			if ctr.ID == inspectData.ID {
+				filtered = append(filtered, ctr)
 				found = true
 				break
 			}
+
 		}
+
 		if !found && !ignore {
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "unable to find container %q", id)
+			return nil, errors.Wrapf(define.ErrNoSuchCtr, "unable to find container %q", nameOrID)
 		}
 	}
-	return cons, nil
+	return filtered, nil
 }
 
 func getPodsByContext(contextWithConnection context.Context, all bool, namesOrIDs []string) ([]*entities.ListPodsReport, error) {
-	var (
-		sPods []*entities.ListPodsReport
-	)
 	if all && len(namesOrIDs) > 0 {
 		return nil, errors.New("cannot lookup specific pods and all")
 	}
 
-	fPods, err := pods.List(contextWithConnection, nil)
+	allPods, err := pods.List(contextWithConnection, nil)
 	if err != nil {
 		return nil, err
 	}
 	if all {
-		return fPods, nil
+		return allPods, nil
 	}
+
+	filtered := []*entities.ListPodsReport{}
+	// Note: it would be nicer if the lists endpoint would support that as
+	// we could use the libpod backend for looking up pods rather than
+	// risking diverging the local and remote lookups.
+	//
+	// A `--filter nameOrId=abc` that can be specified multiple times would
+	// be awesome to have.
 	for _, nameOrID := range namesOrIDs {
-		var found bool
-		for _, f := range fPods {
-			if f.Name == nameOrID || strings.HasPrefix(f.Id, nameOrID) {
-				sPods = append(sPods, f)
+		// First determine if the pod exists by doing an inspect.
+		// Inspect takes supports names and IDs and let's us determine
+		// a containers full ID.
+		inspectData, err := pods.Inspect(contextWithConnection, nameOrID)
+		if err != nil {
+			if errorhandling.Contains(err, define.ErrNoSuchPod) {
+				return nil, errors.Wrapf(define.ErrNoSuchPod, "unable to find pod %q", nameOrID)
+			}
+			return nil, err
+		}
+
+		// Now we can do a full match of the ID to find the right pod.
+		// Note that we *really* need a full ID match to prevent any
+		// ambiguities between IDs and names (see #7837).
+		found := false
+		for _, pod := range allPods {
+			if pod.Id == inspectData.ID {
+				filtered = append(filtered, pod)
 				found = true
 				break
 			}
+
 		}
+
 		if !found {
 			return nil, errors.Wrapf(define.ErrNoSuchPod, "unable to find pod %q", nameOrID)
 		}
 	}
-	return sPods, nil
+	return filtered, nil
 }
