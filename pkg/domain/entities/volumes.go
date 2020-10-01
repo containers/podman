@@ -113,10 +113,6 @@ type VolumeInspectReport struct {
 	*VolumeConfigResponse
 }
 
-type VolumePruneOptions struct {
-	Force bool
-}
-
 type VolumePruneReport struct {
 	Err error
 	Id  string //nolint

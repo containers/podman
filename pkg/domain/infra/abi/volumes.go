@@ -120,7 +120,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	return reports, nil
 }
 
-func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.VolumePruneOptions) ([]*entities.VolumePruneReport, error) {
+func (ic *ContainerEngine) VolumePrune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
 	return ic.pruneVolumesHelper(ctx)
 }
 
