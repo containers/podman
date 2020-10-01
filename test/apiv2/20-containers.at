@@ -3,8 +3,11 @@
 # test container-related endpoints
 #
 
-podman pull $IMAGE &>/dev/null
+# WORKDIR=/data
+ENV_WORKDIR_IMG=docker.io/library/redis:alpine
 
+podman pull $IMAGE &>/dev/null
+podman pull $ENV_WORKDIR_IMG &>/dev/null
 # Unimplemented
 #t POST libpod/containers/create '' 201 'sdf'
 
@@ -202,5 +205,23 @@ t POST containers/${cid_top}/stop "" 204
 
 t DELETE containers/$cid 204
 t DELETE containers/$cid_top 204
+
+# test the apiv2 create, should't ignore the ENV and WORKDIR from the image
+t POST containers/create '"Image":"'$ENV_WORKDIR_IMG'","Env":["testKey1"]' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Config.Env~"REDIS_VERSION=" \
+  .Config.Env~"testEnv1=" \
+  .Config.WorkingDir="/data" # default is /data
+t DELETE containers/$cid 204
+
+# test the WORKDIR
+t POST containers/create '"Image":"'$ENV_WORKDIR_IMG'","WorkingDir":"/dataDir"' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Config.WorkingDir="/dataDir"
+t DELETE containers/$cid 204
 
 # vim: filetype=sh
