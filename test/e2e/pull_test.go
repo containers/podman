@@ -1,9 +1,8 @@
 package integration
 
 import (
-	"os"
-
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -399,5 +398,102 @@ var _ = Describe("Podman pull", func() {
 		session := podmanTest.PodmanNoCache([]string{"pull", "--authfile", "/tmp/nonexist", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman pull + inspect from unqualified-search registry", func() {
+		// Regression test for #6381:
+		// Make sure that `pull shortname` and `inspect shortname`
+		// refer to the same image.
+
+		// We already tested pulling, so we can save some energy and
+		// just restore local artifacts and tag them.
+		podmanTest.RestoreArtifact(ALPINE)
+		podmanTest.RestoreArtifact(BB)
+
+		// What we want is at least two images which have the same name
+		// and are prefixed with two different unqualified-search
+		// registries from ../registries.conf.
+		//
+		// A `podman inspect $name` must yield the one from the _first_
+		// matching registry in the registries.conf.
+		getID := func(image string) string {
+			setup := podmanTest.PodmanNoCache([]string{"image", "inspect", image})
+			setup.WaitWithDefaultTimeout()
+			Expect(setup.ExitCode()).To(Equal(0))
+
+			data := setup.InspectImageJSON() // returns []inspect.ImageData
+			Expect(len(data)).To(Equal(1))
+			return data[0].ID
+		}
+
+		untag := func(image string) {
+			setup := podmanTest.PodmanNoCache([]string{"untag", image})
+			setup.WaitWithDefaultTimeout()
+			Expect(setup.ExitCode()).To(Equal(0))
+
+			setup = podmanTest.PodmanNoCache([]string{"image", "inspect", image})
+			setup.WaitWithDefaultTimeout()
+			Expect(setup.ExitCode()).To(Equal(0))
+
+			data := setup.InspectImageJSON() // returns []inspect.ImageData
+			Expect(len(data)).To(Equal(1))
+			Expect(len(data[0].RepoTags)).To(Equal(0))
+		}
+
+		tag := func(image, tag string) {
+			setup := podmanTest.PodmanNoCache([]string{"tag", image, tag})
+			setup.WaitWithDefaultTimeout()
+			Expect(setup.ExitCode()).To(Equal(0))
+			setup = podmanTest.PodmanNoCache([]string{"image", "exists", tag})
+			setup.WaitWithDefaultTimeout()
+			Expect(setup.ExitCode()).To(Equal(0))
+		}
+
+		image1 := getID(ALPINE)
+		image2 := getID(BB)
+
+		// $ head -n2 ../registries.conf
+		// [registries.search]
+		// registries = ['docker.io', 'quay.io', 'registry.fedoraproject.org']
+		registries := []string{"docker.io", "quay.io", "registry.fedoraproject.org"}
+		name := "foo/test:tag"
+		tests := []struct {
+			// tag1 has precedence (see list above) over tag2 when
+			// doing an inspect on "test:tag".
+			tag1, tag2 string
+		}{
+			{
+				fmt.Sprintf("%s/%s", registries[0], name),
+				fmt.Sprintf("%s/%s", registries[1], name),
+			},
+			{
+				fmt.Sprintf("%s/%s", registries[0], name),
+				fmt.Sprintf("%s/%s", registries[2], name),
+			},
+			{
+				fmt.Sprintf("%s/%s", registries[1], name),
+				fmt.Sprintf("%s/%s", registries[2], name),
+			},
+		}
+
+		for _, t := range tests {
+			// 1) untag both images
+			// 2) tag them according to `t`
+			// 3) make sure that an inspect of `name` returns `image1` with `tag1`
+			untag(image1)
+			untag(image2)
+			tag(image1, t.tag1)
+			tag(image2, t.tag2)
+
+			setup := podmanTest.PodmanNoCache([]string{"image", "inspect", name})
+			setup.WaitWithDefaultTimeout()
+			Expect(setup.ExitCode()).To(Equal(0))
+
+			data := setup.InspectImageJSON() // returns []inspect.ImageData
+			Expect(len(data)).To(Equal(1))
+			Expect(len(data[0].RepoTags)).To(Equal(1))
+			Expect(data[0].RepoTags[0]).To(Equal(t.tag1))
+			Expect(data[0].ID).To(Equal(image1))
+		}
 	})
 })
