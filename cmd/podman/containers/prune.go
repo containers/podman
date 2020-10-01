@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
+	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -25,6 +26,7 @@ var (
 		Long:    pruneDescription,
 		RunE:    prune,
 		Example: `podman container prune`,
+		Args:    validate.NoArgs,
 	}
 	force  bool
 	filter = []string{}
@@ -45,9 +47,6 @@ func prune(cmd *cobra.Command, args []string) error {
 	var (
 		pruneOptions = entities.ContainerPruneOptions{}
 	)
-	if len(args) > 0 {
-		return errors.Errorf("`%s` takes no arguments", cmd.CommandPath())
-	}
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all non running containers.")
