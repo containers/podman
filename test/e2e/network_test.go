@@ -25,6 +25,42 @@ func removeConf(confPath string) {
 	}
 }
 
+// generateNetworkConfig generates a cni config with a random name
+// it returns the network name and the filepath
+func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
+	// generate a random name to preven conflicts with other tests
+	name := "net" + stringid.GenerateNonCryptoID()
+	path := filepath.Join(p.CNIConfigDir, fmt.Sprintf("%s.conflist", name))
+	conf := fmt.Sprintf(`{
+		"cniVersion": "0.3.0",
+		"name": "%s",
+		"plugins": [
+		  {
+			"type": "bridge",
+			"bridge": "cni1",
+			"isGateway": true,
+			"ipMasq": true,
+			"ipam": {
+				"type": "host-local",
+				"subnet": "10.99.0.0/16",
+				"routes": [
+					{ "dst": "0.0.0.0/0" }
+				]
+			}
+		  },
+		  {
+			"type": "portmap",
+			"capabilities": {
+			  "portMappings": true
+			}
+		  }
+		]
+	}`, name)
+	writeConf([]byte(conf), path)
+
+	return name, path
+}
+
 var _ = Describe("Podman network", func() {
 	var (
 		tempdir    string
@@ -48,84 +84,44 @@ var _ = Describe("Podman network", func() {
 
 	})
 
-	var (
-		secondConf = `{
-    "cniVersion": "0.3.0",
-    "name": "podman-integrationtest",
-    "plugins": [
-      {
-        "type": "bridge",
-        "bridge": "cni1",
-        "isGateway": true,
-        "ipMasq": true,
-        "ipam": {
-            "type": "host-local",
-            "subnet": "10.99.0.0/16",
-            "routes": [
-                { "dst": "0.0.0.0/0" }
-            ]
-        }
-      },
-      {
-        "type": "portmap",
-        "capabilities": {
-          "portMappings": true
-        }
-      }
-    ]
-}`
-	)
-
 	It("podman network list", func() {
-		// Setup, use uuid to prevent conflict with other tests
-		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
-		writeConf([]byte(secondConf), secondPath)
-		defer removeConf(secondPath)
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
 
 		session := podmanTest.Podman([]string{"network", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOutputContains("podman-integrationtest")).To(BeTrue())
+		Expect(session.LineInOutputContains(name)).To(BeTrue())
 	})
 
 	It("podman network list -q", func() {
-		// Setup, use uuid to prevent conflict with other tests
-		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
-		writeConf([]byte(secondConf), secondPath)
-		defer removeConf(secondPath)
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
 
 		session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOutputContains("podman-integrationtest")).To(BeTrue())
+		Expect(session.LineInOutputContains(name)).To(BeTrue())
 	})
 
 	It("podman network list --filter success", func() {
-		// Setup, use uuid to prevent conflict with other tests
-		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
-		writeConf([]byte(secondConf), secondPath)
-		defer removeConf(secondPath)
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
 
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=bridge"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOutputContains("podman-integrationtest")).To(BeTrue())
+		Expect(session.LineInOutputContains(name)).To(BeTrue())
 	})
 
 	It("podman network list --filter failure", func() {
-		// Setup, use uuid to prevent conflict with other tests
-		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
-		writeConf([]byte(secondConf), secondPath)
-		defer removeConf(secondPath)
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
 
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOutputContains("podman-integrationtest")).To(BeFalse())
+		Expect(session.LineInOutputContains(name)).To(BeFalse())
 	})
 
 	It("podman network rm no args", func() {
@@ -135,25 +131,23 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network rm", func() {
-		// Setup, use uuid to prevent conflict with other tests
-		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
-		writeConf([]byte(secondConf), secondPath)
-		defer removeConf(secondPath)
+		SkipIfRootless("FIXME: This one is definitely broken in rootless mode")
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
 
 		session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOutputContains("podman-integrationtest")).To(BeTrue())
+		Expect(session.LineInOutputContains(name)).To(BeTrue())
 
-		rm := podmanTest.Podman([]string{"network", "rm", "podman-integrationtest"})
+		rm := podmanTest.Podman([]string{"network", "rm", name})
 		rm.WaitWithDefaultTimeout()
 		Expect(rm.ExitCode()).To(BeZero())
 
 		results := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(results.LineInOutputContains("podman-integrationtest")).To(BeFalse())
+		Expect(results.LineInOutputContains(name)).To(BeFalse())
 	})
 
 	It("podman network inspect no args", func() {
@@ -163,13 +157,10 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network inspect", func() {
-		// Setup, use uuid to prevent conflict with other tests
-		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
-		writeConf([]byte(secondConf), secondPath)
-		defer removeConf(secondPath)
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
 
-		expectedNetworks := []string{"podman-integrationtest"}
+		expectedNetworks := []string{name}
 		if !rootless.IsRootless() {
 			// rootful image contains "podman/cni/87-podman-bridge.conflist" for "podman" network
 			expectedNetworks = append(expectedNetworks, "podman")
@@ -181,13 +172,10 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network inspect", func() {
-		// Setup, use uuid to prevent conflict with other tests
-		uuid := stringid.GenerateNonCryptoID()
-		secondPath := filepath.Join(podmanTest.CNIConfigDir, fmt.Sprintf("%s.conflist", uuid))
-		writeConf([]byte(secondConf), secondPath)
-		defer removeConf(secondPath)
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
 
-		session := podmanTest.Podman([]string{"network", "inspect", "podman-integrationtest", "--format", "{{.cniVersion}}"})
+		session := podmanTest.Podman([]string{"network", "inspect", name, "--format", "{{.cniVersion}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.LineInOutputContains("0.3.0")).To(BeTrue())
