@@ -200,6 +200,9 @@ func getDevices(path string) ([]*configs.Device, error) {
 			}
 		case f.Name() == "console":
 			continue
+		case f.Mode()&os.ModeSymlink != 0:
+			// do not add symlink'd devices to privileged devices
+			continue
 		}
 		device, err := devices.DeviceFromPath(filepath.Join(path, f.Name()), "rwm")
 		if err != nil {

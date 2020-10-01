@@ -182,14 +182,23 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	g.SetProcessCwd(config.WorkDir)
 
 	ProcessArgs := make([]string, 0)
-	if len(config.Entrypoint) > 0 {
-		ProcessArgs = config.Entrypoint
+	// We need to iterate the input for entrypoint because it is a []string
+	// but "" is a legit json input, which translates into a []string with an
+	// empty position.  This messes up the eventual command being executed
+	// in the container
+	for _, a := range config.Entrypoint {
+		if len(a) > 0 {
+			ProcessArgs = append(ProcessArgs, a)
+		}
 	}
-	if len(config.Command) > 0 {
-		ProcessArgs = append(ProcessArgs, config.Command...)
+	// Same issue as explained above for config.Entrypoint.
+	for _, a := range config.Command {
+		if len(a) > 0 {
+			ProcessArgs = append(ProcessArgs, a)
+		}
 	}
-	g.SetProcessArgs(ProcessArgs)
 
+	g.SetProcessArgs(ProcessArgs)
 	g.SetProcessTerminal(config.Tty)
 
 	for key, val := range config.Annotations {
