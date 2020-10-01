@@ -188,6 +188,13 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 }
 
 func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {
+	pathInfo, err := os.Stat(opts.Input)
+	if err != nil {
+		return nil, err
+	}
+	if pathInfo.IsDir() {
+		return nil, errors.New("remote client cannot load from a directory. use an OCI or Docker archive file instead")
+	}
 	f, err := os.Open(opts.Input)
 	if err != nil {
 		return nil, err
