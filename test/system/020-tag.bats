@@ -32,4 +32,23 @@ function _tag_and_check() {
 	is "$output" "Error: \"registry.com/foo:bar\": no such tag"
 }
 
+@test "podman untag all" {
+	# First get the image ID
+	run_podman inspect --format '{{.ID}}' $IMAGE
+	iid=$output
+
+	# Add a couple of tags
+	run_podman tag $IMAGE registry.com/1:latest registry.com/2:latest registry.com/3:latest
+
+	# Untag with arguments to for all tags to be removed
+	run_podman untag $iid
+
+	# Now make sure all tags are removed
+	run_podman image inspect $iid --format "{{.RepoTags}}"
+	is "$output" "\[\]" "untag by ID leaves empty set of tags"
+
+	# Restore image
+	run_podman tag $iid $IMAGE
+}
+
 # vim: filetype=sh
