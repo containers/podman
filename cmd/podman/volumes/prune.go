@@ -29,10 +29,6 @@ var (
 	}
 )
 
-var (
-	pruneOptions entities.VolumePruneOptions
-)
-
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
@@ -40,12 +36,16 @@ func init() {
 		Parent:  volumeCmd,
 	})
 	flags := pruneCommand.Flags()
-	flags.BoolVarP(&pruneOptions.Force, "force", "f", false, "Do not prompt for confirmation")
+	flags.BoolP("force", "f", false, "Do not prompt for confirmation")
 }
 
 func prune(cmd *cobra.Command, args []string) error {
 	// Prompt for confirmation if --force is not set
-	if !pruneOptions.Force {
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return err
+	}
+	if !force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all volumes not used by at least one container.")
 		fmt.Print("Are you sure you want to continue? [y/N] ")
@@ -57,7 +57,7 @@ func prune(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 	}
-	responses, err := registry.ContainerEngine().VolumePrune(context.Background(), pruneOptions)
+	responses, err := registry.ContainerEngine().VolumePrune(context.Background())
 	if err != nil {
 		return err
 	}
