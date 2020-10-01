@@ -8,6 +8,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman manifest", func() {
@@ -47,6 +48,16 @@ var _ = Describe("Podman manifest", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman manifest inspect", func() {
+		session := podmanTest.Podman([]string{"manifest", "inspect", BB})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.PodmanNoCache([]string{"manifest", "inspect", "docker.io/library/busybox"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman manifest add", func() {

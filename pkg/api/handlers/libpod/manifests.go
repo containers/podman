@@ -6,11 +6,13 @@ import (
 
 	"github.com/containers/buildah/manifests"
 	copy2 "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -48,17 +50,18 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		utils.ImageNotFound(w, name, err)
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	inspectReport, inspectError := imageEngine.ManifestInspect(r.Context(), name)
+	if inspectError != nil {
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, inspectError)
 		return
 	}
-	data, err := newImage.InspectManifest()
-	if err != nil {
-		utils.InternalServerError(w, err)
+	var list manifest.Schema2List
+	if err := json.Unmarshal(inspectReport, &list); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Unmarshal()"))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, data)
+	utils.WriteResponse(w, http.StatusOK, &list)
 }
 
 func ManifestAdd(w http.ResponseWriter, r *http.Request) {
