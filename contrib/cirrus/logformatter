@@ -31,6 +31,12 @@ our $CSS = <<'END_CSS';
 /* wrap long lines - don't require user to scroll right */
 pre        { line-break: normal; overflow-wrap: normal; white-space: pre-wrap; }
 
+/* synopsis table at top */
+table.synopsis { border: none; border-collapse: collapse; margin-left: 2em; margin-top: 2ex; }
+.synopsis th   { font-weight: normal; font-size: 110%; text-align: right; }
+.synopsis td   { font-weight: bold;   font-size: 120%; font-family: monospace; }
+
+/* test results */
 .boring    { color: #999; }
 .timestamp { color: #999; }
 .log-debug { color: #999; }
@@ -171,8 +177,19 @@ window.addEventListener("load", scrollToBottom, false);
 </script>
 </head>
 <body>
-<pre> <!-- begin processed output -->
 END_HTML
+
+    # Synopsis of this job: show job environment, links to PR and Cirrus
+    print { $out_fh } "<h2>Synopsis</h2>\n<hr/>\n",
+        job_synopsis($test_name), "<hr/>\n";
+
+    # FOR DEBUGGING: dump environment, but in HTML comments to not clutter
+    print { $out_fh } "<!-- Environment: -->\n";
+    for my $e (sort keys %ENV) {
+        my $val = escapeHTML($ENV{$e});
+        $val =~ s/--/-&#x002D;/g;       # double dash not valid in comments
+        printf { $out_fh } "<!--  %-20s %s -->\n", $e, $val;
+    }
 
     # State variables
     my $previous_timestamp = '';  # timestamp of previous line
@@ -184,6 +201,8 @@ END_HTML
     my $current_output;           # for removing duplication
     my $looks_like_bats;          # binary flag: for detecting BATS results
     my %bats_count;               # For summary line: count of pass/fail/skip
+
+    print { $out_fh } "<pre> <!-- begin processed output -->\n";
 
     # Main loop: read input, one line at a time, and write out reformatted
   LINE:
@@ -232,8 +251,9 @@ END_HTML
             my $css;
 
             # Readability: /long/path/to/podman -> podman (hover for full path)
-            $line =~ s{^(#\s+(#|\$)\s+)(\S+/)(podman\S*)\s}
-                      {$1<span title="$3$4">$4</span> };
+            # Also make it boldface, to make commands stand out
+            $line =~ s{^(#\s+(#|\$)\s+)(\S+/)(podman\S*)(\s.*)}
+                      {$1<b><span title="$3$4">$4</span>$5</b>};
 
             if    ($line =~ /^ok\s.*\s# skip/) { $css = 'skipped' }
             elsif ($line =~ /^ok\s/)           { $css = 'passed'  }
@@ -470,6 +490,83 @@ sub make_id {
 }
 
 
+###############################################################################
+# BEGIN job_synopsis and related helpers
+
+##################
+#  job_synopsis  #  Job details, links to github/cirrus
+##################
+sub job_synopsis {
+    my $subtest_name = shift;           # e.g. integration_test
+
+    my $s = <<"END_SYNOPSIS";
+<table class="synopsis">
+END_SYNOPSIS
+
+    # PR 1234 - title of the pr
+    my $pr_title = escapeHTML(_env_replace("{CIRRUS_CHANGE_TITLE}"));
+    $s .= _tr("Github PR", sprintf("%s - %s",
+                                   _a("{CIRRUS_PR}", "https://{CIRRUS_REPO_CLONE_HOST}/{CIRRUS_REPO_FULL_NAME}/pull/{CIRRUS_PR}"),
+                                   $pr_title));
+
+    # PR author, if signed-off-by
+    if (my $msg = _env_replace("{CIRRUS_COMMIT_MESSAGE}")) {
+        while ($msg =~ /^Signed-off-by:\s+(\S.*\S)$/gmi) {
+            $s .= _tr("Author", escapeHTML($1));
+        }
+    }
+
+    # eg "test fedora", "special_testing_rootless"
+    my $test_name = _env_replace("{CIRRUS_TASK_NAME}");
+    if (my $rcli = $ENV{RCLI}) {
+        $test_name .= " [remote]" if $rcli eq 'true';
+    }
+    else {
+        $test_name .= " [no RCLI; cannot determine remote/local]";
+    }
+    $s .= _tr("Test name", $test_name);
+
+    # Subtest, e.g. system_test
+    $s .= _tr("Subtest", $subtest_name);
+
+    # Link to further Cirrus results, e.g. other runs.
+    # Build is mostly boring, it's usually TASK that we want to see.
+    $s .= _tr("Cirrus Build ID", "<small>" . _a("{CIRRUS_BUILD_ID}", "https://cirrus-ci.com/build/{CIRRUS_BUILD_ID}") . "</small>");
+    $s .= _tr("Cirrus <b>Task</b> ID", _a("{CIRRUS_TASK_ID}", "https://cirrus-ci.com/task/{CIRRUS_TASK_ID}"));
+
+    # "none", "rootless"
+    $s .= _tr("Special mode", _env_replace("{SPECIALMODE}"));
+
+    $s .= "</table>\n";
+    return $s;
+}
+
+
+sub _tr {
+    my ($th, $td) = @_;
+    return "<tr><th>$th:</th><td>$td</td></tr>\n";
+}
+
+sub _a {
+    my ($name, $href) = map { _env_replace($_) } @_;
+
+    if ($href =~ /UNDEFINED/) {
+        return "$name ($href)";
+    }
+    return "<a href='$href'>$name</a>";
+}
+
+sub _env_replace {
+    my $s_in = shift;
+
+    $s_in =~ s[\{(.*?)\}][$ENV{$1} || "[$1 UNDEFINED]"]ge;
+
+    return $s_in;
+}
+
+# END   job_synopsis and related helpers
+###############################################################################
+# BEGIN html-formatting helpers
 
 sub escapeHTML {
     my $s = shift;
@@ -492,5 +589,7 @@ sub unescapeHTML {
     return $s;
 }
 
+# END   html-formatting helpers
+###############################################################################
 
 1;
