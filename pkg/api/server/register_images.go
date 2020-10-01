@@ -1423,6 +1423,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      output configuration TBD
 	//      (As of version 1.xx)
+	//  - in: query
+	//    name: httpproxy
+	//    type: boolean
+	//    default:
+	//    description: |
+	//      Inject http proxy environment variables into container
+	//      (As of version 2.0.0)
 	// produces:
 	// - application/json
 	// responses:
