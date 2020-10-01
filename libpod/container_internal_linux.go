@@ -415,8 +415,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
-	if !rootless.IsRootless() && !strings.Contains(c.config.User, ":") {
+	if !strings.Contains(c.config.User, ":") {
 		for _, gid := range execUser.Sgids {
+			// FIXME: We need to add a flag to containers.conf to not add these for HPC Users.
 			g.AddProcessAdditionalGid(uint32(gid))
 		}
 	}
