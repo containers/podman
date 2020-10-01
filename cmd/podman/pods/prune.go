@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
+	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -23,6 +24,7 @@ var (
 
 	pruneCommand = &cobra.Command{
 		Use:     "prune [flags]",
+		Args:    validate.NoArgs,
 		Short:   "Remove all stopped pods and their containers",
 		Long:    pruneDescription,
 		RunE:    prune,
@@ -41,9 +43,6 @@ func init() {
 }
 
 func prune(cmd *cobra.Command, args []string) error {
-	if len(args) > 0 {
-		return errors.Errorf("`%s` takes no arguments", cmd.CommandPath())
-	}
 	if !pruneOptions.Force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all stopped/exited pods..")
