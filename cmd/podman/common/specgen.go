@@ -233,7 +233,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 
 	// validate flags as needed
 	if err := c.validate(); err != nil {
-		return nil
+		return err
 	}
 
 	s.User = c.User
