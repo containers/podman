@@ -248,6 +248,13 @@ func addDevice(g *generate.Generator, device string) error {
 		}
 		g.Config.Mounts = append(g.Config.Mounts, devMnt)
 		return nil
+	} else if src == "/dev/fuse" {
+		// if the user is asking for fuse inside the container
+		// make sure the module is loaded.
+		f, err := unix.Open(src, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+		if err == nil {
+			unix.Close(f)
+		}
 	}
 	dev.Path = dst
 	g.AddDevice(*dev)
