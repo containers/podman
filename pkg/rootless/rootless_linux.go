@@ -216,6 +216,8 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	}
 	r, w := os.NewFile(uintptr(fds[0]), "sync host"), os.NewFile(uintptr(fds[1]), "sync child")
 
+	var pid int
+
 	defer errorhandling.CloseQuiet(r)
 	defer errorhandling.CloseQuiet(w)
 	defer func() {
@@ -226,18 +228,19 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		if _, err := w.Write(toWrite); err != nil {
 			logrus.Errorf("failed to write byte 0: %q", err)
 		}
+		if retErr != nil && pid > 0 {
+			if err := unix.Kill(pid, unix.SIGKILL); err != nil {
+				logrus.Errorf("failed to kill %d", pid)
+			}
+			C.reexec_in_user_namespace_wait(C.int(pid), 0)
+		}
 	}()
 
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid, cFileToRead, fileOutputFD)
-	pid := int(pidC)
+	pid = int(pidC)
 	if pid < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
-	defer func() {
-		if retErr != nil {
-			C.reexec_in_user_namespace_wait(pidC, 0)
-		}
-	}()
 
 	uids, gids, err := GetConfiguredMappings()
 	if err != nil {
