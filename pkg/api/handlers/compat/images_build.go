@@ -2,7 +2,6 @@ package compat
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,13 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod"
-	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/channel"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/gorilla/schema"
@@ -26,15 +25,6 @@ import (
 )
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
-	authConfigs := map[string]handlers.AuthConfig{}
-	if hdr, found := r.Header["X-Registry-Config"]; found && len(hdr) > 0 {
-		authConfigsJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(hdr[0]))
-		if json.NewDecoder(authConfigsJSON).Decode(&authConfigs) != nil {
-			utils.BadRequest(w, "X-Registry-Config", hdr[0], json.NewDecoder(authConfigsJSON).Decode(&authConfigs))
-			return
-		}
-	}
-
 	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
 		contentType := hdr[0]
 		switch contentType {
@@ -152,6 +142,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	creds, authfile, key, err := auth.GetCredentials(r)
+	if err != nil {
+		// Credential value(s) not returned as their value is not human readable
+		utils.BadRequest(w, key.String(), "n/a", err)
+		return
+	}
+	defer auth.RemoveAuthfile(authfile)
+
 	// Channels all mux'ed in select{} below to follow API build protocol
 	stdout := channel.NewWriter(make(chan []byte, 1))
 	defer stdout.Close()
@@ -180,6 +178,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Err:                            auxout,
 		ReportWriter:                   reporter,
 		OutputFormat:                   buildah.Dockerv2ImageManifest,
+		SystemContext: &types.SystemContext{
+			AuthFilePath:     authfile,
+			DockerAuthConfig: creds,
+		},
 		CommonBuildOpts: &buildah.CommonBuildOptions{
 			CPUPeriod:  query.CpuPeriod,
 			CPUQuota:   query.CpuQuota,

@@ -93,7 +93,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	//FIXME/TODO to do this exactly correct, pruneimages needs to return idrs and space-reclaimed, then we are golden
+	// FIXME/TODO to do this exactly correct, pruneimages needs to return idrs and space-reclaimed, then we are golden
 	ipr := types.ImagesPruneReport{
 		ImagesDeleted:  idr,
 		SpaceReclaimed: 1, // TODO we cannot supply this right now
@@ -113,7 +113,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		Changes   string `schema:"changes"`
 		Comment   string `schema:"comment"`
 		Container string `schema:"container"`
-		//fromSrc   string  # fromSrc is currently unused
+		// fromSrc   string  # fromSrc is currently unused
 		Pause bool   `schema:"pause"`
 		Repo  string `schema:"repo"`
 		Tag   string `schema:"tag"`
@@ -224,7 +224,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		Status         string            `json:"status"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
-		Id             string            `json:"id"` //nolint
+		Id             string            `json:"id"` // nolint
 	}{
 		Status:         iid,
 		ProgressDetail: map[string]string{},
@@ -257,9 +257,9 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		fromImage = fmt.Sprintf("%s:%s", fromImage, query.Tag)
 	}
 
-	authConf, authfile, err := auth.GetCredentials(r)
+	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", auth.XRegistryAuthHeader, r.URL.String()))
+		utils.Error(w, "Failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -299,7 +299,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		Error          string            `json:"error"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
-		Id             string            `json:"id"` //nolint
+		Id             string            `json:"id"` // nolint
 	}{
 		Status:         fmt.Sprintf("pulling image (%s) from %s", img.Tag, strings.Join(img.Names(), ", ")),
 		ProgressDetail: map[string]string{},

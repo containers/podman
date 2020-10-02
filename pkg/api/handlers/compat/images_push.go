@@ -49,9 +49,9 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authConf, authfile, err := auth.GetCredentials(r)
+	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", auth.XRegistryAuthHeader, r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)

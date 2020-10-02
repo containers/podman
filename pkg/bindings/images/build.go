@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -96,6 +97,23 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Set("httpproxy", "1")
 	}
 
+	var (
+		headers map[string]string
+		err     error
+	)
+	if options.SystemContext == nil {
+		headers, err = auth.Header(options.SystemContext, auth.XRegistryConfigHeader, "", "", "")
+	} else {
+		if options.SystemContext.DockerAuthConfig != nil {
+			headers, err = auth.Header(options.SystemContext, auth.XRegistryAuthHeader, options.SystemContext.AuthFilePath, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
+		} else {
+			headers, err = auth.Header(options.SystemContext, auth.XRegistryConfigHeader, options.SystemContext.AuthFilePath, "", "")
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	stdout := io.Writer(os.Stdout)
 	if options.Out != nil {
 		stdout = options.Out
@@ -128,7 +146,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(tarfile, http.MethodPost, "/build", params, nil)
+	response, err := conn.DoRequest(tarfile, http.MethodPost, "/build", params, headers)
 	if err != nil {
 		return nil, err
 	}

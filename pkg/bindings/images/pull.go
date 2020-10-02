@@ -42,7 +42,7 @@ func Pull(ctx context.Context, rawImage string, options entities.ImagePullOption
 	params.Set("allTags", strconv.FormatBool(options.AllTags))
 
 	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, options.Authfile, options.Username, options.Password)
+	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.Authfile, options.Username, options.Password)
 	if err != nil {
 		return nil, err
 	}
