@@ -407,7 +407,7 @@ __podman_local_interfaces() {
 __podman_complete_restart() {
 	case "$prev" in
 		--restart)
-			COMPREPLY=( $( compgen -W "always no on-failure" -- "$cur") )
+			COMPREPLY=( $( compgen -W "always no on-failure unless-stopped" -- "$cur") )
 			return
 			;;
 	esac

@@ -10,7 +10,7 @@ import (
 func (c *ContainerCLIOpts) validate() error {
 	var ()
 	if c.Rm && c.Restart != "" && c.Restart != "no" {
-		return errors.Errorf("the --rm option conflicts with --restart")
+		return errors.Errorf(`the --rm option conflicts with --restart, when the restartPolicy is not "" and "no"`)
 	}
 
 	if _, err := util.ValidatePullType(c.Pull); err != nil {
