@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/storage"
+	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 )
 
@@ -45,4 +46,18 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 		return false, -1, nil
 	}
 	return became, ret, err
+}
+
+// GetAvailableGids returns how many GIDs are available in the
+// current user namespace.
+func GetAvailableGids() (int64, error) {
+	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
+	if err != nil {
+		return 0, err
+	}
+	count := int64(0)
+	for _, r := range idMap {
+		count += r.Count
+	}
+	return count, nil
 }
