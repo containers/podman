@@ -1,6 +1,14 @@
 package completion
 
-import "github.com/spf13/cobra"
+import (
+	"bufio"
+	"os"
+	"strings"
+	"unicode"
+
+	"github.com/containers/common/pkg/capabilities"
+	"github.com/spf13/cobra"
+)
 
 // FlagCompletions - hold flag completion functions to be applied later with CompleteCommandFlags()
 type FlagCompletions map[string]func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective)
@@ -23,4 +31,63 @@ func AutocompleteNone(cmd *cobra.Command, args []string, toComplete string) ([]s
 // allows path completion.
 func AutocompleteDefault(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return nil, cobra.ShellCompDirectiveDefault
+}
+
+// AutocompleteCapabilities - Autocomplete linux capabilities options.
+// Used by --cap-add and --cap-drop.
+func AutocompleteCapabilities(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	caps := capabilities.AllCapabilities()
+
+	// convertCase will convert a string to lowercase only if the user input is lowercase
+	convertCase := func(s string) string { return s }
+	if len(toComplete) > 0 && unicode.IsLower(rune(toComplete[0])) {
+		convertCase = strings.ToLower
+	}
+
+	// offset is used to trim "CAP_" if the user doesn't type CA... or ca...
+	offset := 0
+	if !strings.HasPrefix(toComplete, convertCase("CA")) {
+		// setting the offset to 4 is safe since each cap starts with CAP_
+		offset = 4
+	}
+
+	var completions []string
+	for _, cap := range caps {
+		completions = append(completions, convertCase(cap)[offset:])
+	}
+
+	// add ALL here which is also a valid argument
+	completions = append(completions, convertCase(capabilities.All))
+	return completions, cobra.ShellCompDirectiveNoFileComp
+}
+
+// autocompleteSubIDName - autocomplete the names in /etc/subuid or /etc/subgid
+func autocompleteSubIDName(filename string) ([]string, cobra.ShellCompDirective) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+	defer file.Close()
+
+	var names []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		name := strings.SplitN(scanner.Text(), ":", 2)[0]
+		names = append(names, name)
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	return names, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteSubgidName - Autocomplete subgidname based on the names in the /etc/subgid file.
+func AutocompleteSubgidName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return autocompleteSubIDName("/etc/subgid")
+}
+
+// AutocompleteSubuidName - Autocomplete subuidname based on the names in the /etc/subuid file.
+func AutocompleteSubuidName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return autocompleteSubIDName("/etc/subuid")
 }
