@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"os"
 	"os/user"
@@ -35,6 +36,7 @@ import (
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -416,9 +418,43 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
 	if !strings.Contains(c.config.User, ":") {
+		// the gidMappings that are present inside the container user namespace
+		var gidMappings []idtools.IDMap
+
+		switch {
+		case len(c.config.IDMappings.GIDMap) > 0:
+			gidMappings = c.config.IDMappings.GIDMap
+		case rootless.IsRootless():
+			// Check whether the current user namespace has enough gids available.
+			availableGids, err := rootless.GetAvailableGids()
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot read number of available GIDs")
+			}
+			gidMappings = []idtools.IDMap{{
+				ContainerID: 0,
+				HostID:      0,
+				Size:        int(availableGids),
+			}}
+		default:
+			gidMappings = []idtools.IDMap{{
+				ContainerID: 0,
+				HostID:      0,
+				Size:        math.MaxInt32,
+			}}
+		}
 		for _, gid := range execUser.Sgids {
-			// FIXME: We need to add a flag to containers.conf to not add these for HPC Users.
-			g.AddProcessAdditionalGid(uint32(gid))
+			isGidAvailable := false
+			for _, m := range gidMappings {
+				if gid >= m.ContainerID && gid < m.ContainerID+m.Size {
+					isGidAvailable = true
+					break
+				}
+			}
+			if isGidAvailable {
+				g.AddProcessAdditionalGid(uint32(gid))
+			} else {
+				logrus.Warnf("additional gid=%d is not present in the user namespace, skip setting it", gid)
+			}
 		}
 	}
 
