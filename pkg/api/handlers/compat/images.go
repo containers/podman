@@ -20,8 +20,24 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
+	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
+
+// mergeNameAndTagOrDigest creates an image reference as string from the
+// provided image name and tagOrDigest which can be a tag, a digest or empty.
+func mergeNameAndTagOrDigest(name, tagOrDigest string) string {
+	if len(tagOrDigest) == 0 {
+		return name
+	}
+
+	separator := ":" // default to tag
+	if _, err := digest.Parse(tagOrDigest); err == nil {
+		// We have a digest, so let's change the separator.
+		separator = "@"
+	}
+	return fmt.Sprintf("%s%s%s", name, separator, tagOrDigest)
+}
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {
 	// 200 ok
@@ -252,10 +268,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fromImage := query.FromImage
-	if len(query.Tag) >= 1 {
-		fromImage = fmt.Sprintf("%s:%s", fromImage, query.Tag)
-	}
+	fromImage := mergeNameAndTagOrDigest(query.FromImage, query.Tag)
 
 	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
