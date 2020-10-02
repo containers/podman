@@ -125,29 +125,39 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 
-	pruneImages, err := ir.GetPruneImages(ctx, all, filterFuncs)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get images to prune")
-	}
-	prunedCids := make([]string, 0, len(pruneImages))
-	for _, p := range pruneImages {
-		repotags, err := p.RepoTags()
+	pruned := []string{}
+	prev := 0
+	for {
+		toPrune, err := ir.GetPruneImages(ctx, all, filterFuncs)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "unable to get images to prune")
 		}
-		if err := p.Remove(ctx, true); err != nil {
-			if errors.Cause(err) == storage.ErrImageUsedByContainer {
-				logrus.Warnf("Failed to prune image %s as it is in use: %v.\nA container associated with containers/storage i.e. Buildah, CRI-O, etc., maybe associated with this image.\nUsing the rmi command with the --force option will remove the container and image, but may cause failures for other dependent systems.", p.ID(), err)
-				continue
+		numImages := len(toPrune)
+		if numImages == 0 || numImages == prev {
+			// If there's nothing left to do, return.
+			break
+		}
+		prev = numImages
+		for _, img := range toPrune {
+			repotags, err := img.RepoTags()
+			if err != nil {
+				return nil, err
 			}
-			return nil, errors.Wrap(err, "failed to prune image")
+			if err := img.Remove(ctx, false); err != nil {
+				if errors.Cause(err) == storage.ErrImageUsedByContainer {
+					logrus.Warnf("Failed to prune image %s as it is in use: %v.\nA container associated with containers/storage (e.g., Buildah, CRI-O, etc.) maybe associated with this image.\nUsing the rmi command with the --force option will remove the container and image, but may cause failures for other dependent systems.", img.ID(), err)
+					continue
+				}
+				return nil, errors.Wrap(err, "failed to prune image")
+			}
+			defer img.newImageEvent(events.Prune)
+			nameOrID := img.ID()
+			if len(repotags) > 0 {
+				nameOrID = repotags[0]
+			}
+			pruned = append(pruned, nameOrID)
 		}
-		defer p.newImageEvent(events.Prune)
-		nameOrID := p.ID()
-		if len(repotags) > 0 {
-			nameOrID = repotags[0]
-		}
-		prunedCids = append(prunedCids, nameOrID)
+
 	}
-	return prunedCids, nil
+	return pruned, nil
 }
