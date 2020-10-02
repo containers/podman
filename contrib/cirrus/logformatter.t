@@ -96,7 +96,7 @@ ok 4 blah
 <span class='bats-passed'><a name='t--00001'>ok 1 hi</a></span>
 <span class='bats-skipped'><a name='t--00002'>ok 2 bye # skip no reason</a></span>
 <span class='bats-failed'><a name='t--00003'>not ok 3 fail</a></span>
-<span class='bats-log'># $ <span title="/path/to/podman">podman</span> foo -bar</span>
+<span class='bats-log'># $ <b><span title="/path/to/podman">podman</span> foo -bar</b></span>
 <span class='bats-log-esm'># #| FAIL: exit code is 123; expected 321</span>
 <span class='bats-passed'><a name='t--00004'>ok 4 blah</a></span>
 <hr/><span class='bats-summary'>Summary: <span class='bats-passed'>2 Passed</span>, <span class='bats-failed'>1 Failed</span>, <span class='bats-skipped'>1 Skipped</span>. Total tests: 4</span>
@@ -147,11 +147,11 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 <pre>
 <span class="timestamp">[+0103s] </span>Podman pod restart
 <span class="timestamp">         </span><a name='t--podman-pod-restart-single-empty-pod--1'><h2>  podman pod restart single empty pod</h2></a>
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/libpod/test/e2e/pod_restart_test.go:41</a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/podman/test/e2e/pod_restart_test.go:41</a>
 <span class="timestamp">         </span>[BeforeEach] Podman pod restart
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L18'>/containers/libpod/test/e2e/pod_restart_test.go:18</a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L18'>/containers/podman/test/e2e/pod_restart_test.go:18</a>
 <span class="timestamp">         </span>[It] podman pod restart single empty pod
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/libpod/test/e2e/pod_restart_test.go:41</a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/podman/test/e2e/pod_restart_test.go:41</a>
 <span class="timestamp">         </span>Running: <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
 --root /tmp/podman_test553496330/crio
 --runroot /tmp/podman_test553496330/crio-run
@@ -176,7 +176,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 <span class="timestamp">         </span><span class='log-warn'>Error: no containers in pod 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 have no dependencies, cannot start pod: no such container</span>
 <span class="timestamp">         </span>output:
 <span class="timestamp">         </span>[AfterEach] Podman pod restart
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L28'>/containers/libpod/test/e2e/pod_restart_test.go:28</a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L28'>/containers/podman/test/e2e/pod_restart_test.go:28</a>
 <span class="timestamp">         </span>Running: <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
 --root /tmp/podman_test553496330/crio
 --runroot /tmp/podman_test553496330/crio-run
