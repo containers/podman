@@ -2,8 +2,10 @@ package rootless
 
 import (
 	"os"
+	"sync"
 
 	"github.com/containers/storage"
+	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 )
 
@@ -45,4 +47,27 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 		return false, -1, nil
 	}
 	return became, ret, err
+}
+
+var (
+	availableGids     int64
+	availableGidsErr  error
+	availableGidsOnce sync.Once
+)
+
+// GetAvailableGids returns how many GIDs are available in the
+// current user namespace.
+func GetAvailableGids() (int64, error) {
+	availableGidsOnce.Do(func() {
+		idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
+		if err != nil {
+			availableGidsErr = err
+			return
+		}
+		availableGids = int64(0)
+		for _, r := range idMap {
+			availableGids += r.Count
+		}
+	})
+	return availableGids, availableGidsErr
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/specgen"
-	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -200,7 +199,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 	gid5Available := true
 	if isRootless {
-		nGids, err := GetAvailableGids()
+		nGids, err := rootless.GetAvailableGids()
 		if err != nil {
 			return nil, err
 		}
@@ -359,16 +358,4 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	setProcOpts(s, &g)
 
 	return configSpec, nil
-}
-
-func GetAvailableGids() (int64, error) {
-	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
-	if err != nil {
-		return 0, err
-	}
-	count := int64(0)
-	for _, r := range idMap {
-		count += r.Count
-	}
-	return count, nil
 }
