@@ -11,7 +11,7 @@ require (
 	github.com/containerd/containerd v1.4.1 // indirect
 	github.com/containernetworking/cni v0.8.0
 	github.com/containernetworking/plugins v0.8.7
-	github.com/containers/buildah v1.16.2
+	github.com/containers/buildah v1.16.4
 	github.com/containers/common v0.23.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.6.0
