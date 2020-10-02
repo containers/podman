@@ -33,7 +33,7 @@ const (
 func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	var config journal.JournalReaderConfig
 	if options.Tail < 0 {
-		config.NumFromTail = math.MaxUint64
+		config.NumFromTail = 0
 	} else {
 		config.NumFromTail = uint64(options.Tail)
 	}

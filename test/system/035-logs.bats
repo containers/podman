@@ -50,4 +50,15 @@ ${cid[1]} c
 ${cid[0]} d"   "Sequential output from logs"
 }
 
+@test "podman logs over journald" {
+    msg=$(random_string 20)
+
+    run_podman run --name myctr --log-driver journald $IMAGE echo $msg
+
+    run_podman logs myctr
+    is "$output" "$msg" "check that log output equals the container output"
+
+    run_podman rm myctr
+}
+
 # vim: filetype=sh
