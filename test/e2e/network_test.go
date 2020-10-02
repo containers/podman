@@ -3,9 +3,9 @@ package integration
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
@@ -42,7 +42,7 @@ func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
 			"ipMasq": true,
 			"ipam": {
 				"type": "host-local",
-				"subnet": "10.99.0.0/16",
+				"subnet": "%s",
 				"routes": [
 					{ "dst": "0.0.0.0/0" }
 				]
@@ -55,7 +55,7 @@ func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
 			}
 		  }
 		]
-	}`, name)
+	}`, name, p.GetSafeIPv4Subnet())
 	writeConf([]byte(conf), path)
 
 	return name, path
@@ -183,7 +183,8 @@ var _ = Describe("Podman network", func() {
 
 	It("podman inspect container single CNI network", func() {
 		netName := "testNetSingleCNI"
-		network := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.50.0/24", netName})
+		subnet := podmanTest.GetSafeIPv4Subnet()
+		network := podmanTest.Podman([]string{"network", "create", "--subnet", subnet, netName})
 		network.WaitWithDefaultTimeout()
 		Expect(network.ExitCode()).To(BeZero())
 		defer podmanTest.removeCNINetwork(netName)
@@ -199,11 +200,13 @@ var _ = Describe("Podman network", func() {
 		conData := inspect.InspectContainerToJSON()
 		Expect(len(conData)).To(Equal(1))
 		Expect(len(conData[0].NetworkSettings.Networks)).To(Equal(1))
-		net, ok := conData[0].NetworkSettings.Networks[netName]
+		net1, ok := conData[0].NetworkSettings.Networks[netName]
 		Expect(ok).To(BeTrue())
-		Expect(net.NetworkID).To(Equal(netName))
-		Expect(net.IPPrefixLen).To(Equal(24))
-		Expect(strings.HasPrefix(net.IPAddress, "10.50.50.")).To(BeTrue())
+		Expect(net1.NetworkID).To(Equal(netName))
+		Expect(net1.IPPrefixLen).To(Equal(24))
+		_, ipNet, err := net.ParseCIDR(subnet)
+		Expect(err).To(BeNil())
+		Expect(ipNet.Contains(net.ParseIP(net1.IPAddress))).To(BeTrue())
 
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-f", ctrName})
@@ -213,13 +216,15 @@ var _ = Describe("Podman network", func() {
 
 	It("podman inspect container two CNI networks", func() {
 		netName1 := "testNetTwoCNI1"
-		network1 := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.51.0/25", netName1})
+		subnet1 := podmanTest.GetSafeIPv4Subnet()
+		network1 := podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, netName1})
 		network1.WaitWithDefaultTimeout()
 		Expect(network1.ExitCode()).To(BeZero())
 		defer podmanTest.removeCNINetwork(netName1)
 
 		netName2 := "testNetTwoCNI2"
-		network2 := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.51.128/26", netName2})
+		subnet2 := podmanTest.GetSafeIPv4Subnet()
+		network2 := podmanTest.Podman([]string{"network", "create", "--subnet", subnet2, netName2})
 		network2.WaitWithDefaultTimeout()
 		Expect(network2.ExitCode()).To(BeZero())
 		defer podmanTest.removeCNINetwork(netName2)
@@ -238,13 +243,17 @@ var _ = Describe("Podman network", func() {
 		net1, ok := conData[0].NetworkSettings.Networks[netName1]
 		Expect(ok).To(BeTrue())
 		Expect(net1.NetworkID).To(Equal(netName1))
-		Expect(net1.IPPrefixLen).To(Equal(25))
-		Expect(strings.HasPrefix(net1.IPAddress, "10.50.51.")).To(BeTrue())
+		Expect(net1.IPPrefixLen).To(Equal(24))
+		_, ipNet, err := net.ParseCIDR(subnet1)
+		Expect(err).To(BeNil())
+		Expect(ipNet.Contains(net.ParseIP(net1.IPAddress))).To(BeTrue())
 		net2, ok := conData[0].NetworkSettings.Networks[netName2]
 		Expect(ok).To(BeTrue())
 		Expect(net2.NetworkID).To(Equal(netName2))
-		Expect(net2.IPPrefixLen).To(Equal(26))
-		Expect(strings.HasPrefix(net2.IPAddress, "10.50.51.")).To(BeTrue())
+		Expect(net2.IPPrefixLen).To(Equal(24))
+		_, ipNet, err = net.ParseCIDR(subnet2)
+		Expect(err).To(BeNil())
+		Expect(ipNet.Contains(net.ParseIP(net2.IPAddress))).To(BeTrue())
 
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-f", ctrName})

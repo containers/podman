@@ -1,21 +1,24 @@
 package integration
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/inspect"
+	"github.com/containers/podman/v2/pkg/network"
 	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
 	"github.com/containers/storage"
@@ -24,6 +27,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
@@ -122,6 +126,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		podman.createArtifact(image)
 	}
 
+	// get a list of currently used networks so that we don't use them in our tests
+	var err error
+	podman.SkipNetworks, err = network.GetLiveNetworks()
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't get currently used networks"))
+	}
+	// add the default cni podman subnet
+	// also add the 10.89.0.0/16 subnet which will be used by podman network create
+	podman.SkipNetworks = append(podman.SkipNetworks, &net.IPNet{IP: []byte{10, 88, 0, 0}, Mask: []byte{255, 254, 0, 0}})
+
 	// If running localized tests, the cache dir is created and populated. if the
 	// tests are remote, this is a no-op
 	populateCache(podman)
@@ -162,6 +176,12 @@ func (p *PodmanTestIntegration) Setup() {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 	p.ArtifactPath = ARTIFACT_DIR
+
+	p.SafeIPv4Subnet = net.IPNet{
+		// GinkgoParallelNode is one-indexed
+		IP:   []byte{10, 0, byte(GinkgoParallelNode() - 1), 0},
+		Mask: []byte{255, 255, 255, 0},
+	}
 }
 
 var _ = SynchronizedAfterSuite(func() {},
@@ -366,16 +386,92 @@ func GetPortLock(port string) storage.Locker {
 	return lock
 }
 
-// GetRandomIPAddress returns a random IP address to avoid IP
-// collisions during parallel tests
-func GetRandomIPAddress() string {
-	// To avoid IP collisions of initialize random seed for random IP addresses
+type safeSubnet struct {
+	m   sync.Mutex
+	net net.IPNet
+}
+
+// Use the 10.0.0.0/9 subnet for all integration tests.
+// 10.128.0.0/9 is reserved for cirrus ci
+// Start with 10.0.NODENUMBER.0/24 this ensures that
+// networks don't intersect across nodes.
+// This can only work for NODES <= 256
+var safeIPv4Subnet = safeSubnet{
+	m: sync.Mutex{},
+	net: net.IPNet{
+		// GinkgoParallelNode is one-indexed
+		IP:   []byte{10, 0, byte(GinkgoParallelNode() - 1), 0},
+		Mask: []byte{255, 255, 255, 0},
+	},
+}
+
+// GetSafeIPv4Subnet returns a unique 10.x.x.0/24 subnet.
+// It ensures that each test node uses their own networks and won't collide
+func (p *PodmanTestIntegration) GetSafeIPv4Subnet() string {
+	p.Netlock.Lock()
+	defer p.Netlock.Unlock()
+	for {
+		if 255-p.SafeIPv4Subnet.IP[2] >= byte(config.GinkgoConfig.ParallelTotal) {
+			// Increment the third octet by the number of test nodes.
+			// This prevents network intersects between nodes.
+			p.SafeIPv4Subnet.IP[2] += byte(config.GinkgoConfig.ParallelTotal)
+		} else {
+			// If there is not enough space in the third octet increment
+			// the second octet by one and restet the third octet.
+			p.SafeIPv4Subnet.IP[1]++
+			p.SafeIPv4Subnet.IP[2] = byte(GinkgoParallelNode() - 1)
+		}
+
+		// 10.128.0.0/9 is reserved for cirrus ci
+		// reset back to the beginning
+		if p.SafeIPv4Subnet.IP[1] == 128 {
+			p.SafeIPv4Subnet.IP[1] = 0
+		}
+
+		// Check if we intersect with other reserved networks.
+		intersect, _ := network.IntersectsWithNetworks(&p.SafeIPv4Subnet, p.SkipNetworks)
+		if !intersect {
+			break
+		}
+	}
+	return p.SafeIPv4Subnet.String()
+}
+
+// GetRandomIPv4InSubnet returns a random ip in a given ipv4 subnet
+func GetRandomIPv4InSubnet(s string) string {
+	ip, subnet, err := net.ParseCIDR(s)
+	if err != nil {
+		panic(err)
+	}
+
+	if ip.To4() == nil {
+		panic(ip.String() + " is not a IPv4 address")
+	}
+
+	ones, bits := subnet.Mask.Size()
+	if bits-ones < 2 {
+		panic(subnet.String() + " is to small to get a usable IPv4")
+	}
+
+	var broadcastIP net.IP = make([]byte, net.IPv4len)
+	var randIP net.IP = make([]byte, net.IPv4len)
+
 	rand.Seed(time.Now().UnixNano())
-	// Add GinkgoParallelNode() on top of the IP address
-	// in case of the same random seed
-	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
-	ip4 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
-	return "10.88." + ip3 + "." + ip4
+	for {
+		// Create a random ipv4 address
+		binary.LittleEndian.PutUint32(randIP, rand.Uint32())
+		for i := range randIP {
+			// Get the broadcast address
+			broadcastIP[i] = subnet.IP[i] | ^subnet.Mask[i]
+			// get the random ip in the subnet
+			randIP[i] = subnet.IP[i] + (randIP[i] &^ subnet.Mask[i])
+		}
+		// you cannot use the broadcast or network address
+		if !randIP.Equal(broadcastIP) && !randIP.Equal(subnet.IP) {
+			break
+		}
+	}
+	return randIP.String()
 }
 
 // RunTopContainer runs a simple container in the background that

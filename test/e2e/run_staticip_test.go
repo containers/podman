@@ -57,7 +57,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 	})
 
 	It("Podman run with specified static IP has correct IP", func() {
-		ip := GetRandomIPAddress()
+		ip := GetRandomIPv4InSubnet("10.88.0.0/16")
 		result := podmanTest.Podman([]string{"run", "-ti", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -65,7 +65,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 	})
 
 	It("Podman run two containers with the same IP", func() {
-		ip := GetRandomIPAddress()
+		ip := GetRandomIPv4InSubnet("10.88.0.0/16")
 		result := podmanTest.Podman([]string{"run", "-dt", "--ip", ip, nginx})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))

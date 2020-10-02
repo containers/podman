@@ -230,7 +230,7 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with IP address", func() {
 		name := "test"
-		ip := GetRandomIPAddress()
+		ip := GetRandomIPv4InSubnet("10.88.0.0/16")
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", name})
 		podCreate.WaitWithDefaultTimeout()
 		// Rootless should error
@@ -247,7 +247,7 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with IP address and no infra should fail", func() {
 		name := "test"
-		ip := GetRandomIPAddress()
+		ip := GetRandomIPv4InSubnet("10.88.0.0/16")
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate.ExitCode()).To(Equal(125))

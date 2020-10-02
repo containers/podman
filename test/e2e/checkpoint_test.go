@@ -15,7 +15,7 @@ import (
 
 func getRunString(input []string) []string {
 	// CRIU does not work with seccomp correctly on RHEL7 : seccomp=unconfined
-	runString := []string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", "--ip", GetRandomIPAddress()}
+	runString := []string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", "--ip", GetRandomIPv4InSubnet("10.88.0.0/16")}
 	return append(runString, input...)
 }
 

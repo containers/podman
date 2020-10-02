@@ -529,8 +529,9 @@ var _ = Describe("Podman run networking", func() {
 	It("podman run in custom CNI network with --static-ip", func() {
 		SkipIfRootless("Rootless mode does not support --ip")
 		netName := "podmantestnetwork"
-		ipAddr := "10.25.30.128"
-		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
+		subnet := podmanTest.GetSafeIPv4Subnet()
+		ipAddr := GetRandomIPv4InSubnet(subnet)
+		create := podmanTest.Podman([]string{"network", "create", "--subnet", subnet, netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(BeZero())
 		defer podmanTest.removeCNINetwork(netName)
@@ -544,9 +545,10 @@ var _ = Describe("Podman run networking", func() {
 	It("podman run with new:pod and static-ip", func() {
 		SkipIfRootless("Rootless does not support --ip")
 		netName := "podmantestnetwork2"
-		ipAddr := "10.25.40.128"
+		subnet := podmanTest.GetSafeIPv4Subnet()
+		ipAddr := GetRandomIPv4InSubnet(subnet)
 		podname := "testpod"
-		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.40.0/24", netName})
+		create := podmanTest.Podman([]string{"network", "create", "--subnet", subnet, netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(BeZero())
 		defer podmanTest.removeCNINetwork(netName)

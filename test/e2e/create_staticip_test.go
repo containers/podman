@@ -60,7 +60,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 	})
 
 	It("Podman create with specified static IP has correct IP", func() {
-		ip := GetRandomIPAddress()
+		ip := GetRandomIPv4InSubnet("10.88.0.0/16")
 		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		// Rootless static ip assignment should error
@@ -82,7 +82,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 
 	It("Podman create two containers with the same IP", func() {
 		SkipIfRootless("--ip not supported in rootless mode")
-		ip := GetRandomIPAddress()
+		ip := GetRandomIPv4InSubnet("10.88.0.0/16")
 		result := podmanTest.Podman([]string{"create", "--name", "test1", "--ip", ip, ALPINE, "sleep", "999"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))

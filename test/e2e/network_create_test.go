@@ -141,7 +141,8 @@ var _ = Describe("Podman network create", func() {
 		var (
 			results []network.NcList
 		)
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "newnetwork"})
+		safeNet := podmanTest.GetSafeIPv4Subnet()
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", safeNet, "newnetwork"})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc.ExitCode()).To(BeZero())
 
@@ -168,7 +169,7 @@ var _ = Describe("Podman network create", func() {
 		try := podmanTest.Podman([]string{"run", "-it", "--rm", "--network", "newnetwork", ALPINE, "sh", "-c", "ip addr show eth0 |  awk ' /inet / {print $2}'"})
 		try.WaitWithDefaultTimeout()
 
-		_, subnet, err := net.ParseCIDR("10.11.12.0/24")
+		_, subnet, err := net.ParseCIDR(safeNet)
 		Expect(err).To(BeNil())
 		// Note this is an IPv4 test only!
 		containerIP, _, err := net.ParseCIDR(try.OutputToString())
@@ -232,7 +233,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with invalid gateway for subnet", func() {
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--gateway", "192.168.1.1", "fail"})
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", podmanTest.GetSafeIPv4Subnet(), "--gateway", "192.168.1.1", "fail"})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(ExitWithError())
 	})

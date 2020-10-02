@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/containers/storage/pkg/parsers/kernel"
@@ -44,6 +46,11 @@ type PodmanTest struct {
 	RemoteCommand      *exec.Cmd
 	ImageCacheDir      string
 	ImageCacheFS       string
+	Netlock            sync.Mutex
+	SafeIPv4Subnet     net.IPNet
+	// a list of networks which should not be used in the tests
+	// this list gets populated during test setup
+	SkipNetworks []*net.IPNet
 }
 
 // PodmanSession wraps the gexec.session so we can extend it

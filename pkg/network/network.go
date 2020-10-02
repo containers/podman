@@ -81,13 +81,13 @@ func GetFreeNetwork(config *config.Config) (*net.IPNet, error) {
 			return nil, err
 		}
 		logrus.Debugf("checking if network %s intersects with other cni networks", nextNetwork.String())
-		if intersectsConfig, _ := networkIntersectsWithNetworks(newNetwork, allocatorToIPNets(networks)); intersectsConfig {
+		if intersectsConfig, _ := IntersectsWithNetworks(newNetwork, allocatorToIPNets(networks)); intersectsConfig {
 			logrus.Debugf("network %s is already being used by a cni configuration", nextNetwork.String())
 			nextNetwork = newNetwork
 			continue
 		}
 		logrus.Debugf("checking if network %s intersects with any network interfaces", nextNetwork.String())
-		if intersectsLive, _ := networkIntersectsWithNetworks(newNetwork, liveNetworks); !intersectsLive {
+		if intersectsLive, _ := IntersectsWithNetworks(newNetwork, liveNetworks); !intersectsLive {
 			break
 		}
 		logrus.Debugf("network %s is being used by a network interface", nextNetwork.String())
@@ -121,7 +121,7 @@ func newIPNetFromSubnet(subnet types.IPNet) *net.IPNet {
 	return &n
 }
 
-func networkIntersectsWithNetworks(n *net.IPNet, networklist []*net.IPNet) (bool, *net.IPNet) {
+func IntersectsWithNetworks(n *net.IPNet, networklist []*net.IPNet) (bool, *net.IPNet) {
 	for _, nw := range networklist {
 		if networkIntersect(n, nw) {
 			return true, nw
@@ -155,11 +155,11 @@ func ValidateUserNetworkIsAvailable(config *config.Config, userNet *net.IPNet) e
 		return err
 	}
 	logrus.Debugf("checking if network %s exists in cni networks", userNet.String())
-	if intersectsConfig, _ := networkIntersectsWithNetworks(userNet, allocatorToIPNets(networks)); intersectsConfig {
+	if intersectsConfig, _ := IntersectsWithNetworks(userNet, allocatorToIPNets(networks)); intersectsConfig {
 		return errors.Errorf("network %s is already being used by a cni configuration", userNet.String())
 	}
 	logrus.Debugf("checking if network %s exists in any network interfaces", userNet.String())
-	if intersectsLive, _ := networkIntersectsWithNetworks(userNet, liveNetworks); intersectsLive {
+	if intersectsLive, _ := IntersectsWithNetworks(userNet, liveNetworks); intersectsLive {
 		return errors.Errorf("network %s is being used by a network interface", userNet.String())
 	}
 	return nil
