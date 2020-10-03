@@ -32,4 +32,26 @@ load helpers
     run_podman rm $n
 }
 
+@test "podman diff with buildah container " {
+    rand_file=$(random_string 10)
+    run buildah from --name buildahctr $IMAGE
+    run buildah run buildahctr sh -c "touch /$rand_file;rm /etc/services"
+
+    run_podman diff --format json buildahctr
+
+    # Expected results for each type of diff
+    declare -A expect=(
+        [added]="/$rand_file"
+        [changed]="/etc"
+        [deleted]="/etc/services"
+    )
+
+    for field in ${!expect[@]}; do
+        result=$(jq -r -c ".${field}[]" <<<"$output")
+        is "$result" "${expect[$field]}" "$field"
+    done
+
+    run buildah rm buildahctr
+}
+
 # vim: filetype=sh

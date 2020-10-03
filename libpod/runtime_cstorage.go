@@ -52,6 +52,10 @@ func (r *Runtime) ListStorageContainers() ([]*StorageContainer, error) {
 	return finalCtrs, nil
 }
 
+func (r *Runtime) StorageContainer(idOrName string) (*storage.Container, error) {
+	return r.store.Container(idOrName)
+}
+
 // RemoveStorageContainer removes a container from c/storage.
 // The container WILL NOT be removed if it exists in libpod.
 // Accepts ID or full name of container.

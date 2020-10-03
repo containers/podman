@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers/compat"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/containers/podman/v2/pkg/ps"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -19,8 +20,12 @@ import (
 
 func ContainerExists(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	// Now use the ABI implementation to prevent us from having duplicate
+	// code.
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+
 	name := utils.GetName(r)
-	_, err := runtime.LookupContainer(name)
+	report, err := containerEngine.ContainerExists(r.Context(), name)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, name, err)
@@ -30,7 +35,11 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	if report.Value {
+		utils.WriteResponse(w, http.StatusNoContent, "")
+	} else {
+		utils.ContainerNotFound(w, name, define.ErrNoSuchCtr)
+	}
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {

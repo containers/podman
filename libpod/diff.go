@@ -62,18 +62,22 @@ func (r *Runtime) ApplyDiffTarStream(to string, diff io.Reader) error {
 func (r *Runtime) getLayerID(id string) (string, error) {
 	var toLayer string
 	toImage, err := r.imageRuntime.NewFromLocal(id)
+	if err == nil {
+		return toImage.TopLayer(), nil
+	}
+
+	targetID, err := r.store.Lookup(id)
 	if err != nil {
-		toCtr, err := r.store.Container(id)
+		targetID = id
+	}
+	toCtr, err := r.store.Container(targetID)
+	if err != nil {
+		toLayer, err = layers.FullID(r.store, targetID)
 		if err != nil {
-			toLayer, err = layers.FullID(r.store, id)
-			if err != nil {
-				return "", errors.Errorf("layer, image, or container %s does not exist", id)
-			}
-		} else {
-			toLayer = toCtr.LayerID
+			return "", errors.Errorf("layer, image, or container %s does not exist", id)
 		}
 	} else {
-		toLayer = toImage.TopLayer()
+		toLayer = toCtr.LayerID
 	}
 	return toLayer, nil
 }

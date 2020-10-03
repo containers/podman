@@ -24,7 +24,6 @@ Check if an container called `webclient` exists in local storage (the container 
 $ podman container exists webclient
 $ echo $?
 0
-$
 ```
 
 Check if an container called `webbackend` exists in local storage (the container does not actually exist).
@@ -32,7 +31,6 @@ Check if an container called `webbackend` exists in local storage (the container
 $ podman container exists webbackend
 $ echo $?
 1
-$
 ```
 
 ## SEE ALSO
