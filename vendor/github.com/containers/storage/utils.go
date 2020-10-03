@@ -292,13 +292,6 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 			if storageOpts.GraphRoot == "" {
 				storageOpts.GraphRoot = defaultRootlessGraphRoot
 			}
-			if storageOpts.RootlessStoragePath != "" {
-				rootlessStoragePath, err := expandEnvPath(storageOpts.RootlessStoragePath, rootlessUID)
-				if err != nil {
-					return storageOpts, err
-				}
-				storageOpts.GraphRoot = rootlessStoragePath
-			}
 		}
 	}
 	return storageOpts, nil
