@@ -19,7 +19,7 @@ func getContainersByContext(contextWithConnection context.Context, all, ignore b
 		return nil, errors.New("cannot lookup containers and all")
 	}
 
-	allContainers, err := containers.List(contextWithConnection, nil, bindings.PTrue, nil, nil, bindings.PTrue)
+	allContainers, err := containers.List(contextWithConnection, nil, bindings.PTrue, nil, nil, nil, bindings.PTrue)
 	if err != nil {
 		return nil, err
 	}

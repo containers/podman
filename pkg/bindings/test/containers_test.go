@@ -499,7 +499,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		_, err = bt.RunTopContainer(&name2, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		containerLatestList, err := containers.List(bt.conn, nil, nil, &latestContainers, nil, nil)
+		containerLatestList, err := containers.List(bt.conn, nil, nil, &latestContainers, nil, nil, nil)
 		Expect(err).To(BeNil())
 		err = containers.Kill(bt.conn, containerLatestList[0].Names[0], "SIGTERM")
 		Expect(err).To(BeNil())
@@ -744,7 +744,7 @@ var _ = Describe("Podman containers ", func() {
 		// Validate list container with id filter
 		filters := make(map[string][]string)
 		filters["id"] = []string{cid}
-		c, err := containers.List(bt.conn, filters, bindings.PTrue, nil, nil, nil)
+		c, err := containers.List(bt.conn, filters, bindings.PTrue, nil, nil, nil, nil)
 		Expect(err).To(BeNil())
 		Expect(len(c)).To(Equal(1))
 	})
@@ -758,7 +758,7 @@ var _ = Describe("Podman containers ", func() {
 
 		lastNum := 1
 
-		c, err := containers.List(bt.conn, nil, bindings.PTrue, &lastNum, nil, nil)
+		c, err := containers.List(bt.conn, nil, bindings.PTrue, &lastNum, nil, nil, nil)
 		Expect(err).To(BeNil())
 		Expect(len(c)).To(Equal(1))
 		Expect(c[0].PodName).To(Equal(podName))
