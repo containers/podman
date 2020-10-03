@@ -206,11 +206,10 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 		return opts, err
 	}
 	opts.RunRoot = rootlessRuntime
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
 	if systemOpts.RootlessStoragePath != "" {
-		opts.RootlessStoragePath = systemOpts.RootlessStoragePath
+		opts.GraphRoot = systemOpts.RootlessStoragePath
 	} else {
-		opts.RootlessStoragePath = opts.GraphRoot
+		opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
 	}
 	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
 		opts.GraphDriverName = "overlay"
