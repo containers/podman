@@ -201,6 +201,24 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		}, nil
 
 	case OCIArchive:
+		// imgName such as "/tmp/FOO.tar:" or "/tmp/FOO.tar:domain.com/foo:tag1"
+		imgName := strings.TrimSuffix(srcRef.StringWithinTransport(), ":")
+		imgNameSli := strings.SplitN(imgName, ":", 2)
+		if len(imgNameSli) == 2 {
+			// Fixes: https://github.com/containers/podman/issues/7337
+			// use the empty name to test the manifest's length at first
+			testSrcRef, err := ociarchive.NewReference(imgNameSli[0], "")
+			if err != nil {
+				return nil, err
+			}
+			_, err = ociarchive.LoadManifestDescriptor(testSrcRef)
+			if err == nil {
+				// err is equal nil, this means the manifest's length is 1
+				// so could use the name override it
+				return ir.getSinglePullRefPairGoal(testSrcRef, imgNameSli[1])
+			}
+		}
+
 		// retrieve the manifest from index.json to access the image name
 		manifest, err := ociarchive.LoadManifestDescriptor(srcRef)
 		if err != nil {

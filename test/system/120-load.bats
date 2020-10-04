@@ -51,8 +51,7 @@ verify_iid_and_name() {
     run_podman images $fqin --format '{{.Repository}}:{{.Tag}}'
     is "$output" "$fqin" "image preserves name across save/load"
 
-    # FIXME: when/if 7337 gets fixed, load with a new tag
-    if false; then
+    # load with a new tag, when src file is oci-archive
     local new_name=x$(random_string 14 | tr A-Z a-z)
     local new_tag=t$(random_string 6 | tr A-Z a-z)
     run_podman rmi $fqin
@@ -60,7 +59,6 @@ verify_iid_and_name() {
     run_podman load -i $archive $fqin
     run_podman images $fqin --format '{{.Repository}}:{{.Tag}}'
     is "$output" "$fqin" "image can be loaded with new name:tag"
-    fi
 
     # Clean up
     run_podman rmi $fqin

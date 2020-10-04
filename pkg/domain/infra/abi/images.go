@@ -452,7 +452,11 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 	if !opts.Quiet {
 		writer = os.Stderr
 	}
-	name, err := ir.Libpod.LoadImage(ctx, opts.Name, opts.Input, writer, opts.SignaturePolicy)
+	iName := opts.Name
+	if opts.Tag != "" {
+		iName += ":" + opts.Tag
+	}
+	name, err := ir.Libpod.LoadImage(ctx, iName, opts.Input, writer, opts.SignaturePolicy)
 	if err != nil {
 		return nil, err
 	}
