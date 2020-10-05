@@ -490,14 +490,14 @@ func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf strin
 	}
 	storageFile, err := os.OpenFile(storageConf, os.O_RDWR|os.O_TRUNC, 0600)
 	if err != nil {
-		return errors.Wrapf(err, "cannot open %s", storageConf)
+		return err
 	}
 	tomlConfiguration := getTomlStorage(storageOpts)
 	defer errorhandling.CloseQuiet(storageFile)
 	enc := toml.NewEncoder(storageFile)
 	if err := enc.Encode(tomlConfiguration); err != nil {
 		if err := os.Remove(storageConf); err != nil {
-			logrus.Errorf("unable to remove file %s", storageConf)
+			logrus.Error(err)
 		}
 		return err
 	}

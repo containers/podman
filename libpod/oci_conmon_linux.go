@@ -157,15 +157,13 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating OCI runtime exit files directory %s",
-				runtime.exitsDir)
+			return nil, errors.Wrapf(err, "error creating OCI runtime exit files directory")
 		}
 	}
 	if err := os.MkdirAll(runtime.socketsDir, 0750); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating OCI runtime attach sockets directory %s",
-				runtime.socketsDir)
+			return nil, errors.Wrap(err, "error creating OCI runtime attach sockets directory")
 		}
 	}
 

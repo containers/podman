@@ -604,7 +604,7 @@ func checkExecPreserveFDs(options entities.ExecOptions) error {
 	if options.PreserveFDs > 0 {
 		entries, err := ioutil.ReadDir("/proc/self/fd")
 		if err != nil {
-			return errors.Wrapf(err, "unable to read /proc/self/fd")
+			return err
 		}
 
 		m := make(map[int]bool)

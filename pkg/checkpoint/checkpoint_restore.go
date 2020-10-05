@@ -22,15 +22,9 @@ import (
 // crImportFromJSON imports the JSON files stored in the exported
 // checkpoint tarball
 func crImportFromJSON(filePath string, v interface{}) error {
-	jsonFile, err := os.Open(filePath)
+	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to open container definition %s for restore", filePath)
-	}
-	defer errorhandling.CloseQuiet(jsonFile)
-
-	content, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to read container definition %s for restore", filePath)
+		return errors.Wrap(err, "Failed to read container definition for restore")
 	}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err = json.Unmarshal(content, v); err != nil {
@@ -47,7 +41,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	// tarball to a temporary directory
 	archiveFile, err := os.Open(input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to open checkpoint archive %s for import", input)
+		return nil, errors.Wrap(err, "Failed to open checkpoint archive for import")
 	}
 	defer errorhandling.CloseQuiet(archiveFile)
 	options := &archive.TarOptions{

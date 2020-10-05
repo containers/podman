@@ -84,7 +84,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	for _, cidFile := range options.CIDFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading CIDFile %s", cidFile)
+			return nil, errors.Wrap(err, "error reading CIDFile")
 		}
 		id := strings.Split(string(content), "\n")[0]
 		namesOrIds = append(namesOrIds, id)
@@ -164,7 +164,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	for _, cidFile := range options.CIDFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading CIDFile %s", cidFile)
+			return nil, errors.Wrap(err, "error reading CIDFile")
 		}
 		id := strings.Split(string(content), "\n")[0]
 		namesOrIds = append(namesOrIds, id)

@@ -155,7 +155,7 @@ func (i *VarlinkAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.Build
 
 	reader, err := os.Open(contextDir)
 	if err != nil {
-		logrus.Errorf("failed to open the context dir tar file %s", contextDir)
+		logrus.Errorf("failed to open the context dir tar file")
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to open context dir tar file %s", contextDir))
 	}
 	defer reader.Close()
@@ -166,7 +166,7 @@ func (i *VarlinkAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.Build
 	logrus.Debugf("untar of %s successful", contextDir)
 	defer func() {
 		if err := os.Remove(contextDir); err != nil {
-			logrus.Errorf("unable to delete file '%s': %q", contextDir, err)
+			logrus.Error(err)
 		}
 		if err := os.RemoveAll(newContextDir); err != nil {
 			logrus.Errorf("unable to delete directory '%s': %q", newContextDir, err)

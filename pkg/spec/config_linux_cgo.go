@@ -29,7 +29,7 @@ func getSeccompConfig(config *SecurityConfig, configSpec *spec.Spec) (*spec.Linu
 		logrus.Debugf("Loading seccomp profile from %q", config.SeccompProfilePath)
 		seccompProfile, err := ioutil.ReadFile(config.SeccompProfilePath)
 		if err != nil {
-			return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", config.SeccompProfilePath)
+			return nil, errors.Wrap(err, "opening seccomp profile failed")
 		}
 		seccompConfig, err = goSeccomp.LoadProfile(string(seccompProfile), configSpec)
 		if err != nil {
