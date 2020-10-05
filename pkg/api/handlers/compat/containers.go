@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -385,7 +386,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		MacAddress:      "",
 		OnBuild:         nil,
 		Labels:          l.Labels(),
-		StopSignal:      string(l.StopSignal()),
+		StopSignal:      strconv.Itoa(int(l.StopSignal())),
 		StopTimeout:     &stopTimeout,
 		Shell:           nil,
 	}
