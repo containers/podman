@@ -216,12 +216,14 @@ t GET containers/$cid/json 200 \
   .Config.WorkingDir="/data" # default is /data
 t DELETE containers/$cid 204
 
-# test the WORKDIR
-t POST containers/create '"Image":"'$ENV_WORKDIR_IMG'","WorkingDir":"/dataDir"' 201 \
+# test the WORKDIR and StopSignal
+t POST containers/create '"Image":"'$ENV_WORKDIR_IMG'","WorkingDir":"/dataDir","StopSignal":"9"' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
-  .Config.WorkingDir="/dataDir"
+  .Config.WorkingDir="/dataDir" \
+  .Config.StopSignal="9"
+
 t DELETE containers/$cid 204
 
 # vim: filetype=sh
