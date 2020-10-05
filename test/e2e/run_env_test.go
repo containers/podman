@@ -90,11 +90,15 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run --env-host environment test", func() {
-		SkipIfRemote("FIXME, We should check that --env-host reports correct error on podman-remote")
 		env := append(os.Environ(), "FOO=BAR")
 		session := podmanTest.PodmanAsUser([]string{"run", "--rm", "--env-host", ALPINE, "/bin/printenv", "FOO"}, 0, 0, "", env)
-
 		session.WaitWithDefaultTimeout()
+		if IsRemote() {
+			// podman-remote does not support --env-host
+			Expect(session.ExitCode()).To(Equal(125))
+			Expect(session.ErrorToString()).To(ContainSubstring("unknown flag: --env-host"))
+			return
+		}
 		Expect(session.ExitCode()).To(Equal(0))
 		match, _ := session.GrepString("BAR")
 		Expect(match).Should(BeTrue())
@@ -108,8 +112,11 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run --http-proxy test", func() {
-		SkipIfRemote("FIXME: Should report proper error when http-proxy is not supported")
 		os.Setenv("http_proxy", "1.2.3.4")
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		}
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

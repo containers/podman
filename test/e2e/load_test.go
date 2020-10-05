@@ -243,7 +243,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load localhost registry from dir", func() {
-		SkipIfRemote("FIXME: podman-remote load is currently broken.")
+		SkipIfRemote("podman-remote does not support loading directories")
 		outfile := filepath.Join(podmanTest.TempDir, "load")
 
 		setup := podmanTest.PodmanNoCache([]string{"tag", BB, "hello:world"})

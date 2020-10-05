@@ -234,7 +234,8 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from docker-archive", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		SkipIfRemote("podman-remote does not support pulling from docker-archive")
+
 		podmanTest.RestoreArtifact(ALPINE)
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
 		session := podmanTest.PodmanNoCache([]string{"save", "-o", tarfn, "alpine"})
@@ -296,7 +297,8 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from oci-archive", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		SkipIfRemote("podman-remote does not support pulling from oci-archive")
+
 		podmanTest.RestoreArtifact(ALPINE)
 		tarfn := filepath.Join(podmanTest.TempDir, "oci-alp.tar")
 		session := podmanTest.PodmanNoCache([]string{"save", "--format", "oci-archive", "-o", tarfn, "alpine"})
@@ -315,7 +317,8 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from local directory", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		SkipIfRemote("podman-remote does not support pulling from local directory")
+
 		podmanTest.RestoreArtifact(ALPINE)
 		dirpath := filepath.Join(podmanTest.TempDir, "alpine")
 		os.MkdirAll(dirpath, os.ModePerm)
@@ -340,7 +343,8 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from local OCI directory", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		SkipIfRemote("podman-remote does not support pulling from OCI directory")
+
 		podmanTest.RestoreArtifact(ALPINE)
 		dirpath := filepath.Join(podmanTest.TempDir, "alpine")
 		os.MkdirAll(dirpath, os.ModePerm)

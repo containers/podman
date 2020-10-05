@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
@@ -35,7 +36,6 @@ var _ = Describe("podman system df", func() {
 	})
 
 	It("podman system df", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
 		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -48,6 +48,11 @@ var _ = Describe("podman system df", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		session = podmanTest.Podman([]string{"images", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		totImages := strconv.Itoa(len(session.OutputToStringArray()))
+
 		session = podmanTest.Podman([]string{"system", "df"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -55,7 +60,7 @@ var _ = Describe("podman system df", func() {
 		images := strings.Fields(session.OutputToStringArray()[1])
 		containers := strings.Fields(session.OutputToStringArray()[2])
 		volumes := strings.Fields(session.OutputToStringArray()[3])
-		Expect(images[1]).To(Equal("11"))
+		Expect(images[1]).To(Equal(string(totImages)))
 		Expect(containers[1]).To(Equal("2"))
 		Expect(volumes[2]).To(Equal("1"))
 	})

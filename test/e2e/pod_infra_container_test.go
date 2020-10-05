@@ -377,7 +377,6 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman run --add-host in pod", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

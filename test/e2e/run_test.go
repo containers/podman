@@ -39,7 +39,6 @@ var _ = Describe("Podman run", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman run a container based on local image", func() {
@@ -317,7 +316,8 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run user capabilities test with image", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		// We need to ignore the containers.conf on the test distribution for this test
+		os.Setenv("CONTAINERS_CONF", "/dev/null")
 		dockerfile := `FROM busybox
 USER bin`
 		podmanTest.BuildImage(dockerfile, "test", "false")
@@ -561,7 +561,7 @@ USER bin`
 	})
 
 	It("podman run with secrets", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		SkipIfRemote("--default-mount-file option is not supported in podman-remote")
 		containersDir := filepath.Join(podmanTest.TempDir, "containers")
 		err := os.MkdirAll(containersDir, 0755)
 		Expect(err).To(BeNil())
@@ -721,7 +721,6 @@ USER bin`
 	})
 
 	It("podman run with built-in volume image", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
 		session := podmanTest.Podman([]string{"run", "--rm", redis, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -1037,7 +1036,6 @@ USER mail`
 	})
 
 	It("podman run with restart-policy always restarts containers", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
 		testDir := filepath.Join(podmanTest.RunRoot, "restart-test")
 		err := os.MkdirAll(testDir, 0755)
 		Expect(err).To(BeNil())
@@ -1047,11 +1045,11 @@ USER mail`
 		Expect(err).To(BeNil())
 		file.Close()
 
-		session := podmanTest.Podman([]string{"run", "-dt", "--restart", "always", "-v", fmt.Sprintf("%s:/tmp/runroot:Z", testDir), fedoraMinimal, "bash", "-c", "date +%N > /tmp/runroot/ran && while test -r /tmp/runroot/running; do sleep 0.1s; done"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--restart", "always", "-v", fmt.Sprintf("%s:/tmp/runroot:Z", testDir), ALPINE, "sh", "-c", "date +%N > /tmp/runroot/ran && while test -r /tmp/runroot/running; do sleep 0.1s; done"})
 
 		found := false
 		testFile := filepath.Join(testDir, "ran")
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 30; i++ {
 			time.Sleep(1 * time.Second)
 			if _, err := os.Stat(testFile); err == nil {
 				found = true

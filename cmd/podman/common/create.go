@@ -166,10 +166,12 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"env", "e", containerConfig.Env(),
 		"Set environment variables in container",
 	)
-	createFlags.BoolVar(
-		&cf.EnvHost,
-		"env-host", false, "Use all current host environment variables in container",
-	)
+	if !registry.IsRemote() {
+		createFlags.BoolVar(
+			&cf.EnvHost,
+			"env-host", false, "Use all current host environment variables in container",
+		)
+	}
 	createFlags.StringSliceVar(
 		&cf.EnvFile,
 		"env-file", []string{},
