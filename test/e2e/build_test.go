@@ -89,7 +89,6 @@ var _ = Describe("Podman build", func() {
 	// Check that builds with different values for the squash options
 	// create the appropriate number of layers, then clean up after.
 	It("podman build basic alpine with squash", func() {
-		SkipIfRemote("FIXME: This is broken should be fixed")
 		session := podmanTest.PodmanNoCache([]string{"build", "-f", "build/squash/Dockerfile.squash-a", "-t", "test-squash-a:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -221,8 +220,12 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build --http_proxy flag", func() {
-		SkipIfRemote("FIXME: This is broken should be fixed")
+		SkipIfRemote("FIXME: This is broken should be fixed") // This is hanging currently.
 		os.Setenv("http_proxy", "1.2.3.4")
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		}
 		podmanTest.RestoreAllArtifacts()
 		dockerfile := `FROM docker.io/library/alpine:latest
 RUN printenv http_proxy`
@@ -230,7 +233,7 @@ RUN printenv http_proxy`
 		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")
 		err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 		Expect(err).To(BeNil())
-		session := podmanTest.PodmanNoCache([]string{"build", "--file", dockerfilePath, podmanTest.TempDir})
+		session := podmanTest.PodmanNoCache([]string{"build", "--http-proxy", "--file", dockerfilePath, podmanTest.TempDir})
 		session.Wait(120)
 		Expect(session.ExitCode()).To(Equal(0))
 		ok, _ := session.GrepString("1.2.3.4")

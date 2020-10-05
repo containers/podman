@@ -174,12 +174,19 @@ EOF
     run_podman build -t build_test -f build-test/Containerfile build-test
     local iid="${lines[-1]}"
 
+
+    if is_remote; then
+        ENVHOST=""
+    else
+	ENVHOST="--env-host"
+    fi
+
     # Run without args - should run the above script. Verify its output.
     export MYENV2="$s_env2"
     export MYENV3="env-file-should-override-env-host!"
     run_podman run --rm \
                --env-file=$PODMAN_TMPDIR/env-file \
-               --env-host \
+               ${ENVHOST} \
                -e MYENV4="$s_env4" \
                build_test
     is "${lines[0]}" "$workdir" "container default command: pwd"

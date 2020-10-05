@@ -793,7 +793,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube seccomp container level", func() {
-		SkipIfRemote("FIXME This is broken")
+		SkipIfRemote("podman-remote does not support --seccomp-profile-root flag")
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJson(seccompPwdEPERM)
 		if err != nil {
@@ -820,7 +820,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube seccomp pod level", func() {
-		SkipIfRemote("FIXME: This should work with --remote")
+		SkipIfRemote("podman-remote does not support --seccomp-profile-root flag")
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJson(seccompPwdEPERM)
 		if err != nil {

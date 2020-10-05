@@ -33,9 +33,14 @@ var _ = Describe("Podman namespaces", func() {
 	})
 
 	It("podman namespace test", func() {
-		SkipIfRemote("FIXME This should work on Remote")
 		podman1 := podmanTest.Podman([]string{"--namespace", "test1", "run", "-d", ALPINE, "echo", "hello"})
 		podman1.WaitWithDefaultTimeout()
+		if IsRemote() {
+			// --namespace flag not supported in podman remote
+			Expect(podman1.ExitCode()).To(Equal(125))
+			Expect(podman1.ErrorToString()).To(ContainSubstring("unknown flag: --namespace"))
+			return
+		}
 		Expect(podman1.ExitCode()).To(Equal(0))
 
 		podman2 := podmanTest.Podman([]string{"--namespace", "test2", "ps", "-aq"})

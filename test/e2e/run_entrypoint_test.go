@@ -90,7 +90,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run user entrypoint overrides image entrypoint and image cmd", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		SkipIfRemote("FIXME: podman-remote not handling passing --entrypoint=\"\" flag correctly")
 		dockerfile := `FROM docker.io/library/alpine:latest
 CMD ["-i"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]

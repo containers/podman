@@ -86,11 +86,6 @@ func searchFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&searchOptions.NoTrunc, "no-trunc", false, "Do not truncate the output")
 	flags.StringVar(&searchOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.BoolVar(&searchOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
-
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("authfile")
-		_ = flags.MarkHidden("tls-verify")
-	}
 }
 
 // imageSearch implements the command for searching images.
