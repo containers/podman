@@ -179,7 +179,13 @@ case "$TEST_FLAVOR" in
     ext_svc) $SCRIPT_BASE/ext_svc_check.sh ;;
     smoke)
         make gofmt
-        make .gitvalidation
+        # There is little value to validating commits after tag-push
+        # and it's very difficult to automatically determine a starting commit.
+        # $CIRRUS_TAG is only non-empty when executing due to a tag-push
+        # shellcheck disable=SC2154
+        if [[ -z "$CIRRUS_TAG" ]]; then
+            make .gitvalidation
+        fi
         ;;
     automation)
         $SCRIPT_BASE/cirrus_yaml_test.py

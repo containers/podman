@@ -76,11 +76,12 @@ CIRRUS_CI="${CIRRUS_CI:-false}"
 DEST_BRANCH="${DEST_BRANCH:-master}"
 CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-podman}
-CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-unknown$(date +%s)}  # difficult to reliably discover
+# N/B: CIRRUS_BASE_SHA is empty on branch and tag push.
+CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-${CIRRUS_LAST_GREEN_CHANGE:-YOU_FOUND_A_BUG}}
 CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
 
-# Needed for linting and code validation
-EPOCH_TEST_COMMIT=${CIRRUS_BASE_SHA:-$CIRRUS_LAST_GREEN_CHANGE}
+# The starting place for linting and code validation
+EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 
 # Regex of env. vars. to explicitly pass when executing tests
 # inside a container or as a rootless user
