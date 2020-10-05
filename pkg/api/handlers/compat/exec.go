@@ -174,25 +174,26 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idleTracker := r.Context().Value("idletracker").(*idle.Tracker)
-	hijackChan := make(chan bool, 1)
-
-	if err := sessionCtr.ExecHTTPStartAndAttach(sessionID, r, w, nil, nil, nil, hijackChan); err != nil {
-		hijackComplete := <-hijackChan
-
-		logrus.Errorf("Error attaching to container %s exec session %s: %v", sessionCtr.ID(), sessionID, err)
-
-		if hijackComplete {
-			// We do need to tell the idle tracker that the
-			// connection has been closed, though. We can guarantee
-			// that is true after HTTPAttach exits.
-			idleTracker.Close()
-		} else {
-			// A hijack was not successfully completed. We need to
-			// report the error normally.
-			utils.InternalServerError(w, err)
-		}
+	logErr := func(e error) {
+		logrus.Error(errors.Wrapf(e, "error attaching to container %s exec session %s", sessionCtr.ID(), sessionID))
 	}
 
+	hijackChan := make(chan bool, 1)
+	err = sessionCtr.ExecHTTPStartAndAttach(sessionID, r, w, nil, nil, nil, hijackChan)
+
+	if <-hijackChan {
+		// If connection was Hijacked, we have to signal it's being closed
+		t := r.Context().Value("idletracker").(*idle.Tracker)
+		defer t.Close()
+
+		if err != nil {
+			// Cannot report error to client as a 500 as the Upgrade set status to 101
+			logErr(err)
+		}
+	} else {
+		// If the Hijack failed we are going to assume we can still inform client of failure
+		utils.InternalServerError(w, err)
+		logErr(err)
+	}
 	logrus.Debugf("Attach for container %s exec session %s completed successfully", sessionCtr.ID(), sessionID)
 }

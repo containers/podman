@@ -61,10 +61,14 @@ func (t *Tracker) ConnState(conn net.Conn, state http.ConnState) {
 		oldActive := t.ActiveConnections()
 
 		// Either the server or a hijacking handler has closed the http connection to a client
-		if _, found := t.managed[conn]; found {
-			delete(t.managed, conn)
-		} else {
+		if conn == nil {
 			t.hijacked-- // guarded by t.mux above
+		} else {
+			if _, found := t.managed[conn]; found {
+				delete(t.managed, conn)
+			} else {
+				logrus.Warnf("IdleTracker %p: StateClosed transition by un-managed connection", conn)
+			}
 		}
 
 		// Transitioned from any "active" connection to no connections
