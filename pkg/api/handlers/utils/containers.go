@@ -27,7 +27,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 		// Override golang default values for types
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return 0, err
 	}
 	if _, found := r.URL.Query()["interval"]; found {

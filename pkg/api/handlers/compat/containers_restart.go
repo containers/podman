@@ -19,7 +19,7 @@ func RestartContainer(w http.ResponseWriter, r *http.Request) {
 		// Override golang default values for types
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.BadRequest(w, "url", r.URL.String(), errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.BadRequest(w, "url", r.URL.String(), errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 

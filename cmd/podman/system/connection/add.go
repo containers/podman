@@ -166,7 +166,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 		value := cmd.Flag("identity").Value.String()
 		auth, err := terminal.PublicKey(value, []byte(passwd))
 		if err != nil {
-			return "", errors.Wrapf(err, "Failed to read identity %q", value)
+			return "", errors.Wrapf(err, "failed to read identity %q", value)
 		}
 		authMethods = append(authMethods, auth)
 	}

@@ -312,7 +312,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 					reports = append(reports, &report)
 					continue
 				}
-				report.Err = errors.Wrapf(err, "Failed to evict container: %q", id)
+				report.Err = errors.Wrapf(err, "failed to evict container: %q", id)
 				reports = append(reports, &report)
 				continue
 			}

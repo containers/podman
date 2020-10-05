@@ -119,7 +119,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string)
 		return nil, errors.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to create %sClient", _url.Scheme)
+		return nil, errors.Wrapf(err, "failed to create %sClient", _url.Scheme)
 	}
 
 	ctx = context.WithValue(ctx, clientKey, &connection)

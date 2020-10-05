@@ -46,7 +46,7 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 
 	_, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
@@ -71,7 +71,7 @@ func ImageTree(w http.ResponseWriter, r *http.Request) {
 	report, err := ir.Tree(r.Context(), name, options)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchImage {
-			utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+			utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
 			return
 		}
 		utils.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "failed to generate image tree for %s", name))
@@ -84,7 +84,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	newImage, err := utils.GetImage(r, name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
 		return
 	}
 	inspect, err := newImage.Inspect(r.Context())
@@ -130,7 +130,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -174,7 +174,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	name := utils.GetName(r)
@@ -247,7 +247,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -410,7 +410,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -434,13 +434,13 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 	newImage, err := runtime.ImageRuntime().NewFromLocal(source)
 	if err != nil {
-		utils.ImageNotFound(w, source, errors.Wrapf(err, "Failed to find image %s", source))
+		utils.ImageNotFound(w, source, errors.Wrapf(err, "failed to find image %s", source))
 		return
 	}
 
 	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "Failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", key, r.URL.String()))
+		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -471,7 +471,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		nil, // additional tags
 	)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Error pushing image %q", destination))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", destination))
 		return
 	}
 
@@ -500,7 +500,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	rtc, err := runtime.GetConfig()
@@ -574,11 +574,11 @@ func UntagImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "repo tag is required", http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
 		return
 	}
+
 	repo := r.Form.Get("repo")
 	tagName := fmt.Sprintf("%s:%s", repo, tag)
 	if err := newImage.UntagImage(tagName); err != nil {
 		utils.Error(w, "failed to untag", http.StatusInternalServerError, err)
-		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, "")
 }
@@ -596,7 +596,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -611,7 +611,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	if _, found := r.URL.Query()["filters"]; found {
 		filter, err := image.ParseSearchFilter(query.Filters)
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse filters parameter for %s", r.URL.String()))
+			utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse filters parameter for %s", r.URL.String()))
 			return
 		}
 		options.Filter = *filter
