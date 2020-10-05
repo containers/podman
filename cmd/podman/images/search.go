@@ -2,15 +2,14 @@ package images
 
 import (
 	"os"
-	"reflect"
-	"strings"
+	"text/tabwriter"
+	"text/template"
 
-	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/util/camelcase"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -120,41 +119,29 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
-	format := genSearchFormat(searchOptions.Format)
 	if len(searchReport) == 0 {
 		return nil
 	}
-	out := formats.StdoutTemplateArray{Output: searchToGeneric(searchReport), Template: format, Fields: searchHeaderMap()}
-	return out.Out()
-}
 
-// searchHeaderMap returns the headers of a SearchResult.
-func searchHeaderMap() map[string]string {
-	s := new(entities.ImageSearchReport)
-	v := reflect.Indirect(reflect.ValueOf(s))
-	values := make(map[string]string, v.NumField())
-
-	for i := 0; i < v.NumField(); i++ {
-		key := v.Type().Field(i).Name
-		value := key
-		values[key] = strings.ToUpper(strings.Join(camelcase.Split(value), " "))
+	hdrs := report.Headers(entities.ImageSearchReport{}, nil)
+	row := "{{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\n"
+	if cmd.Flags().Changed("format") {
+		row = report.NormalizeFormat(searchOptions.Format)
 	}
-	return values
-}
+	row = "{{range .}}" + row + "{{end}}"
 
-func genSearchFormat(format string) string {
-	if format != "" {
-		// "\t" from the command line is not being recognized as a tab
-		// replacing the string "\t" to a tab character if the user passes in "\t"
-		return strings.Replace(format, `\t`, "\t", -1)
+	tmpl, err := template.New("search").Parse(row)
+	if err != nil {
+		return err
 	}
-	return "table {{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\t"
-}
+	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	defer w.Flush()
 
-func searchToGeneric(params []entities.ImageSearchReport) (genericParams []interface{}) {
-	for _, v := range params {
-		genericParams = append(genericParams, interface{}(v))
+	if !cmd.Flags().Changed("format") {
+		if err := tmpl.Execute(w, hdrs); err != nil {
+			return errors.Wrapf(err, "failed to write search column headers")
+		}
 	}
-	return genericParams
+
+	return tmpl.Execute(w, searchReport)
 }

@@ -56,7 +56,7 @@ load helpers
 
     # 'image mount', no args, tells us what's mounted
     run_podman image mount
-    is "$output" "$IMAGE $mount_path" "podman image mount with no args"
+    is "$output" "$IMAGE *$mount_path" "podman image mount with no args"
 
     # Clean up
     run_podman image umount $IMAGE
