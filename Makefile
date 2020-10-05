@@ -169,7 +169,13 @@ golangci-lint: .gopathok varlink_generate .install.golangci-lint
 
 .PHONY: gofmt
 gofmt: ## Verify the source code gofmt
-	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
+	find . -name '*.go' -type f \
+		-not \( \
+			-name '.golangci.yml' -o \
+			-name 'Makefile' -o \
+			-path './vendor/*' -prune -o \
+			-path './contrib/*' -prune \
+		\) -exec gofmt -d -e -s -w {} \+
 	git diff --exit-code
 
 .PHONY: test/checkseccomp/checkseccomp

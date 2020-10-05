@@ -11,20 +11,32 @@ run:
     - pkg/varlink
     - pkg/varlinkapi
     - docs/varlink
+    - vendor
   skip-files:
     - iopodman.go
     - swagger.go
+  modules-download-mode: readonly
 linters:
   enable-all: true
   disable:
+    # All these break for one reason or another
     - dupl
     - funlen
     - gochecknoglobals
     - gochecknoinits
     - goconst
     - gocyclo
-    - gosec
+    - golint
     - lll
+    - structcheck
+    - typecheck
+    - unconvert
+    - varcheck
+    - deadcode
+    - depguard
+    - errcheck
+    - gocritic
+    - gosec
     - maligned
 linters-settings:
   errcheck:

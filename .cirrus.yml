@@ -1,13 +1,5 @@
 ---
 
-# Only github users with write-access can define or use encrypted variables
-# Ref: https://cirrus-ci.org/guide/writing-tasks/#encrypted-variables
-# more specifically: https://cirrus-ci.com/settings/repository/6707778565701632
-gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
-
-# Default timeout for each task
-timeout_in: 120m
-
 # Main collection of env. vars to set for all tasks and scripts.
 env:
     ####
@@ -16,285 +8,555 @@ env:
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
     DEST_BRANCH: "master"
     # Overrides default location (/tmp/cirrus) for repo clone
-    GOPATH: "/var/tmp/go"
+    GOPATH: &gopath "/var/tmp/go"
     GOBIN: "${GOPATH}/bin"
-    GOSRC: "/var/tmp/go/src/github.com/containers/podman"
-    CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/podman"
+    GOCACHE: "${GOPATH}/cache"
+    GOSRC: &gosrc "/var/tmp/go/src/github.com/containers/podman"
+    CIRRUS_WORKING_DIR: *gosrc
     # The default is 'sh' if unspecified
     CIRRUS_SHELL: "/bin/bash"
     # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
     SCRIPT_BASE: "./contrib/cirrus"
-    # Command to prefix output lines with timing information
-    # (can't do inline awk script, Cirrus-CI or YAML mangles quoting)
-    TIMESTAMP: "awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk"
-
-    # HTMLify ginkgo and bats logs
-    LOGFORMAT: "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter"
 
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
-    ###
+    ####
     FEDORA_NAME: "fedora-32"
     PRIOR_FEDORA_NAME: "fedora-31"
     UBUNTU_NAME: "ubuntu-20"
     PRIOR_UBUNTU_NAME: "ubuntu-19"
 
-    _BUILT_IMAGE_SUFFIX: "c4948709391728640"
-    FEDORA_CACHE_IMAGE_NAME: "fedora-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${_BUILT_IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "prior-ubuntu-${_BUILT_IMAGE_SUFFIX}"
+    # Google-cloud VM Images
+    IMAGE_SUFFIX: "c4948709391728640"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "prior-ubuntu-${IMAGE_SUFFIX}"
+
+    # Container FQIN's
+    FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
+    UBUNTU_CONTAINER_FQIN: "quay.io/libpod/ubuntu_podman:${IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CONTAINER_FQIN: "quay.io/libpod/prior-ubuntu_podman:${IMAGE_SUFFIX}"
 
     ####
-    #### Default to NOT operating in any special-case testing mode
+    #### Control variables that determine what to run and how to run it.
+    #### N/B: Required ALL of these are set for every single task.
     ####
-    SPECIALMODE: "none"  # don't do anything special
-    RCLI: 'false'  # don't test remote client by default
-    ADD_SECOND_PARTITION: 'false'  # will certainly fail inside containers
-    MOD_CONTAINERS_CONF: 'true'  # Update containers.conf runtime if required by OS environment
-
-    ####
-    #### Credentials and other secret-sauces, decrypted at runtime when authorized.
-    ####
-    # Name where this repositories VM images are stored
-    GCP_PROJECT_ID: libpod-218412
-    # Service-account client_email - needed to build images
-    SERVICE_ACCOUNT: ENCRYPTED[702a8e07e27a6faf7988fcddcc068c2ef2bb182a5aa671f5ccb7fbbfb891c823aa4a7856fb17240766845dbd68bd3f90]
-    # Service account username part of client_email - for ssh'ing into VMs
-    GCE_SSH_USERNAME: 'cirrus-ci'
-
-# Default VM to use unless set or modified by task
-gce_instance:
-    image_project: $GCP_PROJECT_ID
-    zone: "us-central1-a"  # Required by Cirrus for the time being
-    cpu: 2
-    memory: "4Gb"
-    disk: 200
-    # A matrix could be used here, for now just one VM
-    image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+    TEST_FLAVOR:             # int, sys, ext_svc, smoke, automation, etc.
+    TEST_ENVIRON: host       # 'host' or 'container'
+    PODBIN_NAME: podman      # 'podman' or 'remote'
+    PRIV_NAME: root          # 'root' or 'rootless'
+    DISTRO_NV: $FEDORA_NAME  # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
+    VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
+    CTR_FQIN:                # One of the "Container FQIN's" (above)
 
 
-# Every *_task runs in parallel in separate VMsd. The name prefix only for reference
-# in WebUI, and will be followed by matrix details.  This task gates all others with
-# quick format, lint, and unit tests on the standard platform.
-gating_task:
+# Default timeout for each task
+timeout_in: 60m
 
-    # Only run this on PRs, never during post-merge testing (for speed).
-    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
 
+gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
+
+
+# Attempt to prevent flakes by confirming all required external/3rd-party
+# services are available and functional.
+ext_svc_check_task:
+    alias: 'ext_svc_check'  # int. ref. name - required for depends_on reference
+    name: "Ext. services"  # Displayed Title - has no other significance
+    # Default/small container image to execute tasks with
+    container: &smallcontainer
+        image: ${CTR_FQIN}
+        # Resources are limited across ALL currently executing tasks
+        # ref: https://cirrus-ci.org/guide/linux/#linux-containers
+        cpu: 2
+        memory: 2
     env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-        SRCPATH: "$CIRRUS_WORKING_DIR"
+        TEST_FLAVOR: ext_svc
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+    setup_script: &setup
+        - 'cd $GOSRC/$SCRIPT_BASE || exit 1'
+        - './setup_environment.sh'
+    main_script: &main
+        - 'cd $GOSRC/$SCRIPT_BASE || exit 1'
+        - './runner.sh'
 
-    # Runs within Cirrus's "community cluster"
-    container:
-        # Note: Image has dual purpose, see contrib/gate/README.md
-        # The entrypoint.sh script ensures a prestine copy of $SRCPATH is
-        # available at $GOSRC before executing make instructions.
-        image: "quay.io/libpod/gate:master"
-        cpu: 8
-        memory: 12
 
-    timeout_in: 20m
+# Execute some quick checks to confirm this YAML file and all
+# automation-related shell scripts are sane.
+automation_task:
+    alias: 'automation'
+    name: "Check Automation"
+    container: *smallcontainer
+    env:
+        TEST_FLAVOR: automation
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        TEST_ENVIRON: container
+    setup_script: *setup
+    main_script: *main
 
-    # Custom cloning is required to satisfy lint/validation needs
-    clone_script: |
+
+# This task use to be called 'gating', however that name is being
+# used downstream for release testing.  Renamed this to avoid confusion.
+# All it does is run basic golang formatting and commit validation checks.
+smoke_task:
+    alias: 'smoke'
+    name: "Smoke Test"
+    container: &bigcontainer
+        image: ${CTR_FQIN}
+        # Leave some resources for smallcontainer
+        cpu: 6
+        memory: 22
+    env:
+        TEST_FLAVOR: 'smoke'
+        CTR_FQIN: "${FEDORA_CONTAINER_FQIN}"
+        TEST_ENVIRON: container
+    # This clone script is also used to initially populate gopath_cache (below)
+    clone_script: &full_clone |
+        cd /
+        rm -rf $CIRRUS_WORKING_DIR
+        mkdir -p $CIRRUS_WORKING_DIR
         git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
+        cd $CIRRUS_WORKING_DIR
         git remote update origin
         if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
             git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
             git checkout pull/$CIRRUS_PR
+        else
+            git reset --hard $CIRRUS_CHANGE_IN_REPO
         fi
-        git reset --hard $CIRRUS_CHANGE_IN_REPO
-
-    # Don't bother going further if something is down
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-
-    gate_script:
-        # N/B: entrypoint.sh resets $GOSRC (same as make clean)
-        - '/usr/local/bin/entrypoint.sh install.tools |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh validate |& ${TIMESTAMP}'
-
-    # This task builds Podman with different buildtags to ensure the build does
-    # not break.  It also verifies all sub-commands have man pages.
-    build_script:
-        - '/usr/local/bin/entrypoint.sh podman |& ${TIMESTAMP}'
-        - 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
-        # N/B: need 'clean' so some committed files are re-generated.
-        - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh clean podman xref_helpmsgs_manpages BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh clean BUILDTAGS="varlink" binaries |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh local-cross |& ${TIMESTAMP}'
-
-    # Verify some aspects of ci/related scripts
-    ci_script:
-        - '${GOSRC}/${SCRIPT_BASE}/lib.sh.t |& ${TIMESTAMP}'
-        - '${GOSRC}/${SCRIPT_BASE}/cirrus_yaml_test.py |& ${TIMESTAMP}'
-
-    # Verify expected bash environment (-o pipefail)
-    pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
+        cd $CIRRUS_WORKING_DIR
+        make install.tools
+    setup_script: *setup
+    main_script: *main
 
 
-# Ensure these container images can build
-container_image_build_task:
-    alias: 'container_image_build'
-    name: "build gate image $DEST_BRANCH branch"
-    depends_on:
-        - "gating"
-
-    # Only run for PRs, quay.io will automatically build after branch-push
-    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
-
-    container:
-        dockerfile: contrib/gate/Dockerfile
-
-    script: make install.remote
-
-
-# This task checks to make sure that we can still build an rpm from the
-# source code using contrib/rpm/podman.spec.in
-rpmbuild_task:
-
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_BRANCH != $DEST_BRANCH
-
-    depends_on:
-        - "gating"
-    env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-
-    container:
-        image: quay.io/libpod/rpmbuild:$DEST_BRANCH
+# N/B: This task is critical.  It builds all binaries and release archives
+# for the project, using all primary OS platforms and versions.  Assuming
+# the builds are successful, a cache is stored of the entire `$GOPATH`
+# contents.  For all subsequent tasks, the _BUILD_CACHE_HANDLE value
+# is used as a key to reuse this cache, saving both time and money.
+# The only exceptions are tasks which only run inside a container, they
+# will not have access the cache and therefore must rely on cloning the
+# repository.
+build_task:
+    alias: 'build'
+    name: 'Build for $DISTRO_NV'
+    gce_instance: &standardvm
+        image_project: libpod-218412
+        zone: "us-central1-a"
         cpu: 2
-        memory: 4
+        memory: "4Gb"
+        # Required to be 200gig, do not modify - has i/o performance impact
+        # according to gcloud CLI tool warning messages.
+        disk: 200
+        image_name: "${VM_IMAGE_NAME}"  # from stdenvars
+    matrix: &platform_axis
+        # Ref: https://cirrus-ci.org/guide/writing-tasks/#matrix-modification
+        - env:  &stdenvars
+              DISTRO_NV: ${FEDORA_NAME}
+              # Not used here, is used in other tasks
+              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+              # ID for re-use of build output
+              _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+        - env:
+              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+              _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+        - env:
+              DISTRO_NV: ${UBUNTU_NAME}
+              VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
+              _BUILD_CACHE_HANDLE: ${UBUNTU_NAME}-build-${CIRRUS_BUILD_ID}
+        - env:
+              DISTRO_NV: ${PRIOR_UBUNTU_NAME}
+              VM_IMAGE_NAME: ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${PRIOR_UBUNTU_CONTAINER_FQIN}
+              _BUILD_CACHE_HANDLE: ${PRIOR_UBUNTU_NAME}-build-${CIRRUS_BUILD_ID}
+    env:
+        TEST_FLAVOR: build
+    # Ref: https://cirrus-ci.org/guide/writing-tasks/#cache-instruction
+    gopath_cache:  &gopath_cache
+        folder: *gopath  # Required hard-coded path, no variables.
+        fingerprint_script: echo "$_BUILD_CACHE_HANDLE"
+        # Cheat: Clone here when cache is empty, guaranteeing consistency.
+        populate_script: *full_clone
+    # A normal clone would invalidate useful cache
+    clone_script: &noop mkdir -p $CIRRUS_WORKING_DIR
+    setup_script: *setup
+    main_script: *main
+    always: &artifacts
+        gosrc_artifacts:
+            path: ./*  # Grab everything in top-level $GOSRC
+            type: application/octet-stream
+        binary_artifacts:
+            path: ./bin/*
+            type: application/octet-stream
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
 
-    rpmbuild_script:
-        - 'make -C ${CIRRUS_WORKING_DIR} -f ${CIRRUS_WORKING_DIR}/.copr/Makefile'
-        - 'rpmbuild --rebuild ${CIRRUS_WORKING_DIR}/podman-*.src.rpm'
+# Confirm the result of building on at least one platform appears sane.
+# This confirms the binaries can be executed, checks --help vs docs, and
+# other essential post-build validation checks.
+validate_task:
+    name: "Validate $DISTRO_NV Build"
+    alias: validate
+    depends_on:
+        - ext_svc_check
+        - automation
+        - smoke
+        - build
+    # golangci-lint is a very, very hungry beast.
+    gce_instance: &bigvm
+        <<: *standardvm
+        cpu: 8
+        memory: "16Gb"
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: validate
+    gopath_cache: &ro_gopath_cache
+        <<: *gopath_cache
+        reupload_on_changes: false
+    clone_script: *noop
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
 
-# This task runs `make vendor` followed by ./hack/tree_status.sh to check
-# whether the git tree is clean.  The reasoning for that is to make sure
-# that the vendor.conf, the code and the vendored packages in ./vendor are
-# in sync at all times.
+# Exercise the "libpod" API with a small set of common
+# operations to ensure they are functional.
+bindings_task:
+    name: "Test Bindings"
+    alias: bindings
+    depends_on:
+        - build
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: bindings
+    gopath_cache: *ro_gopath_cache
+    clone_script: *noop  # Comes from cache
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
+
+
+# Build the "libpod" API documentation `swagger.yaml` for eventual
+# publishing along side the official podman documentation.
+swagger_task:
+    name: "Test Swagger"
+    alias: swagger
+    depends_on:
+        - build
+    container: *smallcontainer
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: swagger
+        TEST_ENVIRON: container
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+    clone_script: *full_clone  # build-cache not available to container tasks
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
+
+
+endpoint_task:
+    name: "Test Endpoint"
+    alias: endpoint
+    depends_on:
+        - build
+    container: *smallcontainer
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: endpoint
+        TEST_ENVIRON: container
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+    clone_script: *full_clone  # build-cache not available to container tasks
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
+
+
+# Check that all included go modules from other sources match
+# what is expected in `vendor/modules.txt` vs `go.mod`.
 vendor_task:
-
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
+    name: "Test Vendoring"
+    alias: vendor
     depends_on:
-        - "gating"
-
+        - build
+    container: *smallcontainer
     env:
-        CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/podman"
-        GOPATH: "/var/tmp/go"
-        GOSRC: "$CIRRUS_WORKING_DIR"
-
-    # Runs within Cirrus's "community cluster"
-    container:
-        image: docker.io/library/golang:1.13
-        cpu: 4
-        memory: 12
-
-    timeout_in: 30m
-
-    vendor_script:
-        - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
-        - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
+        <<: *stdenvars
+        TEST_FLAVOR: vendor
+        TEST_ENVIRON: container
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+    clone_script: *full_clone  # build-cache not available to container tasks
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
 
 
-# This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
-# whether the git tree is clean.
-varlink_api_task:
-
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
+# There are several other important variations of podman which
+# must always build successfully.  Most of them are handled in
+# this task, though a few need dedicated tasks which follow.
+alt_build_task:
+    name: "$ALT_NAME"
+    alias: alt_build
     depends_on:
-        - "gating"
-
+        - build
     env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-        SRCPATH: "$CIRRUS_WORKING_DIR"
-        EPOCH_TEST_COMMIT: "${CIRRUS_BASE_SHA}"  # repo clone missing this data
-        # Used by tree_status.sh
-        SUGGESTION: 'remove API.md, then "make varlink_api_generate" and commit changes.'
+        <<: *stdenvars
+        TEST_FLAVOR: "altbuild"
+    gce_instance: *standardvm
+    matrix:
+      - env:
+            ALT_NAME: 'Build Each Commit'
+      - env:
+            ALT_NAME: 'Windows Cross'
+      - env:
+            ALT_NAME: 'Build Without CGO'
+      - env:
+            ALT_NAME: 'Build varlink-API'
+      - env:
+            ALT_NAME: 'Test build RPM'
+      - env:
+            ALT_NAME: 'Build varlink-binaries'
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
 
-    # Runs within Cirrus's "community cluster"
-    container:
-        # Note: Image has dual purpose, see contrib/gate/README.md
-        image: "quay.io/libpod/gate:master"
-        cpu: 4
-        memory: 12
-
-    timeout_in: 10m
-
-    api_md_script:
-        - '/usr/local/bin/entrypoint.sh BUILDTAGS="varlink" varlink_api_generate |& ${TIMESTAMP}'
-        - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
-
-
-build_each_commit_task:
-
+# Confirm building a statically-linked binary is successful
+static_alt_build_task:
+    name: "Static Build"
+    alias: static_alt_build
     depends_on:
-        - "gating"
-        - "vendor"
-        - "varlink_api"
-
-    only_if: >-
-        $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    gce_instance:
-        cpu: 8
-        memory: "8Gb"
-
+        - build
+    # Community-maintained task, may fail on occasion.  If so, uncomment
+    # the next line and file an issue with details about the failure.
+    # allow_failures: $CI == $CI
+    gce_instance: *bigvm
     env:
-        MOD_CONTAINERS_CONF: 'false'
+        <<: *stdenvars
+        TEST_FLAVOR: "altbuild"
+        # gce_instance variation prevents this being included in alt_build_task
+        ALT_NAME: 'Static build'
+        # Do not use 'latest', fixed-version tag for runtime stability.
+        CTR_FQIN: "docker.io/nixos/nix:2.3.6"
+    # This is critical, it helps to avoid a very lengthy process of
+    # statically building every dependency needed to build podman.
+    # Assuming the dependency and build description hasn't changed,
+    # this cache ensures only the static podman binary is built.
+    nix_cache:
+        folder: '/var/cache/nix'
+        fingerprint_script: cat nix/*
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
 
-    timeout_in: 30m
 
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    build_each_commit_script:
-        # set -x by default, no need to spew contents of lib.sh
-        - 'source $SCRIPT_BASE/lib.sh &> /dev/null'
-        - 'git fetch --depth 50 origin $DEST_BRANCH |& ${TIMESTAMP}'
-        - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
-
-
-build_without_cgo_task:
-
+# Confirm building the remote client, natively on a Mac OS-X VM.
+osx_alt_build_task:
+    name: "OSX Cross"
+    alias: osx_alt_build
     depends_on:
-        - "gating"
-        - "vendor"
-        - "varlink_api"
-
-    only_if: >-
-        $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    gce_instance:
-        cpu: 8
-        memory: "8Gb"
-
+        - build
     env:
-        MOD_CONTAINERS_CONF: 'false'
+        <<: *stdenvars
+        # OSX platform variation prevents this being included in alt_build_task
+        TEST_FLAVOR: "altbuild"
+        ALT_NAME: 'OSX Cross'
+    osx_instance:
+        image: 'catalina-base'
+    script:
+        - brew install go
+        - brew install go-md2man
+        - make podman-remote-darwin
+        - make install-podman-remote-darwin-docs
+    always: *artifacts
 
-    timeout_in: 30m
 
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    build_without_cgo_script:
-        - 'source $SCRIPT_BASE/lib.sh'
-        - 'make build-no-cgo'
+# This task is a stub: In the future it will be used to verify
+# podman is compatible with the docker python-module.
+docker-py_test_task:
+    name: Docker-py Compat.
+    alias: docker-py_test
+    depends_on:
+        - build
+    container: *smallcontainer
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: docker-py
+        TEST_ENVIRON: container
+    gopath_cache: *ro_gopath_cache
+    clone_script: *full_clone  # build-cache not available to container tasks
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
+
+# Does exactly what it says, execute the podman unit-tests on all primary
+# platforms and release versions.
+unit_test_task:
+    name: "Unit tests on $DISTRO_NV"
+    alias: unit_test
+    depends_on:
+        - validate
+    matrix: *platform_axis
+    gce_instance: *standardvm
+    env:
+        TEST_FLAVOR: unit
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
+
+# Execute the podman integration tests on all primary platforms and release
+# versions, as root, without involving the podman-remote client.
+local_integration_test_task: &local_integration_test_task
+    # Integration-test task name convention:
+    # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
+    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
+    alias: local_integration_test
+    depends_on:
+        - unit_test
+    matrix: *platform_axis
+    gce_instance: *standardvm
+    timeout_in: 90m
+    env:
+        TEST_FLAVOR: int
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: &logs_artifacts
+        <<: *artifacts
+        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
+        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
+        df_script: '$SCRIPT_BASE/logcollector.sh df'
+        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+
+# Nearly identical to `local_integration_test` except all operations
+# are performed through the podman-remote client vs a podman "server"
+# running on the same host.
+remote_integration_test_task:
+    <<: *local_integration_test_task
+    alias: remote_integration_test
+    env:
+        TEST_FLAVOR: int
+        PODBIN_NAME: remote
 
 
-# Update metadata on VM images referenced by this repository state
+# Run the complete set of integration tests from inside a container.
+# This verifies all/most operations function with "podman-in-podman".
+container_integration_test_task:
+    name: *std_name_fmt
+    alias: container_integration_test
+    depends_on:
+        - unit_test
+    matrix: &fedora_vm_axis
+        - env:
+              DISTRO_NV: ${FEDORA_NAME}
+              _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        - env:
+              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+              _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+    gce_instance: *standardvm
+    timeout_in: 90m
+    env:
+        TEST_FLAVOR: int
+        TEST_ENVIRON: container
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
+
+# Execute most integration tests as a regular (non-root) user.
+rootless_integration_test_task:
+    name: *std_name_fmt
+    alias: rootless_integration_test
+    depends_on:
+        - unit_test
+    matrix: *fedora_vm_axis
+    gce_instance: *standardvm
+    timeout_in: 90m
+    env:
+        TEST_FLAVOR: int
+        PRIV_NAME: rootless
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
+
+
+# Always run subsequent to integration tests.  While parallelism is lost
+# with runtime, debugging system-test failures can be more challenging
+# for some golang developers.  Otherwise the following tasks run across
+# the same matrix as the integration-tests (above).
+local_system_test_task: &local_system_test_task
+    name: *std_name_fmt
+    alias: local_system_test
+    depends_on:
+      - local_integration_test
+    matrix: *platform_axis
+    gce_instance: *standardvm
+    env:
+        TEST_FLAVOR: sys
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
+
+
+remote_system_test_task:
+    <<: *local_system_test_task
+    alias: remote_system_test
+    depends_on:
+      - remote_integration_test
+    env:
+        TEST_FLAVOR: sys
+        PODBIN_NAME: remote
+
+
+rootless_system_test_task:
+    name: *std_name_fmt
+    alias: rootless_system_test
+    depends_on:
+      - rootless_integration_test
+    matrix: *fedora_vm_axis
+    gce_instance: *standardvm
+    env:
+        TEST_FLAVOR: sys
+        PRIV_NAME: rootless
+        PODBIN_NAME: remote
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
+
+# This task is critical.  It updates the "last-used by" timestamp stored
+# in metadata for all VM images.  This mechanism functions in tandem with
+# an out-of-band pruning operation to remove disused VM images.
 meta_task:
-
+    name: "VM img. keepalive"
+    alias: meta
     container:
-        image: "quay.io/libpod/imgts:${_BUILT_IMAGE_SUFFIX}"
-        cpu: 1
-        memory: 1
-
-    env: &meta_env_vars
+        cpu: 2
+        memory: 2
+        image: quay.io/libpod/imgts:$IMAGE_SUFFIX
+    env:
         # Space-separated list of images used by this repository state
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
@@ -302,317 +564,87 @@ meta_task:
             ${UBUNTU_CACHE_IMAGE_NAME}
             ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
-        REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
+        REPOREF: "${CIRRUS_REPO_NAME}"
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
-        # needed for output-masking purposes
         GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
-        GCPPROJECT: $GCP_PROJECT_ID
-
-    timeout_in: 10m
-
-    # Cirrus-CI ignores entrypoint defined in image
-    script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/update_meta.sh |& ${TIMESTAMP}'
+        GCPPROJECT: libpod-218412
+    clone_script: *noop
+    script: /usr/local/bin/entrypoint.sh
 
 
-# This task does the unit and integration testing for every platform
-testing_task:
-
-    alias: "testing"
-    depends_on:
-        - "gating"
-        - "vendor"
-        - "varlink_api"
-        - "build_each_commit"
-        - "build_without_cgo"
-        - "container_image_build"
-
-    # Only test build cache-images, if that's what's requested
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    matrix:
-        - name: "test ${FEDORA_NAME}"
-          gce_instance:
-              image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-        - name: "test ${PRIOR_FEDORA_NAME}"
-          gce_instance:
-              image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-        - name: "test ${UBUNTU_NAME}"
-          gce_instance:
-              image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-        - name: "test ${PRIOR_UBUNTU_NAME}"
-          gce_instance:
-              image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
-
-    env:
-        ADD_SECOND_PARTITION: 'true'
-        matrix:
-          - RCLI: 'true'
-          - RCLI: 'false'
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} system_test'
-    apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} apiv2_test'
-
-    # When examining a particular run, provide convenient access to release files.
-    tar_artifacts:
-        path: "*.tar.gz"
-        type: "application/x-tar"
-
-    always: &standardlogs
-        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
-        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
-        varlink_script: '$SCRIPT_BASE/logcollector.sh varlink'
-        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
-        html_artifacts:
-            path: "*.log.html"
-            type: "text/html"
-
-# This task executes tests under unique environments/conditions
-special_testing_rootless_task:
-
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-        - "build_each_commit"
-        - "build_without_cgo"
-
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    env:
-        ADD_SECOND_PARTITION: 'true'
-        SPECIALMODE: 'rootless'  # See docs
-        matrix:
-          - RCLI: 'true'
-          - RCLI: 'false'
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} system_test'
-    apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} apiv2_test'
-
-    always:
-        <<: *standardlogs
-
-
-special_testing_in_podman_task:
-
-    alias: "special_testing_in_podman"
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-        - "build_each_commit"
-        - "build_without_cgo"
-
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    matrix:
-        - name: "in-podman ${PRIOR_FEDORA_NAME}"
-          gce_instance:
-              image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-        - name: "in-podman ${FEDORA_NAME}"
-          gce_instance:
-              image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-
-    env:
-        ADD_SECOND_PARTITION: 'true'
-        MOD_CONTAINERS_CONF: 'false'  # Use existing/native setup
-        SPECIALMODE: 'in_podman'  # See docs
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-
-    always:
-        <<: *standardlogs
-
-
-special_testing_cross_task:
-
-    alias: "special_testing_cross"
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    matrix:
-        - name: 'cross-platform: windows'
-          env:
-              CROSS_PLATFORM: 'windows'
-        - name: 'cross-platform: darwin'
-          env:
-              CROSS_PLATFORM: 'darwin'
-
-    timeout_in: 20m
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
-
-    # When examining a particular run, provide convenient access to release files.
-    zip_artifacts:
-        path: "*.zip"
-        type: "application/zip"
-
-    msi_artifacts:
-        path: "*.msi"
-        type: "application/octet-stream"
-
-
-special_testing_bindings_task:
-
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    env:
-        SPECIALMODE: 'bindings'  # See docs
-        ADD_SECOND_PARTITION: 'true'  # More root fs space is required
-
-    timeout_in: 40m
-
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-
-    always:
-        <<: *standardlogs
-
-
-special_testing_endpoint_task:
-
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    env:
-        SPECIALMODE: 'endpoint'  # See docs
-
-    timeout_in: 20m
-
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
-    always:
-        <<: *standardlogs
-
-
-docs_task:
-
-    depends_on:
-        - "gating"
-    env:
-        RELEASE_GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
-        RELEASE_GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
-        RELEASE_GCPROJECT: $GCP_PROJECT_ID
-
-    script:
-        - "$SCRIPT_BASE/build_swagger.sh |& ${TIMESTAMP}"
-        - "$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}"
-
-
-# Post message to IRC if everything passed PR testing
+# Status aggregator for all tests.  This task simply ensures a defined
+# set of tasks all passed, and allows confirming that based on the status
+# of this task.
 success_task:
-
-    # This task is a required-pass in github settings,
-    # it blocks PRs from merging if a depends_on task fails
-    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
-
-    # ignores any dependent task conditions
+    name: "Total Success"
+    alias: success
+    # N/B: ALL tasks must be listed here, minus their '_task' suffix.
     depends_on:
-        - "gating"
-        - "vendor"
-        - "varlink_api"
-        - "build_each_commit"
-        - "build_without_cgo"
-        - "container_image_build"
-        - "meta"
-        - "testing"
-        - "rpmbuild"
-        - "special_testing_rootless"
-        - "special_testing_in_podman"
-        - "special_testing_cross"
-        - "special_testing_endpoint"
-        - "special_testing_bindings"
-        - "docs"
-        - "static_build"
-        - "darwin_build"
-
+        - ext_svc_check
+        - automation
+        - smoke
+        - build
+        - validate
+        - bindings
+        - endpoint
+        - swagger
+        - vendor
+        - alt_build
+        - static_alt_build
+        - osx_alt_build
+        - docker-py_test
+        - unit_test
+        - local_integration_test
+        - remote_integration_test
+        - rootless_integration_test
+        - container_integration_test
+        - local_system_test
+        - remote_system_test
+        - rootless_system_test
+        - meta
+    container: *smallcontainer
     env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-        SRCPATH: "$CIRRUS_WORKING_DIR"
-        EPOCH_TEST_COMMIT: "${CIRRUS_BASE_SHA}"  # repo clone missing this data
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        TEST_ENVIRON: container
+    clone_script: *noop
+    script: /bin/true
 
-    container:
-        # Note: Image has dual purpose, see contrib/gate/README.md
-        image: "quay.io/libpod/gate:master"
-        cpu: 1
-        memory: 1
 
-    success_script: /bin/true
-
-# Build the static binary
-static_build_task:
+# When a new tag is pushed, confirm that the code and commits
+# meet criteria for an official release.
+release_task:
+    name: "Verify Release"
+    alias: release
+    only_if: $CIRRUS_TAG != ''
     depends_on:
-        - "gating"
+        - success
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: release
+    gopath_cache: *ro_gopath_cache
+    clone_script: *noop  # Comes from cache
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
 
-    gce_instance:
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-        cpu: 8
-        memory: 12
-        disk: 200
-
-    init_script: |
-        set -ex
-        setenforce 0
-        growpart /dev/sda 1 || true
-        resize2fs /dev/sda1 || true
-        yum -y install podman
-
-    nix_cache:
-      folder: '.cache'
-      fingerprint_script: |
-        echo "nix-v1-$(sha1sum nix/nixpkgs.json | head -c 40)"
-
-    build_script: |
-        set -ex
-        mkdir -p .cache
-        mv .cache /nix
-        if [[ -z $(ls -A /nix) ]]; then podman run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
-        podman run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
-
-    binaries_artifacts:
-        path: "result/bin/podman"
-
-    save_cache_script: |
-        mv /nix .cache
-        chown -Rf $(whoami) .cache
-
-
-darwin_build_task:
+# When preparing to release a new version, this task may be manually
+# activated at the PR stage to verify the code is in a proper state.
+# Note: This cannot use a YAML alias on 'release_task' as of this
+# comment, it is incompatible with 'trigger_type: manual'
+release_test_task:
+    name: "Optional Release Test"
+    alias: release_test
+    only_if: $CIRRUS_PR != ''
+    trigger_type: manual
     depends_on:
-        - "gating"
-    osx_instance:
-        image: catalina-base
-    setup-script:
-        - brew install go
-        - brew install go-md2man
-    build-script:
-        - make podman-remote-darwin
-        - make install-podman-remote-darwin-docs
-    binaries_artifacts:
-        path: "bin/podman-remote-darwin"
+        - success
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: release
+    gopath_cache: *ro_gopath_cache
+    clone_script: *noop  # Comes from cache
+    setup_script: *setup
+    main_script: *main
+    always: *artifacts
