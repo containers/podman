@@ -2,6 +2,7 @@ package cgroups
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -155,23 +156,15 @@ func (c *CgroupControl) getCgroupv1Path(name string) string {
 
 // createCgroupv2Path creates the cgroupv2 path and enables all the available controllers
 func createCgroupv2Path(path string) (deferredError error) {
-	content, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
+	if !strings.HasPrefix(path, cgroupRoot+"/") {
+		return fmt.Errorf("invalid cgroup path %s", path)
+	}
+	content, err := ioutil.ReadFile(cgroupRoot + "/cgroup.controllers")
 	if err != nil {
 		return err
 	}
-	if !strings.HasPrefix(path, "/sys/fs/cgroup/") {
-		return fmt.Errorf("invalid cgroup path %s", path)
-	}
-
-	res := ""
-	for i, c := range strings.Split(strings.TrimSpace(string(content)), " ") {
-		if i == 0 {
-			res = fmt.Sprintf("+%s", c)
-		} else {
-			res += fmt.Sprintf(" +%s", c)
-		}
-	}
-	resByte := []byte(res)
+	ctrs := bytes.Fields(content)
+	res := append([]byte("+"), bytes.Join(ctrs, []byte(" +"))...)
 
 	current := "/sys/fs"
 	elements := strings.Split(path, "/")
@@ -194,8 +187,8 @@ func createCgroupv2Path(path string) (deferredError error) {
 		// We enable the controllers for all the path components except the last one.  It is not allowed to add
 		// PIDs if there are already enabled controllers.
 		if i < len(elements[3:])-1 {
-			if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), resByte, 0755); err != nil {
-				return errors.Wrapf(err, "write %s", filepath.Join(current, "cgroup.subtree_control"))
+			if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), res, 0755); err != nil {
+				return err
 			}
 		}
 	}
