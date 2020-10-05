@@ -307,6 +307,7 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.config.Spec.Process.Terminal
 
+	// TODO add CPU limit support.
 	if c.config.Spec.Linux != nil &&
 		c.config.Spec.Linux.Resources != nil &&
 		c.config.Spec.Linux.Resources.Memory != nil &&
