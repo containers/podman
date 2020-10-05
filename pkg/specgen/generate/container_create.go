@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -272,6 +273,21 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	// Security options
 	if len(s.SelinuxOpts) > 0 {
 		options = append(options, libpod.WithSecLabels(s.SelinuxOpts))
+	} else {
+		if pod != nil {
+			// duplicate the security options from the pod
+			processLabel, err := pod.ProcessLabel()
+			if err != nil {
+				return nil, err
+			}
+			if processLabel != "" {
+				selinuxOpts, err := label.DupSecOpt(processLabel)
+				if err != nil {
+					return nil, err
+				}
+				options = append(options, libpod.WithSecLabels(selinuxOpts))
+			}
+		}
 	}
 	options = append(options, libpod.WithPrivileged(s.Privileged))
 

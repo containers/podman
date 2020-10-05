@@ -182,4 +182,115 @@ var _ = Describe("Podman run", func() {
 		match2, _ := session.GrepString("s0:c1,c2")
 		Expect(match2).To(BeTrue())
 	})
+
+	It("podman pod container share SELinux labels", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		label1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(label1))
+
+		session = podmanTest.Podman([]string{"pod", "rm", podID, "--force"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman pod container --infra=false doesn't share SELinux labels", func() {
+		session := podmanTest.Podman([]string{"pod", "create", "--infra=false"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		label1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(Equal(label1)))
+
+		session = podmanTest.Podman([]string{"pod", "rm", podID, "--force"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman shared IPC NS container share SELinux labels", func() {
+		session := podmanTest.RunTopContainer("test1")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		label1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--ipc", "container:test1", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(label1))
+	})
+
+	It("podman shared PID NS container share SELinux labels", func() {
+		session := podmanTest.RunTopContainer("test1")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		label1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--pid", "container:test1", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(label1))
+	})
+
+	It("podman shared NET NS container doesn't share SELinux labels", func() {
+		session := podmanTest.RunTopContainer("test1")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		label1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--net", "container:test1", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(Equal(label1)))
+	})
+
+	It("podman test --pid=host", func() {
+		session := podmanTest.Podman([]string{"run", "--pid=host", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("spc_t"))
+	})
+
+	It("podman test --ipc=host", func() {
+		session := podmanTest.Podman([]string{"run", "--ipc=host", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("spc_t"))
+	})
+
+	It("podman test --ipc=net", func() {
+		session := podmanTest.Podman([]string{"run", "--net=host", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("container_t"))
+	})
 })

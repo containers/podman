@@ -327,3 +327,21 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*define.ContainerSta
 	}
 	return newContainerStats, nil
 }
+
+// ProcessLabel returns the SELinux label associated with the pod
+func (p *Pod) ProcessLabel() (string, error) {
+	if !p.HasInfraContainer() {
+		return "", nil
+	}
+
+	id, err := p.InfraContainerID()
+	if err != nil {
+		return "", err
+	}
+
+	ctr, err := p.runtime.state.Container(id)
+	if err != nil {
+		return "", err
+	}
+	return ctr.ProcessLabel(), nil
+}
