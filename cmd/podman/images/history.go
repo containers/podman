@@ -10,7 +10,9 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -28,9 +30,9 @@ var (
 		Use:     "history [flags] IMAGE",
 		Short:   "Show history of a specified image",
 		Long:    long,
-		Example: "podman history quay.io/fedora/fedora",
 		Args:    cobra.ExactArgs(1),
 		RunE:    history,
+		Example: "podman history quay.io/fedora/fedora",
 	}
 
 	imageHistoryCmd = &cobra.Command{
@@ -39,7 +41,7 @@ var (
 		Short:   historyCmd.Short,
 		Long:    historyCmd.Long,
 		RunE:    historyCmd.RunE,
-		Example: `podman image history imageID`,
+		Example: `podman image history quay.io/fedora/fedora`,
 	}
 
 	opts = struct {
@@ -79,7 +81,7 @@ func history(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if opts.format == "json" {
+	if parse.MatchesJSONFormat(opts.format) {
 		var err error
 		if len(results.Layers) == 0 {
 			_, err = fmt.Fprintf(os.Stdout, "[]\n")
@@ -100,69 +102,66 @@ func history(cmd *cobra.Command, args []string) error {
 		}
 		return err
 	}
-	hr := make([]historyreporter, 0, len(results.Layers))
-	for _, l := range results.Layers {
-		hr = append(hr, historyreporter{l})
-	}
-	// Defaults
-	hdr := "ID\tCREATED\tCREATED BY\tSIZE\tCOMMENT\n"
-	row := "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
 
-	switch {
-	case len(opts.format) > 0:
-		hdr = ""
-		row = opts.format
-		if !strings.HasSuffix(opts.format, "\n") {
-			row += "\n"
-		}
-	case opts.quiet:
-		hdr = ""
-		row = "{{.ID}}\n"
-	case opts.human:
-		row = "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
-	case opts.noTrunc:
-		row = "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
+	hr := make([]historyReporter, 0, len(results.Layers))
+	for _, l := range results.Layers {
+		hr = append(hr, historyReporter{l})
 	}
-	format := hdr + "{{range . }}" + row + "{{end}}"
+
+	hdrs := report.Headers(historyReporter{}, map[string]string{
+		"CreatedBy": "CREATED BY",
+	})
+
+	// Defaults
+	row := "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
+	switch {
+	case cmd.Flags().Changed("format"):
+		row = report.NormalizeFormat(opts.format)
+	case opts.quiet:
+		row = "{{.ID}}\n"
+	}
+	format := "{{range . }}" + row + "{{end}}"
 
 	tmpl, err := template.New("report").Parse(format)
 	if err != nil {
 		return err
 	}
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
-	err = tmpl.Execute(w, hr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "failed to print report"))
+	defer w.Flush()
+
+	if !opts.quiet && !cmd.Flags().Changed("format") {
+		if err := tmpl.Execute(w, hdrs); err != nil {
+			return errors.Wrapf(err, "failed to write report column headers")
+		}
 	}
-	w.Flush()
-	return nil
+	return tmpl.Execute(w, hr)
 }
 
-type historyreporter struct {
+type historyReporter struct {
 	entities.ImageHistoryLayer
 }
 
-func (h historyreporter) Created() string {
+func (h historyReporter) Created() string {
 	if opts.human {
 		return units.HumanDuration(time.Since(h.ImageHistoryLayer.Created)) + " ago"
 	}
 	return h.ImageHistoryLayer.Created.Format(time.RFC3339)
 }
 
-func (h historyreporter) Size() string {
+func (h historyReporter) Size() string {
 	s := units.HumanSizeWithPrecision(float64(h.ImageHistoryLayer.Size), 3)
 	i := strings.LastIndexFunc(s, unicode.IsNumber)
 	return s[:i+1] + " " + s[i+1:]
 }
 
-func (h historyreporter) CreatedBy() string {
+func (h historyReporter) CreatedBy() string {
 	if len(h.ImageHistoryLayer.CreatedBy) > 45 {
 		return h.ImageHistoryLayer.CreatedBy[:45-3] + "..."
 	}
 	return h.ImageHistoryLayer.CreatedBy
 }
 
-func (h historyreporter) ID() string {
+func (h historyReporter) ID() string {
 	if !opts.noTrunc && len(h.ImageHistoryLayer.ID) >= 12 {
 		return h.ImageHistoryLayer.ID[0:12]
 	}

@@ -6,6 +6,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -24,7 +25,7 @@ var (
 
 	mountCommand = &cobra.Command{
 		Use:   "mount [flags] [IMAGE...]",
-		Short: "Mount an images's root filesystem",
+		Short: "Mount an image's root filesystem",
 		Long:  mountDescription,
 		RunE:  mount,
 		Example: `podman image mount imgID
@@ -56,18 +57,18 @@ func init() {
 	mountFlags(mountCommand.Flags())
 }
 
-func mount(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+func mount(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 && mountOpts.All {
 		return errors.New("when using the --all switch, you may not pass any image names or IDs")
 	}
+
 	reports, err := registry.ImageEngine().Mount(registry.GetContext(), args, mountOpts)
 	if err != nil {
 		return err
 	}
+
 	if len(args) > 0 || mountOpts.All {
+		var errs utils.OutputErrors
 		for _, r := range reports {
 			if r.Err == nil {
 				fmt.Println(r.Path)
@@ -78,22 +79,22 @@ func mount(_ *cobra.Command, args []string) error {
 		return errs.PrintErrors()
 	}
 
-	switch mountOpts.Format {
-	case "json":
+	switch {
+	case parse.MatchesJSONFormat(mountOpts.Format):
 		return printJSON(reports)
-	case "":
-		// do nothing
+	case mountOpts.Format == "":
+		break // default format
 	default:
-		return errors.Errorf("unknown --format argument: %s", mountOpts.Format)
+		return errors.Errorf("unknown --format argument: %q", mountOpts.Format)
 	}
 
 	mrs := make([]mountReporter, 0, len(reports))
 	for _, r := range reports {
 		mrs = append(mrs, mountReporter{r})
 	}
-	row := "{{.ID}} {{.Path}}\n"
-	format := "{{range . }}" + row + "{{end}}"
-	tmpl, err := template.New("mounts").Parse(format)
+
+	row := "{{range . }}{{.ID}}\t{{.Path}}\n{{end}}"
+	tmpl, err := template.New("mounts").Parse(row)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -75,9 +76,6 @@ func init() {
 }
 
 func mount(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
 	if len(args) > 0 && mountOpts.Latest {
 		return errors.Errorf("--latest and containers cannot be used together")
 	}
@@ -85,7 +83,9 @@ func mount(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	if len(args) > 0 || mountOpts.Latest || mountOpts.All {
+		var errs utils.OutputErrors
 		for _, r := range reports {
 			if r.Err == nil {
 				fmt.Println(r.Path)
@@ -96,21 +96,21 @@ func mount(_ *cobra.Command, args []string) error {
 		return errs.PrintErrors()
 	}
 
-	switch mountOpts.Format {
-	case "json":
+	switch {
+	case parse.MatchesJSONFormat(mountOpts.Format):
 		return printJSON(reports)
-	case "":
-		// do nothing
+	case mountOpts.Format == "":
+		break // print defaults
 	default:
-		return errors.Errorf("unknown --format argument: %s", mountOpts.Format)
+		return errors.Errorf("unknown --format argument: %q", mountOpts.Format)
 	}
 
 	mrs := make([]mountReporter, 0, len(reports))
 	for _, r := range reports {
 		mrs = append(mrs, mountReporter{r})
 	}
-	row := "{{.ID}} {{.Path}}\n"
-	format := "{{range . }}" + row + "{{end}}"
+
+	format := "{{range . }}{{.ID}}\t{{.Path}}\n{{end}}"
 	tmpl, err := template.New("mounts").Parse(format)
 	if err != nil {
 		return err
@@ -139,6 +139,7 @@ func printJSON(reports []*entities.ContainerMountReport) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println(string(b))
 	return nil
 }
