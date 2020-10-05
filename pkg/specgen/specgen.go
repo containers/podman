@@ -19,6 +19,9 @@ type LogConfig struct {
 	// Only available if LogDriver is set to "json-file" or "k8s-file".
 	// Optional.
 	Path string `json:"path,omitempty"`
+	// Size is the maximimup size of the log file
+	// Optional.
+	Size int64 `json:"size,omitempty"`
 	// A set of options to accompany the log driver.
 	// Optional.
 	Options map[string]string `json:"options,omitempty"`

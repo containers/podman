@@ -1352,10 +1352,6 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	}
 
 	args = append(args, "-l", logDriverArg)
-	if r.logSizeMax >= 0 {
-		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
-	}
-
 	logLevel := logrus.GetLevel()
 	args = append(args, "--log-level", logLevel.String())
 
@@ -1363,6 +1359,15 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
 		args = append(args, "--syslog")
 	}
+
+	size := r.logSizeMax
+	if ctr.config.LogSize > 0 {
+		size = ctr.config.LogSize
+	}
+	if size > 0 {
+		args = append(args, "--log-size-max", fmt.Sprintf("%v", size))
+	}
+
 	if ociLogPath != "" {
 		args = append(args, "--runtime-arg", "--log-format=json", "--runtime-arg", "--log", fmt.Sprintf("--runtime-arg=%s", ociLogPath))
 	}

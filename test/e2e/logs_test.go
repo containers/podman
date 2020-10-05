@@ -321,4 +321,20 @@ var _ = Describe("Podman logs", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results).To(Exit(0))
 	})
+
+	It("using container with container log-size", func() {
+		logc := podmanTest.Podman([]string{"run", "--log-opt=max-size=10k", "-d", ALPINE, "sh", "-c", "echo podman podman podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(Exit(0))
+		cid := logc.OutputToString()
+
+		wait := podmanTest.Podman([]string{"wait", cid})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).To(Exit(0))
+
+		results := podmanTest.Podman([]string{"logs", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results).To(Exit(0))
+		Expect(results.OutputToString()).To(Equal("podman podman podman"))
+	})
 })
