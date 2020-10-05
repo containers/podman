@@ -87,6 +87,7 @@ ext_svc_check_task:
 automation_task:
     alias: 'automation'
     name: "Check Automation"
+    skip: &branch "$CIRRUS_PR == '' || $CIRRUS_TAG != ''" # Don't run for branches
     container: *smallcontainer
     env:
         TEST_FLAVOR: automation
@@ -231,6 +232,7 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
+    skip: *branch
     depends_on:
         - build
     gce_instance: *standardvm
@@ -419,6 +421,7 @@ local_integration_test_task: &local_integration_test_task
     # Integration-test task name convention:
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
+    skip: *branch
     alias: local_integration_test
     depends_on:
         - unit_test
@@ -456,6 +459,7 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
+    skip: *branch
     depends_on:
         - unit_test
     matrix: &fedora_vm_axis
@@ -484,6 +488,7 @@ container_integration_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
+    skip: *branch
     depends_on:
         - unit_test
     matrix: *fedora_vm_axis
