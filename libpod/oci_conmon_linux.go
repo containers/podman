@@ -1390,12 +1390,12 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 	)
 	plabel, err = selinux.CurrentLabel()
 	if err != nil {
-		return errors.Wrapf(err, "Failed to get current SELinux label")
+		return errors.Wrapf(err, "failed to get current SELinux label")
 	}
 
 	con, err = selinux.NewContext(plabel)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to get new context from SELinux label")
+		return errors.Wrapf(err, "failed to get new context from SELinux label")
 	}
 
 	runtime.LockOSThread()

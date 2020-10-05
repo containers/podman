@@ -21,7 +21,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if _, found := r.URL.Query()["noprune"]; found {
@@ -32,7 +32,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 		return
 	}
 

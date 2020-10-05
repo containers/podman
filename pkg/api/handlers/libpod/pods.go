@@ -27,7 +27,7 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 	)
 	var psg specgen.PodSpecGenerator
 	if err := json.NewDecoder(r.Body).Decode(&psg); err != nil {
-		utils.Error(w, "Failed to decode specgen", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
+		utils.Error(w, "failed to decode specgen", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
 		return
 	}
 	pod, err := generate.MakePod(&psg, runtime)
@@ -51,7 +51,7 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -98,7 +98,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	name := utils.GetName(r)
@@ -191,7 +191,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	name := utils.GetName(r)
@@ -320,7 +320,7 @@ func PodTop(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -365,7 +365,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if _, found := r.URL.Query()["signal"]; found {
@@ -443,7 +443,7 @@ func PodStats(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 

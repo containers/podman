@@ -29,7 +29,7 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -83,7 +83,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	query := struct{}{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	// decode params from body
@@ -196,7 +196,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -251,7 +251,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	// TODO: We have no ability to pass pruning filters to `PruneVolumes()` so

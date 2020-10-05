@@ -582,7 +582,7 @@ func (r *Runtime) Shutdown(force bool) error {
 	// attempt to shut it down
 	if r.store != nil {
 		if _, err := r.store.Shutdown(force); err != nil {
-			lastError = errors.Wrapf(err, "Error shutting down container storage")
+			lastError = errors.Wrapf(err, "error shutting down container storage")
 		}
 	}
 	if err := r.state.Close(); err != nil {

@@ -49,7 +49,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -96,7 +96,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
@@ -188,7 +188,7 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	name := utils.GetName(r)
@@ -256,7 +256,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	name := utils.GetName(r)

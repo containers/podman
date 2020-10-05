@@ -178,29 +178,29 @@ type ExecStartConfig struct {
 func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 	containers, err := l.Containers()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain Containers for image %s", l.ID())
+		return nil, errors.Wrapf(err, "failed to obtain Containers for image %s", l.ID())
 	}
 	containerCount := len(containers)
 
 	// FIXME: GetParent() panics
 	// parent, err := l.GetParent(context.TODO())
 	// if err != nil {
-	// 	return nil, errors.Wrapf(err, "Failed to obtain ParentID for image %s", l.ID())
+	// 	return nil, errors.Wrapf(err, "failed to obtain ParentID for image %s", l.ID())
 	// }
 
 	labels, err := l.Labels(context.TODO())
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain Labels for image %s", l.ID())
+		return nil, errors.Wrapf(err, "failed to obtain Labels for image %s", l.ID())
 	}
 
 	size, err := l.Size(context.TODO())
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain Size for image %s", l.ID())
+		return nil, errors.Wrapf(err, "failed to obtain Size for image %s", l.ID())
 	}
 
 	repoTags, err := l.RepoTags()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain RepoTags for image %s", l.ID())
+		return nil, errors.Wrapf(err, "failed to obtain RepoTags for image %s", l.ID())
 	}
 
 	digests := make([]string, len(l.Digests()))

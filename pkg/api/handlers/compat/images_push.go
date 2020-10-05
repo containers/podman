@@ -26,7 +26,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -45,13 +45,13 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 	newImage, err := runtime.ImageRuntime().NewFromLocal(imageName)
 	if err != nil {
-		utils.ImageNotFound(w, imageName, errors.Wrapf(err, "Failed to find image %s", imageName))
+		utils.ImageNotFound(w, imageName, errors.Wrapf(err, "failed to find image %s", imageName))
 		return
 	}
 
 	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", key, r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -76,7 +76,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		nil, // additional tags
 	)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Error pushing image %q", imageName))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", imageName))
 		return
 	}
 

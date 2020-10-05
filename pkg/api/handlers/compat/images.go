@@ -47,7 +47,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 		return
 	}
 	tmpfile, err := ioutil.TempFile("", "api.tar")
@@ -88,7 +88,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -138,7 +138,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	rtc, err := runtime.GetConfig()
@@ -205,7 +205,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	// fromSrc – Source to import. The value may be a URL from which the image can be retrieved or - to read the image from the request body. This parameter may only be used when importing an image.
@@ -264,7 +264,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -272,7 +272,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 
 	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "Failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %q header for %s", key, r.URL.String()))
+		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -327,12 +327,12 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	newImage, err := utils.GetImage(r, name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
 		return
 	}
 	inspect, err := handlers.ImageDataToImageInspect(r.Context(), newImage)
 	if err != nil {
-		utils.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "Failed to convert ImageData to ImageInspect '%s'", inspect.ID))
+		utils.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "failed to convert ImageData to ImageInspect '%s'", inspect.ID))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, inspect)
@@ -370,7 +370,7 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 

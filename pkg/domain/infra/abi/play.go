@@ -100,7 +100,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
 		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error encountered while bringing up pod %s", podName)
+			return nil, errors.Wrapf(err, "error encountered while bringing up pod %s", podName)
 		}
 		report.Pods = append(report.Pods, podReport.Pods...)
 	}
@@ -248,18 +248,18 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			case v1.HostPathDirectoryOrCreate:
 				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 					if err := os.Mkdir(hostPath.Path, kubeDirectoryPermission); err != nil {
-						return nil, errors.Errorf("Error creating HostPath %s", volume.Name)
+						return nil, errors.Errorf("error creating HostPath %s", volume.Name)
 					}
 				}
 				// Label a newly created volume
 				if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
-					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
+					return nil, errors.Wrapf(err, "error giving %s a label", hostPath.Path)
 				}
 			case v1.HostPathFileOrCreate:
 				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 					f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, kubeFilePermission)
 					if err != nil {
-						return nil, errors.Errorf("Error creating HostPath %s", volume.Name)
+						return nil, errors.Errorf("error creating HostPath %s", volume.Name)
 					}
 					if err := f.Close(); err != nil {
 						logrus.Warnf("Error in closing newly created HostPath file: %v", err)
@@ -267,15 +267,15 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 				}
 				// unconditionally label a newly created volume
 				if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
-					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
+					return nil, errors.Wrapf(err, "error giving %s a label", hostPath.Path)
 				}
 			case v1.HostPathSocket:
 				st, err := os.Stat(hostPath.Path)
 				if err != nil {
-					return nil, errors.Wrap(err, "Error checking HostPathSocket")
+					return nil, errors.Wrap(err, "error checking HostPathSocket")
 				}
 				if st.Mode()&os.ModeSocket != os.ModeSocket {
-					return nil, errors.Errorf("Error checking HostPathSocket: path %s is not a socket", hostPath.Path)
+					return nil, errors.Errorf("error checking HostPathSocket: path %s is not a socket", hostPath.Path)
 				}
 
 			case v1.HostPathDirectory:
@@ -289,7 +289,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 
 		if err := parse.ValidateVolumeHostDir(hostPath.Path); err != nil {
-			return nil, errors.Wrapf(err, "Error in parsing HostPath in YAML")
+			return nil, errors.Wrapf(err, "error in parsing HostPath in YAML")
 		}
 		volumes[volume.Name] = hostPath.Path
 	}

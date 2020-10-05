@@ -132,7 +132,7 @@ func history(cmd *cobra.Command, args []string) error {
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	err = tmpl.Execute(w, hr)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "Failed to print report"))
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "failed to print report"))
 	}
 	w.Flush()
 	return nil
