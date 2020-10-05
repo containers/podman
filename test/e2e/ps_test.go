@@ -173,6 +173,18 @@ var _ = Describe("Podman ps", func() {
 		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
 	})
 
+	It("podman ps namespace flag even for remote", func() {
+		session := podmanTest.RunTopContainer("test1")
+		session.WaitWithDefaultTimeout()
+
+		result := podmanTest.Podman([]string{"ps", "-a", "--namespace", "--format",
+			"{{with .Namespaces}}{{.Cgroup}}:{{.IPC}}:{{.MNT}}:{{.NET}}:{{.PIDNS}}:{{.User}}:{{.UTS}}{{end}}"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		// it must contains `::` when some ns is null. If it works normally, it should be "$num1:$num2:$num3"
+		Expect(result.OutputToString()).To(Not(ContainSubstring(`::`)))
+	})
+
 	It("podman ps with no containers is valid json format", func() {
 		result := podmanTest.Podman([]string{"ps", "--format", "json"})
 		result.WaitWithDefaultTimeout()

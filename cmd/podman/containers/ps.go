@@ -240,7 +240,7 @@ func ps(cmd *cobra.Command, args []string) error {
 func createPsOut() (string, string) {
 	var row string
 	if listOpts.Namespace {
-		headers := "CONTAINER ID\tNAMES\tPID\tCGROUPNS\tIPC\tMNT\tNET\tPIDN\tUSERNS\tUTS\n"
+		headers := "CONTAINER ID\tNAMES\tPID\tCGROUPNS\tIPC\tMNT\tNET\tPIDNS\tUSERNS\tUTS\n"
 		row := "{{.ID}}\t{{.Names}}\t{{.Pid}}\t{{.Namespaces.Cgroup}}\t{{.Namespaces.IPC}}\t{{.Namespaces.MNT}}\t{{.Namespaces.NET}}\t{{.Namespaces.PIDNS}}\t{{.Namespaces.User}}\t{{.Namespaces.UTS}}\n"
 		return headers, row
 	}

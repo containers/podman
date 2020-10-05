@@ -134,15 +134,16 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 			logrus.Errorf("error getting exited time for %q: %v", c.ID(), err)
 		}
 
+		pid, err = c.PID()
+		if err != nil {
+			return errors.Wrapf(err, "unable to obtain container pid")
+		}
+
 		if !opts.Size && !opts.Namespace {
 			return nil
 		}
 
 		if opts.Namespace {
-			pid, err = c.PID()
-			if err != nil {
-				return errors.Wrapf(err, "unable to obtain container pid")
-			}
 			ctrPID := strconv.Itoa(pid)
 			cgroup, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "cgroup"))
 			ipc, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "ipc"))
