@@ -60,11 +60,12 @@ func CheckRootlessUIDRange(uid int) error {
 	if err != nil {
 		return err
 	}
+	total := 0
 	for _, u := range uids {
-		// add 1 since we also map in the user's own UID
-		if uid > u.Size+1 {
-			return errors.Errorf("requested user's UID %d is too large for the rootless user namespace", uid)
-		}
+		total += u.Size
+	}
+	if uid > total {
+		return errors.Errorf("requested user's UID %d is too large for the rootless user namespace", uid)
 	}
 	return nil
 }
