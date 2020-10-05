@@ -331,7 +331,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
 		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
 			if !os.IsExist(err) {
-				return nil, errors.Wrapf(err, "unable to create shm %q dir", ctr.config.ShmDir)
+				return nil, errors.Wrap(err, "unable to create shm dir")
 			}
 		}
 		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)

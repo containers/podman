@@ -453,7 +453,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open %s", path)
+		return nil, err
 	}
 	defer file.Close()
 

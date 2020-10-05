@@ -662,12 +662,12 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 	nsPath := fmt.Sprintf("/var/run/netns/cni-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 
 	if err := os.MkdirAll(filepath.Dir(nsPath), 0711); err != nil {
-		return errors.Wrapf(err, "cannot create %s", filepath.Dir(nsPath))
+		return err
 	}
 
 	mountPointFd, err := os.Create(nsPath)
 	if err != nil {
-		return errors.Wrapf(err, "cannot open %s", nsPath)
+		return err
 	}
 	if err := mountPointFd.Close(); err != nil {
 		return err

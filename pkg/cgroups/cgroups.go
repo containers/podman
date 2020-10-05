@@ -131,7 +131,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 
 	infos, err := ioutil.ReadDir(cgroupRoot)
 	if err != nil {
-		return nil, errors.Wrapf(err, "read directory %s", cgroupRoot)
+		return nil, err
 	}
 	controllers := []controller{}
 	for _, i := range infos {
@@ -157,7 +157,7 @@ func (c *CgroupControl) getCgroupv1Path(name string) string {
 func createCgroupv2Path(path string) (deferredError error) {
 	content, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
 	if err != nil {
-		return errors.Wrapf(err, "read /sys/fs/cgroup/cgroup.controllers")
+		return err
 	}
 	if !strings.HasPrefix(path, "/sys/fs/cgroup/") {
 		return fmt.Errorf("invalid cgroup path %s", path)
@@ -180,7 +180,7 @@ func createCgroupv2Path(path string) (deferredError error) {
 		if i > 0 {
 			if err := os.Mkdir(current, 0755); err != nil {
 				if !os.IsExist(err) {
-					return errors.Wrapf(err, "mkdir %s", path)
+					return err
 				}
 			} else {
 				// If the directory was created, be sure it is not left around on errors.
@@ -237,7 +237,7 @@ func (c *CgroupControl) initialize() (err error) {
 			}
 			path := c.getCgroupv1Path(ctr.name)
 			if err := os.MkdirAll(path, 0755); err != nil {
-				return errors.Wrapf(err, "error creating cgroup path %s for %s", path, ctr.name)
+				return errors.Wrapf(err, "error creating cgroup path for %s", ctr.name)
 			}
 		}
 	}
@@ -265,7 +265,7 @@ func (c *CgroupControl) createCgroupDirectory(controller string) (bool, error) {
 func readFileAsUint64(path string) (uint64, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return 0, errors.Wrapf(err, "open %s", path)
+		return 0, err
 	}
 	v := cleanString(string(data))
 	if v == "max" {
@@ -425,7 +425,7 @@ func rmDirRecursively(path string) error {
 	}
 	entries, err := ioutil.ReadDir(path)
 	if err != nil {
-		return errors.Wrapf(err, "read %s", path)
+		return err
 	}
 	for _, i := range entries {
 		if i.IsDir() {

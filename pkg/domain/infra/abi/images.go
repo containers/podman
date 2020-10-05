@@ -770,7 +770,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 		if err := os.MkdirAll(signatureDir, 0751); err != nil {
 			// The directory is allowed to exist
 			if !os.IsExist(err) {
-				logrus.Errorf("error creating directory %s: %s", signatureDir, err)
+				logrus.Error(err)
 				continue
 			}
 		}

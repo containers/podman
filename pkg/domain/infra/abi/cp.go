@@ -115,7 +115,7 @@ func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string,
 				return nil, err
 			}
 			if err = idtools.MkdirAllAndChownNew(ctrWorkDir, 0755, hostOwner); err != nil {
-				return nil, errors.Wrapf(err, "error creating directory %q", destPath)
+				return nil, err
 			}
 			cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), destPath))
 			if err != nil {
@@ -249,7 +249,7 @@ func containerCopy(srcPath, destPath, src, dest string, idMappingOpts storage.ID
 	}
 	destDirIsExist := err == nil
 	if err = os.MkdirAll(destdir, 0755); err != nil {
-		return errors.Wrapf(err, "error creating directory %q", destdir)
+		return err
 	}
 
 	// return functions for copying items
@@ -351,7 +351,7 @@ func streamFileToStdout(srcPath string, srcfi os.FileInfo) error {
 
 	file, err := os.Open(srcPath)
 	if err != nil {
-		return errors.Wrapf(err, "error opening file %s", srcPath)
+		return err
 	}
 	defer file.Close()
 	if !archive.IsArchivePath(srcPath) {

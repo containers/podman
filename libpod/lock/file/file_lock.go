@@ -26,7 +26,7 @@ func CreateFileLock(path string) (*FileLocks, error) {
 		return nil, errors.Wrapf(syscall.EEXIST, "directory %s exists", path)
 	}
 	if err := os.MkdirAll(path, 0711); err != nil {
-		return nil, errors.Wrapf(err, "cannot create %s", path)
+		return nil, err
 	}
 
 	locks := new(FileLocks)
@@ -40,7 +40,7 @@ func CreateFileLock(path string) (*FileLocks, error) {
 func OpenFileLock(path string) (*FileLocks, error) {
 	_, err := os.Stat(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "accessing directory %s", path)
+		return nil, err
 	}
 
 	locks := new(FileLocks)
@@ -84,7 +84,7 @@ func (locks *FileLocks) AllocateLock() (uint32, error) {
 			if os.IsExist(err) {
 				continue
 			}
-			return 0, errors.Wrapf(err, "creating lock file")
+			return 0, errors.Wrap(err, "creating lock file")
 		}
 		f.Close()
 		break

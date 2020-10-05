@@ -56,7 +56,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 func getCgroupProcess(procFile string) (string, error) {
 	f, err := os.Open(procFile)
 	if err != nil {
-		return "", errors.Wrapf(err, "open file %q", procFile)
+		return "", err
 	}
 	defer f.Close()
 
@@ -104,7 +104,7 @@ func MoveUnderCgroupSubtree(subtree string) error {
 	procFile := "/proc/self/cgroup"
 	f, err := os.Open(procFile)
 	if err != nil {
-		return errors.Wrapf(err, "open file %q", procFile)
+		return err
 	}
 	defer f.Close()
 

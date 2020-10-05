@@ -210,7 +210,7 @@ func build(cmd *cobra.Command, args []string) error {
 	if cmd.Flag("logfile").Changed {
 		logfile, err := os.OpenFile(buildOpts.Logfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 		if err != nil {
-			return errors.Errorf("error opening logfile %q: %v", buildOpts.Logfile, err)
+			return err
 		}
 		defer logfile.Close()
 	}

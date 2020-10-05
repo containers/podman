@@ -46,7 +46,7 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 
 	f, err := os.Open("/proc/self/cgroup")
 	if err != nil {
-		return false, errors.Wrapf(err, "open file /proc/self/cgroup")
+		return false, err
 	}
 	defer f.Close()
 
