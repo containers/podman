@@ -303,11 +303,23 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 	// This should not be applicable
 	//container.EnvFromSource =
 	kubeContainer.Env = envVariables
-	// TODO enable resources when we can support naming conventions
-	//container.Resources
 	kubeContainer.SecurityContext = kubeSec
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.config.Spec.Process.Terminal
+
+	// TODO add CPU limit support.
+	if c.config.Spec.Linux != nil &&
+		c.config.Spec.Linux.Resources != nil &&
+		c.config.Spec.Linux.Resources.Memory != nil &&
+		c.config.Spec.Linux.Resources.Memory.Limit != nil {
+		if kubeContainer.Resources.Limits == nil {
+			kubeContainer.Resources.Limits = v1.ResourceList{}
+		}
+
+		qty := kubeContainer.Resources.Limits.Memory()
+		qty.Set(*c.config.Spec.Linux.Resources.Memory.Limit)
+		kubeContainer.Resources.Limits[v1.ResourceMemory] = *qty
+	}
 
 	return kubeContainer, kubeVolumes, nil
 }
