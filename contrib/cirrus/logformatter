@@ -517,25 +517,20 @@ END_SYNOPSIS
     }
 
     # eg "test fedora", "special_testing_rootless"
+    # WARNING: As of 2020-10-05, $CIRRUS_TASK_NAME reflects the same
+    # descriptive content as our $subtest_name argument (confirm via
+    # cross-checking runner.sh:logformatter() vs cirrus.yml:&std_name_fmt).
+    # If this ever becomes untrue, just add _tr("Subtest", $subtest_name).
     my $test_name = _env_replace("{CIRRUS_TASK_NAME}");
-    if (my $rcli = $ENV{RCLI}) {
-        $test_name .= " [remote]" if $rcli eq 'true';
-    }
-    else {
-        $test_name .= " [no RCLI; cannot determine remote/local]";
-    }
+    # (Special-case cleanup: Cirrus\ quotes\ spaces; remove for readability).
+    $test_name =~ s/\\\s+/ /g;
     $s .= _tr("Test name", $test_name);
-
-    # Subtest, e.g. system_test
-    $s .= _tr("Subtest", $subtest_name);
 
     # Link to further Cirrus results, e.g. other runs.
     # Build is mostly boring, it's usually TASK that we want to see.
-    $s .= _tr("Cirrus Build ID", "<small>" . _a("{CIRRUS_BUILD_ID}", "https://cirrus-ci.com/build/{CIRRUS_BUILD_ID}") . "</small>");
-    $s .= _tr("Cirrus <b>Task</b> ID", _a("{CIRRUS_TASK_ID}", "https://cirrus-ci.com/task/{CIRRUS_TASK_ID}"));
-
-    # "none", "rootless"
-    $s .= _tr("Special mode", _env_replace("{SPECIALMODE}"));
+    $s .= _tr("Cirrus", sprintf("<small>Build %s</small> / <b>Task %s</b>",
+                                _a("{CIRRUS_BUILD_ID}", "https://cirrus-ci.com/build/{CIRRUS_BUILD_ID}"),
+                                _a("{CIRRUS_TASK_ID}", "https://cirrus-ci.com/task/{CIRRUS_TASK_ID}")));
 
     $s .= "</table>\n";
     return $s;

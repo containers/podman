@@ -102,7 +102,7 @@ altbuild() {
     esac
 }
 
-integration_outputfilter() {
+logformatter() {
     # Use similar format as human-friendly task name from .cirrus.yml
     # shellcheck disable=SC2154
     output_name="$TEST_FLAVOR-$PODBIN_NAME-$DISTRO_NV-$PRIV_NAME-$TEST_ENVIRON"
@@ -134,10 +134,11 @@ dotest() {
         # does not return
     fi
 
-    output_filter="cat"  # no filter
-    if [[ "$testsuite" == "integration" ]]; then
-        output_filter=integration_outputfilter
-    fi
+    # 'logformatter' script makes test logs readable; only works for some tests
+    case "$testsuite" in
+        integration|system)  output_filter=logformatter ;;
+        *)                   output_filter="cat"        ;;
+    esac
 
     # containers/automation sets this to 0 for it's dbg() function
     # but the e2e integration tests are also sensitive to it.
@@ -210,7 +211,8 @@ case "$TEST_FLAVOR" in
     bindings)
         # shellcheck disable=SC2155
         export PATH=$PATH:$GOSRC/hack
-        cd pkg/bindings/test && ginkgo -trace -noColor -debug  -r
+        # Subshell needed for .cirrus.yml to find logformatter output in cwd
+        (cd pkg/bindings/test && ginkgo -trace -noColor -debug  -r) |& logformatter
         ;;
     endpoint)
         make test-binaries
