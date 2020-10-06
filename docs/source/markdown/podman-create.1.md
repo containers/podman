@@ -438,16 +438,22 @@ Not implemented
 
 Logging driver for the container.  Currently available options are *k8s-file*, *journald*, and *none*, with *json-file* aliased to *k8s-file* for scripting compatibility.
 
-**--log-opt**=*path*
+**--log-opt**=*name*=*value*
 
-Logging driver specific options.  Used to set the path to the container log file.  For example:
+Set custom logging configuration. The following *name*s are supported:
 
-`--log-opt path=/var/log/container/mycontainer.json`
+- **path**: specify a path to the log file
+(e.g. **--log-opt path=/var/log/container/mycontainer.json**);
 
-**--log-opt**=*tag*
+- **max-size**: specify a max size of the log file
+(e.g. **--log-opt max-size=10mb**);
 
-Set custom logging configuration.  Presently supports the `tag` option
-which specified a custom log tag for the container.  For example:
+- **tag**: specify a custom log tag for the container
+(e.g. **--log-opt tag="{{.ImageName}}"**.
+
+It supports the same keys as **podman inspect --format**.
+
+This option is currently supported only by the **journald** log driver.
 
 `--log-opt tag="{{.ImageName}}"`
 

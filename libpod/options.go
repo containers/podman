@@ -328,20 +328,6 @@ func WithNoStore() RuntimeOption {
 	}
 }
 
-// WithMaxLogSize sets the maximum size of container logs.
-// Positive sizes are limits in bytes, -1 is unlimited.
-func WithMaxLogSize(limit int64) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return define.ErrRuntimeFinalized
-		}
-
-		rt.config.Containers.LogSizeMax = limit
-
-		return nil
-	}
-}
-
 // WithNoPivotRoot sets the runtime to use MS_MOVE instead of PIVOT_ROOT when
 // starting containers.
 func WithNoPivotRoot() RuntimeOption {
@@ -542,6 +528,20 @@ func WithRuntimeFlags(runtimeFlags []string) RuntimeOption {
 }
 
 // Container Creation Options
+
+// WithMaxLogSize sets the maximum size of container logs.
+// Positive sizes are limits in bytes, -1 is unlimited.
+func WithMaxLogSize(limit int64) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		ctr.config.LogSize = limit
+
+		return nil
+	}
+}
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.
 func WithShmDir(dir string) CtrCreateOption {

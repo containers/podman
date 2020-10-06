@@ -287,6 +287,8 @@ type ContainerMiscConfig struct {
 	LogPath string `json:"logPath"`
 	// LogTag is the tag used for logging
 	LogTag string `json:"logTag"`
+	// LogSize is the tag used for logging
+	LogSize int64 `json:"logSize"`
 	// LogDriver driver for logs
 	LogDriver string `json:"logDriver"`
 	// File containing the conmon PID
