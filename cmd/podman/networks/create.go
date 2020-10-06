@@ -7,7 +7,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/network"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -56,9 +55,6 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 	var (
 		name string
 	)
-	if err := network.IsSupportedDriver(networkCreateOptions.Driver); err != nil {
-		return err
-	}
 	if len(args) > 0 {
 		if !define.NameRegex.MatchString(args[0]) {
 			return define.RegexError
