@@ -1,6 +1,7 @@
 package network
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -81,6 +82,7 @@ func networkList(cmd *cobra.Command, args []string) error {
 	}
 
 	row := networkListOptions.Format
+	funcmap := template.FuncMap{}
 	if len(row) < 1 {
 		row = defaultListRow
 	}
@@ -88,11 +90,21 @@ func networkList(cmd *cobra.Command, args []string) error {
 		row += "\n"
 	}
 
+	// HACK For now, libcni does handle network ID.
+	// This snippet replaces ID format by calling sha256 sum on network name and
+	// returning only 12 first characters (like docker does).
+	if strings.Index(row, ".ID") > -1 {
+		row = strings.ReplaceAll(row, ".ID", "hash .Name")
+		funcmap["hash"] = func(name string) string {
+			return fmt.Sprintf("%x", sha256.Sum256([]byte(name)))[:12]
+		}
+	}
+
 	format := "{{range . }}" + row + "{{end}}"
 	if !cmd.Flag("format").Changed {
 		format = headers + format
 	}
-	tmpl, err := template.New("listNetworks").Parse(format)
+	tmpl, err := template.New("listNetworks").Funcs(funcmap).Parse(format)
 	if err != nil {
 		return err
 	}
