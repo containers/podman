@@ -6,18 +6,20 @@
 # BEGIN Global export of all variables
 set -a
 
-# Due to differences across platforms and runtime execution environments,
-# handling of the (otherwise) default shell setup is non-uniform.  Rather
-# than attempt to workaround differences, simply force-load/set required
-# items every time this library is utilized.
-source /etc/profile
-source /etc/environment
-USER="$(whoami)"
-HOME="$(getent passwd $USER | cut -d : -f 6)"
-# Some platforms set and make this read-only
-[[ -n "$UID" ]] || \
-    UID=$(getent passwd $USER | cut -d : -f 3)
-GID=$(getent passwd $USER | cut -d : -f 4)
+if [[ "$CI" == "true" ]]; then
+    # Due to differences across platforms and runtime execution environments,
+    # handling of the (otherwise) default shell setup is non-uniform.  Rather
+    # than attempt to workaround differences, simply force-load/set required
+    # items every time this library is utilized.
+    source /etc/profile
+    source /etc/environment
+    USER="$(whoami)"
+    HOME="$(getent passwd $USER | cut -d : -f 6)"
+    # Some platforms set and make this read-only
+    [[ -n "$UID" ]] || \
+        UID=$(getent passwd $USER | cut -d : -f 3)
+    GID=$(getent passwd $USER | cut -d : -f 4)
+fi
 
 # During VM Image build, the 'containers/automation' installation
 # was performed.  The final step of that installation sets the
