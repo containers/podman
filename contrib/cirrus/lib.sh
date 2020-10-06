@@ -45,6 +45,9 @@ OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
 # Combined to ease soe usage
 OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
+# This is normally set from .cirrus.yml but default is necessary when
+# running under hack/get_ci_vm.sh since it cannot infer the value.
+DISTRO_NV="${DISTRO_NV:-$OS_REL_VER}"
 
 # Essential default paths, many are overridden when executing under Cirrus-CI
 GOPATH="${GOPATH:-/var/tmp/go}"
