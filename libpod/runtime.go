@@ -251,8 +251,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(runtime.config.Engine.StaticDir, 0700); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating runtime static files directory %s",
-				runtime.config.Engine.StaticDir)
+			return errors.Wrap(err, "error creating runtime static files directory")
 		}
 	}
 
@@ -348,7 +347,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0751); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating tmpdir %s", runtime.config.Engine.TmpDir)
+			return errors.Wrap(err, "error creating tmpdir")
 		}
 	}
 
@@ -356,7 +355,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(filepath.Dir(runtime.config.Engine.EventsLogFilePath), 0700); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating events dirs %s", filepath.Dir(runtime.config.Engine.EventsLogFilePath))
+			return errors.Wrap(err, "error creating events dirs")
 		}
 	}
 
@@ -416,8 +415,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0755); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating runtime temporary files directory %s",
-				runtime.config.Engine.TmpDir)
+			return errors.Wrapf(err, "error creating runtime temporary files directory")
 		}
 	}
 
@@ -584,7 +582,7 @@ func (r *Runtime) Shutdown(force bool) error {
 	// attempt to shut it down
 	if r.store != nil {
 		if _, err := r.store.Shutdown(force); err != nil {
-			lastError = errors.Wrapf(err, "Error shutting down container storage")
+			lastError = errors.Wrapf(err, "error shutting down container storage")
 		}
 	}
 	if err := r.state.Close(); err != nil {
@@ -649,7 +647,7 @@ func (r *Runtime) refresh(alivePath string) error {
 	// Create a file indicating the runtime is alive and ready
 	file, err := os.OpenFile(alivePath, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
-		return errors.Wrapf(err, "error creating runtime status file %s", alivePath)
+		return errors.Wrap(err, "error creating runtime status file")
 	}
 	defer file.Close()
 

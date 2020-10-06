@@ -117,7 +117,7 @@ func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
 		var config RegistryConfiguration
 		err = yaml.Unmarshal(configBytes, &config)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error parsing %s", configPath)
+			return nil, errors.Wrapf(err, "error parsing %s", configPath)
 		}
 		if config.DefaultDocker != nil {
 			if mergedConfig.DefaultDocker != nil {
@@ -226,10 +226,10 @@ func GetPolicy(policyPath string) (PolicyContent, error) {
 	var policyContentStruct PolicyContent
 	policyContent, err := ioutil.ReadFile(policyPath)
 	if err != nil {
-		return policyContentStruct, errors.Wrapf(err, "unable to read policy file %s", policyPath)
+		return policyContentStruct, errors.Wrap(err, "unable to read policy file")
 	}
 	if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
-		return policyContentStruct, errors.Wrapf(err, "could not parse trust policies")
+		return policyContentStruct, errors.Wrapf(err, "could not parse trust policies from %s", policyPath)
 	}
 	return policyContentStruct, nil
 }

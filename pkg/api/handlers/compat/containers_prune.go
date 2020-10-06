@@ -25,7 +25,7 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 		Filters map[string][]string `schema:"filters"`
 	}{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	for k, v := range query.Filters {

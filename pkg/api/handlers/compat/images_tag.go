@@ -16,7 +16,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 		return
 	}
 	tag := "latest"

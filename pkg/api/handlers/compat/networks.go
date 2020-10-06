@@ -35,7 +35,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	//}
 	//decoder := r.Context().Value("decoder").(*schema.Decoder)
 	//if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-	//	utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+	//	utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 	//	return
 	//}
 	config, err := runtime.GetConfig()
@@ -170,7 +170,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	config, err := runtime.GetConfig()

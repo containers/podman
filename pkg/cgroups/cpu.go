@@ -134,7 +134,7 @@ func GetSystemCPUUsage() (uint64, error) {
 
 	files, err := ioutil.ReadDir(cgroupRoot)
 	if err != nil {
-		return 0, errors.Wrapf(err, "read directory %q", cgroupRoot)
+		return 0, err
 	}
 	var total uint64
 	for _, file := range files {

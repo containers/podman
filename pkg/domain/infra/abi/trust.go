@@ -24,7 +24,7 @@ func (ir *ImageEngine) ShowTrust(ctx context.Context, args []string, options ent
 	}
 	report.Raw, err = ioutil.ReadFile(policyPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read %s", policyPath)
+		return nil, err
 	}
 	if options.Raw {
 		return &report, nil
@@ -67,7 +67,7 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 	if !os.IsNotExist(err) {
 		policyContent, err := ioutil.ReadFile(policyPath)
 		if err != nil {
-			return errors.Wrapf(err, "unable to read %s", policyPath)
+			return err
 		}
 		if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
 			return errors.Errorf("could not read trust policies")

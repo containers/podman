@@ -157,15 +157,13 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating OCI runtime exit files directory %s",
-				runtime.exitsDir)
+			return nil, errors.Wrapf(err, "error creating OCI runtime exit files directory")
 		}
 	}
 	if err := os.MkdirAll(runtime.socketsDir, 0750); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating OCI runtime attach sockets directory %s",
-				runtime.socketsDir)
+			return nil, errors.Wrap(err, "error creating OCI runtime attach sockets directory")
 		}
 	}
 
@@ -1397,12 +1395,12 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 	)
 	plabel, err = selinux.CurrentLabel()
 	if err != nil {
-		return errors.Wrapf(err, "Failed to get current SELinux label")
+		return errors.Wrapf(err, "failed to get current SELinux label")
 	}
 
 	con, err = selinux.NewContext(plabel)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to get new context from SELinux label")
+		return errors.Wrapf(err, "failed to get new context from SELinux label")
 	}
 
 	runtime.LockOSThread()

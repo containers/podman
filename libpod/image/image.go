@@ -867,7 +867,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	// Copy the image to the remote destination
 	manifestBytes, err := cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {
-		return errors.Wrapf(err, "Error copying image to the remote destination")
+		return errors.Wrapf(err, "error copying image to the remote destination")
 	}
 	digest, err := manifest.Digest(manifestBytes)
 	if err != nil {

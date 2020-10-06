@@ -47,7 +47,7 @@ func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *imag
 		logrus.Debugf("Loading seccomp profile from %q", s.SeccompProfilePath)
 		seccompProfile, err := ioutil.ReadFile(s.SeccompProfilePath)
 		if err != nil {
-			return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", s.SeccompProfilePath)
+			return nil, errors.Wrap(err, "opening seccomp profile failed")
 		}
 		seccompConfig, err = goSeccomp.LoadProfile(string(seccompProfile), configSpec)
 		if err != nil {

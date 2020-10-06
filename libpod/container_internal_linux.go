@@ -835,13 +835,13 @@ func (c *Container) checkpointRestoreLabelLog(fileName string) error {
 
 	logFile, err := os.OpenFile(dumpLog, os.O_CREATE, 0600)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create CRIU log file %q", dumpLog)
+		return errors.Wrap(err, "failed to create CRIU log file")
 	}
 	if err := logFile.Close(); err != nil {
-		logrus.Errorf("unable to close log file: %q", err)
+		logrus.Error(err)
 	}
 	if err = label.SetFileLabel(dumpLog, c.MountLabel()); err != nil {
-		return errors.Wrapf(err, "failed to label CRIU log file %q", dumpLog)
+		return err
 	}
 	return nil
 }
@@ -919,7 +919,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 func (c *Container) importCheckpoint(input string) error {
 	archiveFile, err := os.Open(input)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to open checkpoint archive %s for import", input)
+		return errors.Wrap(err, "failed to open checkpoint archive for import")
 	}
 
 	defer archiveFile.Close()
@@ -1116,35 +1116,29 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			// Only do this if a rootfs-diff.tar actually exists
 			rootfsDiffFile, err := os.Open(rootfsDiffPath)
 			if err != nil {
-				return errors.Wrapf(err, "Failed to open root file-system diff file %s", rootfsDiffPath)
+				return errors.Wrap(err, "failed to open root file-system diff file")
 			}
 			defer rootfsDiffFile.Close()
 			if err := c.runtime.ApplyDiffTarStream(c.ID(), rootfsDiffFile); err != nil {
-				return errors.Wrapf(err, "Failed to apply root file-system diff file %s", rootfsDiffPath)
+				return errors.Wrapf(err, "failed to apply root file-system diff file %s", rootfsDiffPath)
 			}
 		}
 		deletedFilesPath := filepath.Join(c.bundlePath(), "deleted.files")
 		if _, err := os.Stat(deletedFilesPath); err == nil {
-			deletedFilesFile, err := os.Open(deletedFilesPath)
-			if err != nil {
-				return errors.Wrapf(err, "Failed to open deleted files file %s", deletedFilesPath)
-			}
-			defer deletedFilesFile.Close()
-
 			var deletedFiles []string
-			deletedFilesJSON, err := ioutil.ReadAll(deletedFilesFile)
+			deletedFilesJSON, err := ioutil.ReadFile(deletedFilesPath)
 			if err != nil {
-				return errors.Wrapf(err, "Failed to read deleted files file %s", deletedFilesPath)
+				return errors.Wrapf(err, "failed to read deleted files file")
 			}
 			if err := json.Unmarshal(deletedFilesJSON, &deletedFiles); err != nil {
-				return errors.Wrapf(err, "Failed to read deleted files file %s", deletedFilesPath)
+				return errors.Wrapf(err, "failed to read deleted files file %s", deletedFilesPath)
 			}
 			for _, deleteFile := range deletedFiles {
 				// Using RemoveAll as deletedFiles, which is generated from 'podman diff'
 				// lists completely deleted directories as a single entry: 'D /root'.
 				err = os.RemoveAll(filepath.Join(c.state.Mountpoint, deleteFile))
 				if err != nil {
-					return errors.Wrapf(err, "Failed to delete file %s from container %s during restore", deletedFilesPath, c.ID())
+					return errors.Wrapf(err, "failed to delete file %s from container %s during restore", deletedFilesPath, c.ID())
 				}
 			}
 		}

@@ -496,7 +496,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
 	if err := os.MkdirAll(artifacts, 0755); err != nil {
-		return errors.Wrapf(err, "error creating artifacts directory %q", artifacts)
+		return errors.Wrap(err, "error creating artifacts directory")
 	}
 
 	return nil
@@ -1820,7 +1820,7 @@ func (c *Container) appendStringToRundir(destFile, output string) (string, error
 
 	f, err := os.OpenFile(destFileName, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to open %s", destFileName)
+		return "", err
 	}
 	defer f.Close()
 
