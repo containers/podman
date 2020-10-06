@@ -2,12 +2,91 @@
 
 set -eo pipefail
 
-# This script is intended to be called by automation or humans,
-# from a specially configured environment.  Depending on the contents
-# of various variable, entirely different operations will be performed.
+# This script runs in the Cirrus CI environment, invoked from .cirrus.yml .
+# It can also be invoked manually in a `hack/get_ci_cm.sh` environment,
+# documentation of said usage is TBI.
+#
+# The principal deciding factor is the $TEST_FLAVOR envariable: for any
+# given value 'xyz' there must be a function '_run_xyz' to handle that
+# test. Several other envariables are used to differentiate further,
+# most notably:
+#
+#    PODBIN_NAME  : "podman" (i.e. local) or "remote"
+#    TEST_ENVIRON : 'host' or 'container'; desired environment in which to run
+#    CONTAINER    : 1 if *currently* running inside a container, 0 if host
+#
 
 # shellcheck source=contrib/cirrus/lib.sh
 source $(dirname $0)/lib.sh
+
+function _run_ext_svc() {
+    $SCRIPT_BASE/ext_svc_check.sh
+}
+
+function _run_smoke() {
+    make gofmt
+
+    # There is little value to validating commits after tag-push
+    # and it's very difficult to automatically determine a starting commit.
+    # $CIRRUS_TAG is only non-empty when executing due to a tag-push
+    # shellcheck disable=SC2154
+    if [[ -z "$CIRRUS_TAG" ]]; then
+        make .gitvalidation
+    fi
+}
+
+function _run_automation() {
+    $SCRIPT_BASE/cirrus_yaml_test.py
+
+    req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
+                 PODBIN_NAME PRIV_NAME DISTRO_NV CONTAINER USER HOME \
+                 UID GID AUTOMATION_LIB_PATH SCRIPT_BASE OS_RELEASE_ID \
+                 OS_RELEASE_VER CG_FS_TYPE
+    bigto ooe.sh dnf install -y ShellCheck  # small/quick addition
+    $SCRIPT_BASE/shellcheck.sh
+}
+
+function _run_validate() {
+    # Confirm compile via prior task + cache
+    bin/podman --version
+    bin/podman-remote --version
+    make validate  # Some items require a build
+}
+
+function _run_unit() {
+    # shellcheck disable=SC2154
+    if [[ "$PODBIN_NAME" != "podman" ]]; then
+        # shellcheck disable=SC2154
+        die "$TEST_FLAVOR: Unsupported PODBIN_NAME='$PODBIN_NAME'"
+    fi
+    make localunit
+}
+
+function _run_int() {
+    dotest integration
+}
+
+function _run_sys() {
+    dotest system
+}
+
+function _run_bindings() {
+    # shellcheck disable=SC2155
+    export PATH=$PATH:$GOSRC/hack
+
+    # Subshell needed so logformatter will write output in cwd; if it runs in
+    # the subdir, .cirrus.yml will not find the html'ized log
+    (cd pkg/bindings/test && ginkgo -trace -noColor -debug  -r) |& logformatter
+}
+
+function _run_docker-py() {
+    msg "This is docker-py stub, it is only a stub"
+}
+
+function _run_endpoint() {
+    make test-binaries
+    make endpoint
+}
 
 exec_container() {
     local var_val
@@ -37,7 +116,7 @@ exec_container() {
         $CTR_FQIN bash -c "$SCRIPT_BASE/setup_environment.sh && $SCRIPT_BASE/runner.sh"
 }
 
-build_swagger() {
+function _run_swagger() {
     local download_url
     # Building this is a PITA, just grab binary for use in automation
     # Ref: https://goswagger.io/install.html#static-binary
@@ -49,9 +128,22 @@ build_swagger() {
 
     cd $GOSRC
     make swagger
+
+    # Cirrus-CI Artifact instruction expects file here
+    cp -v $GOSRC/pkg/api/swagger.yaml $GOSRC/
 }
 
-altbuild() {
+function _run_vendor() {
+    make vendor
+    ./hack/tree_status.sh
+}
+
+function _run_build() {
+    make podman-release
+    make podman-remote-linux-release
+}
+
+function _run_altbuild() {
     req_env_vars ALT_NAME
     # Defined in .cirrus.yml
     # shellcheck disable=SC2154
@@ -102,6 +194,12 @@ altbuild() {
     esac
 }
 
+function _run_release() {
+    if bin/podman info |& grep -Eq -- '-dev'; then
+        die "Releases must never contain '-dev' in output of 'podman info'"
+    fi
+}
+
 logformatter() {
     # Use similar format as human-friendly task name from .cirrus.yml
     # shellcheck disable=SC2154
@@ -134,28 +232,18 @@ dotest() {
         # does not return
     fi
 
-    # 'logformatter' script makes test logs readable; only works for some tests
-    case "$testsuite" in
-        integration|system)  output_filter=logformatter ;;
-        *)                   output_filter="cat"        ;;
-    esac
-
-    # containers/automation sets this to 0 for it's dbg() function
+    # containers/automation sets this to 0 for its dbg() function
     # but the e2e integration tests are also sensitive to it.
     unset DEBUG
 
     # shellcheck disable=SC2154
+    local localremote="$PODBIN_NAME"
     case "$PODBIN_NAME" in
-        podman)
-            # ginkgo doesn't play nicely with C Go
-            make local${testsuite} \
-                |& "$output_filter"
-            ;;
-        remote)
-            make remote${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
-                |& "$output_filter"
-            ;;
+        podman)  localremote="local" ;;
     esac
+
+    make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
+        |& logformatter
 }
 
 msg "************************************************************"
@@ -176,66 +264,10 @@ msg "************************************************************"
 
 cd "${GOSRC}/"
 
-case "$TEST_FLAVOR" in
-    ext_svc) $SCRIPT_BASE/ext_svc_check.sh ;;
-    smoke)
-        make gofmt
-        # There is little value to validating commits after tag-push
-        # and it's very difficult to automatically determine a starting commit.
-        # $CIRRUS_TAG is only non-empty when executing due to a tag-push
-        # shellcheck disable=SC2154
-        if [[ -z "$CIRRUS_TAG" ]]; then
-            make .gitvalidation
-        fi
-        ;;
-    automation)
-        $SCRIPT_BASE/cirrus_yaml_test.py
-        req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
-                     PODBIN_NAME PRIV_NAME DISTRO_NV CONTAINER USER HOME \
-                     UID GID AUTOMATION_LIB_PATH SCRIPT_BASE OS_RELEASE_ID \
-                     OS_RELEASE_VER CG_FS_TYPE
-        bigto ooe.sh dnf install -y ShellCheck  # small/quick addition
-        $SCRIPT_BASE/shellcheck.sh
-        ;;
-    altbuild) altbuild ;;
-    build)
-        make podman-release
-        make podman-remote-linux-release
-        ;;
-    validate)
-        # Confirm compiile via prior task + cache
-        bin/podman --version
-        bin/podman-remote --version
-        make validate  # Some items require a build
-        ;;
-    bindings)
-        # shellcheck disable=SC2155
-        export PATH=$PATH:$GOSRC/hack
-        # Subshell needed for .cirrus.yml to find logformatter output in cwd
-        (cd pkg/bindings/test && ginkgo -trace -noColor -debug  -r) |& logformatter
-        ;;
-    endpoint)
-        make test-binaries
-        make endpoint
-        ;;
-    swagger)
-        build_swagger
-        # Cirrus-CI Artifact instruction expects file here
-        cp -v $GOSRC/pkg/api/swagger.yaml $GOSRC/
-        ;;
-    vendor)
-        make vendor
-        ./hack/tree_status.sh
-        ;;
-    docker-py) msg "This is docker-py stub, it is only a stub" ;;
-    unit) make localunit ;;
-    int) dotest integration ;;
-    sys) dotest system ;;
-    release)
-        if bin/podman info |& grep -Eq -- '-dev'; then
-            die "Releases must never contain '-dev' in output of 'podman info'"
-        fi
-        ;;
-    *)
-        die "Unknown/Unsupported \$TEST_FLAVOR=$TEST_FLAVOR" ;;
-esac
+handler="_run_${TEST_FLAVOR}"
+
+if [ "$(type -t $handler)" != "function" ]; then
+    die "Unknown/Unsupported \$TEST_FLAVOR=$TEST_FLAVOR"
+fi
+
+$handler
