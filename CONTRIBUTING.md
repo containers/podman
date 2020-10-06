@@ -86,6 +86,17 @@ Makefile allow you to install needed tools:
 $ make install.tools
 ```
 
+### Prerequisite before build
+
+You need install some dependencies before building a binary..
+
+#### Fedora
+
+  ```shell
+  $ sudo dnf install gpgme-devel libseccomp-devel.x86_64 libseccomp-devel.x86_64
+  $ export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
+  ```
+  
 ### Building binaries and test your changes
 
 To test your changes do `make binaries` to generate your binaries.
