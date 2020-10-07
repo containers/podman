@@ -1,0 +1,81 @@
+---
+
+# Format Ref: https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions
+
+# Required to un-FUBAR default ${{github.workflow}} value
+name: check_cirrus_cron
+
+on:
+    schedule:
+        # Assume cirrus cron jobs runs at least once per day
+        - cron:  '59 23 * * *'
+    # Debug: Allow triggering job manually in github-actions WebUI
+    workflow_dispatch: {}
+
+env:
+    # Debug-mode can reveal secrets, only enable by a secret value.
+    # Ref: https://help.github.com/en/actions/configuring-and-managing-workflows/managing-a-workflow-run#enabling-step-debug-logging
+    ACTIONS_STEP_DEBUG: '${{ secrets.ACTIONS_STEP_DEBUG }}'
+    # File with CSV listing of zero or more e-mail addresses for delivery
+    # of daily failure notice e-mails.
+    FAILMAILCSV: './contrib/cirrus/cron-fail_addrs.csv'
+    # Filename for table of cron-name to build-id data
+    # (must be in $GITHUB_WORKSPACE/artifacts/)
+    NAME_ID_FILEPATH: './artifacts/name_id.txt'
+
+jobs:
+    cron_failures:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  ref: master
+                  persist-credentials: false
+
+            - name: Get failed cron names and Build IDs
+              id: cron
+              run: './.github/actions/${{ github.workflow }}/${{ github.job }}.sh'
+
+            - if: steps.cron.outputs.failures > 0
+              shell: bash
+              # Must be inline, since context expressions are used.
+              # Ref: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
+              run: |
+                set -eo pipefail
+                (
+                echo "Detected one or more Cirrus-CI cron-triggered jobs have failed recently:"
+                echo ""
+
+                while read -r NAME BID; do
+                    echo "Cron build '$NAME' Failed: https://cirrus-ci.com/build/$BID"
+                done < "$NAME_ID_FILEPATH"
+
+                echo ""
+                echo "# Source: ${{ github.workflow }} workflow on ${{ github.repository }}."
+                # Separate content from sendgrid.com automatic footer.
+                echo ""
+                ) > ./artifacts/email_body.txt
+
+            - if: steps.cron.outputs.failures > 0
+              id: mailto
+              run: printf "::set-output name=csv::%s\n" $(cat "$FAILMAILCSV")
+
+            - if: steps.mailto.outputs.csv != ''
+              name: Send failure notification e-mail
+              # Ref: https://github.com/dawidd6/action-send-mail
+              uses: dawidd6/action-send-mail@v2.2.2
+              with:
+                server_address: ${{secrets.ACTION_MAIL_SERVER}}
+                server_port: 465
+                username: ${{secrets.ACTION_MAIL_USERNAME}}
+                password: ${{secrets.ACTION_MAIL_PASSWORD}}
+                subject: Cirrus-CI cron build failures on ${{github.repository}}
+                to: ${{steps.mailto.outputs.csv}}
+                from: ${{secrets.ACTION_MAIL_SENDER}}
+                body: file://./artifacts/email_body.txt
+
+            - if: always()
+              uses: actions/upload-artifact@v2
+              with:
+                  name: ${{ github.job }}_artifacts
+                  path: artifacts/*
