@@ -58,7 +58,7 @@ func init() {
 func listFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVarP(&listOpts.All, "all", "a", false, "Show all the containers, default is only running containers")
 	flags.StringSliceVarP(&filters, "filter", "f", []string{}, "Filter output based on conditions given")
-	flags.BoolVar(&listOpts.Storage, "storage", false, "Show containers in storage not controlled by Podman")
+	flags.BoolVar(&listOpts.Storage, "external", false, "Show containers in storage not controlled by Podman")
 	flags.StringVar(&listOpts.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
 	flags.IntVarP(&listOpts.Last, "last", "n", -1, "Print the n last created containers (all states)")
 	flags.BoolVar(&listOpts.Namespace, "ns", false, "Display namespace information")

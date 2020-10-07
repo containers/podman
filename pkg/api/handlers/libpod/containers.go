@@ -19,13 +19,30 @@ import (
 )
 
 func ContainerExists(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	// Now use the ABI implementation to prevent us from having duplicate
 	// code.
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
 	name := utils.GetName(r)
-	report, err := containerEngine.ContainerExists(r.Context(), name)
+	query := struct {
+		External bool `schema:"external"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	options := entities.ContainerExistsOptions{
+		External: query.External,
+	}
+
+	report, err := containerEngine.ContainerExists(r.Context(), name, options)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, name, err)

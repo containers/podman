@@ -471,8 +471,11 @@ json-file | f
     run buildah from $IMAGE
     cid="$output"
 
+    # exists should fail
+    run_podman 1 container exists $cid
+
     # exists should succeed
-    run_podman container exists $cid
+    run_podman container exists --external $cid
 
     run buildah rm $cid
 }

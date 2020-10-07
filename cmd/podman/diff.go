@@ -48,7 +48,10 @@ func diff(cmd *cobra.Command, args []string) error {
 		return containers.Diff(cmd, args, diffOpts)
 	}
 
-	if found, err := registry.ContainerEngine().ContainerExists(registry.GetContext(), args[0]); err != nil {
+	options := entities.ContainerExistsOptions{
+		External: true,
+	}
+	if found, err := registry.ContainerEngine().ContainerExists(registry.GetContext(), args[0], options); err != nil {
 		return err
 	} else if found.Value {
 		return containers.Diff(cmd, args, diffOpts)

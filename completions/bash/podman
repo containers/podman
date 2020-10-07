@@ -2468,7 +2468,6 @@ _podman_rm() {
 	-i
 	--latest
 	-l
-	--storage
 	--volumes
 	-v
     "
@@ -2696,7 +2695,7 @@ _podman_ps() {
 	  --pod -p
 	  --quiet -q
 	  --size -s
-	  --storage
+	  --external
 	  --namespace --ns
 	  --sync
      "
@@ -3168,7 +3167,11 @@ _podman_container_exists() {
     "
 
     local boolean_options="
-  "
+	  --external
+	  -h
+	  --help
+    "
+
     case "$cur" in
 	-*)
 	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
