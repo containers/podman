@@ -3,6 +3,7 @@
 package varlinkapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -207,7 +208,7 @@ func (i *VarlinkAPI) KillPod(call iopodman.VarlinkCall, name string, signal int6
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
 	}
-	ctrErrs, err := pod.Kill(killSignal)
+	ctrErrs, err := pod.Kill(context.TODO(), killSignal)
 	callErr := handlePodCall(call, pod, ctrErrs, err)
 	if callErr != nil {
 		return err
@@ -221,7 +222,7 @@ func (i *VarlinkAPI) PausePod(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
 	}
-	ctrErrs, err := pod.Pause()
+	ctrErrs, err := pod.Pause(context.TODO())
 	callErr := handlePodCall(call, pod, ctrErrs, err)
 	if callErr != nil {
 		return err
@@ -235,7 +236,7 @@ func (i *VarlinkAPI) UnpausePod(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
 	}
-	ctrErrs, err := pod.Unpause()
+	ctrErrs, err := pod.Unpause(context.TODO())
 	callErr := handlePodCall(call, pod, ctrErrs, err)
 	if callErr != nil {
 		return err

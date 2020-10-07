@@ -66,7 +66,7 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 
 	for _, p := range pods {
 		report := entities.PodKillReport{Id: p.ID()}
-		conErrs, err := p.Kill(uint(sig))
+		conErrs, err := p.Kill(ctx, uint(sig))
 		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			reports = append(reports, &report)
@@ -92,7 +92,7 @@ func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, op
 	}
 	for _, p := range pods {
 		report := entities.PodPauseReport{Id: p.ID()}
-		errs, err := p.Pause()
+		errs, err := p.Pause(ctx)
 		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			continue
@@ -117,7 +117,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 	}
 	for _, p := range pods {
 		report := entities.PodUnpauseReport{Id: p.ID()}
-		errs, err := p.Unpause()
+		errs, err := p.Unpause(ctx)
 		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			report.Errs = []error{err}
 			continue
