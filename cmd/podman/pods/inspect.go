@@ -3,9 +3,13 @@ package pods
 import (
 	"context"
 	"fmt"
+	"os"
+	"text/tabwriter"
+	"text/template"
 
-	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -57,11 +61,19 @@ func inspect(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	var data interface{} = responses
-	var out formats.Writer = formats.JSONStruct{Output: data}
-	if inspectOptions.Format != "json" {
-		out = formats.StdoutTemplate{Output: data, Template: inspectOptions.Format}
+
+	if parse.MatchesJSONFormat(inspectOptions.Format) {
+		enc := json.NewEncoder(os.Stdout)
+		return enc.Encode(responses)
 	}
 
-	return out.Out()
+	row := report.NormalizeFormat(inspectOptions.Format)
+
+	t, err := template.New("pod inspect").Parse(row)
+	if err != nil {
+		return err
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	return t.Execute(w, *responses)
 }

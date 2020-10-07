@@ -4,10 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
+	"text/tabwriter"
+	"text/template"
 
-	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -23,6 +27,9 @@ const (
 	// AllType can be of type ImageType or ContainerType.
 	AllType = "all"
 )
+
+// Pull in configured json library
+var json = registry.JSONLibrary()
 
 // AddInspectFlagSet takes a command and adds the inspect flags and returns an
 // InspectOptions object.
@@ -80,7 +87,7 @@ func newInspector(options entities.InspectOptions) (*inspector, error) {
 // inspect inspects the specified container/image names or IDs.
 func (i *inspector) inspect(namesOrIDs []string) error {
 	// data - dumping place for inspection results.
-	var data []interface{} //nolint
+	var data []interface{} // nolint
 	var errs []error
 	ctx := context.Background()
 
@@ -134,15 +141,19 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		data = []interface{}{}
 	}
 
-	var out formats.Writer
-	if i.options.Format == "json" || i.options.Format == "" { // "" for backwards compat
-		out = formats.JSONStructArray{Output: data}
-	} else {
-		out = formats.StdoutTemplateArray{Output: data, Template: inspectFormat(i.options.Format)}
+	var err error
+	switch {
+	case parse.MatchesJSONFormat(i.options.Format) || i.options.Format == "":
+		err = printJSON(data)
+	default:
+		row := inspectNormalize(i.options.Format)
+		row = "{{range . }}" + report.NormalizeFormat(row) + "{{end}}"
+		err = printTmpl(tmpType, row, data)
 	}
-	if err := out.Out(); err != nil {
+	if err != nil {
 		logrus.Errorf("Error printing inspect output: %v", err)
 	}
+
 	if len(errs) > 0 {
 		if len(errs) > 1 {
 			for _, err := range errs[1:] {
@@ -154,8 +165,22 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	return nil
 }
 
+func printJSON(data []interface{}) error {
+	enc := json.NewEncoder(os.Stdout)
+	return enc.Encode(data)
+}
+
+func printTmpl(typ, row string, data []interface{}) error {
+	t, err := template.New(typ + " inspect").Parse(row)
+	if err != nil {
+		return err
+	}
+	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	return t.Execute(w, data)
+}
+
 func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]interface{}, []error, error) {
-	var data []interface{} //nolint
+	var data []interface{} // nolint
 	allErrs := []error{}
 	for _, name := range namesOrIDs {
 		ctrData, errs, err := i.containerEngine.ContainerInspect(ctx, []string{name}, i.options)
@@ -179,9 +204,11 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]inte
 	return data, allErrs, nil
 }
 
-func inspectFormat(row string) string {
+func inspectNormalize(row string) string {
+	m := regexp.MustCompile(`{{\s*\.Id\s*}}`)
+	row = m.ReplaceAllString(row, "{{.ID}}")
+
 	r := strings.NewReplacer(
-		"{{.Id}}", formats.IDString,
 		".Src", ".Source",
 		".Dst", ".Destination",
 		".ImageID", ".Image",
