@@ -247,6 +247,9 @@ dotest() {
 }
 
 msg "************************************************************"
+# BEFORE DOING ANYTHING AT ALL: make sure we have the env. needed for our job
+load_cirrus_task_environment
+
 # Required to be defined by caller
 # shellcheck disable=SC2154
 msg "Runner executing $TEST_FLAVOR $PODBIN_NAME-tests as $PRIV_NAME on $DISTRO_NV($OS_REL_VER)"

@@ -117,7 +117,7 @@ passthrough_envars(){
     for envname in $(awk 'BEGIN{for(v in ENVIRON) print v}' | \
                          grep -Ev "SETUP_ENVIRONMENT" | \
                          grep -Ev "$SECRET_ENV_RE" | \
-                         grep -E "$PASSTHROUGH_ENV_RE"); do
+                         grep -E "$PASSTHROUGH_ENV_RE" | sort); do
 
             envval="${!envname}"
             [[ -n $(tr -d "$xchars" <<<"$envval") ]] || continue
@@ -175,16 +175,17 @@ setup_rootless() {
     # transferred to the test-user.
     msg "Configuring rootless user's environment variables:"
 
+    envfile="/home/$ROOTLESS_USER/cirrus-task-environment"
     (
         echo "# Added by ${BASH_SOURCE[0]} ${FUNCNAME[0]}()"
         echo "export SETUP_ENVIRONMENT=1"
-    ) >> "/home/$ROOTLESS_USER/.bashrc"
+    ) > $envfile
 
     while read -r env_var_val; do
-        echo "export $env_var_val" >> "/home/$ROOTLESS_USER/.bashrc"
+        echo "export $env_var_val" >> $envfile
     done <<<"$(passthrough_envars)"
-    chown $ROOTLESS_USER:$ROOTLESS_USER "/home/$ROOTLESS_USER/.bashrc"
-    cat "/home/$ROOTLESS_USER/.bashrc" | indent 2
+    chown $ROOTLESS_USER:$ROOTLESS_USER $envfile
+    indent 2 <$envfile
 
     msg "Ensure the systems ssh process is up and running within 5 minutes"
     systemctl start sshd
@@ -192,6 +193,37 @@ setup_rootless() {
            -o UserKnownHostsFile=/dev/null \
            -o StrictHostKeyChecking=no \
            -o CheckHostIP=no true
+}
+
+# This should be the first thing run from any test. It's only really
+# applicable for rootless, because we've ssh'ed in and don't have a
+# working set of environment variables.
+load_cirrus_task_environment() {
+    envfile="$HOME/cirrus-task-environment"
+
+    # The usual case: we already have the environment we need
+    if [ ! -e $envfile ]; then
+        return
+    fi
+
+    # We have an env file; but make sure we read it only once
+    if [ -n "$_initialized_cirrus_task_environment" ]; then
+        return
+    fi
+
+    # First time through. This implies that we're not root and that
+    # we have no environment. But, for sanity's sake, confirm. If
+    # a canary envariable is defined, we don't want to override.
+    # shellcheck disable=SC2154
+    if [ -n "$TEST_FLAVOR" ]; then
+        msg "*** WARNING! load_cirrus_task_environment: \$TEST_FLAVOR is already defined ($TEST_FLAVOR), before reading $envfile! Bad things may happen!"
+    fi
+
+    # shellcheck disable=SC1090
+    . $envfile
+
+    # Just in case runner.sh (for what reason??) tries to call us again.
+    _initialized_cirrus_task_environment=1
 }
 
 install_test_configs() {

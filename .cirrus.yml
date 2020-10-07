@@ -539,12 +539,12 @@ rootless_system_test_task:
     alias: rootless_system_test
     depends_on:
       - rootless_integration_test
-    matrix: *fedora_vm_axis
+    matrix: *platform_axis
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
-        PODBIN_NAME: remote
+        PODBIN_NAME: podman
     clone_script: *noop  # Comes from cache
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
