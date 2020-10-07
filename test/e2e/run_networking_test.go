@@ -477,6 +477,17 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run --uidmap /etc/hosts contains --hostname", func() {
+		SkipIfRootless("uidmap population of cninetworks not supported for rootless users")
+		session := podmanTest.Podman([]string{"run", "--uidmap", "0:100000:1000", "--rm", "--hostname", "foohostname", ALPINE, "grep", "foohostname", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--uidmap", "0:100000:1000", "--rm", "--hostname", "foohostname", "-v", "/etc/hosts:/etc/hosts", ALPINE, "grep", "foohostname", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+	})
+
 	It("podman run network in user created network namespace", func() {
 		SkipIfRootless("ip netns is not supported for rootless users")
 		if Containerized() {

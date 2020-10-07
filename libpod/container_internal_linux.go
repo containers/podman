@@ -1543,10 +1543,7 @@ func (c *Container) getHosts() string {
 		// When using slirp4netns, the interface gets a static IP
 		hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", "10.0.2.100", c.Hostname(), c.Config().Name)
 	}
-	if len(c.state.NetworkStatus) > 0 && len(c.state.NetworkStatus[0].IPs) > 0 {
-		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
-		hosts += fmt.Sprintf("%s\t%s %s\n", ipAddress, c.Hostname(), c.Config().Name)
-	}
+	hosts += c.cniHosts()
 	return hosts
 }
 

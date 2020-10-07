@@ -976,6 +976,21 @@ func (c *Container) completeNetworkSetup() error {
 			}
 		}
 	}
+	// check if we have a bindmount for /etc/hosts
+	if hostsBindMount, ok := state.BindMounts["/etc/hosts"]; ok && len(c.cniHosts()) > 0 {
+		ctrHostPath := filepath.Join(c.state.RunDir, "hosts")
+		if hostsBindMount == ctrHostPath {
+			// read the existing hosts
+			b, err := ioutil.ReadFile(hostsBindMount)
+			if err != nil {
+				return err
+			}
+			if err := ioutil.WriteFile(hostsBindMount, append(b, []byte(c.cniHosts())...), 0644); err != nil {
+				return err
+			}
+		}
+	}
+
 	// check if we have a bindmount for resolv.conf
 	resolvBindMount := state.BindMounts["/etc/resolv.conf"]
 	if len(outResolvConf) < 1 || resolvBindMount == "" || len(c.config.NetNsCtr) > 0 {
@@ -995,6 +1010,15 @@ func (c *Container) completeNetworkSetup() error {
 	}
 	// write and return
 	return ioutil.WriteFile(resolvBindMount, []byte(strings.Join(outResolvConf, "\n")), 0644)
+}
+
+func (c *Container) cniHosts() string {
+	var hosts string
+	if len(c.state.NetworkStatus) > 0 && len(c.state.NetworkStatus[0].IPs) > 0 {
+		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
+		hosts += fmt.Sprintf("%s\t%s %s\n", ipAddress, c.Hostname(), c.Config().Name)
+	}
+	return hosts
 }
 
 // Initialize a container, creating it in the runtime
