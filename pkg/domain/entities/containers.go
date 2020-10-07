@@ -131,7 +131,6 @@ type RmOptions struct {
 	Force    bool
 	Ignore   bool
 	Latest   bool
-	Storage  bool
 	Volumes  bool
 }
 

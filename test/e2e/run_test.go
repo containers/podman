@@ -394,7 +394,7 @@ USER bin`
 	})
 
 	It("podman run sysctl test", func() {
-		SkipIfRootless("Network sysctls are not avalable root rootless")
+		SkipIfRootless("Network sysctls are not available root rootless")
 		session := podmanTest.Podman([]string{"run", "--rm", "--sysctl", "net.core.somaxconn=65535", ALPINE, "sysctl", "net.core.somaxconn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

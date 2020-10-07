@@ -665,7 +665,7 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman play kube test restartPolicy", func() {
 		// podName,  set,  expect
 		testSli := [][]string{
-			{"testPod1", "", "always"}, // Default eqaul to always
+			{"testPod1", "", "always"}, // Default equal to always
 			{"testPod2", "Always", "always"},
 			{"testPod3", "OnFailure", "on-failure"},
 			{"testPod4", "Never", "no"},

@@ -273,16 +273,6 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 
 func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, options entities.RmOptions) ([]*entities.RmReport, error) {
 	reports := []*entities.RmReport{}
-	if options.Storage {
-		for _, ctr := range namesOrIds {
-			report := entities.RmReport{Id: ctr}
-			if err := ic.Libpod.RemoveStorageContainer(ctr, options.Force); err != nil {
-				report.Err = err
-			}
-			reports = append(reports, &report)
-		}
-		return reports, nil
-	}
 
 	names := namesOrIds
 	for _, cidFile := range options.CIDFiles {
@@ -294,6 +284,22 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		names = append(names, id)
 	}
 
+	// Attempt to remove named containers directly from storage, if container is defined in libpod
+	// this will fail and code will fall through to removing the container from libpod.`
+	tmpNames := []string{}
+	for _, ctr := range names {
+		report := entities.RmReport{Id: ctr}
+		if err := ic.Libpod.RemoveStorageContainer(ctr, options.Force); err != nil {
+			// remove container names that we successfully deleted
+			tmpNames = append(tmpNames, ctr)
+		} else {
+			reports = append(reports, &report)
+		}
+	}
+	if len(tmpNames) < len(names) {
+		names = tmpNames
+	}
+
 	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		// Failed to get containers. If force is specified, get the containers ID
@@ -302,7 +308,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 			return nil, err
 		}
 
-		for _, ctr := range namesOrIds {
+		for _, ctr := range names {
 			logrus.Debugf("Evicting container %q", ctr)
 			report := entities.RmReport{Id: ctr}
 			id, err := ic.Libpod.EvictContainer(ctx, ctr, options.Volumes)

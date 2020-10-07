@@ -33,6 +33,21 @@ load helpers
     run_podman rm -f $cid
 }
 
+@test "podman rm container from storage" {
+    if is_remote; then
+        skip "only applicable for local podman"
+    fi
+    rand=$(random_string 30)
+    run_podman create --name $rand $IMAGE /bin/true
+
+    # Create a container that podman does not know about
+    run buildah from $IMAGE
+    cid="$output"
+
+    # rm should succeed
+    run_podman rm $rand $cid
+}
+
 # I'm sorry! This test takes 13 seconds. There's not much I can do about it,
 # please know that I think it's justified: podman 1.5.0 had a strange bug
 # in with exit status was not preserved on some code paths with 'rm -f'

@@ -43,13 +43,6 @@ to run containers such as CRI-O, the last started container could be from either
 
 The latest option is not supported on the remote client.
 
-**--storage**
-
-Remove external containers from the storage library.
-This is only possible with containers that are not present in libpod can be seen by **podman ps --all --storage**).
-It is used to remove external containers from **podman build** and **buildah**, and orphan containers which were only partially removed by **podman rm**.
-The storage option conflicts with the **--all**, **--latest**, and **--volumes** options.
-
 **--volumes**, **-v**
 
 Remove anonymous volumes associated with the container. This does not include named volumes
@@ -96,7 +89,7 @@ $ podman rm -f --latest
   **125** The command fails for any other reason
 
 ## SEE ALSO
-podman(1), podman-image-rm(1), podman-ps(1), podman-build(1)
+podman(1), podman-image-rm(1), podman-ps(1), podman-build(1), buildah(1), cri-o(1)
 
 ## HISTORY
 August 2017, Originally compiled by Ryan Cole <rycole@redhat.com>
