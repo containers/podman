@@ -176,7 +176,6 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images filter before image", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
 		dockerfile := `FROM docker.io/library/alpine:latest
 RUN apk update && apk add strace
 `
@@ -340,7 +339,7 @@ WORKDIR /test
 	})
 
 	It("podman images --all flag", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		SkipIfRemote("FIXME This should work on podman-remote, problem is with podman-remote build")
 		podmanTest.RestoreAllArtifacts()
 		dockerfile := `FROM docker.io/library/alpine:latest
 RUN mkdir hello
@@ -372,7 +371,7 @@ LABEL "com.example.vendor"="Example Vendor"
 	})
 
 	It("podman with images with no layers", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
+		SkipIfRemote("FIXME This should work on podman-remote, problem is with podman-remote build")
 		dockerfile := strings.Join([]string{
 			`FROM scratch`,
 			`LABEL org.opencontainers.image.authors="<somefolks@example.org>"`,
