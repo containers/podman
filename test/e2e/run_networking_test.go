@@ -73,7 +73,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(len(inspectOut)).To(Equal(1))
 		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(1))
 		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("80"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
 	})
 
@@ -111,7 +111,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(len(inspectOut)).To(Equal(1))
 		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(1))
 		Expect(len(inspectOut[0].NetworkSettings.Ports["80/udp"])).To(Equal(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostPort).To(Equal("80"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostPort).To(Not(Equal("80")))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostIP).To(Equal(""))
 	})
 
@@ -195,7 +195,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(len(inspectOut)).To(Equal(1))
 		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(1))
 		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("80"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
 	})
 
