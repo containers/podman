@@ -3,6 +3,8 @@ package network
 import (
 	"encoding/json"
 	"net"
+
+	"github.com/containers/storage/pkg/lockfile"
 )
 
 // TODO once the containers.conf file stuff is worked out, this should be modified
@@ -17,7 +19,16 @@ const (
 	// DefaultPodmanDomainName is used for the dnsname plugin to define
 	// a localized domain name for a created network
 	DefaultPodmanDomainName = "dns.podman"
+	// LockFileName is used for obtaining a lock and is appended
+	// to libpod's tmpdir in practice
+	LockFileName = "cni.lock"
 )
+
+// CNILock is for preventing name collision and
+// unpredictable results when doing some CNI operations.
+type CNILock struct {
+	lockfile.Locker
+}
 
 // GetDefaultPodmanNetwork outputs the default network for podman
 func GetDefaultPodmanNetwork() (*net.IPNet, error) {

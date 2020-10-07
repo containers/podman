@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"os"
+	"path/filepath"
 
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
@@ -20,8 +21,8 @@ var DefaultNetworkDriver = "bridge"
 // SupportedNetworkDrivers describes the list of supported drivers
 var SupportedNetworkDrivers = []string{DefaultNetworkDriver}
 
-// IsSupportedDriver checks if the user provided driver is supported
-func IsSupportedDriver(driver string) error {
+// isSupportedDriver checks if the user provided driver is supported
+func isSupportedDriver(driver string) error {
 	if util.StringInSlice(driver, SupportedNetworkDrivers) {
 		return nil
 	}
@@ -168,6 +169,11 @@ func ValidateUserNetworkIsAvailable(config *config.Config, userNet *net.IPNet) e
 // RemoveNetwork removes a given network by name.  If the network has container associated with it, that
 // must be handled outside the context of this.
 func RemoveNetwork(config *config.Config, name string) error {
+	l, err := acquireCNILock(filepath.Join(config.Engine.TmpDir, LockFileName))
+	if err != nil {
+		return err
+	}
+	defer l.releaseCNILock()
 	cniPath, err := GetCNIConfigPathByName(config, name)
 	if err != nil {
 		return err

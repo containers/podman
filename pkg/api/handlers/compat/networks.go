@@ -12,10 +12,10 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi"
-	"github.com/containers/podman/v2/pkg/network"
 	"github.com/docker/docker/api/types"
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/gorilla/schema"
@@ -210,6 +210,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		report, err := getNetworkResourceByName(name, runtime)
 		if err != nil {
 			utils.InternalServerError(w, err)
+			return
 		}
 		reports = append(reports, report)
 	}
@@ -267,9 +268,9 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	ce := abi.ContainerEngine{Libpod: runtime}
-	_, err := ce.NetworkCreate(r.Context(), name, ncOptions)
-	if err != nil {
+	if _, err := ce.NetworkCreate(r.Context(), name, ncOptions); err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 	report := types.NetworkCreate{
 		CheckDuplicate: networkCreate.CheckDuplicate,
@@ -307,6 +308,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := network.RemoveNetwork(config, name); err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
