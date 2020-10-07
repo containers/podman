@@ -14,8 +14,10 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/namespaces"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/signal"
 	createconfig "github.com/containers/podman/v2/pkg/spec"
+	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/storage"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -134,6 +136,11 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		Sysctl:             input.HostConfig.Sysctls,
 	}
 
+	var netmode namespaces.NetworkMode
+	if rootless.IsRootless() {
+		netmode = namespaces.NetworkMode(specgen.Slirp)
+	}
+
 	network := createconfig.NetworkConfig{
 		DNSOpt:       input.HostConfig.DNSOptions,
 		DNSSearch:    input.HostConfig.DNSSearch,
@@ -144,7 +151,7 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		IPAddress:    "",
 		LinkLocalIP:  nil, // docker-only
 		MacAddress:   input.MacAddress,
-		// NetMode:      nil,
+		NetMode:      netmode,
 		Network:      input.HostConfig.NetworkMode.NetworkName(),
 		NetworkAlias: nil, // docker-only now
 		PortBindings: input.HostConfig.PortBindings,
