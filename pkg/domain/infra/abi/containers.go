@@ -582,6 +582,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	if err != nil && errors.Cause(err) != define.ErrDetach {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
+	os.Stdout.WriteString("\n")
 	return nil
 }
 
