@@ -371,12 +371,6 @@ func (l psReporter) CreatedHuman() string {
 // portsToString converts the ports used to a string of the from "port1, port2"
 // and also groups a continuous list of ports into a readable format.
 func portsToString(ports []ocicni.PortMapping) string {
-	type portGroup struct {
-		first int32
-		last  int32
-	}
-	portDisplay := []string{}
-
 	if len(ports) == 0 {
 		return ""
 	}
@@ -385,41 +379,124 @@ func portsToString(ports []ocicni.PortMapping) string {
 		return comparePorts(ports[i], ports[j])
 	})
 
-	// portGroupMap is used for grouping continuous ports.
-	portGroupMap := make(map[string]*portGroup)
-	var groupKeyList []string
+	portGroups := [][]ocicni.PortMapping{}
+	currentGroup := []ocicni.PortMapping{}
+	for i, v := range ports {
+		var prevPort, nextPort *int32
+		if i > 0 {
+			prevPort = &ports[i-1].ContainerPort
+		}
+		if i+1 < len(ports) {
+			nextPort = &ports[i+1].ContainerPort
+		}
 
-	for _, v := range ports {
+		port := v.ContainerPort
 
-		hostIP := v.HostIP
+		// Helper functions
+		addToCurrentGroup := func(x ocicni.PortMapping) {
+			currentGroup = append(currentGroup, x)
+		}
+
+		addToPortGroup := func(x ocicni.PortMapping) {
+			portGroups = append(portGroups, []ocicni.PortMapping{x})
+		}
+
+		finishCurrentGroup := func() {
+			portGroups = append(portGroups, currentGroup)
+			currentGroup = []ocicni.PortMapping{}
+		}
+
+		// Single entry slice
+		if prevPort == nil && nextPort == nil {
+			addToPortGroup(v)
+		}
+
+		// Start of the slice with len > 0
+		if prevPort == nil && nextPort != nil {
+			isGroup := *nextPort-1 == port
+
+			if isGroup {
+				// Start with a group
+				addToCurrentGroup(v)
+			} else {
+				// Start with single item
+				addToPortGroup(v)
+			}
+
+			continue
+		}
+
+		// Middle of the slice with len > 0
+		if prevPort != nil && nextPort != nil {
+			currentIsGroup := *prevPort+1 == port
+			nextIsGroup := *nextPort-1 == port
+
+			if currentIsGroup {
+				// Maybe in the middle of a group
+				addToCurrentGroup(v)
+
+				if !nextIsGroup {
+					// End of a group
+					finishCurrentGroup()
+				}
+			} else if nextIsGroup {
+				// Start of a new group
+				addToCurrentGroup(v)
+			} else {
+				// No group at all
+				addToPortGroup(v)
+			}
+
+			continue
+		}
+
+		// End of the slice with len > 0
+		if prevPort != nil && nextPort == nil {
+			isGroup := *prevPort+1 == port
+
+			if isGroup {
+				// End group
+				addToCurrentGroup(v)
+				finishCurrentGroup()
+			} else {
+				// End single item
+				addToPortGroup(v)
+			}
+		}
+	}
+
+	portDisplay := []string{}
+	for _, group := range portGroups {
+		if len(group) == 0 {
+			// Usually should not happen, but better do not crash.
+			continue
+		}
+
+		first := group[0]
+
+		hostIP := first.HostIP
 		if hostIP == "" {
 			hostIP = "0.0.0.0"
 		}
-		// If hostPort and containerPort are not same, consider as individual port.
-		if v.ContainerPort != v.HostPort {
-			portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
+
+		// Single mappings
+		if len(group) == 1 {
+			portDisplay = append(portDisplay,
+				fmt.Sprintf(
+					"%s:%d->%d/%s",
+					hostIP, first.HostPort, first.ContainerPort, first.Protocol,
+				),
+			)
 			continue
 		}
 
-		portMapKey := fmt.Sprintf("%s/%s", hostIP, v.Protocol)
-
-		portgroup, ok := portGroupMap[portMapKey]
-		if !ok {
-			portGroupMap[portMapKey] = &portGroup{first: v.ContainerPort, last: v.ContainerPort}
-			// This list is required to traverse portGroupMap.
-			groupKeyList = append(groupKeyList, portMapKey)
-			continue
-		}
-
-		if portgroup.last == (v.ContainerPort - 1) {
-			portgroup.last = v.ContainerPort
-			continue
-		}
-	}
-	// For each portMapKey, format group list and append to output string.
-	for _, portKey := range groupKeyList {
-		group := portGroupMap[portKey]
-		portDisplay = append(portDisplay, formatGroup(portKey, group.first, group.last))
+		// Group mappings
+		last := group[len(group)-1]
+		portDisplay = append(portDisplay, formatGroup(
+			fmt.Sprintf("%s/%s", hostIP, first.Protocol),
+			first.HostPort, last.HostPort,
+			first.ContainerPort, last.ContainerPort,
+		))
 	}
 	return strings.Join(portDisplay, ", ")
 }
@@ -440,9 +517,10 @@ func comparePorts(i, j ocicni.PortMapping) bool {
 	return i.Protocol < j.Protocol
 }
 
-// formatGroup returns the group as <IP:startPort:lastPort->startPort:lastPort/Proto>
-// e.g 0.0.0.0:1000-1006->1000-1006/tcp.
-func formatGroup(key string, start, last int32) string {
+// formatGroup returns the group in the format:
+// <IP:firstHost:lastHost->firstCtr:lastCtr/Proto>
+// e.g 0.0.0.0:1000-1006->2000-2006/tcp.
+func formatGroup(key string, firstHost, lastHost, firstCtr, lastCtr int32) string {
 	parts := strings.Split(key, "/")
 	groupType := parts[0]
 	var ip string
@@ -450,12 +528,16 @@ func formatGroup(key string, start, last int32) string {
 		ip = parts[0]
 		groupType = parts[1]
 	}
-	group := strconv.Itoa(int(start))
-	if start != last {
-		group = fmt.Sprintf("%s-%d", group, last)
+
+	group := func(first, last int32) string {
+		group := strconv.Itoa(int(first))
+		if first != last {
+			group = fmt.Sprintf("%s-%d", group, last)
+		}
+		return group
 	}
-	if ip != "" {
-		group = fmt.Sprintf("%s:%s->%s", ip, group, group)
-	}
-	return fmt.Sprintf("%s/%s", group, groupType)
+	hostGroup := group(firstHost, lastHost)
+	ctrGroup := group(firstCtr, lastCtr)
+
+	return fmt.Sprintf("%s:%s->%s/%s", ip, hostGroup, ctrGroup, groupType)
 }

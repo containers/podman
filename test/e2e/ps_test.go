@@ -411,18 +411,43 @@ var _ = Describe("Podman ps", func() {
 		Expect(output).To(ContainSubstring(podName))
 	})
 
-	It("podman ps test with port range", func() {
-		session := podmanTest.RunTopContainer("")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
-		session = podmanTest.Podman([]string{"run", "-dt", "-p", "2000-2006:2000-2006", ALPINE, "top"})
+	It("podman ps test with single port range", func() {
+		session := podmanTest.Podman([]string{"run", "-dt", "-p", "2000-2006:2000-2006", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"ps", "--format", "{{.Ports}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(ContainSubstring("0.0.0.0:2000-2006"))
+	})
+
+	It("podman ps test with invalid port range", func() {
+		session := podmanTest.Podman([]string{
+			"run", "-p", "1000-2000:2000-3000", "-p", "1999-2999:3001-4001", ALPINE,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("conflicting port mappings for host port 1999"))
+	})
+
+	It("podman ps test with multiple port range", func() {
+		session := podmanTest.Podman([]string{
+			"run", "-dt",
+			"-p", "3000-3001:3000-3001",
+			"-p", "3100-3102:4000-4002",
+			"-p", "30080:30080",
+			"-p", "30443:30443",
+			"-p", "8000:8080",
+			ALPINE, "top"},
+		)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"ps", "--format", "{{.Ports}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring(
+			"0.0.0.0:3000-3001->3000-3001/tcp, 0.0.0.0:3100-3102->4000-4002/tcp, 0.0.0.0:8000->8080/tcp, 0.0.0.0:30080->30080/tcp, 0.0.0.0:30443->30443/tcp",
+		))
 	})
 
 	It("podman ps sync flag", func() {
