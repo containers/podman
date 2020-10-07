@@ -588,6 +588,9 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	if err != nil && errors.Cause(err) != define.ErrDetach {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
+	// This write maintains compatibility with Docker on <ctrl+p> <ctrl+q> detach:
+	// 'run -it x' does not newline but 'attach x' prints this message and newlines
+	os.Stdout.WriteString("read escape sequence\n")
 	return nil
 }
 
