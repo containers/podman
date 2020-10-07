@@ -5,10 +5,10 @@ go 1.12
 require (
 	github.com/containerd/containerd v1.4.1 // indirect
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
-	github.com/containers/common v0.26.2
-	github.com/containers/image/v5 v5.7.0
+	github.com/containers/common v0.26.3
+	github.com/containers/image/v5 v5.8.0
 	github.com/containers/ocicrypt v1.0.3
-	github.com/containers/storage v1.23.7
+	github.com/containers/storage v1.23.9
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201020191947-73dc6a680cdd+incompatible // indirect
 	github.com/docker/go-units v0.4.0
@@ -17,6 +17,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/ishidawataru/sctp v0.0.0-20191218070446-00ab2ac2db07 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/mattn/go-shellwords v1.0.10
 	github.com/moby/sys/mount v0.1.1 // indirect
 	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2 // indirect

@@ -12,10 +12,10 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/signature"
 	is "github.com/containers/image/v5/storage"
-	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
@@ -69,42 +69,10 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		}
 	}
 
-	// If the image includes a transport's name as a prefix, use it as-is.
-	if strings.HasPrefix(name, DefaultTransport) {
-		return []string{strings.TrimPrefix(name, DefaultTransport)}, DefaultTransport, false, nil
-	}
-	split := strings.SplitN(name, ":", 2)
-	if StartsWithValidTransport(name) && len(split) == 2 {
-		if trans := transports.Get(split[0]); trans != nil {
-			return []string{split[1]}, trans.Name(), false, nil
-		}
-	}
-	// If the image name already included a domain component, we're done.
-	named, err := reference.ParseNormalizedNamed(name)
-	if err != nil {
-		return nil, "", false, errors.Wrapf(err, "error parsing image name %q", name)
-	}
-	if named.String() == name {
-		// Parsing produced the same result, so there was a domain name in there to begin with.
-		return []string{name}, DefaultTransport, false, nil
-	}
-	if reference.Domain(named) != "" && RegistryDefaultPathPrefix[reference.Domain(named)] != "" {
-		// If this domain can cause us to insert something in the middle, check if that happened.
-		repoPath := reference.Path(named)
-		domain := reference.Domain(named)
-		tag := ""
-		if tagged, ok := named.(reference.Tagged); ok {
-			tag = ":" + tagged.Tag()
-		}
-		digest := ""
-		if digested, ok := named.(reference.Digested); ok {
-			digest = "@" + digested.Digest().String()
-		}
-		defaultPrefix := RegistryDefaultPathPrefix[reference.Domain(named)] + "/"
-		if strings.HasPrefix(repoPath, defaultPrefix) && path.Join(domain, repoPath[len(defaultPrefix):])+tag+digest == name {
-			// Yup, parsing just inserted a bit in the middle, so there was a domain name there to begin with.
-			return []string{name}, DefaultTransport, false, nil
-		}
+	// Transports are not supported for local image look ups.
+	srcRef, err := alltransports.ParseImageName(name)
+	if err == nil {
+		return []string{srcRef.StringWithinTransport()}, srcRef.Transport().Name(), false, nil
 	}
 
 	// Figure out the list of registries.
@@ -126,25 +94,26 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 	}
 	searchRegistriesAreEmpty := len(registries) == 0
 
-	// Create all of the combinations.  Some registries need an additional component added, so
-	// use our lookaside map to keep track of them.  If there are no configured registries, we'll
-	// return a name using "localhost" as the registry name.
-	candidates := []string{}
-	initRegistries := []string{"localhost"}
+	var candidates []string
+	// Set the first registry if requested.
 	if firstRegistry != "" && firstRegistry != "localhost" {
-		initRegistries = append([]string{firstRegistry}, initRegistries...)
-	}
-	for _, registry := range append(initRegistries, registries...) {
-		if registry == "" {
-			continue
-		}
 		middle := ""
-		if prefix, ok := RegistryDefaultPathPrefix[registry]; ok && !strings.ContainsRune(name, '/') {
+		if prefix, ok := RegistryDefaultPathPrefix[firstRegistry]; ok && !strings.ContainsRune(name, '/') {
 			middle = prefix
 		}
-		candidate := path.Join(registry, middle, name)
+		candidate := path.Join(firstRegistry, middle, name)
 		candidates = append(candidates, candidate)
 	}
+
+	// Local short-name resolution.
+	namedCandidates, err := shortnames.ResolveLocally(sc, name)
+	if err != nil {
+		return nil, "", false, err
+	}
+	for _, named := range namedCandidates {
+		candidates = append(candidates, named.String())
+	}
+
 	return candidates, DefaultTransport, searchRegistriesAreEmpty, nil
 }
 

@@ -34,7 +34,7 @@ RUNC_COMMIT := v1.0.0-rc8
 LIBSECCOMP_COMMIT := release-2.3
 
 EXTRA_LDFLAGS ?=
-LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
+BUILDAH_LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
 SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go copier/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go util/*.go
 
 LINTFLAGS ?=
@@ -56,7 +56,7 @@ static:
 
 .PHONY: bin/buildah
 bin/buildah:  $(SOURCES)
-	$(GO_BUILD) $(LDFLAGS) -o $@ $(BUILDFLAGS) ./cmd/buildah
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./cmd/buildah
 
 .PHONY: buildah
 buildah: bin/buildah
@@ -67,11 +67,11 @@ cross: bin/buildah.darwin.amd64 bin/buildah.linux.386 bin/buildah.linux.amd64 bi
 .PHONY: bin/buildah.%
 bin/buildah.%:
 	mkdir -p ./bin
-	GOOS=$(word 2,$(subst ., ,$@)) GOARCH=$(word 3,$(subst ., ,$@)) $(GO_BUILD) $(LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
+	GOOS=$(word 2,$(subst ., ,$@)) GOARCH=$(word 3,$(subst ., ,$@)) $(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
 
 .PHONY: bin/imgtype
 bin/imgtype: *.go docker/*.go util/*.go tests/imgtype/imgtype.go
-	$(GO_BUILD) $(LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/imgtype/imgtype.go
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/imgtype/imgtype.go
 
 .PHONY: clean
 clean:

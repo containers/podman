@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -35,6 +37,14 @@ const (
 
 func init() {
 	reexec.Register(copierCommand, copierMain)
+	// Attempt a user and host lookup to force libc (glibc, and possibly others that use dynamic
+	// modules to handle looking up user and host information) to load modules that match the libc
+	// our binary is currently using.  Hopefully they're loaded on first use, so that they won't
+	// need to be loaded after we've chrooted into the rootfs, which could include modules that
+	// don't match our libc and which can't be loaded, or modules which we don't want to execute
+	// because we don't trust their code.
+	_, _ = user.Lookup("buildah")
+	_, _ = net.LookupHost("localhost")
 }
 
 // isArchivePath returns true if the specified path can be read like a (possibly

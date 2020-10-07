@@ -216,20 +216,19 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 			}
 			data = resp.Body
 		} else {
-			// If the Dockerfile isn't found try prepending the
-			// context directory to it.
 			dinfo, err := os.Stat(dfile)
-			if os.IsNotExist(err) {
-				// If they are "/workDir/Dockerfile" and "/workDir"
-				// so don't joint it
+			if err != nil {
+				// If the Dockerfile isn't available, try again with
+				// context directory prepended (if not prepended yet).
 				if !strings.HasPrefix(dfile, options.ContextDirectory) {
 					dfile = filepath.Join(options.ContextDirectory, dfile)
-				}
-				dinfo, err = os.Stat(dfile)
-				if err != nil {
-					return "", nil, err
+					dinfo, err = os.Stat(dfile)
 				}
 			}
+			if err != nil {
+				return "", nil, err
+			}
+
 			// If given a directory, add '/Dockerfile' to it.
 			if dinfo.Mode().IsDir() {
 				dfile = filepath.Join(dfile, "Dockerfile")
