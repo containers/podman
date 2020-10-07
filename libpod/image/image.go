@@ -627,7 +627,7 @@ func (i *Image) TopLayer() string {
 func (i *Image) Remove(ctx context.Context, force bool) error {
 	parent, err := i.GetParent(ctx)
 	if err != nil {
-		return err
+		logrus.Warnf("Failed to get image parent: %s", err)
 	}
 	if _, err := i.imageruntime.store.DeleteImage(i.ID(), true); err != nil {
 		return err
