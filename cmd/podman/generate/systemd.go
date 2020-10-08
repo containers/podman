@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -97,10 +98,10 @@ func systemd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	switch format {
-	case "json":
+	switch {
+	case parse.MatchesJSONFormat(format):
 		return printJSON(report.Units)
-	case "":
+	case format == "":
 		return printDefault(report.Units)
 	default:
 		return errors.Errorf("unknown --format argument: %s", format)
