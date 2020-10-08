@@ -46,7 +46,7 @@ This section describes how to start a contribution to Podman.
 
 ### Prepare your environment
 
-Read the [install documentation to see how to install dependencies](install.md) .
+Read the [install documentation to see how to install dependencies](https://podman.io/getting-started/installation#build-and-run-dependencies).
 
 The install documentation will illustrate the following steps:
 - install libs and tools
@@ -85,6 +85,17 @@ Makefile allow you to install needed tools:
 ```shell
 $ make install.tools
 ```
+
+### Prerequisite before build
+
+You need install some dependencies before building a binary.
+
+#### Fedora
+
+  ```shell
+  $ sudo dnf install gpgme-devel libseccomp-devel.x86_64 libseccomp-devel.x86_64 systemd-devel
+  $ export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
+  ```
 
 ### Building binaries and test your changes
 
