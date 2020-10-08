@@ -275,13 +275,16 @@ type ContainerMiscConfig struct {
 	StopTimeout uint `json:"stopTimeout,omitempty"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
+	// CgroupManager is the cgroup manager used to create this container.
+	// If empty, the runtime default will be used.
+	CgroupManager string `json:"cgroupManager,omitempty"`
 	// NoCgroups indicates that the container will not create CGroups. It is
 	// incompatible with CgroupParent.  Deprecated in favor of CgroupsMode.
 	NoCgroups bool `json:"noCgroups,omitempty"`
 	// CgroupsMode indicates how the container will create cgroups
 	// (disabled, no-conmon, enabled).  It supersedes NoCgroups.
 	CgroupsMode string `json:"cgroupsMode,omitempty"`
-	// Cgroup parent of the container
+	// Cgroup parent of the container.
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`

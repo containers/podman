@@ -57,7 +57,6 @@ type ConmonOCIRuntime struct {
 	path              string
 	conmonPath        string
 	conmonEnv         []string
-	cgroupManager     string
 	tmpDir            string
 	exitsDir          string
 	socketsDir        string
@@ -102,7 +101,6 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.runtimeFlags = runtimeFlags
 
 	runtime.conmonEnv = runtimeCfg.Engine.ConmonEnvVars
-	runtime.cgroupManager = runtimeCfg.Engine.CgroupManager
 	runtime.tmpDir = runtimeCfg.Engine.TmpDir
 	runtime.logSizeMax = runtimeCfg.Containers.LogSizeMax
 	runtime.noPivot = runtimeCfg.Engine.NoPivotRoot
@@ -148,10 +146,6 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
-
-	if runtime.cgroupManager != config.CgroupfsCgroupsManager && runtime.cgroupManager != config.SystemdCgroupsManager {
-		return nil, errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager specified: %s", runtime.cgroupManager)
-	}
 
 	// Create the exit files and attach sockets directories
 	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
@@ -1325,7 +1319,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		args = append(args, rFlags...)
 	}
 
-	if r.cgroupManager == config.SystemdCgroupsManager && !ctr.config.NoCgroups && ctr.config.CgroupsMode != cgroupSplit {
+	if ctr.CgroupManager() == config.SystemdCgroupsManager && !ctr.config.NoCgroups && ctr.config.CgroupsMode != cgroupSplit {
 		args = append(args, "-s")
 	}
 
@@ -1437,8 +1431,10 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 	}
 
 	if mustCreateCgroup {
+		// TODO: This should be a switch - we are not guaranteed that
+		// there are only 2 valid cgroup managers
 		cgroupParent := ctr.CgroupParent()
-		if r.cgroupManager == config.SystemdCgroupsManager {
+		if ctr.CgroupManager() == config.SystemdCgroupsManager {
 			unitName := createUnitName("libpod-conmon", ctr.ID())
 
 			realCgroupParent := cgroupParent

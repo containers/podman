@@ -1968,6 +1968,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	cgroupManager := c.CgroupManager()
 	switch {
 	case (rootless.IsRootless() && !unified) || c.config.NoCgroups:
 		return "", nil
@@ -1980,14 +1981,14 @@ func (c *Container) getOCICgroupPath() (string, error) {
 			return "", err
 		}
 		return filepath.Join(selfCgroup, "container"), nil
-	case c.runtime.config.Engine.CgroupManager == config.SystemdCgroupsManager:
+	case cgroupManager == config.SystemdCgroupsManager:
 		// When the OCI runtime is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
-	case c.runtime.config.Engine.CgroupManager == config.CgroupfsCgroupsManager:
+	case cgroupManager == config.CgroupfsCgroupsManager:
 		cgroupPath, err := c.CGroupPath()
 		if err != nil {
 			return "", err
@@ -1995,7 +1996,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
 		return cgroupPath, nil
 	default:
-		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", c.runtime.config.Engine.CgroupManager)
+		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", cgroupManager)
 	}
 }
 

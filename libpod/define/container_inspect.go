@@ -236,6 +236,9 @@ type InspectContainerHostConfig struct {
 	// include a Mounts field in inspect.
 	// Format: <src>:<destination>[:<comma-separated options>]
 	Binds []string `json:"Binds"`
+	// CgroupManager is the cgroup manager used by the container.
+	// At present, allowed values are either "cgroupfs" or "systemd".
+	CgroupManager string `json:"CgroupManager,omitempty"`
 	// CgroupMode is the configuration of the container's cgroup namespace.
 	// Populated as follows:
 	// private - a cgroup namespace has been created
