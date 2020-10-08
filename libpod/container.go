@@ -888,9 +888,22 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 	return fmt.Sprintf("/proc/%d/ns/%s", c.state.PID, linuxNS.String()), nil
 }
 
+// CgroupManager returns the cgroup manager used by the given container.
+func (c *Container) CgroupManager() string {
+	cgroupManager := c.config.CgroupManager
+	if cgroupManager == "" {
+		cgroupManager = c.runtime.config.Engine.CgroupManager
+	}
+	return cgroupManager
+}
+
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() (string, error) {
+	cgroupManager := c.CgroupManager()
+
 	switch {
+	case c.config.NoCgroups || c.config.CgroupsMode == "disabled":
+		return "", errors.Wrapf(define.ErrNoCgroups, "this container is not creating cgroups")
 	case c.config.CgroupsMode == cgroupSplit:
 		if c.config.CgroupParent != "" {
 			return "", errors.Errorf("cannot specify cgroup-parent with cgroup-mode %q", cgroupSplit)
@@ -906,9 +919,9 @@ func (c *Container) CGroupPath() (string, error) {
 			return "", errors.Errorf("invalid cgroup for conmon %q", cg)
 		}
 		return strings.TrimSuffix(cg, "/supervisor") + "/container", nil
-	case c.runtime.config.Engine.CgroupManager == config.CgroupfsCgroupsManager:
+	case cgroupManager == config.CgroupfsCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case c.runtime.config.Engine.CgroupManager == config.SystemdCgroupsManager:
+	case cgroupManager == config.SystemdCgroupsManager:
 		if rootless.IsRootless() {
 			uid := rootless.GetRootlessUID()
 			parts := strings.SplitN(c.config.CgroupParent, "/", 2)
@@ -922,7 +935,7 @@ func (c *Container) CGroupPath() (string, error) {
 		}
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
-		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.Engine.CgroupManager)
+		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", cgroupManager)
 	}
 }
 
