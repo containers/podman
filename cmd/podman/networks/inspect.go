@@ -3,12 +3,13 @@ package network
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
-	"strings"
+	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -39,31 +40,32 @@ func init() {
 	flags.StringVarP(&networkInspectOptions.Format, "format", "f", "", "Pretty-print network to JSON or using a Go template")
 }
 
-func networkInspect(cmd *cobra.Command, args []string) error {
+func networkInspect(_ *cobra.Command, args []string) error {
 	responses, err := registry.ContainerEngine().NetworkInspect(registry.Context(), args, entities.NetworkInspectOptions{})
 	if err != nil {
 		return err
 	}
-	b, err := json.MarshalIndent(responses, "", "  ")
-	if err != nil {
-		return err
-	}
-	if strings.ToLower(networkInspectOptions.Format) == "json" || networkInspectOptions.Format == "" {
-		fmt.Println(string(b))
-	} else {
-		var w io.Writer = os.Stdout
-		//There can be more than 1 in the inspect output.
-		format := "{{range . }}" + networkInspectOptions.Format + "{{end}}"
-		tmpl, err := template.New("inspectNetworks").Parse(format)
+
+	switch {
+	case parse.MatchesJSONFormat(networkInspectOptions.Format) || networkInspectOptions.Format == "":
+		b, err := json.MarshalIndent(responses, "", "  ")
 		if err != nil {
 			return err
 		}
-		if err := tmpl.Execute(w, responses); err != nil {
+		fmt.Println(string(b))
+	default:
+		row := report.NormalizeFormat(networkInspectOptions.Format)
+		// There can be more than 1 in the inspect output.
+		row = "{{range . }}" + row + "{{end}}"
+		tmpl, err := template.New("inspectNetworks").Parse(row)
+		if err != nil {
 			return err
 		}
-		if flusher, ok := w.(interface{ Flush() error }); ok {
-			return flusher.Flush()
-		}
+
+		w := tabwriter.NewWriter(os.Stdout, 8, 2, 0, ' ', 0)
+		defer w.Flush()
+
+		return tmpl.Execute(w, responses)
 	}
 	return nil
 }

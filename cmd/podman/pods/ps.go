@@ -3,7 +3,6 @@ package pods
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"sort"
 	"strings"
@@ -11,7 +10,9 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -34,10 +35,9 @@ var (
 )
 
 var (
-	defaultHeaders = "POD ID\tNAME\tSTATUS\tCREATED"
-	inputFilters   []string
-	noTrunc        bool
-	psInput        entities.PodPSOptions
+	inputFilters []string
+	noTrunc      bool
+	psInput      entities.PodPSOptions
 )
 
 func init() {
@@ -62,11 +62,6 @@ func init() {
 }
 
 func pods(cmd *cobra.Command, _ []string) error {
-	var (
-		w   io.Writer = os.Stdout
-		row string
-	)
-
 	if psInput.Quiet && len(psInput.Format) > 0 {
 		return errors.New("quiet and format cannot be used together")
 	}
@@ -89,80 +84,79 @@ func pods(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	if psInput.Format == "json" {
+	switch {
+	case parse.MatchesJSONFormat(psInput.Format):
 		b, err := json.MarshalIndent(responses, "", "  ")
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(b))
 		return nil
+	case psInput.Quiet:
+		for _, p := range responses {
+			fmt.Println(p.Id)
+		}
+		return nil
 	}
 
+	// Formatted output below
 	lpr := make([]ListPodReporter, 0, len(responses))
 	for _, r := range responses {
 		lpr = append(lpr, ListPodReporter{r})
 	}
-	headers, row := createPodPsOut()
-	if psInput.Quiet {
-		row = "{{.Id}}\n"
+
+	headers := report.Headers(ListPodReporter{}, map[string]string{
+		"ContainerIds":       "IDS",
+		"ContainerNames":     "NAMES",
+		"ContainerStatuses":  "STATUS",
+		"Namespace":          "NAMESPACES",
+		"NumberOfContainers": "# OF CONTAINERS",
+		"InfraId":            "INFRA ID",
+	})
+	row := podPsFormat()
+	if cmd.Flags().Changed("format") {
+		row = report.NormalizeFormat(psInput.Format)
 	}
-	if cmd.Flag("format").Changed {
-		row = psInput.Format
-		if !strings.HasPrefix(row, "\n") {
-			row += "\n"
-		}
-	}
-	format := "{{range . }}" + row + "{{end}}"
-	if !psInput.Quiet && !cmd.Flag("format").Changed {
-		format = headers + format
-	}
-	tmpl, err := template.New("listPods").Parse(format)
+	row = "{{range . }}" + row + "{{end}}"
+
+	tmpl, err := template.New("listPods").Parse(row)
 	if err != nil {
 		return err
 	}
-	if !psInput.Quiet {
-		w = tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	defer w.Flush()
+
+	if !psInput.Quiet && !cmd.Flag("format").Changed {
+		if err := tmpl.Execute(w, headers); err != nil {
+			return err
+		}
 	}
-	if err := tmpl.Execute(w, lpr); err != nil {
-		return err
-	}
-	if flusher, ok := w.(interface{ Flush() error }); ok {
-		return flusher.Flush()
-	}
-	return nil
+	return tmpl.Execute(w, lpr)
 }
 
-func createPodPsOut() (string, string) {
-	var row string
-	headers := defaultHeaders
-	row += "{{.Id}}"
-
-	row += "\t{{.Name}}\t{{.Status}}\t{{.Created}}"
+func podPsFormat() string {
+	row := []string{"{{.Id}}", "{{.Name}}", "{{.Status}}", "{{.Created}}}"}
 
 	if psInput.CtrIds {
-		headers += "\tIDS"
-		row += "\t{{.ContainerIds}}"
+		row = append(row, "{{.ContainerIds}}")
 	}
-	if psInput.CtrNames {
-		headers += "\tNAMES"
-		row += "\t{{.ContainerNames}}"
-	}
-	if psInput.CtrStatus {
-		headers += "\tSTATUS"
-		row += "\t{{.ContainerStatuses}}"
-	}
-	if psInput.Namespace {
-		headers += "\tCGROUP\tNAMESPACES"
-		row += "\t{{.Cgroup}}\t{{.Namespace}}"
-	}
-	if !psInput.CtrStatus && !psInput.CtrNames && !psInput.CtrIds {
-		headers += "\t# OF CONTAINERS"
-		row += "\t{{.NumberOfContainers}}"
 
+	if psInput.CtrNames {
+		row = append(row, "{{.ContainerNames}}")
 	}
-	headers += "\tINFRA ID\n"
-	row += "\t{{.InfraId}}\n"
-	return headers, row
+
+	if psInput.CtrStatus {
+		row = append(row, "{{.ContainerStatuses}}")
+	}
+
+	if psInput.Namespace {
+		row = append(row, "{{.Cgroup}}", "{{.Namespace}}")
+	}
+
+	if !psInput.CtrStatus && !psInput.CtrNames && !psInput.CtrIds {
+		row = append(row, "{{.NumberOfContainers}}")
+	}
+	return strings.Join(row, "\t") + "\n"
 }
 
 // ListPodReporter is a struct for pod ps output
@@ -180,7 +174,7 @@ func (l ListPodReporter) Labels() map[string]string {
 	return l.ListPodsReport.Labels
 }
 
-// NumberofContainers returns an int representation for
+// NumberOfContainers returns an int representation for
 // the number of containers belonging to the pod
 func (l ListPodReporter) NumberOfContainers() int {
 	return len(l.Containers)
@@ -192,7 +186,7 @@ func (l ListPodReporter) ID() string {
 }
 
 // Id returns the Pod id
-func (l ListPodReporter) Id() string { //nolint
+func (l ListPodReporter) Id() string { // nolint
 	if noTrunc {
 		return l.ListPodsReport.Id
 	}
@@ -206,7 +200,7 @@ func (l ListPodReporter) InfraID() string {
 
 // InfraId returns the infra container id for the pod
 // depending on trunc
-func (l ListPodReporter) InfraId() string { //nolint
+func (l ListPodReporter) InfraId() string { // nolint
 	if len(l.ListPodsReport.InfraId) == 0 {
 		return ""
 	}
