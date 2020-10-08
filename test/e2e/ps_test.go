@@ -11,6 +11,7 @@ import (
 	"github.com/docker/go-units"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman ps", func() {
@@ -218,17 +219,16 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps namespace flag with go template format", func() {
-		Skip("FIXME: table still not supported in podman ps command")
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--format", "table {{.ID}} {{.Image}} {{.ImageID}} {{.Labels}}"})
 		result.WaitWithDefaultTimeout()
-		Expect(strings.Contains(result.OutputToStringArray()[0], "table")).To(BeFalse())
-		Expect(strings.Contains(result.OutputToStringArray()[0], "ID")).To(BeTrue())
-		Expect(strings.Contains(result.OutputToStringArray()[0], "ImageID")).To(BeTrue())
-		Expect(strings.Contains(result.OutputToStringArray()[1], "alpine:latest")).To(BeTrue())
-		Expect(result.ExitCode()).To(Equal(0))
+
+		Expect(result.OutputToStringArray()[0]).ToNot(ContainSubstring("table"))
+		Expect(result.OutputToStringArray()[0]).ToNot(ContainSubstring("ImageID"))
+		Expect(result.OutputToStringArray()[0]).To(ContainSubstring("alpine:latest"))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman ps ancestor filter flag", func() {
