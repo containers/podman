@@ -178,6 +178,8 @@ case "$TEST_FLAVOR" in
             remove_packaged_podman_files
             make install PREFIX=/usr ETCDIR=/etc
         fi
+
+        install_test_configs
         ;;
     vendor) make clean ;;
     release) ;;
