@@ -68,4 +68,7 @@ for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
   t GET "libpod/images/$i/get?compress=false" 200 '[POSIX tar archive]'
 done
 
+# Export more than one image
+t GET images/get?names=alpine,busybox 200 '[POSIX tar archive]'
+
 # vim: filetype=sh

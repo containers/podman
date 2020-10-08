@@ -55,6 +55,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
+	defer os.Remove(tmpfile.Name())
 	if err := tmpfile.Close(); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
@@ -69,7 +70,6 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rdr.Close()
-	defer os.Remove(tmpfile.Name())
 	utils.WriteResponse(w, http.StatusOK, rdr)
 }
 
@@ -397,4 +397,44 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 	}{
 		Stream: fmt.Sprintf("Loaded image: %s\n", id),
 	})
+}
+
+func ExportImages(w http.ResponseWriter, r *http.Request) {
+	// 200 OK
+	// 500 Error
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	query := struct {
+		Names string `schema:"names"`
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	images := make([]string, 0)
+	images = append(images, strings.Split(query.Names, ",")...)
+	tmpfile, err := ioutil.TempFile("", "api.tar")
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		return
+	}
+	defer os.Remove(tmpfile.Name())
+	if err := tmpfile.Close(); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+		return
+	}
+	if err := runtime.ImageRuntime().SaveImages(r.Context(), images, "docker-archive", tmpfile.Name(), false); err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	rdr, err := os.Open(tmpfile.Name())
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
+		return
+	}
+	defer rdr.Close()
+	utils.WriteResponse(w, http.StatusOK, rdr)
 }

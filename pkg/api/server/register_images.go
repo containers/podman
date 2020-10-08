@@ -275,6 +275,31 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/get"), s.APIHandler(compat.ExportImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/get", s.APIHandler(compat.ExportImage)).Methods(http.MethodGet)
+	// swagger:operation GET /images/get compat get
+	// ---
+	// tags:
+	//  - images (compat)
+	// summary: Export several images
+	// description: Get a tarball containing all images and metadata for several image repositories
+	// parameters:
+	//  - in:  query
+	//    name:  names
+	//    type: string
+	//    required: true
+	//    description: one or more image names or IDs comma separated
+	// produces:
+	//  - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//     schema:
+	//      type: string
+	//      format: binary
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/images/get"), s.APIHandler(compat.ExportImages)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/get", s.APIHandler(compat.ExportImages)).Methods(http.MethodGet)
 	// swagger:operation GET /images/{name:.*}/history compat imageHistory
 	// ---
 	// tags:
