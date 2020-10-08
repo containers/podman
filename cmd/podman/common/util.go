@@ -200,8 +200,6 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 			}
 			newPort.HostPort = hostStart
 		}
-	} else {
-		newPort.HostPort = newPort.ContainerPort
 	}
 
 	hport := newPort.HostPort
