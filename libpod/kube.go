@@ -307,18 +307,40 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.config.Spec.Process.Terminal
 
-	// TODO add CPU limit support.
 	if c.config.Spec.Linux != nil &&
-		c.config.Spec.Linux.Resources != nil &&
-		c.config.Spec.Linux.Resources.Memory != nil &&
-		c.config.Spec.Linux.Resources.Memory.Limit != nil {
-		if kubeContainer.Resources.Limits == nil {
-			kubeContainer.Resources.Limits = v1.ResourceList{}
+		c.config.Spec.Linux.Resources != nil {
+		if c.config.Spec.Linux.Resources.Memory != nil &&
+			c.config.Spec.Linux.Resources.Memory.Limit != nil {
+			if kubeContainer.Resources.Limits == nil {
+				kubeContainer.Resources.Limits = v1.ResourceList{}
+			}
+
+			qty := kubeContainer.Resources.Limits.Memory()
+			qty.Set(*c.config.Spec.Linux.Resources.Memory.Limit)
+			kubeContainer.Resources.Limits[v1.ResourceMemory] = *qty
 		}
 
-		qty := kubeContainer.Resources.Limits.Memory()
-		qty.Set(*c.config.Spec.Linux.Resources.Memory.Limit)
-		kubeContainer.Resources.Limits[v1.ResourceMemory] = *qty
+		if c.config.Spec.Linux.Resources.CPU != nil &&
+			c.config.Spec.Linux.Resources.CPU.Quota != nil &&
+			c.config.Spec.Linux.Resources.CPU.Period != nil {
+			quota := *c.config.Spec.Linux.Resources.CPU.Quota
+			period := *c.config.Spec.Linux.Resources.CPU.Period
+
+			if quota > 0 && period > 0 {
+				cpuLimitMilli := int64(1000 * float64(quota) / float64(period))
+
+				// Kubernetes: precision finer than 1m is not allowed
+				if cpuLimitMilli >= 1 {
+					if kubeContainer.Resources.Limits == nil {
+						kubeContainer.Resources.Limits = v1.ResourceList{}
+					}
+
+					qty := kubeContainer.Resources.Limits.Cpu()
+					qty.SetMilli(cpuLimitMilli)
+					kubeContainer.Resources.Limits[v1.ResourceCPU] = *qty
+				}
+			}
+		}
 	}
 
 	return kubeContainer, kubeVolumes, nil

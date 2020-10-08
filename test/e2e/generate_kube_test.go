@@ -260,6 +260,38 @@ var _ = Describe("Podman generate kube", func() {
 		}
 	})
 
+	It("podman generate kube on pod with cpu limit", func() {
+		podName := "testCpuLimit"
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession.ExitCode()).To(Equal(0))
+
+		ctr1Name := "ctr1"
+		ctr1Session := podmanTest.Podman([]string{"create", "--name", ctr1Name, "--pod", podName,
+			"--cpus", "0.5", ALPINE, "top"})
+		ctr1Session.WaitWithDefaultTimeout()
+		Expect(ctr1Session.ExitCode()).To(Equal(0))
+
+		ctr2Name := "ctr2"
+		ctr2Session := podmanTest.Podman([]string{"create", "--name", ctr2Name, "--pod", podName,
+			"--cpu-period", "100000", "--cpu-quota", "50000", ALPINE, "top"})
+		ctr2Session.WaitWithDefaultTimeout()
+		Expect(ctr2Session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		for _, ctr := range pod.Spec.Containers {
+			cpuLimit := ctr.Resources.Limits.Cpu().MilliValue()
+			Expect(cpuLimit).To(Equal(int64(500)))
+		}
+	})
+
 	It("podman generate kube on pod with ports", func() {
 		podName := "test"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName, "-p", "4000:4000", "-p", "5000:5000"})
