@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/parallel"
 	"github.com/containers/podman/v2/pkg/rootless"
@@ -84,7 +85,7 @@ func init() {
 
 func Execute() {
 	if err := rootCmd.ExecuteContext(registry.GetContextWithOptions()); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err.Error())
+		fmt.Fprintln(os.Stderr, formatError(err))
 	} else if registry.GetExitCode() == registry.ExecErrorCodeGeneric {
 		// The exitCode modified from registry.ExecErrorCodeGeneric,
 		// indicates an application
@@ -330,4 +331,20 @@ func resolveDestination() (string, string, string) {
 		return "", registry.DefaultAPIAddress(), ""
 	}
 	return cfg.Engine.ActiveService, uri, ident
+}
+
+func formatError(err error) string {
+	var message string
+	if errors.Cause(err) == define.ErrOCIRuntime {
+		// OCIRuntimeErrors include the reason for the failure in the
+		// second to last message in the error chain.
+		message = fmt.Sprintf(
+			"Error: %s: %s",
+			define.ErrOCIRuntime.Error(),
+			strings.TrimSuffix(err.Error(), ": "+define.ErrOCIRuntime.Error()),
+		)
+	} else {
+		message = "Error: " + err.Error()
+	}
+	return message
 }
