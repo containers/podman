@@ -729,7 +729,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	// CGroup parent
 	// Need to check if it's the default, and not print if so.
 	defaultCgroupParent := ""
-	switch c.runtime.config.Engine.CgroupManager {
+	switch c.CgroupManager() {
 	case config.CgroupfsCgroupsManager:
 		defaultCgroupParent = CgroupfsDefaultCgroupParent
 	case config.SystemdCgroupsManager:
@@ -738,6 +738,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	if c.config.CgroupParent != defaultCgroupParent {
 		hostConfig.CgroupParent = c.config.CgroupParent
 	}
+	hostConfig.CgroupManager = c.CgroupManager()
 
 	// PID namespace mode
 	pidMode := ""
