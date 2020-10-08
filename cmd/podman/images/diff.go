@@ -1,6 +1,7 @@
 package images
 
 import (
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -49,11 +50,11 @@ func diff(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	switch diffOpts.Format {
-	case "":
-		return report.ChangesToTable(results)
-	case "json":
+	switch {
+	case parse.MatchesJSONFormat(diffOpts.Format):
 		return report.ChangesToJSON(results)
+	case diffOpts.Format == "":
+		return report.ChangesToTable(results)
 	default:
 		return errors.New("only supported value for '--format' is 'json'")
 	}
