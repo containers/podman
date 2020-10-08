@@ -398,6 +398,7 @@ docker-py_test_task:
     main_script: *main
     always: *artifacts
 
+
 # Does exactly what it says, execute the podman unit-tests on all primary
 # platforms and release versions.
 unit_test_task:
@@ -414,6 +415,30 @@ unit_test_task:
     setup_script: *setup
     main_script: *main
     always: *artifacts
+
+
+apiv2_test_task:
+    name: "APIv2 test on $DISTRO_NV"
+    alias: apiv2_test
+    depends_on:
+        - validate
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: apiv2
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: &logs_artifacts
+        <<: *artifacts
+        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
+        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
+        df_script: '$SCRIPT_BASE/logcollector.sh df'
+        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+
 
 # Execute the podman integration tests on all primary platforms and release
 # versions, as root, without involving the podman-remote client.
@@ -434,14 +459,8 @@ local_integration_test_task: &local_integration_test_task
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: &logs_artifacts
-        <<: *artifacts
-        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
-        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+    always: *logs_artifacts
+
 
 # Nearly identical to `local_integration_test` except all operations
 # are performed through the podman-remote client vs a podman "server"
@@ -598,6 +617,7 @@ success_task:
         - osx_alt_build
         - docker-py_test
         - unit_test
+        - apiv2_test
         - local_integration_test
         - remote_integration_test
         - rootless_integration_test

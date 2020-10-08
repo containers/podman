@@ -62,6 +62,10 @@ function _run_unit() {
     make localunit
 }
 
+function _run_apiv2() {
+    make localapiv2 |& logformatter
+}
+
 function _run_int() {
     dotest integration
 }
