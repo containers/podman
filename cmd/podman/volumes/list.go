@@ -3,13 +3,14 @@ package volumes
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -55,7 +56,6 @@ func init() {
 }
 
 func list(cmd *cobra.Command, args []string) error {
-	var w io.Writer = os.Stdout
 	if cliOpts.Quiet && cmd.Flag("format").Changed {
 		return errors.New("quiet and format flags cannot be used together")
 	}
@@ -73,40 +73,40 @@ func list(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if cliOpts.Format == "json" {
-		return outputJSON(responses)
-	}
 
-	if len(responses) < 1 {
+	switch {
+	case parse.MatchesJSONFormat(cliOpts.Format):
+		return outputJSON(responses)
+	case len(responses) < 1:
 		return nil
 	}
-	// "\t" from the command line is not being recognized as a tab
-	// replacing the string "\t" to a tab character if the user passes in "\t"
-	cliOpts.Format = strings.Replace(cliOpts.Format, `\t`, "\t", -1)
+	return outputTemplate(cmd, responses)
+}
+
+func outputTemplate(cmd *cobra.Command, responses []*entities.VolumeListReport) error {
+	headers := report.Headers(entities.VolumeListReport{}, map[string]string{
+		"Name": "VOLUME NAME",
+	})
+
+	row := report.NormalizeFormat(cliOpts.Format)
 	if cliOpts.Quiet {
-		cliOpts.Format = "{{.Name}}\n"
+		row = "{{.Name}}\n"
 	}
-	headers := "DRIVER\tVOLUME NAME\n"
-	row := cliOpts.Format
-	if !strings.HasSuffix(cliOpts.Format, "\n") {
-		row += "\n"
-	}
-	format := "{{range . }}" + row + "{{end}}"
-	if !cliOpts.Quiet && !cmd.Flag("format").Changed {
-		w = tabwriter.NewWriter(os.Stdout, 12, 2, 2, ' ', 0)
-		format = headers + format
-	}
-	tmpl, err := template.New("listVolume").Parse(format)
+	row = "{{range . }}" + row + "{{end}}"
+
+	tmpl, err := template.New("list volume").Parse(row)
 	if err != nil {
 		return err
 	}
-	if err := tmpl.Execute(w, responses); err != nil {
-		return err
+	w := tabwriter.NewWriter(os.Stdout, 12, 2, 2, ' ', 0)
+	defer w.Flush()
+
+	if !cliOpts.Quiet && !cmd.Flag("format").Changed {
+		if err := tmpl.Execute(w, headers); err != nil {
+			return errors.Wrapf(err, "failed to write report column headers")
+		}
 	}
-	if flusher, ok := w.(interface{ Flush() error }); ok {
-		return flusher.Flush()
-	}
-	return nil
+	return tmpl.Execute(w, responses)
 }
 
 func outputJSON(vols []*entities.VolumeListReport) error {

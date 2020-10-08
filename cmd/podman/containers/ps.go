@@ -12,7 +12,9 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -176,47 +178,51 @@ func ps(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	if listOpts.Format == "json" {
+
+	switch {
+	case parse.MatchesJSONFormat(listOpts.Format):
 		return jsonOut(listContainers)
-	}
-	if listOpts.Quiet {
+	case listOpts.Quiet:
 		return quietOut(listContainers)
 	}
+	// Output table Watch > 0 will refresh screen
 
 	responses := make([]psReporter, 0, len(listContainers))
 	for _, r := range listContainers {
 		responses = append(responses, psReporter{r})
 	}
 
-	headers, format := createPsOut()
-	if cmd.Flag("format").Changed {
-		format = strings.TrimPrefix(listOpts.Format, "table ")
-		if !strings.HasPrefix(format, "\n") {
-			format += "\n"
-		}
+	var headers, format string
+	if cmd.Flags().Changed("format") {
+		headers = ""
+		format = report.NormalizeFormat(listOpts.Format)
+	} else {
+		headers, format = createPsOut()
 	}
-	format = "{{range . }}" + format + "{{end}}"
-	if !listOpts.Quiet && !cmd.Flag("format").Changed {
-		format = headers + format
-	}
+	format = headers + "{{range . }}" + format + "{{end}}"
+
 	tmpl, err := template.New("listContainers").Parse(format)
 	if err != nil {
 		return err
 	}
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	defer w.Flush()
+
 	if listOpts.Watch > 0 {
 		for {
 			var responses []psReporter
 			tm.Clear()
 			tm.MoveCursor(1, 1)
 			tm.Flush()
-			listContainers, err := getResponses()
-			for _, r := range listContainers {
-				responses = append(responses, psReporter{r})
-			}
-			if err != nil {
+
+			if ctnrs, err := getResponses(); err != nil {
 				return err
+			} else {
+				for _, r := range ctnrs {
+					responses = append(responses, psReporter{r})
+				}
 			}
+
 			if err := tmpl.Execute(w, responses); err != nil {
 				return err
 			}
@@ -232,11 +238,11 @@ func ps(cmd *cobra.Command, args []string) error {
 		if err := tmpl.Execute(w, responses); err != nil {
 			return err
 		}
-		return w.Flush()
 	}
 	return nil
 }
 
+// cannot use report.Headers() as it doesn't support structures as fields
 func createPsOut() (string, string) {
 	var row string
 	if listOpts.Namespace {
@@ -257,12 +263,9 @@ func createPsOut() (string, string) {
 		headers += "\tSIZE"
 		row += "\t{{.Size}}"
 	}
-	if !strings.HasSuffix(headers, "\n") {
-		headers += "\n"
-	}
-	if !strings.HasSuffix(row, "\n") {
-		row += "\n"
-	}
+
+	headers = report.NormalizeFormat(headers)
+	row = report.NormalizeFormat(row)
 	return headers, row
 }
 
