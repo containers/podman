@@ -55,6 +55,7 @@ func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, add
 		sc.DockerRegistryUserAgent = parent.DockerRegistryUserAgent
 		sc.OSChoice = parent.OSChoice
 		sc.ArchitectureChoice = parent.ArchitectureChoice
+		sc.BlobInfoCacheDir = parent.BlobInfoCacheDir
 	}
 	return sc
 }
