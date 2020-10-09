@@ -57,13 +57,12 @@ func rmFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all containers")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running or unusable container.  The default is false")
-	flags.BoolVar(&rmOptions.Storage, "storage", false, "Remove container from storage library")
 	flags.BoolVarP(&rmOptions.Volumes, "volumes", "v", false, "Remove anonymous volumes associated with the container")
 	flags.StringArrayVarP(&rmOptions.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
 
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("ignore")
-		_ = flags.MarkHidden("cidfile")
+	if !registry.IsRemote() {
+		// This option is deprecated, but needs to still exists for backwards compatibility
+		flags.Bool("storage", false, "Remove container from storage library")
 		_ = flags.MarkHidden("storage")
 	}
 }
@@ -97,12 +96,6 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 	var (
 		errs utils.OutputErrors
 	)
-	// Storage conflicts with --all/--latest/--volumes/--cidfile/--ignore
-	if rmOptions.Storage {
-		if rmOptions.All || rmOptions.Ignore || rmOptions.Latest || rmOptions.Volumes || rmOptions.CIDFiles != nil {
-			return errors.Errorf("--storage conflicts with --volumes, --all, --latest, --ignore and --cidfile")
-		}
-	}
 	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
 		if setExit {

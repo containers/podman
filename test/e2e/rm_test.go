@@ -236,7 +236,6 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm --ignore bogus container and a running container", func() {
-
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

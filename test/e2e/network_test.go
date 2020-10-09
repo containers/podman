@@ -28,7 +28,7 @@ func removeConf(confPath string) {
 // generateNetworkConfig generates a cni config with a random name
 // it returns the network name and the filepath
 func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
-	// generate a random name to preven conflicts with other tests
+	// generate a random name to prevent conflicts with other tests
 	name := "net" + stringid.GenerateNonCryptoID()
 	path := filepath.Join(p.CNIConfigDir, fmt.Sprintf("%s.conflist", name))
 	conf := fmt.Sprintf(`{
