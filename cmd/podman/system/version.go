@@ -2,14 +2,15 @@ package system
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
 
-	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -41,30 +42,37 @@ func version(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	switch {
-	case parse.MatchesJSONFormat(versionFormat):
+	if parse.MatchesJSONFormat(versionFormat) {
 		s, err := json.MarshalToString(versions)
 		if err != nil {
 			return err
 		}
-		_, err = io.WriteString(os.Stdout, s+"\n")
-		return err
-	case cmd.Flag("format").Changed:
-		out := formats.StdoutTemplate{Output: versions, Template: versionFormat}
-		err := out.Out()
-		if err != nil {
-			// On Failure, assume user is using older version of podman version --format and check client
-			versionFormat = strings.Replace(versionFormat, ".Server.", ".", 1)
-			out = formats.StdoutTemplate{Output: versions.Client, Template: versionFormat}
-			if err1 := out.Out(); err1 != nil {
-				return err
-			}
-		}
+		fmt.Println(s)
 		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	defer w.Flush()
+
+	if cmd.Flag("format").Changed {
+		row := report.NormalizeFormat(versionFormat)
+		tmpl, err := template.New("version 2.0.0").Parse(row)
+		if err != nil {
+			return err
+		}
+		if err := tmpl.Execute(w, versions); err != nil {
+			// On Failure, assume user is using older version of podman version --format and check client
+			row = strings.Replace(row, ".Server.", ".", 1)
+			tmpl, err := template.New("version 1.0.0").Parse(row)
+			if err != nil {
+				return err
+			}
+			if err := tmpl.Execute(w, versions.Client); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 
 	if versions.Server != nil {
 		if _, err := fmt.Fprintf(w, "Client:\n"); err != nil {
@@ -81,13 +89,13 @@ func version(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func formatVersion(writer io.Writer, version *define.Version) {
-	fmt.Fprintf(writer, "Version:\t%s\n", version.Version)
-	fmt.Fprintf(writer, "API Version:\t%s\n", version.APIVersion)
-	fmt.Fprintf(writer, "Go Version:\t%s\n", version.GoVersion)
+func formatVersion(w io.Writer, version *define.Version) {
+	fmt.Fprintf(w, "Version:\t%s\n", version.Version)
+	fmt.Fprintf(w, "API Version:\t%s\n", version.APIVersion)
+	fmt.Fprintf(w, "Go Version:\t%s\n", version.GoVersion)
 	if version.GitCommit != "" {
-		fmt.Fprintf(writer, "Git Commit:\t%s\n", version.GitCommit)
+		fmt.Fprintf(w, "Git Commit:\t%s\n", version.GitCommit)
 	}
-	fmt.Fprintf(writer, "Built:\t%s\n", version.BuiltTime)
-	fmt.Fprintf(writer, "OS/Arch:\t%s\n", version.OsArch)
+	fmt.Fprintf(w, "Built:\t%s\n", version.BuiltTime)
+	fmt.Fprintf(w, "OS/Arch:\t%s\n", version.OsArch)
 }
