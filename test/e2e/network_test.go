@@ -224,6 +224,43 @@ var _ = Describe("Podman network", func() {
 		Expect(rmAll.ExitCode()).To(BeZero())
 	})
 
+	It("podman inspect container two CNI networks (container not running)", func() {
+		netName1 := "testNetThreeCNI1"
+		network1 := podmanTest.Podman([]string{"network", "create", netName1})
+		network1.WaitWithDefaultTimeout()
+		Expect(network1.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName1)
+
+		netName2 := "testNetThreeCNI2"
+		network2 := podmanTest.Podman([]string{"network", "create", netName2})
+		network2.WaitWithDefaultTimeout()
+		Expect(network2.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName2)
+
+		ctrName := "testCtr"
+		container := podmanTest.Podman([]string{"create", "--network", fmt.Sprintf("%s,%s", netName1, netName2), "--name", ctrName, ALPINE, "top"})
+		container.WaitWithDefaultTimeout()
+		Expect(container.ExitCode()).To(BeZero())
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+		conData := inspect.InspectContainerToJSON()
+		Expect(len(conData)).To(Equal(1))
+		Expect(len(conData[0].NetworkSettings.Networks)).To(Equal(2))
+		net1, ok := conData[0].NetworkSettings.Networks[netName1]
+		Expect(ok).To(BeTrue())
+		Expect(net1.NetworkID).To(Equal(netName1))
+		net2, ok := conData[0].NetworkSettings.Networks[netName2]
+		Expect(ok).To(BeTrue())
+		Expect(net2.NetworkID).To(Equal(netName2))
+
+		// Necessary to ensure the CNI network is removed cleanly
+		rmAll := podmanTest.Podman([]string{"rm", "-f", ctrName})
+		rmAll.WaitWithDefaultTimeout()
+		Expect(rmAll.ExitCode()).To(BeZero())
+	})
+
 	It("podman inspect container two CNI networks", func() {
 		netName1 := "testNetTwoCNI1"
 		network1 := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.51.0/25", netName1})
