@@ -828,6 +828,17 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 
 	// We can't do more if the network is down.
 	if c.state.NetNS == nil {
+		// We still want to make dummy configurations for each CNI net
+		// the container joined.
+		if len(c.config.Networks) > 0 {
+			settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(c.config.Networks))
+			for _, net := range c.config.Networks {
+				cniNet := new(define.InspectAdditionalNetwork)
+				cniNet.NetworkID = net
+				settings.Networks[net] = cniNet
+			}
+		}
+
 		return settings, nil
 	}
 
