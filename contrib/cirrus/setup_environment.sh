@@ -67,9 +67,8 @@ case "$CG_FS_TYPE" in
     *) die_unknown CG_FS_TYPE
 esac
 
-# Required to be defined by caller: Which distribution are we testing on
-# shellcheck disable=SC2154
-case "$DISTRO_NV" in
+# Which distribution are we testing on.
+case "$OS_RELEASE_ID" in
     ubuntu*) ;;
     fedora*)
         if ((CONTAINER==0)); then  # Not yet running inside a container
@@ -83,7 +82,7 @@ case "$DISTRO_NV" in
             setsebool container_manage_cgroup true
         fi
         ;;
-    *) die_unknown DISTRO_NV
+    *) die_unknown OS_RELEASE_ID
 esac
 
 # Required to be defined by caller: The environment where primary testing happens

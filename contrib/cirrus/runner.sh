@@ -139,6 +139,9 @@ function _run_vendor() {
 }
 
 function _run_build() {
+    # Ensure always start from clean-slate with all vendor modules downloaded
+    make clean
+    make vendor
     make podman-release
     make podman-remote-linux-release
 }

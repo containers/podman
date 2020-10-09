@@ -6,18 +6,20 @@
 # BEGIN Global export of all variables
 set -a
 
-# Due to differences across platforms and runtime execution environments,
-# handling of the (otherwise) default shell setup is non-uniform.  Rather
-# than attempt to workaround differences, simply force-load/set required
-# items every time this library is utilized.
-source /etc/profile
-source /etc/environment
-USER="$(whoami)"
-HOME="$(getent passwd $USER | cut -d : -f 6)"
-# Some platforms set and make this read-only
-[[ -n "$UID" ]] || \
-    UID=$(getent passwd $USER | cut -d : -f 3)
-GID=$(getent passwd $USER | cut -d : -f 4)
+if [[ "$CI" == "true" ]]; then
+    # Due to differences across platforms and runtime execution environments,
+    # handling of the (otherwise) default shell setup is non-uniform.  Rather
+    # than attempt to workaround differences, simply force-load/set required
+    # items every time this library is utilized.
+    source /etc/profile
+    source /etc/environment
+    USER="$(whoami)"
+    HOME="$(getent passwd $USER | cut -d : -f 6)"
+    # Some platforms set and make this read-only
+    [[ -n "$UID" ]] || \
+        UID=$(getent passwd $USER | cut -d : -f 3)
+    GID=$(getent passwd $USER | cut -d : -f 4)
+fi
 
 # During VM Image build, the 'containers/automation' installation
 # was performed.  The final step of that installation sets the
@@ -43,6 +45,9 @@ OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
 # Combined to ease soe usage
 OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
+# This is normally set from .cirrus.yml but default is necessary when
+# running under hack/get_ci_vm.sh since it cannot infer the value.
+DISTRO_NV="${DISTRO_NV:-$OS_REL_VER}"
 
 # Essential default paths, many are overridden when executing under Cirrus-CI
 GOPATH="${GOPATH:-/var/tmp/go}"

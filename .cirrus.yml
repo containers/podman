@@ -47,7 +47,7 @@ env:
     TEST_ENVIRON: host       # 'host' or 'container'
     PODBIN_NAME: podman      # 'podman' or 'remote'
     PRIV_NAME: root          # 'root' or 'rootless'
-    DISTRO_NV: $FEDORA_NAME  # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
+    DISTRO_NV:               # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
 
