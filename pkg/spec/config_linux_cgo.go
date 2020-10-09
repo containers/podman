@@ -39,7 +39,7 @@ func getSeccompConfig(config *SecurityConfig, configSpec *spec.Spec) (*spec.Linu
 		logrus.Debug("Loading default seccomp profile")
 		seccompConfig, err = goSeccomp.GetDefaultProfile(configSpec)
 		if err != nil {
-			return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", config.SeccompProfilePath)
+			return nil, errors.Wrapf(err, "loading default seccomp profile failed")
 		}
 	}
 
