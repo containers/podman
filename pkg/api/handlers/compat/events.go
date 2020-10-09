@@ -112,11 +112,15 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		errorChannel <- runtime.Events(r.Context(), readOpts)
 	}()
 
+	var flush = func() {}
+	if flusher, ok := w.(http.Flusher); ok {
+		flush = flusher.Flush
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if flusher, ok := w.(http.Flusher); ok {
-		flusher.Flush()
-	}
+	flush()
+
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 
@@ -124,6 +128,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		select {
 		case err := <-errorChannel:
 			if err != nil {
+				// FIXME StatusOK already sent above cannot send 500 here
 				utils.InternalServerError(w, err)
 				return
 			}
@@ -136,9 +141,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			if err := coder.Encode(e); err != nil {
 				logrus.Errorf("unable to write json: %q", err)
 			}
-			if flusher, ok := w.(http.Flusher); ok {
-				flusher.Flush()
-			}
+			flush()
 		case <-r.Context().Done():
 			return
 		}

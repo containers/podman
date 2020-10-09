@@ -220,7 +220,6 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build --http_proxy flag", func() {
-		SkipIfRemote("FIXME: This is broken should be fixed") // This is hanging currently.
 		os.Setenv("http_proxy", "1.2.3.4")
 		if IsRemote() {
 			podmanTest.StopRemoteService()

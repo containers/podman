@@ -3,11 +3,11 @@ package volumes
 import (
 	"fmt"
 	"os"
-	"strings"
 	"text/template"
 
-	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -53,26 +53,21 @@ func inspect(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	switch inspectFormat {
-	case "", formats.JSONString:
+
+	switch {
+	case parse.MatchesJSONFormat(inspectFormat), inspectFormat == "":
 		jsonOut, err := json.MarshalIndent(responses, "", "     ")
 		if err != nil {
 			return errors.Wrapf(err, "error marshalling inspect JSON")
 		}
 		fmt.Println(string(jsonOut))
 	default:
-		if !strings.HasSuffix(inspectFormat, "\n") {
-			inspectFormat += "\n"
-		}
-		format := "{{range . }}" + inspectFormat + "{{end}}"
-		tmpl, err := template.New("volumeInspect").Parse(format)
+		row := "{{range . }}" + report.NormalizeFormat(inspectFormat) + "{{end}}"
+		tmpl, err := template.New("volumeInspect").Parse(row)
 		if err != nil {
 			return err
 		}
-		if err := tmpl.Execute(os.Stdout, responses); err != nil {
-			return err
-		}
+		return tmpl.Execute(os.Stdout, responses)
 	}
 	return nil
-
 }
