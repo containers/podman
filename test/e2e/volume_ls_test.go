@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman volume ls", func() {
@@ -56,15 +57,15 @@ var _ = Describe("Podman volume ls", func() {
 	})
 
 	It("podman ls volume with Go template", func() {
-		Skip("FIXME: table still not supported in podman volume command")
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"volume", "ls", "--format", "table {{.Name}} {{.Driver}} {{.Scope}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(2))
+
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(1), session.OutputToString())
 	})
 
 	It("podman ls volume with --filter flag", func() {
