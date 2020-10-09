@@ -311,6 +311,22 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		ctrRestartPolicy = libpod.RestartPolicyAlways
 	}
 
+	configMaps := []v1.ConfigMap{}
+	for _, p := range options.ConfigMaps {
+		f, err := os.Open(p)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		cm, err := readConfigMapFromFile(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "%q", p)
+		}
+
+		configMaps = append(configMaps, cm)
+	}
+
 	containers := make([]*libpod.Container, 0, len(podYAML.Spec.Containers))
 	for _, container := range podYAML.Spec.Containers {
 		pullPolicy := util.PullImageMissing
@@ -334,7 +350,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
-		conf, err := kubeContainerToCreateConfig(ctx, container, newImage, namespaces, volumes, pod.ID(), podName, podInfraID, seccompPaths)
+		conf, err := kubeContainerToCreateConfig(ctx, container, newImage, namespaces, volumes, pod.ID(), podName, podInfraID, configMaps, seccompPaths)
 		if err != nil {
 			return nil, err
 		}
@@ -447,7 +463,7 @@ func setupSecurityContext(securityConfig *createconfig.SecurityConfig, userConfi
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, podName, infraID string, seccompPaths *kubeSeccompPaths) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, podName, infraID string, configMaps []v1.ConfigMap, seccompPaths *kubeSeccompPaths) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		pidConfig       createconfig.PidConfig
@@ -572,8 +588,17 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		}
 		envs = imageEnv
 	}
-	for _, e := range containerYAML.Env {
-		envs[e.Name] = e.Value
+	for _, env := range containerYAML.Env {
+		value := envVarValue(env, configMaps)
+
+		envs[env.Name] = value
+	}
+	for _, envFrom := range containerYAML.EnvFrom {
+		cmEnvs := envVarsFromConfigMap(envFrom, configMaps)
+
+		for k, v := range cmEnvs {
+			envs[k] = v
+		}
 	}
 	containerConfig.Env = envs
 
@@ -592,6 +617,62 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s%s", hostPath, volume.MountPath, readonly))
 	}
 	return &containerConfig, nil
+}
+
+// readConfigMapFromFile returns a kubernetes configMap obtained from --configmap flag
+func readConfigMapFromFile(r io.Reader) (v1.ConfigMap, error) {
+	var cm v1.ConfigMap
+
+	content, err := ioutil.ReadAll(r)
+	if err != nil {
+		return cm, errors.Wrapf(err, "unable to read ConfigMap YAML content")
+	}
+
+	if err := yaml.Unmarshal(content, &cm); err != nil {
+		return cm, errors.Wrapf(err, "unable to read YAML as Kube ConfigMap")
+	}
+
+	if cm.Kind != "ConfigMap" {
+		return cm, errors.Errorf("invalid YAML kind: %q. [ConfigMap] is the only supported by --configmap", cm.Kind)
+	}
+
+	return cm, nil
+}
+
+// envVarsFromConfigMap returns all key-value pairs as env vars from a configMap that matches the envFrom setting of a container
+func envVarsFromConfigMap(envFrom v1.EnvFromSource, configMaps []v1.ConfigMap) map[string]string {
+	envs := map[string]string{}
+
+	if envFrom.ConfigMapRef != nil {
+		cmName := envFrom.ConfigMapRef.Name
+
+		for _, c := range configMaps {
+			if cmName == c.Name {
+				envs = c.Data
+				break
+			}
+		}
+	}
+
+	return envs
+}
+
+// envVarValue returns the environment variable value configured within the container's env setting.
+// It gets the value from a configMap if specified, otherwise returns env.Value
+func envVarValue(env v1.EnvVar, configMaps []v1.ConfigMap) string {
+	for _, c := range configMaps {
+		if env.ValueFrom != nil {
+			if env.ValueFrom.ConfigMapKeyRef != nil {
+				if env.ValueFrom.ConfigMapKeyRef.Name == c.Name {
+					if value, ok := c.Data[env.ValueFrom.ConfigMapKeyRef.Key]; ok {
+						return value
+					}
+				}
+			}
+		}
+	}
+
+	return env.Value
 }
 
 // kubeSeccompPaths holds information about a pod YAML's seccomp configuration

@@ -30,6 +30,12 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
+**--configmap**=*path*
+
+Use Kubernetes configmap YAML at path to provide a source for environment variable values within the containers of the pod.
+
+Note: The *--configmap* option can be used multiple times or a comma-separated list of paths can be used to pass multiple Kubernetes configmap YAMLs.
+
 **--creds**
 
 The [username[:password]] to use to authenticate with the registry if required.
@@ -63,6 +69,15 @@ Print usage statement
 Recreate the pod and containers as described in a file called `demo.yml`
 ```
 $ podman play kube demo.yml
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+```
+
+Provide `configmap-foo.yml` and `configmap-bar.yml` as sources for environment variables within the containers.
+```
+$ podman play kube demo.yml --configmap configmap-foo.yml,configmap-bar.yml
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+
+$ podman play kube demo.yml --configmap configmap-foo.yml --configmap configmap-bar.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 

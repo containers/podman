@@ -24,6 +24,8 @@ type PlayKubeOptions struct {
 	// SeccompProfileRoot - path to a directory containing seccomp
 	// profiles.
 	SeccompProfileRoot string
+	// ConfigMaps - slice of pathnames to kubernetes configmap YAMLs.
+	ConfigMaps []string
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube

@@ -25,6 +25,19 @@ spec:
   hostname: unknown
 `
 
+var configMapYamlTemplate = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Name }}
+data:
+{{ with .Data }}
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
+`
+
 var podYamlTemplate = `
 apiVersion: v1
 kind: Pod
@@ -75,6 +88,26 @@ spec:
     - name: HOSTNAME
     - name: container
       value: podman
+    {{ range .Env }}
+    - name: {{ .Name }}
+    {{ if (eq .ValueFrom "configmap") }}
+      valueFrom:
+        configMapKeyRef:
+          name: {{ .RefName }}
+          key: {{ .RefKey }}
+    {{ else }}
+      value: {{ .Value }}
+    {{ end }}
+    {{ end }}
+    {{ with .EnvFrom}}
+    envFrom:
+    {{ range . }}
+    {{ if (eq .From "configmap") }}
+    - configMapRef:
+        name: {{ .Name }}
+    {{ end }}
+    {{ end }}
+    {{ end }}
     image: {{ .Image }}
     name: {{ .Name }}
     imagePullPolicy: {{ .PullPolicy }}
@@ -226,6 +259,7 @@ var (
 	defaultPodName        = "testPod"
 	defaultVolName        = "testVol"
 	defaultDeploymentName = "testDeployment"
+	defaultConfigMapName  = "testConfigMap"
 	seccompPwdEPERM       = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 )
 
@@ -244,34 +278,64 @@ func writeYaml(content string, fileName string) error {
 	return nil
 }
 
-func generatePodKubeYaml(pod *Pod, fileName string) error {
+func generateKubeYaml(kind string, object interface{}, pathname string) error {
+	var yamlTemplate string
 	templateBytes := &bytes.Buffer{}
 
-	t, err := template.New("pod").Parse(podYamlTemplate)
+	switch kind {
+	case "configmap":
+		yamlTemplate = configMapYamlTemplate
+	case "pod":
+		yamlTemplate = podYamlTemplate
+	case "deployment":
+		yamlTemplate = deploymentYamlTemplate
+	default:
+		return fmt.Errorf("unsupported kubernetes kind")
+	}
+
+	t, err := template.New(kind).Parse(yamlTemplate)
 	if err != nil {
 		return err
 	}
 
-	if err := t.Execute(templateBytes, pod); err != nil {
+	if err := t.Execute(templateBytes, object); err != nil {
 		return err
 	}
 
-	return writeYaml(templateBytes.String(), fileName)
+	return writeYaml(templateBytes.String(), pathname)
 }
 
-func generateDeploymentKubeYaml(deployment *Deployment, fileName string) error {
-	templateBytes := &bytes.Buffer{}
+// ConfigMap describes the options a kube yaml can be configured at configmap level
+type ConfigMap struct {
+	Name string
+	Data map[string]string
+}
 
-	t, err := template.New("deployment").Parse(deploymentYamlTemplate)
-	if err != nil {
-		return err
+func getConfigMap(options ...configMapOption) *ConfigMap {
+	cm := ConfigMap{
+		Name: defaultConfigMapName,
+		Data: map[string]string{},
 	}
 
-	if err := t.Execute(templateBytes, deployment); err != nil {
-		return err
+	for _, option := range options {
+		option(&cm)
 	}
 
-	return writeYaml(templateBytes.String(), fileName)
+	return &cm
+}
+
+type configMapOption func(*ConfigMap)
+
+func withConfigMapName(name string) configMapOption {
+	return func(configmap *ConfigMap) {
+		configmap.Name = name
+	}
+}
+
+func withConfigMapData(k, v string) configMapOption {
+	return func(configmap *ConfigMap) {
+		configmap.Data[k] = v
+	}
 }
 
 // Pod describes the options a kube yaml can be configured at pod level
@@ -450,12 +514,14 @@ type Ctr struct {
 	VolumeMountPath string
 	VolumeName      string
 	VolumeReadOnly  bool
+	Env             []Env
+	EnvFrom         []EnvFrom
 }
 
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
 // and the configured options
 func getCtr(options ...ctrOption) *Ctr {
-	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, defaultCtrArg, true, false, nil, nil, "", "", "", false, "", "", false}
+	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, defaultCtrArg, true, false, nil, nil, "", "", "", false, "", "", false, []Env{}, []EnvFrom{}}
 	for _, option := range options {
 		option(&c)
 	}
@@ -524,6 +590,31 @@ func withVolumeMount(mountPath string, readonly bool) ctrOption {
 	}
 }
 
+func withEnv(name, value, valueFrom, refName, refKey string) ctrOption {
+	return func(c *Ctr) {
+		e := Env{
+			Name:      name,
+			Value:     value,
+			ValueFrom: valueFrom,
+			RefName:   refName,
+			RefKey:    refKey,
+		}
+
+		c.Env = append(c.Env, e)
+	}
+}
+
+func withEnvFrom(name, from string) ctrOption {
+	return func(c *Ctr) {
+		e := EnvFrom{
+			Name: name,
+			From: from,
+		}
+
+		c.EnvFrom = append(c.EnvFrom, e)
+	}
+}
+
 func getCtrNameInPod(pod *Pod) string {
 	return fmt.Sprintf("%s-%s", pod.Name, defaultCtrName)
 }
@@ -542,6 +633,19 @@ func getVolume(vType, vPath string) *Volume {
 		Path: vPath,
 		Type: vType,
 	}
+}
+
+type Env struct {
+	Name      string
+	Value     string
+	ValueFrom string
+	RefName   string
+	RefKey    string
+}
+
+type EnvFrom struct {
+	Name string
+	From string
 }
 
 var _ = Describe("Podman generate kube", func() {
@@ -581,7 +685,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube fail with nonexist authfile", func() {
-		err := generatePodKubeYaml(getPod(), kubeYaml)
+		err := generateKubeYaml("pod", getPod(), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", "--authfile", "/tmp/nonexist", kubeYaml})
@@ -592,7 +696,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube test correct command", func() {
 		pod := getPod()
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -609,7 +713,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube test correct command with only set command in yaml file", func() {
 		pod := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg(nil))))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -626,7 +730,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube test correct command with only set args in yaml file", func() {
 		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(nil), withArg([]string{"echo", "hello"}))))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -644,7 +748,7 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman play kube test correct output", func() {
 		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
 
-		err := generatePodKubeYaml(p, kubeYaml)
+		err := generateKubeYaml("pod", p, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -672,7 +776,7 @@ var _ = Describe("Podman generate kube", func() {
 		}
 		for _, v := range testSli {
 			pod := getPod(withPodName(v[0]), withRestartPolicy(v[1]))
-			err := generatePodKubeYaml(pod, kubeYaml)
+			err := generateKubeYaml("pod", pod, kubeYaml)
 			Expect(err).To(BeNil())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -686,9 +790,52 @@ var _ = Describe("Podman generate kube", func() {
 		}
 	})
 
+	It("podman play kube test env value from configmap", func() {
+		SkipIfRemote("configmap list is not supported as a param")
+		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
+		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+		err := generateKubeYaml("configmap", cm, cmYamlPathname)
+		Expect(err).To(BeNil())
+
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO"))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
+	})
+
+	It("podman play kube test get all key-value pairs from configmap as envs", func() {
+		SkipIfRemote("configmap list is not supported as a param")
+		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
+		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO1", "foo1"), withConfigMapData("FOO2", "foo2"))
+		err := generateKubeYaml("configmap", cm, cmYamlPathname)
+		Expect(err).To(BeNil())
+
+		pod := getPod(withCtr(getCtr(withEnvFrom("foo", "configmap"))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO1=foo1`))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO2=foo2`))
+	})
+
 	It("podman play kube test hostname", func() {
 		pod := getPod()
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -704,7 +851,7 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman play kube test with customized hostname", func() {
 		hostname := "myhostname"
 		pod := getPod(withHostname(hostname))
-		err := generatePodKubeYaml(getPod(withHostname(hostname)), kubeYaml)
+		err := generateKubeYaml("pod", getPod(withHostname(hostname)), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -727,7 +874,7 @@ var _ = Describe("Podman generate kube", func() {
 				"test4.podman.io",
 			}),
 		)
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -746,7 +893,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctr := getCtr(withCapAdd([]string{capAdd}), withCmd([]string{"cat", "/proc/self/status"}), withArg(nil))
 
 		pod := getPod(withCtr(ctr))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -764,7 +911,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctr := getCtr(withCapDrop([]string{capDrop}))
 
 		pod := getPod(withCtr(ctr))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -780,7 +927,7 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman play kube no security context", func() {
 		// expect play kube to not fail if no security context is specified
 		pod := getPod(withCtr(getCtr(withSecurityContext(false))))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -805,7 +952,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctr := getCtr(withCmd([]string{"pwd"}), withArg(nil))
 
 		pod := getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost/"+filepath.Base(jsonFile)))
-		err = generatePodKubeYaml(pod, kubeYaml)
+		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		// CreateSeccompJson will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
@@ -832,7 +979,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctr := getCtr(withCmd([]string{"pwd"}), withArg(nil))
 
 		pod := getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost/"+filepath.Base(jsonFile)))
-		err = generatePodKubeYaml(pod, kubeYaml)
+		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		// CreateSeccompJson will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
@@ -848,7 +995,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube with pull policy of never should be 125", func() {
 		ctr := getCtr(withPullPolicy("never"), withImage(BB_GLIBC))
-		err := generatePodKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -858,7 +1005,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube with pull policy of missing", func() {
 		ctr := getCtr(withPullPolicy("missing"), withImage(BB))
-		err := generatePodKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -884,7 +1031,7 @@ var _ = Describe("Podman generate kube", func() {
 		oldBBinspect := inspect.InspectImageJSON()
 
 		ctr := getCtr(withPullPolicy("always"), withImage(BB))
-		err := generatePodKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -915,7 +1062,7 @@ var _ = Describe("Podman generate kube", func() {
 		oldBBinspect := inspect.InspectImageJSON()
 
 		ctr := getCtr(withImage(BB))
-		err := generatePodKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -973,7 +1120,7 @@ spec:
 	// Deployment related tests
 	It("podman play kube deployment 1 replica test correct command", func() {
 		deployment := getDeployment()
-		err := generateDeploymentKubeYaml(deployment, kubeYaml)
+		err := generateKubeYaml("deployment", deployment, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -993,7 +1140,7 @@ spec:
 		var i, numReplicas int32
 		numReplicas = 5
 		deployment := getDeployment(withReplicas(numReplicas))
-		err := generateDeploymentKubeYaml(deployment, kubeYaml)
+		err := generateKubeYaml("deployment", deployment, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1016,7 +1163,7 @@ spec:
 		ctr := getCtr(withHostIP(ip, port), withImage(BB))
 
 		pod := getPod(withCtr(ctr))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1033,7 +1180,7 @@ spec:
 		hostPathLocation := filepath.Join(tempdir, "file")
 
 		pod := getPod(withVolume(getVolume(`""`, hostPathLocation)))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1048,7 +1195,7 @@ spec:
 		f.Close()
 
 		pod := getPod(withVolume(getVolume(`""`, hostPathLocation)))
-		err = generatePodKubeYaml(pod, kubeYaml)
+		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1060,7 +1207,7 @@ spec:
 		hostPathLocation := filepath.Join(tempdir, "file")
 
 		pod := getPod(withVolume(getVolume("File", hostPathLocation)))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1075,7 +1222,7 @@ spec:
 		f.Close()
 
 		pod := getPod(withVolume(getVolume("File", hostPathLocation)))
-		err = generatePodKubeYaml(pod, kubeYaml)
+		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1087,7 +1234,7 @@ spec:
 		hostPathLocation := filepath.Join(tempdir, "file")
 
 		pod := getPod(withVolume(getVolume("FileOrCreate", hostPathLocation)))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1103,7 +1250,7 @@ spec:
 		hostPathLocation := filepath.Join(tempdir, "file")
 
 		pod := getPod(withVolume(getVolume("DirectoryOrCreate", hostPathLocation)))
-		err := generatePodKubeYaml(pod, kubeYaml)
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1123,7 +1270,7 @@ spec:
 		f.Close()
 
 		pod := getPod(withVolume(getVolume("Socket", hostPathLocation)))
-		err = generatePodKubeYaml(pod, kubeYaml)
+		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1139,7 +1286,7 @@ spec:
 
 		ctr := getCtr(withVolumeMount(hostPathLocation, true), withImage(BB))
 		pod := getPod(withVolume(getVolume("File", hostPathLocation)), withCtr(ctr))
-		err = generatePodKubeYaml(pod, kubeYaml)
+		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -1162,7 +1309,7 @@ spec:
 			withReplicas(numReplicas),
 			withPod(getPod(withLabel(expectedLabelKey, expectedLabelValue))),
 		)
-		err := generateDeploymentKubeYaml(deployment, kubeYaml)
+		err := generateKubeYaml("deployment", deployment, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
