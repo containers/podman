@@ -6,6 +6,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod stats", func() {
@@ -156,9 +157,9 @@ var _ = Describe("Podman pod stats", func() {
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.CID}} {{.Pod}} {{.Mem}} {{.MemUsage}} {{.CPU}} {{.NetIO}} {{.BlockIO}} {{.PIDS}} {{.Pod}}\""})
+		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "table {{.CID}} {{.Pod}} {{.Mem}} {{.MemUsage}} {{.CPU}} {{.NetIO}} {{.BlockIO}} {{.PIDS}} {{.Pod}}"})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats).To(Exit(0))
 	})
 
 	It("podman stats with invalid GO template", func() {

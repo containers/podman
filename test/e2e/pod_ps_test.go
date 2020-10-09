@@ -8,6 +8,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman ps", func() {
@@ -63,7 +64,7 @@ var _ = Describe("Podman ps", func() {
 
 		result := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).To(Exit(0))
 		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
 		Expect(podid).To(ContainSubstring(result.OutputToStringArray()[0]))
 	})
