@@ -139,7 +139,8 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			if flusher, ok := w.(http.Flusher); ok {
 				flusher.Flush()
 			}
+		case <-r.Context().Done():
+			return
 		}
-
 	}
 }
