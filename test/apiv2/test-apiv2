@@ -111,6 +111,14 @@ function _show_ok() {
 
     _bump $testcounter_file
     count=$(<$testcounter_file)
+
+    # "skip" is a special case of "ok". Assume that our caller has included
+    # the magical '# skip - reason" comment string.
+    if [[ $ok == "skip" ]]; then
+        # colon-plus: replace green with yellow, but only if green is non-null
+        green="${green:+\e[33m}"
+        ok=1
+    fi
     if [ $ok -eq 1 ]; then
         echo -e "${green}ok $count ${TEST_CONTEXT} $testname${reset}"
         echo    "ok $count ${TEST_CONTEXT} $testname" >>$LOG
@@ -241,6 +249,17 @@ function t() {
     fi
 
     local i
+
+    # Special case: if response code does not match, dump the response body
+    # and skip all further subtests.
+    if [[ $actual_code != $expected_code ]]; then
+        echo -e "#  response: $output"
+        for i; do
+            _show_ok skip "$testname: $i # skip - wrong return code"
+        done
+        return
+    fi
+
     for i; do
         if expr "$i" : "[^=~]\+=.*" >/dev/null; then
             # Exact match on json field

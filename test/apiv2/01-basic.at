@@ -68,10 +68,13 @@ for i in $(seq 1 10); do
 done
 t1=$SECONDS
 delta_t=$((t1 - t2))
-if [ $delta_t -le 5 ]; then
-    _show_ok 1 "Time for ten /info requests ($delta_t seconds) <= 5s"
+
+# Desired number of seconds in which we expect to run.
+want=7
+if [ $delta_t -le $want ]; then
+    _show_ok 1 "Time for ten /info requests ($delta_t seconds) <= ${want}s"
 else
-    _show_ok 0 "Time for ten /info requests" "<= 5 seconds" "$delta_t seconds"
+    _show_ok 0 "Time for ten /info requests" "<= $want seconds" "$delta_t seconds"
 fi
 
 # Simple events test (see #7078)
