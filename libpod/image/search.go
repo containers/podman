@@ -2,11 +2,13 @@ package image
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	sysreg "github.com/containers/podman/v2/pkg/registries"
 	"github.com/pkg/errors"
@@ -34,6 +36,8 @@ type SearchResult struct {
 	Official string
 	// Automated indicates if the image was created by an automated build.
 	Automated string
+	// Tag is the image tag
+	Tag string
 }
 
 // SearchOptions are used to control the behaviour of SearchImages.
@@ -49,6 +53,8 @@ type SearchOptions struct {
 	Authfile string
 	// InsecureSkipTLSVerify allows to skip TLS verification.
 	InsecureSkipTLSVerify types.OptionalBool
+	// ListTags returns the search result with available tags
+	ListTags bool
 }
 
 // SearchFilter allows filtering the results of SearchImages.
@@ -147,6 +153,15 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 	// every types.SystemContext, and to compute the value just once in one
 	// place.
 	sc.SystemRegistriesConfPath = sysreg.SystemRegistriesConfPath()
+	if options.ListTags {
+		results, err := searchRepositoryTags(registry, term, sc, options)
+		if err != nil {
+			logrus.Errorf("error listing registry tags %q: %v", registry, err)
+			return []SearchResult{}
+		}
+		return results
+	}
+
 	results, err := docker.SearchRegistry(context.TODO(), sc, registry, term, limit)
 	if err != nil {
 		logrus.Errorf("error searching registry %q: %v", registry, err)
@@ -205,6 +220,42 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 		paramsArr = append(paramsArr, params)
 	}
 	return paramsArr
+}
+
+func searchRepositoryTags(registry, term string, sc *types.SystemContext, options SearchOptions) ([]SearchResult, error) {
+	dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
+	imageRef, err := alltransports.ParseImageName(fmt.Sprintf("%s/%s", registry, term))
+	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
+		return nil, errors.Errorf("reference %q must be a docker reference", term)
+	} else if err != nil {
+		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, fmt.Sprintf("%s/%s", registry, term)))
+		if err != nil {
+			return nil, errors.Errorf("reference %q must be a docker reference", term)
+		}
+	}
+	tags, err := docker.GetRepositoryTags(context.TODO(), sc, imageRef)
+	if err != nil {
+		return nil, errors.Errorf("error getting repository tags: %v", err)
+	}
+	limit := maxQueries
+	if len(tags) < limit {
+		limit = len(tags)
+	}
+	if options.Limit != 0 {
+		limit = len(tags)
+		if options.Limit < limit {
+			limit = options.Limit
+		}
+	}
+	paramsArr := []SearchResult{}
+	for i := 0; i < limit; i++ {
+		params := SearchResult{
+			Name: imageRef.DockerReference().Name(),
+			Tag:  tags[i],
+		}
+		paramsArr = append(paramsArr, params)
+	}
+	return paramsArr, nil
 }
 
 // ParseSearchFilter turns the filter into a SearchFilter that can be used for

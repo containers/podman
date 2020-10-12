@@ -314,6 +314,7 @@ func Search(ctx context.Context, term string, opts entities.ImageSearchOptions) 
 	params.Set("term", term)
 	params.Set("limit", strconv.Itoa(opts.Limit))
 	params.Set("noTrunc", strconv.FormatBool(opts.NoTrunc))
+	params.Set("listTags", strconv.FormatBool(opts.ListTags))
 	for _, f := range opts.Filters {
 		params.Set("filters", f)
 	}

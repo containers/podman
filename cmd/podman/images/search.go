@@ -85,6 +85,7 @@ func searchFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&searchOptions.NoTrunc, "no-trunc", false, "Do not truncate the output")
 	flags.StringVar(&searchOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.BoolVar(&searchOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	flags.BoolVar(&searchOptions.ListTags, "list-tags", false, "List the tags of the input registry")
 }
 
 // imageSearch implements the command for searching images.
@@ -99,6 +100,10 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 
 	if searchOptions.Limit > 100 {
 		return errors.Errorf("Limit %d is outside the range of [1, 100]", searchOptions.Limit)
+	}
+
+	if searchOptions.ListTags && len(searchOptions.Filters) != 0 {
+		return errors.Errorf("filters are not applicable to list tags result")
 	}
 
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
@@ -119,12 +124,19 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	if len(searchReport) == 0 {
 		return nil
 	}
 
 	hdrs := report.Headers(entities.ImageSearchReport{}, nil)
 	row := "{{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\n"
+	if searchOptions.ListTags {
+		if len(searchOptions.Filters) != 0 {
+			return errors.Errorf("filters are not applicable to list tags result")
+		}
+		row = "{{.Name}}\t{{.Tag}}\n"
+	}
 	if cmd.Flags().Changed("format") {
 		row = report.NormalizeFormat(searchOptions.Format)
 	}

@@ -214,6 +214,8 @@ type ImageSearchOptions struct {
 	NoTrunc bool
 	// SkipTLSVerify to skip  HTTPS and certificate verification.
 	SkipTLSVerify types.OptionalBool
+	// ListTags search the available tags of the repository
+	ListTags bool
 }
 
 // ImageSearchReport is the response from searching images.
@@ -230,6 +232,8 @@ type ImageSearchReport struct {
 	Official string
 	// Automated indicates if the image was created by an automated build.
 	Automated string
+	// Tag is the repository tag
+	Tag string
 }
 
 // Image List Options

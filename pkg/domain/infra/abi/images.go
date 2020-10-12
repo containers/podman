@@ -511,6 +511,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 		Limit:                 opts.Limit,
 		NoTrunc:               opts.NoTrunc,
 		InsecureSkipTLSVerify: opts.SkipTLSVerify,
+		ListTags:              opts.ListTags,
 	}
 
 	searchResults, err := image.SearchImages(term, searchOpts)
@@ -529,6 +530,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 		reports[i].Stars = searchResults[i].Stars
 		reports[i].Official = searchResults[i].Official
 		reports[i].Automated = searchResults[i].Automated
+		reports[i].Tag = searchResults[i].Tag
 	}
 
 	return reports, nil

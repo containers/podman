@@ -169,6 +169,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
 	//        - `stars=<number>` Matches images that has at least 'number' stars.
+	//  - in: query
+	//    name: listTags
+	//    type: boolean
+	//    description: list the available tags in the repository
 	// produces:
 	// - application/json
 	// responses:

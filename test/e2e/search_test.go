@@ -423,4 +423,24 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray()) > 1).To(BeTrue())
 	})
+
+	It("podman search repository tags", func() {
+		search := podmanTest.Podman([]string{"search", "--list-tags", "--limit", "30", "docker.io/library/alpine"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(len(search.OutputToStringArray())).To(Equal(31))
+
+		search = podmanTest.Podman([]string{"search", "--list-tags", "docker.io/library/alpine"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(len(search.OutputToStringArray()) > 2).To(BeTrue())
+
+		search = podmanTest.Podman([]string{"search", "--filter=is-official", "--list-tags", "docker.io/library/alpine"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Not(Equal(0)))
+
+		search = podmanTest.Podman([]string{"search", "--list-tags", "docker.io/library/"})
+		search.WaitWithDefaultTimeout()
+		Expect(len(search.OutputToStringArray()) == 0).To(BeTrue())
+	})
 })

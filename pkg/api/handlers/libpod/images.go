@@ -608,6 +608,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		NoTrunc   bool     `json:"noTrunc"`
 		Filters   []string `json:"filters"`
 		TLSVerify bool     `json:"tlsVerify"`
+		ListTags  bool     `json:"listTags"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -618,8 +619,9 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	options := image.SearchOptions{
-		Limit:   query.Limit,
-		NoTrunc: query.NoTrunc,
+		Limit:    query.Limit,
+		NoTrunc:  query.NoTrunc,
+		ListTags: query.ListTags,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
@@ -650,6 +652,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		reports[i].Stars = searchResults[i].Stars
 		reports[i].Official = searchResults[i].Official
 		reports[i].Automated = searchResults[i].Automated
+		reports[i].Tag = searchResults[i].Tag
 	}
 
 	utils.WriteResponse(w, http.StatusOK, reports)

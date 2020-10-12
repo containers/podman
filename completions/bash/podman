@@ -2024,6 +2024,7 @@ _podman_search() {
 	      --help
 	      -h
 	      --no-trunc
+	      --list-tags
 	"
 	_complete_ "$options_with_args" "$boolean_options"
 }
