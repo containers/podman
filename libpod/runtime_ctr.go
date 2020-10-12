@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
+	"github.com/containers/podman/v2/libpod/shutdown"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/storage"
@@ -148,6 +149,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	if err := ctr.validate(); err != nil {
 		return nil, err
 	}
+
+	// Inhibit shutdown until creation succeeds
+	shutdown.Inhibit()
+	defer shutdown.Uninhibit()
 
 	// Allocate a lock for the container
 	lock, err := r.lockManager.AllocateLock()

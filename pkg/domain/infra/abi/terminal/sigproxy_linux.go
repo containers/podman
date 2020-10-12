@@ -5,12 +5,17 @@ import (
 	"syscall"
 
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/shutdown"
 	"github.com/containers/podman/v2/pkg/signal"
 	"github.com/sirupsen/logrus"
 )
 
 // ProxySignals ...
 func ProxySignals(ctr *libpod.Container) {
+	// Stop catching the shutdown signals (SIGINT, SIGTERM) - they're going
+	// to the container now.
+	shutdown.Stop()
+
 	sigBuffer := make(chan os.Signal, 128)
 	signal.CatchAll(sigBuffer)
 

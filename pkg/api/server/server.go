@@ -190,6 +190,9 @@ func (s *APIServer) Serve() error {
 	}); err != nil {
 		return err
 	}
+	// Unregister the libpod handler, which just calls exit(1).
+	// Ignore errors if it doesn't exist.
+	_ = shutdown.Unregister("libpod")
 
 	errChan := make(chan error, 1)
 
@@ -226,12 +229,7 @@ func (s *APIServer) Serve() error {
 		errChan <- nil
 	}()
 
-	select {
-	case err := <-errChan:
-		return err
-	}
-
-	return nil
+	return <-errChan
 }
 
 // Shutdown is a clean shutdown waiting on existing clients

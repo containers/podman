@@ -84,6 +84,10 @@ func Uninhibit() {
 // Register registers a function that will be executed when Podman is terminated
 // by a signal.
 func Register(name string, handler func() error) error {
+	if handlers == nil {
+		handlers = make(map[string]func() error)
+	}
+
 	if _, ok := handlers[name]; ok {
 		return errors.Errorf("handler with name %s already exists", name)
 	}
@@ -95,6 +99,10 @@ func Register(name string, handler func() error) error {
 
 // Unregister un-registers a given shutdown handler.
 func Unregister(name string) error {
+	if handlers == nil {
+		handlers = make(map[string]func() error)
+	}
+
 	if _, ok := handlers[name]; !ok {
 		return errors.Errorf("no handler with name %s found", name)
 	}
