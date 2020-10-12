@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -111,7 +112,19 @@ spec:
     image: {{ .Image }}
     name: {{ .Name }}
     imagePullPolicy: {{ .PullPolicy }}
-    resources: {}
+    {{- if or .CpuRequest .CpuLimit .MemoryRequest .MemoryLimit }}
+    resources:
+      {{- if or .CpuRequest .MemoryRequest }}
+      requests:
+        {{if .CpuRequest }}cpu: {{ .CpuRequest }}{{ end }}
+        {{if .MemoryRequest }}memory: {{ .MemoryRequest }}{{ end }}
+      {{- end }}
+      {{- if or .CpuLimit .MemoryLimit }}
+      limits:
+        {{if .CpuLimit }}cpu: {{ .CpuLimit }}{{ end }}
+        {{if .MemoryLimit }}memory: {{ .MemoryLimit }}{{ end }}
+      {{- end }}
+    {{- end }}
     {{ if .SecurityContext }}
     securityContext:
       allowPrivilegeEscalation: true
@@ -223,7 +236,19 @@ spec:
         image: {{ .Image }}
         name: {{ .Name }}
         imagePullPolicy: {{ .PullPolicy }}
-        resources: {}
+        {{- if or .CpuRequest .CpuLimit .MemoryRequest .MemoryLimit }}
+        resources:
+          {{- if or .CpuRequest .MemoryRequest }}
+          requests:
+            {{if .CpuRequest }}cpu: {{ .CpuRequest }}{{ end }}
+            {{if .MemoryRequest }}memory: {{ .MemoryRequest }}{{ end }}
+          {{- end }}
+          {{- if or .CpuLimit .MemoryLimit }}
+          limits:
+            {{if .CpuLimit }}cpu: {{ .CpuLimit }}{{ end }}
+            {{if .MemoryLimit }}memory: {{ .MemoryLimit }}{{ end }}
+          {{- end }}
+        {{- end }}
         {{ if .SecurityContext }}
         securityContext:
           allowPrivilegeEscalation: true
@@ -261,6 +286,8 @@ var (
 	defaultDeploymentName = "testDeployment"
 	defaultConfigMapName  = "testConfigMap"
 	seccompPwdEPERM       = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
+	// CPU Period in ms
+	defaultCPUPeriod = 100
 )
 
 func writeYaml(content string, fileName string) error {
@@ -503,6 +530,10 @@ type Ctr struct {
 	Image           string
 	Cmd             []string
 	Arg             []string
+	CpuRequest      string
+	CpuLimit        string
+	MemoryRequest   string
+	MemoryLimit     string
 	SecurityContext bool
 	Caps            bool
 	CapAdd          []string
@@ -521,7 +552,25 @@ type Ctr struct {
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
 // and the configured options
 func getCtr(options ...ctrOption) *Ctr {
-	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, defaultCtrArg, true, false, nil, nil, "", "", "", false, "", "", false, []Env{}, []EnvFrom{}}
+	c := Ctr{
+		Name:            defaultCtrName,
+		Image:           defaultCtrImage,
+		Cmd:             defaultCtrCmd,
+		Arg:             defaultCtrArg,
+		SecurityContext: true,
+		Caps:            false,
+		CapAdd:          nil,
+		CapDrop:         nil,
+		PullPolicy:      "",
+		HostIP:          "",
+		Port:            "",
+		VolumeMount:     false,
+		VolumeMountPath: "",
+		VolumeName:      "",
+		VolumeReadOnly:  false,
+		Env:             []Env{},
+		EnvFrom:         []EnvFrom{},
+	}
 	for _, option := range options {
 		option(&c)
 	}
@@ -545,6 +594,30 @@ func withArg(arg []string) ctrOption {
 func withImage(img string) ctrOption {
 	return func(c *Ctr) {
 		c.Image = img
+	}
+}
+
+func withCpuRequest(request string) ctrOption {
+	return func(c *Ctr) {
+		c.CpuRequest = request
+	}
+}
+
+func withCpuLimit(limit string) ctrOption {
+	return func(c *Ctr) {
+		c.CpuLimit = limit
+	}
+}
+
+func withMemoryRequest(request string) ctrOption {
+	return func(c *Ctr) {
+		c.MemoryRequest = request
+	}
+}
+
+func withMemoryLimit(limit string) ctrOption {
+	return func(c *Ctr) {
+		c.MemoryLimit = limit
 	}
 }
 
@@ -648,7 +721,12 @@ type EnvFrom struct {
 	From string
 }
 
-var _ = Describe("Podman generate kube", func() {
+func milliCPUToQuota(milliCPU string) int {
+	milli, _ := strconv.Atoi(strings.Trim(milliCPU, "m"))
+	return milli * defaultCPUPeriod
+}
+
+var _ = Describe("Podman play kube", func() {
 	var (
 		tempdir    string
 		err        error
@@ -1322,6 +1400,51 @@ spec:
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect.ExitCode()).To(Equal(0))
 			Expect(inspect.OutputToString()).To(ContainSubstring(correctLabels))
+		}
+	})
+
+	It("podman play kube allows setting resource limits", func() {
+		SkipIfContainerized("Resource limits require a running systemd")
+		SkipIfRootlessCgroupsV1("Limits require root or cgroups v2")
+		SkipIfUnprevilegedCPULimits()
+		podmanTest.CgroupManager = "systemd"
+
+		var (
+			numReplicas           int32  = 3
+			expectedCpuRequest    string = "100m"
+			expectedCpuLimit      string = "200m"
+			expectedMemoryRequest string = "10000000"
+			expectedMemoryLimit   string = "20000000"
+		)
+
+		expectedCpuQuota := milliCPUToQuota(expectedCpuLimit)
+
+		deployment := getDeployment(
+			withReplicas(numReplicas),
+			withPod(getPod(withCtr(getCtr(
+				withCpuRequest(expectedCpuRequest),
+				withCpuLimit(expectedCpuLimit),
+				withMemoryRequest(expectedMemoryRequest),
+				withMemoryLimit(expectedMemoryLimit),
+			)))))
+		err := generateKubeYaml("deployment", deployment, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		for _, pod := range getPodNamesInDeployment(deployment) {
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `
+CpuPeriod: {{ .HostConfig.CpuPeriod }}
+CpuQuota: {{ .HostConfig.CpuQuota }}
+Memory: {{ .HostConfig.Memory }}
+MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect.ExitCode()).To(Equal(0))
+			Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s: %d", "CpuQuota", expectedCpuQuota)))
+			Expect(inspect.OutputToString()).To(ContainSubstring("MemoryReservation: " + expectedMemoryRequest))
+			Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
 		}
 	})
 })

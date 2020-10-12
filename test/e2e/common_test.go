@@ -612,6 +612,15 @@ func SkipIfRootlessCgroupsV1(reason string) {
 	}
 }
 
+func SkipIfUnprevilegedCPULimits() {
+	info := GetHostDistributionInfo()
+	if isRootless() &&
+		info.Distribution == "fedora" &&
+		(info.Version == "31" || info.Version == "32") {
+		ginkgo.Skip("Rootless Fedora doesn't have permission to set CPU limits before version 33")
+	}
+}
+
 func SkipIfRootless(reason string) {
 	checkReason(reason)
 	if os.Geteuid() != 0 {
