@@ -232,7 +232,7 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    skip: *branch
+    skip: &branch_or_cidocs "$CIRRUS_PR == '' || $CIRRUS_TAG != '' || $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'"
     depends_on:
         - build
     gce_instance: *standardvm
@@ -287,6 +287,7 @@ endpoint_task:
 vendor_task:
     name: "Test Vendoring"
     alias: vendor
+    skip: &cidocs "$CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'"
     depends_on:
         - build
     container: *smallcontainer
@@ -334,6 +335,7 @@ alt_build_task:
 static_alt_build_task:
     name: "Static Build"
     alias: static_alt_build
+    skip: *cidocs
     depends_on:
         - build
     # Community-maintained task, may fail on occasion.  If so, uncomment
@@ -363,6 +365,7 @@ static_alt_build_task:
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
+    skip: *cidocs
     depends_on:
         - build
     env:
@@ -385,6 +388,7 @@ osx_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
+    skip: *cidocs
     depends_on:
         - build
     container: *smallcontainer
@@ -403,6 +407,7 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
+    skip: *cidocs
     depends_on:
         - validate
     matrix: *platform_axis
@@ -421,7 +426,7 @@ local_integration_test_task: &local_integration_test_task
     # Integration-test task name convention:
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
-    skip: *branch
+    skip: *branch_or_cidocs
     alias: local_integration_test
     depends_on:
         - unit_test
@@ -449,6 +454,7 @@ local_integration_test_task: &local_integration_test_task
 remote_integration_test_task:
     <<: *local_integration_test_task
     alias: remote_integration_test
+    skip: *branch_or_cidocs
     env:
         TEST_FLAVOR: int
         PODBIN_NAME: remote
@@ -459,7 +465,7 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
-    skip: *branch
+    skip: *branch_or_cidocs
     depends_on:
         - unit_test
     matrix: &fedora_vm_axis
@@ -488,7 +494,7 @@ container_integration_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
-    skip: *branch
+    skip: *branch_or_cidocs
     depends_on:
         - unit_test
     matrix: *fedora_vm_axis
@@ -511,6 +517,7 @@ rootless_integration_test_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
+    skip: *cidocs
     depends_on:
       - local_integration_test
     matrix: *platform_axis
@@ -537,6 +544,7 @@ remote_system_test_task:
 rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
+    skip: *cidocs
     depends_on:
       - rootless_integration_test
     matrix: *fedora_vm_axis
