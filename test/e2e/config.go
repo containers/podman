@@ -14,6 +14,7 @@ var (
 	BB                = "docker.io/library/busybox:latest"
 	healthcheck       = "docker.io/libpod/alpine_healthcheck:latest"
 	ImageCacheDir     = "/tmp/podman/imagecachedir"
+	fedoraToolbox     = "registry.fedoraproject.org/f32/fedora-toolbox:latest"
 
 	// This image has seccomp profiles that blocks all syscalls.
 	// The intention behind blocking all syscalls is to prevent
