@@ -80,7 +80,7 @@ t POST  libpod/pods/bar/restart '' 200 \
 
 t POST "libpod/pods/bar/stop?t=invalid" '' 400 \
   .cause="schema: error converting value for \"t\"" \
-  .message~"Failed to parse parameters for"
+  .message~"failed to parse parameters for"
 
 podman run -d --pod bar busybox sleep 999
 

@@ -211,8 +211,8 @@ t POST containers/create '"Image":"'$ENV_WORKDIR_IMG'","Env":["testKey1"]' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
-  .Config.Env~"REDIS_VERSION=" \
-  .Config.Env~"testEnv1=" \
+  .Config.Env~.*REDIS_VERSION= \
+  .Config.Env~.*testKey1= \
   .Config.WorkingDir="/data" # default is /data
 t DELETE containers/$cid 204
 

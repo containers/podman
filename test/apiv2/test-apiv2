@@ -125,7 +125,7 @@ function _show_ok() {
     echo -e "${red}#    actual: ${bold}$actual${reset}"
 
     echo    "not ok $count ${TEST_CONTEXT} $testname" >>$LOG
-    echo    "  expected: $expect"
+    echo    "  expected: $expect"                     >>$LOG
 
     _bump $failures_file
 }
@@ -242,26 +242,22 @@ function t() {
 
     local i
     for i; do
-        case "$i" in
+        if expr "$i" : "[^=~]\+=.*" >/dev/null; then
             # Exact match on json field
-            *=*)
-                json_field=$(expr "$i" : "\([^=]*\)=")
-                expect=$(expr "$i" : '[^=]*=\(.*\)')
-                actual=$(jq -r "$json_field" <<<"$output")
-                is "$actual" "$expect" "$testname : $json_field"
-                ;;
+            json_field=$(expr "$i" : "\([^=]*\)=")
+            expect=$(expr "$i" : '[^=]*=\(.*\)')
+            actual=$(jq -r "$json_field" <<<"$output")
+            is "$actual" "$expect" "$testname : $json_field"
+        elif expr "$i" : "[^=~]\+~.*" >/dev/null; then
             # regex match on json field
-            *~*)
-                json_field=$(expr "$i" : "\([^~]*\)~")
-                expect=$(expr "$i" : '[^~]*~\(.*\)')
-                actual=$(jq -r "$json_field" <<<"$output")
-                like "$actual" "$expect" "$testname : $json_field"
-                ;;
+            json_field=$(expr "$i" : "\([^~]*\)~")
+            expect=$(expr "$i" : '[^~]*~\(.*\)')
+            actual=$(jq -r "$json_field" <<<"$output")
+            like "$actual" "$expect" "$testname : $json_field"
+        else
             # Direct string comparison
-            *)
-                is "$output" "$i" "$testname : output"
-                ;;
-        esac
+            is "$output" "$i" "$testname : output"
+        fi
     done
 }
 
