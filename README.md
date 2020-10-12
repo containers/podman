@@ -108,7 +108,7 @@ Information on how to install Podman in your environment.
 Information on how Podman configures [OCI Hooks][spec-hooks] to run when launching a container.
 
 **[Podman API](http://docs.podman.io/en/latest/_static/api.html)**
-Documentation on the Podman REST API. Please note that the API is still in its early stages and not yet stable.
+Documentation on the Podman REST API.
 
 **[Podman Commands](https://podman.readthedocs.io/en/latest/Commands.html)**
 A list of the Podman commands with links to their man pages and in many cases videos
