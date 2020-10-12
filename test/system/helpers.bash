@@ -286,6 +286,17 @@ function skip_if_remote() {
     fi
 }
 
+########################
+#  skip_if_no_selinux  #
+########################
+function skip_if_no_selinux() {
+    if [ ! -e /usr/sbin/selinuxenabled ]; then
+        skip "selinux not available"
+    elif ! /usr/sbin/selinuxenabled; then
+        skip "selinux disabled"
+    fi
+}
+
 #########
 #  die  #  Abort with helpful message
 #########

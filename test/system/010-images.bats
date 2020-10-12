@@ -159,4 +159,56 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     is "$output" "$images_baseline" "after podman rmi @sha, still the same"
 }
 
+# Tests #7199 (Restore "table" --format from V1)
+#
+# Tag our image with different-length strings; confirm table alignment
+@test "podman images - table format" {
+    # Craft two tags such that they will bracket $IMAGE on either side (above
+    # and below). This assumes that $IMAGE is quay.io or foo.com or simply
+    # not something insane that will sort before 'aaa' or after 'zzz'.
+    local aaa_name=a.b/c
+    local aaa_tag=d
+    local zzz_name=zzzzzzzzzz.yyyyyyyyy/xxxxxxxxx
+    local zzz_tag=$(random_string 15)
+
+    # Helper function to check one line of tabular output; all this does is
+    # generate a line with the given repo/tag, formatted to the width of the
+    # widest image, which is the zzz one. Fields are separated by TWO spaces.
+    function _check_line() {
+        local lineno=$1
+        local name=$2
+        local tag=$3
+
+        is "${lines[$lineno]}" \
+           "$(printf '%-*s  %-*s  %s' ${#zzz_name} ${name} ${#zzz_tag} ${tag} $iid)" \
+           "podman images, $testname, line $lineno"
+    }
+
+    function _run_format_test() {
+        local testname=$1
+        local format=$2
+
+        run_podman images --sort repository --format "$format"
+        _check_line 0 ${aaa_name} ${aaa_tag}
+        _check_line 1 "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}" "${PODMAN_TEST_IMAGE_TAG}"
+        _check_line 2 ${zzz_name} ${zzz_tag}
+    }
+
+    # Begin the test: tag $IMAGE with both the given names
+    run_podman tag $IMAGE ${aaa_name}:${aaa_tag}
+    run_podman tag $IMAGE ${zzz_name}:${zzz_tag}
+
+    # Get the image ID, used to verify output below (all images share same IID)
+    run_podman inspect --format '{{.ID}}' $IMAGE
+    iid=${output:0:12}
+
+    # Run the test: this will output three column-aligned rows. Test them.
+    # Tab character (\t) should have the same effect as the 'table' directive
+    _run_format_test 'table' 'table {{.Repository}} {{.Tag}} {{.ID}}'
+    _run_format_test 'tabs'  '{{.Repository}}\t{{.Tag}}\t{{.ID}}'
+
+    # Clean up.
+    run_podman rmi ${aaa_name}:${aaa_tag} ${zzz_name}:${zzz_tag}
+}
+
 # vim: filetype=sh
