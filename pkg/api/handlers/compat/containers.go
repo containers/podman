@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
@@ -316,7 +317,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 
 	cb := types.ContainerJSONBase{
 		ID:              l.ID(),
-		Created:         l.CreatedTime().String(),
+		Created:         l.CreatedTime().Format(time.RFC3339Nano),
 		Path:            "",
 		Args:            nil,
 		State:           &state,
