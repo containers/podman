@@ -3,12 +3,13 @@ package containers
 import (
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"text/template"
 
 	tm "github.com/buger/goterm"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/cgroups"
@@ -58,9 +59,8 @@ type statsOptionsCLI struct {
 }
 
 var (
-	statsOptions       statsOptionsCLI
-	defaultStatsRow    = "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\n"
-	defaultStatsHeader = "ID\tNAME\tCPU %\tMEM USAGE / LIMIT\tMEM %\tNET IO\tBLOCK IO\tPIDS\n"
+	statsOptions    statsOptionsCLI
+	defaultStatsRow = "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\n"
 )
 
 func statFlags(flags *pflag.FlagSet) {
@@ -139,7 +139,16 @@ func stats(cmd *cobra.Command, args []string) error {
 }
 
 func outputStats(reports []define.ContainerStats) error {
-	if len(statsOptions.Format) < 1 && !statsOptions.NoReset {
+	headers := report.Headers(define.ContainerStats{}, map[string]string{
+		"ID":       "ID",
+		"CPUPerc":  "CPU %",
+		"MemUsage": "MEM USAGE / LIMIT",
+		"MemPerc":  "MEM %",
+		"NetIO":    "NET IO",
+		"BlockIO":  "BLOCK IO",
+		"PIDS":     "PIDS",
+	})
+	if !statsOptions.NoReset {
 		tm.Clear()
 		tm.MoveCursor(1, 1)
 		tm.Flush()
@@ -148,25 +157,27 @@ func outputStats(reports []define.ContainerStats) error {
 	for _, r := range reports {
 		stats = append(stats, containerStats{r})
 	}
-	if statsOptions.Format == "json" {
+	if parse.MatchesJSONFormat(statsOptions.Format) {
 		return outputJSON(stats)
 	}
 	format := defaultStatsRow
+
 	if len(statsOptions.Format) > 0 {
-		format = statsOptions.Format
-		if !strings.HasSuffix(format, "\n") {
-			format += "\n"
-		}
+		format = report.NormalizeFormat(statsOptions.Format)
+	} else if len(statsOptions.Format) < 1 {
+		format = defaultStatsRow
 	}
 	format = "{{range . }}" + format + "{{end}}"
-	if len(statsOptions.Format) < 1 {
-		format = defaultStatsHeader + format
-	}
 	tmpl, err := template.New("stats").Parse(format)
 	if err != nil {
 		return err
 	}
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	if len(statsOptions.Format) < 1 {
+		if err := tmpl.Execute(w, headers); err != nil {
+			return err
+		}
+	}
 	if err := tmpl.Execute(w, stats); err != nil {
 		return err
 	}
