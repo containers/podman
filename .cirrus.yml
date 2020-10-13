@@ -544,7 +544,6 @@ rootless_system_test_task:
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
-        PODBIN_NAME: remote
     clone_script: *noop  # Comes from cache
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
