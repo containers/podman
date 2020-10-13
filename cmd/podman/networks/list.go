@@ -38,6 +38,7 @@ var (
 	networkListOptions entities.NetworkListOptions
 	filters            []string
 	noTrunc            bool
+	defaultListRow     = "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
 )
 
 func networkListFlags(flags *pflag.FlagSet) {
@@ -78,13 +79,37 @@ func networkList(cmd *cobra.Command, args []string) error {
 	}
 
 	switch {
-	case report.IsJSON(networkListOptions.Format):
-		return jsonOut(responses)
+	// quiet means we only print the network names
 	case networkListOptions.Quiet:
-		// quiet means we only print the network names
 		return quietOut(responses)
-	}
 
+	// TODO remove references to parse package
+	case parse.MatchesJSONFormat(networkListOptions.Format):
+		return jsonOut(responses)
+
+	// table or other format output
+	default:
+		return templateOut(responses, cmd)
+	}
+}
+
+func quietOut(responses []*entities.NetworkListReport) error {
+	for _, r := range responses {
+		fmt.Println(r.Name)
+	}
+	return nil
+}
+
+func jsonOut(responses []*entities.NetworkListReport) error {
+	prettyJSON, err := json.MarshalIndent(responses, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(prettyJSON))
+	return nil
+}
+
+func templateOut(responses []*entities.NetworkListReport, cmd *cobra.Command) error {
 	nlprs := make([]ListPrintReports, 0, len(responses))
 	for _, r := range responses {
 		nlprs = append(nlprs, ListPrintReports{r})
@@ -99,13 +124,16 @@ func networkList(cmd *cobra.Command, args []string) error {
 		"Labels":     "labels",
 		"ID":         "network id",
 	})
-	renderHeaders := true
-	row := "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
+
+	renderHeaders := strings.HasPrefix(networkListOptions.Format, "table ")
+	var row, format string
 	if cmd.Flags().Changed("format") {
-		renderHeaders = parse.HasTable(networkListOptions.Format)
 		row = report.NormalizeFormat(networkListOptions.Format)
+	} else { // 'podman network ls' equivalent to 'podman network ls --format="table {{ .Name }} {{ .Version }} {{ .Plugins }}" '
+		renderHeaders = true
+		row = defaultListRow
 	}
-	format := parse.EnforceRange(row)
+	format = "{{range .}}" + row + "{{end}}"
 
 	tmpl, err := template.New("listNetworks").Parse(format)
 	if err != nil {
@@ -122,34 +150,22 @@ func networkList(cmd *cobra.Command, args []string) error {
 	return tmpl.Execute(w, nlprs)
 }
 
-func quietOut(responses []*entities.NetworkListReport) error {
-	for _, r := range responses {
-		fmt.Println(r.Name)
-	}
-	return nil
-}
-
-func jsonOut(responses []*entities.NetworkListReport) error {
-	b, err := json.MarshalIndent(responses, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(b))
-	return nil
-}
-
+// ListPrintReports returns the network list report
 type ListPrintReports struct {
 	*entities.NetworkListReport
 }
 
+// Version returns the CNI version
 func (n ListPrintReports) Version() string {
 	return n.CNIVersion
 }
 
+// Plugins returns the CNI Plugins
 func (n ListPrintReports) Plugins() string {
 	return network.GetCNIPlugins(n.NetworkConfigList)
 }
 
+// Labels returns any labels added to a Network
 func (n ListPrintReports) Labels() string {
 	list := make([]string, 0, len(n.NetworkListReport.Labels))
 	for k, v := range n.NetworkListReport.Labels {
@@ -158,6 +174,7 @@ func (n ListPrintReports) Labels() string {
 	return strings.Join(list, ",")
 }
 
+// ID returns the Podman Network ID
 func (n ListPrintReports) ID() string {
 	length := 12
 	if noTrunc {
