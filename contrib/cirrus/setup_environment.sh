@@ -165,6 +165,7 @@ case "$TEST_FLAVOR" in
     docker-py) ;&
     build) make clean ;;
     unit) ;;
+    apiv2) ;&  # use next item
     int) ;&
     sys) ;&
     bindings) ;&
