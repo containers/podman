@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v2/pkg/signal"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -425,10 +426,19 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		Ports: ports,
 	}
 
+	var networks map[string]*network.EndpointSettings
+	n, err := json.Marshal(inspect.NetworkSettings.Networks)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(n, &networks); err != nil {
+		return nil, err
+	}
+
 	networkSettings := types.NetworkSettings{
 		NetworkSettingsBase:    networkSettingsBase,
 		DefaultNetworkSettings: networkSettingsDefault,
-		Networks:               nil,
+		Networks:               networks,
 	}
 
 	c := types.ContainerJSON{

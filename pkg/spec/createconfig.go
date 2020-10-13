@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v2/pkg/namespaces"
 	"github.com/containers/podman/v2/pkg/seccomp"
 	"github.com/containers/storage"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -403,6 +404,32 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithHealthCheck(c.HealthCheck))
 		logrus.Debugf("New container has a health check")
 	}
+
+	// Add ports
+	if !c.Network.NetMode.IsHost() {
+		var ports []ocicni.PortMapping
+		for i := range c.Network.PortBindings {
+			port, err := strconv.ParseInt(i.Port(), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			for _, pb := range c.Network.PortBindings[i] {
+				hostport, err := strconv.ParseInt(pb.HostPort, 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				tmp := ocicni.PortMapping{
+					HostPort:      int32(hostport),
+					ContainerPort: int32(port),
+					Protocol:      i.Proto(),
+					HostIP:        pb.HostIP,
+				}
+				ports = append(ports, tmp)
+			}
+		}
+		options = append(options, libpod.WithNetNS(ports, true, c.Network.NetMode.NS(), []string{c.Network.Network}))
+	}
+
 	return options, nil
 }
 
