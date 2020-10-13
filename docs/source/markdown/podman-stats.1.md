@@ -47,12 +47,11 @@ Valid placeholders for the Go template are listed below:
 
 | **Placeholder** | **Description**   |
 | --------------- | ---------------   |
-| .Pod            | Pod ID      |
 | .ID             | Container ID      |
 | .Name           | Container Name    |
-| .CPU            | CPU percentage    |
+| .CPUPerc        | CPU percentage    |
 | .MemUsage       | Memory usage      |
-| .Mem            | Memory percentage |
+| .MemPerc        | Memory percentage |
 | .NetIO          | Network IO        |
 | .BlockIO        | Block IO          |
 | .PIDS           | Number of PIDs    |

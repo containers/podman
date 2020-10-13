@@ -106,12 +106,13 @@ func pods(cmd *cobra.Command, _ []string) error {
 	}
 
 	headers := report.Headers(ListPodReporter{}, map[string]string{
-		"ContainerIds":       "IDS",
-		"ContainerNames":     "NAMES",
-		"ContainerStatuses":  "STATUS",
-		"Namespace":          "NAMESPACES",
+		"Id":                 "POD ID",
+		"Name":               "NAME",
+		"Status":             "STATUS",
+		"Labels":             "LABELS",
 		"NumberOfContainers": "# OF CONTAINERS",
-		"InfraId":            "INFRA ID",
+		"Created":            "CREATED",
+		"InfraID":            "INFRA ID",
 	})
 	row := podPsFormat()
 	if cmd.Flags().Changed("format") {
@@ -135,7 +136,7 @@ func pods(cmd *cobra.Command, _ []string) error {
 }
 
 func podPsFormat() string {
-	row := []string{"{{.Id}}", "{{.Name}}", "{{.Status}}", "{{.Created}}}"}
+	row := []string{"{{.Id}}", "{{.Name}}", "{{.Status}}", "{{.Created}}", "{{.InfraID}}"}
 
 	if psInput.CtrIds {
 		row = append(row, "{{.ContainerIds}}")

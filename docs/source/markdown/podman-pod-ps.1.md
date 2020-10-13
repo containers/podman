@@ -68,11 +68,10 @@ Valid placeholders for the Go template are listed below:
 | .Name               | Name of pod                                                                                     |
 | .Status             | Status of pod                                                                                   |
 | .Labels             | All the labels assigned to the pod                                                              |
-| .ContainerInfo      | Show the names, ids and/or statuses of containers (only shows 9 unless no-trunc is specified)   |
 | .NumberOfContainers | Show the number of containers attached to pod                                                   |
 | .Cgroup             | Cgroup path of pod                                                                              |
-| .UsePodCgroup       | Whether containers use the Cgroup of the pod                                                    |
-
+| .Created            | Creation time of pod                                                                            |
+| .InfraID            | Pod infra container ID                                                                          |
 **--sort**
 
 Sort by created, ID, name, status, or number of containers
