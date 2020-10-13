@@ -185,14 +185,11 @@ func (s *APIServer) Serve() error {
 	if err := shutdown.Start(); err != nil {
 		return err
 	}
-	if err := shutdown.Register("server", func() error {
+	if err := shutdown.Register("server", func(sig os.Signal) error {
 		return s.Shutdown()
 	}); err != nil {
 		return err
 	}
-	// Unregister the libpod handler, which just calls exit(1).
-	// Ignore errors if it doesn't exist.
-	_ = shutdown.Unregister("libpod")
 
 	errChan := make(chan error, 1)
 

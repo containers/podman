@@ -183,7 +183,7 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 		return nil, err
 	}
 
-	if err := shutdown.Register("libpod", func() error {
+	if err := shutdown.Register("libpod", func(sig os.Signal) error {
 		os.Exit(1)
 		return nil
 	}); err != nil {

@@ -11,17 +11,20 @@ import (
 )
 
 var (
-	stopped         bool
-	sigChan         chan os.Signal
-	cancelChan      chan bool
-	handlers        map[string]func() error
+	stopped    bool
+	sigChan    chan os.Signal
+	cancelChan chan bool
+	// Definitions of all on-shutdown handlers
+	handlers map[string]func(os.Signal) error
+	// Ordering that on-shutdown handlers will be invoked.
+	handlerOrder    []string
 	shutdownInhibit sync.RWMutex
 )
 
 // Start begins handling SIGTERM and SIGINT and will run the given on-signal
 // handlers when one is called. This can be cancelled by calling Stop().
 func Start() error {
-	if sigChan != nil && !stopped {
+	if sigChan != nil {
 		// Already running, do nothing.
 		return nil
 	}
@@ -43,9 +46,14 @@ func Start() error {
 		case sig := <-sigChan:
 			logrus.Infof("Received shutdown signal %v, terminating!", sig)
 			shutdownInhibit.Lock()
-			for name, handler := range handlers {
+			for _, name := range handlerOrder {
+				handler, ok := handlers[name]
+				if !ok {
+					logrus.Errorf("Shutdown handler %s definition not found!", name)
+					continue
+				}
 				logrus.Infof("Invoking shutdown handler %s", name)
-				if err := handler(); err != nil {
+				if err := handler(sig); err != nil {
 					logrus.Errorf("Error running shutdown handler %s: %v", name, err)
 				}
 			}
@@ -82,10 +90,11 @@ func Uninhibit() {
 }
 
 // Register registers a function that will be executed when Podman is terminated
-// by a signal.
-func Register(name string, handler func() error) error {
+// by a signal. Handlers are invoked LIFO - the last handler registered is the
+// first run.
+func Register(name string, handler func(os.Signal) error) error {
 	if handlers == nil {
-		handlers = make(map[string]func() error)
+		handlers = make(map[string]func(os.Signal) error)
 	}
 
 	if _, ok := handlers[name]; ok {
@@ -93,6 +102,7 @@ func Register(name string, handler func() error) error {
 	}
 
 	handlers[name] = handler
+	handlerOrder = append([]string{name}, handlerOrder...)
 
 	return nil
 }
@@ -100,14 +110,22 @@ func Register(name string, handler func() error) error {
 // Unregister un-registers a given shutdown handler.
 func Unregister(name string) error {
 	if handlers == nil {
-		handlers = make(map[string]func() error)
+		return nil
 	}
 
 	if _, ok := handlers[name]; !ok {
-		return errors.Errorf("no handler with name %s found", name)
+		return nil
 	}
 
 	delete(handlers, name)
+
+	newOrder := []string{}
+	for _, checkName := range handlerOrder {
+		if checkName != name {
+			newOrder = append(newOrder, checkName)
+		}
+	}
+	handlerOrder = newOrder
 
 	return nil
 }
