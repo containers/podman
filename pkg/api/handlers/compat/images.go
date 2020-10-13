@@ -327,7 +327,10 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	newImage, err := utils.GetImage(r, name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
+		// Here we need to fiddle with the error message because docker-py is looking for "No
+		// such image" to determine on how to raise the correct exception.
+		errMsg := strings.ReplaceAll(err.Error(), "no such image", "No such image")
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Errorf("failed to find image %s: %s", name, errMsg))
 		return
 	}
 	inspect, err := handlers.ImageDataToImageInspect(r.Context(), newImage)
