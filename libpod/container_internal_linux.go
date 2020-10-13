@@ -1717,11 +1717,35 @@ func (c *Container) generateCurrentUserPasswdEntry() (string, int, int, error) {
 	// If the user's actual home directory exists, or was mounted in - use
 	// that.
 	homeDir := c.WorkingDir()
-	if MountExists(c.config.Spec.Mounts, u.HomeDir) {
-		homeDir = u.HomeDir
+	hDir := u.HomeDir
+	for hDir != "/" {
+		if MountExists(c.config.Spec.Mounts, hDir) {
+			homeDir = u.HomeDir
+			break
+		}
+		hDir = filepath.Dir(hDir)
+	}
+	if homeDir != u.HomeDir {
+		for _, hDir := range c.UserVolumes() {
+			if hDir == u.HomeDir {
+				homeDir = u.HomeDir
+				break
+			}
+		}
+	}
+	// Set HOME environment if not already set
+	hasHomeSet := false
+	for _, s := range c.config.Spec.Process.Env {
+		if strings.HasPrefix(s, "HOME=") {
+			hasHomeSet = true
+			break
+		}
+	}
+	if !hasHomeSet {
+		c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", homeDir))
 	}
 
-	return fmt.Sprintf("%s:*:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Username, homeDir), uid, rootless.GetRootlessGID(), nil
+	return fmt.Sprintf("%s:*:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Name, homeDir), uid, rootless.GetRootlessGID(), nil
 }
 
 // generateUserPasswdEntry generates an /etc/passwd entry for the container user
