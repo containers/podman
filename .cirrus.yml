@@ -143,6 +143,7 @@ smoke_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
@@ -200,12 +201,14 @@ build_task:
             path: ./*.html
             type: text/html
 
+
 # Confirm the result of building on at least one platform appears sane.
 # This confirms the binaries can be executed, checks --help vs docs, and
 # other essential post-build validation checks.
 validate_task:
     name: "Validate $DISTRO_NV Build"
     alias: validate
+    only_if: *not_docs
     depends_on:
         - ext_svc_check
         - automation
@@ -227,11 +230,13 @@ validate_task:
     main_script: *main
     always: *artifacts
 
+
 # Exercise the "libpod" API with a small set of common
 # operations to ensure they are functional.
 bindings_task:
     name: "Test Bindings"
     alias: bindings
+    only_if: *not_docs
     skip: *branch
     depends_on:
         - build
@@ -268,6 +273,7 @@ swagger_task:
 endpoint_task:
     name: "Test Endpoint"
     alias: endpoint
+    only_if: *not_docs
     depends_on:
         - build
     container: *smallcontainer
@@ -307,6 +313,7 @@ vendor_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
+    only_if: *not_docs
     depends_on:
         - build
     env:
@@ -334,6 +341,7 @@ alt_build_task:
 static_alt_build_task:
     name: "Static Build"
     alias: static_alt_build
+    only_if: *not_docs
     depends_on:
         - build
     # Community-maintained task, may fail on occasion.  If so, uncomment
@@ -385,6 +393,7 @@ osx_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
+    only_if: *not_docs
     depends_on:
         - build
     container: *smallcontainer
@@ -403,6 +412,7 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
+    only_if: *not_docs
     depends_on:
         - validate
     matrix: *platform_axis
@@ -421,8 +431,9 @@ local_integration_test_task: &local_integration_test_task
     # Integration-test task name convention:
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
-    skip: *branch
     alias: local_integration_test
+    only_if: *not_docs
+    skip: *branch
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -459,6 +470,7 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
+    only_if: *not_docs
     skip: *branch
     depends_on:
         - unit_test
@@ -488,6 +500,7 @@ container_integration_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
+    only_if: *not_docs
     skip: *branch
     depends_on:
         - unit_test
@@ -511,6 +524,7 @@ rootless_integration_test_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
+    only_if: *not_docs
     depends_on:
       - local_integration_test
     matrix: *platform_axis
@@ -537,6 +551,7 @@ remote_system_test_task:
 rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
+    only_if: *not_docs
     depends_on:
       - rootless_integration_test
     matrix: *fedora_vm_axis
