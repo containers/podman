@@ -167,6 +167,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 
 func printJSON(data []interface{}) error {
 	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "     ")
 	return enc.Encode(data)
 }
 
