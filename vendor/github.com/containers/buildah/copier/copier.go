@@ -222,6 +222,10 @@ type GetOptions struct {
 	UIDMap, GIDMap     []idtools.IDMap // map from hostIDs to containerIDs in the output archive
 	Excludes           []string        // contents to pretend don't exist, using the OS-specific path separator
 	ExpandArchives     bool            // extract the contents of named items that are archives
+	ChownDirs          *idtools.IDPair // set ownership on directories. no effect on archives being extracted
+	ChmodDirs          *os.FileMode    // set permissions on directories. no effect on archives being extracted
+	ChownFiles         *idtools.IDPair // set ownership of files. no effect on archives being extracted
+	ChmodFiles         *os.FileMode    // set permissions on files. no effect on archives being extracted
 	StripSetuidBit     bool            // strip the setuid bit off of items being copied. no effect on archives being extracted
 	StripSetgidBit     bool            // strip the setgid bit off of items being copied. no effect on archives being extracted
 	StripStickyBit     bool            // strip the sticky bit off of items being copied. no effect on archives being extracted
@@ -265,6 +269,8 @@ func Get(root string, directory string, options GetOptions, globs []string, bulk
 // PutOptions controls parts of Put()'s behavior.
 type PutOptions struct {
 	UIDMap, GIDMap    []idtools.IDMap // map from containerIDs to hostIDs when writing contents to disk
+	DefaultDirOwner   *idtools.IDPair // set ownership of implicitly-created directories, default is ChownDirs, or 0:0 if ChownDirs not set
+	DefaultDirMode    *os.FileMode    // set permissions on implicitly-created directories, default is ChmodDirs, or 0755 if ChmodDirs not set
 	ChownDirs         *idtools.IDPair // set ownership of newly-created directories
 	ChmodDirs         *os.FileMode    // set permissions on newly-created directories
 	ChownFiles        *idtools.IDPair // set ownership of newly-created files
@@ -1032,6 +1038,9 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 			}
 			// evaluate excludes relative to the root directory
 			if info.Mode().IsDir() {
+				// we don't expand any of the contents that are archives
+				options := req.GetOptions
+				options.ExpandArchives = false
 				walkfn := func(path string, info os.FileInfo, err error) error {
 					// compute the path of this item
 					// relative to the top-level directory,
@@ -1073,7 +1082,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						symlinkTarget = target
 					}
 					// add the item to the outgoing tar stream
-					return copierHandlerGetOne(info, symlinkTarget, rel, path, req.GetOptions, tw, hardlinkChecker, idMappings)
+					return copierHandlerGetOne(info, symlinkTarget, rel, path, options, tw, hardlinkChecker, idMappings)
 				}
 				// walk the directory tree, checking/adding items individually
 				if err := filepath.Walk(item, walkfn); err != nil {
@@ -1193,6 +1202,22 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 			return errors.Wrapf(err, "error mapping host filesystem owners %#v to container filesystem owners", hostPair)
 		}
 	}
+	// force ownership and/or permissions, if requested
+	if hdr.Typeflag == tar.TypeDir {
+		if options.ChownDirs != nil {
+			hdr.Uid, hdr.Gid = options.ChownDirs.UID, options.ChownDirs.GID
+		}
+		if options.ChmodDirs != nil {
+			hdr.Mode = int64(*options.ChmodDirs)
+		}
+	} else {
+		if options.ChownFiles != nil {
+			hdr.Uid, hdr.Gid = options.ChownFiles.UID, options.ChownFiles.GID
+		}
+		if options.ChmodFiles != nil {
+			hdr.Mode = int64(*options.ChmodFiles)
+		}
+	}
 	// output the header
 	if err = tw.WriteHeader(hdr); err != nil {
 		return errors.Wrapf(err, "error writing header for %s (%s)", contentPath, hdr.Name)
@@ -1220,13 +1245,20 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 	errorResponse := func(fmtspec string, args ...interface{}) (*response, func() error, error) {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Put: putResponse{}}, nil, nil
 	}
-	dirUID, dirGID := 0, 0
+	dirUID, dirGID, defaultDirUID, defaultDirGID := 0, 0, 0, 0
 	if req.PutOptions.ChownDirs != nil {
 		dirUID, dirGID = req.PutOptions.ChownDirs.UID, req.PutOptions.ChownDirs.GID
+		defaultDirUID, defaultDirGID = dirUID, dirGID
 	}
-	dirMode := os.FileMode(0755)
+	defaultDirMode := os.FileMode(0755)
 	if req.PutOptions.ChmodDirs != nil {
-		dirMode = *req.PutOptions.ChmodDirs
+		defaultDirMode = *req.PutOptions.ChmodDirs
+	}
+	if req.PutOptions.DefaultDirOwner != nil {
+		defaultDirUID, defaultDirGID = req.PutOptions.DefaultDirOwner.UID, req.PutOptions.DefaultDirOwner.GID
+	}
+	if req.PutOptions.DefaultDirMode != nil {
+		defaultDirMode = *req.PutOptions.DefaultDirMode
 	}
 	var fileUID, fileGID *int
 	if req.PutOptions.ChownFiles != nil {
@@ -1258,11 +1290,11 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			subdir = filepath.Join(subdir, component)
 			path := filepath.Join(req.Root, subdir)
 			if err := os.Mkdir(path, 0700); err == nil {
-				if err = lchown(path, dirUID, dirGID); err != nil {
-					return errors.Wrapf(err, "copier: put: error setting owner of %q to %d:%d", path, dirUID, dirGID)
+				if err = lchown(path, defaultDirUID, defaultDirGID); err != nil {
+					return errors.Wrapf(err, "copier: put: error setting owner of %q to %d:%d", path, defaultDirUID, defaultDirGID)
 				}
-				if err = os.Chmod(path, dirMode); err != nil {
-					return errors.Wrapf(err, "copier: put: error setting permissions on %q to 0%o", path, dirMode)
+				if err = os.Chmod(path, defaultDirMode); err != nil {
+					return errors.Wrapf(err, "copier: put: error setting permissions on %q to 0%o", path, defaultDirMode)
 				}
 			} else {
 				if !os.IsExist(err) {

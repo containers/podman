@@ -15,18 +15,28 @@ func setSeccomp(spec *specs.Spec) error {
 	if spec.Linux.Seccomp == nil {
 		return nil
 	}
-	mapAction := func(specAction specs.LinuxSeccompAction) libseccomp.ScmpAction {
+	mapAction := func(specAction specs.LinuxSeccompAction, errnoRet *uint) libseccomp.ScmpAction {
 		switch specAction {
 		case specs.ActKill:
 			return libseccomp.ActKill
 		case specs.ActTrap:
 			return libseccomp.ActTrap
 		case specs.ActErrno:
-			return libseccomp.ActErrno
+			action := libseccomp.ActErrno
+			if errnoRet != nil {
+				action = action.SetReturnCode(int16(*errnoRet))
+			}
+			return action
 		case specs.ActTrace:
 			return libseccomp.ActTrace
 		case specs.ActAllow:
 			return libseccomp.ActAllow
+		case specs.ActLog:
+			return libseccomp.ActLog
+		case specs.ActKillProcess:
+			return libseccomp.ActKillProcess
+		default:
+			logrus.Errorf("unmappable action %v", specAction)
 		}
 		return libseccomp.ActInvalid
 	}
@@ -68,6 +78,8 @@ func setSeccomp(spec *specs.Spec) error {
 			/* fallthrough */ /* for now */
 		case specs.ArchPARISC64:
 			/* fallthrough */ /* for now */
+		default:
+			logrus.Errorf("unmappable arch %v", specArch)
 		}
 		return libseccomp.ArchInvalid
 	}
@@ -87,11 +99,13 @@ func setSeccomp(spec *specs.Spec) error {
 			return libseccomp.CompareGreater
 		case specs.OpMaskedEqual:
 			return libseccomp.CompareMaskedEqual
+		default:
+			logrus.Errorf("unmappable op %v", op)
 		}
 		return libseccomp.CompareInvalid
 	}
 
-	filter, err := libseccomp.NewFilter(mapAction(spec.Linux.Seccomp.DefaultAction))
+	filter, err := libseccomp.NewFilter(mapAction(spec.Linux.Seccomp.DefaultAction, nil))
 	if err != nil {
 		return errors.Wrapf(err, "error creating seccomp filter with default action %q", spec.Linux.Seccomp.DefaultAction)
 	}
@@ -112,7 +126,7 @@ func setSeccomp(spec *specs.Spec) error {
 		}
 		for scnum := range scnames {
 			if len(rule.Args) == 0 {
-				if err = filter.AddRule(scnum, mapAction(rule.Action)); err != nil {
+				if err = filter.AddRule(scnum, mapAction(rule.Action, rule.ErrnoRet)); err != nil {
 					return errors.Wrapf(err, "error adding a rule (%q:%q) to seccomp filter", scnames[scnum], rule.Action)
 				}
 				continue
@@ -129,7 +143,7 @@ func setSeccomp(spec *specs.Spec) error {
 				}
 				conditions = append(conditions, condition)
 			}
-			if err = filter.AddRuleConditional(scnum, mapAction(rule.Action), conditions); err != nil {
+			if err = filter.AddRuleConditional(scnum, mapAction(rule.Action, rule.ErrnoRet), conditions); err != nil {
 				// Okay, if the rules specify multiple equality
 				// checks, assume someone thought that they
 				// were OR'd, when in fact they're ordinarily
@@ -137,7 +151,7 @@ func setSeccomp(spec *specs.Spec) error {
 				// different rules to get that OR effect.
 				if len(rule.Args) > 1 && opsAreAllEquality && err.Error() == "two checks on same syscall argument" {
 					for i := range conditions {
-						if err = filter.AddRuleConditional(scnum, mapAction(rule.Action), conditions[i:i+1]); err != nil {
+						if err = filter.AddRuleConditional(scnum, mapAction(rule.Action, rule.ErrnoRet), conditions[i:i+1]); err != nil {
 							return errors.Wrapf(err, "error adding a conditional rule (%q:%q[%d]) to seccomp filter", scnames[scnum], rule.Action, i)
 						}
 					}

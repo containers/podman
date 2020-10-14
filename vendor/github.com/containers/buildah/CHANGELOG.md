@@ -2,7 +2,21 @@
 
 # Changelog
 
+## v1.16.4 (2020-10-01)
+    ADD: only expand archives at the right time
+
+## v1.16.3 (2020-09-30)
+    Lint: Use same linters as podman
+    add: preserve ownerships and permissions on ADDed archives
+    chroot: fix handling of errno seccomp rules
+    git-validation.sh: set the base for comparison to v1.16.0
+    chroot: create bind mount targets 0755 instead of 0700
+
+## v1.16.2 (2020-09-21)
+    Add(): fix handling of relative paths with no ContextDir
+
 ## v1.16.1 (2020-09-10)
+    CI: use release-1.16 as the basis for validation tests
     copier.Get(): hard link targets shouldn't be relative paths
 
 ## v1.16.0 (2020-09-03)
