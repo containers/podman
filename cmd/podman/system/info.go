@@ -69,26 +69,25 @@ func info(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if parse.MatchesJSONFormat(inFormat) {
+	switch {
+	case parse.MatchesJSONFormat(inFormat):
 		b, err := json.MarshalIndent(info, "", "  ")
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(b))
-		return nil
-	}
-	if !cmd.Flag("format").Changed {
+	case cmd.Flags().Changed("format"):
+		tmpl, err := template.New("info").Parse(inFormat)
+		if err != nil {
+			return err
+		}
+		return tmpl.Execute(os.Stdout, info)
+	default:
 		b, err := yaml.Marshal(info)
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(b))
-		return nil
 	}
-	tmpl, err := template.New("info").Parse(inFormat)
-	if err != nil {
-		return err
-	}
-	err = tmpl.Execute(os.Stdout, info)
-	return err
+	return nil
 }

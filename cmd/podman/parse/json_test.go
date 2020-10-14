@@ -27,7 +27,7 @@ func TestMatchesJSONFormat(t *testing.T) {
 		{"json . }}", false},
 		{"{{.ID }} json .", false},
 		{"json .", false},
-		{"{{json.}}", false},
+		{"{{json.}}", true},
 	}
 
 	for _, tt := range tests {

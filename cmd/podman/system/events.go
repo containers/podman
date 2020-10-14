@@ -1,13 +1,12 @@
 package system
 
 import (
-	"bufio"
 	"context"
+	"fmt"
 	"os"
-	"strings"
 	"text/template"
 
-	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/events"
@@ -28,6 +27,7 @@ var (
 		RunE:  eventsCmd,
 		Example: `podman events
   podman events --filter event=create
+  podman events --format {{.Image}}
   podman events --since 1h30s`,
 	}
 )
@@ -51,60 +51,54 @@ func init() {
 	_ = flags.MarkHidden("stream")
 }
 
-func eventsCmd(cmd *cobra.Command, args []string) error {
-	var (
-		err         error
-		eventsError error
-		tmpl        *template.Template
-	)
-	if strings.Join(strings.Fields(eventFormat), "") == "{{json.}}" {
-		eventFormat = formats.JSONString
-	}
-	if eventFormat != formats.JSONString {
-		tmpl, err = template.New("events").Parse(eventFormat)
-		if err != nil {
-			return err
-		}
-	}
+func eventsCmd(cmd *cobra.Command, _ []string) error {
 	if len(eventOptions.Since) > 0 || len(eventOptions.Until) > 0 {
 		eventOptions.FromStart = true
 	}
-	eventChannel := make(chan *events.Event)
+	eventChannel := make(chan *events.Event, 1)
 	eventOptions.EventChan = eventChannel
+	errChannel := make(chan error)
 
-	go func() {
-		eventsError = registry.ContainerEngine().Events(context.Background(), eventOptions)
-	}()
-	if eventsError != nil {
-		return eventsError
+	var (
+		tmpl   *template.Template
+		doJSON bool
+	)
+
+	if cmd.Flags().Changed("format") {
+		doJSON = parse.MatchesJSONFormat(eventFormat)
+		if !doJSON {
+			var err error
+			tmpl, err = template.New("events").Parse(eventFormat)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	w := bufio.NewWriter(os.Stdout)
+	go func() {
+		err := registry.ContainerEngine().Events(context.Background(), eventOptions)
+		errChannel <- err
+	}()
+
 	for event := range eventChannel {
 		switch {
-		case eventFormat == formats.JSONString:
+		case event == nil:
+			// no-op
+		case doJSON:
 			jsonStr, err := event.ToJSONString()
 			if err != nil {
 				return errors.Wrapf(err, "unable to format json")
 			}
-			if _, err := w.Write([]byte(jsonStr)); err != nil {
+			fmt.Println(jsonStr)
+		case cmd.Flags().Changed("format"):
+			if err := tmpl.Execute(os.Stdout, event); err != nil {
 				return err
 			}
-		case len(eventFormat) > 0:
-			if err := tmpl.Execute(w, event); err != nil {
-				return err
-			}
+			fmt.Println("")
 		default:
-			if _, err := w.Write([]byte(event.ToHumanReadable())); err != nil {
-				return err
-			}
-		}
-		if _, err := w.Write([]byte("\n")); err != nil {
-			return err
-		}
-		if err := w.Flush(); err != nil {
-			return err
+			fmt.Println(event.ToHumanReadable())
 		}
 	}
-	return nil
+
+	return <-errChannel
 }

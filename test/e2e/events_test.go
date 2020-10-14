@@ -10,6 +10,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman events", func() {
@@ -126,26 +127,31 @@ var _ = Describe("Podman events", func() {
 		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
+
 		test := podmanTest.Podman([]string{"events", "--stream=false", "--format", "json"})
 		test.WaitWithDefaultTimeout()
-		Expect(test.ExitCode()).To(BeZero())
+		Expect(test).To(Exit(0))
+
 		jsonArr := test.OutputToStringArray()
-		Expect(len(jsonArr)).To(Not(BeZero()))
+		Expect(test.OutputToStringArray()).ShouldNot(BeEmpty())
+
 		eventsMap := make(map[string]string)
 		err := json.Unmarshal([]byte(jsonArr[0]), &eventsMap)
-		Expect(err).To(BeNil())
-		_, exist := eventsMap["Status"]
-		Expect(exist).To(BeTrue())
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(eventsMap).To(HaveKey("Status"))
 
 		test = podmanTest.Podman([]string{"events", "--stream=false", "--format", "{{json.}}"})
 		test.WaitWithDefaultTimeout()
-		Expect(test.ExitCode()).To(BeZero())
+		Expect(test).To(Exit(0))
+
 		jsonArr = test.OutputToStringArray()
-		Expect(len(jsonArr)).To(Not(BeZero()))
+		Expect(test.OutputToStringArray()).ShouldNot(BeEmpty())
+
 		eventsMap = make(map[string]string)
 		err = json.Unmarshal([]byte(jsonArr[0]), &eventsMap)
-		Expect(err).To(BeNil())
-		_, exist = eventsMap["Status"]
-		Expect(exist).To(BeTrue())
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(eventsMap).To(HaveKey("Status"))
 	})
 })
