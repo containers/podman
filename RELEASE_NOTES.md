@@ -1,5 +1,54 @@
 # Release Notes
 
+## 2.1.2
+### Changes
+- The `podman pause` and `podman unpause` commands now work as rootless on cgroups v2 systems.
+- Global flags that are not supported by remote Podman have been disabled when using `podman-remote` and `podman --remote`.
+- The `--authfile` flag to `podman run` and `podman create` is no longer disabled for remote Podman.
+- The `podman pod stop`, `podman pod pause`, `podman pod unpause`, and `podman pod kill` commands now operate on multiple containers in parallel.
+
+### Bugfixes
+- Fixed a bug where rootless Podman could freeze if `newuidmap` was not installed ([#7776](https://github.com/containers/podman/issues/7776)).
+- Fixed a bug where the `pull_policy` field in `containers.conf` was not respected.
+- Fixed a bug where sysctls specified in `containers.conf` were applied even if the container used a host namespace. Sysctls related to the specific namespace set to `host` will no longer be applied.
+- Fixed a bug where healthchecks did not print errors from connecting to Systemd.
+- Fixed a bug where rootless CNI networks did not properly clean up DNS entries from the `dnsname` CNI plugin when containers were removed ([#7789](https://github.com/containers/podman/issues/7789)).
+- Fixed a bug where Ambient and Inheritable capabilities were not properly handled (Ambient was not cleared, and Inheritable was sometimes not set).
+- Fixed a bug where the `podman run` and `podman create` commands would not create containers when the given image was an already-pulled manifest list ([#7233](https://github.com/containers/podman/issues/7233)).
+- Fixed a bug where Podman did not properly handle shortnames for already-pulled images, returning results out of the order specified in `registries.conf` for search registries when multiple copies of an image matching the shortname were pulled ([#6831](https://github.com/containers/podman/issues/6381)).
+- Fixed a bug where the `podman manifest inspect` command would fail on already-pulled manifests ([#7726](https://github.com/containers/podman/issues/7726)).
+- Fixed a bug where additional groups from the `--group-add` flag to `podman create` and `podman run` were not added to rootless containers (they will still not be added if the `ignore_chown_errors` storage option is set).
+- Fixed a bug where some `podman-remote` commands did not properly handle cases where user input could refer to either a partial container ID and a full container name ([#7837](https://github.com/containers/podman/issues/7837)).
+- Fixed a bug where the `podman image prune` command did not act recursively, and could exit with images that were ready to be pruned still present ([#7872](https://github.com/containers/podman/issues/7872)).
+- Fixed a bug where the `podman logs` command, when using the `journald` backend, did not properly set tail configuration for the logs.
+- Fixed a bug where the `--rm` and `--restart` options to `podman run` and `podman create` and `podman run` did not conflict ([#7878](https://github.com/containers/podman/issues/7878)).
+- Fixed a bug where containers in a pod did not correctly share SELinux labels, preventing containers in pods that shared the PID namespace from seeing the processes of other containers in the pod ([#7886](https://github.com/containers/podman/issues/7886)).
+- Fixed a bug where Podman did not properly determine the number of UIDs available to a rootless container if multiple UID mappings were provided, resulting in errors that the container did not have enough UIDs even though it did.
+- Fixed a bug where the `podman network create` and `podman network rm` commands had unpredictable behavior when run in parallel ([#7807](https://github.com/containers/podman/issues/7807)).
+- Fixed a bug where the `--publish` argument to `podman run`, `podman create`, and `podman pod create` would, when given only a single port numbers (e.g. `-p 80`), set host port equal to container port (instead of randomly assigning a host port) ([#7947](https://github.com/containers/podman/issues/7947)).
+- Fixed a bug where, on numerous commands, the `--format` argument was not properly handling advanced formatting options.
+- Fixed a bug where containers would fail to start if the default cgroup manager was changed after they were created ([#7830](https://github.com/containers/podman/issues/7830)).
+- Fixed a bug where CNI network inspect results did not appear in the output of `podman inspect` on containers unless the container was running.
+- Fixed a bug where the `podman attach` command did not print a newline after detaching from a container.
+
+### API
+- The Compat Create endpoint for Volumes now returns a 201 if the volume already exists, instead of a 500 ([#7740](https://github.com/containers/podman/issues/7740)).
+- Fixed a bug where the `podman system service` command could time out even though active connections remained ([#7826](https://github.com/containers/podman/issues/7826)).
+- Fixed a bug where the `podman system service` command would not time out if an attach session had ever been opened ([#7905](https://github.com/containers/podman/issues/7905)).
+- Fixed a bug where the Compat Create endpoint for Containers ignored Environment and Working Directory from the image.
+- Fixed a bug where the Compat Create endpoint for Containers did not properly handle empty-string Entrypoints and devices that are symlinks.
+- Fixed a bug where the Compat Create endpoint for Images did not properly handle the `tag` parameter when it was a digest.
+- Fixed a bug where the `podman system service` command would segfault if a client disconnected during an image pull ([#7896](https://github.com/containers/podman/issues/7896)).
+- Fixed a bug where the `Namespace` option to the Libpod Container List endpoint did not function correctly ([#7903](https://github.com/containers/podman/issues/7903)).
+- Fixed a bug where the compat JSON endpoint for individual containers did not return the container's stop signal properly ([#7917](https://github.com/containers/podman/issues/7917)).
+- Fixed a bug where the compat Create endpoint for Containers would, when run as rootless, not properly set network mode ([#7934](https://github.com/containers/podman/issues/7934)).
+- Fixed a bug where the Libpod and Compat Events endpoints did not properly handle the client disconnecting ([#7946](https://github.com/containers/podman/issues/7946)).
+- Fixed a bug where the compat JSON endpoint for individual containers returned the container's created time in an incorrect format ([#7860](https://github.com/containers/podman/issues/7860)).
+
+### Misc
+- Updated Buildah to v1.16.4
+- Updated the containers/common library to v0.24.0
+
 ## 2.1.1
 ### Changes
 - The `podman info` command now includes the cgroup manager Podman is using.
