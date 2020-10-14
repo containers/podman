@@ -215,12 +215,12 @@ func ps(cmd *cobra.Command, args []string) error {
 			tm.MoveCursor(1, 1)
 			tm.Flush()
 
-			if ctnrs, err := getResponses(); err != nil {
+			ctnrs, err := getResponses()
+			if err != nil {
 				return err
-			} else {
-				for _, r := range ctnrs {
-					responses = append(responses, psReporter{r})
-				}
+			}
+			for _, r := range ctnrs {
+				responses = append(responses, psReporter{r})
 			}
 
 			if err := tmpl.Execute(w, responses); err != nil {
