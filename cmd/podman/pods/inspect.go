@@ -64,6 +64,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 
 	if parse.MatchesJSONFormat(inspectOptions.Format) {
 		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "     ")
 		return enc.Encode(responses)
 	}
 
