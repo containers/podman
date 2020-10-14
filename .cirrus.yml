@@ -396,13 +396,13 @@ docker-py_test_task:
     only_if: *not_docs
     depends_on:
         - build
-    container: *smallcontainer
+    gce_instance: *standardvm
     env:
         <<: *stdenvars
         TEST_FLAVOR: docker-py
         TEST_ENVIRON: container
     gopath_cache: *ro_gopath_cache
-    clone_script: *full_clone  # build-cache not available to container tasks
+    clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
     always: *artifacts
