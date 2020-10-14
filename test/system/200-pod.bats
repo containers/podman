@@ -66,6 +66,12 @@ function teardown() {
     run_podman pod exists $podname
     run_podman pod exists $podid
 
+    # (Assert that output is formatted, not a one-line blob: #8021)
+    run_podman pod inspect $podname
+    if [[ "${#lines[*]}" -lt 10 ]]; then
+        die "Output from 'pod inspect' is only ${#lines[*]} lines; see #8011"
+    fi
+
     # Randomly-assigned port in the 5xxx range
     for port in $(shuf -i 5000-5999);do
         if ! { exec 3<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then

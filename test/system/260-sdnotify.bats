@@ -12,8 +12,6 @@ _SOCAT_LOG=
 function setup() {
     skip_if_remote "systemd tests are meaningless over remote"
 
-    skip "FIXME FIXME FIXME, is this what's causing the CI hang???"
-
     # Skip if systemd is not running
     systemctl list-units &>/dev/null || skip "systemd not available"
 

@@ -224,6 +224,12 @@ EOF
     # Confirm that 'podman inspect' shows the expected values
     # FIXME: can we rely on .Env[0] being PATH, and the rest being in order??
     run_podman image inspect build_test
+
+    # (Assert that output is formatted, not a one-line blob: #8011)
+    if [[ "${#lines[*]}" -lt 10 ]]; then
+        die "Output from 'image inspect' is only ${#lines[*]} lines; see #8011"
+    fi
+
     tests="
 Env[1]             | MYENV1=$s_env1
 Env[2]             | MYENV2=this-should-be-overridden-by-env-host

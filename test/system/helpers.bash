@@ -247,7 +247,7 @@ function is_cgroupsv1() {
 
 function is_cgroupsv2() {
     cgroup_type=$(stat -f -c %T /sys/fs/cgroup)
-    test "$cgroup_type" = "cgroupfs"
+    test "$cgroup_type" = "cgroup2fs"
 }
 
 ###########################

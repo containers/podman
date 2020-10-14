@@ -90,7 +90,12 @@ load helpers
     run_podman network create --subnet "${mysubnet}.0/24" $mynetname
     is "$output" ".*/cni/net.d/$mynetname.conflist" "output of 'network create'"
 
-    # WARNING: this pulls a ~100MB image from quay.io, hence is slow/flaky
+    # (Assert that output is formatted, not a one-line blob: #8011)
+    run_podman network inspect $mynetname
+    if [[ "${#lines[*]}" -lt 5 ]]; then
+        die "Output from 'pod inspect' is only ${#lines[*]} lines; see #8011"
+    fi
+
     run_podman run --rm --network $mynetname $IMAGE ip a
     is "$output" ".* inet ${mysubnet}\.2/24 brd ${mysubnet}\.255 " \
        "sdfsdf"
