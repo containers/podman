@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v2/pkg/bindings"
 	sig "github.com/containers/podman/v2/pkg/signal"
 	"github.com/containers/podman/v2/utils"
+	"github.com/moby/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -60,8 +61,14 @@ func Attach(ctx context.Context, nameOrID string, detachKeys *string, logs, stre
 	}
 
 	params := url.Values{}
+	detachKeysInBytes := []byte{}
 	if detachKeys != nil {
 		params.Add("detachKeys", *detachKeys)
+
+		detachKeysInBytes, err = term.ToBytes(*detachKeys)
+		if err != nil {
+			return errors.Wrapf(err, "invalid detach keys")
+		}
 	}
 	if logs != nil {
 		params.Add("logs", fmt.Sprintf("%t", *logs))
@@ -141,27 +148,51 @@ func Attach(ctx context.Context, nameOrID string, detachKeys *string, logs, stre
 		attachReady <- true
 	}
 
+	stdoutChan := make(chan error)
+	stdinChan := make(chan error)
+
 	if isSet.stdin {
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
-			_, err := utils.CopyDetachable(socket, stdin, []byte{})
-			if err != nil {
+
+			_, err := utils.CopyDetachable(socket, stdin, detachKeysInBytes)
+
+			if err != nil && err != define.ErrDetach {
 				logrus.Error("failed to write input to service: " + err.Error())
 			}
+			stdinChan <- err
 		}()
 	}
 
 	buffer := make([]byte, 1024)
 	if ctnr.Config.Tty {
-		logrus.Debugf("Copying STDOUT of container in terminal mode")
+		go func() {
+			logrus.Debugf("Copying STDOUT of container in terminal mode")
 
-		if !isSet.stdout {
-			return fmt.Errorf("container %q requires stdout to be set", ctnr.ID)
-		}
-		// If not multiplex'ed, read from server and write to stdout
-		_, err := io.Copy(stdout, socket)
-		if err != nil {
-			return err
+			if !isSet.stdout {
+				stdoutChan <- fmt.Errorf("container %q requires stdout to be set", ctnr.ID)
+			}
+			// If not multiplex'ed, read from server and write to stdout
+			_, err := io.Copy(stdout, socket)
+
+			stdoutChan <- err
+		}()
+
+		for {
+			select {
+			case err := <-stdoutChan:
+				if err != nil {
+					return err
+				}
+
+				return nil
+			case err := <-stdinChan:
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
 		}
 	} else {
 		logrus.Debugf("Copying standard streams of container in non-terminal mode")
@@ -205,7 +236,6 @@ func Attach(ctx context.Context, nameOrID string, detachKeys *string, logs, stre
 			}
 		}
 	}
-	return nil
 }
 
 // DemuxHeader reads header for stream from server multiplexed stdin/stdout/stderr/2nd error channel

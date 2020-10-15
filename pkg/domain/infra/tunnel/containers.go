@@ -573,6 +573,10 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 	// Attach
 	if err := startAndAttach(ic, con.ID, &opts.DetachKeys, opts.InputStream, opts.OutputStream, opts.ErrorStream); err != nil {
+		if err == define.ErrDetach {
+			return &report, nil
+		}
+
 		report.ExitCode = define.ExitCode(err)
 		if opts.Rm {
 			if rmErr := containers.Remove(ic.ClientCxt, con.ID, bindings.PFalse, bindings.PTrue); rmErr != nil {
