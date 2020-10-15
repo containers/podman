@@ -213,6 +213,12 @@ EOF
         run_podman volume create $vol
     done
 
+    # (Assert that output is formatted, not a one-line blob: #8011)
+    run_podman volume inspect ${v[1]}
+    if [[ "${#lines[*]}" -lt 10 ]]; then
+        die "Output from 'volume inspect' is only ${#lines[*]} lines; see #8011"
+    fi
+
     # Run two containers: one mounting v1, one mounting v2 & v3
     run_podman run --name c1 --volume ${v[1]}:/vol1 $IMAGE date
     run_podman run --name c2 --volume ${v[2]}:/vol2 -v ${v[3]}:/vol3 \

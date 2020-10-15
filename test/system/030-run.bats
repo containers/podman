@@ -303,8 +303,36 @@ echo $rand        |   0 | $rand
 
     # This would always work on root, but is new behavior on rootless: #6829
     # adds a user entry to /etc/passwd
+    whoami=$(id -un)
     run_podman run --rm --userns=keep-id $IMAGE id -un
-    is "$output" "$(id -un)" "username on container with keep-id"
+    is "$output" "$whoami" "username on container with keep-id"
+
+    # Setting user should also set $HOME (#8013).
+    # Test setup below runs three cases: one with an existing home dir
+    # and two without (one without any volume mounts, one with a misspelled
+    # username). In every case, initial cwd should be /home/podman because
+    # that's the container-defined WORKDIR. In the case of an existing
+    # home dir, $HOME and ~ (passwd entry) will be /home/user; otherwise
+    # they should be /home/podman.
+    if is_rootless; then
+        tests="
+                |  /home/podman /home/podman /home/podman    | no vol mount
+/home/x$whoami  |  /home/podman /home/podman /home/podman    | bad vol mount
+/home/$whoami   |  /home/podman /home/$whoami /home/$whoami  | vol mount
+"
+        while read vol expect name; do
+            opts=
+            if [[ "$vol" != "''" ]]; then
+                opts="-v $vol"
+            fi
+            run_podman run --rm $opts --userns=keep-id \
+                   $IMAGE sh -c 'echo $(pwd;printenv HOME;echo ~)'
+            is "$output" "$expect" "run with --userns=keep-id and $name sets \$HOME"
+        done < <(parse_table "$tests")
+
+        # Clean up volumes
+        run_podman volume rm -a
+    fi
 
     # --privileged should make no difference
     run_podman run --rm --privileged --userns=keep-id $IMAGE id -un
