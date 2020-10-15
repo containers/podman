@@ -42,6 +42,11 @@ load helpers
     # Start with clean slate
     run_podman image umount -a
 
+    # Get full image ID, to verify umount
+    run_podman image inspect --format '{{.ID}}' $IMAGE
+    iid="$output"
+
+    # Mount, and make sure the mount point exists
     run_podman image mount $IMAGE
     mount_path="$output"
 
@@ -59,6 +64,14 @@ load helpers
 
     # Clean up
     run_podman image umount $IMAGE
+    is "$output" "$iid" "podman image umount: image ID of what was umounted"
+
+    run_podman image umount $IMAGE
+    is "$output" "" "podman image umount: does not re-umount"
+
+    run_podman 125 image umount no-such-container
+    is "$output" "Error: unable to find a name and tag match for no-such-container in repotags: no such image" \
+       "error message from image umount no-such-container"
 
     run_podman image mount
     is "$output" "" "podman image mount, no args, after umount"
