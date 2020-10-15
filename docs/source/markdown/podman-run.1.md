@@ -1234,7 +1234,7 @@ you'd like to connect instead, as in:
 $ podman run -a stdin -a stdout -i -t fedora /bin/bash
 ```
 
-## Sharing IPC between containers
+### Sharing IPC between containers
 
 Using **shm_server.c** available here: https://www.cs.cf.ac.uk/Dave/C/node27.html
 
