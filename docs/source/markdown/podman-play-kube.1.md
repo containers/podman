@@ -15,7 +15,7 @@ Ideally the input file would be one created by Podman (see podman-generate-kube(
 
 Note: HostPath volume types created by play kube will be given an SELinux private label (Z)
 
-## OPTIONS:
+## OPTIONS
 
 **--authfile**=*path*
 
@@ -64,7 +64,7 @@ TLS verification will be used unless the target registry is listed as an insecur
 
 Print usage statement
 
-## Examples
+## EXAMPLES
 
 Recreate the pod and containers as described in a file called `demo.yml`
 ```

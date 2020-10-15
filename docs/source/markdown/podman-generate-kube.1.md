@@ -12,7 +12,7 @@ of a pod or container name or ID.
 
 Note that the generated Kubernetes YAML file can be used to re-run the deployment via podman-play-kube(1).
 
-## OPTIONS:
+## OPTIONS
 
 **--filename**, **-f**=**filename**
 
@@ -23,7 +23,7 @@ Output to the given file, instead of STDOUT. If the file already exists, `genera
 Generate a Kubernetes service object in addition to the Pods. Used to generate a Service specification for the corresponding Pod output. In particular, if the object has portmap bindings, the service specification will include a NodePort declaration to expose the service. A
 random port is assigned by Podman in the specification.
 
-## Examples
+## EXAMPLES
 
 Create Kubernetes Pod YAML for a container called `some-mariadb` .
 ```

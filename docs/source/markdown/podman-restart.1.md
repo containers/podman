@@ -30,7 +30,7 @@ Restart all containers that are already in the *running* state.
 Timeout to wait before forcibly stopping the container.
 
 
-## EXAMPLES ##
+## EXAMPLES
 
 Restart the latest container
 ```

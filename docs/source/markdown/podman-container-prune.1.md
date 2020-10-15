@@ -23,7 +23,7 @@ Do not provide an interactive prompt for container removal.
 
 Print usage statement
 
-## Examples
+## EXAMPLES
 
 Remove all stopped containers from local storage
 ```
