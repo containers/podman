@@ -233,18 +233,20 @@ func getPackageImportPath() string {
 		panic(err.Error())
 	}
 
+	sep := string(filepath.Separator)
+
 	// Try go.mod file first
 	modRoot := findModuleRoot(workingDir)
 	if modRoot != "" {
 		modName := moduleName(modRoot)
 		if modName != "" {
 			cd := strings.Replace(workingDir, modRoot, "", -1)
+			cd = strings.ReplaceAll(cd, sep, "/")
 			return modName + cd
 		}
 	}
 
 	// Fallback to GOPATH structure
-	sep := string(filepath.Separator)
 	paths := strings.Split(workingDir, sep+"src"+sep)
 	if len(paths) == 1 {
 		fmt.Printf("\nCouldn't identify package import path.\n\n\tginkgo generate\n\nMust be run within a package directory under $GOPATH/src/...\nYou're going to have to change UNKNOWN_PACKAGE_PATH in the generated file...\n\n")

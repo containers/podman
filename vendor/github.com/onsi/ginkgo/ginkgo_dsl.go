@@ -93,26 +93,36 @@ func GinkgoT(optionalOffset ...int) GinkgoTInterface {
 	if len(optionalOffset) > 0 {
 		offset = optionalOffset[0]
 	}
-	return testingtproxy.New(GinkgoWriter, Fail, offset)
+	failedFunc := func() bool {
+		return CurrentGinkgoTestDescription().Failed
+	}
+	nameFunc := func() string {
+		return CurrentGinkgoTestDescription().FullTestText
+	}
+	return testingtproxy.New(GinkgoWriter, Fail, Skip, failedFunc, nameFunc, offset)
 }
 
 //The interface returned by GinkgoT().  This covers most of the methods
 //in the testing package's T.
 type GinkgoTInterface interface {
-	Fail()
+	Cleanup(func())
 	Error(args ...interface{})
 	Errorf(format string, args ...interface{})
+	Fail()
 	FailNow()
+	Failed() bool
 	Fatal(args ...interface{})
 	Fatalf(format string, args ...interface{})
+	Helper()
 	Log(args ...interface{})
 	Logf(format string, args ...interface{})
-	Failed() bool
+	Name() string
 	Parallel()
 	Skip(args ...interface{})
-	Skipf(format string, args ...interface{})
 	SkipNow()
+	Skipf(format string, args ...interface{})
 	Skipped() bool
+	TempDir() string
 }
 
 //Custom Ginkgo test reporters must implement the Reporter interface.
