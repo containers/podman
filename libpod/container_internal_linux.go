@@ -1024,13 +1024,15 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if !options.IgnoreStaticMAC {
 			// Take the first device with a defined sandbox.
 			var MAC net.HardwareAddr
-			for _, n := range networkStatus[0].Interfaces {
-				if n.Sandbox != "" {
-					MAC, err = net.ParseMAC(n.Mac)
-					if err != nil {
-						return errors.Wrapf(err, "failed to parse MAC %v", n.Mac)
+			if len(networkStatus) > 0 {
+				for _, n := range networkStatus[0].Interfaces {
+					if n.Sandbox != "" {
+						MAC, err = net.ParseMAC(n.Mac)
+						if err != nil {
+							return errors.Wrapf(err, "failed to parse MAC %v", n.Mac)
+						}
+						break
 					}
-					break
 				}
 			}
 			if MAC != nil {
