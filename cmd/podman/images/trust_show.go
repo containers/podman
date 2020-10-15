@@ -49,7 +49,7 @@ func showTrust(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if showTrustOptions.Raw {
-		fmt.Println(report.Raw)
+		fmt.Println(string(report.Raw))
 		return nil
 	}
 	if showTrustOptions.JSON {
