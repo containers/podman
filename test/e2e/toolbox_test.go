@@ -365,4 +365,16 @@ var _ = Describe("Toolbox-specific testing", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("READY"))
 	})
+
+	It("podman run --userns=keep-id check $HOME", func() {
+		var session *PodmanSessionIntegration
+
+		currentUser, err := user.Current()
+		Expect(err).To(BeNil())
+		session = podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:%s", currentUser.HomeDir, currentUser.HomeDir), "--userns=keep-id", fedoraToolbox, "sh", "-c", "echo $HOME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(currentUser.HomeDir))
+	})
+
 })
