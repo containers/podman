@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi/parse"
@@ -71,9 +72,10 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 	return reports, nil
 }
 
-func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []string, opts entities.VolumeInspectOptions) ([]*entities.VolumeInspectReport, error) {
+func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []string, opts entities.InspectOptions) ([]*entities.VolumeInspectReport, []error, error) {
 	var (
 		err  error
+		errs []error
 		vols []*libpod.Volume
 	)
 
@@ -82,13 +84,18 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	if opts.All {
 		vols, err = ic.Libpod.GetAllVolumes()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		for _, v := range namesOrIds {
 			vol, err := ic.Libpod.LookupVolume(v)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error inspecting volume %s", v)
+				if errors.Cause(err) == define.ErrNoSuchVolume {
+					errs = append(errs, errors.Errorf("no such volume %s", v))
+					continue
+				} else {
+					return nil, nil, errors.Wrapf(err, "error inspecting volume %s", v)
+				}
 			}
 			vols = append(vols, vol)
 		}
@@ -98,11 +105,11 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 		var uid, gid int
 		uid, err = v.UID()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		gid, err = v.GID()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		config := entities.VolumeConfigResponse{
 			Name:       v.Name(),
@@ -117,7 +124,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 		}
 		reports = append(reports, &entities.VolumeInspectReport{VolumeConfigResponse: &config})
 	}
-	return reports, nil
+	return reports, errs, nil
 }
 
 func (ic *ContainerEngine) VolumePrune(ctx context.Context) ([]*entities.VolumePruneReport, error) {

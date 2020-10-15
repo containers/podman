@@ -43,21 +43,26 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.Net
 	return reports, nil
 }
 
-func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.NetworkInspectOptions) ([]entities.NetworkInspectReport, error) {
+func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]entities.NetworkInspectReport, []error, error) {
 	config, err := ic.Libpod.GetConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
+	var errs []error
 	rawCNINetworks := make([]entities.NetworkInspectReport, 0, len(namesOrIds))
 	for _, name := range namesOrIds {
 		rawList, err := network.InspectNetwork(config, name)
 		if err != nil {
-			return nil, err
+			if errors.Cause(err) == define.ErrNoSuchNetwork {
+				errs = append(errs, errors.Errorf("no such network %s", name))
+				continue
+			} else {
+				return nil, nil, errors.Wrapf(err, "error inspecting network %s", name)
+			}
 		}
 		rawCNINetworks = append(rawCNINetworks, rawList)
 	}
-	return rawCNINetworks, nil
+	return rawCNINetworks, errs, nil
 }
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {

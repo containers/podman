@@ -289,4 +289,145 @@ var _ = Describe("Podman inspect", func() {
 		Expect(baseJSON[0].HostConfig.SecurityOpt).To(Equal([]string{"label=type:spc_t,label=level:s0", "seccomp=unconfined"}))
 	})
 
+	It("podman inspect pod", func() {
+		podName := "testpod"
+		create := podmanTest.PodmanNoCache([]string{"pod", "create", "--name", podName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", podName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		podData := inspect.InspectPodArrToJSON()
+		Expect(podData[0].Name).To(Equal(podName))
+	})
+
+	It("podman inspect pod with type", func() {
+		podName := "testpod"
+		create := podmanTest.PodmanNoCache([]string{"pod", "create", "--name", podName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--type", "pod", podName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		podData := inspect.InspectPodArrToJSON()
+		Expect(podData[0].Name).To(Equal(podName))
+	})
+
+	It("podman inspect latest pod", func() {
+		SkipIfRemote("--latest flag n/a")
+		podName := "testpod"
+		create := podmanTest.PodmanNoCache([]string{"pod", "create", "--name", podName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--type", "pod", "--latest"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		podData := inspect.InspectPodArrToJSON()
+		Expect(podData[0].Name).To(Equal(podName))
+	})
+	It("podman inspect latest defaults to latest container", func() {
+		SkipIfRemote("--latest flag n/a")
+		podName := "testpod"
+		pod := podmanTest.PodmanNoCache([]string{"pod", "create", "--name", podName})
+		pod.WaitWithDefaultTimeout()
+		Expect(pod.ExitCode()).To(Equal(0))
+
+		inspect1 := podmanTest.Podman([]string{"inspect", "--type", "pod", podName})
+		inspect1.WaitWithDefaultTimeout()
+		Expect(inspect1.ExitCode()).To(Equal(0))
+		Expect(inspect1.IsJSONOutputValid()).To(BeTrue())
+		podData := inspect1.InspectPodArrToJSON()
+		infra := podData[0].Containers[0].Name
+
+		inspect := podmanTest.Podman([]string{"inspect", "--latest"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		containerData := inspect.InspectContainerToJSON()
+		Expect(containerData[0].Name).To(Equal(infra))
+	})
+
+	It("podman inspect network", func() {
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
+
+		session := podmanTest.Podman([]string{"inspect", name, "--format", "{{.cniVersion}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOutputContains("0.3.0")).To(BeTrue())
+	})
+
+	It("podman inspect a volume", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
+		session.WaitWithDefaultTimeout()
+		volName := session.OutputToString()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"inspect", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
+	It("podman inspect a volume with --format", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
+		session.WaitWithDefaultTimeout()
+		volName := session.OutputToString()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Name}}", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(volName))
+	})
+	It("podman inspect --type container on a pod should fail", func() {
+		podName := "testpod"
+		create := podmanTest.PodmanNoCache([]string{"pod", "create", "--name", podName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--type", "container", podName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(ExitWithError())
+	})
+
+	It("podman inspect --type network on a container should fail", func() {
+		ctrName := "testctr"
+		create := podmanTest.PodmanNoCache([]string{"create", "--name", ctrName, ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--type", "network", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(ExitWithError())
+	})
+
+	It("podman inspect --type pod on a container should fail", func() {
+		ctrName := "testctr"
+		create := podmanTest.PodmanNoCache([]string{"create", "--name", ctrName, ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--type", "pod", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(ExitWithError())
+	})
+
+	It("podman inspect --type volume on a container should fail", func() {
+		ctrName := "testctr"
+		create := podmanTest.PodmanNoCache([]string{"create", "--name", ctrName, ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--type", "volume", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(ExitWithError())
+	})
+
 })

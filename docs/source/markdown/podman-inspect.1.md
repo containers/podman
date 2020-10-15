@@ -1,7 +1,7 @@
 % podman-inspect(1)
 
 ## NAME
-podman\-inspect - Display a container or image's configuration
+podman\-inspect - Display a container, image, volume, network, or pod's configuration
 
 ## SYNOPSIS
 **podman inspect** [*options*] *name* [...]
@@ -9,8 +9,9 @@ podman\-inspect - Display a container or image's configuration
 ## DESCRIPTION
 
 This displays the low-level information on containers and images identified by name or ID. By default, this will render
-all results in a JSON array. If the container and image have the same name, this will return container JSON for
-unspecified type. If a format is specified, the given template will be executed for each result.
+all results in a JSON array. If the inspect type is all, the order of inspection is: containers, images, volumes, network, pods.
+ So, if a container has the same name as an image, then the container JSON will be returned, and so on.
+ If a format is specified, the given template will be executed for each result.
 
 For more inspection options, see:
 
@@ -25,7 +26,7 @@ For more inspection options, see:
 
 **--type**, **-t**=*type*
 
-Return JSON for the specified type.  Type can be 'container', 'image' or 'all' (default: all)
+Return JSON for the specified type.  Type can be 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
 (Only meaningful when invoked as *podman inspect*)
 
 **--format**, **-f**=*format*
@@ -37,6 +38,8 @@ The keys of the returned JSON can be used as the values for the --format flag (s
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
+
+This option can be used to inspect the latest pod created when used with --type pod
 
 The latest option is not supported on the remote client or when invoked as *podman image inspect*.
 
@@ -146,6 +149,20 @@ size:   4405240
 ```
 podman container inspect --latest --format {{.EffectiveCaps}}
 [CAP_CHOWN CAP_DAC_OVERRIDE CAP_FSETID CAP_FOWNER CAP_MKNOD CAP_NET_RAW CAP_SETGID CAP_SETUID CAP_SETFCAP CAP_SETPCAP CAP_NET_BIND_SERVICE CAP_SYS_CHROOT CAP_KILL CAP_AUDIT_WRITE]
+```
+
+```
+# podman inspect myPod --type pod --format "{{.Name}}"
+myPod
+```
+```
+# podman inspect myVolume --type volume --format "{{.Name}}"
+myVolume
+```
+
+```
+# podman inspect nyNetwork --type network --format "{{.name}}"
+myNetwork
 ```
 
 ## SEE ALSO

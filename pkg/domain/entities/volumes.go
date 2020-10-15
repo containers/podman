@@ -105,10 +105,6 @@ type VolumeRmReport struct {
 	Id  string //nolint
 }
 
-type VolumeInspectOptions struct {
-	All bool
-}
-
 type VolumeInspectReport struct {
 	*VolumeConfigResponse
 }

@@ -51,7 +51,7 @@ type ContainerEngine interface {
 	HealthCheckRun(ctx context.Context, nameOrID string, options HealthCheckOptions) (*define.HealthCheckResults, error)
 	Info(ctx context.Context) (*define.Info, error)
 	NetworkCreate(ctx context.Context, name string, options NetworkCreateOptions) (*NetworkCreateReport, error)
-	NetworkInspect(ctx context.Context, namesOrIds []string, options NetworkInspectOptions) ([]NetworkInspectReport, error)
+	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]NetworkInspectReport, []error, error)
 	NetworkList(ctx context.Context, options NetworkListOptions) ([]*NetworkListReport, error)
 	NetworkRm(ctx context.Context, namesOrIds []string, options NetworkRmOptions) ([]*NetworkRmReport, error)
 	PlayKube(ctx context.Context, path string, opts PlayKubeOptions) (*PlayKubeReport, error)
@@ -76,7 +76,7 @@ type ContainerEngine interface {
 	VarlinkService(ctx context.Context, opts ServiceOptions) error
 	Version(ctx context.Context) (*SystemVersionReport, error)
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IDOrNameResponse, error)
-	VolumeInspect(ctx context.Context, namesOrIds []string, opts VolumeInspectOptions) ([]*VolumeInspectReport, error)
+	VolumeInspect(ctx context.Context, namesOrIds []string, opts InspectOptions) ([]*VolumeInspectReport, []error, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)
 	VolumePrune(ctx context.Context) ([]*VolumePruneReport, error)
 	VolumeRm(ctx context.Context, namesOrIds []string, opts VolumeRmOptions) ([]*VolumeRmReport, error)

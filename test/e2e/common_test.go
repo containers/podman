@@ -515,6 +515,14 @@ func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 	return i
 }
 
+// InspectPodToJSON takes the sessions output from an inspect and returns json
+func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData {
+	var i []define.InspectPodData
+	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	Expect(err).To(BeNil())
+	return i
+}
+
 // CreatePod creates a pod with no infra container
 // it optionally takes a pod name
 func (p *PodmanTestIntegration) CreatePod(name string) (*PodmanSessionIntegration, int, string) {

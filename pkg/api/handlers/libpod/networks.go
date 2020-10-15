@@ -113,15 +113,15 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := utils.GetName(r)
-	options := entities.NetworkInspectOptions{}
+	options := entities.InspectOptions{}
 	ic := abi.ContainerEngine{Libpod: runtime}
-	reports, err := ic.NetworkInspect(r.Context(), []string{name}, options)
+	reports, errs, err := ic.NetworkInspect(r.Context(), []string{name}, options)
+	// If the network cannot be found, we return a 404.
+	if len(errs) > 0 {
+		utils.Error(w, "Something went wrong", http.StatusNotFound, define.ErrNoSuchNetwork)
+		return
+	}
 	if err != nil {
-		// If the network cannot be found, we return a 404.
-		if errors.Cause(err) == define.ErrNoSuchNetwork {
-			utils.Error(w, "Something went wrong", http.StatusNotFound, err)
-			return
-		}
 		utils.InternalServerError(w, err)
 		return
 	}
