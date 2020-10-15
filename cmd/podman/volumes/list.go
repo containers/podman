@@ -24,7 +24,7 @@ podman volume ls
 List all available volumes. The output of the volumes can be filtered
 and the output format can be changed to JSON or a user specified Go template.`
 	lsCommand = &cobra.Command{
-		Use:     "ls",
+		Use:     "ls [options]",
 		Aliases: []string{"list"},
 		Args:    validate.NoArgs,
 		Short:   "List volumes",

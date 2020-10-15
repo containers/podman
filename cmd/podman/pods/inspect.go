@@ -26,7 +26,7 @@ var (
 	By default, this will render all results in a JSON array.`)
 
 	inspectCmd = &cobra.Command{
-		Use:     "inspect [flags] POD [POD...]",
+		Use:     "inspect [options] POD [POD...]",
 		Short:   "Displays a pod configuration",
 		Long:    inspectDescription,
 		RunE:    inspect,

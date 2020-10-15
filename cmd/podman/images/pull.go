@@ -30,7 +30,7 @@ var (
 
 	// Command: podman pull
 	pullCmd = &cobra.Command{
-		Use:   "pull [flags] IMAGE",
+		Use:   "pull [options] IMAGE",
 		Args:  cobra.ExactArgs(1),
 		Short: "Pull an image from a registry",
 		Long:  pullDescription,

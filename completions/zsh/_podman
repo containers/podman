@@ -31,48 +31,48 @@ _read_podman_commands() {
     eval "$_var_ref=(\$_podman_commands)"
 }
 
-# Run 'podman XX --help', set _podman_flag_list to a formatted list
-# of flag options for XX
-_read_podman_flags() {
+# Run 'podman XX --help', set _podman_option_list to a formatted list
+# of option options for XX
+_read_podman_options() {
     local line
 
-    local _var_ref=_podman_flags_"${*// /_}"
+    local _var_ref=_podman_options_"${*// /_}"
     eval "typeset -ga ${_var_ref}"
-    typeset -ga _podman_flag_list
-    _podman_flag_list=(${(P)_var_ref})
-    (( $#_podman_flag_list )) && return
+    typeset -ga _podman_option_list
+    _podman_option_list=(${(P)_var_ref})
+    (( $#_podman_option_list )) && return
 
-    # Extract the Flags; strip leading whitespace; pack '-f, --foo'
+    # Extract the Options; strip leading whitespace; pack '-f, --foo'
     # as '-f,--foo' (no space); then add '=' to '--foo string'.
     # The result will be, e.g. '-f,--foo=string  Description of Option'
     _call_program podman podman "$@" --help |\
-        sed -n -e '0,/^Flags:/d' -e '/^$/q;p' |\
+        sed -n -e '0,/^Options:/d' -e '/^$/q;p' |\
         grep '^ \+-' |\
         sed -e 's/^ *//' -e 's/^\(-.,\) --/\1--/' |\
         sed -e 's/^\(-[^ ]\+\) \([^ ]\+\)  /\1=\2  /' |\
-        while read flags desc;do
-            # flags like --foo=string: split into --foo & string
+        while read options desc;do
+            # options like --foo=string: split into --foo & string
             local -a tmpa
             local optval=
-            tmpa=(${(s.=.)flags})
+            tmpa=(${(s.=.)options})
             if [ -n "$tmpa[2]" ]; then
-                flags=$tmpa[1]
+                options=$tmpa[1]
                 optval=$tmpa[2]
             fi
 
             # 'podman attach --detach-keys' includes ']' in help msg
             desc=${desc//\]/\\]}
 
-            for flag in ${(s:,:)flags}; do
+            for option in ${(s:,:)options}; do
                 if [ -n "$optval" ]; then
-                    _podman_flag_list+=("${flag}[$desc]:$(_podman_find_helper ${flags} ${optval} ${desc})")
+                    _podman_option_list+=("${option}[$desc]:$(_podman_find_helper ${options} ${optval} ${desc})")
                 else
-                    _podman_flag_list+=("${flag}[$desc]")
+                    _podman_option_list+=("${option}[$desc]")
                 fi
             done
         done
 
-    eval "typeset -ga $_var_ref=(\$_podman_flag_list)"
+    eval "typeset -ga $_var_ref=(\$_podman_option_list)"
 }
 
 # Run 'podman XXX --help', set _podman_usage to the line after "Usage:"
@@ -95,9 +95,9 @@ _read_podman_usage() {
 ###############################################################################
 # BEGIN custom helpers for individual option arguments
 
-# Find a zsh helper for a given flag or command-line option
+# Find a zsh helper for a given option or command-line option
 _podman_find_helper() {
-    local flags=$1
+    local options=$1
     local optval=$2
     local desc=$3
     local helper=
@@ -113,7 +113,7 @@ _podman_find_helper() {
         helper=_files
     # For messages like 'restart policy ("always"|"no"|"on-failure")
     elif optlist=$(expr "$desc" : '.*(\(\"[^\\)]\+|[^\\)]\+\"\))' 2>/dev/null); then
-        optval=${${flags##--}//-/ }       # "--log-level" => "log level"
+        optval=${${options##--}//-/ }       # "--log-level" => "log level"
         optlist=${optlist//\"/}           # "a"|"b"|"c"   => a|b|c
         optlist=${optlist//\|/ }          # a|b|c         => a b c
         # FIXME: how to present values _in order_, not sorted alphabetically?
@@ -205,8 +205,8 @@ _set_up_podman_args() {
     _read_podman_usage "$@"
 
     typeset -ga _podman_args=()
-    # E.g. 'podman exec [flags] CONTAINER [...' -> 'CONTAINER [....'
-    local usage_rhs=$(expr "$_podman_usage" : ".*\[flags\] \+\(.*\)")
+    # E.g. 'podman exec [options] CONTAINER [...' -> 'CONTAINER [....'
+    local usage_rhs=$(expr "$_podman_usage" : ".*\[options\] \+\(.*\)")
 
     # e.g. podman pod ps which takes no further args
     if [ -z "$usage_rhs" ]; then
@@ -290,14 +290,14 @@ _set_up_podman_args() {
 # For an endpoint command, i.e. not a subcommand.
 _podman_terminus() {
     typeset -A opt_args
-    typeset -ga _podman_flag_list
+    typeset -ga _podman_option_list
     typeset -ga _podman_args
     integer ret=1
 
     # Find out what args it takes (e.g. image(s), container(s)) and see
     # if we have helpers for them.
     _set_up_podman_args "$@"
-    _arguments -C $_podman_flag_list $_podman_args && ret=0
+    _arguments -C $_podman_option_list $_podman_args && ret=0
 
     return ret
 }
@@ -319,7 +319,7 @@ _podman_terminus() {
 # zsh first calls us with words=(podman container mount) but we don't
 # want all that full context yet! We want to go a piece at a time,
 # handling 'container' first, then 'mount'; ending up with our
-# final 'podman container mount --help' giving us suitable flags
+# final 'podman container mount --help' giving us suitable options
 # and no subcommands; from which we determine that it's a terminus
 # and jump to a function that handles non-subcommand arguments.
 #
@@ -333,15 +333,15 @@ _podman_subcommand() {
 
     # Run 'podman --help' / 'podman system --help' for our context (initially
     # empty, then possibly under subcommands); from those, get a list of
-    # flags appropriate for this context and, if applicable, subcommands.
-    _read_podman_flags "$@"
+    # options appropriate for this context and, if applicable, subcommands.
+    _read_podman_options "$@"
     _read_podman_commands "$@"
 
     # Now, is this a sub-subcommand, or does it have args?
     if (( $#_podman_commands )); then
         # Subcommands required (podman, podman system, etc)
         local cmd=${words// /_}
-        _arguments -C $_podman_flag_list \
+        _arguments -C $_podman_option_list \
                    "(-): :->command" \
                    "(-)*:: :->option-or-argument" \
             && ret=0

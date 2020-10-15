@@ -27,7 +27,7 @@ var (
 
 	// podman _history_
 	historyCmd = &cobra.Command{
-		Use:     "history [flags] IMAGE",
+		Use:     "history [options] IMAGE",
 		Short:   "Show history of a specified image",
 		Long:    long,
 		Args:    cobra.ExactArgs(1),

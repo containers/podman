@@ -25,7 +25,7 @@ var (
 `)
 
 	pruneCommand = &cobra.Command{
-		Use:     "prune [flags]",
+		Use:     "prune [options]",
 		Short:   "Remove unused data",
 		Args:    validate.NoArgs,
 		Long:    pruneDescription,

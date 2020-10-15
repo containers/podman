@@ -22,7 +22,7 @@ import (
 var (
 	loadDescription = "Loads an image from a locally stored archive (tar file) into container storage."
 	loadCommand     = &cobra.Command{
-		Use:   "load [flags] [NAME[:TAG]]",
+		Use:   "load [options] [NAME[:TAG]]",
 		Short: "Load an image from container archive",
 		Long:  loadDescription,
 		RunE:  load,

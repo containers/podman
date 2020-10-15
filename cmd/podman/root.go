@@ -38,7 +38,7 @@ Description:
 // command should not use this.
 const usageTemplate = `Usage:{{if (and .Runnable (not .HasAvailableSubCommands))}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
-  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+  {{.UseLine}} [command]{{end}}{{if gt (len .Aliases) 0}}
 
 Aliases:
   {{.NameAndAliases}}{{end}}{{if .HasExample}}
@@ -49,24 +49,24 @@ Examples:
 Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
 
-Flags:
+Options:
 {{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
 {{end}}
 `
 
 var (
 	rootCmd = &cobra.Command{
-		Use:                path.Base(os.Args[0]),
-		Long:               "Manage pods, containers and images",
-		SilenceUsage:       true,
-		SilenceErrors:      true,
-		TraverseChildren:   true,
-		PersistentPreRunE:  persistentPreRunE,
-		RunE:               validate.SubCommandExists,
-		PersistentPostRunE: persistentPostRunE,
-		Version:            version.Version.String(),
+		Use:                   path.Base(os.Args[0]) + " [options]",
+		Long:                  "Manage pods, containers and images",
+		SilenceUsage:          true,
+		SilenceErrors:         true,
+		TraverseChildren:      true,
+		PersistentPreRunE:     persistentPreRunE,
+		RunE:                  validate.SubCommandExists,
+		PersistentPostRunE:    persistentPostRunE,
+		Version:               version.Version.String(),
+		DisableFlagsInUseLine: true,
 	}
-
 	logLevels = []string{"debug", "info", "warn", "error", "fatal", "panic"}
 	logLevel  = "error"
 	useSyslog bool
@@ -81,6 +81,7 @@ func init() {
 	)
 
 	rootFlags(rootCmd, registry.PodmanConfig())
+	rootCmd.SetUsageTemplate(usageTemplate)
 }
 
 func Execute() {

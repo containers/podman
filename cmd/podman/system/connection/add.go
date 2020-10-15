@@ -27,7 +27,7 @@ const schemaPattern = "^[A-Za-z][A-Za-z0-9+.-]*:"
 
 var (
 	addCmd = &cobra.Command{
-		Use:   "add [flags] NAME DESTINATION",
+		Use:   "add [options] NAME DESTINATION",
 		Args:  cobra.ExactArgs(2),
 		Short: "Record destination for the Podman service",
 		Long: `Add destination to podman configuration.

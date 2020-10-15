@@ -25,7 +25,7 @@ var (
 	saveDescription = `Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
 
 	saveCommand = &cobra.Command{
-		Use:   "save [flags] IMAGE [IMAGE...]",
+		Use:   "save [options] IMAGE [IMAGE...]",
 		Short: "Save image(s) to an archive",
 		Long:  saveDescription,
 		RunE:  save,

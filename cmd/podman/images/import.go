@@ -19,7 +19,7 @@ var (
   Note remote tar balls can be specified, via web address.
   Optionally tag the image. You can specify the instructions using the --change option.`
 	importCommand = &cobra.Command{
-		Use:   "import [flags] PATH [REFERENCE]",
+		Use:   "import [options] PATH [REFERENCE]",
 		Short: "Import a tarball to create a filesystem image",
 		Long:  importDescription,
 		RunE:  importCon,

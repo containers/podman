@@ -17,7 +17,7 @@ var (
 
   A timeout to forcibly stop the container can also be set but defaults to %d seconds otherwise.`, containerConfig.Engine.StopTimeout)
 	stopCommand = &cobra.Command{
-		Use:   "stop [flags] CONTAINER [CONTAINER...]",
+		Use:   "stop [options] CONTAINER [CONTAINER...]",
 		Short: "Stop one or more containers",
 		Long:  stopDescription,
 		RunE:  stop,

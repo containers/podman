@@ -17,7 +17,7 @@ import (
 var (
 	pauseDescription = `Pauses one or more running containers.  The container name or ID can be used.`
 	pauseCommand     = &cobra.Command{
-		Use:   "pause [flags] CONTAINER [CONTAINER...]",
+		Use:   "pause [options] CONTAINER [CONTAINER...]",
 		Short: "Pause all the processes in one or more containers",
 		Long:  pauseDescription,
 		RunE:  pause,

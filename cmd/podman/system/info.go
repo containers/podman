@@ -20,7 +20,7 @@ var (
   Useful for the user and when reporting issues.
 `
 	infoCommand = &cobra.Command{
-		Use:     "info",
+		Use:     "info [options]",
 		Args:    validate.NoArgs,
 		Long:    infoDescription,
 		Short:   "Display podman system information",

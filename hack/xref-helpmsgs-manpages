@@ -228,14 +228,14 @@ sub podman_help {
         #    Usage: ...
         #    Available Commands:
         #       ....
-        #    Flags:
+        #    Options:
         #       ....
         #
         # Start by identifying the section we're in...
         if ($line =~ /^Available\s+(Commands):/) {
             $section = lc $1;
         }
-        elsif ($line =~ /^(Flags):/) {
+        elsif ($line =~ /^(Options):/) {
             $section = lc $1;
         }
 
@@ -320,7 +320,7 @@ sub podman_man {
             }
         }
 
-        # Flags should always be of the form '**-f**' or '**--flag**',
+        # Options should always be of the form '**-f**' or '**--flag**',
         # possibly separated by comma-space.
         elsif ($section eq 'flags') {
             # e.g. 'podman run --ip6', documented in man page, but nonexistent

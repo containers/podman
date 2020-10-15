@@ -16,7 +16,7 @@ var (
 
   The default signal is SIGKILL, or any signal specified with option --signal.`
 	killCommand = &cobra.Command{
-		Use:   "kill [flags] POD [POD...]",
+		Use:   "kill [options] POD [POD...]",
 		Short: "Send the specified signal or SIGKILL to containers in pod",
 		Long:  podKillDescription,
 		RunE:  kill,

@@ -19,7 +19,7 @@ var (
 
   Use a Go template to change the format from JSON.`
 	inspectCommand = &cobra.Command{
-		Use:   "inspect [flags] VOLUME [VOLUME...]",
+		Use:   "inspect [options] VOLUME [VOLUME...]",
 		Short: "Display detailed information on one or more volumes",
 		Long:  volumeInspectDescription,
 		RunE:  inspect,

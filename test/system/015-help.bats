@@ -6,7 +6,7 @@
 # provides its own --help output. If the usage message ends in '[command]',
 # treat it as a subcommand, and recurse into its own list of sub-subcommands.
 #
-# Any usage message that ends in '[flags]' is interpreted as a command
+# Any usage message that ends in '[options]' is interpreted as a command
 # that takes no further arguments; we confirm by running with 'invalid-arg'
 # and confirming that it exits with error status and message.
 #
@@ -17,7 +17,7 @@ load helpers
 function podman_commands() {
     dprint "$@"
     run_podman help "$@" |\
-        awk '/^Available Commands:/{ok=1;next}/^Flags:/{ok=0}ok { print $1 }' |\
+        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |\
         grep .
     "$output"
 }
@@ -42,7 +42,7 @@ function check_help() {
 
         # e.g. 'podman ps' should not show 'podman container ps' in usage
         # Trailing space in usage handles 'podman system renumber' which
-        # has no ' [flags]'
+        # has no ' [options]'
         is "$usage " "  $command_string .*" "Usage string matches command"
 
         # If usage ends in '[command]', recurse into subcommands
@@ -52,25 +52,25 @@ function check_help() {
             continue
         fi
 
-        # We had someone write upper-case '[FLAGS]' once. Prevent it.
-        if expr "$usage" : '.*\[FLAG' >/dev/null; then
-            die "'flags' string must be lower-case in usage: $usage"
+        # We had someone write upper-case '[OPTIONS]' once. Prevent it.
+        if expr "$usage" : '.*\[OPTION' >/dev/null; then
+            die "'options' string must be lower-case in usage: $usage"
         fi
 
-        # We had someone do 'podman foo ARG [flags]' one time. Yeah, no.
-        if expr "$usage" : '.*[A-Z].*\[flag' >/dev/null; then
-            die "'flags' must precede arguments in usage: $usage"
+        # We had someone do 'podman foo ARG [options]' one time. Yeah, no.
+        if expr "$usage" : '.*[A-Z].*\[option' >/dev/null; then
+            die "'options' must precede arguments in usage: $usage"
         fi
 
-        # Cross-check: if usage includes '[flags]', there must be a
-        # longer 'Flags:' section in the full --help output; vice-versa,
-        # if 'Flags:' is in full output, usage line must have '[flags]'.
-        if expr "$usage" : '.*\[flag' >/dev/null; then
-            if ! expr "$full_help" : ".*Flags:" >/dev/null; then
-                die "$command_string: Usage includes '[flags]' but has no 'Flags:' subsection"
+        # Cross-check: if usage includes '[options]', there must be a
+        # longer 'Options:' section in the full --help output; vice-versa,
+        # if 'Options:' is in full output, usage line must have '[options]'.
+        if expr "$usage" : '.*\[option' >/dev/null; then
+            if ! expr "$full_help" : ".*Options:" >/dev/null; then
+                die "$command_string: Usage includes '[options]' but has no 'Options:' subsection"
             fi
-        elif expr "$full_help" : ".*Flags:" >/dev/null; then
-            die "$command_string: --help has 'Flags:' section but no '[flags]' in synopsis"
+        elif expr "$full_help" : ".*Options:" >/dev/null; then
+            die "$command_string: --help has 'Options:' section but no '[options]' in synopsis"
         fi
 
         # If usage lists no arguments (strings in ALL CAPS), confirm
@@ -102,7 +102,7 @@ function check_help() {
 
         # If usage has required arguments, try running without them.
         # The expression here is 'first capital letter is not in [BRACKETS]'.
-        # It is intended to handle 'podman foo [flags] ARG' but not ' [ARG]'.
+        # It is intended to handle 'podman foo [options] ARG' but not ' [ARG]'.
         if expr "$usage" : '[^A-Z]\+ [A-Z]' >/dev/null; then
             # Exceptions: these commands don't work rootless
             if is_rootless; then

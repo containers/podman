@@ -27,7 +27,7 @@ var (
   You can then start it at any time with the  podman pod start <pod_id> command. The pod will be created with the initial state 'created'.`
 
 	createCommand = &cobra.Command{
-		Use:   "create",
+		Use:   "create [options]",
 		Args:  validate.NoArgs,
 		Short: "Create a new empty pod",
 		Long:  podCreateDescription,

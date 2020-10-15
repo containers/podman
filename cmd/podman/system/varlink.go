@@ -16,7 +16,7 @@ var (
   Tools speaking varlink protocol can remotely manage pods, containers and images.
 `
 	varlinkCmd = &cobra.Command{
-		Use:        "varlink [flags] [URI]",
+		Use:        "varlink [options] [URI]",
 		Args:       cobra.MinimumNArgs(1),
 		Short:      "Run varlink interface",
 		Long:       varlinkDescription,

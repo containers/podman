@@ -32,7 +32,7 @@ var (
 
 	// Command: podman search
 	searchCmd = &cobra.Command{
-		Use:   "search [flags] TERM",
+		Use:   "search [options] TERM",
 		Short: "Search registry for image",
 		Long:  searchDescription,
 		RunE:  imageSearch,

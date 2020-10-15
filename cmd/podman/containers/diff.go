@@ -13,7 +13,7 @@ import (
 var (
 	// podman container _diff_
 	diffCmd = &cobra.Command{
-		Use:   "diff [flags] CONTAINER",
+		Use:   "diff [options] CONTAINER",
 		Args:  validate.IDOrLatestArgs,
 		Short: "Inspect changes to the container's file systems",
 		Long:  `Displays changes to the container filesystem's'.  The container will be compared to its parent layer.`,

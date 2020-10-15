@@ -20,7 +20,7 @@ var (
    Checkpoints one or more running containers. The container name or ID can be used.
 `
 	checkpointCommand = &cobra.Command{
-		Use:   "checkpoint [flags] CONTAINER [CONTAINER...]",
+		Use:   "checkpoint [options] CONTAINER [CONTAINER...]",
 		Short: "Checkpoints one or more containers",
 		Long:  checkpointDescription,
 		RunE:  checkpoint,

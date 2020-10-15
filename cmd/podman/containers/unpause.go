@@ -17,7 +17,7 @@ import (
 var (
 	unpauseDescription = `Unpauses one or more previously paused containers.  The container name or ID can be used.`
 	unpauseCommand     = &cobra.Command{
-		Use:   "unpause [flags] CONTAINER [CONTAINER...]",
+		Use:   "unpause [options] CONTAINER [CONTAINER...]",
 		Short: "Unpause the processes in one or more containers",
 		Long:  unpauseDescription,
 		RunE:  unpause,

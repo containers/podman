@@ -19,7 +19,7 @@ var (
   An unmount can be forced with the --force flag.
 `
 	unmountCommand = &cobra.Command{
-		Use:     "unmount [flags] CONTAINER [CONTAINER...]",
+		Use:     "unmount [options] CONTAINER [CONTAINER...]",
 		Aliases: []string{"umount"},
 		Short:   "Unmounts working container's root filesystem",
 		Long:    description,

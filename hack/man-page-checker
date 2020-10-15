@@ -92,10 +92,10 @@ function compare_usage() {
     # man page lists 'foo [*options*]', help msg shows 'foo [flags]'.
     # Make sure if one has it, the other does too.
     if expr "$from_man" : "\[\*options\*\]" >/dev/null; then
-        if expr "$from_help" : "\[flags\]" >/dev/null; then
+        if expr "$from_help" : "\[options\]" >/dev/null; then
             :
         else
-            echo "WARNING: $cmd: man page shows '[*options*]', help does not show [flags]"
+            echo "WARNING: $cmd: man page shows '[*options*]', help does not show [options]"
             rc=1
        fi
     elif expr "$from_help" : "\[flags\]" >/dev/null; then

@@ -29,7 +29,7 @@ var (
   This command will stop all running containers in each of the specified pods.`
 
 	stopCommand = &cobra.Command{
-		Use:   "stop [flags] POD [POD...]",
+		Use:   "stop [options] POD [POD...]",
 		Short: "Stop one or more pods",
 		Long:  podStopDescription,
 		RunE:  stop,

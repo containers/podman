@@ -23,7 +23,7 @@ var (
 	pruneDescription = fmt.Sprintf(`podman pod prune Removes all exited pods`)
 
 	pruneCommand = &cobra.Command{
-		Use:     "prune [flags]",
+		Use:     "prune [options]",
 		Args:    validate.NoArgs,
 		Short:   "Remove all stopped pods and their containers",
 		Long:    pruneDescription,

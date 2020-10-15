@@ -21,7 +21,7 @@ var (
 
 	Removes all non running containers`)
 	pruneCommand = &cobra.Command{
-		Use:     "prune [flags]",
+		Use:     "prune [options]",
 		Short:   "Remove all non running containers",
 		Long:    pruneDescription,
 		RunE:    prune,

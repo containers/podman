@@ -19,7 +19,7 @@ var (
 	waitDescription = `Block until one or more containers stop and then print their exit codes.
 `
 	waitCommand = &cobra.Command{
-		Use:   "wait [flags] CONTAINER [CONTAINER...]",
+		Use:   "wait [options] CONTAINER [CONTAINER...]",
 		Short: "Block on one or more containers",
 		Long:  waitDescription,
 		RunE:  wait,

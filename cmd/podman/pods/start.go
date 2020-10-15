@@ -24,7 +24,7 @@ var (
 
   All containers defined in the pod will be started.`
 	startCommand = &cobra.Command{
-		Use:   "start [flags] POD [POD...]",
+		Use:   "start [options] POD [POD...]",
 		Short: "Start one or more pods",
 		Long:  podStartDescription,
 		RunE:  start,

@@ -19,7 +19,7 @@ import (
 var (
 	networklistDescription = `List networks`
 	networklistCommand     = &cobra.Command{
-		Use:     "ls",
+		Use:     "ls [options]",
 		Args:    validate.NoArgs,
 		Short:   "network list",
 		Long:    networklistDescription,

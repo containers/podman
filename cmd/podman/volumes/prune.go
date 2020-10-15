@@ -21,7 +21,7 @@ var (
   The command prompts for confirmation which can be overridden with the --force flag.
   Note all data will be destroyed.`
 	pruneCommand = &cobra.Command{
-		Use:   "prune",
+		Use:   "prune [options]",
 		Args:  validate.NoArgs,
 		Short: "Remove all unused volumes",
 		Long:  volumePruneDescription,

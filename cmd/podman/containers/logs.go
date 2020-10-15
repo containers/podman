@@ -27,7 +27,7 @@ var (
   This does not guarantee execution order when combined with podman run (i.e., your run may not have generated any logs at the time you execute podman logs).
 `
 	logsCommand = &cobra.Command{
-		Use:   "logs [flags] CONTAINER [CONTAINER...]",
+		Use:   "logs [options] CONTAINER [CONTAINER...]",
 		Short: "Fetch the logs of one or more containers",
 		Long:  logsDescription,
 		Args: func(cmd *cobra.Command, args []string) error {

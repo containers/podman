@@ -12,7 +12,7 @@ import (
 var (
 	signDescription = "Create a signature file that can be used later to verify the image."
 	signCommand     = &cobra.Command{
-		Use:   "sign [flags] IMAGE [IMAGE...]",
+		Use:   "sign [options] IMAGE [IMAGE...]",
 		Short: "Sign an image",
 		Long:  signDescription,
 		RunE:  sign,

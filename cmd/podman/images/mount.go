@@ -24,7 +24,7 @@ var (
 `
 
 	mountCommand = &cobra.Command{
-		Use:   "mount [flags] [IMAGE...]",
+		Use:   "mount [options] [IMAGE...]",
 		Short: "Mount an image's root filesystem",
 		Long:  mountDescription,
 		RunE:  mount,

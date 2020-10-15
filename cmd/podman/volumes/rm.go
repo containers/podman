@@ -18,7 +18,7 @@ var (
 
   By default only volumes that are not being used by any containers will be removed. To remove the volumes anyways, use the --force flag.`
 	rmCommand = &cobra.Command{
-		Use:     "rm [flags] VOLUME [VOLUME...]",
+		Use:     "rm [options] VOLUME [VOLUME...]",
 		Aliases: []string{"remove"},
 		Short:   "Remove one or more volumes",
 		Long:    volumeRmDescription,

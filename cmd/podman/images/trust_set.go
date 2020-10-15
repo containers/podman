@@ -12,7 +12,7 @@ import (
 var (
 	setTrustDescription = "Set default trust policy or add a new trust policy for a registry"
 	setTrustCommand     = &cobra.Command{
-		Use:     "set [flags] REGISTRY",
+		Use:     "set [options] REGISTRY",
 		Short:   "Set default trust policy or a new trust policy for a registry",
 		Long:    setTrustDescription,
 		Example: "",

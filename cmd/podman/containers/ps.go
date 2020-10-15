@@ -27,7 +27,7 @@ import (
 var (
 	psDescription = "Prints out information about the containers"
 	psCommand     = &cobra.Command{
-		Use:   "ps",
+		Use:   "ps [options]",
 		Args:  validate.NoArgs,
 		Short: "List containers",
 		Long:  psDescription,

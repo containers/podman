@@ -19,7 +19,7 @@ var (
   An unmount can be forced with the --force flag.
 `
 	unmountCommand = &cobra.Command{
-		Use:     "unmount [flags] IMAGE [IMAGE...]",
+		Use:     "unmount [options] IMAGE [IMAGE...]",
 		Aliases: []string{"umount"},
 		Short:   "Unmount an image's root filesystem",
 		Long:    description,

@@ -16,7 +16,7 @@ var (
   You can copy from the container's file system to the local machine or the reverse, from the local filesystem to the container. If "-" is specified for either the SRC_PATH or DEST_PATH, you can also stream a tar archive from STDIN or to STDOUT. The CONTAINER can be a running or stopped container.  The SRC_PATH or DEST_PATH can be a file or directory.
 `
 	cpCommand = &cobra.Command{
-		Use:     "cp [flags] SRC_PATH DEST_PATH",
+		Use:     "cp [options] SRC_PATH DEST_PATH",
 		Short:   "Copy files/folders between a container and the local filesystem",
 		Long:    cpDescription,
 		Args:    cobra.ExactArgs(2),

@@ -16,7 +16,7 @@ var (
 
   The pod name or ID can be used.`
 	unpauseCommand = &cobra.Command{
-		Use:   "unpause [flags] POD [POD...]",
+		Use:   "unpause [options] POD [POD...]",
 		Short: "Unpause one or more pods",
 		Long:  podUnpauseDescription,
 		RunE:  unpause,

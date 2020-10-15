@@ -20,7 +20,7 @@ var (
   A timeout before forcibly stopping can be set, but defaults to %d seconds.`, containerConfig.Engine.StopTimeout)
 
 	restartCommand = &cobra.Command{
-		Use:   "restart [flags] CONTAINER [CONTAINER...]",
+		Use:   "restart [options] CONTAINER [CONTAINER...]",
 		Short: "Restart one or more containers",
 		Long:  restartDescription,
 		RunE:  restart,

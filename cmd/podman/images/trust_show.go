@@ -14,7 +14,7 @@ import (
 var (
 	showTrustDescription = "Display trust policy for the system"
 	showTrustCommand     = &cobra.Command{
-		Use:     "show [flags] [REGISTRY]",
+		Use:     "show [options] [REGISTRY]",
 		Short:   "Display trust policy for the system",
 		Long:    showTrustDescription,
 		RunE:    showTrust,
