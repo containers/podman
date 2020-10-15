@@ -51,11 +51,13 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("podman manifest inspect", func() {
-		session := podmanTest.Podman([]string{"manifest", "inspect", BB})
+		// Something NOT on docker hub
+		fqin := "k8s.gcr.io/pause@sha256:f78411e19d84a252e53bff71a4407a5686c46983a2c2eeed83929b888179acea"
+		session := podmanTest.Podman([]string{"manifest", "inspect", fqin})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.PodmanNoCache([]string{"manifest", "inspect", "docker.io/library/busybox"})
+		session = podmanTest.PodmanNoCache([]string{"manifest", "inspect", fqin})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
