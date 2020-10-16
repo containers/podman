@@ -88,12 +88,15 @@ var _ = Describe("podman container runlabel", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", ALPINE})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
+		// should not panic when label missing the value or don't have the label
+		Expect(result.LineInOutputContains("panic")).NotTo(BeTrue())
 	})
 	It("podman container runlabel bogus label in remote image should result in non-zero exit", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", "docker.io/library/ubuntu:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
-
+		// should not panic when label missing the value or don't have the label
+		Expect(result.LineInOutputContains("panic")).NotTo(BeTrue())
 	})
 
 	It("podman container runlabel global options", func() {

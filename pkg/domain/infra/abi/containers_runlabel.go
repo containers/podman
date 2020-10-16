@@ -28,6 +28,9 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 	if err != nil {
 		return err
 	}
+	if runlabel == "" {
+		return errors.Errorf("cannot find the value of label: %s in image: %s", label, imageRef)
+	}
 
 	cmd, env, err := generateRunlabelCommand(runlabel, img, args, options)
 	if err != nil {
