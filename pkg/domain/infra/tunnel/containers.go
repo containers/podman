@@ -500,7 +500,6 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if err == define.ErrDetach {
 				// User manually detached
 				// Exit cleanly immediately
-				report.Err = err
 				reports = append(reports, &report)
 				return reports, nil
 			}
