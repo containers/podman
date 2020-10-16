@@ -40,7 +40,7 @@ function _run_automation() {
 
     req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
                  PODBIN_NAME PRIV_NAME DISTRO_NV CONTAINER USER HOME \
-                 UID GID AUTOMATION_LIB_PATH SCRIPT_BASE OS_RELEASE_ID \
+                 UID AUTOMATION_LIB_PATH SCRIPT_BASE OS_RELEASE_ID \
                  OS_RELEASE_VER CG_FS_TYPE
     bigto ooe.sh dnf install -y ShellCheck  # small/quick addition
     $SCRIPT_BASE/shellcheck.sh

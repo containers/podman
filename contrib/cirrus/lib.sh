@@ -6,25 +6,23 @@
 # BEGIN Global export of all variables
 set -a
 
-if [[ "$CI" == "true" ]]; then
-    # Due to differences across platforms and runtime execution environments,
-    # handling of the (otherwise) default shell setup is non-uniform.  Rather
-    # than attempt to workaround differences, simply force-load/set required
-    # items every time this library is utilized.
-    source /etc/profile
-    source /etc/environment
-    USER="$(whoami)"
-    HOME="$(getent passwd $USER | cut -d : -f 6)"
-    # Some platforms set and make this read-only
-    [[ -n "$UID" ]] || \
-        UID=$(getent passwd $USER | cut -d : -f 3)
-    GID=$(getent passwd $USER | cut -d : -f 4)
-fi
+# Due to differences across platforms and runtime execution environments,
+# handling of the (otherwise) default shell setup is non-uniform.  Rather
+# than attempt to workaround differences, simply force-load/set required
+# items every time this library is utilized.
+source /etc/profile
+source /etc/environment
+if [[ -r "/etc/ci_environment" ]]; then source /etc/ci_environment; fi
+USER="$(whoami)"
+HOME="$(getent passwd $USER | cut -d : -f 6)"
+# Some platforms set and make this read-only
+[[ -n "$UID" ]] || \
+    UID=$(getent passwd $USER | cut -d : -f 3)
 
 # During VM Image build, the 'containers/automation' installation
-# was performed.  The final step of that installation sets the
-# installation location in $AUTOMATION_LIB_PATH in /etc/environment
-# or in the default shell profile.
+# was performed.  The final step of installation sets the library
+# location $AUTOMATION_LIB_PATH in /etc/environment or in the
+# default shell profile depending on distribution.
 # shellcheck disable=SC2154
 if [[ -n "$AUTOMATION_LIB_PATH" ]]; then
     for libname in defaults anchors console_output utils; do
@@ -88,8 +86,10 @@ CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and uniq
 # The starting place for linting and code validation
 EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 
-# Regex of env. vars. to explicitly pass when executing tests
-# inside a container or as a rootless user
+# Regex defining all CI-releated env. vars. necessary for all possible
+# testing operations on all platforms and versions.  This is necessary
+# to avoid needlessly passing through global/system values across
+# contexts, such as host->container or root->rootless user
 PASSTHROUGH_ENV_RE='(^CI.*)|(^CIRRUS)|(^DISTRO_NV)|(^GOPATH)|(^GOCACHE)|(^GOSRC)|(^SCRIPT_BASE)|(CGROUP_MANAGER)|(OCI_RUNTIME)|(^TEST.*)|(^PODBIN_NAME)|(^PRIV_NAME)|(^ALT_NAME)|(^ROOTLESS_USER)|(SKIP_USERNS)|(.*_NAME)|(.*_FQIN)'
 # Unsafe env. vars for display
 SECRET_ENV_RE='(ACCOUNT)|(GC[EP]..+)|(SSH)|(PASSWORD)|(TOKEN)'
@@ -107,10 +107,8 @@ lilto() { err_retry 8 1000 "" "$@"; }  # just over 4 minutes max
 bigto() { err_retry 7 5670 "" "$@"; }  # 12 minutes max
 
 # Print shell-escaped variable=value pairs, one per line, based on
-# variable name matching a regex.  This is intended to support
-# passthrough of CI variables from host -> container or from root -> user.
-# For all other vars. we rely on tooling to load this library from inside
-# the container or as rootless user to pickup the remainder.
+# variable name matching a regex.  This is intended to catch
+# variables being passed down from higher layers, like Cirrus-CI.
 passthrough_envars(){
     local xchars
     local envname
@@ -176,22 +174,7 @@ setup_rootless() {
         echo "${ROOTLESS_USER}:$[rootless_uid * 100]:65536" | \
             tee -a /etc/subuid >> /etc/subgid
 
-    # Env. vars set by Cirrus and setup_environment.sh must be explicitly
-    # transferred to the test-user.
-    msg "Configuring rootless user's environment variables:"
-
-    (
-        echo "# Added by ${BASH_SOURCE[0]} ${FUNCNAME[0]}()"
-        echo "export SETUP_ENVIRONMENT=1"
-    ) >> "/home/$ROOTLESS_USER/.bashrc"
-
-    while read -r env_var_val; do
-        echo "export $env_var_val" >> "/home/$ROOTLESS_USER/.bashrc"
-    done <<<"$(passthrough_envars)"
-    chown $ROOTLESS_USER:$ROOTLESS_USER "/home/$ROOTLESS_USER/.bashrc"
-    cat "/home/$ROOTLESS_USER/.bashrc" | indent 2
-
-    msg "Ensure the systems ssh process is up and running within 5 minutes"
+    msg "Ensure the ssh daemon is up and running within 5 minutes"
     systemctl start sshd
     lilto ssh $ROOTLESS_USER@localhost \
            -o UserKnownHostsFile=/dev/null \
