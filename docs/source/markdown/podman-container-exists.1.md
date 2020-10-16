@@ -17,7 +17,7 @@ was an issue accessing the local storage.
 **-h**, **--help**
 Print usage statement
 
-## Examples
+## EXAMPLES
 
 Check if an container called `webclient` exists in local storage (the container does actually exist).
 ```

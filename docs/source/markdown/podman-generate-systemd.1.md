@@ -12,7 +12,7 @@ By default, the command will print the content of the unit files to stdout.
 
 _Note: If you use this command with the remote client, you would still have to place the generated units on the remote system._
 
-## OPTIONS:
+## OPTIONS
 
 **--files**, **-f**
 
@@ -53,7 +53,7 @@ Set the systemd unit name prefix for pods. The default is *pod*.
 
 Set the systemd unit name separator between the name/id of a container/pod and the prefix. The default is *-*.
 
-## Examples
+## EXAMPLES
 
 ### Generate and print a systemd unit file for a container
 

@@ -18,7 +18,7 @@ was an issue accessing the local storage.
 
 Print usage statement
 
-## Examples
+## EXAMPLES
 
 Check if an image called `webclient` exists in local storage (the image does actually exist).
 ```

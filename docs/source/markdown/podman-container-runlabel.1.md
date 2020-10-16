@@ -40,7 +40,7 @@ is used.
 
 Any additional arguments will be appended to the command.
 
-## OPTIONS:
+## OPTIONS
 **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
@@ -87,7 +87,7 @@ Require HTTPS and verify certificates when contacting registries (default: true)
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf (Not available for remote commands)
 
-## Examples
+## EXAMPLES
 
 Execute the run label of an image called foobar.
 ```

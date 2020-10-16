@@ -12,7 +12,7 @@ of the pod may be used as input.  Podman will return an exit code
 of `0` when the pod is found.  A `1` will be returned otherwise. An exit code of `125` indicates there
 was an issue accessing the local storage.
 
-## Examples ##
+## EXAMPLES
 
 Check if a pod called `web` exists in local storage (the pod does actually exist).
 ```
