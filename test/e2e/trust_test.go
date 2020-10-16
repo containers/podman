@@ -74,4 +74,26 @@ var _ = Describe("Podman trust", func() {
 		}
 		Expect(teststruct["default"][0]["type"]).To(Equal("insecureAcceptAnything"))
 	})
+
+	It("podman image trust show --json", func() {
+		session := podmanTest.Podman([]string{"image", "trust", "show", "--json"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		var teststruct []map[string]string
+		json.Unmarshal(session.Out.Contents(), &teststruct)
+		Expect(teststruct[0]["name"]).To(Equal("* (default)"))
+		Expect(teststruct[0]["repo_name"]).To(Equal("default"))
+		Expect(teststruct[0]["type"]).To(Equal("accept"))
+		Expect(teststruct[1]["type"]).To(Equal("insecureAcceptAnything"))
+	})
+
+	It("podman image trust show --raw", func() {
+		session := podmanTest.Podman([]string{"image", "trust", "show", "--raw"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("default"))
+		Expect(session.OutputToString()).To(ContainSubstring("insecureAcceptAnything"))
+	})
 })
