@@ -51,9 +51,7 @@ func init() {
 	flags.BoolVarP(&manifestPushOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing lists")
 
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("cert-dir")
-		_ = flags.MarkHidden("tls-verify")
 	}
 }
 

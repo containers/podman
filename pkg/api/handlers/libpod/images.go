@@ -636,6 +636,14 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		options.Filter = *filter
 	}
 
+	_, authfile, key, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
+		return
+	}
+	defer auth.RemoveAuthfile(authfile)
+	options.Authfile = authfile
+
 	searchResults, err := image.SearchImages(query.Term, options)
 	if err != nil {
 		utils.BadRequest(w, "term", query.Term, err)

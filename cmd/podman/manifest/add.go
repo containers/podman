@@ -56,9 +56,7 @@ func init() {
 	flags.StringVar(&manifestAddOpts.Variant, "variant", "", "override the `Variant` of the specified image")
 
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("cert-dir")
-		_ = flags.MarkHidden("tls-verify")
 	}
 }
 

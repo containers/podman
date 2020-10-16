@@ -20,7 +20,7 @@ Note: HostPath volume types created by play kube will be given an SELinux privat
 **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
@@ -58,7 +58,7 @@ Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (Not 
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
-TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf. (Not available for remote commands)
+TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
 **--help**, **-h**
 
