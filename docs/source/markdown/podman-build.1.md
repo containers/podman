@@ -46,7 +46,7 @@ Set the ARCH of the image to the provided value instead of the architecture of t
 **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
@@ -470,7 +470,7 @@ When --timestamp is set, the created timestamp is always set to the time specifi
 
 **--tls-verify**=*true|false*
 
-Require HTTPS and verify certificates when talking to container registries (defaults to true). (Not available for remote commands)
+Require HTTPS and verify certificates when talking to container registries (defaults to true).
 
 **--ulimit**=*type*=*soft-limit*[:*hard-limit*]
 

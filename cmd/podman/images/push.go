@@ -88,11 +88,9 @@ func pushFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&pushOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("quiet")
-		_ = flags.MarkHidden("tls-verify")
 	}
 	_ = flags.MarkHidden("signature-policy")
 }

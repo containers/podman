@@ -47,7 +47,7 @@ each of stdin, stdout, and stderr.
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path` (Not available for remote commands)
+environment variable. `export REGISTRY_AUTH_FILE=path`
 
 **--blkio-weight**=*weight*
 
