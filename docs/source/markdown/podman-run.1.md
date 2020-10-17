@@ -197,20 +197,20 @@ to only use memory from the first two memory nodes.
 
 **--detach**, **-d**=**true**|**false**
 
-Detached mode: run the container in the background and print the new container ID. The default is **false**.
+Detached mode: run the container in the background and print the new container ID. The default is *false*.
 
 At any time you can run **podman ps** in
 the other shell to view a list of the running containers. You can reattach to a
 detached container with **podman attach**.
 
 When attached in the tty mode, you can detach from the container (and leave it
-running) using a configurable key sequence.
+running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`.
+Configure the keys sequence using the **--detach-keys** option, or specifying
+it in the **containers.conf** file: see **containers.conf(5)** for more information.
 
-**--detach-keys**=_sequence_
+**--detach-keys**=*sequence*
 
-Specify the key sequence for detaching a container; _sequence_ is a comma-delimited set
-in which each item can be a single character from the [a-Z] range,
-or **ctrl**-_value_, where _value_ is one of: **a-z** or **@^[,_**.
+Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
 
 This option can also be set in **containers.conf**(5) file.
 

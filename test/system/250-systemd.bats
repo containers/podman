@@ -42,7 +42,7 @@ function teardown() {
 
     cname=$(random_string)
     # See #7407 for --pull=always.
-    run_podman create --pull=always --name $cname --label "io.containers.autoupdate=image" --detach $IMAGE top
+    run_podman create --pull=always --name $cname --label "io.containers.autoupdate=image" $IMAGE top
 
     run_podman generate systemd --new $cname
     echo "$output" > "$UNIT_FILE"

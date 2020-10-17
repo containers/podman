@@ -489,7 +489,7 @@ VOLUME /test/`
 		Expect(err).To(Not(BeNil()))
 
 		// Make sure modifications in container disappear when container is stopped
-		session = podmanTest.Podman([]string{"create", "-d", "-v", fmt.Sprintf("%s:/run/test:O", mountPath), ALPINE, "top"})
+		session = podmanTest.Podman([]string{"create", "-v", fmt.Sprintf("%s:/run/test:O", mountPath), ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"start", "-l"})

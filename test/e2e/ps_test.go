@@ -324,7 +324,7 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "-dt", ALPINE, "top"})
+		session = podmanTest.Podman([]string{"create", "-t", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

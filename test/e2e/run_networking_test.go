@@ -357,7 +357,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network expose ports in image metadata", func() {
-		session := podmanTest.Podman([]string{"create", "--name", "test", "-dt", "-P", nginx})
+		session := podmanTest.Podman([]string{"create", "--name", "test", "-t", "-P", nginx})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
 		results := podmanTest.Podman([]string{"inspect", "test"})

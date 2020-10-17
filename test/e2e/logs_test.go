@@ -148,7 +148,7 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("podman logs on a created container should result in 0 exit code", func() {
-		session := podmanTest.Podman([]string{"create", "-dt", "--name", "log", ALPINE})
+		session := podmanTest.Podman([]string{"create", "-t", "--name", "log", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(Exit(0))
 

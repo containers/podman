@@ -40,7 +40,7 @@ var _ = Describe("Podman attach", func() {
 	})
 
 	It("podman attach to non-running container", func() {
-		session := podmanTest.Podman([]string{"create", "--name", "test1", "-d", "-i", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--name", "test1", "-i", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -50,7 +50,7 @@ var _ = Describe("Podman attach", func() {
 	})
 
 	It("podman container attach to non-running container", func() {
-		session := podmanTest.Podman([]string{"container", "create", "--name", "test1", "-d", "-i", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"container", "create", "--name", "test1", "-i", ALPINE, "ls"})
 
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

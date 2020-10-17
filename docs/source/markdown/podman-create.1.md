@@ -183,23 +183,6 @@ If you have four memory nodes on your system (0-3), use `--cpuset-mems=0,1`
 then processes in your container will only use memory from the first
 two memory nodes.
 
-**--detach**, **-d**=*true|false*
-
-Detached mode: run the container in the background and print the new container ID. The default is *false*.
-
-At any time you can run **podman ps** in
-the other shell to view a list of the running containers. You can reattach to a
-detached container with **podman attach**.
-
-When attached in the tty mode, you can detach from the container (and leave it
-running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`.
-Configure the keys sequence using the **--detach-keys** option, or specifying
-it in the **containers.conf** file: see **containers.conf(5)** for more information.
-
-**--detach-keys**=*sequence*
-
-Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
-
 **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
 
 Add a host device to the container. Optional *permissions* parameter

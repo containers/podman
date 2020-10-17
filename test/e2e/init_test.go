@@ -45,7 +45,7 @@ var _ = Describe("Podman init", func() {
 	})
 
 	It("podman init single container by ID", func() {
-		session := podmanTest.Podman([]string{"create", "-d", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -61,7 +61,7 @@ var _ = Describe("Podman init", func() {
 
 	It("podman init single container by name", func() {
 		name := "test1"
-		session := podmanTest.Podman([]string{"create", "--name", name, "-d", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--name", name, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		init := podmanTest.Podman([]string{"init", name})
@@ -76,7 +76,7 @@ var _ = Describe("Podman init", func() {
 
 	It("podman init latest container", func() {
 		SkipIfRemote("--latest flag n/a")
-		session := podmanTest.Podman([]string{"create", "-d", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		init := podmanTest.Podman([]string{"init", "--latest"})
@@ -90,10 +90,10 @@ var _ = Describe("Podman init", func() {
 	})
 
 	It("podman init all three containers, one running", func() {
-		session := podmanTest.Podman([]string{"create", "--name", "test1", "-d", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--name", "test1", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session2 := podmanTest.Podman([]string{"create", "--name", "test2", "-d", ALPINE, "ls"})
+		session2 := podmanTest.Podman([]string{"create", "--name", "test2", ALPINE, "ls"})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 		session3 := podmanTest.Podman([]string{"run", "--name", "test3", "-d", ALPINE, "top"})

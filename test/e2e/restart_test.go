@@ -54,7 +54,7 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("Podman restart stopped container by ID", func() {
-		session := podmanTest.Podman([]string{"create", "-d", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()

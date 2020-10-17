@@ -244,7 +244,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd --new with explicit detaching param in middle", func() {
-		n := podmanTest.Podman([]string{"create", "--name", "foo", "-d", "alpine", "top"})
+		n := podmanTest.Podman([]string{"create", "--name", "foo", "alpine", "top"})
 		n.WaitWithDefaultTimeout()
 		Expect(n.ExitCode()).To(Equal(0))
 
@@ -253,7 +253,7 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		// Grepping the output (in addition to unit tests)
-		found, _ := session.GrepString("--name foo -d alpine top")
+		found, _ := session.GrepString("--name foo alpine top")
 		Expect(found).To(BeTrue())
 	})
 
