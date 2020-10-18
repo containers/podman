@@ -10,6 +10,7 @@ import (
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -131,8 +132,9 @@ func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreate
 	plugins = append(plugins, bridge)
 	plugins = append(plugins, NewPortMapPlugin())
 	plugins = append(plugins, NewFirewallPlugin())
-	// if we find the dnsname plugin, we add configuration for it
-	if HasDNSNamePlugin(runtimeConfig.Network.CNIPluginDirs) && !options.DisableDNS {
+	// if we find the dnsname plugin or are rootless, we add configuration for it
+	// the rootless-cni-infra container has the dnsname plugin always installed
+	if (HasDNSNamePlugin(runtimeConfig.Network.CNIPluginDirs) || rootless.IsRootless()) && !options.DisableDNS {
 		// Note: in the future we might like to allow for dynamic domain names
 		plugins = append(plugins, NewDNSNamePlugin(DefaultPodmanDomainName))
 	}
