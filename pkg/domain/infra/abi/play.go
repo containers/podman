@@ -341,7 +341,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 		named, err := reference.ParseNormalizedNamed(container.Image)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "Failed to parse image %q", container.Image)
 		}
 		// In kube, if the image is tagged with latest, it should always pull
 		if tagged, isTagged := named.(reference.NamedTagged); isTagged {

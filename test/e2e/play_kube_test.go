@@ -1447,4 +1447,23 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 			Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
 		}
 	})
+
+	It("podman play kube reports invalid image name", func() {
+		invalidImageName := "./myimage"
+
+		pod := getPod(
+			withCtr(
+				getCtr(
+					withImage(invalidImageName),
+				),
+			),
+		)
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring(invalidImageName))
+	})
 })
