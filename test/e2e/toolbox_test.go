@@ -222,7 +222,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		Expect(WaitContainerReady(podmanTest, "test", "READY", 2, 1)).To(BeTrue())
+		Expect(WaitContainerReady(podmanTest, "test", "READY", 5, 1)).To(BeTrue())
 
 		expectedOutput := fmt.Sprintf("%s:x:%s:%s::%s:%s",
 			username, uid, gid, homeDir, shell)
@@ -257,7 +257,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		Expect(WaitContainerReady(podmanTest, "test", "READY", 2, 1)).To(BeTrue())
+		Expect(WaitContainerReady(podmanTest, "test", "READY", 5, 1)).To(BeTrue())
 
 		session = podmanTest.Podman([]string{"exec", "test", "cat", "/etc/group"})
 		session.WaitWithDefaultTimeout()
@@ -301,7 +301,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		Expect(WaitContainerReady(podmanTest, "test", "READY", 2, 1)).To(BeTrue())
+		Expect(WaitContainerReady(podmanTest, "test", "READY", 5, 1)).To(BeTrue())
 
 		expectedUser := fmt.Sprintf("%s:x:%s:%s::%s:%s",
 			username, uid, gid, homeDir, shell)
@@ -358,7 +358,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		Expect(WaitContainerReady(podmanTest, "test", "READY", 2, 1)).To(BeTrue())
+		Expect(WaitContainerReady(podmanTest, "test", "READY", 5, 1)).To(BeTrue())
 
 		session = podmanTest.Podman([]string{"logs", "test"})
 		session.WaitWithDefaultTimeout()

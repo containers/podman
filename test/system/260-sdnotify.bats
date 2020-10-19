@@ -107,6 +107,7 @@ function _assert_mainpid_is_conmon() {
 
     # Done. Stop container, clean up.
     run_podman exec $cid touch /stop
+    run_podman wait $cid
     run_podman rm $cid
     _stop_socat
 }
@@ -142,6 +143,7 @@ function _assert_mainpid_is_conmon() {
 
     # Done. Stop container, clean up.
     run_podman exec $cid touch /stop
+    run_podman wait $cid
     run_podman rm $cid
     run_podman rmi $_FEDORA
     _stop_socat
