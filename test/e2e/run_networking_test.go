@@ -571,4 +571,19 @@ var _ = Describe("Podman run networking", func() {
 		podrm.WaitWithDefaultTimeout()
 		Expect(podrm.ExitCode()).To(BeZero())
 	})
+
+	It("podman run net=host adds entry to /etc/hosts", func() {
+		run := podmanTest.Podman([]string{"run", "--net=host", ALPINE, "cat", "/etc/hosts"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+		Expect(strings.Contains(run.OutputToString(), "127.0.1.1")).To(BeTrue())
+	})
+
+	It("podman run with --net=host and --hostname sets correct hostname", func() {
+		hostname := "testctr"
+		run := podmanTest.Podman([]string{"run", "--net=host", "--hostname", hostname, ALPINE, "hostname"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+		Expect(strings.Contains(run.OutputToString(), "testctr")).To(BeTrue())
+	})
 })

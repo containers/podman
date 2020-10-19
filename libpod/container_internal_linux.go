@@ -1541,11 +1541,31 @@ func (c *Container) getHosts() string {
 		}
 	}
 
-	if c.config.NetMode.IsSlirp4netns() {
-		// When using slirp4netns, the interface gets a static IP
-		hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", "10.0.2.100", c.Hostname(), c.Config().Name)
-	}
 	hosts += c.cniHosts()
+
+	// If not making a network namespace, add our own hostname.
+	if c.Hostname() != "" {
+		if c.config.NetMode.IsSlirp4netns() {
+			// When using slirp4netns, the interface gets a static IP
+			hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", "10.0.2.100", c.Hostname(), c.config.Name)
+		} else {
+			hasNetNS := false
+			for _, ns := range c.config.Spec.Linux.Namespaces {
+				if ns.Type == spec.NetworkNamespace {
+					hasNetNS = true
+					break
+				}
+			}
+			if !hasNetNS {
+				// 127.0.1.1 and host's hostname to match Docker
+				osHostname, err := os.Hostname()
+				if err != nil {
+					osHostname = c.Hostname()
+				}
+				hosts += fmt.Sprintf("127.0.1.1 %s\n", osHostname)
+			}
+		}
+	}
 	return hosts
 }
 
