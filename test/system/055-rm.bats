@@ -41,11 +41,14 @@ load helpers
     run_podman create --name $rand $IMAGE /bin/true
 
     # Create a container that podman does not know about
-    run buildah from $IMAGE
-    cid="$output"
+    external_cid=$(buildah from $IMAGE)
+
+    # Plain 'exists' should fail, but should succeed with --external
+    run_podman 1 container exists $external_cid
+    run_podman container exists --external $external_cid
 
     # rm should succeed
-    run_podman rm $rand $cid
+    run_podman rm $rand $external_cid
 }
 
 # I'm sorry! This test takes 13 seconds. There's not much I can do about it,

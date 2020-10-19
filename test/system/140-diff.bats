@@ -34,8 +34,8 @@ load helpers
 
 @test "podman diff with buildah container " {
     rand_file=$(random_string 10)
-    run buildah from --name buildahctr $IMAGE
-    run buildah run buildahctr sh -c "touch /$rand_file;rm /etc/services"
+    buildah from --name buildahctr $IMAGE
+    buildah run buildahctr sh -c "touch /$rand_file;rm /etc/services"
 
     run_podman diff --format json buildahctr
 
@@ -51,7 +51,7 @@ load helpers
         is "$result" "${expect[$field]}" "$field"
     done
 
-    run buildah rm buildahctr
+    buildah rm buildahctr
 }
 
 # vim: filetype=sh
