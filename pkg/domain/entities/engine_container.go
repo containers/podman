@@ -21,7 +21,7 @@ type ContainerEngine interface {
 	ContainerDiff(ctx context.Context, nameOrID string, options DiffOptions) (*DiffReport, error)
 	ContainerExec(ctx context.Context, nameOrID string, options ExecOptions, streams define.AttachStreams) (int, error)
 	ContainerExecDetached(ctx context.Context, nameOrID string, options ExecOptions) (string, error)
-	ContainerExists(ctx context.Context, nameOrID string) (*BoolReport, error)
+	ContainerExists(ctx context.Context, nameOrID string, options ContainerExistsOptions) (*BoolReport, error)
 	ContainerExport(ctx context.Context, nameOrID string, options ContainerExportOptions) error
 	ContainerInit(ctx context.Context, namesOrIds []string, options ContainerInitOptions) ([]*ContainerInitReport, error)
 	ContainerInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]*ContainerInspectReport, []error, error)

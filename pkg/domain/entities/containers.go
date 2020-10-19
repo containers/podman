@@ -246,6 +246,11 @@ type ExecOptions struct {
 	WorkDir     string
 }
 
+// ContainerExistsOptions describes the cli values to check if a container exists
+type ContainerExistsOptions struct {
+	External bool
+}
+
 // ContainerStartOptions describes the val from the
 // CLI needed to start a container
 type ContainerStartOptions struct {

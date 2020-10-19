@@ -405,7 +405,7 @@ var _ = Describe("Podman containers ", func() {
 
 	It("podman bogus container does not exist in local storage", func() {
 		// Bogus container existence check should fail
-		containerExists, err := containers.Exists(bt.conn, "foobar")
+		containerExists, err := containers.Exists(bt.conn, "foobar", false)
 		Expect(err).To(BeNil())
 		Expect(containerExists).To(BeFalse())
 	})
@@ -415,7 +415,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		containerExists, err := containers.Exists(bt.conn, name)
+		containerExists, err := containers.Exists(bt.conn, name, false)
 		Expect(err).To(BeNil())
 		Expect(containerExists).To(BeTrue())
 	})
@@ -425,7 +425,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		containerExists, err := containers.Exists(bt.conn, cid)
+		containerExists, err := containers.Exists(bt.conn, cid, false)
 		Expect(err).To(BeNil())
 		Expect(containerExists).To(BeTrue())
 	})
@@ -435,7 +435,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		containerExists, err := containers.Exists(bt.conn, cid[0:12])
+		containerExists, err := containers.Exists(bt.conn, cid[0:12], false)
 		Expect(err).To(BeNil())
 		Expect(containerExists).To(BeTrue())
 	})
@@ -455,7 +455,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		err = containers.Kill(bt.conn, name, "SIGINT")
 		Expect(err).To(BeNil())
-		_, err = containers.Exists(bt.conn, name)
+		_, err = containers.Exists(bt.conn, name, false)
 		Expect(err).To(BeNil())
 	})
 
@@ -466,7 +466,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		err = containers.Kill(bt.conn, cid, "SIGTERM")
 		Expect(err).To(BeNil())
-		_, err = containers.Exists(bt.conn, cid)
+		_, err = containers.Exists(bt.conn, cid, false)
 		Expect(err).To(BeNil())
 	})
 

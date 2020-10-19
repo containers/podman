@@ -74,11 +74,19 @@ func getContainersByContext(all, latest bool, names []string, runtime *libpod.Ru
 	return
 }
 
-// TODO: Should return *entities.ContainerExistsReport, error
-func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+// ContainerExists returns whether the container exists in container storage
+func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string, options entities.ContainerExistsOptions) (*entities.BoolReport, error) {
 	_, err := ic.Libpod.LookupContainer(nameOrID)
-	if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
-		return nil, err
+	if err != nil {
+		if errors.Cause(err) != define.ErrNoSuchCtr {
+			return nil, err
+		}
+		if options.External {
+			// Check if container exists in storage
+			if _, storageErr := ic.Libpod.StorageContainer(nameOrID); storageErr == nil {
+				err = nil
+			}
+		}
 	}
 	return &entities.BoolReport{Value: err == nil}, nil
 }

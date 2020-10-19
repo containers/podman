@@ -29,8 +29,8 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 	return errors.New("not implemented")
 }
 
-func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
-	exists, err := containers.Exists(ic.ClientCxt, nameOrID)
+func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string, options entities.ContainerExistsOptions) (*entities.BoolReport, error) {
+	exists, err := containers.Exists(ic.ClientCxt, nameOrID, options.External)
 	return &entities.BoolReport{Value: exists}, err
 }
 

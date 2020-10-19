@@ -322,12 +322,14 @@ func Wait(ctx context.Context, nameOrID string, condition *define.ContainerStatu
 // Exists is a quick, light-weight way to determine if a given container
 // exists in local storage.  The nameOrID can be a container name
 // or a partial/full ID.
-func Exists(ctx context.Context, nameOrID string) (bool, error) {
+func Exists(ctx context.Context, nameOrID string, external bool) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/exists", nil, nil, nameOrID)
+	params := url.Values{}
+	params.Set("external", strconv.FormatBool(external))
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/exists", params, nil, nameOrID)
 	if err != nil {
 		return false, err
 	}

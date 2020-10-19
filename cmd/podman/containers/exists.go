@@ -12,10 +12,10 @@ var (
 	containerExistsDescription = `If the named container exists in local storage, podman container exists exits with 0, otherwise the exit code will be 1.`
 
 	existsCommand = &cobra.Command{
-		Use:   "exists CONTAINER",
+		Use:   "exists [flags] CONTAINER",
 		Short: "Check if a container exists in local storage",
 		Long:  containerExistsDescription,
-		Example: `podman container exists containerID
+		Example: `podman container exists --external containerID
   podman container exists myctr || podman run --name myctr [etc...]`,
 		RunE:                  exists,
 		Args:                  cobra.ExactArgs(1),
@@ -29,10 +29,19 @@ func init() {
 		Command: existsCommand,
 		Parent:  containerCmd,
 	})
+	flags := existsCommand.Flags()
+	flags.Bool("external", false, "Check external storage containers as well as Podman containers")
 }
 
 func exists(cmd *cobra.Command, args []string) error {
-	response, err := registry.ContainerEngine().ContainerExists(context.Background(), args[0])
+	external, err := cmd.Flags().GetBool("external")
+	if err != nil {
+		return err
+	}
+	options := entities.ContainerExistsOptions{
+		External: external,
+	}
+	response, err := registry.ContainerEngine().ContainerExists(context.Background(), args[0], options)
 	if err != nil {
 		return err
 	}

@@ -755,10 +755,8 @@ _podman_attach() {
      --detach-keys
      "
      local boolean_options="
-	  --help
-	  -h
-	  --latest
-	  -l
+	  --help -h
+	  --latest -l
 	  --no-stdin
 	  --sig-proxy
      "
@@ -782,18 +780,13 @@ _podman_container_checkpoint() {
      --export
      "
      local boolean_options="
-     -a
-     --all
-     -h
-     --help
-     -k
-     --keep
-     -l
-     --latest
-     -R
-     --leave-running
-     --tcp-established
+     --all -a
+     --help -h
      --ignore-rootfs
+     --keep -k
+     --latest -l
+     --leave-running -R
+     --tcp-established
      "
      case "$prev" in
         -e|--export)
@@ -897,18 +890,14 @@ _podman_container_restore() {
      --name
      "
      local boolean_options="
-	  -a
-	  --all
-	  -h
-	  --help
-	  -k
-	  --keep
-	  -l
-	  --latest
-	  --tcp-established
+	  --all -a
+	  --help -h
 	  --ignore-rootfs
 	  --ignore-static-ip
 	  --ignore-static-mac
+	  --keep -k
+	  --latest -l
+	  --tcp-established
      "
      case "$prev" in
         -i|--import)
@@ -1015,9 +1004,8 @@ _podman_network_create() {
     --subnet
      "
     local boolean_options="
-    --disable-dns
-	--help
-	-h
+        --disable-dns
+	--help -h
 	--internal
     "
     _complete_ "$options_with_args" "$boolean_options"
@@ -1049,9 +1037,8 @@ _podman_network_inspect() {
 
 _podman_network_ls() {
     local options_with_args="
-	--format
-	-f
 	--filter
+	--format -f
      "
     local boolean_options="
     --help
@@ -1072,10 +1059,8 @@ _podman_network_rm() {
     local options_with_args="
      "
     local boolean_options="
-    --force
-    -f
-    --help
-    -h
+    --force -f
+    --help -h
     "
     _complete_ "$options_with_args" "$boolean_options"
 
@@ -1222,12 +1207,9 @@ _podman_system_prune() {
     "
 
     local boolean_options="
-     -a
-     --all
-     -f
-     --force
-     -h
-     --help
+     --all -a
+     --force -f
+     --help -h
      --volumes
   "
     case "$cur" in
@@ -1287,12 +1269,9 @@ _podman_commit() {
 	--iidfile
      "
     local boolean_options="
-	--help
-	-h
-	--pause
-	-p
-	--quiet
-	-q
+	--help -h
+	--pause	-p
+	--quiet	-q
      "
     _complete_ "$options_with_args" "$boolean_options"
 
@@ -1309,15 +1288,13 @@ _podman_commit() {
 _podman_build() {
      local boolean_options="
 	  --force-rm
-	  --help
-	  -h
+	  --help -h
 	  --layers
 	  --no-cache
 	  --pull
 	  --pull-always
 	  --pull-never
-	  --quiet
-	  -q
+	  --quiet -q
 	  --rm
 	  --squash
 	  --squash-all
@@ -1340,33 +1317,29 @@ _podman_build() {
      --cpuset-cpus
      --cpuset-mems
      --creds
-     -f
-     --file
+     --file -f
      --format
      --iidfile
      --ipc
      --label
-     -m
-     --memory
+     --memory -m
      --memory-swap
+     --mount
      --net
      --network
      --pid
      --runtime-flag
      --security-opt
      --shm-size
-     -t
-     --tag
+     --tag -t
      --ulimit
      --userns
-     --userns-uid-map
      --userns-gid-map
-     --userns-uid-map-user
      --userns-gid-map-group
+     --userns-uid-map
+     --userns-uid-map-user
      --uts
-     --mount
-     --volume
-     -v
+     --volume -v
   "
 
  case "$prev" in
@@ -1414,13 +1387,10 @@ _podman_exec() {
     -w
      "
     local boolean_options="
-	--help
-	-h
-	--latest
-	-l
+	--help -h
+	--latest -l
 	--privileged
-	--tty
-	-t
+	--tty -t
      "
     case "$cur" in
 	-*)
@@ -1456,8 +1426,7 @@ _podman_history() {
      --format
      "
     local boolean_options="
-	--help
-	-h
+	--help -h
 	--human -H
 	--no-trunc
 	--quiet -q
@@ -1540,12 +1509,9 @@ _podman_image_umount() {
 
 _podman_image_unmount() {
     local boolean_options="
-	--all
-	-a
-	--help
-	-h
-	--force
-	-f
+	--all -a
+	--help -h
+	--force	-f
     "
     local options_with_args="
     "
@@ -1563,10 +1529,8 @@ _podman_image_unmount() {
 
 _podman_image_mount() {
     local boolean_options="
-       --all
-       -a
-       --help
-       -h
+       --all -a
+       --help -h
     "
 
     local options_with_args="
@@ -1680,21 +1644,15 @@ _podman_image() {
 
 _podman_images() {
     local boolean_options="
-	-a
-	--all
+	--all -a
 	--digests
-	--digests
-	-f
-	--filter
-	-h
-	--help
+	--filter -f
+	--help -h
 	--history
 	--no-trunc
-	--notruncate
-	-n
 	--noheading
-	-q
-	--quiet
+	--notruncate -n
+	--quiet	-q
      "
     local options_with_args="
     --format
@@ -1715,10 +1673,8 @@ _podman_images() {
 
 _podman_inspect() {
     local boolean_options="
-	 --help
-	 -h
-	 --latest
-	 -l
+	 --help -h
+	 --latest -l
     "
     local options_with_args="
     --format
@@ -1785,12 +1741,9 @@ _podman_kill() {
      --signal -s
      "
      local boolean_options="
-	  --all
-	  -a
-	  --help
-	  -h
-	  --latest
-	  -l
+	  --all -a
+	  --help -h
+	  --latest -l
      "
      case "$cur" in
 	-*)
@@ -1808,14 +1761,10 @@ _podman_logs() {
      --tail
      "
      local boolean_options="
-	--follow
-	-f
-	--help
-	-h
-	--latest
-	-l
-	--timestamps
-	-t
+	--follow -f
+	--help -h
+	--latest -l
+	--timestamps -t
      "
      _complete_ "$options_with_args" "$boolean_options"
 
@@ -1856,10 +1805,10 @@ _podman_manifest() {
 _podman_manifest_add() {
 	 local options_with_args="
      --annotation
+     --arch
      --authfile
      --cert-dir
      --creds
-     --arch
      --features
      --os
      --os-version
@@ -1946,20 +1895,18 @@ _podman_manifest_push() {
       --cert-dir
       --creds
       --digestfile
-      --format
-      -f
+      --format -f
       --sign-by
       --signature-policy,
     "
 
     local boolean_options="
       --all
+      --help -h
       --purge
-      --help
-      -h
+      --quiet
       --remove-signatures
       --tls-verify
-      --quiet
     "
 
   _complete_ "$options_with_args" "$boolean_options"
@@ -2001,13 +1948,10 @@ _podman_pull() {
     --override-variant
     "
     local boolean_options="
-	--all-tags
-	-a
+	--all-tags -a
 	--disable-content-trust
-	--help
-	-h
-	--quiet
-	-q
+	--help -h
+	--quiet	-q
 	--tls-verify
     "
     _complete_ "$options_with_args" "$boolean_options"
@@ -2035,14 +1979,10 @@ _podman_unmount() {
 
 _podman_umount() {
     local boolean_options="
-	--all
-	-a
-	--help
-	-h
-	--force
-	-f
-	--latest
-	-l
+	--all -a
+	--help -h
+	--force	-f
+	--latest -l
     "
     local options_with_args="
     "
@@ -2060,12 +2000,9 @@ _podman_umount() {
 
 _podman_mount() {
     local boolean_options="
-       --all
-       -a
-       --help
-       -h
-       -l
-       --latest
+       --all -a
+       --help -h
+       --latest -l
        --notruncate
     "
 
@@ -2088,19 +2025,17 @@ _podman_push() {
     local boolean_options="
 	--compress
 	--digestflag
-	--help
-	-h
-	--quiet
-	-q
+	--help -h
+	--quiet	-q
 	--tls-verify
   "
 
     local options_with_args="
-    --authfile
-	--format
-    --cert-dir
-    --creds
-    --sign-by
+       --authfile
+       --cert-dir
+       --creds
+       --format
+       --sign-by
   "
 
     local all_options="$options_with_args $boolean_options"
@@ -2125,18 +2060,18 @@ _podman_container_run() {
 		--builtin-volume
 		--cap-add
 		--cap-drop
-		--cgroup-parent
 		--cgroup-conf
+		--cgroup-parent
 		--cidfile
 		--conmon-pidfile
 		--cpu-period
 		--cpu-quota
 		--cpu-rt-period
 		--cpu-rt-runtime
-		--cpuset-cpus
-		--cpus
-		--cpuset-mems
 		--cpu-shares -c
+		--cpus
+		--cpuset-cpus
+		--cpuset-mems
 		--device
 		--device-cgroup-rule
 		--device-read-bps
@@ -2148,8 +2083,8 @@ _podman_container_run() {
 		--dns-search
 		--entrypoint
 		--env -e
-		--env-host
 		--env-file
+		--env-host
 		--expose
 		--gidmap
 		--group-add
@@ -2165,15 +2100,15 @@ _podman_container_run() {
 		--ip
 		--ipc
 		--kernel-memory
-		--label-file
 		--label -l
+		--label-file
 		--log-driver
 		--log-opt
 		--mac-address
 		--memory -m
+		--memory-reservation
 		--memory-swap
 		--memory-swappiness
-		--memory-reservation
 		--name
 		--network
 		--no-healthcheck
@@ -2190,8 +2125,8 @@ _podman_container_run() {
 		--publish -p
 		--pull
 		--restart
-		--runtime
 		--rootfs
+		--runtime
 		--security-opt
 		--shm-size
 		--stop-signal
@@ -2202,21 +2137,20 @@ _podman_container_run() {
 		--systemd
 		--tmpfs
 		--tz
-		--umask
 		--uidmap
 		--ulimit
+		--umask
 		--user -u
 		--userns
 		--uts
-		--volumes-from
 		--volume -v
+		--volumes-from
 		--workdir -w
 	"
 
 	local boolean_options="
 	    --disable-content-trust=false
-	    --help
-	    -h
+	    --help -h
 	    --init
 	    --interactive -i
 	    --oom-kill-disable
@@ -2234,8 +2168,8 @@ _podman_container_run() {
 			--health-cmd
 			--health-interval
 			--health-retries
-			--health-timeout
 			--health-start-period
+			--health-timeout
 		"
 		boolean_options="$boolean_options
 			--detach -d
@@ -2437,12 +2371,9 @@ _podman_restart() {
      --time -t
      "
      local boolean_options="
-	  --all
-	  -a
-	  --help
-	  -h
-	  --latest
-	  -l
+	  --all -a
+	  --help -h
+	  --latest -l
 	  --running
      "
      case "$cur" in
@@ -2457,20 +2388,13 @@ _podman_restart() {
 
 _podman_rm() {
     local boolean_options="
-	--all
-	-a
+	--all -a
 	--cidfile
-	--force
-	-f
-	--help
-	-h
-	--ignore
-	-i
-	--latest
-	-l
-	--storage
-	--volumes
-	-v
+	--force	-f
+	--help -h
+	--ignore -i
+	--latest -l
+	--volumes -v
     "
 
     local options_with_args="
@@ -2490,12 +2414,9 @@ _podman_rm() {
 
 _podman_rmi() {
     local boolean_options="
-	 --all
-	 -a
-	 --force
-	 -f
-	 --help
-	 -h
+	 --all -a
+	 --force -f
+	 --help -h
   "
 
     case "$cur" in
@@ -2510,13 +2431,11 @@ _podman_rmi() {
 
 _podman_stats() {
     local boolean_options="
-	 --all
-	 -a
-	 --help
-	 -h
-	 --no-stream
+	 --all -a
 	 --format
+	 --help -h
 	 --no-reset
+	 --no-stream
     "
 
     case "$cur" in
@@ -2619,10 +2538,8 @@ _podman_save() {
      "
      local boolean_options="
 	--compress
-	--help
-	-h
-	-q
-	--quiet
+	--help -h
+	--quiet	-q
      "
 
     case "$cur" in
@@ -2659,12 +2576,9 @@ _podman_port() {
      local options_with_args="
      "
      local boolean_options="
-	--all
-	-a
-	--help
-	-h
-	-l
-	--latest
+	--all -a
+	--help -h
+	--latest -l
      "
      case "$cur" in
 	-*)
@@ -2690,14 +2604,14 @@ _podman_ps() {
      "
      local boolean_options="
 	  --all -a
+	  --external
 	  --help -h
 	  --latest -l
+	  --namespace --ns
 	  --no-trunc
 	  --pod -p
 	  --quiet -q
 	  --size -s
-	  --storage
-	  --namespace --ns
 	  --sync
      "
      _complete_ "$options_with_args" "$boolean_options"
@@ -2730,14 +2644,10 @@ _podman_start() {
      "
 
      local boolean_options="
-	  --attach
-	  -a
-	  -h
-	  --help
-	  -i
-	  --interactive
-	  --latest
-	  -l
+	  --attach -a
+	  --help -h
+	  --interactive	-i
+	  --latest -l
 	  --sig-proxy
      "
      case "$cur" in
@@ -2754,15 +2664,11 @@ _podman_stop() {
      --time -t
      "
      local boolean_options="
-	  --all
-	  -a
+	  --all -a
 	  --cidfile
-	  -h
-	  --help
-	  --ignore
-	  -i
-	  --latest
-	  -l
+	  --help -h
+	  --ignore -i
+	  --latest -l
     "
     case "$cur" in
 	-*)
@@ -2807,12 +2713,9 @@ _podman_varlink() {
 _podman_wait() {
      local options_with_args=""
      local boolean_options="
-	--help
-	-h
-	-i
-	-l
-	--interval
-	--latest
+	--help -h
+	--interval -i
+	--latest -l
     "
     case "$cur" in
 	-*)
@@ -2846,19 +2749,16 @@ _podman_load() {
     --input -i
     "
     local boolean_options="
-	 --help
-	 -h
-	 --quiet
-	 -q
+	 --help -h
+	 --quiet -q
     "
     _complete_ "$options_with_args" "$boolean_options"
 }
 
 _podman_cp() {
 	local boolean_options="
-	  --help
-	  -h
 	  --extract
+	  --help -h
 	  --pause
      "
 	_complete_ "$boolean_options"
@@ -2866,12 +2766,10 @@ _podman_cp() {
 
 _podman_login() {
      local options_with_args="
-     --username
-     -u
-     --password
-     -p
      --authfile
      --get-login
+     --password -p
+     --username -u
      "
      local boolean_options="
 	  --help
@@ -2979,12 +2877,10 @@ _podman_play_kube() {
     "
 
     local boolean_options="
-    -h
-    --help
-    --quiet
-    -q
-    --tls-verify
+    --help -h
+    --quiet -q
     --seccomp-profile-root
+    --tls-verify
     "
 
     case "$cur" in
@@ -2999,10 +2895,9 @@ _podman_play_kube() {
 
 _podman_events() {
     local options_with_args="
-     --help
-     --h
      --filter
      --format
+     --help -h
      --since
      --until
     "
@@ -3023,10 +2918,8 @@ _podman_container_runlabel() {
 
     local boolean_options="
 	 --display
-	 --help
-	 -h
-	 -q
-	 --quiet
+	 --help -h
+	 --quiet -q
 	 --replace
 	 --tls-verify
   "
@@ -3044,8 +2937,7 @@ _podman_container_runlabel() {
 _podman_image_sign() {
     local options_with_args="
 	--cert-dir
-	-d
-	--directory
+	--directory -d
 	--sign-by
     "
     local boolean_options="
@@ -3065,9 +2957,8 @@ _podman_image_sign() {
 _podman_image_trust_set() {
     echo hello
     local options_with_args="
-	-f
-	--type
-	--pubkeysfile
+	--pubkeysfile -f
+	--type -t
     "
     local boolean_options="
 	--help
@@ -3087,10 +2978,8 @@ _podman_image_trust_show() {
     local options_with_args="
     "
     local boolean_options="
-	--help
-	-h
-	-j
-	--json
+	--help -h
+	--json -j
 	--raw
     "
     case "$cur" in
@@ -3133,10 +3022,8 @@ _podman_images_prune() {
     "
 
     local boolean_options="
-    -a
-    --all
-     -h
-	 --help
+        --all -a
+	--help -h
   "
     case "$cur" in
 	-*)
@@ -3151,10 +3038,8 @@ _podman_container_prune() {
     "
 
     local boolean_options="
-	 -f
-	 --force
-     -h
-	 --help
+	 --force -f
+	 --help -h
   "
     case "$cur" in
 	-*)
@@ -3168,7 +3053,10 @@ _podman_container_exists() {
     "
 
     local boolean_options="
-  "
+	  --external
+	  --help -h
+    "
+
     case "$cur" in
 	-*)
 	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
@@ -3221,8 +3109,7 @@ _podman_pod_create() {
   "
 
   local boolean_options="
-      --help
-      -h
+      --help -h
       --infra
       --replace
   "
@@ -3234,14 +3121,10 @@ _podman_pod_kill() {
   "
 
   local boolean_options="
-      --all
-      -a
-      --help
-      -h
-      --signal
-      -s
-      --latest
-      -l
+      --all -a
+      --help -h
+      --latest -l
+      --signal -s
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -3256,8 +3139,7 @@ _podman_pod_kill() {
 
 __podman_pod_ps() {
   local options_with_args="
-   -f
-   --filter
+   --filter -f
    --format
    --sort
   "
@@ -3267,14 +3149,11 @@ __podman_pod_ps() {
 	 --ctr-ids
 	 --ctr-names
 	 --ctr-status
-	 --help
-	 -h
-	 -q
-	 --quiet
-	 --no-trunc
+	 --help	-h
 	 --labels
-	 -l
-	 --latest
+	 --latest -l
+	 --no-trunc
+	 --quiet -q
   "
   _complete_ "$options_with_args" "$boolean_options"
 }
@@ -3312,12 +3191,9 @@ _podman_pod_restart() {
   "
 
   local boolean_options="
-      --all
-      -a
-      --help
-      -h
-      --latest
-      -l
+      --all -a
+      --help -h
+      --latest -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -3336,16 +3212,11 @@ _podman_pod_rm() {
   "
 
   local boolean_options="
-      -a
-      --all
-      --help
-      -h
-	  --ignore
-	  -i
-      -f
-      --force
-      --latest
-      -l
+      --all -a
+      --force -f
+      --help -h
+      --ignore -i
+      --latest -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -3364,12 +3235,9 @@ _podman_pod_start() {
   "
 
   local boolean_options="
-      --all
-      -a
-      --help
-      -h
-      --latest
-      -l
+      --all -a
+      --help -h
+      --latest -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -3384,21 +3252,16 @@ _podman_pod_start() {
 
 _podman_pod_stop() {
   local options_with_args="
-      -t
-      --time
       --pod-id-file
+      --time -t
   "
 
   local boolean_options="
-      --all
-      -a
+      --all -a
       --cleanup
-      --help
-	  --ignore
-	  -i
-      -h
-      --latest
-      -l
+      --help -h
+      --ignore -i
+      --latest -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -3416,12 +3279,9 @@ _podman_pod_pause() {
   "
 
   local boolean_options="
-      --all
-      -a
-      --help
-      -h
-      --latest
-      -l
+      --all -a
+      --help -h
+      --latest -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -3439,12 +3299,9 @@ _podman_pod_unpause() {
   "
 
   local boolean_options="
-      --all
-      -a
-      --help
-      -h
-      --latest
-      -l
+      --all -a
+      --help -h
+      --latest -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -3459,10 +3316,8 @@ _podman_pod_unpause() {
 
 _podman_pod_inspect() {
   local options_with_args="
-   --format
-   -f
-   --latest
-   -l
+   --format -f
+   --latest -l
   "
 
   _complete_ "$options_with_args"
@@ -3476,6 +3331,7 @@ _podman_pod() {
     "
     subcommands="
      create
+     inspect
      kill
      pause
      ps
@@ -3486,7 +3342,6 @@ _podman_pod() {
      stop
      top
      unpause
-     inspect
     "
     local aliases="
      list
@@ -3507,10 +3362,8 @@ _podman_pod() {
 _podman_volume_create() {
   local options_with_args="
       --driver
-      --label
-      -l
-      --opt
-      -o
+      --label -l
+      --opt -o
   "
 
   local boolean_options="
@@ -3524,15 +3377,12 @@ _podman_volume_create() {
 _podman_volume_ls() {
   local options_with_args="
       --filter
-      --format
-      -f
+      --format -f
   "
 
   local boolean_options="
-    --help
-    -h
-    --quiet
-    -q
+    --help -h
+    --quiet -q
   "
 
   _complete_ "$options_with_args" "$boolean_options"
@@ -3545,10 +3395,8 @@ _podman_volume_inspect() {
   "
 
   local boolean_options="
-    --all
-    -a
-    --help
-    -h
+    --all -a
+    --help -h
   "
 
   _complete_ "$options_with_args" "$boolean_options"
@@ -3566,12 +3414,9 @@ _podman_volume_rm() {
   local options_with_args=""
 
   local boolean_options="
-    --all
-    -a
-    --force
-    -f
-    --help
-    -h
+    --all -a
+    --force -f
+    --help -h
   "
 
   _complete_ "$options_with_args" "$boolean_options"
@@ -3589,10 +3434,8 @@ _podman_volume_prune() {
   local options_with_args=""
 
   local boolean_options="
-    --force
-    -f
-    --help
-    -h
+    --force -f
+    --help -h
   "
 
   _complete_ "$options_with_args" "$boolean_options"
@@ -3600,15 +3443,14 @@ _podman_volume_prune() {
 
 _podman_volume() {
     local boolean_options="
-    --help
-    -h
+    --help -h
     "
     subcommands="
      create
      inspect
      ls
-     rm
      prune
+     rm
     "
     local aliases="
      list
@@ -3639,19 +3481,17 @@ _podman_podman() {
 	   --network-cmd-path
 	   --root
 	   --runroot
+	   --runtime
 	   --storage-driver
 	   --storage-opt
 	   --tmpdir
-	   --runtime
 	   --url
      "
      local boolean_options="
-	   --help
+	   --help -h
+	   --remote -r
 	   --syslog
-	   --version
-	   -h
-	   -r, --remote
-	   -v
+	   --version -v
      "
     commands="
     attach
@@ -3682,12 +3522,12 @@ _podman_podman() {
     mount
     network
     pause
+    play
     pod
     port
     ps
     pull
     push
-    play
     restart
     rm
     rmi

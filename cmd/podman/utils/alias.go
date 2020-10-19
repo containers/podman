@@ -21,6 +21,8 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "time"
 	case "namespace":
 		name = "ns"
+	case "storage":
+		name = "external"
 	}
 	return pflag.NormalizedName(name)
 }
