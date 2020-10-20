@@ -253,6 +253,7 @@ function is_cgroupsv1() {
     ! is_cgroupsv2
 }
 
+# True if cgroups v2 are enabled
 function is_cgroupsv2() {
     cgroup_type=$(stat -f -c %T /sys/fs/cgroup)
     test "$cgroup_type" = "cgroup2fs"
@@ -302,6 +303,15 @@ function skip_if_no_selinux() {
         skip "selinux not available"
     elif ! /usr/sbin/selinuxenabled; then
         skip "selinux disabled"
+    fi
+}
+
+#######################
+#  skip_if_cgroupsv1  #  ...with an optional message
+#######################
+function skip_if_cgroupsv1() {
+    if ! is_cgroupsv2; then
+        skip "${1:-test requires cgroupsv2}"
     fi
 }
 

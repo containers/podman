@@ -396,14 +396,12 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// If the string starts with / it's a path to a runtime
 		// executable.
 		if strings.HasPrefix(runtime.config.Engine.OCIRuntime, "/") {
-			name := filepath.Base(runtime.config.Engine.OCIRuntime)
-
-			ociRuntime, err := newConmonOCIRuntime(name, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
+			ociRuntime, err := newConmonOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 			if err != nil {
 				return err
 			}
 
-			runtime.ociRuntimes[name] = ociRuntime
+			runtime.ociRuntimes[runtime.config.Engine.OCIRuntime] = ociRuntime
 			runtime.defaultOCIRuntime = ociRuntime
 		} else {
 			ociRuntime, ok := runtime.ociRuntimes[runtime.config.Engine.OCIRuntime]

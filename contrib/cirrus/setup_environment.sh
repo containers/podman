@@ -52,7 +52,7 @@ case "$CG_FS_TYPE" in
             if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
                 echo "export OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" >> /etc/environment
             else
-                echo "export OCI_RUNTIME=/usr/bin/runc" >> /etc/environment
+                echo "export OCI_RUNTIME=runc" >> /etc/environment
             fi
         fi
         ;;
@@ -61,7 +61,7 @@ case "$CG_FS_TYPE" in
             # This is necessary since we've built/installed from source,
             # which uses runc as the default.
             warn "Forcing testing with crun instead of runc"
-            echo "export OCI_RUNTIME=/usr/bin/crun" >> /etc/environment
+            echo "export OCI_RUNTIME=crun" >> /etc/environment
         fi
         ;;
     *) die_unknown CG_FS_TYPE

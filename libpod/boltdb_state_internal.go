@@ -2,7 +2,7 @@ package libpod
 
 import (
 	"bytes"
-	"path/filepath"
+	"os"
 	"runtime"
 	"strings"
 
@@ -400,14 +400,30 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 		// Handle legacy containers which might use a literal path for
 		// their OCI runtime name.
 		runtimeName := ctr.config.OCIRuntime
-		if strings.HasPrefix(runtimeName, "/") {
-			runtimeName = filepath.Base(runtimeName)
-		}
-
 		ociRuntime, ok := s.runtime.ociRuntimes[runtimeName]
 		if !ok {
-			// Use a MissingRuntime implementation
-			ociRuntime = getMissingRuntime(runtimeName, s.runtime)
+			runtimeSet := false
+
+			// If the path starts with a / and exists, make a new
+			// OCI runtime for it using the full path.
+			if strings.HasPrefix(runtimeName, "/") {
+				if stat, err := os.Stat(runtimeName); err == nil && !stat.IsDir() {
+					newOCIRuntime, err := newConmonOCIRuntime(runtimeName, []string{runtimeName}, s.runtime.conmonPath, s.runtime.runtimeFlags, s.runtime.config)
+					if err == nil {
+						// The runtime lock should
+						// protect against concurrent
+						// modification of the map.
+						ociRuntime = newOCIRuntime
+						s.runtime.ociRuntimes[runtimeName] = ociRuntime
+						runtimeSet = true
+					}
+				}
+			}
+
+			if !runtimeSet {
+				// Use a MissingRuntime implementation
+				ociRuntime = getMissingRuntime(runtimeName, s.runtime)
+			}
 		}
 		ctr.ociRuntime = ociRuntime
 	}
