@@ -5,9 +5,8 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -55,7 +54,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 	}
 
 	switch {
-	case parse.MatchesJSONFormat(inspectFormat), inspectFormat == "":
+	case report.IsJSON(inspectFormat), inspectFormat == "":
 		jsonOut, err := json.MarshalIndent(responses, "", "     ")
 		if err != nil {
 			return errors.Wrapf(err, "error marshalling inspect JSON")

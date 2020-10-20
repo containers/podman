@@ -9,9 +9,8 @@ import (
 	"time"
 
 	"github.com/buger/goterm"
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -66,7 +65,7 @@ func stats(cmd *cobra.Command, args []string) error {
 	}
 
 	row := report.NormalizeFormat(statsOptions.Format)
-	doJSON := parse.MatchesJSONFormat(row)
+	doJSON := report.IsJSON(row)
 
 	headers := report.Headers(entities.PodStatsReport{}, map[string]string{
 		"CPU":      "CPU %",
