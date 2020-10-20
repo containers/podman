@@ -34,6 +34,14 @@ function basic_setup() {
     # Clean up all containers
     run_podman rm --all --force
 
+    # ...including external (buildah) ones
+    run_podman ps --all --external --format '{{.ID}} {{.Names}}'
+    for line in "${lines[@]}"; do
+        set $line
+        echo "# setup(): removing stray external container $1 ($2)" >&3
+        run_podman rm $1
+    done
+
     # Clean up all images except those desired
     found_needed_image=
     run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'

@@ -460,24 +460,4 @@ json-file | f
     is "$output" "$expect" "podman run with --tz=local, matches host"
 }
 
-@test "podman container exists" {
-    rand=$(random_string 30)
-    run_podman 1 container exists myctr
-
-    run_podman create --name myctr $IMAGE /bin/true
-    run_podman container exists myctr
-
-    # Create a container that podman does not know about
-    run buildah from $IMAGE
-    cid="$output"
-
-    # exists should fail
-    run_podman 1 container exists $cid
-
-    # exists should succeed
-    run_podman container exists --external $cid
-
-    run buildah rm $cid
-}
-
 # vim: filetype=sh
