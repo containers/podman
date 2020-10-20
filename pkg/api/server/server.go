@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	goRuntime "runtime"
 	"strings"
 	"sync"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/shutdown"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/server/idle"
 	"github.com/coreos/go-systemd/v22/activation"
@@ -180,8 +180,17 @@ func setupSystemd() {
 // Serve starts responding to HTTP requests.
 func (s *APIServer) Serve() error {
 	setupSystemd()
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Start the shutdown signal handler.
+	if err := shutdown.Start(); err != nil {
+		return err
+	}
+	if err := shutdown.Register("server", func(sig os.Signal) error {
+		return s.Shutdown()
+	}); err != nil {
+		return err
+	}
+
 	errChan := make(chan error, 1)
 
 	go func() {
@@ -217,14 +226,7 @@ func (s *APIServer) Serve() error {
 		errChan <- nil
 	}()
 
-	select {
-	case err := <-errChan:
-		return err
-	case sig := <-sigChan:
-		logrus.Infof("APIServer terminated by signal %v", sig)
-	}
-
-	return nil
+	return <-errChan
 }
 
 // Shutdown is a clean shutdown waiting on existing clients
