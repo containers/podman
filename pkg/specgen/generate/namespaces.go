@@ -342,7 +342,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 				return errors.Wrapf(err, "error looking up container to share uts namespace with")
 			}
 			hostname = utsCtr.Hostname()
-		case s.NetNS.NSMode == specgen.Host || s.UtsNS.NSMode == specgen.Host:
+		case (s.NetNS.NSMode == specgen.Host && hostname == "") || s.UtsNS.NSMode == specgen.Host:
 			tmpHostname, err := os.Hostname()
 			if err != nil {
 				return errors.Wrap(err, "unable to retrieve hostname of the host")
