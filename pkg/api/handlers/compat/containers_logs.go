@@ -148,7 +148,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 			frame.WriteString(line.Time.Format(time.RFC3339))
 			frame.WriteString(" ")
 		}
-		frame.WriteString(line.Msg)
+		frame.WriteString(line.Msg + "\n")
 
 		if writeHeader {
 			binary.BigEndian.PutUint32(header[4:], uint32(frame.Len()))
