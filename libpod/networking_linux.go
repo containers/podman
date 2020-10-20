@@ -823,6 +823,20 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 // Produce an InspectNetworkSettings containing information on the container
 // network.
 func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, error) {
+	if c.config.NetNsCtr != "" {
+		netNsCtr, err := c.runtime.GetContainer(c.config.NetNsCtr)
+		if err != nil {
+			return nil, err
+		}
+		// Have to sync to ensure that state is populated
+		if err := netNsCtr.syncContainer(); err != nil {
+			return nil, err
+		}
+		logrus.Debugf("Container %s shares network namespace, retrieving network info of container %s", c.ID(), c.config.NetNsCtr)
+
+		return netNsCtr.getContainerNetworkInfo()
+	}
+
 	settings := new(define.InspectNetworkSettings)
 	settings.Ports = makeInspectPortBindings(c.config.PortMappings)
 
