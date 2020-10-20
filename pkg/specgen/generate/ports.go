@@ -25,7 +25,12 @@ const (
 func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping, map[string]map[string]map[uint16]uint16, map[string]map[string]map[uint16]uint16, error) {
 	// First, we need to validate the ports passed in the specgen, and then
 	// convert them into CNI port mappings.
-	finalMappings := []ocicni.PortMapping{}
+	type tempMapping struct {
+		mapping      ocicni.PortMapping
+		startOfRange bool
+		isInRange    bool
+	}
+	tempMappings := []tempMapping{}
 
 	// To validate, we need two maps: one for host ports, one for container
 	// ports.
@@ -153,18 +158,32 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 					Protocol:      p,
 					HostIP:        port.HostIP,
 				}
-				finalMappings = append(finalMappings, cniPort)
+				tempMappings = append(
+					tempMappings,
+					tempMapping{
+						mapping:      cniPort,
+						startOfRange: port.Range > 0 && index == 0,
+						isInRange:    port.Range > 0,
+					},
+				)
 			}
 		}
 	}
 
 	// Handle any 0 host ports now by setting random container ports.
 	if postAssignHostPort {
-		remadeMappings := make([]ocicni.PortMapping, 0, len(finalMappings))
+		remadeMappings := make([]ocicni.PortMapping, 0, len(tempMappings))
+
+		var (
+			candidate int
+			err       error
+		)
 
 		// Iterate over all
-		for _, p := range finalMappings {
-			if p.HostPort != 0 {
+		for _, tmp := range tempMappings {
+			p := tmp.mapping
+
+			if p.HostPort != 0 && !tmp.isInRange {
 				remadeMappings = append(remadeMappings, p)
 				continue
 			}
@@ -192,9 +211,15 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 
 			// Max retries to ensure we don't loop forever.
 			for i := 0; i < 15; i++ {
-				candidate, err := getRandomPort()
-				if err != nil {
-					return nil, nil, nil, errors.Wrapf(err, "error getting candidate host port for container port %d", p.ContainerPort)
+				// Only get a random candidate for single entries or the start
+				// of a range. Otherwise we just increment the candidate.
+				if !tmp.isInRange || tmp.startOfRange {
+					candidate, err = getRandomPort()
+					if err != nil {
+						return nil, nil, nil, errors.Wrapf(err, "error getting candidate host port for container port %d", p.ContainerPort)
+					}
+				} else {
+					candidate++
 				}
 
 				if hostPortMap[uint16(candidate)] == 0 {
@@ -211,6 +236,11 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 			remadeMappings = append(remadeMappings, p)
 		}
 		return remadeMappings, containerPortValidate, hostPortValidate, nil
+	}
+
+	finalMappings := []ocicni.PortMapping{}
+	for _, m := range tempMappings {
+		finalMappings = append(finalMappings, m.mapping)
 	}
 
 	return finalMappings, containerPortValidate, hostPortValidate, nil
