@@ -57,7 +57,7 @@ each of **stdin**, **stdout**, and **stderr**.
 
 **--authfile**[=*path*]
 
-Path to the authentication file. Default is *${XDG_RUNTIME_DIR}/containers/auth.json*. (Not available for remote commands)
+Path to the authentication file. Default is *${XDG_RUNTIME_DIR}/containers/auth.json*.
 
 Note: You can also override the default path of the authentication file by setting the **REGISTRY_AUTH_FILE**
 environment variable.

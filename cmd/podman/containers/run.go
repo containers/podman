@@ -66,7 +66,6 @@ func runFlags(flags *pflag.FlagSet) {
 
 	_ = flags.MarkHidden("signature-policy")
 	if registry.IsRemote() {
-		_ = flags.MarkHidden("authfile")
 		_ = flags.MarkHidden("http-proxy")
 		_ = flags.MarkHidden("preserve-fds")
 	}

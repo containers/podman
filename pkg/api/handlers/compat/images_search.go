@@ -7,6 +7,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -14,9 +15,10 @@ import (
 func SearchImages(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Term    string              `json:"term"`
-		Limit   int                 `json:"limit"`
-		Filters map[string][]string `json:"filters"`
+		Term      string              `json:"term"`
+		Limit     int                 `json:"limit"`
+		Filters   map[string][]string `json:"filters"`
+		TLSVerify bool                `json:"tlsVerify"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -57,6 +59,18 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		Filter: filter,
 		Limit:  query.Limit,
 	}
+
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		options.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+
+	_, authfile, key, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
+		return
+	}
+	defer auth.RemoveAuthfile(authfile)
+	options.Authfile = authfile
 
 	results, err := image.SearchImages(query.Term, options)
 	if err != nil {

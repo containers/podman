@@ -666,3 +666,9 @@ func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd
 	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false, false, nil)
 	return &PodmanSessionIntegration{podmanSession}
 }
+
+// We don't support running Varlink when local
+func (p *PodmanTestIntegration) RestartRemoteService() {
+	p.StopRemoteService()
+	p.StartRemoteService()
+}

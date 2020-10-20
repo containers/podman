@@ -237,7 +237,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {
-		SkipIfRemote("--tls-verify is not supported on podman-remote search")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -264,6 +263,10 @@ registries = ['{{.Host}}:{{.Port}}']`
 		registryFileTmpl.Execute(&buffer, registryEndpoints[4])
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry4.conf", tempdir), buffer.Bytes(), 0644)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+			defer podmanTest.RestartRemoteService()
+		}
 
 		search := podmanTest.PodmanNoCache([]string{"search", image})
 		search.WaitWithDefaultTimeout()
@@ -278,7 +281,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if force secure is true", func() {
-		SkipIfRemote("--tls-verify is not supported on podman-remote search")
+		SkipIfRemote("FIXME This should work on podman-remote")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -303,6 +306,10 @@ registries = ['{{.Host}}:{{.Port}}']`
 		registryFileTmpl.Execute(&buffer, registryEndpoints[5])
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry5.conf", tempdir), buffer.Bytes(), 0644)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+			defer podmanTest.RestartRemoteService()
+		}
 
 		search := podmanTest.PodmanNoCache([]string{"search", image, "--tls-verify=true"})
 		search.WaitWithDefaultTimeout()
@@ -317,7 +324,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if registry is not listed as insecure", func() {
-		SkipIfRemote("--tls-verify is not supported on podman-remote search")
+		SkipIfRemote("FIXME This should work on podman-remote")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -342,6 +349,11 @@ registries = ['{{.Host}}:{{.Port}}']`
 		registryFileBadTmpl.Execute(&buffer, registryEndpoints[6])
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry6.conf", tempdir), buffer.Bytes(), 0644)
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+			defer podmanTest.RestartRemoteService()
+		}
 
 		search := podmanTest.PodmanNoCache([]string{"search", image})
 		search.WaitWithDefaultTimeout()
@@ -392,6 +404,11 @@ registries = ['{{.Host}}:{{.Port}}']`
 		registryFileTwoTmpl.Execute(&buffer, registryEndpoints[8])
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry8.conf", tempdir), buffer.Bytes(), 0644)
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+			defer podmanTest.RestartRemoteService()
+		}
 
 		search := podmanTest.PodmanNoCache([]string{"search", "my-alpine"})
 		search.WaitWithDefaultTimeout()
