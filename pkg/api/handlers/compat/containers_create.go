@@ -238,7 +238,7 @@ func makeCreateConfig(ctx context.Context, containerConfig *config.Config, input
 		Pod:           "",    // podman
 		PodmanPath:    "",    // podman
 		Quiet:         false, // front-end only
-		Resources:     createconfig.CreateResourceConfig{},
+		Resources:     createconfig.CreateResourceConfig{MemorySwappiness: -1},
 		RestartPolicy: input.HostConfig.RestartPolicy.Name,
 		Rm:            input.HostConfig.AutoRemove,
 		StopSignal:    stopSignal,
