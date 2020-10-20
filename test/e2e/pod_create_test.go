@@ -245,6 +245,24 @@ var _ = Describe("Podman pod create", func() {
 		}
 	})
 
+	It("podman container in pod with IP address shares IP address", func() {
+		SkipIfRootless("Rootless does not support --ip")
+		podName := "test"
+		ctrName := "testCtr"
+		ip := GetRandomIPAddress()
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", podName})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(0))
+		podCtr := podmanTest.Podman([]string{"run", "--name", ctrName, "--pod", podName, "-d", "-t", ALPINE, "top"})
+		podCtr.WaitWithDefaultTimeout()
+		Expect(podCtr.ExitCode()).To(Equal(0))
+		ctrInspect := podmanTest.Podman([]string{"inspect", ctrName})
+		ctrInspect.WaitWithDefaultTimeout()
+		Expect(ctrInspect.ExitCode()).To(Equal(0))
+		ctrJSON := ctrInspect.InspectContainerToJSON()
+		Expect(ctrJSON[0].NetworkSettings.IPAddress).To(Equal(ip))
+	})
+
 	It("podman create pod with IP address and no infra should fail", func() {
 		name := "test"
 		ip := GetRandomIPAddress()
