@@ -147,7 +147,7 @@ build_task:
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
-        cpu: 2
+        cpu: 4
         memory: "4Gb"
         # Required to be 200gig, do not modify - has i/o performance impact
         # according to gcloud CLI tool warning messages.

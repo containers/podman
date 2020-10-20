@@ -23,7 +23,7 @@ ${YEL}WARNING: This will not work without podman,${NOR}
 "
 # These values come from .cirrus.yml gce_instance clause
 ZONE="${ZONE:-us-central1-a}"
-CPUS="2"
+CPUS="4"
 MEMORY="4Gb"
 DISK="200"
 PROJECT="libpod-218412"
