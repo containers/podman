@@ -99,11 +99,12 @@ fi
 case "$OS_RELEASE_ID" in
     ubuntu*) ;;
     fedora*)
-        if ((CONTAINER==0)); then  # Not yet running inside a container
+        if ((CONTAINER==0)); then
             msg "Configuring / Expanding host storage."
             # VM is setup to allow flexibility in testing alternate storage.
             # For general use, simply make use of all available space.
-            ooe.sh bash "$SCRIPT_BASE/add_second_partition.sh"
+            bash "$SCRIPT_BASE/add_second_partition.sh"
+            $SCRIPT_BASE/logcollector.sh df
 
             # All SELinux distros need this for systemd-in-a-container
             msg "Enabling container_manage_cgroup"
@@ -215,4 +216,4 @@ echo -e "\n# End of global variable definitions" \
     >> /etc/ci_environment
 
 msg "Global CI Environment vars.:"
-cat /etc/ci_environment | sort | indent
+grep -Ev '^#' /etc/ci_environment | sort | indent

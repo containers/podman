@@ -21,13 +21,13 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-32"
-    PRIOR_FEDORA_NAME: "fedora-31"
+    FEDORA_NAME: "fedora-33"
+    PRIOR_FEDORA_NAME: "fedora-32"
     UBUNTU_NAME: "ubuntu-20"
     PRIOR_UBUNTU_NAME: "ubuntu-19"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c4948709391728640"
+    IMAGE_SUFFIX: "c6323493627232256"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -74,12 +74,8 @@ ext_svc_check_task:
     env:
         TEST_FLAVOR: ext_svc
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    setup_script: &setup
-        - 'cd $GOSRC/$SCRIPT_BASE || exit 1'
-        - './setup_environment.sh'
-    main_script: &main
-        - 'cd $GOSRC/$SCRIPT_BASE || exit 1'
-        - './runner.sh'
+    setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
+    main_script: &main '$GOSRC/$SCRIPT_BASE/runner.sh'
 
 
 # Execute some quick checks to confirm this YAML file and all
@@ -339,7 +335,7 @@ static_alt_build_task:
         - build
     # Community-maintained task, may fail on occasion.  If so, uncomment
     # the next line and file an issue with details about the failure.
-    # allow_failures: $CI == $CI
+    allow_failures: $CI == $CI
     gce_instance: *bigvm
     env:
         <<: *stdenvars
