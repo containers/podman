@@ -506,7 +506,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		})
 		ctrStatuses[c.ID()] = c.state.State
 	}
-	podState, err := CreatePodStatusResults(ctrStatuses)
+	podState, err := createPodStatusResults(ctrStatuses)
 	if err != nil {
 		return nil, err
 	}

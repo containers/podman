@@ -428,4 +428,34 @@ entrypoint ["/fromimage"]
 		Expect(check.ExitCode()).To(Equal(0))
 		Expect(check.OutputToString()).To(Equal("[port_handler=slirp4netns]"))
 	})
+
+	It("podman pod status test", func() {
+		podName := "testpod"
+		create := podmanTest.Podman([]string{"pod", "create", "--name", podName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		status1 := podmanTest.Podman([]string{"pod", "inspect", "--format", "{{ .State }}", podName})
+		status1.WaitWithDefaultTimeout()
+		Expect(status1.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(status1.OutputToString(), "Created")).To(BeTrue())
+
+		ctr1 := podmanTest.Podman([]string{"run", "--pod", podName, "-d", ALPINE, "top"})
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1.ExitCode()).To(Equal(0))
+
+		status2 := podmanTest.Podman([]string{"pod", "inspect", "--format", "{{ .State }}", podName})
+		status2.WaitWithDefaultTimeout()
+		Expect(status2.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(status2.OutputToString(), "Running")).To(BeTrue())
+
+		ctr2 := podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2.ExitCode()).To(Equal(0))
+
+		status3 := podmanTest.Podman([]string{"pod", "inspect", "--format", "{{ .State }}", podName})
+		status3.WaitWithDefaultTimeout()
+		Expect(status3.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(status3.OutputToString(), "Degraded")).To(BeTrue())
+	})
 })
