@@ -26,7 +26,7 @@ import (
 var (
 	statsDescription = "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers."
 	statsCommand     = &cobra.Command{
-		Use:   "stats [flags] [CONTAINER...]",
+		Use:   "stats [options] [CONTAINER...]",
 		Short: "Display a live stream of container resource usage statistics",
 		Long:  statsDescription,
 		RunE:  stats,

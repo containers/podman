@@ -12,7 +12,7 @@ var (
 	containerExistsDescription = `If the named container exists in local storage, podman container exists exits with 0, otherwise the exit code will be 1.`
 
 	existsCommand = &cobra.Command{
-		Use:   "exists [flags] CONTAINER",
+		Use:   "exists [options] CONTAINER",
 		Short: "Check if a container exists in local storage",
 		Long:  containerExistsDescription,
 		Example: `podman container exists --external containerID

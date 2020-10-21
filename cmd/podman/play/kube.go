@@ -32,7 +32,7 @@ var (
   It creates the pod and containers described in the YAML.  The containers within the pod are then started and the ID of the new Pod is output.`
 
 	kubeCmd = &cobra.Command{
-		Use:   "kube [flags] KUBEFILE",
+		Use:   "kube [options] KUBEFILE",
 		Short: "Play a pod based on Kubernetes YAML.",
 		Long:  kubeDescription,
 		RunE:  kube,

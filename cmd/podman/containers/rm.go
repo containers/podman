@@ -21,7 +21,7 @@ var (
 
   Command does not remove images. Running or unusable containers will not be removed without the -f option.`
 	rmCommand = &cobra.Command{
-		Use:   "rm [flags] CONTAINER [CONTAINER...]",
+		Use:   "rm [options] CONTAINER [CONTAINER...]",
 		Short: "Remove one or more containers",
 		Long:  rmDescription,
 		RunE:  rm,

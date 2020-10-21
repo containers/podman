@@ -14,7 +14,7 @@ import (
 var (
 	attachDescription = "The podman attach command allows you to attach to a running container using the container's ID or name, either to view its ongoing output or to control it interactively."
 	attachCommand     = &cobra.Command{
-		Use:   "attach [flags] CONTAINER",
+		Use:   "attach [options] CONTAINER",
 		Short: "Attach to a running container",
 		Long:  attachDescription,
 		RunE:  attach,

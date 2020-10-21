@@ -78,7 +78,7 @@ function html_fn() {
 # the command name but not its description.
 function podman_commands() {
     $PODMAN help "$@" |\
-        awk '/^Available Commands:/{ok=1;next}/^Flags:/{ok=0}ok { print $1 }' |\
+        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |\
         grep .
 }
 

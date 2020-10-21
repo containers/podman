@@ -10,7 +10,7 @@ import (
 var (
 	// Command: podman image _inspect_
 	inspectCmd = &cobra.Command{
-		Use:   "inspect [flags] IMAGE [IMAGE...]",
+		Use:   "inspect [options] IMAGE [IMAGE...]",
 		Short: "Display the configuration of an image",
 		Long:  `Displays the low-level information of an image identified by name or ID.`,
 		RunE:  inspectExec,

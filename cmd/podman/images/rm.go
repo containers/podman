@@ -14,7 +14,7 @@ import (
 var (
 	rmDescription = "Removes one or more previously pulled or locally created images."
 	rmCmd         = &cobra.Command{
-		Use:   "rm [flags] IMAGE [IMAGE...]",
+		Use:   "rm [options] IMAGE [IMAGE...]",
 		Short: "Removes one or more images from local storage",
 		Long:  rmDescription,
 		RunE:  rm,

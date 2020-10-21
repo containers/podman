@@ -15,7 +15,7 @@ var (
 	createDescription = `If using the default driver, "local", the volume will be created on the host in the volumes directory under container storage.`
 
 	createCommand = &cobra.Command{
-		Use:   "create [flags] [NAME]",
+		Use:   "create [options] [NAME]",
 		Short: "Create a new volume",
 		Long:  createDescription,
 		RunE:  create,

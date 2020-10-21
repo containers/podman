@@ -23,7 +23,7 @@ var (
 	Show podman disk usage
 	`
 	dfSystemCommand = &cobra.Command{
-		Use:   "df",
+		Use:   "df [options]",
 		Args:  validate.NoArgs,
 		Short: "Show podman disk usage",
 		Long:  dfSystemDescription,

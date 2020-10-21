@@ -22,7 +22,7 @@ var (
   All containers will be stopped and removed, and all images, volumes and container content will be removed.
 `
 	systemResetCommand = &cobra.Command{
-		Use:   "reset",
+		Use:   "reset [options]",
 		Args:  validate.NoArgs,
 		Short: "Reset podman storage",
 		Long:  systemResetDescription,

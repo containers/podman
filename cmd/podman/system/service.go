@@ -26,7 +26,7 @@ Enable a listening service for API access to Podman commands.
 `
 
 	srvCmd = &cobra.Command{
-		Use:     "service [flags] [URI]",
+		Use:     "service [options] [URI]",
 		Args:    cobra.MaximumNArgs(1),
 		Short:   "Run API service",
 		Long:    srvDescription,

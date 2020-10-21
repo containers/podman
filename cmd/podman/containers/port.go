@@ -18,7 +18,7 @@ var (
 	portDescription = `List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
 `
 	portCommand = &cobra.Command{
-		Use:   "port [flags] CONTAINER [PORT]",
+		Use:   "port [options] CONTAINER [PORT]",
 		Short: "List port mappings or a specific mapping for the container",
 		Long:  portDescription,
 		RunE:  port,
@@ -31,7 +31,7 @@ var (
 	}
 
 	containerPortCommand = &cobra.Command{
-		Use:   "port [flags] CONTAINER [PORT]",
+		Use:   "port [options] CONTAINER [PORT]",
 		Short: portCommand.Short,
 		Long:  portDescription,
 		RunE:  portCommand.RunE,

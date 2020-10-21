@@ -21,7 +21,7 @@ var (
 `
 
 	migrateCommand = &cobra.Command{
-		Use:   "migrate",
+		Use:   "migrate [options]",
 		Args:  validate.NoArgs,
 		Short: "Migrate containers",
 		Long:  migrateDescription,

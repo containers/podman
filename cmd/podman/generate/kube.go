@@ -20,7 +20,7 @@ var (
 Whether the input is for a container or pod, Podman will always generate the specification as a pod.`
 
 	kubeCmd = &cobra.Command{
-		Use:   "kube [flags] CONTAINER | POD",
+		Use:   "kube [options] CONTAINER | POD",
 		Short: "Generate Kubernetes YAML from a container or pod.",
 		Long:  kubeDescription,
 		RunE:  kube,

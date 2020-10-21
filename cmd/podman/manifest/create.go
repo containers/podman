@@ -13,7 +13,7 @@ import (
 var (
 	manifestCreateOpts = entities.ManifestCreateOptions{}
 	createCmd          = &cobra.Command{
-		Use:   "create [flags] LIST [IMAGE]",
+		Use:   "create [options] LIST [IMAGE]",
 		Short: "Create manifest list or image index",
 		Long:  "Creates manifest lists or image indexes.",
 		RunE:  create,

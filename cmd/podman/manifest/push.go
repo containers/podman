@@ -22,7 +22,7 @@ type manifestPushOptsWrapper struct {
 var (
 	manifestPushOpts = manifestPushOptsWrapper{}
 	pushCmd          = &cobra.Command{
-		Use:     "push [flags] SOURCE DESTINATION",
+		Use:     "push [options] SOURCE DESTINATION",
 		Short:   "Push a manifest list or image index to a registry",
 		Long:    "Pushes manifest lists and image indexes to registries.",
 		RunE:    push,

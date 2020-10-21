@@ -18,7 +18,7 @@ var (
 		" and saves it on the local machine."
 
 	exportCommand = &cobra.Command{
-		Use:   "export [flags] CONTAINER",
+		Use:   "export [options] CONTAINER",
 		Short: "Export container's filesystem contents as a tar archive",
 		Long:  exportDescription,
 		RunE:  export,

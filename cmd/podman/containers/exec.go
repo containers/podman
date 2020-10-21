@@ -20,7 +20,7 @@ var (
 	execDescription = `Execute the specified command inside a running container.
 `
 	execCommand = &cobra.Command{
-		Use:                   "exec [flags] CONTAINER [COMMAND [ARG...]]",
+		Use:                   "exec [options] CONTAINER [COMMAND [ARG...]]",
 		Short:                 "Run a process in a running container",
 		Long:                  execDescription,
 		RunE:                  exec,

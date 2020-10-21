@@ -24,7 +24,7 @@ var (
 	runlabelOptions     = runlabelOptionsWrapper{}
 	runlabelDescription = "Executes a command as described by a container image label."
 	runlabelCommand     = &cobra.Command{
-		Use:   "runlabel [flags] LABEL IMAGE [ARG...]",
+		Use:   "runlabel [options] LABEL IMAGE [ARG...]",
 		Short: "Execute the command described by an image label",
 		Long:  runlabelDescription,
 		RunE:  runlabel,

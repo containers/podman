@@ -19,7 +19,7 @@ import (
 
 var (
 	versionCommand = &cobra.Command{
-		Use:   "version",
+		Use:   "version [options]",
 		Args:  validate.NoArgs,
 		Short: "Display the Podman Version Information",
 		RunE:  version,

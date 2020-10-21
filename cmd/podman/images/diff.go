@@ -13,7 +13,7 @@ import (
 var (
 	// podman container _inspect_
 	diffCmd = &cobra.Command{
-		Use:   "diff [flags] IMAGE",
+		Use:   "diff [options] IMAGE",
 		Args:  cobra.ExactArgs(1),
 		Short: "Inspect changes to the image's file systems",
 		Long:  `Displays changes to the image's filesystem.  The image will be compared to its parent layer.`,

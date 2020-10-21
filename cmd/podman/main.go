@@ -66,6 +66,7 @@ func main() {
 				// - rootCmd uses cobra default template not ours
 				c.Command.SetHelpTemplate(helpTemplate)
 				c.Command.SetUsageTemplate(usageTemplate)
+				c.Command.DisableFlagsInUseLine = true
 			}
 		}
 	}

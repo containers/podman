@@ -17,7 +17,7 @@ import (
 var (
 	killDescription = "The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal."
 	killCommand     = &cobra.Command{
-		Use:   "kill [flags] CONTAINER [CONTAINER...]",
+		Use:   "kill [options] CONTAINER [CONTAINER...]",
 		Short: "Kill one or more running containers with a specific signal",
 		Long:  killDescription,
 		RunE:  kill,

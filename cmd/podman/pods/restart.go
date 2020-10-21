@@ -16,7 +16,7 @@ var (
 
   All of the containers within each of the specified pods will be restarted. If a container in a pod is not currently running it will be started.`
 	restartCommand = &cobra.Command{
-		Use:   "restart [flags] POD [POD...]",
+		Use:   "restart [options] POD [POD...]",
 		Short: "Restart one or more pods",
 		Long:  podRestartDescription,
 		RunE:  restart,

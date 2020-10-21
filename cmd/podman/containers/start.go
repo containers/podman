@@ -17,7 +17,7 @@ import (
 var (
 	startDescription = `Starts one or more containers.  The container name or ID can be used.`
 	startCommand     = &cobra.Command{
-		Use:   "start [flags] CONTAINER [CONTAINER...]",
+		Use:   "start [options] CONTAINER [CONTAINER...]",
 		Short: "Start one or more containers",
 		Long:  startDescription,
 		RunE:  start,

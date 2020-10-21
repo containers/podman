@@ -14,7 +14,7 @@ import (
 var (
 	networkCreateDescription = `create CNI networks for containers and pods`
 	networkCreateCommand     = &cobra.Command{
-		Use:     "create [flags] [NETWORK]",
+		Use:     "create [options] [NETWORK]",
 		Short:   "network create",
 		Long:    networkCreateDescription,
 		RunE:    networkCreate,

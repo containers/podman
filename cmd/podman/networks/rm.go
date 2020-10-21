@@ -16,7 +16,7 @@ import (
 var (
 	networkrmDescription = `Remove networks`
 	networkrmCommand     = &cobra.Command{
-		Use:     "rm [flags] NETWORK [NETWORK...]",
+		Use:     "rm [options] NETWORK [NETWORK...]",
 		Short:   "network rm",
 		Long:    networkrmDescription,
 		RunE:    networkRm,

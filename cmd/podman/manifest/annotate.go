@@ -13,7 +13,7 @@ import (
 var (
 	manifestAnnotateOpts = entities.ManifestAnnotateOptions{}
 	annotateCmd          = &cobra.Command{
-		Use:     "annotate [flags] LIST IMAGE",
+		Use:     "annotate [options] LIST IMAGE",
 		Short:   "Add or update information about an entry in a manifest list or image index",
 		Long:    "Adds or updates information about an entry in a manifest list or image index.",
 		RunE:    annotate,

@@ -26,7 +26,7 @@ var (
 	topOptions = entities.TopOptions{}
 
 	topCommand = &cobra.Command{
-		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTORS|ARGS...]",
+		Use:   "top [options] CONTAINER [FORMAT-DESCRIPTORS|ARGS...]",
 		Short: "Display the running processes of a container",
 		Long:  topDescription,
 		RunE:  top,

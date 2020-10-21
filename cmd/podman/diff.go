@@ -17,7 +17,7 @@ var (
 	// Command: podman _diff_ Object_ID
 	diffDescription = `Displays changes on a container or image's filesystem.  The container or image will be compared to its parent layer.`
 	diffCmd         = &cobra.Command{
-		Use:   "diff [flags] {CONTAINER_ID | IMAGE_ID}",
+		Use:   "diff [options] {CONTAINER_ID | IMAGE_ID}",
 		Args:  validate.IDOrLatestArgs,
 		Short: "Display the changes to the object's file system",
 		Long:  diffDescription,

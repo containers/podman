@@ -25,7 +25,7 @@ type manifestAddOptsWrapper struct {
 var (
 	manifestAddOpts = manifestAddOptsWrapper{}
 	addCmd          = &cobra.Command{
-		Use:   "add [flags] LIST LIST",
+		Use:   "add [options] LIST LIST",
 		Short: "Add images to a manifest list or image index",
 		Long:  "Adds an image to a manifest list or image index.",
 		RunE:  add,

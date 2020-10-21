@@ -19,7 +19,7 @@ var (
 
   If an image is not being used by a container, it will be removed from the system.`
 	pruneCmd = &cobra.Command{
-		Use:     "prune",
+		Use:     "prune [options]",
 		Args:    validate.NoArgs,
 		Short:   "Remove unused images",
 		Long:    pruneDescription,

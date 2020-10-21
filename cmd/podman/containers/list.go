@@ -10,7 +10,7 @@ import (
 var (
 	// podman container _list_
 	listCmd = &cobra.Command{
-		Use:     "list",
+		Use:     "list [options]",
 		Aliases: []string{"ls"},
 		Args:    validate.NoArgs,
 		Short:   "List containers",

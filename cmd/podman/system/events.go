@@ -20,7 +20,7 @@ var (
 
   By default, streaming mode is used, printing new events as they occur.  Previous events can be listed via --since and --until.`
 	eventsCommand = &cobra.Command{
-		Use:   "events",
+		Use:   "events [options]",
 		Args:  validate.NoArgs,
 		Short: "Show podman events",
 		Long:  eventsDescription,

@@ -16,7 +16,7 @@ var (
 
   All running containers within each specified pod will then be paused.`
 	pauseCommand = &cobra.Command{
-		Use:   "pause [flags] POD [POD...]",
+		Use:   "pause [options] POD [POD...]",
 		Short: "Pause one or more pods",
 		Long:  podPauseDescription,
 		RunE:  pause,

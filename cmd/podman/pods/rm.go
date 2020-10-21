@@ -28,7 +28,7 @@ var (
 
   The pod name or ID can be used.  A pod with containers will not be removed without --force. If --force is specified, all containers will be stopped, then removed.`)
 	rmCommand = &cobra.Command{
-		Use:   "rm [flags] POD [POD...]",
+		Use:   "rm [options] POD [POD...]",
 		Short: "Remove one or more pods",
 		Long:  podRmDescription,
 		RunE:  rm,
