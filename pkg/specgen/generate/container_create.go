@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod"
@@ -91,11 +92,19 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		if err != nil {
 			return nil, err
 		}
-		imgName := s.Image
-		names := newImage.Names()
-		if len(names) > 0 {
-			imgName = names[0]
+		// If the input name changed, we could properly resolve the
+		// image. Otherwise, it must have been an ID where we're
+		// defaulting to the first name or an empty one if no names are
+		// present.
+		imgName := newImage.InputName
+		if s.Image == newImage.InputName && strings.HasPrefix(newImage.ID(), s.Image) {
+			imgName = ""
+			names := newImage.Names()
+			if len(names) > 0 {
+				imgName = names[0]
+			}
 		}
+
 		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), imgName, s.RawImageName))
 	}
 	if err := s.Validate(); err != nil {
