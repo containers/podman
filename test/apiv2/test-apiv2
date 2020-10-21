@@ -179,7 +179,7 @@ function t() {
     # POST requests require an extra params arg
     if [[ $method = "POST" ]]; then
         curl_args="-d $(jsonify $1)"
-        testname="$testname [$1]"
+        testname="$testname [$curl_args]"
         shift
     fi
 
@@ -204,21 +204,30 @@ function t() {
     echo "-------------------------------------------------------------" >>$LOG
     echo "\$ $testname"                                                  >>$LOG
     rm -f $WORKDIR/curl.*
-    curl -s -X $method ${curl_args}                   \
-         -H 'Content-type: application/json'          \
-         --dump-header $WORKDIR/curl.headers.out       \
-         -o $WORKDIR/curl.result.out "$url"
+    # -s = silent, but --write-out 'format' gives us important response data
+    response=$(curl -s -X $method ${curl_args}                   \
+                    -H 'Content-type: application/json'          \
+                    --dump-header $WORKDIR/curl.headers.out       \
+                    --write-out '%{http_code}^%{content_type}^%{time_total}' \
+                    -o $WORKDIR/curl.result.out "$url")
 
-    if [[ $? -eq 7 ]]; then
-        echo "FATAL: curl failure on $url - cannot continue" >&2
+    # Any error from curl is instant bad news, from which we can't recover
+    rc=$?
+    if [[ $rc -ne 0 ]]; then
+        echo "FATAL: curl failure ($rc) on $url - cannot continue" >&2
         exit 1
     fi
 
-    cat $WORKDIR/curl.headers.out >>$LOG 2>/dev/null || true
+    # Show returned headers (without trailing ^M or empty lines) in log file.
+    # Sometimes -- I can't remember why! -- we don't get headers.
+    if [[ -e $WORKDIR/curl.headers.out ]]; then
+        tr -d '\015' < $WORKDIR/curl.headers.out | egrep '.' >>$LOG
+    fi
+
+    IFS='^' read actual_code content_type time_total <<<"$response"
+    printf "X-Response-Time: ${time_total}s\n\n" >>$LOG
 
     # Log results, if text. If JSON, filter through jq for readability.
-    content_type=$(sed -ne 's/^Content-Type:[ ]\+//pi' <$WORKDIR/curl.headers.out)
-
     if [[ $content_type =~ /octet ]]; then
         output="[$(file --brief $WORKDIR/curl.result.out)]"
         echo "$output" >>$LOG
@@ -233,9 +242,7 @@ function t() {
     fi
 
     # Test return code
-    actual_code=$(head -n1 $WORKDIR/curl.headers.out | awk '/^HTTP/ { print $2}')
     is "$actual_code" "$expected_code" "$testname : status"
-
 
     # Special case: 204/304, by definition, MUST NOT return content (rfc2616)
     if [[ $expected_code = 204 || $expected_code = 304 ]]; then
