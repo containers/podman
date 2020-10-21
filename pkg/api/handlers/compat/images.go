@@ -60,7 +60,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
-	if err := newImage.Save(r.Context(), name, "docker-archive", tmpfile.Name(), []string{}, false, false); err != nil {
+	if err := newImage.Save(r.Context(), name, "docker-archive", tmpfile.Name(), []string{}, false, false, true); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to save image"))
 		return
 	}
@@ -429,7 +429,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
-	if err := runtime.ImageRuntime().SaveImages(r.Context(), images, "docker-archive", tmpfile.Name(), false); err != nil {
+	if err := runtime.ImageRuntime().SaveImages(r.Context(), images, "docker-archive", tmpfile.Name(), false, true); err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}

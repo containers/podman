@@ -1,8 +1,12 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
@@ -112,6 +116,71 @@ var _ = Describe("Podman save", func() {
 		outdir := filepath.Join(podmanTest.TempDir, "save:colon")
 
 		save := podmanTest.PodmanNoCache([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
+		save.WaitWithDefaultTimeout()
+		Expect(save).To(ExitWithError())
+	})
+
+	It("podman save remove signature", func() {
+		SkipIfRootless("FIXME: Need get in rootless push sign")
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
+		tempGNUPGHOME := filepath.Join(podmanTest.TempDir, "tmpGPG")
+		err := os.Mkdir(tempGNUPGHOME, os.ModePerm)
+		Expect(err).To(BeNil())
+		origGNUPGHOME := os.Getenv("GNUPGHOME")
+		err = os.Setenv("GNUPGHOME", tempGNUPGHOME)
+		Expect(err).To(BeNil())
+		defer os.Setenv("GNUPGHOME", origGNUPGHOME)
+
+		port := 5000
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"), "docker.io/registry:2.6"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Cannot start docker registry.")
+		}
+
+		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
+		err = cmd.Run()
+		Expect(err).To(BeNil())
+
+		cmd = exec.Command("cp", "/etc/containers/registries.d/default.yaml", "default.yaml")
+		if err = cmd.Run(); err != nil {
+			Skip("no signature store to verify")
+		}
+		defer func() {
+			cmd = exec.Command("cp", "default.yaml", "/etc/containers/registries.d/default.yaml")
+			cmd.Run()
+		}()
+
+		cmd = exec.Command("cp", "sign/key.gpg", "/tmp/key.gpg")
+		Expect(cmd.Run()).To(BeNil())
+		sigstore := `
+default-docker:
+  sigstore: file:///var/lib/containers/sigstore
+  sigstore-staging: file:///var/lib/containers/sigstore
+`
+		Expect(ioutil.WriteFile("/etc/containers/registries.d/default.yaml", []byte(sigstore), 0755)).To(BeNil())
+
+		session = podmanTest.Podman([]string{"tag", ALPINE, "localhost:5000/alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"push", "--tls-verify=false", "--sign-by", "foo@bar.com", "localhost:5000/alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"rmi", ALPINE, "localhost:5000/alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy=sign/policy.json", "localhost:5000/alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
+		save := podmanTest.Podman([]string{"save", "remove-signatures=true", "-o", outfile, "localhost:5000/alpine"})
 		save.WaitWithDefaultTimeout()
 		Expect(save).To(ExitWithError())
 	})
