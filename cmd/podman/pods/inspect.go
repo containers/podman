@@ -7,9 +7,8 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -62,7 +61,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if parse.MatchesJSONFormat(inspectOptions.Format) {
+	if report.IsJSON(inspectOptions.Format) {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "     ")
 		return enc.Encode(responses)

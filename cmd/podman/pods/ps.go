@@ -10,9 +10,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -85,7 +84,7 @@ func pods(cmd *cobra.Command, _ []string) error {
 	}
 
 	switch {
-	case parse.MatchesJSONFormat(psInput.Format):
+	case report.IsJSON(psInput.Format):
 		b, err := json.MarshalIndent(responses, "", "  ")
 		if err != nil {
 			return err

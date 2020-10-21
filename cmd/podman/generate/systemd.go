@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -63,7 +63,7 @@ func systemd(cmd *cobra.Command, args []string) error {
 		logrus.Warnln("The generated units should be placed on your remote system")
 	}
 
-	report, err := registry.ContainerEngine().GenerateSystemd(registry.GetContext(), args[0], systemdOptions)
+	reports, err := registry.ContainerEngine().GenerateSystemd(registry.GetContext(), args[0], systemdOptions)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func systemd(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return errors.Wrap(err, "error getting current working directory")
 		}
-		for name, content := range report.Units {
+		for name, content := range reports.Units {
 			path := filepath.Join(cwd, fmt.Sprintf("%s.service", name))
 			f, err := os.Create(path)
 			if err != nil {
@@ -94,15 +94,15 @@ func systemd(cmd *cobra.Command, args []string) error {
 			}
 			// modify in place so we can print the
 			// paths when --files is set
-			report.Units[name] = path
+			reports.Units[name] = path
 		}
 	}
 
 	switch {
-	case parse.MatchesJSONFormat(format):
-		return printJSON(report.Units)
+	case report.IsJSON(format):
+		return printJSON(reports.Units)
 	case format == "":
-		return printDefault(report.Units)
+		return printDefault(reports.Units)
 	default:
 		return errors.Errorf("unknown --format argument: %s", format)
 	}

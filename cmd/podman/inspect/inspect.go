@@ -9,9 +9,8 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -143,7 +142,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 
 	var err error
 	switch {
-	case parse.MatchesJSONFormat(i.options.Format) || i.options.Format == "":
+	case report.IsJSON(i.options.Format) || i.options.Format == "":
 		err = printJSON(data)
 	default:
 		row := inspectNormalize(i.options.Format)

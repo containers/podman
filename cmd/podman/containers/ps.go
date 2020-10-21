@@ -11,9 +11,8 @@ import (
 	"time"
 
 	tm "github.com/buger/goterm"
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -92,7 +91,7 @@ func checkFlags(c *cobra.Command) error {
 		if listOpts.Size || listOpts.Namespace {
 			return errors.Errorf("quiet conflicts with size and namespace")
 		}
-		if c.Flag("format").Changed && !parse.MatchesJSONFormat(listOpts.Format) {
+		if c.Flag("format").Changed && !report.IsJSON(listOpts.Format) {
 			// Quiet is overridden by Go template output.
 			listOpts.Quiet = false
 		}
@@ -179,7 +178,7 @@ func ps(cmd *cobra.Command, args []string) error {
 	}
 
 	switch {
-	case parse.MatchesJSONFormat(listOpts.Format):
+	case report.IsJSON(listOpts.Format):
 		return jsonOut(listContainers)
 	case listOpts.Quiet:
 		return quietOut(listContainers)

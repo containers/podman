@@ -36,7 +36,7 @@ var (
 
 func networkListFlags(flags *pflag.FlagSet) {
 	// TODO enable filters based on something
-	//flags.StringSliceVarP(&networklistCommand.Filter, "filter", "f",  []string{}, "Pause all running containers")
+	// flags.StringSliceVarP(&networklistCommand.Filter, "filter", "f",  []string{}, "Pause all running containers")
 	flags.StringVarP(&networkListOptions.Format, "format", "f", "", "Pretty-print networks to JSON or using a Go template")
 	flags.BoolVarP(&networkListOptions.Quiet, "quiet", "q", false, "display only names")
 	flags.StringVarP(&networkListOptions.Filter, "filter", "", "", "Provide filter values (e.g. 'name=podman')")

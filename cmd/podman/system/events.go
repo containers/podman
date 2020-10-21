@@ -6,7 +6,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/events"
@@ -65,7 +65,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 	)
 
 	if cmd.Flags().Changed("format") {
-		doJSON = parse.MatchesJSONFormat(eventFormat)
+		doJSON = report.IsJSON(eventFormat)
 		if !doJSON {
 			var err error
 			tmpl, err = template.New("events").Parse(eventFormat)

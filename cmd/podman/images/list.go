@@ -10,10 +10,9 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -108,7 +107,7 @@ func images(cmd *cobra.Command, args []string) error {
 	switch {
 	case listFlag.quiet:
 		return writeID(imgs)
-	case parse.MatchesJSONFormat(listFlag.format):
+	case report.IsJSON(listFlag.format):
 		return writeJSON(imgs)
 	default:
 		if cmd.Flag("format").Changed {

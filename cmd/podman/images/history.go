@@ -10,9 +10,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/containers/podman/v2/cmd/podman/parse"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/report"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -81,7 +80,7 @@ func history(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if parse.MatchesJSONFormat(opts.format) {
+	if report.IsJSON(opts.format) {
 		var err error
 		if len(results.Layers) == 0 {
 			_, err = fmt.Fprintf(os.Stdout, "[]\n")
