@@ -55,6 +55,24 @@ func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error
 		return func(e *Event) bool {
 			return string(e.Type) == filterValue
 		}, nil
+
+	case "LABEL":
+		return func(e *Event) bool {
+			var found bool
+			// iterate labels and see if we match a key and value
+			for eventKey, eventValue := range e.Attributes {
+				filterValueSplit := strings.SplitN(filterValue, "=", 2)
+				// if the filter isn't right, just return false
+				if len(filterValueSplit) < 2 {
+					return false
+				}
+				if eventKey == filterValueSplit[0] && eventValue == filterValueSplit[1] {
+					found = true
+					break
+				}
+			}
+			return found
+		}, nil
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)
 }
@@ -74,7 +92,7 @@ func generateEventUntilOption(timeUntil time.Time) func(e *Event) bool {
 
 func parseFilter(filter string) (string, string, error) {
 	filterSplit := strings.SplitN(filter, "=", 2)
-	if len(filterSplit) == 1 {
+	if len(filterSplit) != 2 {
 		return "", "", errors.Errorf("%s is an invalid filter", filter)
 	}
 	return filterSplit[0], filterSplit[1], nil

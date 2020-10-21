@@ -26,6 +26,12 @@ func (c *Container) newContainerEvent(status events.Status) {
 	e.Name = c.Name()
 	e.Image = c.config.RootfsImageName
 	e.Type = events.Container
+
+	e.Details = events.Details{
+		ID:         e.ID,
+		Attributes: c.Labels(),
+	}
+
 	if err := c.runtime.eventer.Write(e); err != nil {
 		logrus.Errorf("unable to write pod event: %q", err)
 	}

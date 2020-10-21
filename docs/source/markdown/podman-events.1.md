@@ -86,6 +86,7 @@ filters are supported:
  * container=name_or_id
  * event=event_status (described above)
  * image=name_or_id
+ * label=key=value
  * pod=name_or_id
  * volume=name_or_id
  * type=event_type (described above)
