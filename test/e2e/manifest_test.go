@@ -58,6 +58,11 @@ var _ = Describe("Podman manifest", func() {
 		session = podmanTest.PodmanNoCache([]string{"manifest", "inspect", "quay.io/libpod/busybox"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
+		// inspect manifest of single image
+		session = podmanTest.PodmanNoCache([]string{"manifest", "inspect", "quay.io/libpod/busybox@sha256:6655df04a3df853b029a5fac8836035ac4fab117800c9a6c4b69341bb5306c3d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman manifest add", func() {
