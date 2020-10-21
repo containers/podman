@@ -282,8 +282,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		flags.Layers = false
 	}
 
-	var stdin, stdout, stderr, reporter *os.File
-	stdin = os.Stdin
+	var stdout, stderr, reporter *os.File
 	stdout = os.Stdout
 	stderr = os.Stderr
 	reporter = os.Stderr
@@ -422,7 +421,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		ForceRmIntermediateCtrs: flags.ForceRm,
 		IDMappingOptions:        idmappingOptions,
 		IIDFile:                 flags.Iidfile,
-		In:                      stdin,
 		Isolation:               isolation,
 		Labels:                  flags.Label,
 		Layers:                  flags.Layers,
