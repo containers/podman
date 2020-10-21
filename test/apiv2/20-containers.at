@@ -206,16 +206,6 @@ t POST containers/${cid_top}/stop "" 204
 t DELETE containers/$cid 204
 t DELETE containers/$cid_top 204
 
-# test the apiv2 create, shouldn't ignore the ENV and WORKDIR from the image
-t POST containers/create '"Image":"'$ENV_WORKDIR_IMG'","Env":["testKey1"]' 201 \
-  .Id~[0-9a-f]\\{64\\}
-cid=$(jq -r '.Id' <<<"$output")
-t GET containers/$cid/json 200 \
-  .Config.Env~.*REDIS_VERSION= \
-  .Config.Env~.*testKey1= \
-  .Config.WorkingDir="/data" # default is /data
-t DELETE containers/$cid 204
-
 # test the WORKDIR and StopSignal
 t POST containers/create '"Image":"'$ENV_WORKDIR_IMG'","WorkingDir":"/dataDir","StopSignal":"9"' 201 \
   .Id~[0-9a-f]\\{64\\}
