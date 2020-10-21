@@ -23,7 +23,7 @@ var (
 		Short: "Block on one or more containers",
 		Long:  waitDescription,
 		RunE:  wait,
-		Example: `podman wait --interval 5000 ctrID
+		Example: `podman wait --interval 5s ctrID
   podman wait ctrID1 ctrID2`,
 	}
 
@@ -32,7 +32,7 @@ var (
 		Short: waitCommand.Short,
 		Long:  waitCommand.Long,
 		RunE:  waitCommand.RunE,
-		Example: `podman container wait --interval 5000 ctrID
+		Example: `podman container wait --interval 5s ctrID
   podman container wait ctrID1 ctrID2`,
 	}
 )
@@ -40,10 +40,11 @@ var (
 var (
 	waitOptions   = entities.WaitOptions{}
 	waitCondition string
+	waitInterval  string
 )
 
 func waitFlags(flags *pflag.FlagSet) {
-	flags.DurationVarP(&waitOptions.Interval, "interval", "i", time.Duration(250), "Milliseconds to wait before polling for completion")
+	flags.StringVarP(&waitInterval, "interval", "i", "250ns", "Time Interval to wait before polling for completion")
 	flags.StringVar(&waitCondition, "condition", "stopped", "Condition to wait on")
 }
 
@@ -70,8 +71,11 @@ func wait(cmd *cobra.Command, args []string) error {
 		err  error
 		errs utils.OutputErrors
 	)
-	if waitOptions.Interval == 0 {
-		return errors.New("interval must be greater then 0")
+	if waitOptions.Interval, err = time.ParseDuration(waitInterval); err != nil {
+		var err1 error
+		if waitOptions.Interval, err1 = time.ParseDuration(waitInterval + "ms"); err1 != nil {
+			return err
+		}
 	}
 
 	if !waitOptions.Latest && len(args) == 0 {
