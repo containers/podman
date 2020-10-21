@@ -231,6 +231,9 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	if len(networkCreate.Name) > 0 {
 		name = networkCreate.Name
 	}
+	if len(networkCreate.Driver) < 1 {
+		networkCreate.Driver = network.DefaultNetworkDriver
+	}
 	// At present I think we should just support the bridge driver
 	// and allow demand to make us consider more
 	if networkCreate.Driver != network.DefaultNetworkDriver {
