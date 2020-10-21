@@ -23,8 +23,8 @@ Condition to wait on (default "stopped")
 
  Print usage statement
 
-**--interval**, **-i**=*microseconds*
-  Microseconds to wait before polling for completion
+**--interval**, **-i**=*duration*
+  Time interval to wait before polling for completion. A duration string is a sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h". Time unit defaults to "ms".
 
 **--latest**, **-l**
 
@@ -40,6 +40,9 @@ $ podman wait mywebserver
 0
 
 $ podman wait --latest
+0
+
+$ podman wait --interval 2s
 0
 
 $ podman wait 860a4b23

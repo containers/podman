@@ -46,6 +46,7 @@ var _ = Describe("Podman wait", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"wait", cid})
 		session.Wait()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman wait on a sleeping container", func() {
@@ -55,22 +56,60 @@ var _ = Describe("Podman wait", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"wait", cid})
 		session.Wait(20)
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman wait on latest container", func() {
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "sleep", "1"})
 		session.Wait(20)
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"wait", "-l"})
-		session.Wait(20)
+		if IsRemote() {
+			session = podmanTest.Podman([]string{"wait", session.OutputToString()})
+		} else {
+			session = podmanTest.Podman([]string{"wait", "-l"})
+		}
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman container wait on latest container", func() {
 		session := podmanTest.Podman([]string{"container", "run", "-d", ALPINE, "sleep", "1"})
 		session.Wait(20)
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"container", "wait", "-l"})
+		if IsRemote() {
+			session = podmanTest.Podman([]string{"container", "wait", session.OutputToString()})
+		} else {
+			session = podmanTest.Podman([]string{"container", "wait", "-l"})
+		}
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman container wait on latest container with --interval flag", func() {
+		session := podmanTest.Podman([]string{"container", "run", "-d", ALPINE, "sleep", "1"})
 		session.Wait(20)
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"container", "wait", "-i", "5000", session.OutputToString()})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman container wait on latest container with --interval flag", func() {
+		session := podmanTest.Podman([]string{"container", "run", "-d", ALPINE, "sleep", "1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"container", "wait", "--interval", "1s", session.OutputToString()})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman container wait on container with bogus --interval", func() {
+		session := podmanTest.Podman([]string{"container", "run", "-d", ALPINE, "sleep", "1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"container", "wait", "--interval", "100days", session.OutputToString()})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
 	})
 
 	It("podman wait on three containers", func() {
