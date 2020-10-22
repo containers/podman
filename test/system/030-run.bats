@@ -473,4 +473,23 @@ json-file | f
     run_podman kill $cid
 }
 
+# Regression test for issue #8082
+@test "podman run : look up correct image name" {
+	# Create a 2nd tag for the local image.
+	local name="localhost/foo/bar"
+	run_podman tag $IMAGE $name
+
+	# Create a container with the 2nd tag and make sure that it's being
+	# used.  #8082 always inaccurately used the 1st tag.
+	run_podman create $name
+	cid="$output"
+
+	run_podman inspect --format "{{.ImageName}}" $cid
+	is "$output" "$name"
+
+	# Clean up.
+	run_podman rm $cid
+	run_podman untag $IMAGE $name
+}
+
 # vim: filetype=sh

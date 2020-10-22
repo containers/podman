@@ -469,7 +469,7 @@ func (ir *Runtime) getLocalImage(inputName string) (string, *storage.Image, erro
 		if err != nil {
 			return "", nil, err
 		}
-		img, err := ir.store.Image(ref.String())
+		img, err := ir.store.Image(reference.TagNameOnly(ref).String())
 		if err == nil {
 			return ref.String(), img, nil
 		}
