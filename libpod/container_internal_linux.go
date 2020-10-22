@@ -1550,9 +1550,13 @@ func (c *Container) getHosts() string {
 			hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", "10.0.2.100", c.Hostname(), c.config.Name)
 		} else {
 			hasNetNS := false
+			netNone := false
 			for _, ns := range c.config.Spec.Linux.Namespaces {
 				if ns.Type == spec.NetworkNamespace {
 					hasNetNS = true
+					if ns.Path == "" && !c.config.CreateNetNS {
+						netNone = true
+					}
 					break
 				}
 			}
@@ -1563,6 +1567,9 @@ func (c *Container) getHosts() string {
 					osHostname = c.Hostname()
 				}
 				hosts += fmt.Sprintf("127.0.1.1 %s\n", osHostname)
+			}
+			if netNone {
+				hosts += fmt.Sprintf("127.0.1.1 %s\n", c.Hostname())
 			}
 		}
 	}
