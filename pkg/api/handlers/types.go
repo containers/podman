@@ -271,6 +271,13 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 	if err != nil {
 		return nil, err
 	}
+
+	rootfs := docker.RootFS{}
+	rootfs.Type = info.RootFS.Type
+	rootfs.Layers = make([]string, 0, len(info.RootFS.Layers))
+	for _, layer := range info.RootFS.Layers {
+		rootfs.Layers = append(rootfs.Layers, string(layer))
+	}
 	dockerImageInspect := docker.ImageInspect{
 		Architecture:  l.Architecture,
 		Author:        l.Author,
@@ -286,7 +293,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		Parent:        l.Parent,
 		RepoDigests:   info.RepoDigests,
 		RepoTags:      info.RepoTags,
-		RootFS:        docker.RootFS{},
+		RootFS:        rootfs,
 		Size:          info.Size,
 		Variant:       "",
 		VirtualSize:   info.VirtualSize,
