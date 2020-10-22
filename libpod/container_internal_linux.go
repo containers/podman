@@ -1412,7 +1412,8 @@ func (c *Container) generateResolvConf() (string, error) {
 
 	// Determine the endpoint for resolv.conf in case it is a symlink
 	resolvPath, err := filepath.EvalSymlinks(resolvConf)
-	if err != nil {
+	// resolv.conf doesn't have to exists
+	if err != nil && !os.IsNotExist(err) {
 		return "", err
 	}
 
@@ -1422,7 +1423,8 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	contents, err := ioutil.ReadFile(resolvPath)
-	if err != nil {
+	// resolv.conf doesn't have to exists
+	if err != nil && !os.IsNotExist(err) {
 		return "", errors.Wrapf(err, "unable to read %s", resolvPath)
 	}
 
