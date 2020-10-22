@@ -482,13 +482,13 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, options entities.ImageSaveOptions) error {
 	if options.MultiImageArchive {
 		nameOrIDs := append([]string{nameOrID}, tags...)
-		return ir.Libpod.ImageRuntime().SaveImages(ctx, nameOrIDs, options.Format, options.Output, options.Quiet)
+		return ir.Libpod.ImageRuntime().SaveImages(ctx, nameOrIDs, options.Format, options.Output, options.Quiet, true)
 	}
 	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil {
 		return err
 	}
-	return newImage.Save(ctx, nameOrID, options.Format, options.Output, tags, options.Quiet, options.Compress)
+	return newImage.Save(ctx, nameOrID, options.Format, options.Output, tags, options.Quiet, options.Compress, true)
 }
 
 func (ir *ImageEngine) Diff(_ context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {

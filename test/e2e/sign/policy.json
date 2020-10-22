@@ -1,0 +1,18 @@
+{
+    "default": [
+        {
+            "type": "insecureAcceptAnything"
+        }
+    ],
+    "transports": {
+        "docker": {
+            "localhost:5000": [
+                {
+                    "type": "signedBy",
+                    "keyType": "GPGKeys",
+                    "keyPath": "/tmp/key.gpg"
+                }
+            ]
+        }
+    }
+}

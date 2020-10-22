@@ -177,7 +177,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 // SaveImages stores one more images in a multi-image archive.
 // Note that only `docker-archive` supports storing multiple
 // image.
-func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format string, outputFile string, quiet bool) (finalErr error) {
+func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format string, outputFile string, quiet, removeSignatures bool) (finalErr error) {
 	if format != DockerArchive {
 		return errors.Errorf("multi-image archives are only supported in in the %q format", DockerArchive)
 	}
@@ -264,7 +264,7 @@ func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format s
 		}
 
 		img := imageMap[id]
-		copyOptions := getCopyOptions(sys, writer, nil, nil, SigningOptions{}, "", img.tags)
+		copyOptions := getCopyOptions(sys, writer, nil, nil, SigningOptions{RemoveSignatures: removeSignatures}, "", img.tags)
 		copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath()
 
 		// For copying, we need a source reference that we can create
@@ -1584,7 +1584,7 @@ func (i *Image) Comment(ctx context.Context, manifestType string) (string, error
 }
 
 // Save writes a container image to the filesystem
-func (i *Image) Save(ctx context.Context, source, format, output string, moreTags []string, quiet, compress bool) error {
+func (i *Image) Save(ctx context.Context, source, format, output string, moreTags []string, quiet, compress, removeSignatures bool) error {
 	var (
 		writer       io.Writer
 		destRef      types.ImageReference
@@ -1636,7 +1636,7 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 			return err
 		}
 	}
-	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
+	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", "", writer, compress, SigningOptions{RemoveSignatures: removeSignatures}, &DockerRegistryOptions{}, additionaltags); err != nil {
 		return errors.Wrapf(err, "unable to save %q", source)
 	}
 	i.newImageEvent(events.Save)

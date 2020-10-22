@@ -843,7 +843,7 @@ func (i *VarlinkAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.Image
 	saveOutput := bytes.NewBuffer([]byte{})
 	c := make(chan error)
 	go func() {
-		err := newImage.Save(getContext(), options.Name, options.Format, output, options.MoreTags, options.Quiet, options.Compress)
+		err := newImage.Save(getContext(), options.Name, options.Format, output, options.MoreTags, options.Quiet, options.Compress, true)
 		c <- err
 		close(c)
 	}()
