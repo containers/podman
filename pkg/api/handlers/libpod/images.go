@@ -336,7 +336,7 @@ func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpfile.Close()
-	loadedImage, err := runtime.LoadImage(context.Background(), query.Reference, tmpfile.Name(), os.Stderr, "")
+	loadedImage, err := runtime.LoadImage(context.Background(), tmpfile.Name(), os.Stderr, "")
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to load image"))
 		return
