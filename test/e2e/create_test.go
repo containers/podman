@@ -626,4 +626,22 @@ var _ = Describe("Podman create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 	})
+
+	It("podman create -d should fail, can not detach create containers", func() {
+		session := podmanTest.Podman([]string{"create", "-d", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("unknown shorthand flag"))
+
+		session = podmanTest.Podman([]string{"create", "--detach", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("unknown flag"))
+
+		session = podmanTest.Podman([]string{"create", "--detach-keys", "ctrl-x", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("unknown flag"))
+	})
+
 })

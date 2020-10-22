@@ -115,16 +115,6 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"cpuset-mems", "",
 		"Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
 	)
-	createFlags.BoolVarP(
-		&cf.Detach,
-		"detach", "d", false,
-		"Run container in background and print container ID",
-	)
-	createFlags.StringVar(
-		&cf.DetachKeys,
-		"detach-keys", containerConfig.DetachKeys(),
-		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-cf`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
-	)
 	createFlags.StringSliceVar(
 		&cf.Devices,
 		"device", containerConfig.Devices(),

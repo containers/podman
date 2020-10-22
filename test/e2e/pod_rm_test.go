@@ -167,7 +167,7 @@ var _ = Describe("Podman pod rm", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "-d", "--pod", podid1, ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"create", "--pod", podid1, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

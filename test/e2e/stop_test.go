@@ -242,7 +242,7 @@ var _ = Describe("Podman stop", func() {
 
 		defer os.RemoveAll(tmpDir)
 
-		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, "-d", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToStringArray()[0]

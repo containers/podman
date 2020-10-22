@@ -59,7 +59,7 @@ WantedBy=multi-user.target
 			Expect(stop.ExitCode()).To(Equal(0))
 		}()
 
-		create := podmanTest.Podman([]string{"create", "-d", "--name", "redis", "redis"})
+		create := podmanTest.Podman([]string{"create", "--name", "redis", "redis"})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(Equal(0))
 
