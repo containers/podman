@@ -63,3 +63,17 @@ type swagCompatNetworkCreateResponse struct {
 	// in:body
 	Body struct{ types.NetworkCreate }
 }
+
+// Network disconnect
+// swagger:model NetworkConnectRequest
+type swagCompatNetworkConnectRequest struct {
+	// in:body
+	Body struct{ types.NetworkConnect }
+}
+
+// Network disconnect
+// swagger:model NetworkDisconnectRequest
+type swagCompatNetworkDisconnectRequest struct {
+	// in:body
+	Body struct{ types.NetworkDisconnect }
+}

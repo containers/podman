@@ -98,6 +98,63 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks/create"), s.APIHandler(compat.CreateNetwork)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/create", s.APIHandler(compat.CreateNetwork)).Methods(http.MethodPost)
+	// swagger:operation POST /networks/{name}/connect compat compatConnectNetwork
+	// ---
+	// tags:
+	//  - networks (compat)
+	// summary: Connect container to network
+	// description: Connect a container to a network.  This endpoint is current a no-op
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the network
+	//  - in: body
+	//    name: create
+	//    description: attributes for connecting a container to a network
+	//    schema:
+	//      $ref: "#/definitions/NetworkConnectRequest"
+	// responses:
+	//   200:
+	//     description: OK
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/networks/{name}/connect"), s.APIHandler(compat.Connect)).Methods(http.MethodPost)
+	r.HandleFunc("/networks/{name}/connect", s.APIHandler(compat.Connect)).Methods(http.MethodPost)
+	// swagger:operation POST /networks/{name}/disconnect compat compatDisconnectNetwork
+	// ---
+	// tags:
+	//  - networks (compat)
+	// summary: Disconnect container from network
+	// description: Disconnect a container from a network.  This endpoint is current a no-op
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the network
+	//  - in: body
+	//    name: create
+	//    description: attributes for disconnecting a container from a network
+	//    schema:
+	//      $ref: "#/definitions/NetworkDisconnectRequest"
+	// responses:
+	//   200:
+	//     description: OK
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/networks/{name}/disconnect"), s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
+	r.HandleFunc("/networks/{name}/disconnect", s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
+
 	// swagger:operation DELETE /libpod/networks/{name} libpod libpodRemoveNetwork
 	// ---
 	// tags:

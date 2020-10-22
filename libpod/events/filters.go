@@ -73,8 +73,8 @@ func generateEventUntilOption(timeUntil time.Time) func(e *Event) bool {
 }
 
 func parseFilter(filter string) (string, string, error) {
-	filterSplit := strings.Split(filter, "=")
-	if len(filterSplit) != 2 {
+	filterSplit := strings.SplitN(filter, "=", 2)
+	if len(filterSplit) == 1 {
 		return "", "", errors.Errorf("%s is an invalid filter", filter)
 	}
 	return filterSplit[0], filterSplit[1], nil

@@ -410,25 +410,14 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		return nil, err
 	}
 
-	networkSettingsDefault := types.DefaultNetworkSettings{
-		EndpointID:          "",
-		Gateway:             "",
-		GlobalIPv6Address:   "",
-		GlobalIPv6PrefixLen: 0,
-		IPAddress:           "",
-		IPPrefixLen:         0,
-		IPv6Gateway:         "",
-		MacAddress:          l.Config().StaticMAC.String(),
+	n, err := json.Marshal(inspect.NetworkSettings)
+	if err != nil {
+		return nil, err
 	}
 
-	networkSettingsBase := types.NetworkSettingsBase{
-		Ports: ports,
-	}
-
-	networkSettings := types.NetworkSettings{
-		NetworkSettingsBase:    networkSettingsBase,
-		DefaultNetworkSettings: networkSettingsDefault,
-		Networks:               nil,
+	networkSettings := types.NetworkSettings{}
+	if err := json.Unmarshal(n, &networkSettings); err != nil {
+		return nil, err
 	}
 
 	c := types.ContainerJSON{
