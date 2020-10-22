@@ -394,7 +394,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 	var setSource, setDest, setRORW, setSuid, setDev, setExec, setRelabel bool
 
 	for _, val := range args {
-		kv := strings.Split(val, "=")
+		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
 		case "bind-nonrecursive":
 			newMount.Options = append(newMount.Options, "bind")
@@ -517,7 +517,7 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 	var setDest, setRORW, setSuid, setDev, setExec, setTmpcopyup bool
 
 	for _, val := range args {
-		kv := strings.Split(val, "=")
+		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
 		case "tmpcopyup", "notmpcopyup":
 			if setTmpcopyup {
@@ -591,7 +591,7 @@ func getNamedVolume(args []string) (*libpod.ContainerNamedVolume, error) {
 	var setSource, setDest, setRORW, setSuid, setDev, setExec bool
 
 	for _, val := range args {
-		kv := strings.Split(val, "=")
+		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
 		case "ro", "rw":
 			if setRORW {

@@ -178,7 +178,7 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 
 	for _, opt := range c.SecurityOpts {
 		// Split on both : and =
-		splitOpt := strings.Split(opt, "=")
+		splitOpt := strings.SplitN(opt, "=", 2)
 		if len(splitOpt) == 1 {
 			splitOpt = strings.Split(opt, ":")
 		}
