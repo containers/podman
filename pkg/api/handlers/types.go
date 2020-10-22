@@ -273,7 +273,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 	}
 
 	rootfs := docker.RootFS{}
-	if info.RootFS != nil && info.RootFS.Layers != nil {
+	if info.RootFS != nil {
 		rootfs.Type = info.RootFS.Type
 		rootfs.Layers = make([]string, 0, len(info.RootFS.Layers))
 		for _, layer := range info.RootFS.Layers {
