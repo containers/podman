@@ -4,6 +4,7 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -45,6 +46,15 @@ func (e EventJournalD) Write(ee Event) error {
 		m["PODMAN_ID"] = ee.ID
 		if ee.ContainerExitCode != 0 {
 			m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
+		}
+		// If we have container labels, we need to convert them to a string so they
+		// can be recorded with the event
+		if len(ee.Details.Attributes) > 0 {
+			b, err := json.Marshal(ee.Details.Attributes)
+			if err != nil {
+				return err
+			}
+			m["PODMAN_LABELS"] = string(b)
 		}
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
@@ -172,6 +182,19 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 				logrus.Errorf("Error parsing event exit code %s", code)
 			} else {
 				newEvent.ContainerExitCode = intCode
+			}
+		}
+
+		// we need to check for the presence of labels recorded to a container event
+		if stringLabels, ok := entry.Fields["PODMAN_LABELS"]; ok && len(stringLabels) > 0 {
+			labels := make(map[string]string, 0)
+			if err := json.Unmarshal([]byte(stringLabels), &labels); err != nil {
+				return nil, err
+			}
+
+			// if we have labels, add them to the event
+			if len(labels) > 0 {
+				newEvent.Details = Details{Attributes: labels}
 			}
 		}
 	case Image:

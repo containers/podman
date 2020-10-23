@@ -36,6 +36,18 @@ type Event struct {
 	Time time.Time
 	// Type of event that occurred
 	Type Type
+
+	Details
+}
+
+// Details describes specifics about certain events, specifically around
+// container events
+type Details struct {
+	// ID is the event ID
+	ID string
+	// Attributes can be used to describe specifics about the event
+	// in the case of a container event, labels for example
+	Attributes map[string]string
 }
 
 // EventerOptions describe options that need to be passed to create

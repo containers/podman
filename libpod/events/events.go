@@ -69,7 +69,14 @@ func (e *Event) ToHumanReadable() string {
 	var humanFormat string
 	switch e.Type {
 	case Container, Pod:
-		humanFormat = fmt.Sprintf("%s %s %s %s (image=%s, name=%s)", e.Time, e.Type, e.Status, e.ID, e.Image, e.Name)
+		humanFormat = fmt.Sprintf("%s %s %s %s (image=%s, name=%s", e.Time, e.Type, e.Status, e.ID, e.Image, e.Name)
+		// check if the container has labels and add it to the output
+		if len(e.Attributes) > 0 {
+			for k, v := range e.Attributes {
+				humanFormat += fmt.Sprintf(", %s=%s", k, v)
+			}
+		}
+		humanFormat += ")"
 	case Image:
 		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, e.ID, e.Name)
 	case System:
