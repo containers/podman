@@ -151,8 +151,8 @@ func (m *openpgpSigningMechanism) Verify(unverifiedSignature []byte) (contents [
 
 // UntrustedSignatureContents returns UNTRUSTED contents of the signature WITHOUT ANY VERIFICATION,
 // along with a short identifier of the key used for signing.
-// WARNING: The short key identifier (which correponds to "Key ID" for OpenPGP keys)
-// is NOT the same as a "key identity" used in other calls ot this interface, and
+// WARNING: The short key identifier (which corresponds to "Key ID" for OpenPGP keys)
+// is NOT the same as a "key identity" used in other calls to this interface, and
 // the values may have no recognizable relationship if the public key is not available.
 func (m *openpgpSigningMechanism) UntrustedSignatureContents(untrustedSignature []byte) (untrustedContents []byte, shortKeyIdentifier string, err error) {
 	return gpgUntrustedSignatureContents(untrustedSignature)

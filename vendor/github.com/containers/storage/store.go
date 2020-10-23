@@ -613,14 +613,14 @@ func GetStore(options StoreOptions) (Store, error) {
 	if options.GraphRoot != "" {
 		dir, err := filepath.Abs(options.GraphRoot)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error deriving an absolute path from %q", options.GraphRoot)
+			return nil, err
 		}
 		options.GraphRoot = dir
 	}
 	if options.RunRoot != "" {
 		dir, err := filepath.Abs(options.RunRoot)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error deriving an absolute path from %q", options.RunRoot)
+			return nil, err
 		}
 		options.RunRoot = dir
 	}
@@ -2677,21 +2677,16 @@ func (s *store) MountImage(id string, mountOpts []string, mountLabel string) (st
 }
 
 func (s *store) Mount(id, mountLabel string) (string, error) {
-	container, err := s.Container(id)
-	var (
-		uidMap, gidMap []idtools.IDMap
-		mountOpts      []string
-	)
-	if err == nil {
-		uidMap, gidMap = container.UIDMap, container.GIDMap
-		id = container.LayerID
-		mountOpts = container.MountOpts()
-	}
 	options := drivers.MountOpts{
 		MountLabel: mountLabel,
-		UidMaps:    uidMap,
-		GidMaps:    gidMap,
-		Options:    mountOpts,
+	}
+	// check if `id` is a container, then grab the LayerID, uidmap and gidmap, along with
+	// otherwise we assume the id is a LayerID and attempt to mount it.
+	if container, err := s.Container(id); err == nil {
+		id = container.LayerID
+		options.UidMaps = container.UIDMap
+		options.GidMaps = container.GIDMap
+		options.Options = container.MountOpts()
 	}
 	return s.mount(id, options)
 }

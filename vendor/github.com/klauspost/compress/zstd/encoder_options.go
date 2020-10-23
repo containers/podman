@@ -30,12 +30,13 @@ type encoderOptions struct {
 func (o *encoderOptions) setDefault() {
 	*o = encoderOptions{
 		// use less ram: true for now, but may change.
-		concurrent: runtime.GOMAXPROCS(0),
-		crc:        true,
-		single:     nil,
-		blockSize:  1 << 16,
-		windowSize: 8 << 20,
-		level:      SpeedDefault,
+		concurrent:    runtime.GOMAXPROCS(0),
+		crc:           true,
+		single:        nil,
+		blockSize:     1 << 16,
+		windowSize:    8 << 20,
+		level:         SpeedDefault,
+		allLitEntropy: true,
 	}
 }
 

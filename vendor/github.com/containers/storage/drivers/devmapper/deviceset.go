@@ -1213,7 +1213,11 @@ func (devices *DeviceSet) growFS(info *devInfo) error {
 		return errors.Wrapf(err, "Failed to mount; dmesg: %s", string(dmesg.Dmesg(256)))
 	}
 
-	defer unix.Unmount(fsMountPoint, unix.MNT_DETACH)
+	defer func() {
+		if err := mount.Unmount(fsMountPoint); err != nil {
+			logrus.Warnf("devmapper.growFS cleanup error: %v", err)
+		}
+	}()
 
 	switch devices.BaseDeviceFilesystem {
 	case ext4:
@@ -2257,6 +2261,38 @@ func (devices *DeviceSet) cancelDeferredRemoval(info *devInfo) error {
 	return err
 }
 
+func (devices *DeviceSet) unmountAndDeactivateAll(dir string) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		logrus.Warnf("devmapper: unmountAndDeactivate: %s", err)
+		return
+	}
+
+	for _, d := range files {
+		if !d.IsDir() {
+			continue
+		}
+
+		name := d.Name()
+		fullname := path.Join(dir, name)
+
+		// We use MNT_DETACH here in case it is still busy in some running
+		// container. This means it'll go away from the global scope directly,
+		// and the device will be released when that container dies.
+		if err := mount.Unmount(fullname); err != nil {
+			logrus.Warnf("devmapper.Shutdown error: %s", err)
+		}
+
+		if devInfo, err := devices.lookupDevice(name); err != nil {
+			logrus.Debugf("devmapper: Shutdown lookup device %s, error: %s", name, err)
+		} else {
+			if err := devices.deactivateDevice(devInfo); err != nil {
+				logrus.Debugf("devmapper: Shutdown deactivate %s, error: %s", devInfo.Hash, err)
+			}
+		}
+	}
+}
+
 // Shutdown shuts down the device by unmounting the root.
 func (devices *DeviceSet) Shutdown(home string) error {
 	logrus.Debugf("devmapper: [deviceset %s] Shutdown()", devices.devicePrefix)
@@ -2278,45 +2314,7 @@ func (devices *DeviceSet) Shutdown(home string) error {
 	// will be killed and we will not get a chance to save deviceset
 	// metadata. Hence save this early before trying to deactivate devices.
 	devices.saveDeviceSetMetaData()
-
-	// ignore the error since it's just a best effort to not try to unmount something that's mounted
-	mounts, _ := mount.GetMounts()
-	mounted := make(map[string]bool, len(mounts))
-	for _, mnt := range mounts {
-		mounted[mnt.Mountpoint] = true
-	}
-
-	if err := filepath.Walk(path.Join(home, "mnt"), func(p string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			return nil
-		}
-
-		if mounted[p] {
-			// We use MNT_DETACH here in case it is still busy in some running
-			// container. This means it'll go away from the global scope directly,
-			// and the device will be released when that container dies.
-			if err := unix.Unmount(p, unix.MNT_DETACH); err != nil {
-				logrus.Debugf("devmapper: Shutdown unmounting %s, error: %s", p, err)
-			}
-		}
-
-		if devInfo, err := devices.lookupDevice(path.Base(p)); err != nil {
-			logrus.Debugf("devmapper: Shutdown lookup device %s, error: %s", path.Base(p), err)
-		} else {
-			if err := devices.deactivateDevice(devInfo); err != nil {
-				logrus.Debugf("devmapper: Shutdown deactivate %s , error: %s", devInfo.Hash, err)
-			}
-		}
-
-		return nil
-	}); err != nil && !os.IsNotExist(err) {
-		devices.Unlock()
-		return err
-	}
-
+	devices.unmountAndDeactivateAll(path.Join(home, "mnt"))
 	devices.Unlock()
 
 	info, _ := devices.lookupDeviceWithLock("")
@@ -2420,7 +2418,9 @@ func (devices *DeviceSet) MountDevice(hash, path string, moptions graphdriver.Mo
 
 	if fstype == xfs && devices.xfsNospaceRetries != "" {
 		if err := devices.xfsSetNospaceRetries(info); err != nil {
-			unix.Unmount(path, unix.MNT_DETACH)
+			if err := mount.Unmount(path); err != nil {
+				logrus.Warnf("devmapper.MountDevice cleanup error: %v", err)
+			}
 			devices.deactivateDevice(info)
 			return err
 		}
@@ -2446,10 +2446,22 @@ func (devices *DeviceSet) UnmountDevice(hash, mountPath string) error {
 	defer devices.Unlock()
 
 	logrus.Debugf("devmapper: Unmount(%s)", mountPath)
-	if err := unix.Unmount(mountPath, unix.MNT_DETACH); err != nil {
+	if err := mount.Unmount(mountPath); err != nil {
 		return err
 	}
 	logrus.Debug("devmapper: Unmount done")
+
+	// Remove the mountpoint here. Removing the mountpoint (in newer kernels)
+	// will cause all other instances of this mount in other mount namespaces
+	// to be killed (this is an anti-DoS measure that is necessary for things
+	// like devicemapper). This is necessary to avoid cases where a libdm mount
+	// that is present in another namespace will cause subsequent RemoveDevice
+	// operations to fail. We ignore any errors here because this may fail on
+	// older kernels which don't have
+	// torvalds/linux@8ed936b5671bfb33d89bc60bdcc7cf0470ba52fe applied.
+	if err := os.Remove(mountPath); err != nil {
+		logrus.Debugf("devmapper: error doing a remove on unmounted device %s: %v", mountPath, err)
+	}
 
 	return devices.deactivateDevice(info)
 }
