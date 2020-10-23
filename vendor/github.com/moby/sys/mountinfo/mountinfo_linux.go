@@ -1,5 +1,3 @@
-// +build go1.13
-
 package mountinfo
 
 import (
@@ -11,7 +9,13 @@ import (
 	"strings"
 )
 
-func parseInfoFile(r io.Reader, filter FilterFunc) ([]*Info, error) {
+// GetMountsFromReader retrieves a list of mounts from the
+// reader provided, with an optional filter applied (use nil
+// for no filter). This can be useful in tests or benchmarks
+// that provide a fake mountinfo data.
+//
+// This function is Linux-specific.
+func GetMountsFromReader(r io.Reader, filter FilterFunc) ([]*Info, error) {
 	s := bufio.NewScanner(r)
 	out := []*Info{}
 	var err error
@@ -75,7 +79,7 @@ func parseInfoFile(r io.Reader, filter FilterFunc) ([]*Info, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Parsing '%s' failed: mount point: %w", fields[4], err)
 		}
-		p.Fstype, err = unescape(fields[sepIdx+1])
+		p.FSType, err = unescape(fields[sepIdx+1])
 		if err != nil {
 			return nil, fmt.Errorf("Parsing '%s' failed: fstype: %w", fields[sepIdx+1], err)
 		}
@@ -83,9 +87,9 @@ func parseInfoFile(r io.Reader, filter FilterFunc) ([]*Info, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Parsing '%s' failed: source: %w", fields[sepIdx+2], err)
 		}
-		p.VfsOpts = fields[sepIdx+3]
+		p.VFSOptions = fields[sepIdx+3]
 
-		// Run a filter soon so we can skip parsing/adding entries
+		// Run a filter early so we can skip parsing/adding entries
 		// the caller is not interested in
 		var skip, stop bool
 		if filter != nil {
@@ -112,7 +116,7 @@ func parseInfoFile(r io.Reader, filter FilterFunc) ([]*Info, error) {
 			return nil, fmt.Errorf("Parsing '%s' failed: root: %w", fields[3], err)
 		}
 
-		p.Opts = fields[5]
+		p.Options = fields[5]
 
 		// zero or more optional fields
 		switch {
@@ -141,7 +145,7 @@ func parseMountTable(filter FilterFunc) ([]*Info, error) {
 	}
 	defer f.Close()
 
-	return parseInfoFile(f, filter)
+	return GetMountsFromReader(f, filter)
 }
 
 // PidMountInfo collects the mounts for a specific process ID. If the process
@@ -154,7 +158,7 @@ func PidMountInfo(pid int) ([]*Info, error) {
 	}
 	defer f.Close()
 
-	return parseInfoFile(f, nil)
+	return GetMountsFromReader(f, nil)
 }
 
 // A few specific characters in mountinfo path entries (root and mountpoint)
@@ -173,7 +177,7 @@ func unescape(path string) (string, error) {
 	}
 
 	// The following code is UTF-8 transparent as it only looks for some
-	// specific characters (backslach and 0..7) with values < utf8.RuneSelf,
+	// specific characters (backslash and 0..7) with values < utf8.RuneSelf,
 	// and everything else is passed through as is.
 	buf := make([]byte, len(path))
 	bufLen := 0

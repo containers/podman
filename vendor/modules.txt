@@ -86,7 +86,7 @@ github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.26.0
+# github.com/containers/common v0.26.1
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/apparmor/internal/supported
 github.com/containers/common/pkg/auth
@@ -164,7 +164,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.23.5
+# github.com/containers/storage v1.23.6
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -332,7 +332,7 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.11.0
+# github.com/klauspost/compress v1.11.1
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -351,7 +351,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/mistifyio/go-zfs
 # github.com/moby/sys/mount v0.1.1
 github.com/moby/sys/mount
-# github.com/moby/sys/mountinfo v0.2.0
+# github.com/moby/sys/mountinfo v0.3.1
 github.com/moby/sys/mountinfo
 # github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2
 github.com/moby/term
@@ -496,7 +496,7 @@ github.com/seccomp/libseccomp-golang
 # github.com/sirupsen/logrus v1.7.0
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
-# github.com/spf13/cobra v1.1.0
+# github.com/spf13/cobra v1.1.1
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag

@@ -1,5 +1,6 @@
 // Package mountinfo provides a set of functions to retrieve information about OS mounts.
-// Currently it supports Linux. For historical reasons, there is also some support for FreeBSD,
+//
+// Currently it supports Linux. For historical reasons, there is also some support for FreeBSD and OpenBSD,
 // and a shallow implementation for Windows, but in general this is Linux-only package, so
 // the rest of the document only applies to Linux, unless explicitly specified otherwise.
 //
@@ -8,7 +9,7 @@
 // see different mounts. A per-process mountinfo table is available from /proc/<PID>/mountinfo,
 // where <PID> is a numerical process identifier.
 //
-// In general, /proc is not a very effective interface, and mountinfo is not an exception.
+// In general, /proc is not a very efficient interface, and mountinfo is not an exception.
 // For example, there is no way to get information about a specific mount point (i.e. it
 // is all-or-nothing). This package tries to hide the /proc ineffectiveness by using
 // parse filters while reading mountinfo. A filter can skip some entries, or stop
@@ -27,7 +28,7 @@
 // of the cases where mountinfo should not be parsed:
 //
 // 1. Before performing a mount. Usually, this is not needed, but if required (say to
-//    prevent overmounts), to check whether a directory is mounted, call os.Lstat
+//    prevent over-mounts), to check whether a directory is mounted, call os.Lstat
 //    on it and its parent directory, and compare their st.Sys().(*syscall.Stat_t).Dev
 //    fields -- if they differ, then the directory is the mount point. NOTE this does
 //    not work for bind mounts. Optionally, the filesystem type can also be checked
@@ -43,5 +44,4 @@
 //
 // 5. To find the mount point root of a specific directory. You can perform os.Stat()
 //    on the directory and traverse up until the Dev field of a parent directory differs.
-
 package mountinfo
