@@ -102,5 +102,6 @@ Example of usage from OpenShift's experimental `dockerbuild` [command with mount
 ## Run conformance tests (very slow):
 
 ```
-go test ./dockerclient/conformance_test.go -tags conformance
+chmod -R go-w ./dockerclient/testdata
+go test ./dockerclient/conformance_test.go -tags conformance -timeout 30m
 ```

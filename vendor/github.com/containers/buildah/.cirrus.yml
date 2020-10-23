@@ -90,11 +90,13 @@ gce_instance:
 
 
 'cirrus-ci/only_prs/gate_task':
+    gce_instance:
+        memory: "12Gb"
 
     # see bors.toml
     skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
-    timeout_in: 30m
+    timeout_in: 10m
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'

@@ -93,27 +93,28 @@ func parseOptInterval(f *flag.Flag) (time.Duration, error) {
 	return d, nil
 }
 
-// makeUserArgs - Package the variables from the Dockerfile defined by
-// the ENV aand the ARG statements into one slice so the values
-// defined by both can later be evaluated when resolving variables
-// such as ${MY_USER}.  If the variable is defined by both ARG and ENV
-// don't include the definition of the ARG variable.
-func makeUserArgs(bEnv []string, bArgs map[string]string) (userArgs []string) {
-
-	userArgs = bEnv
-	envMap := make(map[string]string)
-	for _, envVal := range bEnv {
-		val := strings.SplitN(envVal, "=", 2)
-		if len(val) > 1 {
-			envMap[val[0]] = val[1]
-		}
-	}
-
-	for key, value := range bArgs {
-		if _, ok := envMap[key]; ok {
+// mergeEnv merges two lists of environment variables, avoiding duplicates.
+func mergeEnv(defaults, overrides []string) []string {
+	s := make([]string, 0, len(defaults)+len(overrides))
+	index := make(map[string]int)
+	for _, envSpec := range append(defaults, overrides...) {
+		envVar := strings.SplitN(envSpec, "=", 2)
+		if i, ok := index[envVar[0]]; ok {
+			s[i] = envSpec
 			continue
 		}
-		userArgs = append(userArgs, key+"="+value)
+		s = append(s, envSpec)
+		index[envVar[0]] = len(s) - 1
 	}
-	return userArgs
+	return s
+}
+
+// envMapAsSlice returns the contents of a map[string]string as a slice of keys
+// and values joined with "=".
+func envMapAsSlice(m map[string]string) []string {
+	s := make([]string, 0, len(m))
+	for k, v := range m {
+		s = append(s, k+"="+v)
+	}
+	return s
 }

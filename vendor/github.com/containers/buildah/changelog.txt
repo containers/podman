@@ -1,3 +1,13 @@
+- Changelog for v1.16.5 (2020-10-21)
+  * copier.copierHandlerPut: don't check length when there are errors
+  * CI: run gating tasks with a lot more memory
+  * Run(): ignore containers.conf's environment configuration
+  * bump(github.com/openshift/imagebuilder) to v1.1.8
+  * ADD and COPY: descend into excluded directories, sometimes
+  * copier: add more context to a couple of error messages
+  * copier: check an error earlier
+  * Set directory ownership when copied with ID mapping
+
 - Changelog for v1.16.4 (2020-10-01)
   * ADD: only expand archives at the right time
 

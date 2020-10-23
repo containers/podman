@@ -264,8 +264,8 @@ github.com/opencontainers/selinux v1.5.2 h1:F6DgIsjgBIcDksLW4D5RG9bXok6oqZ3nvMwj
 github.com/opencontainers/selinux v1.5.2/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.6.0 h1:+bIAS/Za3q5FTwWym4fTB0vObnfCf3G/NC7K6Jx62mY=
 github.com/opencontainers/selinux v1.6.0/go.mod h1:VVGKuOLlE7v4PJyT6h7mNWvq1rzqiriPsEqVhc+svHE=
-github.com/openshift/imagebuilder v1.1.6 h1:1+YzRxIIefY4QqtCImx6rg+75QrKNfBoPAKxgMo/khM=
-github.com/openshift/imagebuilder v1.1.6/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
+github.com/openshift/imagebuilder v1.1.8 h1:gjiIl8pbNj0eC4XWvFJHATdDvYm64p9/pLDLQWoLZPA=
+github.com/openshift/imagebuilder v1.1.8/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
 github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913 h1:TnbXhKzrTOyuvWrjI8W6pcoI9XPbLHFXCdN2dtUw7Rw=
 github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=

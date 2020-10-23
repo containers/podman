@@ -12,8 +12,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/openshift/imagebuilder/dockerfile/command"
 	"github.com/docker/docker/pkg/system"
+	"github.com/openshift/imagebuilder/dockerfile/command"
 	"github.com/pkg/errors"
 )
 
@@ -37,7 +37,7 @@ type Node struct {
 	Original   string          // original line used before parsing
 	Flags      []string        // only top Node should have this set
 	StartLine  int             // the line in the original dockerfile where the node begins
-	endLine    int             // the line in the original dockerfile where the node ends
+	EndLine    int             // the line in the original dockerfile where the node ends
 }
 
 // Dump dumps the AST defined by `node` as a list of sexps.
@@ -67,7 +67,7 @@ func (node *Node) Dump() string {
 
 func (node *Node) lines(start, end int) {
 	node.StartLine = start
-	node.endLine = end
+	node.EndLine = end
 }
 
 // AddChild adds a new child node, and updates line information
@@ -76,7 +76,7 @@ func (node *Node) AddChild(child *Node, startLine, endLine int) {
 	if node.StartLine < 0 {
 		node.StartLine = startLine
 	}
-	node.endLine = endLine
+	node.EndLine = endLine
 	node.Children = append(node.Children, child)
 }
 
