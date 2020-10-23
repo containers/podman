@@ -15,11 +15,9 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -94,15 +92,6 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	cidFile, err := openCidFile(cliVals.CIDFile)
-	if err != nil {
-		return err
-	}
-
-	if cidFile != nil {
-		defer errorhandling.CloseQuiet(cidFile)
-		defer errorhandling.SyncQuiet(cidFile)
-	}
 
 	if err := createInit(cmd); err != nil {
 		return err
@@ -139,10 +128,9 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if cidFile != nil {
-		_, err = cidFile.WriteString(report.Id)
-		if err != nil {
-			logrus.Error(err)
+	if cliVals.CIDFile != "" {
+		if err := util.CreateCidFile(cliVals.CIDFile, report.Id); err != nil {
+			return err
 		}
 	}
 
@@ -267,20 +255,6 @@ func pullImage(imageName string) (string, error) {
 		imageName = pullReport.Images[0]
 	}
 	return imageName, nil
-}
-
-func openCidFile(cidfile string) (*os.File, error) {
-	if cidfile == "" {
-		return nil, nil
-	}
-	cidFile, err := util.OpenExclusiveFile(cidfile)
-	if err != nil && os.IsExist(err) {
-		return nil, errors.Errorf("container id file exists. Ensure another container is not using it or delete %s", cidfile)
-	}
-	if err != nil {
-		return nil, errors.Errorf("error opening cidfile %s", cidfile)
-	}
-	return cidFile, nil
 }
 
 // createPodIfNecessary automatically creates a pod when requested.  if the pod name

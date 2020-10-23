@@ -111,15 +111,8 @@ func run(cmd *cobra.Command, args []string) error {
 			return errors.Wrapf(err, "error checking authfile path %s", af)
 		}
 	}
-	cidFile, err := openCidFile(cliVals.CIDFile)
-	if err != nil {
-		return err
-	}
 
-	if cidFile != nil {
-		defer errorhandling.CloseQuiet(cidFile)
-		defer errorhandling.SyncQuiet(cidFile)
-	}
+	runOpts.CIDFile = cliVals.CIDFile
 	runOpts.Rm = cliVals.Rm
 	if err := createInit(cmd); err != nil {
 		return err
@@ -192,12 +185,6 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	if err != nil {
 		return err
-	}
-	if cidFile != nil {
-		_, err = cidFile.WriteString(report.Id)
-		if err != nil {
-			logrus.Error(err)
-		}
 	}
 
 	if runOpts.Detach {
