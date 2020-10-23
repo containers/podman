@@ -203,6 +203,7 @@ var _ = Describe("Podman logs", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results).To(Exit(0))
 		Expect(len(results.OutputToStringArray())).To(Equal(3))
+		Expect(results.OutputToString()).To(Equal("podman podman podman"))
 	})
 
 	It("using journald tail two lines", func() {
