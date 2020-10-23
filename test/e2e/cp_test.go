@@ -204,6 +204,42 @@ var _ = Describe("Podman cp", func() {
 		os.Remove("file.tar")
 	})
 
+	It("podman cp tar --extract", func() {
+		testctr := "testctr"
+		setup := podmanTest.RunTopContainer(testctr)
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", testctr, "mkdir", "/foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		path, err := os.Getwd()
+		Expect(err).To(BeNil())
+		testDirPath := filepath.Join(path, "TestDir4")
+		err = os.Mkdir(testDirPath, 0777)
+		Expect(err).To(BeNil())
+		defer os.RemoveAll(testDirPath)
+		f, err := os.Create(filepath.Join(testDirPath, "a.txt"))
+		Expect(err).To(BeNil())
+		_, err = f.Write([]byte("Hello World!!!\n"))
+		f.Close()
+		cmd := exec.Command("tar", "-cvf", "file.tar", "TestDir4")
+		exec.Command("tar", "-cvf", "/home/mvasek/file.tar", testDirPath)
+		_, err = cmd.Output()
+		Expect(err).To(BeNil())
+		defer os.Remove("file.tar")
+
+		session = podmanTest.Podman([]string{"cp", "--extract", "file.tar", "testctr:/foo/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", testctr, "cat", "/foo/TestDir4/a.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("Hello World!!!"))
+	})
+
 	It("podman cp symlink", func() {
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
