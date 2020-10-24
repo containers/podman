@@ -698,11 +698,31 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		}
 		g.AddMount(systemdMnt)
 	} else {
+		mountOptions := []string{"bind", "rprivate"}
+
+		var statfs unix.Statfs_t
+		if err := unix.Statfs("/sys/fs/cgroup/systemd", &statfs); err != nil {
+			mountOptions = append(mountOptions, "nodev", "noexec", "nosuid")
+		} else {
+			if statfs.Flags&unix.MS_NODEV == unix.MS_NODEV {
+				mountOptions = append(mountOptions, "nodev")
+			}
+			if statfs.Flags&unix.MS_NOEXEC == unix.MS_NOEXEC {
+				mountOptions = append(mountOptions, "noexec")
+			}
+			if statfs.Flags&unix.MS_NOSUID == unix.MS_NOSUID {
+				mountOptions = append(mountOptions, "nosuid")
+			}
+			if statfs.Flags&unix.MS_RDONLY == unix.MS_RDONLY {
+				mountOptions = append(mountOptions, "ro")
+			}
+		}
+
 		systemdMnt := spec.Mount{
 			Destination: "/sys/fs/cgroup/systemd",
 			Type:        "bind",
 			Source:      "/sys/fs/cgroup/systemd",
-			Options:     []string{"bind", "nodev", "noexec", "nosuid", "rprivate"},
+			Options:     mountOptions,
 		}
 		g.AddMount(systemdMnt)
 		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
