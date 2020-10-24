@@ -210,7 +210,7 @@ type signatureAcceptanceRules struct {
 	validateSignedDockerManifestDigest func(digest.Digest) error
 }
 
-// verifyAndExtractSignature verifies that unverifiedSignature has been signed, and that its principial components
+// verifyAndExtractSignature verifies that unverifiedSignature has been signed, and that its principal components
 // match expected values, both as specified by rules, and returns it
 func verifyAndExtractSignature(mech SigningMechanism, unverifiedSignature []byte, rules signatureAcceptanceRules) (*Signature, error) {
 	signed, keyIdentity, err := mech.Verify(unverifiedSignature)
@@ -248,7 +248,7 @@ func verifyAndExtractSignature(mech SigningMechanism, unverifiedSignature []byte
 // There is NO REASON to expect the values to be correct, or not intentionally misleading
 // (including things like “✅ Verified by $authority”)
 func GetUntrustedSignatureInformationWithoutVerifying(untrustedSignatureBytes []byte) (*UntrustedSignatureInformation, error) {
-	// NOTE: This should eventualy do format autodetection.
+	// NOTE: This should eventually do format autodetection.
 	mech, _, err := NewEphemeralGPGSigningMechanism([]byte{})
 	if err != nil {
 		return nil, err

@@ -94,7 +94,7 @@ func (d *Destination) HasThreadSafePutBlob() bool {
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
 func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
 	// Ouch, we need to stream the blob into a temporary file just to determine the size.
-	// When the layer is decompressed, we also have to generate the digest on uncompressed datas.
+	// When the layer is decompressed, we also have to generate the digest on uncompressed data.
 	if inputInfo.Size == -1 || inputInfo.Digest.String() == "" {
 		logrus.Debugf("docker tarfile: input with unknown size, streaming to disk first ...")
 		streamCopy, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(d.sysCtx), "docker-tarfile-blob")
@@ -159,7 +159,7 @@ func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo t
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
 // If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
-// If the blob has been succesfully reused, returns (true, info, nil); info must contain at least a digest and size.
+// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size.
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 // May use and/or update cache.
 func (d *Destination) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {

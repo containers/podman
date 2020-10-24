@@ -160,9 +160,13 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 		}
 	}
 
+	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
+		storage.SetDefaultConfigFilePath(path)
+	}
+	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+
 	runtime.config = conf
 
-	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err
 	}

@@ -75,7 +75,7 @@ const (
 	maxDepth  = 128
 
 	// idLength represents the number of random characters
-	// which can be used to create the unique link identifer
+	// which can be used to create the unique link identifier
 	// for every layer. If this value is too long then the
 	// page size limit for the mount command may be exceeded.
 	// The idLength should be selected such that following equation
@@ -219,7 +219,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 					return nil, errors.Wrap(err, "error recording metacopy-being-used status")
 				}
 			} else {
-				logrus.Warnf("overlay test mount did not indicate whether or not metacopy is being used: %v", err)
+				logrus.Infof("overlay test mount did not indicate whether or not metacopy is being used: %v", err)
 				return nil, err
 			}
 		}
@@ -280,7 +280,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 		trimkey = strings.TrimPrefix(trimkey, ".")
 		switch trimkey {
 		case "override_kernel_check":
-			logrus.Warnf("overlay: override_kernel_check option was specified, but is no longer necessary")
+			logrus.Debugf("overlay: override_kernel_check option was specified, but is no longer necessary")
 		case "mountopt":
 			o.mountOptions = val
 		case "size":
@@ -444,14 +444,14 @@ func (d *Driver) useNaiveDiff() bool {
 				logrus.Debugf("cached value indicated that native-diff is usable")
 			} else {
 				logrus.Debugf("cached value indicated that native-diff is not being used")
-				logrus.Warn(nativeDiffCacheText)
+				logrus.Info(nativeDiffCacheText)
 			}
 			useNaiveDiffOnly = !nativeDiffCacheResult
 			return
 		}
 		if err := doesSupportNativeDiff(d.home, d.options.mountOptions); err != nil {
 			nativeDiffCacheText = fmt.Sprintf("Not using native diff for overlay, this may cause degraded performance for building images: %v", err)
-			logrus.Warn(nativeDiffCacheText)
+			logrus.Info(nativeDiffCacheText)
 			useNaiveDiffOnly = true
 		}
 		cachedFeatureRecord(d.runhome, feature, !useNaiveDiffOnly, nativeDiffCacheText)

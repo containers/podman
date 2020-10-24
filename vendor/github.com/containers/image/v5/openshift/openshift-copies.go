@@ -251,7 +251,7 @@ func getServerIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo, conf
 // getUserIdentificationPartialConfig is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd.getUserIdentificationPartialConfig.
 // clientauth.Info object contain both user identification and server identification.  We want different precedence orders for
 // both, so we have to split the objects and merge them separately
-// we want this order of precedence for user identifcation
+// we want this order of precedence for user identification
 // 1.  configAuthInfo minus auth-path (the final result of command line flags and merged .kubeconfig files)
 // 2.  configAuthInfo.auth-path (this file can contain information that conflicts with #1, and we want #1 to win the priority)
 // 3.  if there is not enough information to idenfity the user, load try the ~/.kubernetes_auth file

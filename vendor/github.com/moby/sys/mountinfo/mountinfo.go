@@ -1,7 +1,6 @@
 package mountinfo
 
 import (
-	"io"
 	"os"
 )
 
@@ -9,14 +8,6 @@ import (
 // with an optional filter applied (use nil for no filter).
 func GetMounts(f FilterFunc) ([]*Info, error) {
 	return parseMountTable(f)
-}
-
-// GetMountsFromReader retrieves a list of mounts from the
-// reader provided, with an optional filter applied (use nil
-// for no filter). This can be useful in tests or benchmarks
-// that provide a fake mountinfo data.
-func GetMountsFromReader(reader io.Reader, f FilterFunc) ([]*Info, error) {
-	return parseInfoFile(reader, f)
 }
 
 // Mounted determines if a specified path is a mount point.
@@ -55,18 +46,18 @@ type Info struct {
 	// Mountpoint indicates the mount point relative to the process's root.
 	Mountpoint string
 
-	// Opts represents mount-specific options.
-	Opts string
+	// Options represents mount-specific options.
+	Options string
 
 	// Optional represents optional fields.
 	Optional string
 
-	// Fstype indicates the type of filesystem, such as EXT3.
-	Fstype string
+	// FSType indicates the type of filesystem, such as EXT3.
+	FSType string
 
 	// Source indicates filesystem specific information or "none".
 	Source string
 
-	// VfsOpts represents per super block options.
-	VfsOpts string
+	// VFSOptions represents per super block options.
+	VFSOptions string
 }

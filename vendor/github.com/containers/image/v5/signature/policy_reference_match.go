@@ -51,7 +51,7 @@ func (prm *prmMatchRepoDigestOrExact) matchesDockerReference(image types.Unparse
 		return signature.String() == intended.String()
 	case reference.Canonical:
 		// We don’t actually compare the manifest digest against the signature here; that happens prSignedBy.in UnparsedImage.Manifest.
-		// Becase UnparsedImage.Manifest verifies the intended.Digest() against the manifest, and prSignedBy verifies the signature digest against the manifest,
+		// Because UnparsedImage.Manifest verifies the intended.Digest() against the manifest, and prSignedBy verifies the signature digest against the manifest,
 		// we know that signature digest matches intended.Digest() (but intended.Digest() and signature digest may use different algorithms)
 		return signature.Name() == intended.Name()
 	default: // !reference.IsNameOnly(intended)

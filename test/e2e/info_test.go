@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 
-	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -78,39 +78,35 @@ var _ = Describe("Podman Info", func() {
 	})
 
 	It("podman info rootless storage path", func() {
-		if !rootless.IsRootless() {
-			Skip("test of rootless_storage_path is only meaningful as rootless")
-		}
+		SkipIfNotRootless("test of rootless_storage_path is only meaningful as rootless")
 		SkipIfRemote("Only tests storage on local client")
-		oldHOME, hasHOME := os.LookupEnv("HOME")
+		configPath := filepath.Join(podmanTest.TempDir, ".config", "containers", "storage.conf")
+		os.Setenv("CONTAINERS_STORAGE_CONF", configPath)
 		defer func() {
-			if hasHOME {
-				os.Setenv("HOME", oldHOME)
-			} else {
-				os.Unsetenv("HOME")
-			}
+			os.Unsetenv("CONTAINERS_STORAGE_CONF")
 		}()
-		os.Setenv("HOME", podmanTest.TempDir)
-		configPath := filepath.Join(os.Getenv("HOME"), ".config", "containers", "storage.conf")
 		err := os.RemoveAll(filepath.Dir(configPath))
 		Expect(err).To(BeNil())
 
 		err = os.MkdirAll(filepath.Dir(configPath), os.ModePerm)
 		Expect(err).To(BeNil())
 
-		rootlessStoragePath := `"/tmp/$HOME/$USER/$UID"`
+		rootlessStoragePath := `"/tmp/$HOME/$USER/$UID/storage"`
 		driver := `"overlay"`
 		storageOpt := `"/usr/bin/fuse-overlayfs"`
 		storageConf := []byte(fmt.Sprintf("[storage]\ndriver=%s\nrootless_storage_path=%s\n[storage.options]\nmount_program=%s", driver, rootlessStoragePath, storageOpt))
 		err = ioutil.WriteFile(configPath, storageConf, os.ModePerm)
 		Expect(err).To(BeNil())
 
-		expect := filepath.Join("/tmp", os.Getenv("HOME"), os.Getenv("USER"), os.Getenv("UID"))
+		u, err := user.Current()
+		Expect(err).To(BeNil())
+
+		expect := filepath.Join("/tmp", os.Getenv("HOME"), u.Username, u.Uid, "storage")
 		podmanPath := podmanTest.PodmanTest.PodmanBinary
 		cmd := exec.Command(podmanPath, "info", "--format", "{{.Store.GraphRoot}}")
 		out, err := cmd.CombinedOutput()
 		fmt.Println(string(out))
 		Expect(err).To(BeNil())
-		Expect(string(out)).To(ContainSubstring(expect))
+		Expect(string(out)).To(Equal(expect))
 	})
 })

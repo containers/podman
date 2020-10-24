@@ -287,7 +287,7 @@ func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo, cache types.B
 		// In particular, because the v2s2 manifest being generated uses
 		// DiffIDs, any caller of GetBlob is going to be asking for DiffIDs of
 		// layers not their _actual_ digest. The result is that copy/... will
-		// be verifing a "digest" which is not the actual layer's digest (but
+		// be verifying a "digest" which is not the actual layer's digest (but
 		// is instead the DiffID).
 
 		uncompressedStream, _, err := compression.AutoDecompress(underlyingStream)
