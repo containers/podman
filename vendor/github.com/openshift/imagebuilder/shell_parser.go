@@ -7,6 +7,7 @@ package imagebuilder
 // be added by adding code to the "special ${} format processing" section
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"text/scanner"
@@ -119,7 +120,7 @@ func (sw *shellWord) processStopOn(stopChar rune) (string, []string, error) {
 
 		if stopChar != scanner.EOF && ch == stopChar {
 			sw.scanner.Next()
-			break
+			return result, words.getWords(), nil
 		}
 		if fn, ok := charFuncMapping[ch]; ok {
 			// Call special processing func for certain chars
@@ -156,6 +157,10 @@ func (sw *shellWord) processStopOn(stopChar rune) (string, []string, error) {
 		}
 	}
 
+	if stopChar != scanner.EOF {
+		return "", []string{}, fmt.Errorf("unexpected end of statement while looking for matching %s", string(stopChar))
+	}
+
 	return result, words.getWords(), nil
 }
 
@@ -168,8 +173,11 @@ func (sw *shellWord) processSingleQuote() (string, error) {
 
 	for {
 		ch := sw.scanner.Next()
-		if ch == '\'' || ch == scanner.EOF {
+		if ch == '\'' {
 			break
+		}
+		if ch == scanner.EOF {
+			return "", errors.New("unexpected end of statement while looking for matching single-quote")
 		}
 		result += string(ch)
 	}
@@ -184,11 +192,14 @@ func (sw *shellWord) processDoubleQuote() (string, error) {
 
 	sw.scanner.Next()
 
-	for sw.scanner.Peek() != scanner.EOF {
+	for {
 		ch := sw.scanner.Peek()
 		if ch == '"' {
 			sw.scanner.Next()
 			break
+		}
+		if ch == scanner.EOF {
+			return "", errors.New("unexpected end of statement while looking for matching double-quote")
 		}
 		if ch == '$' {
 			tmp, err := sw.processDollar()
@@ -206,8 +217,8 @@ func (sw *shellWord) processDoubleQuote() (string, error) {
 					continue
 				}
 
-				if chNext == '"' || chNext == '$' {
-					// \" and \$ can be escaped, all other \'s are left as-is
+				if chNext == '"' || chNext == '$' || chNext == '\\' {
+					// \" and \$ and \\ can be escaped, all other \'s are left as-is
 					ch = sw.scanner.Next()
 				}
 			}

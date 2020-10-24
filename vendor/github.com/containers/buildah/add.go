@@ -137,6 +137,29 @@ func getURL(src, mountpoint, renameTarget string, writer io.Writer) error {
 	return errors.Wrapf(err, "error writing content from %q to tar stream", src)
 }
 
+// includeDirectoryAnyway returns true if "path" is a prefix for an exception
+// known to "pm".  If "path" is a directory that "pm" claims matches its list
+// of patterns, but "pm"'s list of exclusions contains a pattern for which
+// "path" is a prefix, then IncludeDirectoryAnyway() will return true.
+// This is not always correct, because it relies on the directory part of any
+// exception paths to be specified without wildcards.
+func includeDirectoryAnyway(path string, pm *fileutils.PatternMatcher) bool {
+	if !pm.Exclusions() {
+		return false
+	}
+	prefix := strings.TrimPrefix(path, string(os.PathSeparator)) + string(os.PathSeparator)
+	for _, pattern := range pm.Patterns() {
+		if !pattern.Exclusion() {
+			continue
+		}
+		spec := strings.TrimPrefix(pattern.String(), string(os.PathSeparator))
+		if strings.HasPrefix(spec, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 // Add copies the contents of the specified sources into the container's root
 // filesystem, optionally extracting contents of local files that look like
 // non-empty archives.
@@ -363,20 +386,32 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		for _, glob := range localSourceStat.Globbed {
 			rel, err := filepath.Rel(contextDir, glob)
 			if err != nil {
-				return errors.Wrapf(err, "error computing path of %q", glob)
+				return errors.Wrapf(err, "error computing path of %q relative to %q", glob, contextDir)
 			}
 			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 				return errors.Errorf("possible escaping context directory error: %q is outside of %q", glob, contextDir)
 			}
 			// Check for dockerignore-style exclusion of this item.
 			if rel != "." {
-				matches, err := pm.Matches(filepath.ToSlash(rel)) // nolint:staticcheck
+				excluded, err := pm.Matches(filepath.ToSlash(rel)) // nolint:staticcheck
 				if err != nil {
 					return errors.Wrapf(err, "error checking if %q(%q) is excluded", glob, rel)
 				}
-				if matches {
-					continue
+				if excluded {
+					// non-directories that are excluded are excluded, no question, but
+					// directories can only be skipped if we don't have to allow for the
+					// possibility of finding things to include under them
+					globInfo := localSourceStat.Results[glob]
+					if !globInfo.IsDir || !includeDirectoryAnyway(rel, pm) {
+						continue
+					}
 				}
+			} else {
+				// Make sure we don't trigger a "copied nothing" error for an empty context
+				// directory if we were told to copy the context directory itself.  We won't
+				// actually copy it, but we need to make sure that we don't produce an error
+				// due to potentially not having anything in the tarstream that we passed.
+				itemsCopied++
 			}
 			st := localSourceStat.Results[glob]
 			pipeReader, pipeWriter := io.Pipe()
@@ -391,6 +426,10 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						return false, false, nil
 					})
 				}
+				writer = newTarFilterer(writer, func(hdr *tar.Header) (bool, bool, io.Reader) {
+					itemsCopied++
+					return false, false, nil
+				})
 				getOptions := copier.GetOptions{
 					UIDMap:         srcUIDMap,
 					GIDMap:         srcGIDMap,
@@ -462,10 +501,9 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				}
 				return multiErr.Errors[0]
 			}
-			itemsCopied++
 		}
 		if itemsCopied == 0 {
-			return errors.Wrapf(syscall.ENOENT, "no items matching glob %q copied (%d filtered)", localSourceStat.Glob, len(localSourceStat.Globbed))
+			return errors.Wrapf(syscall.ENOENT, "no items matching glob %q copied (%d filtered out)", localSourceStat.Glob, len(localSourceStat.Globbed))
 		}
 	}
 	return nil

@@ -976,20 +976,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 			return errorResponse("copier: get: glob %q: %v", glob, err)
 		}
 		globMatchedCount += len(globMatched)
-		filtered := make([]string, 0, len(globMatched))
-		for _, globbed := range globMatched {
-			rel, excluded, err := pathIsExcluded(req.Root, globbed, pm)
-			if err != nil {
-				return errorResponse("copier: get: checking if %q is excluded: %v", globbed, err)
-			}
-			if rel == "." || !excluded {
-				filtered = append(filtered, globbed)
-			}
-		}
-		if len(filtered) == 0 {
-			return errorResponse("copier: get: glob %q matched nothing (%d filtered out of %v): %v", glob, len(globMatched), globMatched, syscall.ENOENT)
-		}
-		queue = append(queue, filtered...)
+		queue = append(queue, globMatched...)
 	}
 	// no matches -> error
 	if len(queue) == 0 {
@@ -1042,15 +1029,15 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 				options := req.GetOptions
 				options.ExpandArchives = false
 				walkfn := func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return errors.Wrapf(err, "copier: get: error reading %q", path)
+					}
 					// compute the path of this item
 					// relative to the top-level directory,
 					// for the tar header
 					rel, relErr := convertToRelSubdirectory(item, path)
 					if relErr != nil {
 						return errors.Wrapf(relErr, "copier: get: error computing path of %q relative to top directory %q", path, item)
-					}
-					if err != nil {
-						return errors.Wrapf(err, "copier: get: error reading %q", path)
 					}
 					// prefix the original item's name if we're keeping it
 					if relNamePrefix != "" {
@@ -1108,7 +1095,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 			}
 		}
 		if itemsCopied == 0 {
-			return errors.New("copier: get: copied no items")
+			return errors.Wrapf(syscall.ENOENT, "copier: get: copied no items")
 		}
 		return nil
 	}
@@ -1271,6 +1258,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			return errorResponse("copier: put: error mapping container filesystem owner %d:%d to host filesystem owners: %v", dirUID, dirGID, err)
 		}
 		dirUID, dirGID = hostDirPair.UID, hostDirPair.GID
+		defaultDirUID, defaultDirGID = hostDirPair.UID, hostDirPair.GID
 		if req.PutOptions.ChownFiles != nil {
 			containerFilePair := idtools.IDPair{UID: *fileUID, GID: *fileGID}
 			hostFilePair, err := idMappings.ToHost(containerFilePair)
@@ -1399,7 +1387,9 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			case tar.TypeReg, tar.TypeRegA:
 				var written int64
 				written, err = createFile(path, tr)
-				if written != hdr.Size {
+				// only check the length if there wasn't an error, which we'll
+				// check along with errors for other types of entries
+				if err == nil && written != hdr.Size {
 					return errors.Errorf("copier: put: error creating %q: incorrect length (%d != %d)", path, written, hdr.Size)
 				}
 			case tar.TypeLink:

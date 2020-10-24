@@ -91,11 +91,8 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
-	defaultContainerConfig, err := config.Default()
-	if err != nil {
-		return errors.Wrapf(err, "failed to get container config")
-	}
-	b.configureEnvironment(g, options, defaultContainerConfig.Containers.Env)
+	// hardwire the environment to match docker build to avoid subtle and hard-to-debug differences due to containers.conf
+	b.configureEnvironment(g, options, []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
 
 	if b.CommonBuildOpts == nil {
 		return errors.Errorf("Invalid format on container you must recreate the container")

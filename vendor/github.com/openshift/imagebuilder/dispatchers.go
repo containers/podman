@@ -83,21 +83,9 @@ func env(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	for j := 0; j < len(args); j++ {
 		// name  ==> args[j]
 		// value ==> args[j+1]
-		newVar := args[j] + "=" + args[j+1] + ""
-		gotOne := false
-		for i, envVar := range b.RunConfig.Env {
-			envParts := strings.SplitN(envVar, "=", 2)
-			if envParts[0] == args[j] {
-				b.RunConfig.Env[i] = newVar
-				b.Env = append([]string{newVar}, b.Env...)
-				gotOne = true
-				break
-			}
-		}
-		if !gotOne {
-			b.RunConfig.Env = append(b.RunConfig.Env, newVar)
-			b.Env = append([]string{newVar}, b.Env...)
-		}
+		newVar := []string{args[j] + "=" + args[j+1]}
+		b.RunConfig.Env = mergeEnv(b.RunConfig.Env, newVar)
+		b.Env = mergeEnv(b.Env, newVar)
 		j++
 	}
 
@@ -153,7 +141,7 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	var chown string
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
-	userArgs := makeUserArgs(b.Env, b.Args)
+	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
 	for _, a := range flagArgs {
 		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
@@ -182,7 +170,7 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
 	var chown string
 	var from string
-	userArgs := makeUserArgs(b.Env, b.Args)
+	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
 	for _, a := range flagArgs {
 		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
