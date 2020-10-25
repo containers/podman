@@ -413,6 +413,17 @@ json-file | f
         else
             is "$output" "" "LogPath (driver=$driver)"
         fi
+
+        if [[ $driver != 'none' ]]; then
+            run_podman logs myctr
+            is "$output" "$msg" "check that podman logs works as expected"
+        else
+            run_podman 125 logs myctr
+            if ! is_remote; then
+                is "$output" ".*this container is using the 'none' log driver, cannot read logs.*" \
+                   "podman logs does not work with none log driver"
+            fi
+        fi
         run_podman rm myctr
     done < <(parse_table "$tests")
 
