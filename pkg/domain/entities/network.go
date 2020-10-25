@@ -42,6 +42,7 @@ type NetworkCreateOptions struct {
 	MacVLAN    string
 	Range      net.IPNet
 	Subnet     net.IPNet
+	IPv6       bool
 }
 
 // NetworkCreateReport describes a created network for the cli

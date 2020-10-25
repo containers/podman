@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// GetCNIConfDir get CNI configuration directory
 func GetCNIConfDir(configArg *config.Config) string {
 	if len(configArg.Network.NetworkConfigDir) < 1 {
 		dc, err := config.DefaultConfig()
