@@ -60,7 +60,7 @@ curl http://<IP_address>:8080
 ### Viewing the container's logs
 You can view the container's logs with Podman as well:
 ```console
-$ sudo podman logs --latest
+$ podman logs --latest
 10.88.0.1 - - [07/Feb/2018:15:22:11 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
