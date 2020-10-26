@@ -8,9 +8,12 @@ jobs:
   update_pr:
     runs-on: ubuntu-latest
     steps:
-    - uses: tzkhan/pr-update-action@v2
+    # This action had an interface-breaking change introduced and force-pushed
+    # over an existing tag.  Rather than trust this to never happen again,
+    # ref. action by sha instead of tag.
+    - uses: tzkhan/pr-update-action@bbd4c9395df8a9c4ef075b8b7fe29f2ca76cdca9
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         base-branch-regex: '^(?!master).*$'
         title-template: '[%basebranch%]'
-        title-prefix-space: true
+        title-insert-space: true
