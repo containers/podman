@@ -238,8 +238,17 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	if blocked {
 		return nil, errors.Errorf("pull access to registry for %q is blocked by configuration", transports.ImageName(srcRef))
 	}
-	if err := checkRegistrySourcesAllows("pull from", srcRef); err != nil {
+	insecure, err := checkRegistrySourcesAllows("pull from", srcRef)
+	if err != nil {
 		return nil, err
+	}
+	if insecure {
+		if sc.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
+			return nil, errors.Errorf("can't require tls verification on an insecured registry")
+		}
+		sc.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
+		sc.OCIInsecureSkipTLSVerify = true
+		sc.DockerDaemonInsecureSkipTLSVerify = true
 	}
 
 	destName, err := localImageNameForReference(ctx, store, srcRef)

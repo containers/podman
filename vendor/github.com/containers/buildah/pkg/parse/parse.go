@@ -335,7 +335,7 @@ func GetBindMount(args []string) (specs.Mount, error) {
 	setDest := false
 
 	for _, val := range args {
-		kv := strings.Split(val, "=")
+		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
 		case "bind-nonrecursive":
 			newMount.Options = append(newMount.Options, "bind")
@@ -407,7 +407,7 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 	setDest := false
 
 	for _, val := range args {
-		kv := strings.Split(val, "=")
+		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
 		case "ro", "nosuid", "nodev", "noexec":
 			newMount.Options = append(newMount.Options, kv[0])
@@ -789,9 +789,7 @@ func IDMappingOptions(c *cobra.Command, isolation buildah.Isolation) (usernsOpti
 		case "host":
 			usernsOption.Host = true
 		default:
-			if strings.HasPrefix(how, "ns:") {
-				how = how[3:]
-			}
+			how = strings.TrimPrefix(how, "ns:")
 			if _, err := os.Stat(how); err != nil {
 				return nil, nil, errors.Wrapf(err, "error checking for %s namespace at %q", string(specs.UserNamespace), how)
 			}
@@ -890,9 +888,7 @@ func NamespaceOptions(c *cobra.Command) (namespaceOptions buildah.NamespaceOptio
 						break
 					}
 				}
-				if strings.HasPrefix(how, "ns:") {
-					how = how[3:]
-				}
+				how = strings.TrimPrefix(how, "ns:")
 				if _, err := os.Stat(how); err != nil {
 					return nil, buildah.NetworkDefault, errors.Wrapf(err, "error checking for %s namespace at %q", what, how)
 				}

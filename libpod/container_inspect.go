@@ -90,7 +90,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 	}
 
 	namedVolumes, mounts := c.sortUserVolumes(ctrSpec)
-	inspectMounts, err := c.getInspectMounts(namedVolumes, mounts)
+	inspectMounts, err := c.getInspectMounts(namedVolumes, c.config.ImageVolumes, mounts)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 // Get inspect-formatted mounts list.
 // Only includes user-specified mounts. Only includes bind mounts and named
 // volumes, not tmpfs volumes.
-func (c *Container) getInspectMounts(namedVolumes []*ContainerNamedVolume, mounts []spec.Mount) ([]define.InspectMount, error) {
+func (c *Container) getInspectMounts(namedVolumes []*ContainerNamedVolume, imageVolumes []*ContainerImageVolume, mounts []spec.Mount) ([]define.InspectMount, error) {
 	inspectMounts := []define.InspectMount{}
 
 	// No mounts, return early
@@ -219,6 +219,17 @@ func (c *Container) getInspectMounts(namedVolumes []*ContainerNamedVolume, mount
 
 		inspectMounts = append(inspectMounts, mountStruct)
 	}
+
+	for _, volume := range imageVolumes {
+		mountStruct := define.InspectMount{}
+		mountStruct.Type = "image"
+		mountStruct.Destination = volume.Dest
+		mountStruct.Source = volume.Source
+		mountStruct.RW = volume.ReadWrite
+
+		inspectMounts = append(inspectMounts, mountStruct)
+	}
+
 	for _, mount := range mounts {
 		// It's a mount.
 		// Is it a tmpfs? If so, discard.

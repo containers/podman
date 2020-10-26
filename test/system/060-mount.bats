@@ -78,4 +78,77 @@ load helpers
     is "$output" "" "podman image mount, no args, after umount"
 }
 
+@test "podman run --mount image" {
+    skip_if_rootless "too hard to test rootless"
+
+    # Run a container with an image mount
+    run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount $IMAGE diff /etc/os-release /image-mount/etc/os-release
+
+    # Make sure the mount is read only
+    run_podman 1 run --rm --mount type=image,src=$IMAGE,dst=/image-mount $IMAGE touch /image-mount/read-only
+    is "$output" "touch: /image-mount/read-only: Read-only file system"
+
+    # Make sure that rw,readwrite work
+    run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount,rw=true $IMAGE touch /image-mount/readwrite
+    run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount,readwrite=true $IMAGE touch /image-mount/readwrite
+
+    skip_if_remote "mounting remote is meaningless"
+
+    # The mount should be cleaned up during container removal as no other entity mounted the image
+    run_podman image umount $IMAGE
+    is "$output" "" "image mount should have been cleaned up during container removal"
+
+    # Now make sure that the image mount is not cleaned up during container removal when another entity mounted the image
+    run_podman image mount $IMAGE
+    run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount $IMAGE diff /etc/os-release /image-mount/etc/os-release
+
+    run_podman image inspect --format '{{.ID}}' $IMAGE
+    iid="$output"
+
+    run_podman image umount $IMAGE
+    is "$output" "$iid" "podman image umount: image ID of what was umounted"
+
+    run_podman image umount $IMAGE
+    is "$output" "" "image mount should have been cleaned up via 'image umount'"
+
+    # Run a container in the background (source is the ID instead of name)
+    run_podman run -d --mount type=image,src=$iid,dst=/image-mount,readwrite=true $IMAGE sleep infinity
+    cid="$output"
+
+    # Unmount the image
+    run_podman image umount $IMAGE
+    is "$output" "$iid" "podman image umount: image ID of what was umounted"
+    run_podman image umount $IMAGE
+    is "$output" "" "image mount should have been cleaned up via 'image umount'"
+
+    # Make sure that the mount in the container is unaffected
+    run_podman exec $cid diff /etc/os-release /image-mount/etc/os-release
+    run_podman exec $cid find /image-mount/etc/
+
+    # Clean up
+    run_podman rm -f $cid
+}
+
+@test "podman run --mount image inspection" {
+    skip_if_rootless "too hard to test rootless"
+
+    # Run a container in the background
+    run_podman run -d --mount type=image,src=$IMAGE,dst=/image-mount,rw=true $IMAGE sleep infinity
+    cid="$output"
+
+    run_podman inspect --format "{{(index .Mounts 0).Type}}" $cid
+    is "$output" "image" "inspect data includes image mount type"
+
+    run_podman inspect --format "{{(index .Mounts 0).Source}}" $cid
+    is "$output" "$IMAGE" "inspect data includes image mount source"
+
+    run_podman inspect --format "{{(index .Mounts 0).Destination}}" $cid
+    is "$output" "/image-mount" "inspect data includes image mount source"
+
+    run_podman inspect --format "{{(index .Mounts 0).RW}}" $cid
+    is "$output" "true" "inspect data includes image mount source"
+
+    run_podman rm -f $cid
+}
+
 # vim: filetype=sh

@@ -189,7 +189,7 @@ func IsContainer(id string, store storage.Store) (bool, error) {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "error stating %q", filepath.Join(cdir, stateFile))
+		return false, err
 	}
 	return true, nil
 }

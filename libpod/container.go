@@ -235,6 +235,19 @@ type ContainerOverlayVolume struct {
 	Source string `json:"source,omitempty"`
 }
 
+// ContainerImageVolume is a volume based on a container image.  The container
+// image is first mounted on the host and is then bind-mounted into the
+// container.
+type ContainerImageVolume struct {
+	// Source is the source of the image volume.  The image can be referred
+	// to by name and by ID.
+	Source string `json:"source"`
+	// Dest is the absolute path of the mount in the container.
+	Dest string `json:"dest"`
+	// ReadWrite sets the volume writable.
+	ReadWrite bool `json:"rw"`
+}
+
 // Config accessors
 // Unlocked
 

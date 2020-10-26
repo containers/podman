@@ -90,7 +90,7 @@ func getSymbolicLink(path string) (string, error) {
 		symPath = filepath.Join(symPath, p)
 		isSymlink, resolvedPath, err := hasSymlink(symPath)
 		if err != nil {
-			return "", errors.Wrapf(err, "error checking symlink for %q", symPath)
+			return "", err
 		}
 		// if isSymlink is true, check if resolvedPath is potentially another symlink
 		// keep doing this till resolvedPath is not a symlink and isSymlink is false
@@ -102,7 +102,7 @@ func getSymbolicLink(path string) (string, error) {
 			}
 			isSymlink, resolvedPath, err = hasSymlink(resolvedPath)
 			if err != nil {
-				return "", errors.Wrapf(err, "error checking symlink for %q", resolvedPath)
+				return "", err
 			}
 			symLinksResolved++
 		}
@@ -121,14 +121,14 @@ func hasSymlink(path string) (bool, string, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(path, 0755); err != nil {
-				return false, "", errors.Wrapf(err, "error ensuring volume path %q exists", path)
+				return false, "", err
 			}
 			info, err = os.Lstat(path)
 			if err != nil {
-				return false, "", errors.Wrapf(err, "error running lstat on %q", path)
+				return false, "", err
 			}
 		} else {
-			return false, path, errors.Wrapf(err, "error get stat of path %q", path)
+			return false, path, err
 		}
 	}
 
@@ -140,7 +140,7 @@ func hasSymlink(path string) (bool, string, error) {
 	// Read the symlink to get what it points to
 	targetDir, err := os.Readlink(path)
 	if err != nil {
-		return false, "", errors.Wrapf(err, "error reading link %q", path)
+		return false, "", err
 	}
 	// if the symlink points to a relative path, prepend the path till now to the resolved path
 	if !filepath.IsAbs(targetDir) {

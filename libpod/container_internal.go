@@ -1734,6 +1734,25 @@ func (c *Container) cleanup(ctx context.Context) error {
 		}
 	}
 
+	// Unmount image volumes
+	for _, v := range c.config.ImageVolumes {
+		img, err := c.runtime.ImageRuntime().NewFromLocal(v.Source)
+		if err != nil {
+			if lastError == nil {
+				lastError = err
+				continue
+			}
+			logrus.Errorf("error unmounting image volume %q:%q :%v", v.Source, v.Dest, err)
+		}
+		if err := img.Unmount(false); err != nil {
+			if lastError == nil {
+				lastError = err
+				continue
+			}
+			logrus.Errorf("error unmounting image volume %q:%q :%v", v.Source, v.Dest, err)
+		}
+	}
+
 	return lastError
 }
 

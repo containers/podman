@@ -74,11 +74,11 @@ func sourceIsRemote(source string) bool {
 func getURL(src, mountpoint, renameTarget string, writer io.Writer) error {
 	url, err := url.Parse(src)
 	if err != nil {
-		return errors.Wrapf(err, "error parsing URL %q", url)
+		return err
 	}
 	response, err := http.Get(src)
 	if err != nil {
-		return errors.Wrapf(err, "error parsing URL %q", url)
+		return err
 	}
 	defer response.Body.Close()
 	// Figure out what to name the new content.
@@ -93,7 +93,7 @@ func getURL(src, mountpoint, renameTarget string, writer io.Writer) error {
 	if lastModified != "" {
 		d, err := time.Parse(time.RFC1123, lastModified)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing last-modified time %q", lastModified)
+			return errors.Wrapf(err, "error parsing last-modified time")
 		}
 		date = d
 	}

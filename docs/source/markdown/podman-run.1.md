@@ -533,7 +533,7 @@ Tune a container's memory swappiness behavior. Accepts an integer between *0* an
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPEs are **bind**, **volume**, **tmpfs** and **devpts**. <sup>[[1]](#Footnote1)</sup>
+Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and **devpts**. <sup>[[1]](#Footnote1)</sup>
 
        e.g.
 
@@ -545,6 +545,8 @@ Current supported mount TYPEs are **bind**, **volume**, **tmpfs** and **devpts**
 
        type=tmpfs,tmpfs-size=512M,destination=/path/in/container
 
+       type=image,source=fedora,destination=/fedora-image,rw=true
+
        type=devpts,destination=/dev/pts
 
        Common Options:
@@ -553,9 +555,17 @@ Current supported mount TYPEs are **bind**, **volume**, **tmpfs** and **devpts**
 
 	      · dst, destination, target: mount destination spec.
 
+       Options specific to volume:
+
 	      · ro, readonly: true or false (default).
 
+       Options specific to image:
+
+	      · rw, readwrite: true or false (default).
+
        Options specific to bind:
+
+	      · ro, readonly: true or false (default).
 
 	      · bind-propagation: shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
 
@@ -564,6 +574,8 @@ Current supported mount TYPEs are **bind**, **volume**, **tmpfs** and **devpts**
 	      . relabel: shared, private.
 
        Options specific to tmpfs:
+
+	      · ro, readonly: true or false (default).
 
 	      · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
 

@@ -8,6 +8,7 @@ that we follow.
 ## Topics
 
 * [Reporting Issues](#reporting-issues)
+* [Working On Issues](#working-on-issues)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Sign your PRs](#sign-your-prs)
 * [Merge bot interaction](#merge-bot-interaction)
@@ -29,6 +30,17 @@ to remove the extra stuff that doesn't really relate to the issue itself.
 The easier it is for us to reproduce it, the faster it'll be fixed!
 
 Please don't include any private/sensitive information in your issue!
+
+## Working On Issues
+
+Once you have decided to contribute to Buildah by working on an issue, check our
+backlog of [open issues](https://github.com/containers/buildah/issues) looking
+for any that do not have an "In Progress" label attached to it.  Often issues
+will be assigned to someone, to be worked on at a later time.  If you have the
+time to work on the issue now add yourself as an assignee, and set the
+"In Progress" label if you’re a member of the “Containers” GitHub organization.
+If you can not set the label, just  add a quick comment in the issue asking that
+the “In Progress” label be set and a member will do so for you.
 
 ## Submitting Pull Requests
 
@@ -120,53 +132,13 @@ commit automatically with `git commit -s`.
 ## Merge bot interaction
 
 Maintainers should never merge anything directly into upstream
-branches.  Instead, interact with the [bors-ng bot](https://bors.tech/)
-through PR comments as summarized below. This ensures all upstream
+branches.  Instead, interact with the [openshift-ci-robot](https://github.com/openshift-ci-robot/)
+through PR comments as summarized [here](https://prow.ci.openshift.org/command-help?repo=containers%2Fbuildah).
+This ensures all upstream
 branches contain commits in a predictable order, and that every commit
 has passed automated testing at some point in the past. A
-[Maintainer portal](https://app.bors.tech/repositories/22803)
+[Maintainer portal](https://prow.ci.openshift.org/pr?query=is%3Apr%20state%3Aopen%20repo%3Acontainers%2Fbuildah)
 is available, showing all PRs awaiting review and approval.
-
-### Common [bors-ng comment commands](https://bors.tech/documentation/):
-
-(must be on a single comment-line, without any other extraneous text)
-
-* `bors r+` - Check the current number of Github Code-review Approvals.
-  If the PR has that many approvals or more, the bot will add the PR into
-  the queue for testing and possible merging.  Both the success criteria
-  and minimum approval number are set in the configuration file (see below).
-* `bors retry` - Re-run whatever request was previously issued to the bot.  Useful
-  when there was a testing flake upon attempted merge.
-* `bors try` - Optional / simulate the actions of `bors r+` (see above) having
-  met the minimum number of required approvals.  The result will be reported
-  back as a comment in the PR, by the bors bot.
-* `bors ping` - Confirm bot is functioning, it will post a comment in the PR if so.
-
-
-### Interaction/Monitoring
-
-Bors-ng relies on the regular branch-testing occurring when it updates the
-special branches ('trying' or 'staging').  Therefore you may use the full
-capabilities available within the CI system.  ***Note:*** A single bors-ng
-run may include multiple PRs at once.
-
-The easiest way to access a running 'bors try' or 'bors r+' run, is by clicking the
-yellow-circle "status" icon that shows up in an affected PR, for example:
-
-![Screenshot of Github PR](contrib/cirrus/bors-ng.png)
-
-This will cause a pop-up window to appear with the relevant test-statuses and 'details'
-links available.  Since bors-ng will wait for success, as long as one test is still
-running, it's possible to manually re-run any failed tests (e.g. due to flakes).
-
-
-### Configuration of bors-ng:
-
-* The `bors.toml` file in the repository root.  This controls
-  runtime options for timeouts, blocking labels, and required status names.
-* The [settings page](https://app.bors.tech/repositories/22803/settings).
-  This contains mostly security-related and branch-control options.
-
 
 ## Communications
 

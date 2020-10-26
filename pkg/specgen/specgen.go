@@ -214,6 +214,9 @@ type ContainerStorageConfig struct {
 	// Overlay volumes are named volumes that will be added to the container.
 	// Optional.
 	OverlayVolumes []*OverlayVolume `json:"overlay_volumes,omitempty"`
+	// Image volumes bind-mount a container-image mount into the container.
+	// Optional.
+	ImageVolumes []*ImageVolume `json:"image_volumes,omitempty"`
 	// Devices are devices that will be added to the container.
 	// Optional.
 	Devices []spec.LinuxDevice `json:"devices,omitempty"`
@@ -474,6 +477,19 @@ type OverlayVolume struct {
 	Destination string `json:"destination"`
 	// Source specifies the source path of the mount.
 	Source string `json:"source,omitempty"`
+}
+
+// ImageVolume is a volume based on a container image.  The container image is
+// first mounted on the host and is then bind-mounted into the container.  An
+// ImageVolume is always mounted read only.
+type ImageVolume struct {
+	// Source is the source of the image volume.  The image can be referred
+	// to by name and by ID.
+	Source string
+	// Destination is the absolute path of the mount in the container.
+	Destination string
+	// ReadWrite sets the volume writable.
+	ReadWrite bool
 }
 
 // PortMapping is one or more ports that will be mapped into the container.

@@ -37,43 +37,43 @@ var (
 // Does not handle image volumes, init, and --volumes-from flags.
 // Can also add tmpfs mounts from read-only tmpfs.
 // TODO: handle options parsing/processing via containers/storage/pkg/mount
-func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bool) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, error) {
+func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bool) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
 	// Get mounts from the --mounts flag.
-	unifiedMounts, unifiedVolumes, err := getMounts(mountFlag)
+	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := getMounts(mountFlag)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// Next --volumes flag.
 	volumeMounts, volumeVolumes, overlayVolumes, err := getVolumeMounts(volumeFlag)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// Next --tmpfs flag.
 	tmpfsMounts, err := getTmpfsMounts(tmpfsFlag)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// Unify mounts from --mount, --volume, --tmpfs.
 	// Start with --volume.
 	for dest, mount := range volumeMounts {
 		if _, ok := unifiedMounts[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
+			return nil, nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
 		}
 		unifiedMounts[dest] = mount
 	}
 	for dest, volume := range volumeVolumes {
 		if _, ok := unifiedVolumes[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
+			return nil, nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
 		}
 		unifiedVolumes[dest] = volume
 	}
 	// Now --tmpfs
 	for dest, tmpfs := range tmpfsMounts {
 		if _, ok := unifiedMounts[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
+			return nil, nil, nil, nil, errors.Wrapf(errDuplicateDest, dest)
 		}
 		unifiedMounts[dest] = tmpfs
 	}
@@ -98,29 +98,34 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 		}
 	}
 
-	// Check for conflicts between named volumes, overlay volumes, and mounts
-	for dest := range unifiedMounts {
-		if _, ok := unifiedVolumes[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+	// Check for conflicts between named volumes, overlay & image volumes,
+	// and mounts
+	allMounts := make(map[string]bool)
+	testAndSet := func(dest string) error {
+		if _, ok := allMounts[dest]; ok {
+			return errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
 		}
-		if _, ok := overlayVolumes[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		allMounts[dest] = true
+		return nil
+	}
+	for dest := range unifiedMounts {
+		if err := testAndSet(dest); err != nil {
+			return nil, nil, nil, nil, err
 		}
 	}
 	for dest := range unifiedVolumes {
-		if _, ok := unifiedMounts[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
-		}
-		if _, ok := overlayVolumes[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		if err := testAndSet(dest); err != nil {
+			return nil, nil, nil, nil, err
 		}
 	}
 	for dest := range overlayVolumes {
-		if _, ok := unifiedMounts[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		if err := testAndSet(dest); err != nil {
+			return nil, nil, nil, nil, err
 		}
-		if _, ok := unifiedVolumes[dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+	}
+	for dest := range unifiedImageVolumes {
+		if err := testAndSet(dest); err != nil {
+			return nil, nil, nil, nil, err
 		}
 	}
 
@@ -130,7 +135,7 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 		if mount.Type == TypeBind {
 			absSrc, err := filepath.Abs(mount.Source)
 			if err != nil {
-				return nil, nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
+				return nil, nil, nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
 			}
 			mount.Source = absSrc
 		}
@@ -144,8 +149,12 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 	for _, volume := range overlayVolumes {
 		finalOverlayVolume = append(finalOverlayVolume, volume)
 	}
+	finalImageVolumes := make([]*specgen.ImageVolume, 0, len(unifiedImageVolumes))
+	for _, volume := range unifiedImageVolumes {
+		finalImageVolumes = append(finalImageVolumes, volume)
+	}
 
-	return finalMounts, finalVolumes, finalOverlayVolume, nil
+	return finalMounts, finalVolumes, finalOverlayVolume, finalImageVolumes, nil
 }
 
 // findMountType parses the input and extracts the type of the mount type and
@@ -174,59 +183,69 @@ func findMountType(input string) (mountType string, tokens []string, err error) 
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // podman run --mount type=tmpfs,target=/dev/shm ...
 // podman run --mount type=volume,source=test-volume, ...
-func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, error) {
+func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.ImageVolume, error) {
 	finalMounts := make(map[string]spec.Mount)
 	finalNamedVolumes := make(map[string]*specgen.NamedVolume)
+	finalImageVolumes := make(map[string]*specgen.ImageVolume)
 
 	for _, mount := range mountFlag {
 		// TODO: Docker defaults to "volume" if no mount type is specified.
 		mountType, tokens, err := findMountType(mount)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		switch mountType {
 		case TypeBind:
 			mount, err := getBindMount(tokens)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
+				return nil, nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
 			}
 			finalMounts[mount.Destination] = mount
 		case TypeTmpfs:
 			mount, err := getTmpfsMount(tokens)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
+				return nil, nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
 			}
 			finalMounts[mount.Destination] = mount
 		case TypeDevpts:
 			mount, err := getDevptsMount(tokens)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
+				return nil, nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
 			}
 			finalMounts[mount.Destination] = mount
+		case "image":
+			volume, err := getImageVolume(tokens)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			if _, ok := finalImageVolumes[volume.Destination]; ok {
+				return nil, nil, nil, errors.Wrapf(errDuplicateDest, volume.Destination)
+			}
+			finalImageVolumes[volume.Destination] = volume
 		case "volume":
 			volume, err := getNamedVolume(tokens)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			if _, ok := finalNamedVolumes[volume.Dest]; ok {
-				return nil, nil, errors.Wrapf(errDuplicateDest, volume.Dest)
+				return nil, nil, nil, errors.Wrapf(errDuplicateDest, volume.Dest)
 			}
 			finalNamedVolumes[volume.Dest] = volume
 		default:
-			return nil, nil, errors.Errorf("invalid filesystem type %q", mountType)
+			return nil, nil, nil, errors.Errorf("invalid filesystem type %q", mountType)
 		}
 	}
 
-	return finalMounts, finalNamedVolumes, nil
+	return finalMounts, finalNamedVolumes, finalImageVolumes, nil
 }
 
 // Parse a single bind mount entry from the --mount flag.
@@ -526,6 +545,50 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 	}
 	if !setDest {
 		return nil, noDestError
+	}
+
+	return newVolume, nil
+}
+
+// Parse the arguments into an image volume. An image volume is a volume based
+// on a container image.  The container image is first mounted on the host and
+// is then bind-mounted into the container.  An ImageVolume is always mounted
+// read only.
+func getImageVolume(args []string) (*specgen.ImageVolume, error) {
+	newVolume := new(specgen.ImageVolume)
+
+	for _, val := range args {
+		kv := strings.SplitN(val, "=", 2)
+		switch kv[0] {
+		case "src", "source":
+			if len(kv) == 1 {
+				return nil, errors.Wrapf(optionArgError, kv[0])
+			}
+			newVolume.Source = kv[1]
+		case "target", "dst", "destination":
+			if len(kv) == 1 {
+				return nil, errors.Wrapf(optionArgError, kv[0])
+			}
+			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
+				return nil, err
+			}
+			newVolume.Destination = filepath.Clean(kv[1])
+		case "rw", "readwrite":
+			switch kv[1] {
+			case "true":
+				newVolume.ReadWrite = true
+			case "false":
+				// Nothing to do. RO is default.
+			default:
+				return nil, errors.Wrapf(util.ErrBadMntOption, "invalid rw value %q", kv[1])
+			}
+		default:
+			return nil, errors.Wrapf(util.ErrBadMntOption, kv[0])
+		}
+	}
+
+	if len(newVolume.Source)*len(newVolume.Destination) == 0 {
+		return nil, errors.Errorf("must set source and destination for image volume")
 	}
 
 	return newVolume, nil

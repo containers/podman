@@ -1,4 +1,4 @@
-// +build linux
+// +build linux,!mips,!mipsle,!mips64,!mips64le
 
 package util
 

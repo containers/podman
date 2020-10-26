@@ -620,7 +620,7 @@ func (i *containerImageRef) Transport() types.ImageTransport {
 func (i *containerImageSource) Close() error {
 	err := os.RemoveAll(i.path)
 	if err != nil {
-		return errors.Wrapf(err, "error removing layer blob directory %q", i.path)
+		return errors.Wrapf(err, "error removing layer blob directory")
 	}
 	return nil
 }

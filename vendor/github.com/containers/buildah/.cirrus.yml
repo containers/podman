@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "release-1.16"
+    DEST_BRANCH: "master"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -64,9 +64,6 @@ gce_instance:
 # Update metadata on VM images referenced by this repository state
 'cirrus-ci/only_prs/meta_task':
 
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
-
     container:
         image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
         cpu: 1
@@ -93,8 +90,9 @@ gce_instance:
     gce_instance:
         memory: "12Gb"
 
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
+    # N/B: Skip running this on branches due to multiple bugs in
+    # the git-validate tool which are difficult to debug and fix.
+    skip: $CIRRUS_PR == ''
 
     timeout_in: 10m
 
@@ -107,12 +105,6 @@ gce_instance:
 
 
 'cirrus-ci/only_prs/unit_task':
-
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
-
-    # not supported by bors-ng
-    # allow_failures: $CI == $CI
 
     timeout_in: 45m
 
@@ -128,12 +120,6 @@ gce_instance:
     gce_instance:  # Only need to specify differences from defaults (above)
         image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
-
-    # don't fail the PR when we fail until #2480 is merged
-    allow_failures: true
-
     timeout_in: 20m
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
@@ -145,9 +131,6 @@ gce_instance:
 # that the vendor.conf, the code and the vendored packages in ./vendor are
 # in sync at all times.
 'cirrus-ci/only_prs/vendor_task':
-
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     env:
         CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/buildah"
@@ -169,16 +152,13 @@ gce_instance:
 
 'cirrus-ci/only_prs/cross_task':
 
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
-
     depends_on:
         - 'cirrus-ci/only_prs/gate'
         - 'cirrus-ci/only_prs/vendor'
 
     env:
         matrix:
-            CROSS_TARGET: bin/buildah.darwin
+            CROSS_TARGET: cross
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
@@ -188,9 +168,6 @@ gce_instance:
 
 
 'cirrus-ci/required/testing_task':
-
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     depends_on:
         - 'cirrus-ci/only_prs/gate'
@@ -223,9 +200,6 @@ gce_instance:
 
 'cirrus-ci/required/in_podman_task':
 
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
-
     depends_on:
         - 'cirrus-ci/only_prs/gate'
         - 'cirrus-ci/only_prs/vendor'
@@ -253,9 +227,6 @@ gce_instance:
 #       can be fixed, use a single "test" to represent pass/fail status of all
 #       required checks.
 'cirrus-ci/success_task':
-
-    # see bors.toml
-    skip: $CIRRUS_BRANCH =~ ".*\.tmp"
 
     depends_on:
         - "cirrus-ci/required/testing"
@@ -301,8 +272,10 @@ gce_instance:
         mv .cache /nix
         if [[ -z $(ls -A /nix) ]]; then podman run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
         podman run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
-        mv /nix .cache
-        chown -Rf $(whoami) .cache
 
     binaries_artifacts:
         path: "result/bin/buildah"
+
+    save_cache_script: |
+        mv /nix .cache
+        chown -Rf $(whoami) .cache

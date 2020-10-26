@@ -39,6 +39,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -364,6 +365,35 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		overlayMount, err := overlay.Mount(contentDir, overlayVol.Source, overlayVol.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		if err != nil {
 			return nil, errors.Wrapf(err, "creating overlay failed %q", overlayVol.Source)
+		}
+		g.AddMount(overlayMount)
+	}
+
+	// Add image volumes as overlay mounts
+	for _, volume := range c.config.ImageVolumes {
+		// Mount the specified image.
+		img, err := c.runtime.ImageRuntime().NewFromLocal(volume.Source)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error creating image volume %q:%q", volume.Source, volume.Dest)
+		}
+		mountPoint, err := img.Mount(nil, "")
+		if err != nil {
+			return nil, errors.Wrapf(err, "error mounting image volume %q:%q", volume.Source, volume.Dest)
+		}
+
+		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create TempDir in the %s directory", c.config.StaticDir)
+		}
+
+		var overlayMount specs.Mount
+		if volume.ReadWrite {
+			overlayMount, err = overlay.Mount(contentDir, mountPoint, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+		} else {
+			overlayMount, err = overlay.MountReadOnly(contentDir, mountPoint, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "creating overlay mount for image %q failed", volume.Source)
 		}
 		g.AddMount(overlayMount)
 	}

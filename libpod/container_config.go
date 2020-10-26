@@ -134,6 +134,8 @@ type ContainerRootFSConfig struct {
 	NamedVolumes []*ContainerNamedVolume `json:"namedVolumes,omitempty"`
 	// OverlayVolumes lists the overlay volumes to mount into the container.
 	OverlayVolumes []*ContainerOverlayVolume `json:"overlayVolumes,omitempty"`
+	// ImageVolumes lists the image volumes to mount into the container.
+	ImageVolumes []*ContainerImageVolume `json:"imageVolumes,omitempty"`
 	// CreateWorkingDir indicates that Libpod should create the container's
 	// working directory if it does not exist. Some OCI runtimes do this by
 	// default, but others do not.
