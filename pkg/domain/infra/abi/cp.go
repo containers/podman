@@ -26,7 +26,7 @@ import (
 )
 
 func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string, options entities.ContainerCpOptions) (*entities.ContainerCpReport, error) {
-	var extract bool
+	extract := options.Extract
 
 	srcCtr, srcPath := parsePath(ic.Libpod, source)
 	destCtr, destPath := parsePath(ic.Libpod, dest)
