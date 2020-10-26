@@ -5,6 +5,7 @@ import (
 
 	libpodImage "github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 )
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
@@ -43,12 +44,21 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 			VirtualSize:  img.VirtualSize,
 			RepoTags:     img.Names(), // may include tags and digests
 		}
-		e.Labels, _ = img.Labels(context.TODO())
+		e.Labels, err = img.Labels(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving label for image %q: you may need to remove the image to resolve the error", img.ID())
+		}
 
-		ctnrs, _ := img.Containers()
+		ctnrs, err := img.Containers()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving containers for image %q: you may need to remove the image to resolve the error", img.ID())
+		}
 		e.Containers = len(ctnrs)
 
-		sz, _ := img.Size(context.TODO())
+		sz, err := img.Size(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving size of image %q: you may need to remove the image to resolve the error", img.ID())
+		}
 		e.Size = int64(*sz)
 
 		summaries = append(summaries, &e)
