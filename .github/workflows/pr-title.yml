@@ -1,0 +1,16 @@
+# Upstream: github.com/tzkhan/pr-update-action
+
+name: "PR title check"
+
+on: pull_request_target
+
+jobs:
+  update_pr:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: tzkhan/pr-update-action@v2
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        base-branch-regex: '^(?!master).*$'
+        title-template: '[%basebranch%]'
+        title-prefix-space: true
