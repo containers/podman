@@ -3,6 +3,8 @@
 name: "PR title check"
 
 on: pull_request_target
+  branches:
+    - "!master"  # don't run it on master to prevent errors
 
 jobs:
   update_pr:
