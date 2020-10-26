@@ -98,6 +98,13 @@ type State interface {
 	// returned.
 	AllContainers() ([]*Container, error)
 
+	// Get network aliases for the given container in the given network.
+	GetNetworkAliases(ctr *Container, network string) ([]string, error)
+	// Set network aliases for the given container in the given network.
+	SetNetworkAliases(ctr *Container, network string, aliases []string) error
+	// Remove network aliases for the given container in the given network.
+	RemoveNetworkAliases(ctr *Container, network string) error
+
 	// Return a container config from the database by full ID
 	GetContainerConfig(id string) (*ContainerConfig, error)
 

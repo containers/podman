@@ -1487,6 +1487,20 @@ func WithCreateWorkingDir() CtrCreateOption {
 	}
 }
 
+// WithNetworkAliases sets network aliases for the container.
+// Accepts a map of network name to aliases.
+func WithNetworkAliases(aliases map[string][]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.NetworkAliases = aliases
+
+		return nil
+	}
+}
+
 // Volume Creation Options
 
 // WithVolumeName sets the name of the volume.

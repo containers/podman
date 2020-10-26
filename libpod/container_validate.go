@@ -107,5 +107,16 @@ func (c *Container) validate() error {
 		destinations[vol.Dest] = true
 	}
 
+	// Check that networks and network aliases match up.
+	ctrNets := make(map[string]bool)
+	for _, net := range c.config.Networks {
+		ctrNets[net] = true
+	}
+	for net := range c.config.NetworkAliases {
+		if _, ok := ctrNets[net]; !ok {
+			return errors.Wrapf(define.ErrNoSuchNetwork, "container tried to set network aliases for network %s but is not connected to the network", net)
+		}
+	}
+
 	return nil
 }

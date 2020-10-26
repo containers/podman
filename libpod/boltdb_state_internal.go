@@ -25,6 +25,7 @@ const (
 	volName           = "vol"
 	allVolsName       = "allVolumes"
 	execName          = "exec"
+	aliasesName       = "aliases"
 	runtimeConfigName = "runtime-config"
 
 	configName         = "config"
@@ -35,6 +36,7 @@ const (
 	containersName     = "containers"
 	podIDName          = "pod-id"
 	namespaceName      = "namespace"
+	networksName       = "networks"
 
 	staticDirName   = "static-dir"
 	tmpDirName      = "tmp-dir"
@@ -46,26 +48,28 @@ const (
 )
 
 var (
-	idRegistryBkt    = []byte(idRegistryName)
-	nameRegistryBkt  = []byte(nameRegistryName)
-	nsRegistryBkt    = []byte(nsRegistryName)
-	ctrBkt           = []byte(ctrName)
-	allCtrsBkt       = []byte(allCtrsName)
-	podBkt           = []byte(podName)
-	allPodsBkt       = []byte(allPodsName)
-	volBkt           = []byte(volName)
-	allVolsBkt       = []byte(allVolsName)
-	execBkt          = []byte(execName)
-	runtimeConfigBkt = []byte(runtimeConfigName)
-
-	configKey          = []byte(configName)
-	stateKey           = []byte(stateName)
+	idRegistryBkt      = []byte(idRegistryName)
+	nameRegistryBkt    = []byte(nameRegistryName)
+	nsRegistryBkt      = []byte(nsRegistryName)
+	ctrBkt             = []byte(ctrName)
+	allCtrsBkt         = []byte(allCtrsName)
+	podBkt             = []byte(podName)
+	allPodsBkt         = []byte(allPodsName)
+	volBkt             = []byte(volName)
+	allVolsBkt         = []byte(allVolsName)
+	execBkt            = []byte(execName)
+	aliasesBkt         = []byte(aliasesName)
+	runtimeConfigBkt   = []byte(runtimeConfigName)
 	dependenciesBkt    = []byte(dependenciesName)
 	volDependenciesBkt = []byte(volCtrDependencies)
-	netNSKey           = []byte(netNSName)
-	containersBkt      = []byte(containersName)
-	podIDKey           = []byte(podIDName)
-	namespaceKey       = []byte(namespaceName)
+	networksBkt        = []byte(networksName)
+
+	configKey     = []byte(configName)
+	stateKey      = []byte(stateName)
+	netNSKey      = []byte(netNSName)
+	containersBkt = []byte(containersName)
+	podIDKey      = []byte(podIDName)
+	namespaceKey  = []byte(namespaceName)
 
 	staticDirKey   = []byte(staticDirName)
 	tmpDirKey      = []byte(tmpDirName)
@@ -349,6 +353,14 @@ func getExecBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	return bkt, nil
 }
 
+func getAliasesBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(aliasesBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "aliases bucket not found in DB")
+	}
+	return bkt, nil
+}
+
 func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(runtimeConfigBkt)
 	if bkt == nil {
@@ -571,6 +583,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			return err
 		}
 
+		allAliasesBkt, err := getAliasesBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// If a pod was given, check if it exists
 		var podDB *bolt.Bucket
 		var podCtrs *bolt.Bucket
@@ -617,6 +634,37 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			return errors.Wrapf(err, "name \"%s\" is in use", ctr.Name())
 		}
 
+		// If we have network aliases, check if they are already in use.
+		for net, aliases := range ctr.config.NetworkAliases {
+			// Aliases cannot conflict with container names.
+			for _, alias := range aliases {
+				aliasExist := namesBucket.Get([]byte(alias))
+				if aliasExist != nil {
+					return errors.Wrapf(define.ErrCtrExists, "alias %q conflicts with existing container/pod name", alias)
+				}
+			}
+
+			netAliasesBkt := allAliasesBkt.Bucket([]byte(net))
+			if netAliasesBkt != nil {
+				for _, alias := range aliases {
+					aliasExist := netAliasesBkt.Get([]byte(alias))
+					if aliasExist != nil {
+						return errors.Wrapf(define.ErrAliasExists, "network alias %q already exists for network %q", net, alias)
+					}
+				}
+			}
+			hasNet := false
+			for _, testNet := range ctr.config.Networks {
+				if testNet == net {
+					hasNet = true
+					break
+				}
+			}
+			if !hasNet {
+				return errors.Wrapf(define.ErrInvalidArg, "container %s has network aliases for network %q but is not part of that network", ctr.ID(), net)
+			}
+		}
+
 		// No overlapping containers
 		// Add the new container to the DB
 		if err := idsBucket.Put(ctrID, ctrName); err != nil {
@@ -632,6 +680,24 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 		if err := allCtrsBucket.Put(ctrID, ctrName); err != nil {
 			return errors.Wrapf(err, "error adding container %s to all containers bucket in DB", ctr.ID())
+		}
+
+		for net, aliases := range ctr.config.NetworkAliases {
+			netAliasesBkt, err := allAliasesBkt.CreateBucketIfNotExists([]byte(net))
+			if err != nil {
+				return errors.Wrapf(err, "error creating network aliases bucket for network %q", net)
+			}
+			for _, alias := range aliases {
+				if err := netAliasesBkt.Put([]byte(alias), ctrID); err != nil {
+					return errors.Wrapf(err, "error adding container %s network aliasa %q to network %q", ctr.ID(), alias, net)
+				}
+			}
+			// If the container's name is present in the aliases - remove it.
+			if namePresent := netAliasesBkt.Get(ctrName); namePresent != nil {
+				if err := netAliasesBkt.Delete(ctrName); err != nil {
+					return errors.Wrapf(err, "error cleaning container name %q from network %q aliases", ctr.Name(), net)
+				}
+			}
 		}
 
 		newCtrBkt, err := ctrBucket.CreateBucket(ctrID)
@@ -660,6 +726,35 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 				return errors.Wrapf(err, "error adding container %s netns path to DB", ctr.ID())
 			}
 		}
+		if ctr.config.Networks != nil {
+			ctrNetworksBkt, err := newCtrBkt.CreateBucket(networksBkt)
+			if err != nil {
+				return errors.Wrapf(err, "error creating networks bucket for container %s", ctr.ID())
+			}
+			for _, network := range ctr.config.Networks {
+				if err := ctrNetworksBkt.Put([]byte(network), ctrID); err != nil {
+					return errors.Wrapf(err, "error adding network %q to networks bucket for container %s", network, ctr.ID())
+				}
+			}
+		}
+		if ctr.config.NetworkAliases != nil {
+			ctrAliasesBkt, err := newCtrBkt.CreateBucket(aliasesBkt)
+			if err != nil {
+				return errors.Wrapf(err, "error creating network aliases bucket for container %s", ctr.ID())
+			}
+			for net, aliases := range ctr.config.NetworkAliases {
+				netAliasesBkt, err := ctrAliasesBkt.CreateBucket([]byte(net))
+				if err != nil {
+					return errors.Wrapf(err, "error creating network aliases bucket for network %q in container %s", net, ctr.ID())
+				}
+				for _, alias := range aliases {
+					if err := netAliasesBkt.Put([]byte(alias), ctrID); err != nil {
+						return errors.Wrapf(err, "error creating network alias %q in network %q for container %s", alias, net, ctr.ID())
+					}
+				}
+			}
+		}
+
 		if _, err := newCtrBkt.CreateBucket(dependenciesBkt); err != nil {
 			return errors.Wrapf(err, "error creating dependencies bucket for container %s", ctr.ID())
 		}
@@ -854,6 +949,49 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 	}
 	if len(deps) != 0 {
 		return errors.Wrapf(define.ErrCtrExists, "container %s is a dependency of the following containers: %s", ctr.ID(), strings.Join(deps, ", "))
+	}
+
+	// Does the container have any network aliases?
+	ctrNetAliasesBkt := ctrExists.Bucket(aliasesBkt)
+	if ctrNetAliasesBkt != nil {
+		allAliasesBkt, err := getAliasesBucket(tx)
+		if err != nil {
+			return err
+		}
+		ctrNetworksBkt := ctrExists.Bucket(networksBkt)
+		// Internal state mismatch if this doesn't exist - we'll just
+		// assume there are no aliases in that case.
+		if ctrNetworksBkt != nil {
+			// This is a little gross. Iterate through all networks
+			// the container is joined to. Check if we have aliases
+			// for them. If we do have such aliases, remove all of
+			// then from the global aliases table for that network.
+			err = ctrNetworksBkt.ForEach(func(network, v []byte) error {
+				netAliasesBkt := ctrNetAliasesBkt.Bucket(network)
+				if netAliasesBkt == nil {
+					return nil
+				}
+				netAllAliasesBkt := allAliasesBkt.Bucket(network)
+				if netAllAliasesBkt == nil {
+					// Again the state is inconsistent here,
+					// but the best we can do is try and
+					// recover by ignoring it.
+					return nil
+				}
+				return netAliasesBkt.ForEach(func(alias, v []byte) error {
+					// We don't want to hard-fail on a
+					// missing alias, so continue if we hit
+					// errors.
+					if err := netAllAliasesBkt.Delete(alias); err != nil {
+						logrus.Errorf("Error removing alias %q from network %q when removing container %s", string(alias), string(network), ctr.ID())
+					}
+					return nil
+				})
+			})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := ctrBucket.DeleteBucket(ctrID); err != nil {

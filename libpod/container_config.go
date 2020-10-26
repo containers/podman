@@ -239,6 +239,15 @@ type ContainerNetworkConfig struct {
 	NetMode namespaces.NetworkMode `json:"networkMode,omitempty"`
 	// NetworkOptions are additional options for each network
 	NetworkOptions map[string][]string `json:"network_options,omitempty"`
+	// NetworkAliases are aliases that will be added to each network.
+	// These are additional names that this container can be accessed as via
+	// DNS when the CNI dnsname plugin is in use.
+	// Please note that these can be altered at runtime. As such, the actual
+	// list is stored in the database and should be retrieved from there;
+	// this is only the set of aliases the container was *created with*.
+	// Formatted as map of network name to aliases. All network names must
+	// be present in the Networks list above.
+	NetworkAliases map[string][]string `json:"network_alises,omitempty"`
 }
 
 // ContainerImageConfig is an embedded sub-config providing image configuration
