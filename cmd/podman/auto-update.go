@@ -18,7 +18,7 @@ var (
   Auto-update policies are specified with the "io.containers.autoupdate" label.
   Containers are expected to run in systemd units created with "podman-generate-systemd --new",
   or similar units that create new containers in order to run the updated images.
-  Note that this command is experimental. Please refer to the podman-auto-update(1) man page for details.`
+  Please refer to the podman-auto-update(1) man page for details.`
 	autoUpdateCommand = &cobra.Command{
 		Use:   "auto-update [options]",
 		Short: "Auto update containers according to their auto-update policy",
