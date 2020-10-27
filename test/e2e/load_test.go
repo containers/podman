@@ -166,7 +166,7 @@ var _ = Describe("Podman load", func() {
 			Skip("skip on ppc64le")
 		}
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
-		alpVersion := "docker.io/library/alpine:3.2"
+		alpVersion := "quay.io/libpod/alpine:3.2"
 
 		pull := podmanTest.PodmanNoCache([]string{"pull", alpVersion})
 		pull.WaitWithDefaultTimeout()

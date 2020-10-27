@@ -43,7 +43,7 @@ t POST "images/create?fromImage=alpine" '' 200
 
 t POST "images/create?fromImage=alpine&tag=latest" '' 200
 
-t POST "images/create?fromImage=docker.io/library/alpine&tag=sha256:acd3ca9941a85e8ed16515bfc5328e4e2f8c128caa72959a58a127b7801ee01f" '' 200
+t POST "images/create?fromImage=quay.io/libpod/alpine&tag=sha256:fa93b01658e3a5a1686dc3ae55f170d8de487006fb53a28efcd12ab0710a2e5f" '' 200
 
 # Display the image history
 t GET libpod/images/nonesuch/history 404

@@ -191,14 +191,14 @@ var _ = Describe("Podman rmi", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 		RUN mkdir hello
 		RUN touch test.txt
 		ENV foo=bar
 		`
 		podmanTest.BuildImage(dockerfile, "test", "true")
 
-		dockerfile = `FROM docker.io/library/alpine:latest
+		dockerfile = `FROM quay.io/libpod/alpine:latest
 		RUN mkdir hello
 		RUN touch test.txt
 		RUN mkdir blah
@@ -256,7 +256,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi -a with parent|child images", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest AS base
+		dockerfile := `FROM quay.io/libpod/alpine:latest AS base
 RUN touch /1
 ENV LOCAL=/1
 RUN find $LOCAL

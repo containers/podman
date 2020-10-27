@@ -226,7 +226,7 @@ var _ = Describe("Podman build", func() {
 			podmanTest.StartRemoteService()
 		}
 		podmanTest.RestoreAllArtifacts()
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 RUN printenv http_proxy`
 
 		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")

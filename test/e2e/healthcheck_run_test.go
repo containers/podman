@@ -81,7 +81,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck that should fail", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "docker.io/libpod/badhealthcheck:latest"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "quay.io/libpod/badhealthcheck:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

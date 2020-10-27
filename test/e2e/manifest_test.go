@@ -55,7 +55,7 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.PodmanNoCache([]string{"manifest", "inspect", "docker.io/library/busybox"})
+		session = podmanTest.PodmanNoCache([]string{"manifest", "inspect", "quay.io/libpod/busybox"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})

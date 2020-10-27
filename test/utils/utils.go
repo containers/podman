@@ -302,12 +302,7 @@ func (s *PodmanSession) LineInOutputContains(term string) bool {
 // by podman-images(1).
 func (s *PodmanSession) LineInOutputContainsTag(repo, tag string) bool {
 	tagMap := tagOutputToMap(s.OutputToStringArray())
-	for r, t := range tagMap {
-		if repo == r && tag == t {
-			return true
-		}
-	}
-	return false
+	return tagMap[repo][tag]
 }
 
 // IsJSONOutputValid attempts to unmarshal the session buffer
@@ -366,10 +361,11 @@ func StringInSlice(s string, sl []string) bool {
 }
 
 // tagOutPutToMap parses each string in imagesOutput and returns
-// a map of repo:tag pairs.  Notice, the first array item will
+// a map whose key is a repo, and value is another map whose keys
+// are the tags found for that repo. Notice, the first array item will
 // be skipped as it's considered to be the header.
-func tagOutputToMap(imagesOutput []string) map[string]string {
-	m := make(map[string]string)
+func tagOutputToMap(imagesOutput []string) map[string]map[string]bool {
+	m := make(map[string]map[string]bool)
 	// iterate over output but skip the header
 	for _, i := range imagesOutput[1:] {
 		tmp := []string{}
@@ -383,7 +379,10 @@ func tagOutputToMap(imagesOutput []string) map[string]string {
 		if len(tmp) < 2 {
 			continue
 		}
-		m[tmp[0]] = tmp[1]
+		if m[tmp[0]] == nil {
+			m[tmp[0]] = map[string]bool{}
+		}
+		m[tmp[0]][tmp[1]] = true
 	}
 	return m
 }

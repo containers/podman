@@ -35,7 +35,7 @@ var _ = Describe("Podman image tree", func() {
 
 	It("podman image tree", func() {
 		SkipIfRemote("Does not work on remote client")
-		dockerfile := `FROM docker.io/library/busybox:latest
+		dockerfile := `FROM quay.io/libpod/busybox:latest
 RUN mkdir hello
 RUN touch test.txt
 ENV foo=bar
@@ -45,14 +45,14 @@ ENV foo=bar
 		session := podmanTest.PodmanNoCache([]string{"image", "tree", "test:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.PodmanNoCache([]string{"image", "tree", "--whatrequires", "docker.io/library/busybox:latest"})
+		session = podmanTest.PodmanNoCache([]string{"image", "tree", "--whatrequires", "quay.io/libpod/busybox:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.PodmanNoCache([]string{"rmi", "test:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.PodmanNoCache([]string{"rmi", "docker.io/library/busybox:latest"})
+		session = podmanTest.PodmanNoCache([]string{"rmi", "quay.io/libpod/busybox:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})

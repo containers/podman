@@ -41,21 +41,21 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from docker with tag", func() {
-		session := podmanTest.PodmanNoCache([]string{"pull", "busybox:glibc"})
+		session := podmanTest.PodmanNoCache([]string{"pull", "quay.io/libpod/testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.PodmanNoCache([]string{"rmi", "busybox:glibc"})
+		session = podmanTest.PodmanNoCache([]string{"rmi", "testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman pull from docker without tag", func() {
-		session := podmanTest.PodmanNoCache([]string{"pull", "busybox"})
+		session := podmanTest.PodmanNoCache([]string{"pull", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.PodmanNoCache([]string{"rmi", "busybox"})
+		session = podmanTest.PodmanNoCache([]string{"rmi", "testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -81,11 +81,11 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull by digest", func() {
-		session := podmanTest.PodmanNoCache([]string{"pull", "alpine@sha256:1072e499f3f655a032e88542330cf75b02e7bdf673278f701d7ba61629ee3ebe"})
+		session := podmanTest.PodmanNoCache([]string{"pull", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.PodmanNoCache([]string{"rmi", "alpine:none"})
+		session = podmanTest.PodmanNoCache([]string{"rmi", "testdigest_v2s2:none"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})

@@ -33,7 +33,7 @@ var _ = Describe("Podman run entrypoint", func() {
 	})
 
 	It("podman run no command, entrypoint, or cmd", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 ENTRYPOINT []
 CMD []
 `
@@ -44,7 +44,7 @@ CMD []
 	})
 
 	It("podman run entrypoint", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
@@ -55,7 +55,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run entrypoint with cmd", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 CMD [ "-v"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
@@ -67,7 +67,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run entrypoint with user cmd overrides image cmd", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 CMD [ "-v"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
@@ -79,7 +79,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run entrypoint with user cmd no image cmd", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
@@ -91,7 +91,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 
 	It("podman run user entrypoint overrides image entrypoint and image cmd", func() {
 		SkipIfRemote("FIXME: podman-remote not handling passing --entrypoint=\"\" flag correctly")
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 CMD ["-i"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
@@ -108,7 +108,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 	})
 
 	It("podman run user entrypoint with command overrides image entrypoint and image cmd", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 CMD ["-i"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `

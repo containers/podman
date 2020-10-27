@@ -4,7 +4,7 @@
 #
 
 # WORKDIR=/data
-ENV_WORKDIR_IMG=docker.io/library/redis:alpine
+ENV_WORKDIR_IMG=quay.io/libpod/testimage:20200929
 
 podman pull $IMAGE &>/dev/null
 podman pull $ENV_WORKDIR_IMG &>/dev/null

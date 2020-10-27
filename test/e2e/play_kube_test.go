@@ -1092,7 +1092,7 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube with pull always", func() {
-		oldBB := "docker.io/library/busybox:1.30.1"
+		oldBB := "quay.io/libpod/busybox:1.30.1"
 		pull := podmanTest.Podman([]string{"pull", oldBB})
 		pull.WaitWithDefaultTimeout()
 
@@ -1123,7 +1123,7 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube with latest image should always pull", func() {
-		oldBB := "docker.io/library/busybox:1.30.1"
+		oldBB := "quay.io/libpod/busybox:1.30.1"
 		pull := podmanTest.Podman([]string{"pull", oldBB})
 		pull.WaitWithDefaultTimeout()
 

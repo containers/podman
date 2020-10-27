@@ -382,7 +382,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod with --infra-image", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 entrypoint ["/fromimage"]
 `
 		podmanTest.BuildImage(dockerfile, "localhost/infra", "false")
@@ -409,7 +409,7 @@ entrypoint ["/fromimage"]
 	})
 
 	It("podman create pod with --infra-command --infra-image", func() {
-		dockerfile := `FROM docker.io/library/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:latest
 entrypoint ["/fromimage"]
 `
 		podmanTest.BuildImage(dockerfile, "localhost/infra", "false")

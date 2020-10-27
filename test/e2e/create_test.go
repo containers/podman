@@ -271,11 +271,11 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --pull", func() {
-		session := podmanTest.PodmanNoCache([]string{"create", "--pull", "never", "--name=foo", "debian"})
+		session := podmanTest.PodmanNoCache([]string{"create", "--pull", "never", "--name=foo", "testimage:00000000"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 
-		session = podmanTest.PodmanNoCache([]string{"create", "--pull", "always", "--name=foo", "debian"})
+		session = podmanTest.PodmanNoCache([]string{"create", "--pull", "always", "--name=foo", "testimage:00000000"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
