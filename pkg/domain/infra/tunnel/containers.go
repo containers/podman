@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/specgen"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -557,6 +558,11 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 	for _, w := range con.Warnings {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
+	}
+	if opts.CIDFile != "" {
+		if err := util.CreateCidFile(opts.CIDFile, con.ID); err != nil {
+			return nil, err
+		}
 	}
 
 	report := entities.ContainerRunReport{Id: con.ID}

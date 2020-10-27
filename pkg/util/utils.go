@@ -638,3 +638,18 @@ func ValidateSysctls(strSlice []string) (map[string]string, error) {
 func DefaultContainerConfig() *config.Config {
 	return containerConfig
 }
+
+func CreateCidFile(cidfile string, id string) error {
+	cidFile, err := OpenExclusiveFile(cidfile)
+	if err != nil {
+		if os.IsExist(err) {
+			return errors.Errorf("container id file exists. Ensure another container is not using it or delete %s", cidfile)
+		}
+		return errors.Errorf("error opening cidfile %s", cidfile)
+	}
+	if _, err = cidFile.WriteString(id); err != nil {
+		logrus.Error(err)
+	}
+	cidFile.Close()
+	return nil
+}

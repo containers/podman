@@ -29,6 +29,7 @@ import (
 	"github.com/containers/podman/v2/pkg/signal"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/specgen/generate"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -844,6 +845,12 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	ctr, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec)
 	if err != nil {
 		return nil, err
+	}
+
+	if opts.CIDFile != "" {
+		if err := util.CreateCidFile(opts.CIDFile, ctr.ID()); err != nil {
+			return nil, err
+		}
 	}
 
 	var joinPod bool

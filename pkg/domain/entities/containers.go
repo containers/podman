@@ -294,6 +294,7 @@ type ContainerListOptions struct {
 // ContainerRunOptions describes the options needed
 // to run a container from the CLI
 type ContainerRunOptions struct {
+	CIDFile      string
 	Detach       bool
 	DetachKeys   string
 	ErrorStream  *os.File
