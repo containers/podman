@@ -111,9 +111,10 @@ network namespaces can be found.
 
 **--cpu-period**=*limit*
 
-Limit the CPU CFS (Completely Fair Scheduler) period
-
-Limit the container's CPU usage. This flag tell the kernel to restrict the container's CPU usage to the period you specify.
+Set the CPU period for the Completely Fair Scheduler (CFS), which is a
+duration in microseconds. Once the container's CPU quota is used up, it will
+not be scheduled to run until the current period ends. Defaults to 100000
+microseconds.
 
 On some systems, changing the CPU limits may not be allowed for non-root
 users. For more details, see
@@ -121,11 +122,12 @@ https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-c
 
 **--cpu-quota**=*limit*
 
-Limit the CPU CFS (Completely Fair Scheduler) quota
+Limit the CPU Completely Fair Scheduler (CFS) quota.
 
 Limit the container's CPU usage. By default, containers run with the full
-CPU resource. This flag tell the kernel to restrict the container's CPU usage
-to the quota you specify.
+CPU resource. The limit is a number in microseconds. If you provide a number,
+the container will be allowed to use that much CPU time until the CPU period
+ends (controllable via **--cpu-period**).
 
 On some systems, changing the CPU limits may not be allowed for non-root
 users. For more details, see
