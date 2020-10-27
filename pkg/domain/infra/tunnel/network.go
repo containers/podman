@@ -5,22 +5,34 @@ import (
 
 	"github.com/containers/podman/v2/pkg/bindings/network"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
 	return network.List(ic.ClientCxt, options)
 }
 
-func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.NetworkInspectOptions) ([]entities.NetworkInspectReport, error) {
-	reports := make([]entities.NetworkInspectReport, 0, len(namesOrIds))
+func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]entities.NetworkInspectReport, []error, error) {
+	var (
+		reports = make([]entities.NetworkInspectReport, 0, len(namesOrIds))
+		errs    = []error{}
+	)
 	for _, name := range namesOrIds {
 		report, err := network.Inspect(ic.ClientCxt, name)
 		if err != nil {
-			return nil, err
+			errModel, ok := err.(entities.ErrorModel)
+			if !ok {
+				return nil, nil, err
+			}
+			if errModel.ResponseCode == 404 {
+				errs = append(errs, errors.Errorf("no such network %q", name))
+				continue
+			}
+			return nil, nil, err
 		}
 		reports = append(reports, report...)
 	}
-	return reports, nil
+	return reports, errs, nil
 }
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {

@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -19,12 +20,18 @@ import (
 )
 
 const (
-	// ImageType is the image type.
-	ImageType = "image"
-	// ContainerType is the container type.
-	ContainerType = "container"
 	// AllType can be of type ImageType or ContainerType.
 	AllType = "all"
+	// ContainerType is the container type.
+	ContainerType = "container"
+	// ImageType is the image type.
+	ImageType = "image"
+	//NetworkType is the network type
+	NetworkType = "network"
+	//PodType is the pod type.
+	PodType = "pod"
+	//VolumeType is the volume type
+	VolumeType = "volume"
 )
 
 // Pull in configured json library
@@ -58,15 +65,16 @@ type inspector struct {
 	containerEngine entities.ContainerEngine
 	imageEngine     entities.ImageEngine
 	options         entities.InspectOptions
+	podOptions      entities.PodInspectOptions
 }
 
 // newInspector creates a new inspector based on the specified options.
 func newInspector(options entities.InspectOptions) (*inspector, error) {
 	switch options.Type {
-	case ImageType, ContainerType, AllType:
+	case ImageType, ContainerType, AllType, PodType, NetworkType, VolumeType:
 		// Valid types.
 	default:
-		return nil, errors.Errorf("invalid type %q: must be %q, %q or %q", options.Type, ImageType, ContainerType, AllType)
+		return nil, errors.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", options.Type, ImageType, ContainerType, PodType, NetworkType, VolumeType, AllType)
 	}
 	if options.Type == ImageType {
 		if options.Latest {
@@ -76,10 +84,18 @@ func newInspector(options entities.InspectOptions) (*inspector, error) {
 			return nil, errors.Errorf("size is not supported for type %q", ImageType)
 		}
 	}
+	if options.Type == PodType && options.Size {
+		return nil, errors.Errorf("size is not supported for type %q", PodType)
+	}
+	podOpts := entities.PodInspectOptions{
+		Latest: options.Latest,
+		Format: options.Format,
+	}
 	return &inspector{
 		containerEngine: registry.ContainerEngine(),
 		imageEngine:     registry.ImageEngine(),
 		options:         options,
+		podOptions:      podOpts,
 	}, nil
 }
 
@@ -91,17 +107,19 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	ctx := context.Background()
 
 	if len(namesOrIDs) == 0 {
-		if !i.options.Latest {
-			return errors.New("no containers or images specified")
+		if !i.options.Latest && !i.options.All {
+			return errors.New("no names or ids specified")
 		}
 	}
 
 	tmpType := i.options.Type
 	if i.options.Latest {
 		if len(namesOrIDs) > 0 {
-			return errors.New("--latest and containers cannot be used together")
+			return errors.New("--latest and arguments cannot be used together")
 		}
-		tmpType = ContainerType // -l works with --type=all
+		if i.options.Type == AllType {
+			tmpType = ContainerType // -l works with --type=all, defaults to containertype
+		}
 	}
 
 	// Inspect - note that AllType requires us to expensively query one-by-one.
@@ -131,10 +149,57 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		for i := range ctrData {
 			data = append(data, ctrData[i])
 		}
+	case PodType:
+		for _, pod := range namesOrIDs {
+			i.podOptions.NameOrID = pod
+			podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
+			if err != nil {
+				cause := errors.Cause(err)
+				if !strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()) {
+					errs = []error{err}
+				} else {
+					return err
+				}
+			} else {
+				errs = nil
+				data = append(data, podData)
+			}
+		}
+		if i.podOptions.Latest { //latest means there are no names in the namesOrID array
+			podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
+			if err != nil {
+				cause := errors.Cause(err)
+				if !strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()) {
+					errs = []error{err}
+				} else {
+					return err
+				}
+			} else {
+				errs = nil
+				data = append(data, podData)
+			}
+		}
+	case NetworkType:
+		networkData, allErrs, err := registry.ContainerEngine().NetworkInspect(ctx, namesOrIDs, i.options)
+		if err != nil {
+			return err
+		}
+		errs = allErrs
+		for i := range networkData {
+			data = append(data, networkData[i])
+		}
+	case VolumeType:
+		volumeData, allErrs, err := i.containerEngine.VolumeInspect(ctx, namesOrIDs, i.options)
+		if err != nil {
+			return err
+		}
+		errs = allErrs
+		for i := range volumeData {
+			data = append(data, volumeData[i])
+		}
 	default:
-		return errors.Errorf("invalid type %q: must be %q, %q or %q", i.options.Type, ImageType, ContainerType, AllType)
+		return errors.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", i.options.Type, ImageType, ContainerType, PodType, NetworkType, VolumeType, AllType)
 	}
-
 	// Always print an empty array
 	if data == nil {
 		data = []interface{}{}
@@ -195,11 +260,41 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]inte
 		if err != nil {
 			return nil, nil, err
 		}
+		if len(errs) == 0 {
+			data = append(data, imgData[0])
+			continue
+		}
+		volumeData, errs, err := i.containerEngine.VolumeInspect(ctx, []string{name}, i.options)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(errs) == 0 {
+			data = append(data, volumeData[0])
+			continue
+		}
+		networkData, errs, err := registry.ContainerEngine().NetworkInspect(ctx, namesOrIDs, i.options)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(errs) == 0 {
+			data = append(data, networkData[0])
+			continue
+		}
+		i.podOptions.NameOrID = name
+		podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
+		if err != nil {
+			cause := errors.Cause(err)
+			if !strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()) {
+				return nil, nil, err
+			}
+		} else {
+			data = append(data, podData)
+			continue
+		}
 		if len(errs) > 0 {
 			allErrs = append(allErrs, errors.Errorf("no such object: %q", name))
 			continue
 		}
-		data = append(data, imgData[0])
 	}
 	return data, allErrs, nil
 }

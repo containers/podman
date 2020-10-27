@@ -18,11 +18,6 @@ type NetworkListReport struct {
 	*libcni.NetworkConfigList
 }
 
-// NetworkInspectOptions describes options for inspect networks
-type NetworkInspectOptions struct {
-	Format string
-}
-
 // NetworkInspectReport describes the results from inspect networks
 type NetworkInspectReport map[string]interface{}
 

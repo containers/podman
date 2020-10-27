@@ -56,6 +56,8 @@ type InspectOptions struct {
 	Size bool `json:",omitempty"`
 	// Type -- return JSON for specified type.
 	Type string `json:",omitempty"`
+	// All -- inspect all
+	All bool `json:",omitempty"`
 }
 
 // All API and CLI diff commands and diff sub-commands use the same options
