@@ -224,14 +224,12 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 	c.EventsLogFilePath = filepath.Join(c.TmpDir, "events", "events.log")
 
-	var storeOpts storage.StoreOptions
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
-		storage.ReloadConfigurationFile(path, &storeOpts)
-	} else {
-		storeOpts, err = storage.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
-		if err != nil {
-			return nil, err
-		}
+		storage.SetDefaultConfigFilePath(path)
+	}
+	storeOpts, err := storage.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
+	if err != nil {
+		return nil, err
 	}
 
 	if storeOpts.GraphRoot == "" {

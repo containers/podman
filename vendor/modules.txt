@@ -86,7 +86,7 @@ github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.26.0
+# github.com/containers/common v0.26.3
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/apparmor/internal/supported
 github.com/containers/common/pkg/auth
@@ -102,7 +102,7 @@ github.com/containers/common/pkg/sysinfo
 github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.6.0
+# github.com/containers/image/v5 v5.7.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -117,6 +117,7 @@ github.com/containers/image/v5/image
 github.com/containers/image/v5/internal/iolimits
 github.com/containers/image/v5/internal/pkg/keyctl
 github.com/containers/image/v5/internal/pkg/platform
+github.com/containers/image/v5/internal/rootless
 github.com/containers/image/v5/internal/tmpdir
 github.com/containers/image/v5/internal/uploadreader
 github.com/containers/image/v5/manifest
@@ -164,7 +165,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.23.5
+# github.com/containers/storage v1.23.7
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -332,7 +333,7 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.11.0
+# github.com/klauspost/compress v1.11.1
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -351,7 +352,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/mistifyio/go-zfs
 # github.com/moby/sys/mount v0.1.1
 github.com/moby/sys/mount
-# github.com/moby/sys/mountinfo v0.2.0
+# github.com/moby/sys/mountinfo v0.4.0
 github.com/moby/sys/mountinfo
 # github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2
 github.com/moby/term

@@ -363,7 +363,7 @@ type configWrapper struct {
 	configPath string
 	// path to system-wide registries.conf.d directory, or "" if not used
 	configDirPath string
-	// path to user specificed registries.conf.d directory, or "" if not used
+	// path to user specified registries.conf.d directory, or "" if not used
 	userConfigDirPath string
 }
 

@@ -1,5 +1,5 @@
 // This defines the top-level policy evaluation API.
-// To the extent possible, the interface of the fuctions provided
+// To the extent possible, the interface of the functions provided
 // here is intended to be completely unambiguous, and stable for users
 // to rely on.
 
@@ -47,7 +47,7 @@ type PolicyRequirement interface {
 	// - sarUnknown if if this PolicyRequirement does not deal with signatures.
 	//   NOTE: sarUnknown should not be returned if this PolicyRequirement should make a decision but something failed.
 	//   Returning sarUnknown and a non-nil error value is invalid.
-	// WARNING: This makes the signature contents acceptable for futher processing,
+	// WARNING: This makes the signature contents acceptable for further processing,
 	// but it does not necessarily mean that the contents of the signature are
 	// consistent with local policy.
 	// For example:
@@ -166,7 +166,7 @@ func (pc *PolicyContext) requirementsForImageRef(ref types.ImageReference) Polic
 // verified).
 // NOTE: This may legitimately return an empty list and no error, if the image
 // has no signatures or only invalid signatures.
-// WARNING: This makes the signature contents acceptable for futher processing,
+// WARNING: This makes the signature contents acceptable for further processing,
 // but it does not necessarily mean that the contents of the signature are
 // consistent with local policy.
 // For example:

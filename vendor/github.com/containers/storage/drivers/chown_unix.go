@@ -54,7 +54,7 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 		}
 
 		// Make the change.
-		if err := syscall.Lchown(path, uid, gid); err != nil {
+		if err := os.Lchown(path, uid, gid); err != nil {
 			return fmt.Errorf("%s: chown(%q): %v", os.Args[0], path, err)
 		}
 		// Restore the SUID and SGID bits if they were originally set.
