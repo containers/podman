@@ -115,6 +115,10 @@ Limit the CPU CFS (Completely Fair Scheduler) period
 
 Limit the container's CPU usage. This flag tell the kernel to restrict the container's CPU usage to the period you specify.
 
+On some systems, changing the CPU limits may not be allowed for non-root
+users. For more details, see
+https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
+
 **--cpu-quota**=*limit*
 
 Limit the CPU CFS (Completely Fair Scheduler) quota
@@ -122,6 +126,10 @@ Limit the CPU CFS (Completely Fair Scheduler) quota
 Limit the container's CPU usage. By default, containers run with the full
 CPU resource. This flag tell the kernel to restrict the container's CPU usage
 to the quota you specify.
+
+On some systems, changing the CPU limits may not be allowed for non-root
+users. For more details, see
+https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
 
 **--cpu-shares**, **-c**=*shares*
 
@@ -787,9 +795,9 @@ registries.conf is the configuration file which specifies which container regist
 
 ## Troubleshooting
 
-If you are using a useradd command within a Containerfile with a large UID/GID, it will create a large sparse file `/var/log/lastlog`.  This can cause the build to hang forever.  Go language does not support sparse files correctly, which can lead to some huge files being created in your container image.
+### lastlog sparse file
 
-### Solution
+If you are using a useradd command within a Containerfile with a large UID/GID, it will create a large sparse file `/var/log/lastlog`.  This can cause the build to hang forever.  Go language does not support sparse files correctly, which can lead to some huge files being created in your container image.
 
 If you are using `useradd` within your build script, you should pass the `--no-log-init or -l` option to the `useradd` command.  This option tells useradd to stop creating the lastlog file.
 

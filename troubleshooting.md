@@ -644,3 +644,39 @@ $ podman run --read-only --rootfs /path/to/rootfs ....
 
 Another option would be to create an overlay file system on the directory as a lower and then
 then allow podman to create the files on the upper.
+
+### 26) Running containers with CPU limits fails with a permissions error
+
+On some systemd-based systems, non-root users do not have CPU limit delegation
+permissions. This causes setting CPU limits to fail.
+
+#### Symptom
+
+Running a container with a CPU limit options such as `--cpus`, `--cpu-period`,
+or `--cpu-quota` will fail with an error similar to the following:
+
+    Error: opening file `cpu.max` for writing: Permission denied: OCI runtime permission denied error
+
+This means that CPU limit delegation is not enabled for the current user.
+
+#### Solution
+
+You can verify whether CPU limit delegation is enabled by running the following command:
+
+    cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers"
+
+Example output might be:
+
+    memory pids
+
+In the above example, `cpu` is not listed, which means the curent user does
+not have permission to set CPU limits.
+
+If you want to enable CPU limit delegation for all users, you can create the
+file `/etc/systemd/system/user@.service.d/delegate.conf` with the contents:
+
+    [Service]
+    Delegate=memory pids cpu io
+
+After logging out and loggin back in, you should have permission to set CPU
+limits.

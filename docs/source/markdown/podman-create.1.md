@@ -107,6 +107,10 @@ Limit the CPU CFS (Completely Fair Scheduler) period
 
 Limit the container's CPU usage. This flag tell the kernel to restrict the container's CPU usage to the period you specify.
 
+On some systems, changing the CPU limits may not be allowed for non-root
+users. For more details, see
+https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
+
 **--cpu-quota**=*limit*
 
 Limit the CPU CFS (Completely Fair Scheduler) quota
@@ -114,6 +118,10 @@ Limit the CPU CFS (Completely Fair Scheduler) quota
 Limit the container's CPU usage. By default, containers run with the full
 CPU resource. This flag tell the kernel to restrict the container's CPU usage
 to the quota you specify.
+
+On some systems, changing the CPU limits may not be allowed for non-root
+users. For more details, see
+https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
 
 **--cpu-rt-period**=*microseconds*
 
@@ -170,6 +178,10 @@ PID    container	CPU	CPU share
 **--cpus**=*number*
 
 Number of CPUs. The default is *0.0* which means no limit.
+
+On some systems, changing the CPU limits may not be allowed for non-root
+users. For more details, see
+https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
 
 **--cpuset-cpus**=*cpus*
 
