@@ -9,7 +9,9 @@ podman-image-sign - Create a signature for an image
 ## DESCRIPTION
 **podman image sign** will create a local signature for one or more local images that have
 been pulled from a registry. The signature will be written to a directory
-derived from the registry configuration files in /etc/containers/registries.d. By default, the signature will be written into /var/lib/containers/sigstore directory.
+derived from the registry configuration files in `$HOME/.config/containers/registries.d` if it exists,
+otherwise `/etc/containers/registries.d` (unless overridden at compile-time), see **containers-registries.d(5)** for more information.
+By default, the signature will be written into `/var/lib/containers/sigstore` for root and `$HOME/.local/share/containers/sigstore` for non-root users
 
 ## OPTIONS
 
@@ -38,7 +40,8 @@ Sign the busybox image with the identify of foo@bar.com with a user's keyring an
 ## RELATED CONFIGURATION
 
 The write (and read) location for signatures is defined in YAML-based
-configuration files in /etc/containers/registries.d/.  When you sign
+configuration files in /etc/containers/registries.d/ for root,
+or $HOME/.config/containers/registries.d for non-root users.  When you sign
 an image, Podman will use those configuration files to determine
 where to write the signature based on the the name of the originating
 registry or a default storage value unless overridden with the --directory
@@ -52,6 +55,9 @@ When signing an image preceded with the registry name 'privateregistry.example.c
 the signature will be written into sub-directories of
 /var/lib/containers/sigstore/privateregistry.example.com. The use of 'sigstore' also means
 the signature will be 'read' from that same location on a pull-related function.
+
+## SEE ALSO
+containers-registries.d(5)
 
 ## HISTORY
 November 2018, Originally compiled by Qi Wang (qiwan at redhat dot com)
