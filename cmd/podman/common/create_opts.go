@@ -293,66 +293,61 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig) (*Cont
 	// like with start. We believe this is just a difference in podman/compat
 	cliOpts := ContainerCLIOpts{
 		//Attach:            nil, // dont need?
-		Authfile:          "",
-		BlkIOWeight:       strconv.Itoa(int(cc.HostConfig.BlkioWeight)),
-		BlkIOWeightDevice: nil, // TODO
-		CapAdd:            append(capAdd, cc.HostConfig.CapAdd...),
-		CapDrop:           append(cappDrop, cc.HostConfig.CapDrop...),
-		CGroupParent:      cc.HostConfig.CgroupParent,
-		CIDFile:           cc.HostConfig.ContainerIDFile,
-		CPUPeriod:         uint64(cc.HostConfig.CPUPeriod),
-		CPUQuota:          cc.HostConfig.CPUQuota,
-		CPURTPeriod:       uint64(cc.HostConfig.CPURealtimePeriod),
-		CPURTRuntime:      cc.HostConfig.CPURealtimeRuntime,
-		CPUShares:         uint64(cc.HostConfig.CPUShares),
+		Authfile:     "",
+		CapAdd:       append(capAdd, cc.HostConfig.CapAdd...),
+		CapDrop:      append(cappDrop, cc.HostConfig.CapDrop...),
+		CGroupParent: cc.HostConfig.CgroupParent,
+		CIDFile:      cc.HostConfig.ContainerIDFile,
+		CPUPeriod:    uint64(cc.HostConfig.CPUPeriod),
+		CPUQuota:     cc.HostConfig.CPUQuota,
+		CPURTPeriod:  uint64(cc.HostConfig.CPURealtimePeriod),
+		CPURTRuntime: cc.HostConfig.CPURealtimeRuntime,
+		CPUShares:    uint64(cc.HostConfig.CPUShares),
 		//CPUS:              0, // dont need?
 		CPUSetCPUs: cc.HostConfig.CpusetCpus,
 		CPUSetMems: cc.HostConfig.CpusetMems,
 		//Detach:            false, // dont need
 		//DetachKeys:        "",    // dont need
-		Devices:           devices,
-		DeviceCGroupRule:  nil,
-		DeviceReadBPs:     readBps,
-		DeviceReadIOPs:    readIops,
-		DeviceWriteBPs:    writeBps,
-		DeviceWriteIOPs:   writeIops,
-		Entrypoint:        &entrypoint,
-		Env:               cc.Config.Env,
-		Expose:            expose,
-		GroupAdd:          cc.HostConfig.GroupAdd,
-		Hostname:          cc.Config.Hostname,
-		ImageVolume:       "bind",
-		Init:              init,
-		Interactive:       cc.Config.OpenStdin,
-		IPC:               string(cc.HostConfig.IpcMode),
-		Label:             stringMaptoArray(cc.Config.Labels),
-		LogDriver:         cc.HostConfig.LogConfig.Type,
-		LogOptions:        stringMaptoArray(cc.HostConfig.LogConfig.Config),
-		Memory:            strconv.Itoa(int(cc.HostConfig.Memory)),
-		MemoryReservation: strconv.Itoa(int(cc.HostConfig.MemoryReservation)),
-		MemorySwap:        strconv.Itoa(int(cc.HostConfig.MemorySwap)),
-		Name:              cc.Name,
-		OOMScoreAdj:       cc.HostConfig.OomScoreAdj,
-		OverrideArch:      "",
-		OverrideOS:        "",
-		OverrideVariant:   "",
-		PID:               string(cc.HostConfig.PidMode),
-		PIDsLimit:         cc.HostConfig.PidsLimit,
-		Privileged:        cc.HostConfig.Privileged,
-		PublishAll:        cc.HostConfig.PublishAllPorts,
-		Quiet:             false,
-		ReadOnly:          cc.HostConfig.ReadonlyRootfs,
-		ReadOnlyTmpFS:     true, // podman default
-		Rm:                cc.HostConfig.AutoRemove,
-		SecurityOpt:       cc.HostConfig.SecurityOpt,
-		ShmSize:           strconv.Itoa(int(cc.HostConfig.ShmSize)),
-		StopSignal:        cc.Config.StopSignal,
-		StoreageOpt:       stringMaptoArray(cc.HostConfig.StorageOpt),
-		Sysctl:            stringMaptoArray(cc.HostConfig.Sysctls),
-		Systemd:           "true", // podman default
-		TmpFS:             stringMaptoArray(cc.HostConfig.Tmpfs),
-		TTY:               cc.Config.Tty,
+		Devices:          devices,
+		DeviceCGroupRule: nil,
+		DeviceReadBPs:    readBps,
+		DeviceReadIOPs:   readIops,
+		DeviceWriteBPs:   writeBps,
+		DeviceWriteIOPs:  writeIops,
+		Entrypoint:       &entrypoint,
+		Env:              cc.Config.Env,
+		Expose:           expose,
+		GroupAdd:         cc.HostConfig.GroupAdd,
+		Hostname:         cc.Config.Hostname,
+		ImageVolume:      "bind",
+		Init:             init,
+		Interactive:      cc.Config.OpenStdin,
+		IPC:              string(cc.HostConfig.IpcMode),
+		Label:            stringMaptoArray(cc.Config.Labels),
+		LogDriver:        cc.HostConfig.LogConfig.Type,
+		LogOptions:       stringMaptoArray(cc.HostConfig.LogConfig.Config),
+		Name:             cc.Name,
+		OOMScoreAdj:      cc.HostConfig.OomScoreAdj,
+		OverrideArch:     "",
+		OverrideOS:       "",
+		OverrideVariant:  "",
+		PID:              string(cc.HostConfig.PidMode),
+		PIDsLimit:        cc.HostConfig.PidsLimit,
+		Privileged:       cc.HostConfig.Privileged,
+		PublishAll:       cc.HostConfig.PublishAllPorts,
+		Quiet:            false,
+		ReadOnly:         cc.HostConfig.ReadonlyRootfs,
+		ReadOnlyTmpFS:    true, // podman default
+		Rm:               cc.HostConfig.AutoRemove,
+		SecurityOpt:      cc.HostConfig.SecurityOpt,
+		StopSignal:       cc.Config.StopSignal,
+		StoreageOpt:      stringMaptoArray(cc.HostConfig.StorageOpt),
+		Sysctl:           stringMaptoArray(cc.HostConfig.Sysctls),
+		Systemd:          "true", // podman default
+		TmpFS:            stringMaptoArray(cc.HostConfig.Tmpfs),
+		TTY:              cc.Config.Tty,
 		//Ulimit:            cc.HostConfig.Ulimits,            // ask dan, no documented format
+		Ulimit:      []string{"nproc=4194304:4194304"},
 		User:        cc.Config.User,
 		UserNS:      string(cc.HostConfig.UsernsMode),
 		UTS:         string(cc.HostConfig.UTSMode),
@@ -363,8 +358,35 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig) (*Cont
 		Net:         &netInfo,
 	}
 
+	if len(cc.HostConfig.BlkioWeightDevice) > 0 {
+		devices := make([]string, 0, len(cc.HostConfig.BlkioWeightDevice))
+		for _, d := range cc.HostConfig.BlkioWeightDevice {
+			devices = append(devices, d.String())
+		}
+		cliOpts.BlkIOWeightDevice = devices
+	}
+	if cc.HostConfig.BlkioWeight > 0 {
+		cliOpts.BlkIOWeight = strconv.Itoa(int(cc.HostConfig.BlkioWeight))
+	}
+
+	if cc.HostConfig.Memory > 0 {
+		cliOpts.Memory = strconv.Itoa(int(cc.HostConfig.Memory))
+	}
+
+	if cc.HostConfig.MemoryReservation > 0 {
+		cliOpts.MemoryReservation = strconv.Itoa(int(cc.HostConfig.MemoryReservation))
+	}
+
+	if cc.HostConfig.MemorySwap > 0 {
+		cliOpts.MemorySwap = strconv.Itoa(int(cc.HostConfig.MemorySwap))
+	}
+
 	if cc.Config.StopTimeout != nil {
 		cliOpts.StopTimeout = uint(*cc.Config.StopTimeout)
+	}
+
+	if cc.HostConfig.ShmSize > 0 {
+		cliOpts.ShmSize = strconv.Itoa(int(cc.HostConfig.ShmSize))
 	}
 
 	if cc.HostConfig.KernelMemory > 0 {
