@@ -214,17 +214,21 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (
 		authMethods = append(authMethods, ssh.Password(string(pass)))
 	}
 
-	callback := ssh.InsecureIgnoreHostKey()
-	if secure {
-		key := terminal.HostKey(_url.Hostname())
-		if key != nil {
-			callback = ssh.FixedHostKey(key)
-		}
-	}
-
 	port := _url.Port()
 	if port == "" {
 		port = "22"
+	}
+
+	callback := ssh.InsecureIgnoreHostKey()
+	if secure {
+		host := _url.Hostname()
+		if port != "22" {
+			host = fmt.Sprintf("[%s]:%s", host, port)
+		}
+		key := terminal.HostKey(host)
+		if key != nil {
+			callback = ssh.FixedHostKey(key)
+		}
 	}
 
 	bastion, err := ssh.Dial("tcp",
