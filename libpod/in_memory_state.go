@@ -568,6 +568,25 @@ func (s *InMemoryState) GetNetworkAliases(ctr *Container, network string) ([]str
 	return netAliases, nil
 }
 
+// GetAllNetworkAliases gets all network aliases for the given container.
+func (s *InMemoryState) GetAllNetworkAliases(ctr *Container) (map[string][]string, error) {
+	if !ctr.valid {
+		return nil, define.ErrCtrRemoved
+	}
+
+	ctr, ok := s.containers[ctr.ID()]
+	if !ok {
+		return nil, define.ErrNoSuchCtr
+	}
+
+	ctrAliases, ok := s.ctrNetworkAliases[ctr.ID()]
+	if !ok {
+		return map[string][]string{}, nil
+	}
+
+	return ctrAliases, nil
+}
+
 // SetNetworkAliases sets network aliases for the given container in the given
 // network.
 func (s *InMemoryState) SetNetworkAliases(ctr *Container, network string, aliases []string) error {

@@ -1013,9 +1013,21 @@ func (s *BoltState) GetNetworkAliases(ctr *Container, network string) ([]string,
 			return errors.Wrapf(define.ErrNoSuchCtr, "container %s does not exist in database", ctr.ID())
 		}
 
+		ctrNetworkBkt := dbCtr.Bucket(networksBkt)
+		if ctrNetworkBkt == nil {
+			// No networks joined, so no aliases
+			return nil
+		}
+
+		inNetwork := ctrNetworkBkt.Get([]byte(network))
+		if inNetwork == nil {
+			return errors.Wrapf(define.ErrNoAliases, "container %s is not part of network %s, no aliases found")
+		}
+
 		ctrAliasesBkt := dbCtr.Bucket(aliasesBkt)
 		if ctrAliasesBkt == nil {
-			return errors.Wrapf(define.ErrNoAliases, "container %s has no network aliases", ctr.ID())
+			// No aliases
+			return nil
 		}
 
 		netAliasesBkt := ctrAliasesBkt.Bucket([]byte(network))
@@ -1026,6 +1038,77 @@ func (s *BoltState) GetNetworkAliases(ctr *Container, network string) ([]string,
 		return netAliasesBkt.ForEach(func(alias, v []byte) error {
 			aliases = append(aliases, string(alias))
 			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return aliases, nil
+}
+
+// GetAllNetworkAliases retrieves the network aliases for the given container in
+// all CNI networks.
+func (s *BoltState) GetAllNetworkAliases(ctr *Container) (map[string][]string, error) {
+	if !s.valid {
+		return nil, define.ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return nil, define.ErrCtrRemoved
+	}
+
+	if s.namespace != "" && s.namespace != ctr.config.Namespace {
+		return nil, errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+	}
+
+	ctrID := []byte(ctr.ID())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	aliases := make(map[string][]string)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		dbCtr := ctrBucket.Bucket(ctrID)
+		if dbCtr == nil {
+			ctr.valid = false
+			return errors.Wrapf(define.ErrNoSuchCtr, "container %s does not exist in database", ctr.ID())
+		}
+
+		ctrAliasesBkt := dbCtr.Bucket(aliasesBkt)
+		if ctrAliasesBkt == nil {
+			// No aliases present
+			return nil
+		}
+
+		ctrNetworkBkt := dbCtr.Bucket(networksBkt)
+		if ctrNetworkBkt == nil {
+			// No networks joined, so no aliases
+			return nil
+		}
+
+		return ctrNetworkBkt.ForEach(func(network, v []byte) error {
+			netAliasesBkt := ctrAliasesBkt.Bucket(network)
+			if netAliasesBkt == nil {
+				return nil
+			}
+
+			netAliases := []string{}
+			aliases[string(network)] = netAliases
+
+			return netAliasesBkt.ForEach(func(alias, v []byte) error {
+				netAliases = append(netAliases, string(alias))
+				return nil
+			})
 		})
 	})
 	if err != nil {

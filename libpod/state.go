@@ -100,6 +100,8 @@ type State interface {
 
 	// Get network aliases for the given container in the given network.
 	GetNetworkAliases(ctr *Container, network string) ([]string, error)
+	// Get all network aliases for the given container.
+	GetAllNetworkAliases(ctr *Container) (map[string][]string, error)
 	// Set network aliases for the given container in the given network.
 	SetNetworkAliases(ctr *Container, network string, aliases []string) error
 	// Remove network aliases for the given container in the given network.
