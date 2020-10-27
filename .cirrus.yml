@@ -82,21 +82,6 @@ ext_svc_check_task:
         - './runner.sh'
 
 
-# Execute some quick checks to confirm this YAML file and all
-# automation-related shell scripts are sane.
-automation_task:
-    alias: 'automation'
-    name: "Check Automation"
-    skip: &branch "$CIRRUS_PR == '' || $CIRRUS_TAG != ''" # Don't run for branches
-    container: *smallcontainer
-    env:
-        TEST_FLAVOR: automation
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_ENVIRON: container
-    setup_script: *setup
-    main_script: *main
-
-
 # This task use to be called 'gating', however that name is being
 # used downstream for release testing.  Renamed this to avoid confusion.
 # All it does is run basic golang formatting and commit validation checks.
@@ -143,8 +128,10 @@ smoke_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-    gce_instance: &standardvm
+    depends_on:
+        - ext_svc_check
+        - smoke
+    gce_instance:
         image_project: libpod-218412
         zone: "us-central1-a"
         cpu: 2
@@ -202,242 +189,34 @@ build_task:
             type: text/html
 
 
-# Confirm the result of building on at least one platform appears sane.
-# This confirms the binaries can be executed, checks --help vs docs, and
-# other essential post-build validation checks.
-validate_task:
-    name: "Validate $DISTRO_NV Build"
-    alias: validate
-    only_if: *not_docs
+# Execute the podman integration tests on all primary platforms and release
+# versions, as root, without involving the podman-remote client.
+local_integration_test_task: &local_integration_test_task
+    # Integration-test task name convention:
+    # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
+    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
+    alias: local_integration_test
     depends_on:
-        - ext_svc_check
-        - automation
-        - smoke
         - build
-    # golangci-lint is a very, very hungry beast.
-    gce_instance: &bigvm
-        <<: *standardvm
-        cpu: 8
-        memory: "16Gb"
+    matrix: *platform_axis
+    gce_instance: &specialvm
+        image_project: libpod-218412
+        zone: "us-central1-a"
+        cpu: 2
+        memory: "4Gb"
+        # Required to be 200gig, do not modify - has i/o performance impact
+        # according to gcloud CLI tool warning messages.
+        disk: 200
+        image_name: "${VM_IMAGE_NAME}"  # from stdenvars
+        # Ref: https://cloud.google.com/sdk/gcloud/reference/alpha/compute/instances/set-scopes
+        scopes: 'compute'
+    timeout_in: 90m
     env:
-        <<: *stdenvars
-        TEST_FLAVOR: validate
+        TEST_FLAVOR: int
+    clone_script: *noop  # Comes from cache
     gopath_cache: &ro_gopath_cache
         <<: *gopath_cache
         reupload_on_changes: false
-    clone_script: *noop
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-
-# Exercise the "libpod" API with a small set of common
-# operations to ensure they are functional.
-bindings_task:
-    name: "Test Bindings"
-    alias: bindings
-    only_if: *not_docs
-    skip: *branch
-    depends_on:
-        - build
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: bindings
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-
-# Build the "libpod" API documentation `swagger.yaml` for eventual
-# publishing along side the official podman documentation.
-swagger_task:
-    name: "Test Swagger"
-    alias: swagger
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: swagger
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *full_clone  # build-cache not available to container tasks
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-
-endpoint_task:
-    name: "Test Endpoint"
-    alias: endpoint
-    only_if: *not_docs
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: endpoint
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *full_clone  # build-cache not available to container tasks
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-
-# Check that all included go modules from other sources match
-# what is expected in `vendor/modules.txt` vs `go.mod`.
-vendor_task:
-    name: "Test Vendoring"
-    alias: vendor
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: vendor
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *full_clone  # build-cache not available to container tasks
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-
-# There are several other important variations of podman which
-# must always build successfully.  Most of them are handled in
-# this task, though a few need dedicated tasks which follow.
-alt_build_task:
-    name: "$ALT_NAME"
-    alias: alt_build
-    only_if: *not_docs
-    depends_on:
-        - build
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: "altbuild"
-    gce_instance: *standardvm
-    matrix:
-      - env:
-            ALT_NAME: 'Build Each Commit'
-      - env:
-            ALT_NAME: 'Windows Cross'
-      - env:
-            ALT_NAME: 'Build Without CGO'
-      - env:
-            ALT_NAME: 'Build varlink-API'
-      - env:
-            ALT_NAME: 'Test build RPM'
-      - env:
-            ALT_NAME: 'Build varlink-binaries'
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-# Confirm building a statically-linked binary is successful
-static_alt_build_task:
-    name: "Static Build"
-    alias: static_alt_build
-    only_if: *not_docs
-    depends_on:
-        - build
-    # Community-maintained task, may fail on occasion.  If so, uncomment
-    # the next line and file an issue with details about the failure.
-    # allow_failures: $CI == $CI
-    gce_instance: *bigvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: "altbuild"
-        # gce_instance variation prevents this being included in alt_build_task
-        ALT_NAME: 'Static build'
-        # Do not use 'latest', fixed-version tag for runtime stability.
-        CTR_FQIN: "docker.io/nixos/nix:2.3.6"
-    # This is critical, it helps to avoid a very lengthy process of
-    # statically building every dependency needed to build podman.
-    # Assuming the dependency and build description hasn't changed,
-    # this cache ensures only the static podman binary is built.
-    nix_cache:
-        folder: '/var/cache/nix'
-        fingerprint_script: cat nix/*
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-
-# Confirm building the remote client, natively on a Mac OS-X VM.
-osx_alt_build_task:
-    name: "OSX Cross"
-    alias: osx_alt_build
-    depends_on:
-        - build
-    env:
-        <<: *stdenvars
-        # OSX platform variation prevents this being included in alt_build_task
-        TEST_FLAVOR: "altbuild"
-        ALT_NAME: 'OSX Cross'
-    osx_instance:
-        image: 'catalina-base'
-    script:
-        - brew install go
-        - brew install go-md2man
-        - make podman-remote-darwin
-        - make install-podman-remote-darwin-docs
-    always: *artifacts
-
-
-# This task is a stub: In the future it will be used to verify
-# podman is compatible with the docker python-module.
-docker-py_test_task:
-    name: Docker-py Compat.
-    alias: docker-py_test
-    only_if: *not_docs
-    depends_on:
-        - build
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: docker-py
-        TEST_ENVIRON: container
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-
-# Does exactly what it says, execute the podman unit-tests on all primary
-# platforms and release versions.
-unit_test_task:
-    name: "Unit tests on $DISTRO_NV"
-    alias: unit_test
-    only_if: *not_docs
-    depends_on:
-        - validate
-    matrix: *platform_axis
-    gce_instance: *standardvm
-    env:
-        TEST_FLAVOR: unit
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-
-apiv2_test_task:
-    name: "APIv2 test on $DISTRO_NV"
-    alias: apiv2_test
-    depends_on:
-        - validate
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: apiv2
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
@@ -448,29 +227,7 @@ apiv2_test_task:
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
         podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
-
-
-# Execute the podman integration tests on all primary platforms and release
-# versions, as root, without involving the podman-remote client.
-local_integration_test_task: &local_integration_test_task
-    # Integration-test task name convention:
-    # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
-    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
-    alias: local_integration_test
-    only_if: *not_docs
-    skip: *branch
-    depends_on:
-        - unit_test
-    matrix: *platform_axis
-    gce_instance: *standardvm
-    timeout_in: 90m
-    env:
-        TEST_FLAVOR: int
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
+        enable_deletion_script: '$SCRIPT_BASE/deletevm.sh'
 
 
 # Nearly identical to `local_integration_test` except all operations
@@ -484,47 +241,19 @@ remote_integration_test_task:
         PODBIN_NAME: remote
 
 
-# Run the complete set of integration tests from inside a container.
-# This verifies all/most operations function with "podman-in-podman".
-container_integration_test_task:
+# Execute most integration tests as a regular (non-root) user.
+rootless_integration_test_task:
     name: *std_name_fmt
-    alias: container_integration_test
-    only_if: *not_docs
-    skip: *branch
+    alias: rootless_integration_test
     depends_on:
-        - unit_test
+        - build
     matrix: &fedora_vm_axis
         - env:
               DISTRO_NV: ${FEDORA_NAME}
               _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-    gce_instance: *standardvm
-    timeout_in: 90m
-    env:
-        TEST_FLAVOR: int
-        TEST_ENVIRON: container
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
-
-# Execute most integration tests as a regular (non-root) user.
-rootless_integration_test_task:
-    name: *std_name_fmt
-    alias: rootless_integration_test
-    only_if: *not_docs
-    skip: *branch
-    depends_on:
-        - unit_test
-    matrix: *fedora_vm_axis
-    gce_instance: *standardvm
+    gce_instance: *specialvm
     timeout_in: 90m
     env:
         TEST_FLAVOR: int
@@ -543,11 +272,10 @@ rootless_integration_test_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    only_if: *not_docs
     depends_on:
       - local_integration_test
     matrix: *platform_axis
-    gce_instance: *standardvm
+    gce_instance: *specialvm
     env:
         TEST_FLAVOR: sys
     clone_script: *noop  # Comes from cache
@@ -570,11 +298,10 @@ remote_system_test_task:
 rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
-    only_if: *not_docs
     depends_on:
       - rootless_integration_test
     matrix: *fedora_vm_axis
-    gce_instance: *standardvm
+    gce_instance: *specialvm
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
@@ -583,107 +310,3 @@ rootless_system_test_task:
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
-
-# This task is critical.  It updates the "last-used by" timestamp stored
-# in metadata for all VM images.  This mechanism functions in tandem with
-# an out-of-band pruning operation to remove disused VM images.
-meta_task:
-    name: "VM img. keepalive"
-    alias: meta
-    container:
-        cpu: 2
-        memory: 2
-        image: quay.io/libpod/imgts:$IMAGE_SUFFIX
-    env:
-        # Space-separated list of images used by this repository state
-        IMGNAMES: >-
-            ${FEDORA_CACHE_IMAGE_NAME}
-            ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-            ${UBUNTU_CACHE_IMAGE_NAME}
-            ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
-        BUILDID: "${CIRRUS_BUILD_ID}"
-        REPOREF: "${CIRRUS_REPO_NAME}"
-        GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
-        GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
-        GCPPROJECT: libpod-218412
-    clone_script: *noop
-    script: /usr/local/bin/entrypoint.sh
-
-
-# Status aggregator for all tests.  This task simply ensures a defined
-# set of tasks all passed, and allows confirming that based on the status
-# of this task.
-success_task:
-    name: "Total Success"
-    alias: success
-    # N/B: ALL tasks must be listed here, minus their '_task' suffix.
-    depends_on:
-        - ext_svc_check
-        - automation
-        - smoke
-        - build
-        - validate
-        - bindings
-        - endpoint
-        - swagger
-        - vendor
-        - alt_build
-        - static_alt_build
-        - osx_alt_build
-        - docker-py_test
-        - unit_test
-        - apiv2_test
-        - local_integration_test
-        - remote_integration_test
-        - rootless_integration_test
-        - container_integration_test
-        - local_system_test
-        - remote_system_test
-        - rootless_system_test
-        - meta
-    container: *smallcontainer
-    env:
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_ENVIRON: container
-    clone_script: *noop
-    script: /bin/true
-
-
-# When a new tag is pushed, confirm that the code and commits
-# meet criteria for an official release.
-release_task:
-    name: "Verify Release"
-    alias: release
-    only_if: $CIRRUS_TAG != ''
-    depends_on:
-        - success
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: release
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts
-
-# When preparing to release a new version, this task may be manually
-# activated at the PR stage to verify the code is in a proper state.
-# Note: This cannot use a YAML alias on 'release_task' as of this
-# comment, it is incompatible with 'trigger_type: manual'
-release_test_task:
-    name: "Optional Release Test"
-    alias: release_test
-    only_if: $CIRRUS_PR != ''
-    trigger_type: manual
-    depends_on:
-        - success
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: release
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
-    setup_script: *setup
-    main_script: *main
-    always: *artifacts

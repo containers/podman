@@ -100,6 +100,10 @@ CG_FS_TYPE="$(stat -f -c %T /sys/fs/cgroup)"
 # Set to 1 in all podman container images
 CONTAINER="${CONTAINER:-0}"
 
+GCLOUD_IMAGE="gcr.io/google.com/cloudsdktool/cloud-sdk:alpine"
+GCLOUD_CFGDIR="$HOME/.config/gcloud"
+GCLOUD_CNTNR="podman run -i --rm -v $GCLOUD_CFGDIR:$GCLOUD_CFGDIR:Z -v $HOME/.ssh:/root/.ssh:Z $GCLOUD_IMAGE gcloud"
+
 # END Global export of all variables
 set +a
 

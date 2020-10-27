@@ -217,10 +217,25 @@ logformatter() {
         |& "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$output_name"
 }
 
+
 # Handle local|remote integration|system testing in a uniform way
 dotest() {
     local testsuite="$1"
     req_env_vars testsuite CONTAINER TEST_ENVIRON PRIV_NAME
+
+    if ((CONTAINER==0)) && ((UID==0)); then
+        # To enable easier debugging of 'agent stopped responding' problems
+        # Disable automatic removal of this VM, and make it easy to spot by
+        # adding a label.  VM Cleanup will be re-enabled upon successfull
+        # testing.
+        mkdir -p "$GCLOUD_CFGDIR"
+        # Assumed running on a GCP VM w/ attached service account
+        warn "Current available/active service account(s):
+    $($GCLOUD_CNTNR auth list --format=list)"
+        $GCLOUD_CNTNR config set compute/zone us-central1-a
+        warn "Disabling automatic VM deletion by Cirrus-CI, adding reference labels."
+        $GCLOUD_CNTNR compute instances update $HOSTNAME --deletion-protection --update-labels=cciasr=1,sha=$(git rev-parse --short=4 HEAD)
+    fi
 
     # shellcheck disable=SC2154
     if ((CONTAINER==0)) && [[ "$TEST_ENVIRON" == "container" ]]; then

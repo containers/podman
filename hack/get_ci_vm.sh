@@ -158,7 +158,7 @@ parse_args(){
 
     VMNAME="${VMNAME:-${USER}-${VM_IMAGE_NAME}}"
 
-    CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image=${VM_IMAGE_NAME} --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER $VMNAME"
+    CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image=${VM_IMAGE_NAME} --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER --scopes=default,compute-rw $VMNAME"
 
     SSH_CMD="$PGCLOUD compute ssh root@$VMNAME"
 
