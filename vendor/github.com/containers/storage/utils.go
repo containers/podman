@@ -76,7 +76,7 @@ func GetRootlessRuntimeDir(rootlessUID int) (string, error) {
 	}
 	path = filepath.Join(path, "containers")
 	if err := os.MkdirAll(path, 0700); err != nil {
-		return "", errors.Wrapf(err, "unable to make rootless runtime dir %s", path)
+		return "", errors.Wrapf(err, "unable to make rootless runtime")
 	}
 	return path, nil
 }
@@ -154,7 +154,7 @@ func getRootlessRuntimeDirIsolated(env rootlessRuntimeDirEnvironment) (string, e
 	}
 	resolvedHomeDir, err := filepath.EvalSymlinks(homeDir)
 	if err != nil {
-		return "", errors.Wrapf(err, "cannot resolve %s", homeDir)
+		return "", err
 	}
 	return filepath.Join(resolvedHomeDir, "rundir"), nil
 }
@@ -190,7 +190,7 @@ func getRootlessDirInfo(rootlessUID int) (string, string, error) {
 	// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
 	resolvedHome, err := filepath.EvalSymlinks(home)
 	if err != nil {
-		return "", "", errors.Wrapf(err, "cannot resolve %s", home)
+		return "", "", err
 	}
 	dataDir = filepath.Join(resolvedHome, ".local", "share")
 
@@ -206,11 +206,10 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 		return opts, err
 	}
 	opts.RunRoot = rootlessRuntime
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
 	if systemOpts.RootlessStoragePath != "" {
-		opts.RootlessStoragePath = systemOpts.RootlessStoragePath
+		opts.GraphRoot = systemOpts.RootlessStoragePath
 	} else {
-		opts.RootlessStoragePath = opts.GraphRoot
+		opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
 	}
 	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
 		opts.GraphDriverName = "overlay"
@@ -259,13 +258,24 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 	}
 	_, err = os.Stat(storageConf)
 	if err != nil && !os.IsNotExist(err) {
-		return storageOpts, errors.Wrapf(err, "cannot stat %s", storageConf)
+		return storageOpts, err
 	}
-	if err == nil {
+	if err == nil && !defaultConfigFileSet {
 		defaultRootlessRunRoot = storageOpts.RunRoot
 		defaultRootlessGraphRoot = storageOpts.GraphRoot
 		storageOpts = StoreOptions{}
 		reloadConfigurationFileIfNeeded(storageConf, &storageOpts)
+		if rootless && rootlessUID != 0 {
+			// If the file did not specify a graphroot or runroot,
+			// set sane defaults so we don't try and use root-owned
+			// directories
+			if storageOpts.RunRoot == "" {
+				storageOpts.RunRoot = defaultRootlessRunRoot
+			}
+			if storageOpts.GraphRoot == "" {
+				storageOpts.GraphRoot = defaultRootlessGraphRoot
+			}
+		}
 	}
 	if storageOpts.RunRoot != "" {
 		runRoot, err := expandEnvPath(storageOpts.RunRoot, rootlessUID)
@@ -282,26 +292,6 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 		storageOpts.GraphRoot = graphRoot
 	}
 
-	if rootless && rootlessUID != 0 {
-		if err == nil {
-			// If the file did not specify a graphroot or runroot,
-			// set sane defaults so we don't try and use root-owned
-			// directories
-			if storageOpts.RunRoot == "" {
-				storageOpts.RunRoot = defaultRootlessRunRoot
-			}
-			if storageOpts.GraphRoot == "" {
-				storageOpts.GraphRoot = defaultRootlessGraphRoot
-			}
-			if storageOpts.RootlessStoragePath != "" {
-				rootlessStoragePath, err := expandEnvPath(storageOpts.RootlessStoragePath, rootlessUID)
-				if err != nil {
-					return storageOpts, err
-				}
-				storageOpts.GraphRoot = rootlessStoragePath
-			}
-		}
-	}
 	return storageOpts, nil
 }
 

@@ -621,6 +621,13 @@ func SkipIfRootless(reason string) {
 	}
 }
 
+func SkipIfNotRootless(reason string) {
+	checkReason(reason)
+	if os.Geteuid() == 0 {
+		ginkgo.Skip("[notRootless]: " + reason)
+	}
+}
+
 func SkipIfNotFedora() {
 	info := GetHostDistributionInfo()
 	if info.Distribution != "fedora" {

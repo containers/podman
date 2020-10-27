@@ -422,7 +422,7 @@ func subvolLimitQgroup(path string, size uint64) error {
 
 // subvolQgroupStatus performs a BTRFS_IOC_TREE_SEARCH on the root path
 // with search key of BTRFS_QGROUP_STATUS_KEY.
-// In case qgroup is enabled, the retuned key type will match BTRFS_QGROUP_STATUS_KEY.
+// In case qgroup is enabled, the returned key type will match BTRFS_QGROUP_STATUS_KEY.
 // For more details please see https://github.com/kdave/btrfs-progs/blob/v4.9/qgroup.c#L1035
 func subvolQgroupStatus(path string) error {
 	dir, err := openDir(path)

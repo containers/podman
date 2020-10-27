@@ -79,7 +79,7 @@ func (c *ContainersConfig) validateUlimits() error {
 }
 
 func (c *ContainersConfig) validateTZ() error {
-	if c.TZ == "local" {
+	if c.TZ == "local" || c.TZ == "" {
 		return nil
 	}
 
