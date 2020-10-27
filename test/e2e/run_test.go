@@ -572,12 +572,12 @@ USER bin`
 	})
 
 	It("podman run tagged image", func() {
-		podmanTest.RestoreArtifact(BB)
-		tag := podmanTest.PodmanNoCache([]string{"tag", "busybox", "bb"})
+		podmanTest.AddImageToRWStore(BB)
+		tag := podmanTest.Podman([]string{"tag", BB, "bb"})
 		tag.WaitWithDefaultTimeout()
 		Expect(tag.ExitCode()).To(Equal(0))
 
-		session := podmanTest.PodmanNoCache([]string{"run", "--rm", "bb", "ls"})
+		session := podmanTest.Podman([]string{"run", "--rm", "bb", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -1339,42 +1339,30 @@ WORKDIR /madethis`
 	})
 
 	It("podman run a container with --pull never should fail if no local store", func() {
-		// Make sure ALPINE image does not exist. Ignore errors
-		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
-		session.WaitWithDefaultTimeout()
-
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "never", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--pull", "never", "docker.io/library/debian:latest", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 	})
 
 	It("podman run container with --pull missing and only pull once", func() {
-		// Make sure ALPINE image does not exist. Ignore errors
-		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
-		session.WaitWithDefaultTimeout()
-
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "missing", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--pull", "missing", cirros, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "missing", ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"run", "--pull", "missing", cirros, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
 	})
 
 	It("podman run container with --pull missing should pull image multiple times", func() {
-		// Make sure ALPINE image does not exist. Ignore errors
-		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
-		session.WaitWithDefaultTimeout()
-
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "always", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--pull", "always", cirros, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "always", ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"run", "--pull", "always", cirros, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))

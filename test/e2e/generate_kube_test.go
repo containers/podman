@@ -397,6 +397,7 @@ var _ = Describe("Podman generate kube", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		podmanTest.AddImageToRWStore(ALPINE)
 		session = podmanTest.Podman([]string{"play", "kube", outputFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

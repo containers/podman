@@ -35,7 +35,6 @@ var _ = Describe("Podman login and logout", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
 
 		authPath = filepath.Join(podmanTest.TempDir, "auth")
 		os.Mkdir(authPath, os.ModePerm)

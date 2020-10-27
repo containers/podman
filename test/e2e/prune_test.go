@@ -135,28 +135,29 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman image prune unused images", func() {
-		podmanTest.RestoreAllArtifacts()
-		prune := podmanTest.PodmanNoCache([]string{"image", "prune", "-af"})
+		podmanTest.AddImageToRWStore(ALPINE)
+		podmanTest.AddImageToRWStore(BB)
+		prune := podmanTest.Podman([]string{"image", "prune", "-af"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.PodmanNoCache([]string{"images", "-aq"})
+		images := podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
-		Expect(len(images.OutputToStringArray())).To(Equal(0))
+		Expect(len(images.OutputToStringArray())).To(Equal(len(CACHE_IMAGES)))
 	})
 
 	It("podman system image prune unused images", func() {
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.AddImageToRWStore(ALPINE)
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
-		prune := podmanTest.PodmanNoCache([]string{"system", "prune", "-a", "--force"})
+		prune := podmanTest.Podman([]string{"system", "prune", "-a", "--force"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.PodmanNoCache([]string{"images", "-aq"})
+		images := podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
-		Expect(len(images.OutputToStringArray())).To(Equal(0))
+		Expect(len(images.OutputToStringArray())).To(Equal(len(CACHE_IMAGES)))
 	})
 
 	It("podman system prune pods", func() {
@@ -343,9 +344,9 @@ var _ = Describe("Podman prune", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
 
-		images := podmanTest.PodmanNoCache([]string{"images", "-aq"})
+		images := podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
-		Expect(len(images.OutputToStringArray())).To(Equal(0))
+		Expect(len(images.OutputToStringArray())).To(Equal(len(CACHE_IMAGES)))
 	})
 })

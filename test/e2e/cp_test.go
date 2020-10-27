@@ -336,7 +336,7 @@ var _ = Describe("Podman cp", func() {
 		DockerfileName := "Dockerfile.test-cp-root-dir"
 		ctrName := "test-container-cp-root"
 
-		session := podmanTest.PodmanNoCache([]string{"build", "-f", "build/" + DockerfileName, "-t", imgName, "build/"})
+		session := podmanTest.Podman([]string{"build", "-f", "build/" + DockerfileName, "-t", imgName, "build/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -365,7 +365,7 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.PodmanNoCache([]string{"rmi", "-f", imgName})
+		session = podmanTest.Podman([]string{"rmi", "-f", imgName})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})

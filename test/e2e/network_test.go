@@ -2,9 +2,7 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,53 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-func writeConf(conf []byte, confPath string) {
-	if err := ioutil.WriteFile(confPath, conf, 777); err != nil {
-		fmt.Println(err)
-	}
-}
-func removeConf(confPath string) {
-	if err := os.Remove(confPath); err != nil {
-		fmt.Println(err)
-	}
-}
-
-// generateNetworkConfig generates a cni config with a random name
-// it returns the network name and the filepath
-func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
-	// generate a random name to prevent conflicts with other tests
-	name := "net" + stringid.GenerateNonCryptoID()
-	path := filepath.Join(p.CNIConfigDir, fmt.Sprintf("%s.conflist", name))
-	conf := fmt.Sprintf(`{
-		"cniVersion": "0.3.0",
-		"name": "%s",
-		"plugins": [
-		  {
-			"type": "bridge",
-			"bridge": "cni1",
-			"isGateway": true,
-			"ipMasq": true,
-			"ipam": {
-				"type": "host-local",
-				"subnet": "10.99.0.0/16",
-				"routes": [
-					{ "dst": "0.0.0.0/0" }
-				]
-			}
-		  },
-		  {
-			"type": "portmap",
-			"capabilities": {
-			  "portMappings": true
-			}
-		  }
-		]
-	}`, name)
-	writeConf([]byte(conf), path)
-
-	return name, path
-}
 
 var _ = Describe("Podman network", func() {
 	var (

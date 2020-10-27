@@ -23,7 +23,6 @@ var _ = Describe("Podman image|container exists", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {

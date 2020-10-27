@@ -22,7 +22,6 @@ var _ = Describe("Podman untag", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
@@ -33,42 +32,37 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman untag all", func() {
-		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		tags := []string{ALPINE, "registry.com/foo:bar", "localhost/foo:bar"}
+		podmanTest.AddImageToRWStore(cirros)
+		tags := []string{cirros, "registry.com/foo:bar", "localhost/foo:bar"}
 
 		cmd := []string{"tag"}
 		cmd = append(cmd, tags...)
-		session := podmanTest.PodmanNoCache(cmd)
+		session := podmanTest.Podman(cmd)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		// Make sure that all tags exists.
 		for _, t := range tags {
-			session = podmanTest.PodmanNoCache([]string{"image", "exists", t})
+			session = podmanTest.Podman([]string{"image", "exists", t})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 		}
 
 		// No arguments -> remove all tags.
-		session = podmanTest.PodmanNoCache([]string{"untag", ALPINE})
+		session = podmanTest.Podman([]string{"untag", cirros})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		// Make sure that none of tags exists anymore.
 		for _, t := range tags {
-			session = podmanTest.PodmanNoCache([]string{"image", "exists", t})
+			session = podmanTest.Podman([]string{"image", "exists", t})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(1))
 		}
 	})
 
 	It("podman tag/untag - tag normalization", func() {
-		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		podmanTest.AddImageToRWStore(cirros)
 
 		tests := []struct {
 			tag, normalized string
@@ -82,19 +76,19 @@ var _ = Describe("Podman untag", func() {
 		// Make sure that the user input is normalized correctly for
 		// `podman tag` and `podman untag`.
 		for _, tt := range tests {
-			session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, tt.tag})
+			session := podmanTest.Podman([]string{"tag", cirros, tt.tag})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 
-			session = podmanTest.PodmanNoCache([]string{"image", "exists", tt.normalized})
+			session = podmanTest.Podman([]string{"image", "exists", tt.normalized})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 
-			session = podmanTest.PodmanNoCache([]string{"untag", ALPINE, tt.tag})
+			session = podmanTest.Podman([]string{"untag", cirros, tt.tag})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 
-			session = podmanTest.PodmanNoCache([]string{"image", "exists", tt.normalized})
+			session = podmanTest.Podman([]string{"image", "exists", tt.normalized})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(1))
 		}
