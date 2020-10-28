@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -130,26 +131,30 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	}
 
 	hdrs := report.Headers(entities.ImageSearchReport{}, nil)
-	row := "{{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\n"
-	if searchOptions.ListTags {
+	renderHeaders := true
+	var row string
+	switch {
+	case searchOptions.ListTags:
 		if len(searchOptions.Filters) != 0 {
 			return errors.Errorf("filters are not applicable to list tags result")
 		}
 		row = "{{.Name}}\t{{.Tag}}\n"
-	}
-	if cmd.Flags().Changed("format") {
+	case cmd.Flags().Changed("format"):
+		renderHeaders = parse.HasTable(searchOptions.Format)
 		row = report.NormalizeFormat(searchOptions.Format)
+	default:
+		row = "{{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\n"
 	}
-	row = "{{range .}}" + row + "{{end}}"
+	format := parse.EnforceRange(row)
 
-	tmpl, err := template.New("search").Parse(row)
+	tmpl, err := template.New("search").Parse(format)
 	if err != nil {
 		return err
 	}
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 
-	if !cmd.Flags().Changed("format") {
+	if renderHeaders {
 		if err := tmpl.Execute(w, hdrs); err != nil {
 			return errors.Wrapf(err, "failed to write search column headers")
 		}

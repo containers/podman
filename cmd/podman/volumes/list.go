@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -91,9 +92,9 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.VolumeListReport) 
 	if cliOpts.Quiet {
 		row = "{{.Name}}\n"
 	}
-	row = "{{range . }}" + row + "{{end}}"
+	format := parse.EnforceRange(row)
 
-	tmpl, err := template.New("list volume").Parse(row)
+	tmpl, err := template.New("list volume").Parse(format)
 	if err != nil {
 		return err
 	}

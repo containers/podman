@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -119,7 +120,7 @@ func history(cmd *cobra.Command, args []string) error {
 	case opts.quiet:
 		row = "{{.ID}}\n"
 	}
-	format := "{{range . }}" + row + "{{end}}"
+	format := parse.EnforceRange(row)
 
 	tmpl, err := template.New("report").Parse(format)
 	if err != nil {

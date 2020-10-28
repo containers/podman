@@ -12,6 +12,7 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -40,9 +41,8 @@ var (
 	listOpts = entities.ContainerListOptions{
 		Filters: make(map[string][]string),
 	}
-	filters        []string
-	noTrunc        bool
-	defaultHeaders = "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tSTATUS\tPORTS\tNAMES"
+	filters []string
+	noTrunc bool
 )
 
 func init() {
@@ -90,10 +90,6 @@ func checkFlags(c *cobra.Command) error {
 	if listOpts.Quiet {
 		if listOpts.Size || listOpts.Namespace {
 			return errors.Errorf("quiet conflicts with size and namespace")
-		}
-		if c.Flag("format").Changed && !report.IsJSON(listOpts.Format) {
-			// Quiet is overridden by Go template output.
-			listOpts.Quiet = false
 		}
 	}
 	// Size and namespace conflict with each other
@@ -155,7 +151,7 @@ func getResponses() ([]entities.ListContainer, error) {
 	return responses, nil
 }
 
-func ps(cmd *cobra.Command, args []string) error {
+func ps(cmd *cobra.Command, _ []string) error {
 	if err := checkFlags(cmd); err != nil {
 		return err
 	}
@@ -180,24 +176,22 @@ func ps(cmd *cobra.Command, args []string) error {
 	switch {
 	case report.IsJSON(listOpts.Format):
 		return jsonOut(listContainers)
-	case listOpts.Quiet:
+	case listOpts.Quiet && !cmd.Flags().Changed("format"):
 		return quietOut(listContainers)
 	}
-	// Output table Watch > 0 will refresh screen
 
 	responses := make([]psReporter, 0, len(listContainers))
 	for _, r := range listContainers {
 		responses = append(responses, psReporter{r})
 	}
 
-	var headers, format string
+	hdrs, format := createPsOut()
 	if cmd.Flags().Changed("format") {
-		headers = ""
 		format = report.NormalizeFormat(listOpts.Format)
-	} else {
-		headers, format = createPsOut()
+		format = parse.EnforceRange(format)
 	}
-	format = headers + "{{range . }}" + format + "{{end}}"
+	ns := strings.NewReplacer(".Namespaces.", ".")
+	format = ns.Replace(format)
 
 	tmpl, err := template.New("listContainers").Parse(format)
 	if err != nil {
@@ -206,13 +200,19 @@ func ps(cmd *cobra.Command, args []string) error {
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 
-	if listOpts.Watch > 0 {
-		for {
-			var responses []psReporter
-			tm.Clear()
-			tm.MoveCursor(1, 1)
-			tm.Flush()
+	headers := func() error { return nil }
+	if !(listOpts.Quiet || cmd.Flags().Changed("format")) {
+		headers = func() error {
+			return tmpl.Execute(w, hdrs)
+		}
+	}
 
+	switch {
+	// Output table Watch > 0 will refresh screen
+	case listOpts.Watch > 0:
+		// responses will grow to the largest number of processes reported on, but will not thrash the gc
+		var responses []psReporter
+		for ; ; responses = responses[:0] {
 			if ctnrs, err := getResponses(); err != nil {
 				return err
 			} else {
@@ -221,18 +221,27 @@ func ps(cmd *cobra.Command, args []string) error {
 				}
 			}
 
+			tm.Clear()
+			tm.MoveCursor(1, 1)
+			tm.Flush()
+
+			if err := headers(); err != nil {
+				return err
+			}
 			if err := tmpl.Execute(w, responses); err != nil {
 				return err
 			}
 			if err := w.Flush(); err != nil {
+				// we usually do not care about Flush() failures but here do not loop if Flush() has failed
 				return err
 			}
+
 			time.Sleep(time.Duration(listOpts.Watch) * time.Second)
-			tm.Clear()
-			tm.MoveCursor(1, 1)
-			tm.Flush()
 		}
-	} else if listOpts.Watch < 1 {
+	default:
+		if err := headers(); err != nil {
+			return err
+		}
 		if err := tmpl.Execute(w, responses); err != nil {
 			return err
 		}
@@ -241,30 +250,36 @@ func ps(cmd *cobra.Command, args []string) error {
 }
 
 // cannot use report.Headers() as it doesn't support structures as fields
-func createPsOut() (string, string) {
+func createPsOut() ([]map[string]string, string) {
+	hdrs := report.Headers(psReporter{}, map[string]string{
+		"Cgroup":       "cgroupns",
+		"CreatedHuman": "created",
+		"ID":           "container id",
+		"IPC":          "ipc",
+		"MNT":          "mnt",
+		"NET":          "net",
+		"PIDNS":        "pidns",
+		"Pod":          "pod id",
+		"PodName":      "podname", // undo camelcase space break
+		"UTS":          "uts",
+		"User":         "userns",
+	})
+
 	var row string
 	if listOpts.Namespace {
-		headers := "CONTAINER ID\tNAMES\tPID\tCGROUPNS\tIPC\tMNT\tNET\tPIDNS\tUSERNS\tUTS\n"
-		row := "{{.ID}}\t{{.Names}}\t{{.Pid}}\t{{.Namespaces.Cgroup}}\t{{.Namespaces.IPC}}\t{{.Namespaces.MNT}}\t{{.Namespaces.NET}}\t{{.Namespaces.PIDNS}}\t{{.Namespaces.User}}\t{{.Namespaces.UTS}}\n"
-		return headers, row
-	}
-	headers := defaultHeaders
-	row += "{{.ID}}"
-	row += "\t{{.Image}}\t{{.Command}}\t{{.CreatedHuman}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}"
+		row = "{{.ID}}\t{{.Names}}\t{{.Pid}}\t{{.Namespaces.Cgroup}}\t{{.Namespaces.IPC}}\t{{.Namespaces.MNT}}\t{{.Namespaces.NET}}\t{{.Namespaces.PIDNS}}\t{{.Namespaces.User}}\t{{.Namespaces.UTS}}"
+	} else {
+		row = "{{.ID}}\t{{.Image}}\t{{.Command}}\t{{.CreatedHuman}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}"
 
-	if listOpts.Pod {
-		headers += "\tPOD ID\tPODNAME"
-		row += "\t{{.Pod}}\t{{.PodName}}"
-	}
+		if listOpts.Pod {
+			row += "\t{{.Pod}}\t{{.PodName}}"
+		}
 
-	if listOpts.Size {
-		headers += "\tSIZE"
-		row += "\t{{.Size}}"
+		if listOpts.Size {
+			row += "\t{{.Size}}"
+		}
 	}
-
-	headers = report.NormalizeFormat(headers)
-	row = report.NormalizeFormat(row)
-	return headers, row
+	return hdrs, "{{range .}}" + row + "\n{{end}}"
 }
 
 type psReporter struct {
@@ -365,6 +380,41 @@ func (l psReporter) CreatedAt() string {
 // CreateHuman allows us to output the created time in human readable format
 func (l psReporter) CreatedHuman() string {
 	return units.HumanDuration(time.Since(time.Unix(l.Created, 0))) + " ago"
+}
+
+// Cgroup exposes .Namespaces.Cgroup
+func (l psReporter) Cgroup() string {
+	return l.Namespaces.Cgroup
+}
+
+// IPC exposes .Namespaces.IPC
+func (l psReporter) IPC() string {
+	return l.Namespaces.IPC
+}
+
+// MNT exposes .Namespaces.MNT
+func (l psReporter) MNT() string {
+	return l.Namespaces.MNT
+}
+
+// NET exposes .Namespaces.NET
+func (l psReporter) NET() string {
+	return l.Namespaces.NET
+}
+
+// PIDNS exposes .Namespaces.PIDNS
+func (l psReporter) PIDNS() string {
+	return l.Namespaces.PIDNS
+}
+
+// User exposes .Namespaces.User
+func (l psReporter) User() string {
+	return l.Namespaces.User
+}
+
+// UTS exposes .Namespaces.UTS
+func (l psReporter) UTS() string {
+	return l.Namespaces.UTS
 }
 
 // portsToString converts the ports used to a string of the from "port1, port2"

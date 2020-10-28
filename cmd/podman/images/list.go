@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -105,10 +106,10 @@ func images(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	switch {
-	case listFlag.quiet:
-		return writeID(imgs)
 	case report.IsJSON(listFlag.format):
 		return writeJSON(imgs)
+	case listFlag.quiet:
+		return writeID(imgs)
 	default:
 		if cmd.Flag("format").Changed {
 			listFlag.noHeading = true // V1 compatibility
@@ -171,9 +172,13 @@ func writeTemplate(imgs []imageReporter) error {
 	} else {
 		row = report.NormalizeFormat(listFlag.format)
 	}
+	format := parse.EnforceRange(row)
 
-	format := "{{range . }}" + row + "{{end}}"
-	tmpl := template.Must(template.New("list").Parse(format))
+	tmpl, err := template.New("list").Parse(format)
+	if err != nil {
+		return err
+	}
+
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 

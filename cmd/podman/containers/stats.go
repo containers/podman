@@ -8,6 +8,7 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
@@ -58,8 +59,7 @@ type statsOptionsCLI struct {
 }
 
 var (
-	statsOptions    statsOptionsCLI
-	defaultStatsRow = "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\n"
+	statsOptions statsOptionsCLI
 )
 
 func statFlags(flags *pflag.FlagSet) {
@@ -159,28 +159,25 @@ func outputStats(reports []define.ContainerStats) error {
 	if report.IsJSON(statsOptions.Format) {
 		return outputJSON(stats)
 	}
-	format := defaultStatsRow
-
+	format := "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\n"
 	if len(statsOptions.Format) > 0 {
 		format = report.NormalizeFormat(statsOptions.Format)
-	} else if len(statsOptions.Format) < 1 {
-		format = defaultStatsRow
 	}
-	format = "{{range . }}" + format + "{{end}}"
+	format = parse.EnforceRange(format)
+
 	tmpl, err := template.New("stats").Parse(format)
 	if err != nil {
 		return err
 	}
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	defer w.Flush()
+
 	if len(statsOptions.Format) < 1 {
 		if err := tmpl.Execute(w, headers); err != nil {
 			return err
 		}
 	}
 	if err := tmpl.Execute(w, stats); err != nil {
-		return err
-	}
-	if err := w.Flush(); err != nil {
 		return err
 	}
 	return nil

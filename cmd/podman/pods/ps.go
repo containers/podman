@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -113,20 +114,22 @@ func pods(cmd *cobra.Command, _ []string) error {
 		"Created":            "CREATED",
 		"InfraID":            "INFRA ID",
 	})
+	renderHeaders := true
 	row := podPsFormat()
 	if cmd.Flags().Changed("format") {
+		renderHeaders = parse.HasTable(psInput.Format)
 		row = report.NormalizeFormat(psInput.Format)
 	}
-	row = "{{range . }}" + row + "{{end}}"
+	format := parse.EnforceRange(row)
 
-	tmpl, err := template.New("listPods").Parse(row)
+	tmpl, err := template.New("listPods").Parse(format)
 	if err != nil {
 		return err
 	}
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 
-	if !psInput.Quiet && !cmd.Flag("format").Changed {
+	if renderHeaders {
 		if err := tmpl.Execute(w, headers); err != nil {
 			return err
 		}
