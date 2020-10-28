@@ -10,9 +10,12 @@ const (
 	PodStateExited = "Exited"
 	// PodStatePaused indicates the pod has been paused
 	PodStatePaused = "Paused"
-	// PodStateRunning indicates that one or more of the containers in
-	// the pod is running
+	// PodStateRunning indicates that all of the containers in the pod are
+	// running.
 	PodStateRunning = "Running"
+	// PodStateDegraded indicates that at least one, but not all, of the
+	// containers in the pod are running.
+	PodStateDegraded = "Degraded"
 	// PodStateStopped indicates all of the containers belonging to the pod
 	// are stopped.
 	PodStateStopped = "Stopped"

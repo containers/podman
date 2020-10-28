@@ -10,10 +10,10 @@ func (p *Pod) GetPodStatus() (string, error) {
 	if err != nil {
 		return define.PodStateErrored, err
 	}
-	return CreatePodStatusResults(ctrStatuses)
+	return createPodStatusResults(ctrStatuses)
 }
 
-func CreatePodStatusResults(ctrStatuses map[string]define.ContainerStatus) (string, error) {
+func createPodStatusResults(ctrStatuses map[string]define.ContainerStatus) (string, error) {
 	ctrNum := len(ctrStatuses)
 	if ctrNum == 0 {
 		return define.PodStateCreated, nil
@@ -43,8 +43,10 @@ func CreatePodStatusResults(ctrStatuses map[string]define.ContainerStatus) (stri
 	}
 
 	switch {
-	case statuses[define.PodStateRunning] > 0:
+	case statuses[define.PodStateRunning] == ctrNum:
 		return define.PodStateRunning, nil
+	case statuses[define.PodStateRunning] > 0:
+		return define.PodStateDegraded, nil
 	case statuses[define.PodStatePaused] == ctrNum:
 		return define.PodStatePaused, nil
 	case statuses[define.PodStateStopped] == ctrNum:
