@@ -44,9 +44,14 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 
-	_, err := runtime.ImageRuntime().NewFromLocal(name)
+	ir := abi.ImageEngine{Libpod: runtime}
+	report, err := ir.Exists(r.Context(), name)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
+		return
+	}
+	if !report.Value {
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(nil, "failed to find image %s", name))
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
