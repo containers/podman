@@ -1296,7 +1296,7 @@ func WithRootFS(rootfs string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 		if _, err := os.Stat(rootfs); err != nil {
-			return errors.Wrapf(err, "error checking path %q", rootfs)
+			return err
 		}
 		ctr.config.Rootfs = rootfs
 		return nil

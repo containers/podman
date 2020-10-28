@@ -120,7 +120,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 			if os.IsNotExist(err) {
 				continue
 			}
-			return nil, errors.Wrapf(err, "cannot stat OCI runtime %s path %q", name, path)
+			return nil, errors.Wrapf(err, "cannot stat OCI runtime %s path", name)
 		}
 		if !stat.Mode().IsRegular() {
 			continue

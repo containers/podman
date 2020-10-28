@@ -52,7 +52,7 @@ func addPrivilegedDevices(g *generate.Generator) error {
 				if err == unix.EPERM {
 					continue
 				}
-				return errors.Wrapf(err, "stat %s", d.Path)
+				return err
 			}
 			// Skip devices that the user has not access to.
 			if st.Mode()&0007 == 0 {
@@ -90,7 +90,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	}
 	st, err := os.Stat(resolvedDevicePath)
 	if err != nil {
-		return errors.Wrapf(err, "cannot stat device path %s", devicePath)
+		return err
 	}
 	if st.IsDir() {
 		found := false
@@ -231,10 +231,7 @@ func addDevice(g *generate.Generator, device string) error {
 	}
 	if rootless.IsRootless() {
 		if _, err := os.Stat(src); err != nil {
-			if os.IsNotExist(err) {
-				return errors.Wrapf(err, "the specified device %s doesn't exist", src)
-			}
-			return errors.Wrapf(err, "stat device %s exist", src)
+			return err
 		}
 		perm := "ro"
 		if strings.Contains(permissions, "w") {

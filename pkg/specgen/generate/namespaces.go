@@ -278,7 +278,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	switch s.PidNS.NSMode {
 	case specgen.Path:
 		if _, err := os.Stat(s.PidNS.Value); err != nil {
-			return errors.Wrapf(err, "cannot find specified PID namespace path %q", s.PidNS.Value)
+			return errors.Wrap(err, "cannot find specified PID namespace path")
 		}
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), s.PidNS.Value); err != nil {
 			return err
@@ -297,7 +297,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	switch s.IpcNS.NSMode {
 	case specgen.Path:
 		if _, err := os.Stat(s.IpcNS.Value); err != nil {
-			return errors.Wrapf(err, "cannot find specified IPC namespace path %q", s.IpcNS.Value)
+			return errors.Wrap(err, "cannot find specified IPC namespace path")
 		}
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), s.IpcNS.Value); err != nil {
 			return err
@@ -316,7 +316,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	switch s.UtsNS.NSMode {
 	case specgen.Path:
 		if _, err := os.Stat(s.UtsNS.Value); err != nil {
-			return errors.Wrapf(err, "cannot find specified UTS namespace path %q", s.UtsNS.Value)
+			return errors.Wrap(err, "cannot find specified UTS namespace path")
 		}
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), s.UtsNS.Value); err != nil {
 			return err
@@ -367,7 +367,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	switch s.UserNS.NSMode {
 	case specgen.Path:
 		if _, err := os.Stat(s.UserNS.Value); err != nil {
-			return errors.Wrapf(err, "cannot find specified user namespace path %s", s.UserNS.Value)
+			return errors.Wrap(err, "cannot find specified user namespace path")
 		}
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), s.UserNS.Value); err != nil {
 			return err
@@ -410,7 +410,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	switch s.CgroupNS.NSMode {
 	case specgen.Path:
 		if _, err := os.Stat(s.CgroupNS.Value); err != nil {
-			return errors.Wrapf(err, "cannot find specified cgroup namespace path %s", s.CgroupNS.Value)
+			return errors.Wrap(err, "cannot find specified cgroup namespace path")
 		}
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), s.CgroupNS.Value); err != nil {
 			return err
@@ -429,7 +429,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	switch s.NetNS.NSMode {
 	case specgen.Path:
 		if _, err := os.Stat(s.NetNS.Value); err != nil {
-			return errors.Wrapf(err, "cannot find specified network namespace path %s", s.NetNS.Value)
+			return errors.Wrap(err, "cannot find specified network namespace path")
 		}
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), s.NetNS.Value); err != nil {
 			return err

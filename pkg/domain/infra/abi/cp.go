@@ -214,7 +214,7 @@ func getPathInfo(path string) (string, os.FileInfo, error) {
 	}
 	srcfi, err := os.Stat(path)
 	if err != nil {
-		return "", nil, errors.Wrapf(err, "error reading path %q", path)
+		return "", nil, err
 	}
 	return path, srcfi, nil
 }
@@ -245,7 +245,7 @@ func containerCopy(srcPath, destPath, src, dest string, idMappingOpts storage.ID
 	}
 	_, err = os.Stat(destdir)
 	if err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "error checking directory %q", destdir)
+		return err
 	}
 	destDirIsExist := err == nil
 	if err = os.MkdirAll(destdir, 0755); err != nil {
@@ -292,7 +292,7 @@ func containerCopy(srcPath, destPath, src, dest string, idMappingOpts storage.ID
 	destfi, err := os.Stat(destPath)
 	if err != nil {
 		if !os.IsNotExist(err) || strings.HasSuffix(dest, string(os.PathSeparator)) {
-			return errors.Wrapf(err, "failed to get stat of dest path %s", destPath)
+			return err
 		}
 	}
 	if destfi != nil && destfi.IsDir() {

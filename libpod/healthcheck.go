@@ -223,7 +223,7 @@ func (c *Container) GetHealthCheckLog() (define.HealthCheckResults, error) {
 	}
 	b, err := ioutil.ReadFile(c.healthCheckLogPath())
 	if err != nil {
-		return healthCheck, errors.Wrapf(err, "failed to read health check log file %s", c.healthCheckLogPath())
+		return healthCheck, errors.Wrap(err, "failed to read health check log file")
 	}
 	if err := json.Unmarshal(b, &healthCheck); err != nil {
 		return healthCheck, errors.Wrapf(err, "failed to unmarshal existing healthcheck results in %s", c.healthCheckLogPath())

@@ -108,7 +108,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	if af := cliVals.Authfile; len(af) > 0 {
 		if _, err := os.Stat(af); err != nil {
-			return errors.Wrapf(err, "error checking authfile path %s", af)
+			return err
 		}
 	}
 

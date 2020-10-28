@@ -251,7 +251,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			case v1.HostPathDirectoryOrCreate:
 				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 					if err := os.Mkdir(hostPath.Path, kubeDirectoryPermission); err != nil {
-						return nil, errors.Errorf("error creating HostPath %s", volume.Name)
+						return nil, err
 					}
 				}
 				// Label a newly created volume
@@ -262,7 +262,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 					f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, kubeFilePermission)
 					if err != nil {
-						return nil, errors.Errorf("error creating HostPath %s", volume.Name)
+						return nil, errors.Wrap(err, "error creating HostPath")
 					}
 					if err := f.Close(); err != nil {
 						logrus.Warnf("Error in closing newly created HostPath file: %v", err)

@@ -116,7 +116,7 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 
 	if searchOptions.Authfile != "" {
 		if _, err := os.Stat(searchOptions.Authfile); err != nil {
-			return errors.Wrapf(err, "error getting authfile %s", searchOptions.Authfile)
+			return err
 		}
 	}
 

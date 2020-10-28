@@ -55,7 +55,7 @@ func kube(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("filename") {
 		if _, err := os.Stat(kubeFile); err == nil {
-			return errors.Errorf("cannot write to %q", kubeFile)
+			return errors.Errorf("cannot write to %q; file exists", kubeFile)
 		}
 		if err := ioutil.WriteFile(kubeFile, content, 0644); err != nil {
 			return errors.Wrapf(err, "cannot write to %q", kubeFile)
