@@ -249,7 +249,7 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	// attaching, and I really do not want to do that right now.
 	// Send a SIGWINCH after attach succeeds so that most programs will
 	// redraw the screen for the new attach session.
-	attachRdy := make(chan bool)
+	attachRdy := make(chan bool, 1)
 	if c.config.Spec.Process != nil && c.config.Spec.Process.Terminal {
 		go func() {
 			<-attachRdy
