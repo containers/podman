@@ -119,7 +119,7 @@ EOF
     # noexec option. This should fail.
     # ARGH. Unfortunately, runc (used for cgroups v1) produces a different error
     local expect_rc=126
-    local expect_msg='.* OCI runtime permission denied.*'
+    local expect_msg='.* OCI permission denied.*'
     run_podman info --format '{{ .Host.OCIRuntime.Path }}'
     if expr "$output" : ".*/runc"; then
         expect_rc=1
