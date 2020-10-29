@@ -106,6 +106,12 @@ type State interface {
 	SetNetworkAliases(ctr *Container, network string, aliases []string) error
 	// Remove network aliases for the given container in the given network.
 	RemoveNetworkAliases(ctr *Container, network string) error
+	// GetAllAliasesForNetwork returns all the aliases for a given
+	// network. Returns a map of alias to container ID.
+	GetAllAliasesForNetwork(network string) (map[string]string, error)
+	// RemoveAllAliasesForNetwork removes all the aliases for a given
+	// network.
+	RemoveAllAliasesForNetwork(network string) error
 
 	// Return a container config from the database by full ID
 	GetContainerConfig(id string) (*ContainerConfig, error)

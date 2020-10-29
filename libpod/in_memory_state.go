@@ -285,6 +285,13 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		return err
 	}
 
+	// Check networks
+	for _, net := range ctr.config.Networks {
+		if net == "" {
+			return errors.Wrapf(define.ErrInvalidArg, "network names cannot be empty")
+		}
+	}
+
 	// Check network aliases
 	for network, aliases := range ctr.config.NetworkAliases {
 		inNet := false
@@ -301,6 +308,10 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		allNetAliases, ok := s.networkAliases[network]
 		if ok {
 			for _, alias := range aliases {
+				// Check if alias is a name
+				if _, err := s.nameIndex.Get(alias); err == nil {
+					return define.ErrInvalidArg
+				}
 				if _, ok := allNetAliases[alias]; ok {
 					return define.ErrAliasExists
 				}
@@ -362,6 +373,34 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	// Add container to volume dependencies
 	for _, vol := range ctr.config.NamedVolumes {
 		s.addCtrToVolDependsMap(ctr.ID(), vol.Name)
+	}
+
+	for _, network := range ctr.config.Networks {
+		allNetAliases, ok := s.networkAliases[network]
+		if !ok {
+			continue
+		}
+		otherCtrID, ok := allNetAliases[ctr.Name()]
+		if !ok {
+			continue
+		}
+		delete(allNetAliases, ctr.Name())
+
+		otherCtrAliases, ok := s.ctrNetworkAliases[otherCtrID]
+		if !ok {
+			continue
+		}
+		otherCtrNetAliases, ok := otherCtrAliases[network]
+		if !ok {
+			continue
+		}
+		newAliases := []string{}
+		for _, alias := range otherCtrNetAliases {
+			if alias != ctr.Name() {
+				newAliases = append(newAliases, alias)
+			}
+		}
+		otherCtrAliases[network] = newAliases
 	}
 
 	// Add network aliases
@@ -691,6 +730,41 @@ func (s *InMemoryState) RemoveNetworkAliases(ctr *Container, network string) err
 
 	for _, alias := range netAliases {
 		delete(allAliases, alias)
+	}
+
+	return nil
+}
+
+// GetAllAliasesForNetwork gets all the aliases for a single network.
+func (s *InMemoryState) GetAllAliasesForNetwork(network string) (map[string]string, error) {
+	if network == "" {
+		return nil, errors.Wrapf(define.ErrInvalidArg, "network names must not be empty")
+	}
+
+	allAliases, ok := s.networkAliases[network]
+	if !ok {
+		// Can't tell if the network exists.
+		// Assume it does.
+		return map[string]string{}, nil
+	}
+
+	return allAliases, nil
+}
+
+// RemoveAllAliasesForNetwork removes all the aliases for a given network.
+func (s *InMemoryState) RemoveAllAliasesForNetwork(network string) error {
+	if network == "" {
+		return errors.Wrapf(define.ErrInvalidArg, "network names must not be empty")
+	}
+
+	if _, ok := s.networkAliases[network]; ok {
+		delete(s.networkAliases, network)
+	}
+
+	for _, ctrAliases := range s.ctrNetworkAliases {
+		if _, ok := ctrAliases[network]; ok {
+			delete(ctrAliases, network)
+		}
 	}
 
 	return nil
@@ -1340,6 +1414,13 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		return err
 	}
 
+	// Check networks
+	for _, net := range ctr.config.Networks {
+		if net == "" {
+			return errors.Wrapf(define.ErrInvalidArg, "network names cannot be empty")
+		}
+	}
+
 	// Check network aliases
 	for network, aliases := range ctr.config.NetworkAliases {
 		inNet := false
@@ -1356,6 +1437,10 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		allNetAliases, ok := s.networkAliases[network]
 		if ok {
 			for _, alias := range aliases {
+				// Check if alias is a name
+				if _, err := s.nameIndex.Get(alias); err == nil {
+					return define.ErrInvalidArg
+				}
 				if _, ok := allNetAliases[alias]; ok {
 					return define.ErrAliasExists
 				}
@@ -1438,6 +1523,34 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	// Add container to volume dependencies
 	for _, vol := range ctr.config.NamedVolumes {
 		s.addCtrToVolDependsMap(ctr.ID(), vol.Name)
+	}
+
+	for _, network := range ctr.config.Networks {
+		allNetAliases, ok := s.networkAliases[network]
+		if !ok {
+			continue
+		}
+		otherCtrID, ok := allNetAliases[ctr.Name()]
+		if !ok {
+			continue
+		}
+		delete(allNetAliases, ctr.Name())
+
+		otherCtrAliases, ok := s.ctrNetworkAliases[otherCtrID]
+		if !ok {
+			continue
+		}
+		otherCtrNetAliases, ok := otherCtrAliases[network]
+		if !ok {
+			continue
+		}
+		newAliases := []string{}
+		for _, alias := range otherCtrNetAliases {
+			if alias != ctr.Name() {
+				newAliases = append(newAliases, alias)
+			}
+		}
+		otherCtrAliases[network] = newAliases
 	}
 
 	// Add network aliases

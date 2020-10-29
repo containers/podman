@@ -634,6 +634,13 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			return errors.Wrapf(err, "name \"%s\" is in use", ctr.Name())
 		}
 
+		// Check that we don't have any empty network names
+		for _, net := range ctr.config.Networks {
+			if net == "" {
+				return errors.Wrapf(define.ErrInvalidArg, "network names cannot be an empty string")
+			}
+		}
+
 		// If we have network aliases, check if they are already in use.
 		for net, aliases := range ctr.config.NetworkAliases {
 			// Aliases cannot conflict with container names.
@@ -682,6 +689,51 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			return errors.Wrapf(err, "error adding container %s to all containers bucket in DB", ctr.ID())
 		}
 
+		// Check aliases for all networks, remove conflicts with the
+		// container name.
+		for _, net := range ctr.config.Networks {
+			netAliasesBkt := allAliasesBkt.Bucket([]byte(net))
+			if netAliasesBkt == nil {
+				continue
+			}
+
+			otherCtrID := netAliasesBkt.Get(ctrName)
+			if otherCtrID == nil {
+				continue
+			}
+
+			if err := netAliasesBkt.Delete(ctrName); err != nil {
+				return errors.Wrapf(err, "error removing container %s name from network aliases for network %s", ctr.ID(), net)
+			}
+
+			// We now need to remove from the other container.
+			// To do this, we work through the container bucket,
+			// then its aliases bucket, then its aliases for this
+			// specific network, then we remove the alias.
+			// Just slightly ridiculous. Just slightly.
+			otherCtr := ctrBucket.Bucket(otherCtrID)
+			if otherCtr == nil {
+				// The state is inconsistent, but we can't do
+				// much...
+				logrus.Errorf("Container %s referred to by network alias but not present in state", string(otherCtrID))
+				continue
+			}
+			otherCtrAliases := otherCtr.Bucket(aliasesBkt)
+			if otherCtrAliases == nil {
+				logrus.Errorf("Container %s is missing aliases but but has an alias", string(otherCtrID))
+				continue
+			}
+			otherCtrNetworkAliases := otherCtrAliases.Bucket([]byte(net))
+			if otherCtrNetworkAliases == nil {
+				logrus.Errorf("Container %s is missing network aliases bucket for network %s but has alias in that network", string(otherCtrID), net)
+			}
+			if otherCtrNetworkAliases.Get(ctrName) != nil {
+				if err := otherCtrNetworkAliases.Delete(ctrName); err != nil {
+					return errors.Wrapf(err, "error removing container %s name from network %s aliases of container %s", ctr.Name(), net, string(otherCtrID))
+				}
+			}
+		}
+
 		for net, aliases := range ctr.config.NetworkAliases {
 			netAliasesBkt, err := allAliasesBkt.CreateBucketIfNotExists([]byte(net))
 			if err != nil {
@@ -689,13 +741,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			}
 			for _, alias := range aliases {
 				if err := netAliasesBkt.Put([]byte(alias), ctrID); err != nil {
-					return errors.Wrapf(err, "error adding container %s network aliasa %q to network %q", ctr.ID(), alias, net)
-				}
-			}
-			// If the container's name is present in the aliases - remove it.
-			if namePresent := netAliasesBkt.Get(ctrName); namePresent != nil {
-				if err := netAliasesBkt.Delete(ctrName); err != nil {
-					return errors.Wrapf(err, "error cleaning container name %q from network %q aliases", ctr.Name(), net)
+					return errors.Wrapf(err, "error adding container %s network alias %q to network %q", ctr.ID(), alias, net)
 				}
 			}
 		}
