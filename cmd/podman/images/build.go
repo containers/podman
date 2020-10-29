@@ -241,8 +241,12 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	pullPolicy := imagebuildah.PullIfNewer
-	if c.Flags().Changed("pull") && !flags.Pull {
-		pullPolicy = imagebuildah.PullIfMissing
+	if c.Flags().Changed("pull") {
+		if flags.Pull {
+			pullPolicy = imagebuildah.PullAlways
+		} else {
+			pullPolicy = imagebuildah.PullNever
+		}
 	}
 	if flags.PullAlways {
 		pullPolicy = imagebuildah.PullAlways
