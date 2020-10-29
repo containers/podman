@@ -918,6 +918,56 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int
 	return prunedContainers, pruneErrors, nil
 }
 
+// MountStorageContainer mounts the storage container's root filesystem
+func (r *Runtime) MountStorageContainer(id string) (string, error) {
+	if _, err := r.GetContainer(id); err == nil {
+		return "", errors.Wrapf(define.ErrCtrExists, "ctr %s is a libpod container", id)
+	}
+	container, err := r.store.Container(id)
+	if err != nil {
+		return "", err
+	}
+	mountPoint, err := r.store.Mount(container.ID, "")
+	if err != nil {
+		return "", errors.Wrapf(err, "error mounting storage for container %s", id)
+	}
+	return mountPoint, nil
+}
+
+// UnmountStorageContainer unmounts the storage container's root filesystem
+func (r *Runtime) UnmountStorageContainer(id string, force bool) (bool, error) {
+	if _, err := r.GetContainer(id); err == nil {
+		return false, errors.Wrapf(define.ErrCtrExists, "ctr %s is a libpod container", id)
+	}
+	container, err := r.store.Container(id)
+	if err != nil {
+		return false, err
+	}
+	return r.store.Unmount(container.ID, force)
+}
+
+// MountedStorageContainer returns whether a storage container is mounted
+// along with the mount path
+func (r *Runtime) IsStorageContainerMounted(id string) (bool, string, error) {
+	var path string
+	if _, err := r.GetContainer(id); err == nil {
+		return false, "", errors.Wrapf(define.ErrCtrExists, "ctr %s is a libpod container", id)
+	}
+
+	mountCnt, err := r.storageService.MountedContainerImage(id)
+	if err != nil {
+		return false, "", err
+	}
+	mounted := mountCnt > 0
+	if mounted {
+		path, err = r.storageService.GetMountpoint(id)
+		if err != nil {
+			return false, "", err
+		}
+	}
+	return mounted, path, nil
+}
+
 // StorageContainers returns a list of containers from containers/storage that
 // are not currently known to Podman.
 func (r *Runtime) StorageContainers() ([]storage.Container, error) {
