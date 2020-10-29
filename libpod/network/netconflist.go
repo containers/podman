@@ -126,9 +126,12 @@ func NewFirewallPlugin() FirewallConfig {
 // NewDNSNamePlugin creates the dnsname config with a given
 // domainname
 func NewDNSNamePlugin(domainName string) DNSNameConfig {
+	caps := make(map[string]bool, 1)
+	caps["aliases"] = true
 	return DNSNameConfig{
-		PluginType: "dnsname",
-		DomainName: domainName,
+		PluginType:   "dnsname",
+		DomainName:   domainName,
+		Capabilities: caps,
 	}
 }
 

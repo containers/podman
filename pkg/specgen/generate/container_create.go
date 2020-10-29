@@ -133,6 +133,10 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, libpod.WithExitCommand(exitCommandArgs))
 
+	if len(s.Aliases) > 0 {
+		options = append(options, libpod.WithNetworkAliases(s.Aliases))
+	}
+
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command)
 	if err != nil {
 		return nil, err

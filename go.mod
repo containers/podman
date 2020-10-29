@@ -17,7 +17,7 @@ require (
 	github.com/containers/psgo v1.5.1
 	github.com/containers/storage v1.23.9
 	github.com/coreos/go-systemd/v22 v22.1.0
-	github.com/cri-o/ocicni v0.2.0
+	github.com/cri-o/ocicni v0.2.1-0.20201102180012-75c612fda1a2
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
@@ -72,3 +72,5 @@ require (
 	k8s.io/apimachinery v0.19.3
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace github.com/cri-o/ocicni => github.com/cri-o/ocicni v0.2.1-0.20201109200316-afdc16ba66df

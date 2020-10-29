@@ -32,6 +32,7 @@ type VolumeDeleteReport struct{ Report }
 // pods and containers
 type NetOptions struct {
 	AddHosts           []string
+	Aliases            []string
 	CNINetworks        []string
 	UseImageResolvConf bool
 	DNSOptions         []string

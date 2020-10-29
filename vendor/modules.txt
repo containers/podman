@@ -216,7 +216,7 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/cri-o/ocicni v0.2.0
+# github.com/cri-o/ocicni v0.2.1-0.20201102180012-75c612fda1a2 => github.com/cri-o/ocicni v0.2.1-0.20201109200316-afdc16ba66df
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin

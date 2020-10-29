@@ -133,6 +133,7 @@ func stringMaptoArray(m map[string]string) []string {
 // a specgen spec.
 func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroupsManager string) (*ContainerCLIOpts, []string, error) {
 	var (
+		aliases    []string
 		capAdd     []string
 		cappDrop   []string
 		entrypoint string
@@ -242,8 +243,11 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	// network names
 	endpointsConfig := cc.NetworkingConfig.EndpointsConfig
 	cniNetworks := make([]string, 0, len(endpointsConfig))
-	for netName := range endpointsConfig {
+	for netName, endpoint := range endpointsConfig {
 		cniNetworks = append(cniNetworks, netName)
+		if len(endpoint.Aliases) > 0 {
+			aliases = append(aliases, endpoint.Aliases...)
+		}
 	}
 
 	// netMode
@@ -262,6 +266,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	// defined when there is only one network.
 	netInfo := entities.NetOptions{
 		AddHosts:     cc.HostConfig.ExtraHosts,
+		Aliases:      aliases,
 		CNINetworks:  cniNetworks,
 		DNSOptions:   cc.HostConfig.DNSOptions,
 		DNSSearch:    cc.HostConfig.DNSSearch,

@@ -328,6 +328,9 @@ type ContainerCgroupConfig struct {
 // ContainerNetworkConfig contains information on a container's network
 // configuration.
 type ContainerNetworkConfig struct {
+	// Aliases are a list of network-scoped aliases for container
+	// Optional
+	Aliases map[string][]string `json:"aliases"`
 	// NetNS is the configuration to use for the container's network
 	// namespace.
 	// Mandatory.

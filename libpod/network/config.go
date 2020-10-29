@@ -131,8 +131,9 @@ func (f FirewallConfig) Bytes() ([]byte, error) {
 
 // DNSNameConfig describes the dns container name resolution plugin config
 type DNSNameConfig struct {
-	PluginType string `json:"type"`
-	DomainName string `json:"domainName"`
+	PluginType   string          `json:"type"`
+	DomainName   string          `json:"domainName"`
+	Capabilities map[string]bool `json:"capabilities"`
 }
 
 // Bytes outputs the configuration as []byte

@@ -7,6 +7,9 @@ import (
 	"net"
 	"os/exec"
 	"strings"
+
+	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/vishvananda/netlink"
 )
 
 var defaultNamespaceEnterCommandName = "nsenter"
@@ -68,4 +71,80 @@ func getContainerDetails(nsm *nsManager, netnsPath, interfaceName, addrType stri
 	}
 
 	return ipNet, &mac, nil
+}
+
+func tearDownLoopback(netns string) error {
+	return ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName(loIfname)
+		if err != nil {
+			return err // not tested
+		}
+		err = netlink.LinkSetDown(link)
+		if err != nil {
+			return err // not tested
+		}
+		return nil
+	})
+}
+
+func bringUpLoopback(netns string) error {
+	if err := ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName(loIfname)
+		if err == nil {
+			err = netlink.LinkSetUp(link)
+		}
+		if err != nil {
+			return err
+		}
+
+		v4Addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
+		if err != nil {
+			return err
+		}
+		if len(v4Addrs) != 0 {
+			// sanity check that this is a loopback address
+			for _, addr := range v4Addrs {
+				if !addr.IP.IsLoopback() {
+					return fmt.Errorf("loopback interface found with non-loopback address %q", addr.IP)
+				}
+			}
+		}
+
+		v6Addrs, err := netlink.AddrList(link, netlink.FAMILY_V6)
+		if err != nil {
+			return err
+		}
+		if len(v6Addrs) != 0 {
+			// sanity check that this is a loopback address
+			for _, addr := range v6Addrs {
+				if !addr.IP.IsLoopback() {
+					return fmt.Errorf("loopback interface found with non-loopback address %q", addr.IP)
+				}
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error adding loopback interface: %s", err)
+	}
+	return nil
+}
+
+func checkLoopback(netns string) error {
+	// Make sure loopback interface is up
+	if err := ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName(loIfname)
+		if err != nil {
+			return err
+		}
+
+		if link.Attrs().Flags&net.FlagUp != net.FlagUp {
+			return fmt.Errorf("loopback interface is down")
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error checking loopback interface: %v", err)
+	}
+	return nil
 }

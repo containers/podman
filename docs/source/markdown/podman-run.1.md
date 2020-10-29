@@ -626,7 +626,7 @@ Valid _mode_ values are:
 
 **--network-alias**=*alias*
 
-Not implemented.
+Add network-scoped alias for the container
 
 **--no-healthcheck**=*true|false*
 

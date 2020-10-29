@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
@@ -350,5 +351,43 @@ var _ = Describe("Podman network", func() {
 		lines := session.OutputToStringArray()
 		Expect(lines[0]).To(Equal(netName1))
 		Expect(lines[1]).To(Equal(netName2))
+	})
+	It("podman network with multiple aliases", func() {
+		Skip("Until DNSName is updated on our CI images")
+		var worked bool
+		netName := "aliasTest" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", netName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
+
+		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", nginx})
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(BeZero())
+		interval := time.Duration(250 * time.Millisecond)
+		// Wait for the nginx service to be running
+		for i := 0; i < 6; i++ {
+			// Test curl against the container's name
+			c1 := podmanTest.Podman([]string{"run", "--network=" + netName, nginx, "curl", "web"})
+			c1.WaitWithDefaultTimeout()
+			worked = Expect(c1.ExitCode()).To(BeZero())
+			if worked {
+				break
+			}
+			time.Sleep(interval)
+			interval *= 2
+		}
+		Expect(worked).To(BeTrue())
+
+		// Nginx is now running so no need to do a loop
+		// Test against the first alias
+		c2 := podmanTest.Podman([]string{"run", "--network=" + netName, nginx, "curl", "web1"})
+		c2.WaitWithDefaultTimeout()
+		Expect(c2.ExitCode()).To(BeZero())
+
+		// Test against the second alias
+		c3 := podmanTest.Podman([]string{"run", "--network=" + netName, nginx, "curl", "web2"})
+		c3.WaitWithDefaultTimeout()
+		Expect(c3.ExitCode()).To(BeZero())
 	})
 })
