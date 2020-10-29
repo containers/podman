@@ -61,9 +61,13 @@ bin/buildah:  $(SOURCES)
 .PHONY: buildah
 buildah: bin/buildah
 
-.PHONY: bin/buildah.darwin
-bin/buildah.darwin:
-	GOOS=darwin $(GO_BUILD) $(LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
+.PHONY: cross
+cross: bin/buildah.darwin.amd64 bin/buildah.linux.386 bin/buildah.linux.amd64 bin/buildah.linux.arm64 bin/buildah.linux.arm bin/buildah.linux.mips64 bin/buildah.linux.mips64le bin/buildah.linux.mips bin/buildah.linux.mipsle bin/buildah.linux.ppc64 bin/buildah.linux.ppc64le bin/buildah.linux.riscv64 bin/buildah.linux.s390x bin/buildah.windows.amd64.exe
+
+.PHONY: bin/buildah.%
+bin/buildah.%:
+	mkdir -p ./bin
+	GOOS=$(word 2,$(subst ., ,$@)) GOARCH=$(word 3,$(subst ., ,$@)) $(GO_BUILD) $(LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
 
 .PHONY: bin/imgtype
 bin/imgtype: *.go docker/*.go util/*.go tests/imgtype/imgtype.go
@@ -85,12 +89,13 @@ gopath:
 	test $(shell pwd) = $(shell cd ../../../../src/github.com/containers/buildah ; pwd)
 
 codespell:
-	codespell -S build,buildah,buildah.spec,imgtype,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L uint,iff,od
+	codespell -S Makefile,build,buildah,buildah.spec,imgtype,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L uint,iff,od
 
 .PHONY: validate
 validate: install.tools
 	@./tests/validate/whitespace.sh
 	@./tests/validate/git-validation.sh
+	@./hack/xref-helpmsgs-manpages
 
 .PHONY: install.tools
 install.tools:

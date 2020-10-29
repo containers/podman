@@ -81,7 +81,7 @@ func (s *StageExecutor) Preserve(path string) error {
 		// except ensure that it exists.
 		archivedPath := filepath.Join(s.mountPoint, path)
 		if err := os.MkdirAll(archivedPath, 0755); err != nil {
-			return errors.Wrapf(err, "error ensuring volume path %q exists", archivedPath)
+			return errors.Wrapf(err, "error ensuring volume path exists")
 		}
 		if err := s.volumeCacheInvalidate(path); err != nil {
 			return errors.Wrapf(err, "error ensuring volume path %q is preserved", archivedPath)
@@ -110,13 +110,13 @@ func (s *StageExecutor) Preserve(path string) error {
 	st, err := os.Stat(archivedPath)
 	if os.IsNotExist(err) {
 		if err = os.MkdirAll(archivedPath, 0755); err != nil {
-			return errors.Wrapf(err, "error ensuring volume path %q exists", archivedPath)
+			return errors.Wrapf(err, "error ensuring volume path exists")
 		}
 		st, err = os.Stat(archivedPath)
 	}
 	if err != nil {
 		logrus.Debugf("error reading info about %q: %v", archivedPath, err)
-		return errors.Wrapf(err, "error reading info about volume path %q", archivedPath)
+		return err
 	}
 	s.volumeCacheInfo[path] = st
 	if !s.volumes.Add(path) {
@@ -152,7 +152,7 @@ func (s *StageExecutor) Preserve(path string) error {
 			if os.IsNotExist(err) {
 				continue
 			}
-			return errors.Wrapf(err, "error removing %q", s.volumeCache[cachedPath])
+			return err
 		}
 		delete(s.volumeCache, cachedPath)
 	}
@@ -173,7 +173,7 @@ func (s *StageExecutor) volumeCacheInvalidate(path string) error {
 			if os.IsNotExist(err) {
 				continue
 			}
-			return errors.Wrapf(err, "error removing volume cache %q", s.volumeCache[cachedPath])
+			return err
 		}
 		archivedPath := filepath.Join(s.mountPoint, cachedPath)
 		logrus.Debugf("invalidated volume cache for %q from %q", archivedPath, s.volumeCache[cachedPath])
@@ -193,15 +193,15 @@ func (s *StageExecutor) volumeCacheSave() error {
 			continue
 		}
 		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "error checking for cache of %q in %q", archivedPath, cacheFile)
+			return err
 		}
 		if err := os.MkdirAll(archivedPath, 0755); err != nil {
-			return errors.Wrapf(err, "error ensuring volume path %q exists", archivedPath)
+			return errors.Wrapf(err, "error ensuring volume path exists")
 		}
 		logrus.Debugf("caching contents of volume %q in %q", archivedPath, cacheFile)
 		cache, err := os.Create(cacheFile)
 		if err != nil {
-			return errors.Wrapf(err, "error creating archive at %q", cacheFile)
+			return err
 		}
 		defer cache.Close()
 		rc, err := archive.Tar(archivedPath, archive.Uncompressed)
@@ -224,14 +224,14 @@ func (s *StageExecutor) volumeCacheRestore() error {
 		logrus.Debugf("restoring contents of volume %q from %q", archivedPath, cacheFile)
 		cache, err := os.Open(cacheFile)
 		if err != nil {
-			return errors.Wrapf(err, "error opening archive at %q", cacheFile)
+			return err
 		}
 		defer cache.Close()
 		if err := os.RemoveAll(archivedPath); err != nil {
-			return errors.Wrapf(err, "error clearing volume path %q", archivedPath)
+			return err
 		}
 		if err := os.MkdirAll(archivedPath, 0755); err != nil {
-			return errors.Wrapf(err, "error recreating volume path %q", archivedPath)
+			return err
 		}
 		err = archive.Untar(cache, archivedPath, nil)
 		if err != nil {
@@ -239,7 +239,7 @@ func (s *StageExecutor) volumeCacheRestore() error {
 		}
 		if st, ok := s.volumeCacheInfo[cachedPath]; ok {
 			if err := os.Chmod(archivedPath, st.Mode()); err != nil {
-				return errors.Wrapf(err, "error restoring permissions on %q", archivedPath)
+				return err
 			}
 			uid := 0
 			gid := 0
@@ -248,10 +248,10 @@ func (s *StageExecutor) volumeCacheRestore() error {
 				gid = util.GID(st)
 			}
 			if err := os.Chown(archivedPath, uid, gid); err != nil {
-				return errors.Wrapf(err, "error setting ownership on %q", archivedPath)
+				return err
 			}
 			if err := os.Chtimes(archivedPath, st.ModTime(), st.ModTime()); err != nil {
-				return errors.Wrapf(err, "error restoring datestamps on %q", archivedPath)
+				return err
 			}
 		}
 	}
@@ -789,8 +789,11 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// for this stage.  Make a note of the
 				// instruction in the history that we'll write
 				// for the image when we eventually commit it.
-				now := time.Now()
-				s.builder.AddPrependedEmptyLayer(&now, s.getCreatedBy(node, addedContentSummary), "", "")
+				timestamp := time.Now().UTC()
+				if s.executor.timestamp != nil {
+					timestamp = *s.executor.timestamp
+				}
+				s.builder.AddPrependedEmptyLayer(&timestamp, s.getCreatedBy(node, addedContentSummary), "", "")
 				continue
 			} else {
 				// This is the last instruction for this stage,

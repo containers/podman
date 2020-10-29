@@ -4,8 +4,6 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/containers/buildah)](https://goreportcard.com/report/github.com/containers/buildah)
 
-[![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/22803)
-
 
 The Buildah package provides a command line tool that can be used to
 * create a working container, either from scratch or using an image as a starting point

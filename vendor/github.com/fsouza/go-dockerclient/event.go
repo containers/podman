@@ -329,14 +329,12 @@ func (c *Client) eventHijack(startTime int64, eventChan chan *APIEvents, errChan
 	if err != nil {
 		return err
 	}
-	//nolint:staticcheck
-	conn := httputil.NewClientConn(dial, nil)
-	req, err := http.NewRequest(http.MethodGet, uri, nil)
+	conn := httputil.NewClientConn(dial, nil)             //nolint:staticcheck
+	req, err := http.NewRequest(http.MethodGet, uri, nil) //nolint:noctx
 	if err != nil {
 		return err
 	}
-	//nolint:bodyclose
-	res, err := conn.Do(req)
+	res, err := conn.Do(req) //nolint:bodyclose
 	if err != nil {
 		return err
 	}

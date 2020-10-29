@@ -11,9 +11,11 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/completion"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/auth"
+	commonComp "github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -125,6 +127,17 @@ func GetUserNSFlags(flags *UserNSResults) pflag.FlagSet {
 	return usernsFlags
 }
 
+// GetUserNSFlagsCompletions returns the FlagCompletions for the userns flags
+func GetUserNSFlagsCompletions() commonComp.FlagCompletions {
+	flagCompletion := commonComp.FlagCompletions{}
+	flagCompletion["userns"] = completion.AutocompleteNamespaceFlag
+	flagCompletion["userns-uid-map"] = commonComp.AutocompleteNone
+	flagCompletion["userns-gid-map"] = commonComp.AutocompleteNone
+	flagCompletion["userns-uid-map-user"] = commonComp.AutocompleteSubuidName
+	flagCompletion["userns-gid-map-group"] = commonComp.AutocompleteSubgidName
+	return flagCompletion
+}
+
 // GetNameSpaceFlags returns the common flags for a namespace menu
 func GetNameSpaceFlags(flags *NameSpaceResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
@@ -137,6 +150,18 @@ func GetNameSpaceFlags(flags *NameSpaceResults) pflag.FlagSet {
 	return fs
 }
 
+// GetNameSpaceFlagsCompletions returns the FlagCompletions for the namespace flags
+func GetNameSpaceFlagsCompletions() commonComp.FlagCompletions {
+	flagCompletion := commonComp.FlagCompletions{}
+	flagCompletion[string(specs.IPCNamespace)] = completion.AutocompleteNamespaceFlag
+	flagCompletion[string(specs.NetworkNamespace)] = completion.AutocompleteNamespaceFlag
+	flagCompletion["cni-config-dir"] = commonComp.AutocompleteDefault
+	flagCompletion["cni-plugin-path"] = commonComp.AutocompleteDefault
+	flagCompletion[string(specs.PIDNamespace)] = completion.AutocompleteNamespaceFlag
+	flagCompletion[string(specs.UTSNamespace)] = completion.AutocompleteNamespaceFlag
+	return flagCompletion
+}
+
 // GetLayerFlags returns the common flags for layers
 func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
@@ -144,6 +169,8 @@ func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 	fs.BoolVar(&flags.Layers, "layers", UseLayers(), fmt.Sprintf("cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override."))
 	return fs
 }
+
+// Note: GetLayerFlagsCompletion is not needed since GetLayerFlags only contains bool flags
 
 // GetBudFlags returns common bud flags
 func GetBudFlags(flags *BudResults) pflag.FlagSet {
@@ -161,11 +188,15 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringSliceVarP(&flags.File, "file", "f", []string{}, "`pathname or URL` of a Dockerfile")
 	fs.StringVar(&flags.Format, "format", DefaultFormat(), "`format` of the built image's manifest and metadata. Use BUILDAH_FORMAT environment variable to override.")
 	fs.StringVar(&flags.Iidfile, "iidfile", "", "`file` to write the image ID to")
+	fs.IntVar(&flags.Jobs, "jobs", 1, "how many stages to run in parallel")
 	fs.StringArrayVar(&flags.Label, "label", []string{}, "Set metadata for an image (default [])")
-	fs.BoolVar(&flags.NoCache, "no-cache", false, "Do not use existing cached images for the container build. Build from the start with a new set of cached layers.")
 	fs.StringVar(&flags.Logfile, "logfile", "", "log to `file` instead of stdout/stderr")
 	fs.IntVar(&flags.Loglevel, "loglevel", 0, "adjust logging level (range from -2 to 3)")
-	fs.Int64Var(&flags.Timestamp, "timestamp", 0, "set created timestamp to the specified epoch seconds to allow for deterministic builds, defaults to current time")
+	fs.BoolVar(&flags.LogRusage, "log-rusage", false, "log resource usage at each build step")
+	if err := fs.MarkHidden("log-rusage"); err != nil {
+		panic(fmt.Sprintf("error marking the log-rusage flag as hidden: %v", err))
+	}
+	fs.BoolVar(&flags.NoCache, "no-cache", false, "Do not use existing cached images for the container build. Build from the start with a new set of cached layers.")
 	fs.StringVar(&flags.OS, "os", runtime.GOOS, "set the OS to the provided value instead of the current operating system of the host")
 	fs.StringVar(&flags.Platform, "platform", parse.DefaultPlatform(), "set the OS/ARCH to the provided value instead of the current operating system and architecture of the host (for example `linux/arm`)")
 	fs.BoolVar(&flags.Pull, "pull", true, "pull the image from the registry if newer or not present in store, if false, only pull the image if not present")
@@ -180,15 +211,40 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.Squash, "squash", false, "squash newly built layers into a single new layer")
 	fs.StringArrayVarP(&flags.Tag, "tag", "t", []string{}, "tagged `name` to apply to the built image")
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
+	fs.Int64Var(&flags.Timestamp, "timestamp", 0, "set created timestamp to the specified epoch seconds to allow for deterministic builds, defaults to current time")
 	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
-	fs.IntVar(&flags.Jobs, "jobs", 1, "how many stages to run in parallel")
-	fs.BoolVar(&flags.LogRusage, "log-rusage", false, "log resource usage at each build step")
-	if err := fs.MarkHidden("log-rusage"); err != nil {
-		panic(fmt.Sprintf("error marking the log-rusage flag as hidden: %v", err))
-	}
 	return fs
 }
 
+// GetBudFlagsCompletions returns the FlagCompletions for the common bud flags
+func GetBudFlagsCompletions() commonComp.FlagCompletions {
+	flagCompletion := commonComp.FlagCompletions{}
+	flagCompletion["arch"] = commonComp.AutocompleteNone
+	flagCompletion["annotation"] = commonComp.AutocompleteNone
+	flagCompletion["authfile"] = commonComp.AutocompleteDefault
+	flagCompletion["build-arg"] = commonComp.AutocompleteNone
+	flagCompletion["cache-from"] = commonComp.AutocompleteNone
+	flagCompletion["cert-dir"] = commonComp.AutocompleteDefault
+	flagCompletion["creds"] = commonComp.AutocompleteNone
+	flagCompletion["file"] = commonComp.AutocompleteDefault
+	flagCompletion["format"] = commonComp.AutocompleteNone
+	flagCompletion["iidfile"] = commonComp.AutocompleteDefault
+	flagCompletion["jobs"] = commonComp.AutocompleteNone
+	flagCompletion["label"] = commonComp.AutocompleteNone
+	flagCompletion["logfile"] = commonComp.AutocompleteDefault
+	flagCompletion["loglevel"] = commonComp.AutocompleteDefault
+	flagCompletion["os"] = commonComp.AutocompleteNone
+	flagCompletion["platform"] = commonComp.AutocompleteNone
+	flagCompletion["runtime-flag"] = commonComp.AutocompleteNone
+	flagCompletion["sign-by"] = commonComp.AutocompleteNone
+	flagCompletion["signature-policy"] = commonComp.AutocompleteNone
+	flagCompletion["tag"] = commonComp.AutocompleteNone
+	flagCompletion["target"] = commonComp.AutocompleteNone
+	flagCompletion["timestamp"] = commonComp.AutocompleteNone
+	return flagCompletion
+}
+
+// GetFromAndBudFlags returns from and bud flags
 func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, namespaceResults *NameSpaceResults) (pflag.FlagSet, error) {
 	fs := pflag.FlagSet{}
 	defaultContainerConfig, err := config.Default()
@@ -237,6 +293,44 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.AddFlagSet(&namespaceFlags)
 
 	return fs, nil
+}
+
+// GetFromAndBudFlagsCompletions returns the FlagCompletions for the from and bud flags
+func GetFromAndBudFlagsCompletions() commonComp.FlagCompletions {
+	flagCompletion := commonComp.FlagCompletions{}
+	flagCompletion["add-host"] = commonComp.AutocompleteNone
+	flagCompletion["blob-cache"] = commonComp.AutocompleteNone
+	flagCompletion["cap-add"] = commonComp.AutocompleteCapabilities
+	flagCompletion["cap-drop"] = commonComp.AutocompleteCapabilities
+	flagCompletion["cgroup-parent"] = commonComp.AutocompleteDefault // FIXME: This would be a path right?!
+	flagCompletion["cpu-period"] = commonComp.AutocompleteNone
+	flagCompletion["cpu-quota"] = commonComp.AutocompleteNone
+	flagCompletion["cpu-shares"] = commonComp.AutocompleteNone
+	flagCompletion["cpuset-cpus"] = commonComp.AutocompleteNone
+	flagCompletion["cpuset-mems"] = commonComp.AutocompleteNone
+	flagCompletion["device"] = commonComp.AutocompleteDefault
+	flagCompletion["dns-search"] = commonComp.AutocompleteNone
+	flagCompletion["dns"] = commonComp.AutocompleteNone
+	flagCompletion["dns-option"] = commonComp.AutocompleteNone
+	flagCompletion["isolation"] = commonComp.AutocompleteNone
+	flagCompletion["memory"] = commonComp.AutocompleteNone
+	flagCompletion["memory-swap"] = commonComp.AutocompleteNone
+	flagCompletion["security-opt"] = commonComp.AutocompleteNone
+	flagCompletion["shm-size"] = commonComp.AutocompleteNone
+	flagCompletion["ulimit"] = commonComp.AutocompleteNone
+	flagCompletion["volume"] = commonComp.AutocompleteDefault
+
+	// Add in the usernamespace and namespace flag completions
+	userNsComp := GetUserNSFlagsCompletions()
+	for name, comp := range userNsComp {
+		flagCompletion[name] = comp
+	}
+	namespaceComp := GetNameSpaceFlagsCompletions()
+	for name, comp := range namespaceComp {
+		flagCompletion[name] = comp
+	}
+
+	return flagCompletion
 }
 
 // UseLayers returns true if BUILDAH_LAYERS is set to "1" or "true"

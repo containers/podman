@@ -40,7 +40,7 @@ func downloadToDirectory(url, dir string) error {
 	logrus.Debugf("extracting %q to %q", url, dir)
 	resp, err := http.Get(url)
 	if err != nil {
-		return errors.Wrapf(err, "error getting %q", url)
+		return err
 	}
 	defer resp.Body.Close()
 	if resp.ContentLength == 0 {
@@ -49,12 +49,12 @@ func downloadToDirectory(url, dir string) error {
 	if err := chrootarchive.Untar(resp.Body, dir, nil); err != nil {
 		resp1, err := http.Get(url)
 		if err != nil {
-			return errors.Wrapf(err, "error getting %q", url)
+			return err
 		}
 		defer resp1.Body.Close()
 		body, err := ioutil.ReadAll(resp1.Body)
 		if err != nil {
-			return errors.Wrapf(err, "Failed to read %q", url)
+			return err
 		}
 		dockerfile := filepath.Join(dir, "Dockerfile")
 		// Assume this is a Dockerfile

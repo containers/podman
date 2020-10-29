@@ -13,6 +13,7 @@
 package unix
 
 import (
+	"runtime"
 	"syscall"
 	"unsafe"
 )
@@ -256,6 +257,12 @@ func utimensat(dirfd int, path string, times *[2]Timespec, flags int) error {
 func Kill(pid int, signum syscall.Signal) (err error) { return kill(pid, int(signum), 1) }
 
 //sys	ioctl(fd int, req uint, arg uintptr) (err error)
+
+func IoctlCtlInfo(fd int, ctlInfo *CtlInfo) error {
+	err := ioctl(fd, CTLIOCGINFO, uintptr(unsafe.Pointer(ctlInfo)))
+	runtime.KeepAlive(ctlInfo)
+	return err
+}
 
 //sys   sysctl(mib []_C_int, old *byte, oldlen *uintptr, new *byte, newlen uintptr) (err error) = SYS_SYSCTL
 

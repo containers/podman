@@ -37,6 +37,7 @@ import (
 	"github.com/docker/libnetwork/resolvconf"
 	"github.com/docker/libnetwork/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -46,6 +47,9 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
 )
+
+// ContainerDevices is an alias for a slice of github.com/opencontainers/runc/libcontainer/configs.Device structures.
+type ContainerDevices = []configs.Device
 
 func setChildProcess() error {
 	if err := unix.Prctl(unix.PR_SET_CHILD_SUBREAPER, uintptr(1), 0, 0, 0); err != nil {
@@ -59,18 +63,18 @@ func setChildProcess() error {
 func (b *Builder) Run(command []string, options RunOptions) error {
 	p, err := ioutil.TempDir("", Package)
 	if err != nil {
-		return errors.Wrapf(err, "run: error creating temporary directory under %q", os.TempDir())
+		return err
 	}
 	// On some hosts like AH, /tmp is a symlink and we need an
 	// absolute path.
 	path, err := filepath.EvalSymlinks(p)
 	if err != nil {
-		return errors.Wrapf(err, "run: error evaluating %q for symbolic links", p)
+		return err
 	}
 	logrus.Debugf("using %q to hold bundle data", path)
 	defer func() {
 		if err2 := os.RemoveAll(path); err2 != nil {
-			logrus.Errorf("error removing %q: %v", path, err2)
+			logrus.Error(err2)
 		}
 	}()
 
@@ -163,7 +167,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	logrus.Debugf("ensuring working directory %q exists", filepath.Join(mountPoint, spec.Process.Cwd))
 	if err = os.MkdirAll(filepath.Join(mountPoint, spec.Process.Cwd), 0755); err != nil && !os.IsExist(err) {
-		return errors.Wrapf(err, "error ensuring working directory %q exists", spec.Process.Cwd)
+		return err
 	}
 
 	// Set the seccomp configuration using the specified profile name.  Some syscalls are
@@ -209,7 +213,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if _, ok := bindFiles["/run/.containerenv"]; !ok {
 		// Empty string for now, but we may consider populating this later
 		containerenvPath := filepath.Join(path, "/run/.containerenv")
-		if err = os.MkdirAll(filepath.Dir(containerenvPath), 0755); err != nil && !os.IsExist(err) {
+		if err = os.MkdirAll(filepath.Dir(containerenvPath), 0755); err != nil {
 			return err
 		}
 		emptyFile, err := os.Create(containerenvPath)
@@ -218,7 +222,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		}
 		emptyFile.Close()
 		if err := label.Relabel(containerenvPath, b.MountLabel, false); err != nil {
-			return errors.Wrapf(err, "error relabeling %q in container %q", containerenvPath, b.ContainerID)
+			return err
 		}
 
 		bindFiles["/run/.containerenv"] = containerenvPath
@@ -326,35 +330,35 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 		// If we need to, initialize the volume path's initial contents.
 		if _, err := os.Stat(volumePath); err != nil {
 			if !os.IsNotExist(err) {
-				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			logrus.Debugf("setting up built-in volume at %q", volumePath)
 			if err = os.MkdirAll(volumePath, 0755); err != nil {
-				return nil, errors.Wrapf(err, "error creating directory %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			if err = label.Relabel(volumePath, mountLabel, false); err != nil {
-				return nil, errors.Wrapf(err, "error relabeling directory %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			initializeVolume = true
 		}
 		stat, err := os.Stat(srcPath)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", srcPath, volume)
+				return nil, err
 			}
 			if err = idtools.MkdirAllAndChownNew(srcPath, 0755, hostOwner); err != nil {
-				return nil, errors.Wrapf(err, "error creating directory %q for volume %q", srcPath, volume)
+				return nil, err
 			}
 			if stat, err = os.Stat(srcPath); err != nil {
-				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", srcPath, volume)
+				return nil, err
 			}
 		}
 		if initializeVolume {
 			if err = os.Chmod(volumePath, stat.Mode().Perm()); err != nil {
-				return nil, errors.Wrapf(err, "failed to chmod %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			if err = os.Chown(volumePath, int(stat.Sys().(*syscall.Stat_t).Uid), int(stat.Sys().(*syscall.Stat_t).Gid)); err != nil {
-				return nil, errors.Wrapf(err, "error chowning directory %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			if err = extractWithTar(mountPoint, srcPath, volumePath); err != nil && !os.IsNotExist(errors.Cause(err)) {
 				return nil, errors.Wrapf(err, "error populating directory %q for volume %q using contents of %q", volumePath, volume, srcPath)
@@ -510,11 +514,11 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string, namespaceOptions NamespaceOptions) (string, error) {
 	stat, err := os.Stat(hostPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "error statting %q for container %q", hostPath, b.ContainerID)
+		return "", err
 	}
 	contents, err := ioutil.ReadFile(hostPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to read %s", hostPath)
+		return "", err
 	}
 
 	search := resolvconf.GetSearchDomains(contents)
@@ -568,13 +572,12 @@ func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDP
 		gid = chownOpts.GID
 	}
 	if err = os.Chown(cfile, uid, gid); err != nil {
-		return "", errors.Wrapf(err, "error chowning file %q for container %q", cfile, b.ContainerID)
+		return "", err
 	}
 
 	if err := label.Relabel(cfile, b.MountLabel, false); err != nil {
-		return "", errors.Wrapf(err, "error relabeling %q in container %q", cfile, b.ContainerID)
+		return "", err
 	}
-
 	return cfile, nil
 }
 
@@ -583,13 +586,13 @@ func (b *Builder) generateHosts(rdir, hostname string, addHosts []string, chownO
 	hostPath := "/etc/hosts"
 	stat, err := os.Stat(hostPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "error statting %q for container %q", hostPath, b.ContainerID)
+		return "", err
 	}
 
 	hosts := bytes.NewBufferString("# Generated by Buildah\n")
 	orig, err := ioutil.ReadFile(hostPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to read %s", hostPath)
+		return "", err
 	}
 	hosts.Write(orig)
 	for _, host := range addHosts {
@@ -622,10 +625,10 @@ func (b *Builder) generateHosts(rdir, hostname string, addHosts []string, chownO
 		gid = chownOpts.GID
 	}
 	if err = os.Chown(cfile, uid, gid); err != nil {
-		return "", errors.Wrapf(err, "error chowning file %q for container %q", cfile, b.ContainerID)
+		return "", err
 	}
 	if err := label.Relabel(cfile, b.MountLabel, false); err != nil {
-		return "", errors.Wrapf(err, "error relabeling %q in container %q", cfile, b.ContainerID)
+		return "", err
 	}
 
 	return cfile, nil
@@ -674,7 +677,7 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 		return 1, errors.Wrapf(err, "error encoding configuration %#v as json", spec)
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
-		return 1, errors.Wrapf(err, "error storing runtime configuration in %q", filepath.Join(bundlePath, "config.json"))
+		return 1, errors.Wrapf(err, "error storing runtime configuration")
 	}
 
 	logrus.Debugf("config = %v", string(specbytes))
@@ -796,7 +799,7 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 	// Make sure we read the container's exit status when it exits.
 	pidValue, err := ioutil.ReadFile(pidFile)
 	if err != nil {
-		return 1, errors.Wrapf(err, "error reading pid from %q", pidFile)
+		return 1, err
 	}
 	pid, err := strconv.Atoi(strings.TrimSpace(string(pidValue)))
 	if err != nil {
@@ -947,7 +950,7 @@ func runCollectOutput(fds, closeBeforeReadingFds []int) string {
 func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	slirp4netns, err := exec.LookPath("slirp4netns")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot find slirp4netns")
+		return nil, err
 	}
 
 	rootlessSlirpSyncR, rootlessSlirpSyncW, err := os.Pipe()
@@ -1564,7 +1567,7 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 			p := filepath.Join("/proc/sys", strings.Replace(name, ".", "/", -1))
 			_, err := os.Stat(p)
 			if err != nil && !os.IsNotExist(err) {
-				return false, nil, false, errors.Wrapf(err, "cannot stat %s", p)
+				return false, nil, false, err
 			}
 			if err == nil {
 				g.AddLinuxSysctl(name, val)
@@ -1702,12 +1705,12 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		}
 		if foundz {
 			if err := label.Relabel(host, mountLabel, true); err != nil {
-				return specs.Mount{}, errors.Wrapf(err, "relabeling %q failed", host)
+				return specs.Mount{}, err
 			}
 		}
 		if foundZ {
 			if err := label.Relabel(host, mountLabel, false); err != nil {
-				return specs.Mount{}, errors.Wrapf(err, "relabeling %q failed", host)
+				return specs.Mount{}, err
 			}
 		}
 		if foundO {
@@ -1984,7 +1987,7 @@ func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, shmSize string
 
 	emptyDir := filepath.Join(bundleDir, "empty")
 	if err := os.Mkdir(emptyDir, 0); err != nil {
-		return errors.Wrapf(err, "error creating %q", emptyDir)
+		return err
 	}
 
 	// Replace /sys with a read-only bind mount.

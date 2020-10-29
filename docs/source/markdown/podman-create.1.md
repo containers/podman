@@ -507,7 +507,7 @@ Tune a container's memory swappiness behavior. Accepts an integer between 0 and 
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPES are `bind`, `volume`, `tmpfs` and `devpts`. <sup>[[1]](#Footnote1)</sup>
+Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and **devpts**. <sup>[[1]](#Footnote1)</sup>
 
        e.g.
 
@@ -519,33 +519,46 @@ Current supported mount TYPES are `bind`, `volume`, `tmpfs` and `devpts`. <sup>[
 
        type=tmpfs,tmpfs-size=512M,destination=/path/in/container
 
+       type=image,source=fedora,destination=/fedora-image,rw=true
+
        type=devpts,destination=/dev/pts
 
        Common Options:
 
-              · src, source: mount source spec for bind and volume. Mandatory for bind.
+	      · src, source: mount source spec for bind and volume. Mandatory for bind.
 
-              · dst, destination, target: mount destination spec.
+	      · dst, destination, target: mount destination spec.
 
-              · ro, readonly: true or false (default).
+       Options specific to volume:
+
+	      · ro, readonly: true or false (default).
+
+       Options specific to image:
+
+	      · rw, readwrite: true or false (default).
 
        Options specific to bind:
 
-              · bind-propagation: shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
+	      · ro, readonly: true or false (default).
 
-              . bind-nonrecursive: do not setup a recursive bind mount.  By default it is recursive.
+	      · bind-propagation: shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
 
-              . relabel: shared, private.
+	      . bind-nonrecursive: do not setup a recursive bind mount.  By default it is recursive.
+
+	      . relabel: shared, private.
 
        Options specific to tmpfs:
 
-              · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
+	      · ro, readonly: true or false (default).
 
-              · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
+	      · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
 
-              · tmpcopyup: Enable copyup from the image directory at the same location to the tmpfs.  Used by default.
+	      · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
 
-              · notmpcopyup: Disable copying files from the image to the tmpfs.
+	      · tmpcopyup: Enable copyup from the image directory at the same location to the tmpfs.  Used by default.
+
+	      · notmpcopyup: Disable copying files from the image to the tmpfs.
+
 
 **--name**=*name*
 

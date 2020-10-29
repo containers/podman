@@ -11,13 +11,13 @@ import (
 	"sort"
 	"time"
 
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +28,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.16.5"
+	Version = "1.17.0-dev"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -42,42 +42,27 @@ const (
 )
 
 // PullPolicy takes the value PullIfMissing, PullAlways, PullIfNewer, or PullNever.
-type PullPolicy int
+type PullPolicy = define.PullPolicy
 
 const (
 	// PullIfMissing is one of the values that BuilderOptions.PullPolicy
 	// can take, signalling that the source image should be pulled from a
 	// registry if a local copy of it is not already present.
-	PullIfMissing PullPolicy = iota
+	PullIfMissing = define.PullIfMissing
 	// PullAlways is one of the values that BuilderOptions.PullPolicy can
 	// take, signalling that a fresh, possibly updated, copy of the image
 	// should be pulled from a registry before the build proceeds.
-	PullAlways
+	PullAlways = define.PullAlways
 	// PullIfNewer is one of the values that BuilderOptions.PullPolicy
 	// can take, signalling that the source image should only be pulled
 	// from a registry if a local copy is not already present or if a
 	// newer version the image is present on the repository.
-	PullIfNewer
+	PullIfNewer = define.PullIfNewer
 	// PullNever is one of the values that BuilderOptions.PullPolicy can
 	// take, signalling that the source image should not be pulled from a
 	// registry if a local copy of it is not already present.
-	PullNever
+	PullNever = define.PullNever
 )
-
-// String converts a PullPolicy into a string.
-func (p PullPolicy) String() string {
-	switch p {
-	case PullIfMissing:
-		return "PullIfMissing"
-	case PullAlways:
-		return "PullAlways"
-	case PullIfNewer:
-		return "PullIfNewer"
-	case PullNever:
-		return "PullNever"
-	}
-	return fmt.Sprintf("unrecognized policy %d", p)
-}
 
 // NetworkConfigurationPolicy takes the value NetworkDefault, NetworkDisabled,
 // or NetworkEnabled.
@@ -202,7 +187,7 @@ type Builder struct {
 	// ContentDigester counts the digest of all Add()ed content
 	ContentDigester CompositeDigester
 	// Devices are the additional devices to add to the containers
-	Devices []configs.Device
+	Devices ContainerDevices
 }
 
 // BuilderInfo are used as objects to display container information
@@ -231,7 +216,7 @@ type BuilderInfo struct {
 	CNIConfigDir          string
 	IDMappingOptions      IDMappingOptions
 	History               []v1.History
-	Devices               []configs.Device
+	Devices               ContainerDevices
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
@@ -239,15 +224,6 @@ type BuilderInfo struct {
 func GetBuildInfo(b *Builder) BuilderInfo {
 	history := copyHistory(b.OCIv1.History)
 	history = append(history, copyHistory(b.PrependedEmptyLayers)...)
-	now := time.Now().UTC()
-	created := &now
-	history = append(history, v1.History{
-		Created:    created,
-		CreatedBy:  b.ImageCreatedBy,
-		Author:     b.Maintainer(),
-		Comment:    b.ImageHistoryComment,
-		EmptyLayer: false,
-	})
 	history = append(history, copyHistory(b.AppendedEmptyLayers)...)
 	sort.Strings(b.Capabilities)
 	return BuilderInfo{
@@ -409,7 +385,7 @@ type BuilderOptions struct {
 	// Format for the container image
 	Format string
 	// Devices are the additional devices to add to the containers
-	Devices []configs.Device
+	Devices ContainerDevices
 	//DefaultEnv for containers
 	DefaultEnv []string
 	// MaxPullRetries is the maximum number of attempts we'll make to pull
@@ -477,7 +453,7 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 	}
 	buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading %q", filepath.Join(cdir, stateFile))
+		return nil, err
 	}
 	b := &Builder{}
 	if err = json.Unmarshal(buildstate, &b); err != nil {
@@ -500,7 +476,7 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 	}
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error turning %q into an absolute path", path)
+		return nil, err
 	}
 	builderMatchesPath := func(b *Builder, path string) bool {
 		return (b.MountPoint == path)
@@ -516,7 +492,7 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 				logrus.Debugf("error reading %q: %v, ignoring container %q", filepath.Join(cdir, stateFile), err, container.ID)
 				continue
 			}
-			return nil, errors.Wrapf(err, "error reading %q", filepath.Join(cdir, stateFile))
+			return nil, err
 		}
 		b := &Builder{}
 		err = json.Unmarshal(buildstate, &b)
@@ -552,7 +528,7 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 				logrus.Debugf("error reading %q: %v, ignoring container %q", filepath.Join(cdir, stateFile), err, container.ID)
 				continue
 			}
-			return nil, errors.Wrapf(err, "error reading %q", filepath.Join(cdir, stateFile))
+			return nil, err
 		}
 		b := &Builder{}
 		err = json.Unmarshal(buildstate, &b)

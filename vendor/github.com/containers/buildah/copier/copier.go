@@ -580,6 +580,12 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 		}
 		return nil, err
 	}
+	loggedOutput := strings.TrimSuffix(errorBuffer.String(), "\n")
+	if len(loggedOutput) > 0 {
+		for _, output := range strings.Split(loggedOutput, "\n") {
+			logrus.Debug(output)
+		}
+	}
 	if readError != nil {
 		return nil, errors.Wrapf(readError, "error passing bulk input to subprocess")
 	}
@@ -1362,7 +1368,8 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					hdr.Uid, hdr.Gid = *fileUID, *fileGID
 				}
 			}
-			// make sure the parent directory exists
+			// make sure the parent directory exists, including for tar.TypeXGlobalHeader entries
+			// that we otherwise ignore, because that's what docker build does with them
 			path := filepath.Join(targetDirectory, cleanerReldirectory(filepath.FromSlash(hdr.Name)))
 			if err := ensureDirectoryUnderRoot(filepath.Dir(path)); err != nil {
 				return err
@@ -1380,6 +1387,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			// create the new item
 			devMajor := uint32(hdr.Devmajor)
 			devMinor := uint32(hdr.Devminor)
+			mode := os.FileMode(hdr.Mode) & os.ModePerm
 			switch hdr.Typeflag {
 			// no type flag for sockets
 			default:
@@ -1439,6 +1447,13 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 						err = mkfifo(path, 0600)
 					}
 				}
+			case tar.TypeXGlobalHeader:
+				// Per archive/tar, PAX uses these to specify key=value information
+				// applies to all subsequent entries.  The one in reported in #2717,
+				// https://www.openssl.org/source/openssl-1.1.1g.tar.gz, includes a
+				// comment=(40 byte hex string) at the start, possibly a digest.
+				// Don't try to create whatever path was used for the header.
+				goto nextHeader
 			}
 			// check for errors
 			if err != nil {
@@ -1457,7 +1472,6 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				return errors.Wrapf(err, "copier: put: error setting ownership of %q to %d:%d", path, hdr.Uid, hdr.Gid)
 			}
 			// set permissions, except for symlinks, since we don't have lchmod
-			mode := os.FileMode(hdr.Mode) & os.ModePerm
 			if hdr.Typeflag != tar.TypeSymlink {
 				if err = os.Chmod(path, mode); err != nil {
 					return errors.Wrapf(err, "copier: put: error setting permissions on %q to 0%o", path, mode)
@@ -1485,6 +1499,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			if err = lutimes(hdr.Typeflag == tar.TypeSymlink, path, hdr.AccessTime, hdr.ModTime); err != nil {
 				return errors.Wrapf(err, "error setting access and modify timestamps on %q to %s and %s", path, hdr.AccessTime, hdr.ModTime)
 			}
+		nextHeader:
 			hdr, err = tr.Next()
 		}
 		if err != io.EOF {

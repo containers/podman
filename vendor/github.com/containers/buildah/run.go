@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -169,7 +168,7 @@ type RunOptions struct {
 	// lists, it will be dropped.
 	DropCapabilities []string
 	// Devices are the additional devices to add to the containers
-	Devices []configs.Device
+	Devices ContainerDevices
 }
 
 // Find the configuration for the namespace of the given type.  If there are

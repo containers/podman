@@ -26,7 +26,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/pkg/errors"
@@ -98,7 +97,7 @@ type Executor struct {
 	excludes                       []string
 	unusedArgs                     map[string]struct{}
 	capabilities                   []string
-	devices                        []configs.Device
+	devices                        buildah.ContainerDevices
 	signBy                         string
 	architecture                   string
 	timestamp                      *time.Time
@@ -130,7 +129,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		return nil, err
 	}
 
-	devices := []configs.Device{}
+	devices := buildah.ContainerDevices{}
 	for _, device := range append(defaultContainerConfig.Containers.Devices, options.Devices...) {
 		dev, err := parse.DeviceFromPath(device)
 		if err != nil {

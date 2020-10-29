@@ -10,23 +10,15 @@ linters:
   enable-all: true
   disable:
     # All these break for one reason or another
-    - deadcode
-    - depguard
     - dupl
-    - errcheck
+    - funlen
     - gochecknoglobals
     - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
-    - golint
     - gosec
-    - gosimple
     - lll
     - maligned
     - prealloc
     - scopelint
-    - structcheck
-    - typecheck
-    - unconvert
-    - varcheck
