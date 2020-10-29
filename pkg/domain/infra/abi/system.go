@@ -123,7 +123,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 		}
 	}
 	if err != nil {
-		logrus.Error(err)
+		logrus.Error(errors.Wrapf(err, "invalid internal status, try resetting the pause process with %q", os.Args[0]+" system migrate"))
 		os.Exit(1)
 	}
 	if became {
