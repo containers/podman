@@ -141,15 +141,15 @@ var (
 
 	// ErrOCIRuntimePermissionDenied indicates the OCI runtime attempted to invoke a command that returned
 	// a permission denied error
-	ErrOCIRuntimePermissionDenied = errors.New("OCI runtime permission denied error")
+	ErrOCIRuntimePermissionDenied = errors.New("OCI permission denied")
 
 	// ErrOCIRuntimeNotFound indicates the OCI runtime attempted to invoke a command
 	// that was not found
-	ErrOCIRuntimeNotFound = errors.New("OCI runtime command not found error")
+	ErrOCIRuntimeNotFound = errors.New("OCI not found")
 
 	// ErrOCIRuntimeUnavailable indicates that the OCI runtime associated to a container
 	// could not be found in the configuration
-	ErrOCIRuntimeUnavailable = errors.New("OCI runtime not available in the current configuration")
+	ErrOCIRuntimeUnavailable = errors.New("OCI unavailable")
 
 	// ErrConmonOutdated indicates the version of conmon found (whether via the configuration or $PATH)
 	// is out of date for the current podman version
