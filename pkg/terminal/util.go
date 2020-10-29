@@ -12,6 +12,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/client-go/util/homedir"
 )
@@ -114,6 +115,9 @@ func HostKey(host string) ssh.PublicKey {
 		return nil
 	}
 
+	// support -H parameter for ssh-keyscan
+	hashhost := knownhosts.HashHostname(host)
+
 	scanner := bufio.NewScanner(fd)
 	for scanner.Scan() {
 		_, hosts, key, _, _, err := ssh.ParseKnownHosts(scanner.Bytes())
@@ -123,7 +127,7 @@ func HostKey(host string) ssh.PublicKey {
 		}
 
 		for _, h := range hosts {
-			if h == host {
+			if h == host || h == hashhost {
 				return key
 			}
 		}
