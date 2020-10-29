@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# This script is intended to be executed early by automation before
+# performing other substantial operations.  It relies heavily on
+# desired setup information being passed in environment variables
+# from Cirrus-CI and/or other orchestration tooling.  To that end,
+# VM's must always be considered single-purpose, single-use,
+# disposable entities. i.e. One setup, one test, then always discarded.
+
 set -e
 
 # shellcheck source=./contrib/cirrus/lib.sh
@@ -29,6 +36,17 @@ do
     fi
 done
 
+# Ensure that all lower-level contexts and child-processes have
+# ready access to higher level orchestration (e.g Cirrus-CI)
+# variables.
+echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
+    > "/etc/ci_environment"
+(
+    while read -r env_var_val; do
+        echo "$env_var_val"
+    done <<<"$(passthrough_envars)"
+) >> "/etc/ci_environment"
+
 # This is a possible manual maintenance gaff, check to be sure everything matches.
 # shellcheck disable=SC2154
 [[ "$DISTRO_NV" == "$OS_REL_VER" ]] || \
@@ -50,9 +68,9 @@ case "$CG_FS_TYPE" in
         if ((CONTAINER==0)); then
             warn "Forcing testing with runc instead of crun"
             if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
-                echo "export OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" >> /etc/environment
+                echo "OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" >> /etc/ci_environment
             else
-                echo "export OCI_RUNTIME=runc" >> /etc/environment
+                echo "OCI_RUNTIME=runc" >> /etc/ci_environment
             fi
         fi
         ;;
@@ -61,7 +79,7 @@ case "$CG_FS_TYPE" in
             # This is necessary since we've built/installed from source,
             # which uses runc as the default.
             warn "Forcing testing with crun instead of runc"
-            echo "export OCI_RUNTIME=crun" >> /etc/environment
+            echo "OCI_RUNTIME=crun" >> /etc/ci_environment
         fi
         ;;
     *) die_unknown CG_FS_TYPE
@@ -91,15 +109,13 @@ case "$TEST_ENVIRON" in
     host)
         if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
             # The e2e tests wrongly guess `--cgroup-manager cgroupfs`
-            msg "Forcing CGROUP_MANAGER=systemd"
-            _cgm="export CGROUP_MANAGER=systemd"
-            echo "$_cgm" >> /etc/environment
-            source /etc/environment
+            warn "Forcing CGROUP_MANAGER=systemd"
+            echo "CGROUP_MANAGER=systemd" >> /etc/ci_environment
         fi
         ;;
     container)
         if ((CONTAINER==0)); then  # not yet inside a container
-            msg "Force loading iptables modules"
+            warn "Force loading iptables modules"
             # Since CRIU 3.11, uses iptables to lock and unlock
             # the network during checkpoint and restore.  Needs
             # the following two modules loaded on the host.
@@ -107,10 +123,8 @@ case "$TEST_ENVIRON" in
             modprobe iptable_nat || :
         else
             # The e2e tests wrongly guess `--cgroup-manager systemd`
-            msg "Forcing CGROUP_MANAGER=cgroupfs"
-            _cgm="export CGROUP_MANAGER=cgroupfs"
-            echo "$_cgm" >> /etc/environment
-            source /etc/environment
+            warn "Forcing CGROUP_MANAGER=cgroupfs"
+            echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
         fi
         ;;
     *) die_unknown TEST_ENVIRON
@@ -123,15 +137,14 @@ case "$PRIV_NAME" in
         if [[ "$TEST_ENVIRON" == "container" ]] && ((container)); then
             # There's no practical way to detect userns w/in a container
             # affected/related tests are sensitive to this variable.
-            _suns='export SKIP_USERNS=1'
-            echo "$_suns" >> /etc/environment
-            source /etc/environment
+            warn "Disabling usernamespace integration testing"
+            echo "SKIP_USERNS=1" >> /etc/ci_environment
         fi
         ;;
     rootless)
-        _ru="export ROOTLESS_USER='${ROOTLESS_USER:-some${RANDOM}dude}'"
-        echo "$_ru" >> /etc/environment
-        source /etc/environment
+        # Needs to exist for setup_rootless()
+        ROOTLESS_USER="${ROOTLESS_USER:-some${RANDOM}dude}"
+        echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
         setup_rootless
         ;;
     *) die_unknown PRIV_NAME
@@ -186,5 +199,10 @@ case "$TEST_FLAVOR" in
     *) die_unknown TEST_FLAVOR
 esac
 
-# Must be the very last command.  Establishes successful setup.
-echo 'export SETUP_ENVIRONMENT=1' >> /etc/environment
+# Must be the very last command.  Prevents setup from running twice.
+echo 'SETUP_ENVIRONMENT=1' >> /etc/ci_environment
+echo -e "\n# End of global variable definitions" \
+    >> /etc/ci_environment
+
+msg "Global CI Environment vars.:"
+cat /etc/ci_environment | sort | indent
