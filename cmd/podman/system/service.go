@@ -131,20 +131,17 @@ func resolveAPIURI(_url []string) (string, error) {
 		if srvArgs.Varlink {
 			socketName = "io.podman"
 		}
-		socketDir := filepath.Join(xdg, "podman", socketName)
-		if _, err := os.Stat(filepath.Dir(socketDir)); err != nil {
-			if os.IsNotExist(err) {
-				if err := os.Mkdir(filepath.Dir(socketDir), 0755); err != nil {
-					return "", err
-				}
-			} else {
-				return "", err
-			}
+		socketPath := filepath.Join(xdg, "podman", socketName)
+		if err := os.MkdirAll(filepath.Dir(socketPath), 0700); err != nil {
+			return "", err
 		}
-		return "unix:" + socketDir, nil
+		return "unix:" + socketPath, nil
 	case srvArgs.Varlink:
 		return registry.DefaultVarlinkAddress, nil
 	default:
+		if err := os.MkdirAll(filepath.Dir(registry.DefaultRootAPIPath), 0700); err != nil {
+			return "", err
+		}
 		return registry.DefaultRootAPIAddress, nil
 	}
 }

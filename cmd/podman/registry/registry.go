@@ -12,8 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// DefaultRootAPIAddress is the default address of the REST socket
-const DefaultRootAPIAddress = "unix:/run/podman/podman.sock"
+// DefaultRootAPIPath is the default path of the REST socket
+const DefaultRootAPIPath = "/run/podman/podman.sock"
+
+// DefaultRootAPIAddress is the default address of the REST socket with unix: prefix
+const DefaultRootAPIAddress = "unix:" + DefaultRootAPIPath
 
 // DefaultVarlinkAddress is the default address of the varlink socket
 const DefaultVarlinkAddress = "unix:/run/podman/io.podman"
