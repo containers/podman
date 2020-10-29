@@ -232,12 +232,19 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps ancestor filter flag", func() {
-		_, ec, _ := podmanTest.RunLsContainer("test1")
+		_, ec, cid := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"ps", "-a", "--filter", "ancestor=docker.io/library/alpine:latest"})
+		result := podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=quay.io/libpod/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(Equal(cid))
+
+		// Query just by image name, without :latest tag
+		result = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=quay.io/libpod/alpine"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(Equal(cid))
 	})
 
 	It("podman ps id filter flag", func() {

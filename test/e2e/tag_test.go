@@ -41,7 +41,7 @@ var _ = Describe("Podman tag", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
-		Expect(StringInSlice("docker.io/library/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(StringInSlice("quay.io/libpod/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
 		Expect(StringInSlice("localhost/foobar:latest", inspectData[0].RepoTags)).To(BeTrue())
 	})
 
@@ -54,7 +54,7 @@ var _ = Describe("Podman tag", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
-		Expect(StringInSlice("docker.io/library/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(StringInSlice("quay.io/libpod/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
 		Expect(StringInSlice("localhost/foobar:latest", inspectData[0].RepoTags)).To(BeTrue())
 	})
 
@@ -67,7 +67,7 @@ var _ = Describe("Podman tag", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
-		Expect(StringInSlice("docker.io/library/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(StringInSlice("quay.io/libpod/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
 		Expect(StringInSlice("localhost/foobar:new", inspectData[0].RepoTags)).To(BeTrue())
 	})
 

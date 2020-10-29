@@ -45,8 +45,10 @@ case $1 in
                     containernetworking-plugins \
                     containers-common \
                     criu \
+                    crun \
                     golang \
                     podman \
+                    runc \
                     skopeo \
                     slirp4netns \
         )
@@ -56,9 +58,7 @@ case $1 in
                 PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
                 PKG_NAMES+=(\
                     container-selinux \
-                    crun \
                     libseccomp \
-                    runc \
                 )
                 ;;
             ubuntu*)

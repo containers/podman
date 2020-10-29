@@ -40,7 +40,7 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 		imageData := session.InspectImageJSON()
-		Expect(imageData[0].RepoTags[0]).To(Equal("docker.io/library/alpine:latest"))
+		Expect(imageData[0].RepoTags[0]).To(Equal("quay.io/libpod/alpine:latest"))
 	})
 
 	It("podman inspect bogus container", func() {

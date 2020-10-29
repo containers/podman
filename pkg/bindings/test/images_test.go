@@ -166,7 +166,7 @@ var _ = Describe("Podman images", func() {
 
 		// Adding one more image. There Should be no errors in the response.
 		// And the count should be three now.
-		bt.Pull("busybox:glibc")
+		bt.Pull("testimage:20200929")
 		imageSummary, err = images.List(bt.conn, nil, nil)
 		Expect(err).To(BeNil())
 		Expect(len(imageSummary)).To(Equal(3))
