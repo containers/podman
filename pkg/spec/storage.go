@@ -445,7 +445,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 			}
 			setExec = true
 			newMount.Options = append(newMount.Options, kv[0])
-		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
+		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "unbindable", "runbindable", "Z", "z":
 			newMount.Options = append(newMount.Options, kv[0])
 		case "bind-propagation":
 			if len(kv) == 1 {

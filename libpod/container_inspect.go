@@ -270,7 +270,7 @@ func parseMountOptionsForInspect(options []string, mount *define.InspectMount) {
 			isRW = false
 		case "rw":
 			// Do nothing, silently discard
-		case "shared", "slave", "private", "rshared", "rslave", "rprivate":
+		case "shared", "slave", "private", "rshared", "rslave", "rprivate", "unbindable", "runbindable":
 			mountProp = opt
 		case "z", "Z":
 			zZ = opt

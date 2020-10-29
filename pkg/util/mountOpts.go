@@ -57,7 +57,7 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'rw' and 'ro' can be used")
 			}
 			foundWrite = true
-		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
+		case "private", "rprivate", "slave", "rslave", "shared", "rshared", "unbindable", "runbindable":
 			if foundProp {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one root propagation mode can be used")
 			}
