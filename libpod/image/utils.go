@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 )
@@ -42,7 +43,7 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 	if len(results) == 0 {
 		return &storage.Image{}, errors.Errorf("unable to find a name and tag match for %s in repotags", searchName)
 	} else if len(results) > 1 {
-		return &storage.Image{}, errors.Errorf("found multiple name and tag matches for %s in repotags", searchName)
+		return &storage.Image{}, errors.Wrapf(define.ErrMultipleImages, searchName)
 	}
 	return results[0], nil
 }

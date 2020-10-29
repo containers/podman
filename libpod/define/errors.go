@@ -14,6 +14,9 @@ var (
 	// ErrNoSuchImage indicates the requested image does not exist
 	ErrNoSuchImage = errors.New("no such image")
 
+	// ErrMultipleImages found multiple name and tag matches
+	ErrMultipleImages = errors.New("found multiple name and tag matches")
+
 	// ErrNoSuchTag indicates the requested image tag does not exist
 	ErrNoSuchTag = errors.New("no such tag")
 
