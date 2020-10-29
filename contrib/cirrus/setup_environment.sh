@@ -85,6 +85,16 @@ case "$CG_FS_TYPE" in
     *) die_unknown CG_FS_TYPE
 esac
 
+if ((CONTAINER==0)); then  # Not yet running inside a container
+    # Discovered reemergence of BFQ scheduler bug in kernel 5.8.12-200
+    # which causes a kernel panic when system is under heavy I/O load.
+    # Previously discovered in F32beta and confirmed fixed. It's been
+    # observed in F31 kernels as well.  Deploy workaround for all VMs
+    # to ensure a more stable I/O scheduler (elevator).
+    echo "mq-deadline" > /sys/block/sda/queue/scheduler
+    warn "I/O scheduler: $(cat /sys/block/sda/queue/scheduler)"
+fi
+
 # Which distribution are we testing on.
 case "$OS_RELEASE_ID" in
     ubuntu*) ;;
