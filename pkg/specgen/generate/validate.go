@@ -7,15 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Verify resource limits are sanely set, removing any limits that are not
-// possible with the current cgroups config.
-func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
+// Verify resource limits are sanely set when running on cgroup v1.
+func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error) {
 	warnings := []string{}
-
-	cgroup2, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil || cgroup2 {
-		return warnings, err
-	}
 
 	sysInfo := sysinfo.New(true)
 
@@ -24,9 +18,7 @@ func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
 	}
 
 	if s.ResourceLimits.Unified != nil {
-		if !cgroup2 {
-			return nil, errors.New("Cannot use --cgroup-conf without cgroup v2")
-		}
+		return nil, errors.New("Cannot use --cgroup-conf without cgroup v2")
 	}
 
 	// Memory checks
@@ -162,4 +154,22 @@ func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
 	}
 
 	return warnings, nil
+}
+
+// Verify resource limits are sanely set when running on cgroup v2.
+func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error) {
+	return []string{}, nil
+}
+
+// Verify resource limits are sanely set, removing any limits that are not
+// possible with the current cgroups config.
+func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
+	cgroup2, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return []string{}, err
+	}
+	if cgroup2 {
+		return verifyContainerResourcesCgroupV2(s)
+	}
+	return verifyContainerResourcesCgroupV1(s)
 }
