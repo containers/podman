@@ -460,4 +460,11 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(len(search.OutputToStringArray()) == 0).To(BeTrue())
 	})
+
+	It("podman search with limit over 100", func() {
+		search := podmanTest.Podman([]string{"search", "--limit", "130", "registry.redhat.io/rhel"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(len(search.OutputToStringArray())).To(Equal(131))
+	})
 })

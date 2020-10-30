@@ -62,7 +62,7 @@ Note: use .Tag only if the --list-tags is set.
 
 **--limit**=*limit*
 
-Limit the number of results. This value can be in the range between 1 and 100. The default number of results is 25.
+Limit the number of results (default 25).
 Note: The results from each registry will be limited to this value.
 Example if limit is 10 and two registries are being searched, the total
 number of results will be 20, 10 from each (if there are at least 10 matches in each).
