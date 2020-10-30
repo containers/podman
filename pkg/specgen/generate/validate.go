@@ -38,7 +38,7 @@ func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
 			memory.Swap = nil
 		}
 		if memory.Limit != nil && memory.Swap != nil && !sysInfo.SwapLimit {
-			warnings = append(warnings, "Your kernel does not support swap limit capabilities,or the cgroup is not mounted. Memory limited without swap.")
+			warnings = append(warnings, "Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.")
 			memory.Swap = nil
 		}
 		if memory.Limit != nil && memory.Swap != nil && *memory.Swap < *memory.Limit {
