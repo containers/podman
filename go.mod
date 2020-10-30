@@ -10,7 +10,7 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containernetworking/cni v0.8.0
 	github.com/containernetworking/plugins v0.8.7
-	github.com/containers/buildah v1.16.5
+	github.com/containers/buildah v1.17.0
 	github.com/containers/common v0.26.3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.7.0
@@ -72,5 +72,3 @@ require (
 	k8s.io/apimachinery v0.19.3
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
-
-replace github.com/containers/buildah => github.com/containers/buildah v1.16.1-0.20201028193114-3ac12986e8cf

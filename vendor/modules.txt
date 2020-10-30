@@ -66,7 +66,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.16.5 => github.com/containers/buildah v1.16.1-0.20201028193114-3ac12986e8cf
+# github.com/containers/buildah v1.17.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
