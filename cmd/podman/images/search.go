@@ -98,10 +98,6 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("search requires exactly one argument")
 	}
 
-	if searchOptions.Limit > 100 {
-		return errors.Errorf("Limit %d is outside the range of [1, 100]", searchOptions.Limit)
-	}
-
 	if searchOptions.ListTags && len(searchOptions.Filters) != 0 {
 		return errors.Errorf("filters are not applicable to list tags result")
 	}
