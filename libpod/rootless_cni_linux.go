@@ -53,7 +53,7 @@ func AllocRootlessCNI(ctx context.Context, c *Container) (ns.NetNS, []*cnitypes.
 	if err != nil {
 		return nil, nil, err
 	}
-	k8sPodName := getPodOrContainerName(c) // passed to CNI as K8S_POD_NAME
+	k8sPodName := getCNIPodName(c) // passed to CNI as K8S_POD_NAME
 	cniResults := make([]*cnitypes.Result, len(c.config.Networks))
 	for i, nw := range c.config.Networks {
 		cniRes, err := rootlessCNIInfraCallAlloc(infra, c.ID(), nw, k8sPodName)
@@ -115,12 +115,16 @@ func getRootlessCNIInfraLock(r *Runtime) (lockfile.Locker, error) {
 	return lockfile.GetLockfile(fname)
 }
 
-func getPodOrContainerName(c *Container) string {
-	pod, err := c.runtime.GetPod(c.PodID())
-	if err != nil || pod.config.Name == "" {
-		return c.Name()
+// getCNIPodName return the pod name (hostname) used by CNI and the dnsname plugin.
+// If we are in the pod network namespace use the pod name otherwise the container name
+func getCNIPodName(c *Container) string {
+	if c.config.NetMode.IsPod() || c.IsInfra() {
+		pod, err := c.runtime.GetPod(c.PodID())
+		if err == nil {
+			return pod.Name()
+		}
 	}
-	return pod.config.Name
+	return c.Name()
 }
 
 func rootlessCNIInfraCallAlloc(infra *Container, id, nw, k8sPodName string) (*cnitypes.Result, error) {
