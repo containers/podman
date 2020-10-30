@@ -25,6 +25,7 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
 )
@@ -90,10 +91,6 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 			continue
 		}
 
-		if !manifest.MIMETypeIsMultiImage(manifestType) {
-			appendErr(errors.Errorf("manifest is of type %s (not a list type)", manifestType))
-			continue
-		}
 		result = manifestBytes
 		manType = manifestType
 		break
@@ -101,7 +98,18 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 	if len(result) == 0 && latestErr != nil {
 		return nil, latestErr
 	}
-	if manType != manifest.DockerV2ListMediaType {
+
+	switch manType {
+	case manifest.DockerV2Schema2MediaType:
+		logrus.Warnf("Warning! The manifest type %s is not a manifest list but a single image.", manType)
+		schema2Manifest, err := manifest.Schema2FromManifest(result)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing manifest blob %q as a %q", string(result), manType)
+		}
+		if result, err = schema2Manifest.Serialize(); err != nil {
+			return nil, err
+		}
+	default:
 		listBlob, err := manifest.ListFromBlob(result, manType)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing manifest blob %q as a %q", string(result), manType)
@@ -113,10 +121,9 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 		if result, err = list.Serialize(); err != nil {
 			return nil, err
 		}
-
 	}
-	err = json.Indent(&b, result, "", "    ")
-	if err != nil {
+
+	if err = json.Indent(&b, result, "", "    "); err != nil {
 		return nil, errors.Wrapf(err, "error rendering manifest %s for display", name)
 	}
 	return b.Bytes(), nil
