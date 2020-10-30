@@ -10,6 +10,7 @@ import (
 
 	"github.com/buger/goterm"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -135,7 +136,7 @@ func printFormattedPodStatsLines(headerNames []map[string]string, row string, st
 		return nil
 	}
 
-	row = "{{range .}}" + row + "{{end}}"
+	row = parse.EnforceRange(row)
 
 	tmpl, err := template.New("pod stats").Parse(row)
 	if err != nil {

@@ -8,6 +8,8 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/network"
@@ -30,8 +32,6 @@ var (
 
 var (
 	networkListOptions entities.NetworkListOptions
-	headers            = "NAME\tVERSION\tPLUGINS\n"
-	defaultListRow     = "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
 )
 
 func networkListFlags(flags *pflag.FlagSet) {
@@ -66,13 +66,12 @@ func networkList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// quiet means we only print the network names
-	if networkListOptions.Quiet {
-		return quietOut(responses)
-	}
-
-	if strings.ToLower(networkListOptions.Format) == "json" {
+	switch {
+	case report.IsJSON(networkListOptions.Format):
 		return jsonOut(responses)
+	case networkListOptions.Quiet:
+		// quiet means we only print the network names
+		return quietOut(responses)
 	}
 
 	nlprs := make([]ListPrintReports, 0, len(responses))
@@ -80,27 +79,32 @@ func networkList(cmd *cobra.Command, args []string) error {
 		nlprs = append(nlprs, ListPrintReports{r})
 	}
 
-	row := networkListOptions.Format
-	if len(row) < 1 {
-		row = defaultListRow
+	headers := report.Headers(ListPrintReports{}, map[string]string{
+		"CNIVersion": "version",
+		"Plugins":    "plugins",
+	})
+	renderHeaders := true
+	row := "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
+	if cmd.Flags().Changed("format") {
+		renderHeaders = parse.HasTable(networkListOptions.Format)
+		row = report.NormalizeFormat(networkListOptions.Format)
 	}
-	if !strings.HasSuffix(row, "\n") {
-		row += "\n"
-	}
+	format := parse.EnforceRange(row)
 
-	format := "{{range . }}" + row + "{{end}}"
-	if !cmd.Flag("format").Changed {
-		format = headers + format
-	}
 	tmpl, err := template.New("listNetworks").Parse(format)
 	if err != nil {
 		return err
 	}
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
-	if err := tmpl.Execute(w, nlprs); err != nil {
-		return err
+	defer w.Flush()
+
+	if renderHeaders {
+		if err := tmpl.Execute(w, headers); err != nil {
+			return err
+		}
+
 	}
-	return w.Flush()
+	return tmpl.Execute(w, nlprs)
 }
 
 func quietOut(responses []*entities.NetworkListReport) error {
