@@ -131,6 +131,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 
 	logrus.Debugf("Using %q as infra container entrypoint", entryCmd)
 
+	g.RemoveMount("/dev/shm")
 	if isRootless {
 		g.RemoveMount("/dev/pts")
 		devPts := spec.Mount{

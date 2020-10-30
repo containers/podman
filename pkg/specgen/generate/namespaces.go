@@ -127,6 +127,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 			return nil, errNoInfra
 		}
 		toReturn = append(toReturn, libpod.WithIPCNSFrom(infraCtr))
+		toReturn = append(toReturn, libpod.WithShmDir(infraCtr.ShmDir()))
 	case specgen.FromContainer:
 		ipcCtr, err := rt.LookupContainer(s.IpcNS.Value)
 		if err != nil {

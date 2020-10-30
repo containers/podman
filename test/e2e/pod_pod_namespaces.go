@@ -60,6 +60,25 @@ var _ = Describe("Podman pod create", func() {
 		Expect(NAMESPACE1).To(Equal(NAMESPACE2))
 	})
 
+	It("podman pod container share ipc && /dev/shm ", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"pod", "start", podID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--pod", podID, ALPINE, "touch", "/dev/shm/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--pod", podID, ALPINE, "ls", "/dev/shm/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman pod container dontshare PIDNS", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()

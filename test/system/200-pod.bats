@@ -116,6 +116,30 @@ function teardown() {
     run_podman 1 pod exists $podname
 }
 
+@test "podman pod - communicating via /dev/shm " {
+    if is_remote && is_rootless; then
+        skip "FIXME: pending #7139"
+    fi
+
+    podname=pod$(random_string)
+    run_podman 1 pod exists $podname
+    run_podman pod create --infra=true --name=$podname
+    podid="$output"
+    run_podman pod exists $podname
+    run_podman pod exists $podid
+
+    run_podman run --rm --pod $podname $IMAGE touch /dev/shm/test1
+    run_podman run --rm --pod $podname $IMAGE ls /dev/shm/test1
+    is "$output" "/dev/shm/test1"
+
+    # ...then rm the pod, then rmi the pause image so we don't leave strays.
+    run_podman pod rm $podname
+
+    # Pod no longer exists
+    run_podman 1 pod exists $podid
+    run_podman 1 pod exists $podname
+}
+
 # Random byte
 function octet() {
     echo $(( $RANDOM & 255 ))
