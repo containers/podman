@@ -361,9 +361,6 @@ All pull requests and branch-merges automatically run:
 * Integration Testing
 * Special testing (like running inside a container, or as a regular user)
 
-For a more in-depth reference of the CI system, please [refer to it's dedicated
-documentation.](contrib/cirrus/README.md)
-
 There is always additional complexity added by automation, and so it sometimes
 can fail for any number of reasons.  This includes post-merge testing on all
 branches, which you may occasionally see [red bars on the status graph

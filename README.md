@@ -10,7 +10,7 @@ Podman is based on libpod, a library for container lifecycle management that is 
   * Latest Remote client for MacOs
   * Latest Static Remote client for Linux
 
-* [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
+* Continuous Integration: [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
 * [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/podman/libpod?status.svg)](https://godoc.org/github.com/containers/podman/libpod)
 
 ## Overview and scope
