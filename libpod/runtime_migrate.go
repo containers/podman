@@ -29,7 +29,7 @@ func stopPauseProcess() error {
 			if os.IsNotExist(err) {
 				return nil
 			}
-			return errors.Wrapf(err, "cannot read pause process pid file %s", pausePidPath)
+			return errors.Wrap(err, "cannot read pause process pid file")
 		}
 		pausePid, err := strconv.Atoi(string(data))
 		if err != nil {

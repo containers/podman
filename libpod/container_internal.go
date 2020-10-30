@@ -578,10 +578,10 @@ func (c *Container) refresh() error {
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
 		info, err := os.Stat(c.runtime.config.Engine.TmpDir)
 		if err != nil {
-			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.Engine.TmpDir)
+			return err
 		}
 		if err := os.Chmod(c.runtime.config.Engine.TmpDir, info.Mode()|0111); err != nil {
-			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.Engine.TmpDir)
+			return err
 		}
 		root := filepath.Join(c.runtime.config.Engine.TmpDir, "containers-root", c.ID())
 		if err := os.MkdirAll(root, 0755); err != nil {

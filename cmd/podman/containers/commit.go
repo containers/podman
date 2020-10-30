@@ -95,7 +95,7 @@ func commit(cmd *cobra.Command, args []string) error {
 	}
 	if len(iidFile) > 0 {
 		if err = ioutil.WriteFile(iidFile, []byte(response.Id), 0644); err != nil {
-			return errors.Wrapf(err, "failed to write image ID to file %q", iidFile)
+			return errors.Wrap(err, "failed to write image ID")
 		}
 	}
 	fmt.Println(response.Id)

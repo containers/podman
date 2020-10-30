@@ -74,7 +74,7 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 				return false, nil
 			}
 			if !os.IsNotExist(err) {
-				return false, errors.Wrapf(err, "checking file %s", path)
+				return false, err
 			}
 		case <-time.After(25 * time.Millisecond):
 			// Check periodically for the file existence.  It is needed
@@ -86,7 +86,7 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 				return false, nil
 			}
 			if !os.IsNotExist(err) {
-				return false, errors.Wrapf(err, "checking file %s", path)
+				return false, err
 			}
 		case <-timeoutChan:
 			return false, errors.Wrapf(define.ErrInternal, "timed out waiting for file %s", path)
@@ -184,11 +184,11 @@ func DefaultSeccompPath() (string, error) {
 		return config.SeccompOverridePath, nil
 	}
 	if !os.IsNotExist(err) {
-		return "", errors.Wrapf(err, "can't check if %q exists", config.SeccompOverridePath)
+		return "", err
 	}
 	if _, err := os.Stat(config.SeccompDefaultPath); err != nil {
 		if !os.IsNotExist(err) {
-			return "", errors.Wrapf(err, "can't check if %q exists", config.SeccompDefaultPath)
+			return "", err
 		}
 		return "", nil
 	}

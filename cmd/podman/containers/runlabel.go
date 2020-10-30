@@ -8,7 +8,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -75,7 +74,7 @@ func runlabel(cmd *cobra.Command, args []string) error {
 	}
 	if runlabelOptions.Authfile != "" {
 		if _, err := os.Stat(runlabelOptions.Authfile); err != nil {
-			return errors.Wrapf(err, "error getting authfile %s", runlabelOptions.Authfile)
+			return err
 		}
 	}
 	return registry.ContainerEngine().ContainerRunlabel(context.Background(), args[0], args[1], args[2:], runlabelOptions.ContainerRunlabelOptions)

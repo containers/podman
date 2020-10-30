@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -75,7 +74,7 @@ func kube(cmd *cobra.Command, args []string) error {
 	}
 	if kubeOptions.Authfile != "" {
 		if _, err := os.Stat(kubeOptions.Authfile); err != nil {
-			return errors.Wrapf(err, "error getting authfile %s", kubeOptions.Authfile)
+			return err
 		}
 	}
 	if kubeOptions.CredentialsCLI != "" {

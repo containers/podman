@@ -148,7 +148,7 @@ load helpers
     is "$output" "" "output from podman cp 1"
 
     run_podman 125 cp --pause=false $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
-    is "$output" "Error: failed to get stat of dest path .*stat.* no such file or directory" "cp will not create nonexistent destination directory"
+    is "$output" ".*stat.* no such file or directory" "cp will not create nonexistent destination directory"
 
     run_podman cp --pause=false $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
     is "$output" "" "output from podman cp 3"

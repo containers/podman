@@ -9,7 +9,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -104,7 +103,7 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	}
 	if pullOptions.Authfile != "" {
 		if _, err := os.Stat(pullOptions.Authfile); err != nil {
-			return errors.Wrapf(err, "error getting authfile %s", pullOptions.Authfile)
+			return err
 		}
 	}
 
