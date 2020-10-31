@@ -102,17 +102,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		requestedMAC = ctr.config.StaticMAC
 	}
 
-	// If we are in a pod use the pod name for the network, otherwise the container name
-	var podName string
-	if ctr.PodID() != "" {
-		pod, err := r.GetPod(ctr.PodID())
-		if err == nil {
-			podName = pod.Name()
-		}
-	}
-	if podName == "" {
-		podName = ctr.Name()
-	}
+	podName := getCNIPodName(ctr)
 
 	podNetwork := r.getPodNetwork(ctr.ID(), podName, ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP, requestedMAC)
 
