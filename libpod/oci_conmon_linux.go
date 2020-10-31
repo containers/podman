@@ -32,6 +32,7 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
+	"github.com/containers/storage/pkg/homedir"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/coreos/go-systemd/v22/daemon"
@@ -1065,10 +1066,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	// 0, 1 and 2 are stdin, stdout and stderr
-	conmonEnv, envFiles, err := r.configureConmonEnv(ctr, runtimeDir)
-	if err != nil {
-		return err
-	}
+	conmonEnv, envFiles := r.configureConmonEnv(ctr, runtimeDir)
 
 	var filesToClose []*os.File
 	if ctr.config.PreserveFDs > 0 {
@@ -1268,16 +1266,15 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct
 // TODO this may want to be less hardcoded/more configurable in the future
-func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string) ([]string, []*os.File, error) {
+func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string) ([]string, []*os.File) {
 	env := make([]string, 0, 6)
 	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
 	env = append(env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
-	home, err := util.HomeDir()
-	if err != nil {
-		return nil, nil, err
+	home := homedir.Get()
+	if home != "" {
+		env = append(env, fmt.Sprintf("HOME=%s", home))
 	}
-	env = append(env, fmt.Sprintf("HOME=%s", home))
 
 	extraFiles := make([]*os.File, 0)
 	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer {
@@ -1294,7 +1291,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string)
 	} else {
 		logrus.Debug("disabling SD notify")
 	}
-	return env, extraFiles, nil
+	return env, extraFiles
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
