@@ -1,21 +1,19 @@
 package generate
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/specgen"
+	"github.com/containers/podman/v2/utils"
 	"github.com/pkg/errors"
 )
 
-// Verify resource limits are sanely set, removing any limits that are not
-// possible with the current cgroups config.
-func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
+// Verify resource limits are sanely set when running on cgroup v1.
+func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error) {
 	warnings := []string{}
-
-	cgroup2, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil || cgroup2 {
-		return warnings, err
-	}
 
 	sysInfo := sysinfo.New(true)
 
@@ -24,9 +22,7 @@ func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
 	}
 
 	if s.ResourceLimits.Unified != nil {
-		if !cgroup2 {
-			return nil, errors.New("Cannot use --cgroup-conf without cgroup v2")
-		}
+		return nil, errors.New("Cannot use --cgroup-conf without cgroup v2")
 	}
 
 	// Memory checks
@@ -162,4 +158,49 @@ func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
 	}
 
 	return warnings, nil
+}
+
+// Verify resource limits are sanely set when running on cgroup v2.
+func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error) {
+	warnings := []string{}
+
+	if s.ResourceLimits == nil {
+		return warnings, nil
+	}
+
+	if s.ResourceLimits.Memory != nil && s.ResourceLimits.Memory.Swap != nil {
+		own, err := utils.GetOwnCgroup()
+		if err != nil {
+			return warnings, err
+		}
+		memoryMax := filepath.Join("/sys/fs/cgroup", own, "memory.max")
+		memorySwapMax := filepath.Join("/sys/fs/cgroup", own, "memory.swap.max")
+		_, errMemoryMax := os.Stat(memoryMax)
+		_, errMemorySwapMax := os.Stat(memorySwapMax)
+		// Differently than cgroup v1, the memory.*max files are not present in the
+		// root directory, so we cannot query directly that, so as best effort use
+		// the current cgroup.
+		// Check whether memory.max exists in the current cgroup and memory.swap.max
+		//  does not.  In this case we can be sure memory swap is not enabled.
+		// If both files don't exist, the memory controller might not be enabled
+		// for the current cgroup.
+		if errMemoryMax == nil && errMemorySwapMax != nil {
+			warnings = append(warnings, "Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.")
+			s.ResourceLimits.Memory.Swap = nil
+		}
+	}
+	return warnings, nil
+}
+
+// Verify resource limits are sanely set, removing any limits that are not
+// possible with the current cgroups config.
+func verifyContainerResources(s *specgen.SpecGenerator) ([]string, error) {
+	cgroup2, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return []string{}, err
+	}
+	if cgroup2 {
+		return verifyContainerResourcesCgroupV2(s)
+	}
+	return verifyContainerResourcesCgroupV1(s)
 }
