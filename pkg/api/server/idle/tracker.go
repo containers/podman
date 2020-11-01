@@ -41,11 +41,12 @@ func (t *Tracker) ConnState(conn net.Conn, state http.ConnState) {
 
 	logrus.Debugf("IdleTracker %p:%v %dm+%dh/%dt connection(s)", conn, state, len(t.managed), t.hijacked, t.TotalConnections())
 	switch state {
-	case http.StateNew, http.StateActive:
+	case http.StateNew:
+		t.total++
+	case http.StateActive:
 		// stop the API timer when the server transitions any connection to an "active" state
 		t.managed[conn] = struct{}{}
 		t.timer.Stop()
-		t.total++
 	case http.StateHijacked:
 		// hijacked connections should call Close() when finished.
 		// Note: If a handler hijack's a connection and then doesn't Close() it,
