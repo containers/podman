@@ -39,7 +39,6 @@ var _ = Describe("Podman image|container exists", func() {
 		Expect(session).Should(Exit(0))
 	})
 	It("podman image exists in local storage by short name", func() {
-		Skip("FIXME-8165: shortnames don't seem to work with quay (#8176)")
 		session := podmanTest.Podman([]string{"image", "exists", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
