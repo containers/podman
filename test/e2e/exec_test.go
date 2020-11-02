@@ -87,14 +87,12 @@ var _ = Describe("Podman exec", func() {
 		session := podmanTest.Podman([]string{"exec", "--env", "FOO=BAR", "test1", "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString("BAR")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(Equal("BAR"))
 
 		session = podmanTest.Podman([]string{"exec", "--env", "PATH=/bin", "test1", "printenv", "PATH"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ = session.GrepString("/bin")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(Equal("/bin"))
 	})
 
 	It("podman exec os.Setenv env", func() {
@@ -107,8 +105,7 @@ var _ = Describe("Podman exec", func() {
 		session := podmanTest.Podman([]string{"exec", "--env", "FOO", "test1", "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString("BAR")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(Equal("BAR"))
 		os.Unsetenv("FOO")
 	})
 
@@ -142,8 +139,7 @@ var _ = Describe("Podman exec", func() {
 		session := podmanTest.Podman([]string{"exec", "--interactive", "--tty", "test1", "/usr/bin/stty", "--all"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString(" onlcr")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(" onlcr"))
 	})
 
 	It("podman exec simple command with user", func() {
@@ -199,14 +195,12 @@ var _ = Describe("Podman exec", func() {
 		session := podmanTest.Podman([]string{"exec", "--workdir", "/tmp", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString("/tmp")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(Equal("/tmp"))
 
 		session = podmanTest.Podman([]string{"exec", "-w", "/tmp", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ = session.GrepString("/tmp")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(Equal("/tmp"))
 	})
 
 	It("podman exec missing working directory test", func() {
@@ -280,7 +274,7 @@ var _ = Describe("Podman exec", func() {
 		exec := podmanTest.Podman([]string{"exec", "-ti", ctrName2, "id"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec.ExitCode()).To(Equal(0))
-		Expect(strings.Contains(exec.OutputToString(), fmt.Sprintf("%s(%s)", gid, groupName))).To(BeTrue())
+		Expect(exec.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s(%s)", gid, groupName)))
 	})
 
 	It("podman exec preserves container groups with --user and --group-add", func() {
@@ -300,9 +294,9 @@ RUN useradd -u 1000 auser`
 		exec.WaitWithDefaultTimeout()
 		Expect(exec.ExitCode()).To(Equal(0))
 		output := exec.OutputToString()
-		Expect(strings.Contains(output, "4000(first)")).To(BeTrue())
-		Expect(strings.Contains(output, "4001(second)")).To(BeTrue())
-		Expect(strings.Contains(output, "1000(auser)")).To(BeTrue())
+		Expect(output).To(ContainSubstring("4000(first)"))
+		Expect(output).To(ContainSubstring("4001(second)"))
+		Expect(output).To(ContainSubstring("1000(auser)"))
 
 		// Kill the container just so the test does not take 15 seconds to stop.
 		kill := podmanTest.Podman([]string{"kill", ctrName})
@@ -323,7 +317,7 @@ RUN useradd -u 1000 auser`
 		data := podmanTest.InspectContainer(ctrName)
 		Expect(len(data)).To(Equal(1))
 		Expect(len(data[0].ExecIDs)).To(Equal(1))
-		Expect(strings.Contains(exec1.OutputToString(), data[0].ExecIDs[0])).To(BeTrue())
+		Expect(exec1.OutputToString()).To(ContainSubstring(data[0].ExecIDs[0]))
 
 		exec2 := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "ps", "-a"})
 		exec2.WaitWithDefaultTimeout()
