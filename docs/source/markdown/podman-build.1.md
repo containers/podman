@@ -384,16 +384,13 @@ not required for Buildah as it supports only Linux.
 
 **--pull**
 
-When the flag is enabled, attempt to pull the latest image from the registries
-listed in registries.conf if a local image does not exist or the image is newer
-than the one in storage. Raise an error if the image is not in any listed
-registry and is not present locally.
+When the option is specified or set to "true", pull the image from the first registry
+it is found in as listed in registries.conf.  Raise an error if not found in the
+registries, even if the image is present locally.
 
-If the flag is disabled (with *--pull=false*), do not pull the image from the
-registry, unless there is no local image. Raise an error if the image is not
-in any registry and is not present locally.
-
-Defaults to *true*.
+If the option is disabled (with *--pull=false*), or not specified, pull the image
+from the registry only if the image is not present locally. Raise an error if the image
+is not found in the registries.
 
 **--pull-always**
 
