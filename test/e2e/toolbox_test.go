@@ -30,10 +30,12 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
 
+	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -371,10 +373,23 @@ var _ = Describe("Toolbox-specific testing", func() {
 
 		currentUser, err := user.Current()
 		Expect(err).To(BeNil())
+
 		session = podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:%s", currentUser.HomeDir, currentUser.HomeDir), "--userns=keep-id", fedoraToolbox, "sh", "-c", "echo $HOME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(currentUser.HomeDir))
+
+		if rootless.IsRootless() {
+			location := path.Dir(currentUser.HomeDir)
+			volumeArg := fmt.Sprintf("%s:%s", location, location)
+			session = podmanTest.Podman([]string{"run",
+				"--userns=keep-id",
+				"--volume", volumeArg,
+				fedoraToolbox, "sh", "-c", "echo $HOME"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session.OutputToString()).To(ContainSubstring(currentUser.HomeDir))
+		}
 	})
 
 })
