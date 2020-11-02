@@ -350,3 +350,8 @@ func deviceFromPath(path string) (*spec.LinuxDevice, error) {
 		Minor:    int64(unix.Minor(devNumber)),
 	}, nil
 }
+
+func supportAmbientCapabilities() bool {
+	err := unix.Prctl(unix.PR_CAP_AMBIENT, unix.PR_CAP_AMBIENT_IS_SET, 0, 0, 0)
+	return err == nil
+}

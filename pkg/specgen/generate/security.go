@@ -145,6 +145,12 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 		configSpec.Process.Capabilities.Effective = userCaps
 		configSpec.Process.Capabilities.Permitted = userCaps
+
+		// Ambient capabilities were added to Linux 4.3.  Set ambient
+		// capabilities only when the kernel supports them.
+		if supportAmbientCapabilities() {
+			configSpec.Process.Capabilities.Ambient = userCaps
+		}
 	}
 
 	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
