@@ -135,7 +135,9 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	configSpec.Process.Capabilities.Bounding = caplist
 	configSpec.Process.Capabilities.Inheritable = caplist
 
-	if s.User == "" || s.User == "root" || s.User == "0" {
+	user := strings.Split(s.User, ":")[0]
+
+	if user == "" || user == "root" || user == "0" {
 		configSpec.Process.Capabilities.Effective = caplist
 		configSpec.Process.Capabilities.Permitted = caplist
 	} else {
