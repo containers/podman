@@ -137,7 +137,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 
 	user := strings.Split(s.User, ":")[0]
 
-	if user == "" || user == "root" || user == "0" {
+	if (user == "" && s.UserNS.NSMode != specgen.KeepID) || user == "root" || user == "0" {
 		configSpec.Process.Capabilities.Effective = caplist
 		configSpec.Process.Capabilities.Permitted = caplist
 	} else {
