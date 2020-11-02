@@ -430,12 +430,12 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search with wildcards", func() {
-		search := podmanTest.Podman([]string{"search", "--limit", "30", "registry.redhat.io/*"})
+		search := podmanTest.Podman([]string{"search", "--limit", "30", "quay.io/libpod/*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(Equal(31))
 
-		search = podmanTest.Podman([]string{"search", "registry.redhat.io/*openshift*"})
+		search = podmanTest.Podman([]string{"search", "quay.io/libpod/*podman*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray()) > 1).To(BeTrue())
@@ -456,13 +456,13 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Not(Equal(0)))
 
-		search = podmanTest.Podman([]string{"search", "--list-tags", "docker.io/library/"})
+		search = podmanTest.Podman([]string{"search", "--list-tags", "docker.io/library/fedora"})
 		search.WaitWithDefaultTimeout()
 		Expect(len(search.OutputToStringArray()) == 0).To(BeTrue())
 	})
 
 	It("podman search with limit over 100", func() {
-		search := podmanTest.Podman([]string{"search", "--limit", "130", "registry.redhat.io/rhel"})
+		search := podmanTest.Podman([]string{"search", "--limit", "130", "docker.io/library"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(Equal(131))
