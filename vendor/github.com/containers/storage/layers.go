@@ -1329,6 +1329,7 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	if err != nil {
 		return -1, err
 	}
+	defer uncompressed.Close()
 	uncompressedDigest := digest.Canonical.Digester()
 	uncompressedCounter := ioutils.NewWriteCounter(uncompressedDigest.Hash())
 	uidLog := make(map[uint32]struct{})
