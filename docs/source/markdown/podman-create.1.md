@@ -541,7 +541,7 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · ro, readonly: true or false (default).
 
-	      · bind-propagation: shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
+	      · bind-propagation: shared, slave, private, unbindable, rshared, rslave, runbindable, or rprivate(default). See also mount(2).
 
 	      . bind-nonrecursive: do not setup a recursive bind mount.  By default it is recursive.
 
@@ -962,7 +962,7 @@ The _options_ is a comma delimited list and can be:
 
 * **rw**|**ro**
 * **z**|**Z**
-* [**r**]**shared**|[**r**]**slave**|[**r**]**private**
+* [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable**
 * [**r**]**bind**
 * [**no**]**exec**
 * [**no**]**dev**
@@ -1048,13 +1048,14 @@ visible on host and vice versa. Making a volume `slave` enables only one
 way mount propagation and that is mounts done on host under that volume
 will be visible inside container but not the other way around. <sup>[[1]](#Footnote1)</sup>
 
-To control mount propagation property of volume one can use `:[r]shared`,
-`:[r]slave` or `:[r]private` propagation flag. Propagation property can
-be specified only for bind mounted volumes and not for internal volumes or
-named volumes. For mount propagation to work source mount point (mount point
-where source dir is mounted on) has to have right propagation properties. For
-shared volumes, source mount point has to be shared. And for slave volumes,
-source mount has to be either shared or slave. <sup>[[1]](#Footnote1)</sup>
+To control mount propagation property of a volume one can use the [**r**]**shared**,
+[**r**]**slave**, [**r**]**private** or the [**r**]**unbindable** propagation flag.
+Propagation property can be specified only for bind mounted volumes and not for
+internal volumes or named volumes. For mount propagation to work the source mount
+point (the mount point where source dir is mounted on) has to have the right propagation
+properties. For shared volumes, the source mount point has to be shared. And for
+slave volumes, the source mount point has to be either shared or slave.
+<sup>[[1]](#Footnote1)</sup>
 
 If you want to recursively mount a volume and all of its submounts into a
 container, then you can use the `rbind` option.  By default the bind option is
