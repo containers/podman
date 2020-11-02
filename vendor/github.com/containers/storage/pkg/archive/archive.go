@@ -139,6 +139,7 @@ func IsArchivePath(path string) bool {
 	if err != nil {
 		return false
 	}
+	defer rdr.Close()
 	r := tar.NewReader(rdr)
 	_, err = r.Next()
 	return err == nil
@@ -398,7 +399,7 @@ func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
 	}
 	for _, xattr := range []string{"security.capability", "security.ima"} {
 		capability, err := system.Lgetxattr(path, xattr)
-		if err != nil && err != system.EOPNOTSUPP && err != system.ErrNotSupportedPlatform {
+		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
 			return errors.Wrapf(err, "failed to read %q attribute from %q", xattr, path)
 		}
 		if capability != nil {
@@ -411,17 +412,17 @@ func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
 // ReadUserXattrToTarHeader reads user.* xattr from filesystem to a tar header
 func ReadUserXattrToTarHeader(path string, hdr *tar.Header) error {
 	xattrs, err := system.Llistxattr(path)
-	if err != nil && err != system.EOPNOTSUPP && err != system.ErrNotSupportedPlatform {
+	if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
 		return err
 	}
 	for _, key := range xattrs {
 		if strings.HasPrefix(key, "user.") {
 			value, err := system.Lgetxattr(path, key)
-			if err == system.E2BIG {
-				logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", path, key)
-				continue
-			}
 			if err != nil {
+				if errors.Is(err, system.E2BIG) {
+					logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", path, key)
+					continue
+				}
 				return err
 			}
 			if hdr.Xattrs == nil {
@@ -724,16 +725,16 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 		}
 	}
 
-	var errors []string
+	var errs []string
 	for key, value := range hdr.Xattrs {
 		if err := system.Lsetxattr(path, key, []byte(value), 0); err != nil {
-			if err == syscall.ENOTSUP || (err == syscall.EPERM && inUserns) {
+			if errors.Is(err, syscall.ENOTSUP) || (inUserns && errors.Is(err, syscall.EPERM)) {
 				// We ignore errors here because not all graphdrivers support
 				// xattrs *cough* old versions of AUFS *cough*. However only
 				// ENOTSUP should be emitted in that case, otherwise we still
 				// bail.  We also ignore EPERM errors if we are running in a
 				// user namespace.
-				errors = append(errors, err.Error())
+				errs = append(errs, err.Error())
 				continue
 			}
 			return err
@@ -741,9 +742,9 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 
 	}
 
-	if len(errors) > 0 {
+	if len(errs) > 0 {
 		logrus.WithFields(logrus.Fields{
-			"errors": errors,
+			"errors": errs,
 		}).Warn("ignored xattrs in archive: underlying filesystem doesn't support them")
 	}
 

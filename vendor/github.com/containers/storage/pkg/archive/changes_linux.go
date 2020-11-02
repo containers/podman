@@ -2,6 +2,7 @@ package archive
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -86,21 +87,21 @@ func walkchunk(path string, fi os.FileInfo, dir string, root *FileInfo) error {
 	}
 	info.stat = stat
 	info.capability, err = system.Lgetxattr(cpath, "security.capability") // lgetxattr(2): fs access
-	if err != nil && err != system.EOPNOTSUPP {
+	if err != nil && !errors.Is(err, system.EOPNOTSUPP) {
 		return err
 	}
 	xattrs, err := system.Llistxattr(cpath)
-	if err != nil && err != system.EOPNOTSUPP {
+	if err != nil && !errors.Is(err, system.EOPNOTSUPP) {
 		return err
 	}
 	for _, key := range xattrs {
 		if strings.HasPrefix(key, "user.") {
 			value, err := system.Lgetxattr(cpath, key)
-			if err == system.E2BIG {
-				logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", cpath, key)
-				continue
-			}
 			if err != nil {
+				if errors.Is(err, system.E2BIG) {
+					logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", cpath, key)
+					continue
+				}
 				return err
 			}
 			if info.xattrs == nil {
