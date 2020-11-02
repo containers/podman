@@ -25,11 +25,8 @@ func getCPULimits(c *ContainerCLIOpts) *specs.LinuxCPU {
 	cpu := &specs.LinuxCPU{}
 	hasLimits := false
 
-	const cpuPeriod = 100000
-
 	if c.CPUS > 0 {
-		quota := int64(c.CPUS * cpuPeriod)
-		period := uint64(cpuPeriod)
+		period, quota := util.CoresToPeriodAndQuota(c.CPUS)
 
 		cpu.Period = &period
 		cpu.Quota = &quota

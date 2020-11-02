@@ -36,8 +36,6 @@ const (
 	kubeDirectoryPermission = 0755
 	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
 	kubeFilePermission = 0644
-	// Kubernetes sets CPUPeriod to 100000us (100ms): https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
-	defaultCPUPeriod = 100000
 )
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
@@ -515,10 +513,9 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		return nil, errors.Wrap(err, "Failed to set CPU quota")
 	}
 	if milliCPU > 0 {
-		containerConfig.Resources.CPUPeriod = defaultCPUPeriod
-		// CPU quota is a fraction of the period: milliCPU / 1000.0 * period
-		// Or, without floating point math:
-		containerConfig.Resources.CPUQuota = milliCPU * defaultCPUPeriod / 1000
+		period, quota := util.CoresToPeriodAndQuota(float64(milliCPU) / 1000)
+		containerConfig.Resources.CPUPeriod = period
+		containerConfig.Resources.CPUQuota = quota
 	}
 
 	containerConfig.Resources.Memory, err = quantityToInt64(containerYAML.Resources.Limits.Memory())

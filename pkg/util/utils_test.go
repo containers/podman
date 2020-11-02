@@ -257,3 +257,23 @@ func TestValidateSysctlBadSysctl(t *testing.T) {
 	_, err := ValidateSysctls(strSlice)
 	assert.Error(t, err)
 }
+
+func TestCoresToPeriodAndQuota(t *testing.T) {
+	cores := 1.0
+	expectedPeriod := DefaultCPUPeriod
+	expectedQuota := int64(DefaultCPUPeriod)
+
+	actualPeriod, actualQuota := CoresToPeriodAndQuota(cores)
+	assert.Equal(t, actualPeriod, expectedPeriod, "Period does not match")
+	assert.Equal(t, actualQuota, expectedQuota, "Quota does not match")
+}
+
+func TestPeriodAndQuotaToCores(t *testing.T) {
+	var (
+		period        uint64 = 100000
+		quota         int64  = 50000
+		expectedCores        = 0.5
+	)
+
+	assert.Equal(t, PeriodAndQuotaToCores(period, quota), expectedCores)
+}

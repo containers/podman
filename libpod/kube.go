@@ -327,7 +327,7 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 			period := *c.config.Spec.Linux.Resources.CPU.Period
 
 			if quota > 0 && period > 0 {
-				cpuLimitMilli := int64(1000 * float64(quota) / float64(period))
+				cpuLimitMilli := int64(1000 * util.PeriodAndQuotaToCores(period, quota))
 
 				// Kubernetes: precision finer than 1m is not allowed
 				if cpuLimitMilli >= 1 {
