@@ -12,7 +12,7 @@ Learn how to setup Podman and perform some basic commands with the utility.
 
 The steps required to setup rootless Podman are enumerated.
 
-**[Setup Mac/Windows](mac_win_client.md)
+**[Setup Mac/Windows](mac_win_client.md)**
 
 Special setup for running the Podman remote client on a Mac or Windows PC and connecting to Podman running on a Linux VM are documented.
 
