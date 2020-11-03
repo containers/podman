@@ -27,19 +27,25 @@ const (
 	// Private indicates the namespace is private
 	Private NamespaceMode = "private"
 	// NoNetwork indicates no network namespace should
-	// be joined.  loopback should still exists
+	// be joined.  loopback should still exists.
+	// Only used with the network namespace, invalid otherwise.
 	NoNetwork NamespaceMode = "none"
 	// Bridge indicates that a CNI network stack
-	// should be used
+	// should be used.
+	// Only used with the network namespace, invalid otherwise.
 	Bridge NamespaceMode = "bridge"
 	// Slirp indicates that a slirp4netns network stack should
-	// be used
+	// be used.
+	// Only used with the network namespace, invalid otherwise.
 	Slirp NamespaceMode = "slirp4netns"
 	// KeepId indicates a user namespace to keep the owner uid inside
-	// of the namespace itself
+	// of the namespace itself.
+	// Only used with the user namespace, invalid otherwise.
 	KeepID NamespaceMode = "keep-id"
-	// KeepId indicates to automatically create a user namespace
+	// Auto indicates to automatically create a user namespace.
+	// Only used with the user namespace, invalid otherwise.
 	Auto NamespaceMode = "auto"
+
 	// DefaultKernelNamespaces is a comma-separated list of default kernel
 	// namespaces.
 	DefaultKernelNamespaces = "cgroup,ipc,net,uts"

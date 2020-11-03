@@ -257,7 +257,19 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
-	return verifyContainerResources(s)
+	warnings, err := verifyContainerResources(s)
+	if err != nil {
+		return warnings, err
+	}
+
+	// Warn on net=host/container/pod/none and port mappings.
+	if (s.NetNS.NSMode == specgen.Host || s.NetNS.NSMode == specgen.FromContainer ||
+		s.NetNS.NSMode == specgen.FromPod || s.NetNS.NSMode == specgen.NoNetwork) &&
+		len(s.PortMappings) > 0 {
+		warnings = append(warnings, "Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use")
+	}
+
+	return warnings, nil
 }
 
 // finishThrottleDevices takes the temporary representation of the throttle
