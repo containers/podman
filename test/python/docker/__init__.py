@@ -1,9 +1,12 @@
 import configparser
 import json
 import os
+import pathlib
 import shutil
 import subprocess
 import tempfile
+
+from test.python.docker import constant
 
 
 class Podman(object):
@@ -16,13 +19,21 @@ class Podman(object):
         binary = os.getenv("PODMAN", "bin/podman")
         self.cmd = [binary, "--storage-driver=vfs"]
 
-        cgroupfs = os.getenv("CGROUP_MANAGER", "cgroupfs")
+        cgroupfs = os.getenv("CGROUP_MANAGER", "systemd")
         self.cmd.append(f"--cgroup-manager={cgroupfs}")
+
+        # No support for tmpfs (/tmp) or extfs (/var/tmp)
+        # self.cmd.append("--storage-driver=overlay")
 
         if os.getenv("DEBUG"):
             self.cmd.append("--log-level=debug")
+            self.cmd.append("--syslog=true")
 
-        self.anchor_directory = tempfile.mkdtemp(prefix="podman_restapi_")
+        self.anchor_directory = tempfile.mkdtemp(prefix="podman_docker_")
+
+        self.image_cache = os.path.join(self.anchor_directory, "cache")
+        os.makedirs(self.image_cache, exist_ok=True)
+
         self.cmd.append("--root=" + os.path.join(self.anchor_directory, "crio"))
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
 
@@ -32,7 +43,7 @@ class Podman(object):
         p = configparser.ConfigParser()
         p.read_dict(
             {
-                "registries.search": {"registries": "['docker.io']"},
+                "registries.search": {"registries": "['quay.io', 'docker.io']"},
                 "registries.insecure": {"registries": "[]"},
                 "registries.block": {"registries": "[]"},
             }
@@ -129,3 +140,18 @@ class Podman(object):
 
     def tear_down(self):
         shutil.rmtree(self.anchor_directory, ignore_errors=True)
+
+    def restore_image_from_cache(self, client):
+        img = os.path.join(self.image_cache, constant.ALPINE_TARBALL)
+        if not os.path.exists(img):
+            client.pull(constant.ALPINE)
+            image = client.get_image(constant.ALPINE)
+            with open(img, mode="wb") as tarball:
+                for frame in image:
+                    tarball.write(frame)
+        else:
+            self.run("load", "-i", img, check=True)
+
+    def flush_image_cache(self):
+        for f in pathlib.Path(self.image_cache).glob("*.tar"):
+            f.unlink(f)

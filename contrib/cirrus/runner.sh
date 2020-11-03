@@ -63,6 +63,12 @@ function _run_unit() {
 }
 
 function _run_apiv2() {
+    # TODO Remove once VM's with dependency
+    if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
+        dnf install -y python3-docker
+    else
+        apt-get -qq -y install python3-docker
+    fi
     make localapiv2 |& logformatter
 }
 
