@@ -135,7 +135,9 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	configSpec.Process.Capabilities.Bounding = caplist
 	configSpec.Process.Capabilities.Inheritable = caplist
 
-	if s.User == "" || s.User == "root" || s.User == "0" {
+	user := strings.Split(s.User, ":")[0]
+
+	if (user == "" && s.UserNS.NSMode != specgen.KeepID) || user == "root" || user == "0" {
 		configSpec.Process.Capabilities.Effective = caplist
 		configSpec.Process.Capabilities.Permitted = caplist
 	} else {
@@ -145,6 +147,12 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 		configSpec.Process.Capabilities.Effective = userCaps
 		configSpec.Process.Capabilities.Permitted = userCaps
+
+		// Ambient capabilities were added to Linux 4.3.  Set ambient
+		// capabilities only when the kernel supports them.
+		if supportAmbientCapabilities() {
+			configSpec.Process.Capabilities.Ambient = userCaps
+		}
 	}
 
 	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
