@@ -110,4 +110,27 @@ var _ = Describe("Podman volume ls", func() {
 		Expect(lsDangling.ExitCode()).To(Equal(0))
 		Expect(lsDangling.OutputToString()).To(ContainSubstring(volName1))
 	})
+	It("podman ls volume with multiple --filter flag", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "foo=bar", "myvol"})
+		volName := session.OutputToString()
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "foo2=bar2", "anothervol"})
+		anotherVol := session.OutputToString()
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "label=foo", "--filter", "label=foo2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(3))
+		Expect(session.OutputToStringArray()[1]).To(ContainSubstring(volName))
+		Expect(session.OutputToStringArray()[2]).To(ContainSubstring(anotherVol))
+
+	})
 })

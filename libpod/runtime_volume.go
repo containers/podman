@@ -86,8 +86,8 @@ func (r *Runtime) HasVolume(name string) (bool, error) {
 
 // Volumes retrieves all volumes
 // Filters can be provided which will determine which volumes are included in the
-// output. Multiple filters are handled by ANDing their output, so only volumes
-// matching all filters are returned
+// output. If multiple filters are used, a volume will be returned if
+// any of the filters are matched
 func (r *Runtime) Volumes(filters ...VolumeFilter) ([]*Volume, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
@@ -101,11 +101,15 @@ func (r *Runtime) Volumes(filters ...VolumeFilter) ([]*Volume, error) {
 		return nil, err
 	}
 
+	if len(filters) == 0 {
+		return vols, nil
+	}
+
 	volsFiltered := make([]*Volume, 0, len(vols))
 	for _, vol := range vols {
-		include := true
+		include := false
 		for _, filter := range filters {
-			include = include && filter(vol)
+			include = include || filter(vol)
 		}
 
 		if include {
