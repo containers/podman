@@ -7,6 +7,7 @@ approvers:
   - rhatdan
   - TomSweeneyRedHat
   - vrothberg
+  - umohnani8
 reviewers:
   - baude
   - edsantiago
@@ -18,3 +19,4 @@ reviewers:
   - vrothberg
   - ashley-cui
   - QiWang19
+  - umohnani8
