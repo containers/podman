@@ -8,12 +8,9 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/image/v5/storage"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
-	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
@@ -220,41 +217,19 @@ func pullImage(imageName string) (string, error) {
 		return "", err
 	}
 
-	// Check if the image is missing and hence if we need to pull it.
-	imageMissing := true
-	imageRef, err := alltransports.ParseImageName(imageName)
-	switch {
-	case err != nil:
-		// Assume we specified a local image without the explicit storage transport.
-		fallthrough
-
-	case imageRef.Transport().Name() == storage.Transport.Name():
-		br, err := registry.ImageEngine().Exists(registry.GetContext(), imageName)
-		if err != nil {
-			return "", err
-		}
-		imageMissing = !br.Value
+	pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
+		Authfile:        cliVals.Authfile,
+		Quiet:           cliVals.Quiet,
+		OverrideArch:    cliVals.OverrideArch,
+		OverrideOS:      cliVals.OverrideOS,
+		OverrideVariant: cliVals.OverrideVariant,
+		SignaturePolicy: cliVals.SignaturePolicy,
+		PullPolicy:      pullPolicy,
+	})
+	if pullErr != nil {
+		return "", pullErr
 	}
-
-	if imageMissing || pullPolicy == config.PullImageAlways {
-		if pullPolicy == config.PullImageNever {
-			return "", errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", imageName)
-		}
-		pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
-			Authfile:        cliVals.Authfile,
-			Quiet:           cliVals.Quiet,
-			OverrideArch:    cliVals.OverrideArch,
-			OverrideOS:      cliVals.OverrideOS,
-			OverrideVariant: cliVals.OverrideVariant,
-			SignaturePolicy: cliVals.SignaturePolicy,
-			PullPolicy:      pullPolicy,
-		})
-		if pullErr != nil {
-			return "", pullErr
-		}
-		imageName = pullReport.Images[0]
-	}
-	return imageName, nil
+	return pullReport.Images[0], nil
 }
 
 // createPodIfNecessary automatically creates a pod when requested.  if the pod name

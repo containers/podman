@@ -22,6 +22,7 @@ type ImageData struct {
 	Version      string                        `json:"Version"`
 	Author       string                        `json:"Author"`
 	Architecture string                        `json:"Architecture"`
+	Variant      string                        `json:"Variant"`
 	Os           string                        `json:"Os"`
 	Size         int64                         `json:"Size"`
 	VirtualSize  int64                         `json:"VirtualSize"`

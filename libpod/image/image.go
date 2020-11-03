@@ -142,6 +142,25 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 	return ir.newImage(updatedInputName, localImage), nil
 }
 
+// matchesPlatform returns true if the image matches the specified os, arch and
+// variant.  Note that os, arch and variant are ignored if they are empty.
+func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (bool, error) {
+	data, err := i.inspect(ctx, false)
+	if err != nil {
+		return false, errors.Wrap(err, "error determining image's platform")
+	}
+	if os != "" && data.Os != os {
+		return false, nil
+	}
+	if arch != "" && data.Architecture != arch {
+		return false, nil
+	}
+	if variant != "" && data.Variant != variant {
+		return false, nil
+	}
+	return true, nil
+}
+
 // New creates a new image object where the image could be local
 // or remote
 func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, label *string, pullType util.PullType) (*Image, error) {
@@ -153,8 +172,24 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if pullType != util.PullImageAlways {
 		newImage, err := ir.NewFromLocal(name)
 		if err == nil {
-			return newImage, nil
-		} else if pullType == util.PullImageNever {
+			// Make sure that the local image matches the
+			// user-specified OS and arch.  In case of a
+			// mismatch, continue and attempt to pull the
+			// image.
+			var os, arch, variant string
+			if dockeroptions != nil {
+				os = dockeroptions.OSChoice
+				arch = dockeroptions.ArchitectureChoice
+				variant = dockeroptions.VariantChoice
+			}
+			matches, err := newImage.matchesPlatform(ctx, os, arch, variant)
+			if matches || err != nil {
+				return newImage, err
+			}
+			logrus.Debugf("Found local image %q for %q but it does not match the platform (os: %q, arch:%q)", newImage.ID(), name, os, arch)
+		}
+
+		if pullType == util.PullImageNever {
 			return nil, err
 		}
 	}
@@ -1237,7 +1272,7 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 		return nil, err
 	}
 
-	_, manifestType, err := i.GetManifest(ctx, nil)
+	manifestData, manifestType, err := i.GetManifest(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to determine manifest type")
 	}
@@ -1272,14 +1307,26 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 		History:      ociv1Img.History,
 		NamesHistory: i.NamesHistory(),
 	}
-	if manifestType == manifest.DockerV2Schema2MediaType {
-		hc, err := i.GetHealthCheck(ctx)
+	switch manifestType {
+	case manifest.DockerV2Schema2MediaType:
+		v2Image, err := i.GetConfigBlob(ctx)
 		if err != nil {
 			return nil, err
 		}
-		if hc != nil {
+		if hc := v2Image.ContainerConfig.Healthcheck; hc != nil {
 			data.HealthCheck = hc
 		}
+		data.Variant = v2Image.Variant
+
+	case ociv1.MediaTypeImageManifest:
+		var m ociv1.Manifest
+		if err := json.Unmarshal(manifestData, &m); err != nil {
+			return nil, err
+		}
+		if m.Config.Platform != nil {
+			data.Variant = m.Config.Platform.Variant
+		}
+	default:
 	}
 	return data, nil
 }

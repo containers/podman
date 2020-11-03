@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -14,6 +15,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/mrunalp/fileutils"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -45,6 +47,22 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run a container based on local image but with --override-arch", func() {
+		if runtime.GOARCH == "arm64" {
+			ginkgo.Skip("test does not run on arm64")
+		}
+		session := podmanTest.Podman([]string{"run", "--override-arch", "arm64", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+	})
+
+	It("podman run a container based on local image but with --override-os", func() {
+		session := podmanTest.Podman([]string{"run", "--override-os", "bogus", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("Error choosing an image from manifest list"))
 	})
 
 	It("podman run a container based on a complex local image name", func() {

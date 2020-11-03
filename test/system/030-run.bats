@@ -142,7 +142,7 @@ echo $rand        |   0 | $rand
     NONLOCAL_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:00000000"
 
     run_podman 125 run --pull=never $NONLOCAL_IMAGE true
-    is "$output" "Error: unable to find a name and tag match for $NONLOCAL_IMAGE in repotags: no such image" "--pull=never [with image not present]: error"
+    is "$output" "Error: unable to find $NONLOCAL_IMAGE in local storage: no such image" "--pull=never [with image not present]: error"
 
     run_podman run --pull=missing $NONLOCAL_IMAGE true
     is "$output" "Trying to pull .*" "--pull=missing [with image NOT PRESENT]: fetches"

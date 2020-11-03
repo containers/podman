@@ -88,7 +88,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if s.Rootfs != "" {
 		options = append(options, libpod.WithRootFS(s.Rootfs))
 	} else {
-		newImage, err = rt.ImageRuntime().NewFromLocal(s.Image)
+		newImage, err = rt.ImageRuntime().NewFromLocal(s.RawImageName)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +97,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		// defaulting to the first name or an empty one if no names are
 		// present.
 		imgName := newImage.InputName
-		if s.Image == newImage.InputName && strings.HasPrefix(newImage.ID(), s.Image) {
+		if strings.HasPrefix(newImage.ID(), s.RawImageName) {
 			imgName = ""
 			names := newImage.Names()
 			if len(names) > 0 {
