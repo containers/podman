@@ -107,6 +107,28 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
+	It("podman pod ps filter name regexp", func() {
+		_, ec, podid := podmanTest.CreatePod("mypod")
+		Expect(ec).To(Equal(0))
+		_, ec2, _ := podmanTest.CreatePod("mypod1")
+		Expect(ec2).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "name=mypod"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		output := result.OutputToStringArray()
+		Expect(len(output)).To(Equal(2))
+
+		result = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "name=mypod$"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		output = result.OutputToStringArray()
+		Expect(len(output)).To(Equal(1))
+		Expect(output[0]).To(Equal(podid))
+	})
+
 	It("podman pod ps mutually exclusive flags", func() {
 		session := podmanTest.Podman([]string{"pod", "ps", "-q", "--format", "{{.ID}}"})
 		session.WaitWithDefaultTimeout()
