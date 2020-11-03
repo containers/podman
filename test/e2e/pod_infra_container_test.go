@@ -383,12 +383,14 @@ var _ = Describe("Podman pod create", func() {
 		podID := session.OutputToString()
 
 		// verify we can add a host to the infra's /etc/hosts
-		session = podmanTest.Podman([]string{"run", "--pod", podID, "--add-host", "foobar:127.0.0.1", BB, "ping", "-c", "1", "foobar"})
+		// N/B: Using alpine for ping, since BB ping throws
+		//      permission denied error as of Fedora 33.
+		session = podmanTest.Podman([]string{"run", "--pod", podID, "--add-host", "foobar:127.0.0.1", ALPINE, "ping", "-c", "1", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		// verify we can see the other hosts of infra's /etc/hosts
-		session = podmanTest.Podman([]string{"run", "--pod", podID, BB, "ping", "-c", "1", "foobar"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "ping", "-c", "1", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
