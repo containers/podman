@@ -43,16 +43,16 @@ class TestApi(unittest.TestCase):
     def setUp(self):
         super().setUp()
         if TestApi.podman.poll() is not None:
-            sys.stderr.write("podman service returned {}",
-                             TestApi.podman.returncode)
+            sys.stderr.write("podman service returned {}", TestApi.podman.returncode)
             sys.exit(2)
-        requests.get(
-            _url("/images/create?fromSrc=docker.io%2Falpine%3Alatest"))
+        requests.get(_url("/images/create?fromSrc=docker.io%2Falpine%3Alatest"))
         # calling out to podman is easier than the API for running a container
-        subprocess.run([podman(), "run", "alpine", "/bin/ls"],
-                       check=True,
-                       stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
+        subprocess.run(
+            [podman(), "run", "alpine", "/bin/ls"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
     @classmethod
     def setUpClass(cls):
@@ -60,8 +60,12 @@ class TestApi(unittest.TestCase):
 
         TestApi.podman = subprocess.Popen(
             [
-                podman(), "system", "service", "tcp:localhost:8080",
-                "--log-level=debug", "--time=0"
+                podman(),
+                "system",
+                "service",
+                "tcp:localhost:8080",
+                "--log-level=debug",
+                "--time=0",
             ],
             shell=False,
             stdin=subprocess.DEVNULL,
@@ -75,13 +79,14 @@ class TestApi(unittest.TestCase):
         TestApi.podman.terminate()
         stdout, stderr = TestApi.podman.communicate(timeout=0.5)
         if stdout:
-            print("\nService Stdout:\n" + stdout.decode('utf-8'))
+            print("\nService Stdout:\n" + stdout.decode("utf-8"))
         if stderr:
-            print("\nService Stderr:\n" + stderr.decode('utf-8'))
+            print("\nService Stderr:\n" + stderr.decode("utf-8"))
 
         if TestApi.podman.returncode > 0:
-            sys.stderr.write("podman exited with error code {}\n".format(
-                TestApi.podman.returncode))
+            sys.stderr.write(
+                "podman exited with error code {}\n".format(TestApi.podman.returncode)
+            )
             sys.exit(2)
 
         return super().tearDownClass()
@@ -222,13 +227,14 @@ class TestApi(unittest.TestCase):
 
 
 def validateObjectFields(self, buffer):
-        objs = json.loads(buffer)
-        if not isinstance(objs, dict):
-            for o in objs:
-                _ = o["Id"]
-        else:
-            _ = objs["Id"]
-        return objs
+    objs = json.loads(buffer)
+    if not isinstance(objs, dict):
+        for o in objs:
+            _ = o["Id"]
+    else:
+        _ = objs["Id"]
+    return objs
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
