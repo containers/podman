@@ -30,6 +30,13 @@ var (
 	// not exist.
 	ErrNoSuchExecSession = errors.New("no such exec session")
 
+	// ErrNoAliases indicates that the container does not have any network
+	// aliases.
+	ErrNoAliases = errors.New("no aliases for container")
+	// ErrNoAliasesForNetwork indicates that the container has no aliases
+	// for a specific network.
+	ErrNoAliasesForNetwork = errors.New("no aliases for network")
+
 	// ErrCtrExists indicates a container with the same name or ID already
 	// exists
 	ErrCtrExists = errors.New("container already exists")
@@ -42,6 +49,9 @@ var (
 	// ErrExecSessionExists indicates an exec session with the same ID
 	// already exists.
 	ErrExecSessionExists = errors.New("exec session already exists")
+	// ErrAliasExists indicates that a network alias with the same name
+	// already exists in the network.
+	ErrAliasExists = errors.New("alias already exists")
 
 	// ErrCtrStateInvalid indicates a container is in an improper state for
 	// the requested operation

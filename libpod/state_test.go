@@ -1319,6 +1319,250 @@ func TestCannotUsePodAsDependency(t *testing.T) {
 	})
 }
 
+func TestAddContainerEmptyNetworkNameErrors(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		testCtr.config.Networks = []string{""}
+
+		err = state.AddContainer(testCtr)
+		assert.Error(t, err)
+	})
+}
+
+func TestAddContainerNetworkAliasesButNoMatchingNetwork(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		testCtr.config.Networks = []string{"test1"}
+		testCtr.config.NetworkAliases = make(map[string][]string)
+		testCtr.config.NetworkAliases["test2"] = []string{"alias1"}
+
+		err = state.AddContainer(testCtr)
+		assert.Error(t, err)
+	})
+}
+
+func TestAddContainerNetworkAliasConflictWithName(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		netName := "testnet"
+		testCtr1.config.Networks = []string{netName}
+		testCtr1.config.NetworkAliases = make(map[string][]string)
+		testCtr1.config.NetworkAliases[netName] = []string{"alias1"}
+
+		testCtr2, err := getTestCtr2(manager)
+		assert.NoError(t, err)
+
+		testCtr2.config.Networks = []string{netName}
+		testCtr2.config.NetworkAliases = make(map[string][]string)
+		testCtr2.config.NetworkAliases[netName] = []string{testCtr1.Name()}
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.Error(t, err)
+	})
+}
+
+func TestAddContainerNetworkAliasConflictWithAlias(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		netName := "testnet"
+		aliasName := "alias1"
+		testCtr1.config.Networks = []string{netName}
+		testCtr1.config.NetworkAliases = make(map[string][]string)
+		testCtr1.config.NetworkAliases[netName] = []string{aliasName}
+
+		testCtr2, err := getTestCtr2(manager)
+		assert.NoError(t, err)
+
+		testCtr2.config.Networks = []string{netName}
+		testCtr2.config.NetworkAliases = make(map[string][]string)
+		testCtr2.config.NetworkAliases[netName] = []string{aliasName}
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.Error(t, err)
+	})
+}
+
+func TestAddContainerNetworkAliasConflictWithAliasButDifferentNets(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		netName := "testnet"
+		aliasName := "alias1"
+		testCtr1.config.Networks = []string{netName}
+		testCtr1.config.NetworkAliases = make(map[string][]string)
+		testCtr1.config.NetworkAliases[netName] = []string{aliasName}
+
+		testCtr2, err := getTestCtr2(manager)
+		assert.NoError(t, err)
+
+		netName2 := "testnet2"
+		testCtr2.config.Networks = []string{netName2}
+		testCtr2.config.NetworkAliases = make(map[string][]string)
+		testCtr2.config.NetworkAliases[netName2] = []string{aliasName}
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.NoError(t, err)
+	})
+}
+
+func TestAddContainerNameConflictsWithAliasRemovesAlias(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		testCtr2, err := getTestCtr2(manager)
+		assert.NoError(t, err)
+
+		netName := "testnet"
+		aliasName := testCtr2.Name()
+		testCtr1.config.Networks = []string{netName}
+		testCtr1.config.NetworkAliases = make(map[string][]string)
+		testCtr1.config.NetworkAliases[netName] = []string{aliasName}
+
+		testCtr2.config.Networks = []string{netName}
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.NoError(t, err)
+
+		aliases, err := state.GetNetworkAliases(testCtr1, netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(aliases))
+	})
+}
+
+func TestNetworkAliasAddAndRemoveSingleContainer(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		netName := "testnet"
+		testCtr.config.Networks = []string{netName}
+		testCtr.config.NetworkAliases = make(map[string][]string)
+		testCtr.config.NetworkAliases[netName] = []string{"alias1"}
+
+		startAliases, err := state.GetAllAliasesForNetwork(netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(startAliases))
+
+		err = state.AddContainer(testCtr)
+		assert.NoError(t, err)
+
+		oneAlias, err := state.GetAllAliasesForNetwork(netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(oneAlias))
+		assert.Equal(t, testCtr.ID(), oneAlias["alias1"])
+
+		allAliases, err := state.GetAllNetworkAliases(testCtr)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(allAliases))
+		netAliases, ok := allAliases[netName]
+		assert.True(t, ok)
+		assert.Equal(t, 1, len(netAliases))
+		assert.Equal(t, "alias1", netAliases[0])
+
+		ctrNetAliases, err := state.GetNetworkAliases(testCtr, netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ctrNetAliases))
+		assert.Equal(t, "alias1", ctrNetAliases[0])
+
+		err = state.RemoveContainer(testCtr)
+		assert.NoError(t, err)
+
+		noAliases, err := state.GetAllAliasesForNetwork(netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(noAliases))
+	})
+}
+
+func TestNetworkAliasAddAndRemoveTwoContainers(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		netName := "testnet"
+		testCtr1.config.Networks = []string{netName}
+		testCtr1.config.NetworkAliases = make(map[string][]string)
+		testCtr1.config.NetworkAliases[netName] = []string{"alias1"}
+
+		testCtr2, err := getTestCtr2(manager)
+		assert.NoError(t, err)
+
+		testCtr2.config.Networks = []string{netName}
+		testCtr2.config.NetworkAliases = make(map[string][]string)
+		testCtr2.config.NetworkAliases[netName] = []string{"alias2"}
+
+		startAliases, err := state.GetAllAliasesForNetwork(netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(startAliases))
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		oneAlias, err := state.GetAllAliasesForNetwork(netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(oneAlias))
+		assert.Equal(t, testCtr1.ID(), oneAlias["alias1"])
+
+		err = state.AddContainer(testCtr2)
+		assert.NoError(t, err)
+
+		twoAliases, err := state.GetAllAliasesForNetwork(netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(twoAliases))
+		assert.Equal(t, testCtr1.ID(), twoAliases["alias1"])
+		assert.Equal(t, testCtr2.ID(), twoAliases["alias2"])
+
+		allAliases, err := state.GetAllNetworkAliases(testCtr1)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(allAliases))
+		netAliases, ok := allAliases[netName]
+		assert.True(t, ok)
+		assert.Equal(t, 1, len(netAliases))
+		assert.Equal(t, "alias1", netAliases[0])
+
+		ctrNetAliases, err := state.GetNetworkAliases(testCtr1, netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ctrNetAliases))
+		assert.Equal(t, "alias1", ctrNetAliases[0])
+
+		err = state.RemoveContainer(testCtr2)
+		assert.NoError(t, err)
+
+		oneAlias, err = state.GetAllAliasesForNetwork(netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(oneAlias))
+		assert.Equal(t, testCtr1.ID(), oneAlias["alias1"])
+
+		err = state.RemoveContainer(testCtr1)
+		assert.NoError(t, err)
+
+		noAliases, err := state.GetAllAliasesForNetwork(netName)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(noAliases))
+	})
+}
+
 func TestCannotUseBadIDAsDependency(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		testCtr, err := getTestCtr1(manager)
