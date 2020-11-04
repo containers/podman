@@ -5,6 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/podman/v2/libpod"
@@ -12,15 +15,14 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"path/filepath"
-	"strings"
+
+	"net/http"
+	"os"
+	"time"
 
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"os"
-	"time"
 )
 
 func Archive(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +133,6 @@ func handleHeadOrGet(w http.ResponseWriter, r *http.Request, decoder *schema.Dec
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
-
 }
 
 func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, runtime *libpod.Runtime) {
@@ -249,7 +250,6 @@ func getUser(mountPoint string, userspec string) (specs.User, error) {
 		} else {
 			u.AdditionalGids = groups
 		}
-
 	}
 	return u, err
 }
@@ -270,10 +270,7 @@ func fixUpMountPointAndPath(runtime *libpod.Runtime, ctr *libpod.Container, moun
 		mountPoint = newMountPoint
 		ctrPath = path
 	} else if isBindMount, mount := isBindMountDestName(ctrPath, ctr); isBindMount { //nolint(gocritic)
-		newMountPoint, path, err := pathWithBindMountSource(mount, ctrPath)
-		if err != nil {
-			return "", "", errors.Wrapf(err, "error getting source path from bind mount %s", mount.Destination)
-		}
+		newMountPoint, path := pathWithBindMountSource(mount, ctrPath)
 		mountPoint = newMountPoint
 		ctrPath = path
 	}
@@ -337,9 +334,9 @@ func matchVolumePath(path, target string) bool {
 	return pathStr == target
 }
 
-func pathWithBindMountSource(m specs.Mount, path string) (string, string, error) {
+func pathWithBindMountSource(m specs.Mount, path string) (string, string) {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(string(os.PathSeparator), path)
 	}
-	return m.Source, strings.TrimPrefix(path, m.Destination), nil
+	return m.Source, strings.TrimPrefix(path, m.Destination)
 }
