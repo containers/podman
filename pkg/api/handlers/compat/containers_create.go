@@ -38,6 +38,11 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, utils.ErrLinkNotSupport.Error(), http.StatusBadRequest, errors.Wrapf(utils.ErrLinkNotSupport, "bad parameter"))
 		return
 	}
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		utils.Error(w, "unable to obtain runtime config", http.StatusInternalServerError, errors.Wrap(err, "unable to get runtime config"))
+	}
+
 	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchImage {
@@ -50,7 +55,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Take input structure and convert to cliopts
-	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(input)
+	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(input, rtc.Engine.CgroupManager)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "make cli opts()"))
 		return
