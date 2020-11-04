@@ -49,6 +49,7 @@ func handleHeadOrGet(w http.ResponseWriter, r *http.Request, decoder *schema.Dec
 		utils.Error(w, "Bad Request.", http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
 		return
 	}
+
 	if query.Path == "" {
 		utils.Error(w, "Bad Request.", http.StatusBadRequest, errors.New("missing `path` parameter"))
 		return
@@ -64,11 +65,13 @@ func handleHeadOrGet(w http.ResponseWriter, r *http.Request, decoder *schema.Dec
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
+
 	mountPoint, err := ctr.Mount()
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to mount the container"))
 		return
 	}
+
 	defer func() {
 		if err := ctr.Unmount(true); err != nil {
 			logrus.Warnf("failed to unmount container %s: %q", containerName, err)
@@ -88,14 +91,18 @@ func handleHeadOrGet(w http.ResponseWriter, r *http.Request, decoder *schema.Dec
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to get stats about file"))
 		return
 	}
+
 	if len(stats) <= 0 || len(stats[0].Globbed) <= 0 {
 		errs := make([]string, 0, len(stats))
+
 		for _, stat := range stats {
 			if stat.Error != "" {
 				errs = append(errs, stat.Error)
 			}
 		}
+
 		utils.Error(w, "Not found.", http.StatusNotFound, fmt.Errorf("file doesn't exist (errs: %q)", strings.Join(errs, ";")))
+
 		return
 	}
 
@@ -114,6 +121,7 @@ func handleHeadOrGet(w http.ResponseWriter, r *http.Request, decoder *schema.Dec
 				errors.Wrapf(err, "error getting IDMappingOptions"))
 			return
 		}
+
 		destOwner := idtools.IDPair{UID: os.Getuid(), GID: os.Getgid()}
 
 		opts := copier.GetOptions{
@@ -125,6 +133,7 @@ func handleHeadOrGet(w http.ResponseWriter, r *http.Request, decoder *schema.Dec
 		}
 
 		w.WriteHeader(http.StatusOK)
+
 		err = copier.Get(mountPoint, "", opts, []string{filepath.Join(mountPoint, path)}, w)
 		if err != nil {
 			logrus.Error(errors.Wrapf(err, "failed to copy from the %s container path %s", containerName, query.Path))
@@ -156,11 +165,13 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 		utils.Error(w, "Not found", http.StatusNotFound, errors.Wrapf(err, "the %s container doesn't exists", ctrName))
 		return
 	}
+
 	mountPoint, err := ctr.Mount()
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, errors.Wrapf(err, "failed to mount the %s container", ctrName))
 		return
 	}
+
 	defer func() {
 		if err := ctr.Unmount(true); err != nil {
 			logrus.Warnf("failed to unmount container %s", ctrName)
@@ -172,11 +183,13 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
+
 	idMappingOpts, err := ctr.IDMappings()
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, errors.Wrapf(err, "error getting IDMappingOptions"))
 		return
 	}
+
 	destOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
 
 	opts := copier.PutOptions{
@@ -193,6 +206,7 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 	}
 
 	w.WriteHeader(http.StatusOK)
+
 	err = copier.Put(mountPoint, filepath.Join(mountPoint, path), opts, r.Body)
 	if err != nil {
 		logrus.Error(errors.Wrapf(err, "failed to copy to the %s container path %s", ctrName, query.Path))
@@ -222,10 +236,12 @@ func statsToHeader(stats *copier.StatForItem) (string, error) {
 
 	buff := bytes.NewBuffer(make([]byte, 0, 128))
 	base64encoder := base64.NewEncoder(base64.StdEncoding, buff)
+
 	_, err = base64encoder.Write(jsonBytes)
 	if err != nil {
 		return "", err
 	}
+
 	err = base64encoder.Close()
 	if err != nil {
 		return "", err
@@ -241,6 +257,7 @@ func getUser(mountPoint string, userspec string) (specs.User, error) {
 		GID:      gid,
 		Username: userspec,
 	}
+
 	if !strings.Contains(userspec, ":") {
 		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
 		if err2 != nil {
@@ -251,6 +268,7 @@ func getUser(mountPoint string, userspec string) (specs.User, error) {
 			u.AdditionalGids = groups
 		}
 	}
+
 	return u, err
 }
 
@@ -258,6 +276,7 @@ func fixUpMountPointAndPath(runtime *libpod.Runtime, ctr *libpod.Container, moun
 	if !filepath.IsAbs(ctrPath) {
 		endsWithSep := strings.HasSuffix(ctrPath, string(filepath.Separator))
 		ctrPath = filepath.Join(ctr.WorkingDir(), ctrPath)
+
 		if endsWithSep {
 			ctrPath = ctrPath + string(filepath.Separator)
 		}
@@ -267,6 +286,7 @@ func fixUpMountPointAndPath(runtime *libpod.Runtime, ctr *libpod.Container, moun
 		if err != nil {
 			return "", "", errors.Wrapf(err, "error getting source path from volume %s", volDestName)
 		}
+
 		mountPoint = newMountPoint
 		ctrPath = path
 	} else if isBindMount, mount := isBindMountDestName(ctrPath, ctr); isBindMount { //nolint(gocritic)
@@ -274,23 +294,28 @@ func fixUpMountPointAndPath(runtime *libpod.Runtime, ctr *libpod.Container, moun
 		mountPoint = newMountPoint
 		ctrPath = path
 	}
+
 	return mountPoint, ctrPath, nil
 }
 
 func isVolumeDestName(path string, ctr *libpod.Container) (bool, string, string) {
 	separator := string(os.PathSeparator)
+
 	if filepath.IsAbs(path) {
 		path = strings.TrimPrefix(path, separator)
 	}
+
 	if path == "" {
 		return false, "", ""
 	}
+
 	for _, vol := range ctr.Config().NamedVolumes {
 		volNamePath := strings.TrimPrefix(vol.Dest, separator)
 		if matchVolumePath(path, volNamePath) {
 			return true, vol.Dest, vol.Name
 		}
 	}
+
 	return false, "", ""
 }
 
@@ -299,38 +324,47 @@ func pathWithVolumeMount(runtime *libpod.Runtime, volDestName, volName, path str
 	if err != nil {
 		return "", "", errors.Wrapf(err, "error getting volume destination %s", volName)
 	}
+
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(string(os.PathSeparator), path)
 	}
+
 	return destVolume.MountPoint(), strings.TrimPrefix(path, volDestName), err
 }
 
 func isBindMountDestName(path string, ctr *libpod.Container) (bool, specs.Mount) {
 	separator := string(os.PathSeparator)
+
 	if filepath.IsAbs(path) {
 		path = strings.TrimPrefix(path, string(os.PathSeparator))
 	}
+
 	if path == "" {
 		return false, specs.Mount{}
 	}
+
 	for _, m := range ctr.Config().Spec.Mounts {
 		if m.Type != "bind" {
 			continue
 		}
+
 		mDest := strings.TrimPrefix(m.Destination, separator)
 		if matchVolumePath(path, mDest) {
 			return true, m
 		}
 	}
+
 	return false, specs.Mount{}
 }
 
 func matchVolumePath(path, target string) bool {
 	pathStr := filepath.Clean(path)
 	target = filepath.Clean(target)
+
 	for len(pathStr) > len(target) && strings.Contains(pathStr, string(os.PathSeparator)) {
 		pathStr = pathStr[:strings.LastIndex(pathStr, string(os.PathSeparator))]
 	}
+
 	return pathStr == target
 }
 
@@ -338,5 +372,6 @@ func pathWithBindMountSource(m specs.Mount, path string) (string, string) {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(string(os.PathSeparator), path)
 	}
+
 	return m.Source, strings.TrimPrefix(path, m.Destination)
 }
