@@ -21,13 +21,13 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-32"
-    PRIOR_FEDORA_NAME: "fedora-31"
+    FEDORA_NAME: "fedora-33"
+    PRIOR_FEDORA_NAME: "fedora-32"
     UBUNTU_NAME: "ubuntu-20"
     PRIOR_UBUNTU_NAME: "ubuntu-19"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c4948709391728640"
+    IMAGE_SUFFIX: "c6323493627232256"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -74,12 +74,8 @@ ext_svc_check_task:
     env:
         TEST_FLAVOR: ext_svc
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    setup_script: &setup
-        - 'cd $GOSRC/$SCRIPT_BASE || exit 1'
-        - './setup_environment.sh'
-    main_script: &main
-        - 'cd $GOSRC/$SCRIPT_BASE || exit 1'
-        - './runner.sh'
+    setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
+    main_script: &main '$GOSRC/$SCRIPT_BASE/runner.sh'
 
 
 # Execute some quick checks to confirm this YAML file and all
@@ -189,17 +185,13 @@ build_task:
     clone_script: &noop mkdir -p $CIRRUS_WORKING_DIR
     setup_script: *setup
     main_script: *main
-    always: &artifacts
+    always: &binary_artifacts
         gosrc_artifacts:
             path: ./*  # Grab everything in top-level $GOSRC
             type: application/octet-stream
         binary_artifacts:
             path: ./bin/*
             type: application/octet-stream
-        # Required for `contrib/cirrus/logformatter` to work properly
-        html_artifacts:
-            path: ./*.html
-            type: text/html
 
 
 # Confirm the result of building on at least one platform appears sane.
@@ -228,7 +220,6 @@ validate_task:
     clone_script: *noop
     setup_script: *setup
     main_script: *main
-    always: *artifacts
 
 
 # Exercise the "libpod" API with a small set of common
@@ -248,7 +239,6 @@ bindings_task:
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
-    always: *artifacts
 
 
 # Build the "libpod" API documentation `swagger.yaml` for eventual
@@ -267,7 +257,7 @@ swagger_task:
     clone_script: *full_clone  # build-cache not available to container tasks
     setup_script: *setup
     main_script: *main
-    always: *artifacts
+    always: *binary_artifacts
 
 
 endpoint_task:
@@ -285,7 +275,6 @@ endpoint_task:
     clone_script: *full_clone  # build-cache not available to container tasks
     setup_script: *setup
     main_script: *main
-    always: *artifacts
 
 
 # Check that all included go modules from other sources match
@@ -304,7 +293,6 @@ vendor_task:
     clone_script: *full_clone  # build-cache not available to container tasks
     setup_script: *setup
     main_script: *main
-    always: *artifacts
 
 
 # There are several other important variations of podman which
@@ -335,7 +323,8 @@ alt_build_task:
             ALT_NAME: 'Build varlink-binaries'
     setup_script: *setup
     main_script: *main
-    always: *artifacts
+    always: *binary_artifacts
+
 
 # Confirm building a statically-linked binary is successful
 static_alt_build_task:
@@ -346,7 +335,7 @@ static_alt_build_task:
         - build
     # Community-maintained task, may fail on occasion.  If so, uncomment
     # the next line and file an issue with details about the failure.
-    # allow_failures: $CI == $CI
+    allow_failures: $CI == $CI
     gce_instance: *bigvm
     env:
         <<: *stdenvars
@@ -364,7 +353,7 @@ static_alt_build_task:
         fingerprint_script: cat nix/*
     setup_script: *setup
     main_script: *main
-    always: *artifacts
+    always: *binary_artifacts
 
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
@@ -385,7 +374,7 @@ osx_alt_build_task:
         - brew install go-md2man
         - make podman-remote-darwin
         - make install-podman-remote-darwin-docs
-    always: *artifacts
+    always: *binary_artifacts
 
 
 # This task is a stub: In the future it will be used to verify
@@ -405,7 +394,6 @@ docker-py_test_task:
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
-    always: *artifacts
 
 
 # Does exactly what it says, execute the podman unit-tests on all primary
@@ -424,7 +412,6 @@ unit_test_task:
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *artifacts
 
 
 apiv2_test_task:
@@ -441,7 +428,10 @@ apiv2_test_task:
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
-        <<: *artifacts
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
         package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
         ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
         df_script: '$SCRIPT_BASE/logcollector.sh df'
@@ -515,6 +505,7 @@ container_integration_test_task:
     main_script: *main
     always: *logs_artifacts
 
+
 # Execute most integration tests as a regular (non-root) user.
 rootless_integration_test_task:
     name: *std_name_fmt
@@ -583,6 +574,7 @@ rootless_system_test_task:
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
+
 
 # This task is critical.  It updates the "last-used by" timestamp stored
 # in metadata for all VM images.  This mechanism functions in tandem with
@@ -665,7 +657,8 @@ release_task:
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
-    always: *artifacts
+    always: *binary_artifacts
+
 
 # When preparing to release a new version, this task may be manually
 # activated at the PR stage to verify the code is in a proper state.
@@ -686,4 +679,4 @@ release_test_task:
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
-    always: *artifacts
+    always: *binary_artifacts

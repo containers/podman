@@ -10,6 +10,9 @@ set -a
 # handling of the (otherwise) default shell setup is non-uniform.  Rather
 # than attempt to workaround differences, simply force-load/set required
 # items every time this library is utilized.
+_waserrexit=0
+if [[ "$SHELLOPTS" =~ errexit ]]; then _waserrexit=1; fi
+set +e  # Assumed in F33 for setting global vars
 source /etc/profile
 source /etc/environment
 if [[ -r "/etc/ci_environment" ]]; then source /etc/ci_environment; fi
@@ -18,6 +21,7 @@ HOME="$(getent passwd $USER | cut -d : -f 6)"
 # Some platforms set and make this read-only
 [[ -n "$UID" ]] || \
     UID=$(getent passwd $USER | cut -d : -f 3)
+if ((_waserrexit)); then set -e; fi
 
 # During VM Image build, the 'containers/automation' installation
 # was performed.  The final step of installation sets the library
@@ -25,11 +29,8 @@ HOME="$(getent passwd $USER | cut -d : -f 6)"
 # default shell profile depending on distribution.
 # shellcheck disable=SC2154
 if [[ -n "$AUTOMATION_LIB_PATH" ]]; then
-    for libname in defaults anchors console_output utils; do
-        # There's no way shellcheck can process this location
-        # shellcheck disable=SC1090
-        source $AUTOMATION_LIB_PATH/${libname}.sh
-    done
+        # shellcheck source=/usr/share/automation/lib/common_lib.sh
+        source $AUTOMATION_LIB_PATH/common_lib.sh
 else
     (
     echo "WARNING: It does not appear that containers/automation was installed."
