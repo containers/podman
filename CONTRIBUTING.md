@@ -157,6 +157,10 @@ when the PR is merged.
 
 PRs will be approved by an [approver][owners] listed in [`OWNERS`](OWNERS).
 
+In case you're only changing docs, make sure to prefix the PR title with
+"[CI:DOCS]".  That will prevent functional tests from running and save time and
+energy.
+
 ### Describe your Changes in Commit Messages
 
 Describe your problem. Whether your patch is a one-line bug fix or 5000 lines
