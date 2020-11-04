@@ -509,6 +509,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_usr}/lib/systemd/user/podman.socket
 %{_usr}/lib/systemd/user/podman-auto-update.service
 %{_usr}/lib/systemd/user/podman-auto-update.timer
+%{_usr}/lib/tmpfiles.d/podman.conf
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list

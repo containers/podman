@@ -493,6 +493,8 @@ install.bin-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 .PHONY: install.bin
 install.bin: podman install.bin-nobuild
@@ -531,14 +533,13 @@ install.docker: docker-docs
 .PHONY: install.varlink
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 install.varlink:
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR}
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${DESTDIR}${SYSTEMDDIR}/io.podman.service
 	# User units are ordered differently, we can't make the *system* multi-user.target depend on a user unit.
 	# For user units the default.target that's the default is fine.
 	sed -e 's,^WantedBy=.*,WantedBy=default.target,' < contrib/varlink/io.podman.service > ${DESTDIR}${USERSYSTEMDDIR}/io.podman.service
-	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 else
 install.varlink:
 endif
