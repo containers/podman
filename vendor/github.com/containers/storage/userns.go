@@ -221,94 +221,71 @@ outer:
 	return size, nil
 }
 
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
 // subtractHostIDs return the subtraction of the range USED from AVAIL.  The range is specified
 // by [HostID, HostID+Size).
 // ContainerID is ignored.
 func subtractHostIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDMap {
-	switch {
-	case used.HostID <= avail.HostID && used.HostID+used.Size >= avail.HostID+avail.Size:
-		return nil
-	case used.HostID <= avail.HostID && used.HostID+used.Size > avail.HostID && used.HostID+used.Size < avail.HostID+avail.Size:
-		newContainerID := avail.ContainerID + used.Size
-		newHostID := used.HostID + used.Size
-		r := idtools.IDMap{
-			ContainerID: newContainerID,
-			HostID:      newHostID,
-			Size:        avail.Size + avail.HostID - newHostID,
-		}
-		return []idtools.IDMap{r}
-	case used.HostID > avail.HostID && used.HostID < avail.HostID+avail.Size && used.HostID+used.Size >= avail.HostID+avail.Size:
-		r := idtools.IDMap{
+	var out []idtools.IDMap
+	availEnd := avail.HostID + avail.Size
+	usedEnd := used.HostID + used.Size
+	// Intersection of [avail.HostID, availEnd) and (-inf, used.HostID) is [avail.HostID, newEnd).
+	if newEnd := minInt(availEnd, used.HostID); newEnd > avail.HostID {
+		out = append(out, idtools.IDMap{
 			ContainerID: avail.ContainerID,
 			HostID:      avail.HostID,
-			Size:        used.HostID - avail.HostID,
-		}
-		return []idtools.IDMap{r}
-	case used.HostID > avail.HostID && used.HostID < avail.HostID+avail.Size && used.HostID+used.Size < avail.HostID+avail.Size:
-		r1 := idtools.IDMap{
-			ContainerID: avail.ContainerID,
-			HostID:      avail.HostID,
-			Size:        used.HostID - avail.HostID,
-		}
-		r2 := idtools.IDMap{
-			ContainerID: used.ContainerID + used.Size,
-			HostID:      avail.HostID + (used.HostID - avail.HostID),
-			Size:        avail.HostID + avail.Size - used.HostID - used.Size,
-		}
-		return []idtools.IDMap{r1, r2}
-	default:
-		r := idtools.IDMap{
-			ContainerID: 0,
-			HostID:      avail.HostID,
-			Size:        avail.Size,
-		}
-		return []idtools.IDMap{r}
+			Size:        newEnd - avail.HostID,
+		})
 	}
+	// Intersection of [avail.HostID, availEnd) and [usedEnd, +inf) is [newStart, availEnd).
+	if newStart := maxInt(avail.HostID, usedEnd); newStart < availEnd {
+		out = append(out, idtools.IDMap{
+			ContainerID: newStart + avail.ContainerID - avail.HostID,
+			HostID:      newStart,
+			Size:        availEnd - newStart,
+		})
+	}
+	return out
 }
 
 // subtractContainerIDs return the subtraction of the range USED from AVAIL.  The range is specified
 // by [ContainerID, ContainerID+Size).
 // HostID is ignored.
 func subtractContainerIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDMap {
-	switch {
-	case used.ContainerID <= avail.ContainerID && used.ContainerID+used.Size >= avail.ContainerID+avail.Size:
-		return nil
-	case used.ContainerID <= avail.ContainerID && used.ContainerID+used.Size > avail.ContainerID && used.ContainerID+used.Size < avail.ContainerID+avail.Size:
-		newContainerID := used.ContainerID + used.Size
-		newHostID := avail.HostID + used.Size
-		r := idtools.IDMap{
-			ContainerID: newContainerID,
-			HostID:      newHostID,
-			Size:        avail.Size + avail.ContainerID - newContainerID,
-		}
-		return []idtools.IDMap{r}
-	case used.ContainerID > avail.ContainerID && used.ContainerID < avail.ContainerID+avail.Size && used.ContainerID+used.Size >= avail.ContainerID+avail.Size:
-		r := idtools.IDMap{
+	var out []idtools.IDMap
+	availEnd := avail.ContainerID + avail.Size
+	usedEnd := used.ContainerID + used.Size
+	// Intersection of [avail.ContainerID, availEnd) and (-inf, used.ContainerID) is
+	// [avail.ContainerID, newEnd).
+	if newEnd := minInt(availEnd, used.ContainerID); newEnd > avail.ContainerID {
+		out = append(out, idtools.IDMap{
 			ContainerID: avail.ContainerID,
 			HostID:      avail.HostID,
-			Size:        used.ContainerID - avail.ContainerID,
-		}
-		return []idtools.IDMap{r}
-	case used.ContainerID > avail.ContainerID && used.ContainerID < avail.ContainerID+avail.Size && used.ContainerID+used.Size < avail.ContainerID+avail.Size:
-		r1 := idtools.IDMap{
-			ContainerID: avail.ContainerID,
-			HostID:      avail.HostID,
-			Size:        used.ContainerID - avail.ContainerID,
-		}
-		r2 := idtools.IDMap{
-			ContainerID: used.ContainerID + used.Size,
-			HostID:      avail.HostID + (used.ContainerID - avail.ContainerID),
-			Size:        avail.ContainerID + avail.Size - used.ContainerID - used.Size,
-		}
-		return []idtools.IDMap{r1, r2}
-	default:
-		r := idtools.IDMap{
-			ContainerID: avail.ContainerID,
-			HostID:      avail.HostID,
-			Size:        avail.Size,
-		}
-		return []idtools.IDMap{r}
+			Size:        newEnd - avail.ContainerID,
+		})
 	}
+	// Intersection of [avail.ContainerID, availEnd) and [usedEnd, +inf) is [newStart, availEnd).
+	if newStart := maxInt(avail.ContainerID, usedEnd); newStart < availEnd {
+		out = append(out, idtools.IDMap{
+			ContainerID: newStart,
+			HostID:      newStart + avail.HostID - avail.ContainerID,
+			Size:        availEnd - newStart,
+		})
+	}
+	return out
 }
 
 // subtractAll subtracts all usedIDs from the available IDs.
