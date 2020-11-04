@@ -680,3 +680,9 @@ file `/etc/systemd/system/user@.service.d/delegate.conf` with the contents:
 
 After logging out and loggin back in, you should have permission to set CPU
 limits.
+
+### 26) `exec container process '/bin/sh': Exec format error` (or another binary than `bin/sh`)
+
+This can happen when running a container from an image for another architecture than the one you are running on.
+
+For example, if a remote repository only has, and thus send you, a `linux/arm64` _OS/ARCH_ but you run on `linux/amd64` (as happened in https://github.com/openMF/community-app/issues/3323 due to https://github.com/timbru31/docker-ruby-node/issues/564).
