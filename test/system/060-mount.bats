@@ -2,7 +2,6 @@
 
 load helpers
 
-
 @test "podman mount - basic test" {
     # Only works with root (FIXME: does it work with rootless + vfs?)
     skip_if_rootless "mount does not work rootless"
@@ -149,6 +148,36 @@ load helpers
     is "$output" "true" "inspect data includes image mount source"
 
     run_podman rm -f $cid
+}
+
+@test "podman mount external container - basic test" {
+    # Only works with root (FIXME: does it work with rootless + vfs?)
+    skip_if_rootless "mount does not work rootless"
+    skip_if_remote "mounting remote is meaningless"
+
+    # Create a container that podman does not know about
+    external_cid=$(buildah from $IMAGE)
+
+    run_podman mount $external_cid
+    mount_path=$output
+
+    # Test image will always have this file, and will always have the tag
+    test -d $mount_path
+    is $(< "$mount_path/home/podman/testimage-id") "$PODMAN_TEST_IMAGE_TAG"  \
+       "Contents of well-known file in image"
+
+    # Make sure that 'podman mount' (no args) returns the expected path
+    run_podman mount --notruncate
+
+    reported_mountpoint=$(echo "$output" | awk '{print $2}')
+    is $reported_mountpoint $mount_path "mountpoint reported by 'podman mount'"
+
+    # umount, and make sure files are gone
+    run_podman umount $external_cid
+    if [ -d "$mount_path" ]; then
+        die "'podman umount' did not umount"
+    fi
+    buildah rm $external_cid
 }
 
 # vim: filetype=sh

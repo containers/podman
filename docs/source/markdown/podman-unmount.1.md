@@ -22,6 +22,10 @@ container's root filesystem is physically unmounted only when the mount
 counter reaches zero indicating no other processes are using the mount.
 An unmount can be forced with the --force flag.
 
+Note: Podman can be used to unmount Podman containers as well as external containers.
+External containers are containers created in container/storage by other tools like
+Buildah and CRI-O.
+
 ## OPTIONS
 **--all**, **-a**
 

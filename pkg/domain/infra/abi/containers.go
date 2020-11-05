@@ -1058,11 +1058,23 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 			os.Exit(ret)
 		}
 	}
-	ctrs, err := getContainersByContext(options.All, options.Latest, nameOrIDs, ic.Libpod)
+	reports := []*entities.ContainerMountReport{}
+	// Attempt to mount named containers directly from storage,
+	// this will fail and code will fall through to removing the container from libpod.`
+	names := []string{}
+	for _, ctr := range nameOrIDs {
+		report := entities.ContainerMountReport{Id: ctr}
+		if report.Path, report.Err = ic.Libpod.MountStorageContainer(ctr); report.Err != nil {
+			names = append(names, ctr)
+		} else {
+			reports = append(reports, &report)
+		}
+	}
+
+	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
-	reports := make([]*entities.ContainerMountReport, 0, len(ctrs))
 	for _, ctr := range ctrs {
 		report := entities.ContainerMountReport{Id: ctr.ID()}
 		report.Path, report.Err = ctr.Mount()
@@ -1070,6 +1082,30 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 	}
 	if len(reports) > 0 {
 		return reports, nil
+	}
+
+	storageCtrs, err := ic.Libpod.StorageContainers()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, sctr := range storageCtrs {
+		mounted, path, err := ic.Libpod.IsStorageContainerMounted(sctr.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		var name string
+		if len(sctr.Names) > 0 {
+			name = sctr.Names[0]
+		}
+		if mounted {
+			reports = append(reports, &entities.ContainerMountReport{
+				Id:   sctr.ID,
+				Name: name,
+				Path: path,
+			})
+		}
 	}
 
 	// No containers were passed, so we send back what is mounted
@@ -1091,15 +1127,44 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 			})
 		}
 	}
+
 	return reports, nil
 }
 
 func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
-	ctrs, err := getContainersByContext(options.All, options.Latest, nameOrIDs, ic.Libpod)
+	reports := []*entities.ContainerUnmountReport{}
+	names := []string{}
+	if options.All {
+		storageCtrs, err := ic.Libpod.StorageContainers()
+		if err != nil {
+			return nil, err
+		}
+		for _, sctr := range storageCtrs {
+			mounted, _, _ := ic.Libpod.IsStorageContainerMounted(sctr.ID)
+			if mounted {
+				report := entities.ContainerUnmountReport{Id: sctr.ID}
+				if _, report.Err = ic.Libpod.UnmountStorageContainer(sctr.ID, options.Force); report.Err != nil {
+					if errors.Cause(report.Err) != define.ErrCtrExists {
+						reports = append(reports, &report)
+					}
+				} else {
+					reports = append(reports, &report)
+				}
+			}
+		}
+	}
+	for _, ctr := range nameOrIDs {
+		report := entities.ContainerUnmountReport{Id: ctr}
+		if _, report.Err = ic.Libpod.UnmountStorageContainer(ctr, options.Force); report.Err != nil {
+			names = append(names, ctr)
+		} else {
+			reports = append(reports, &report)
+		}
+	}
+	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
-	reports := []*entities.ContainerUnmountReport{}
 	for _, ctr := range ctrs {
 		state, err := ctr.State()
 		if err != nil {
