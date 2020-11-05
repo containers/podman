@@ -1,6 +1,7 @@
 package lpfilters
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -78,7 +79,11 @@ func GeneratePodFilterFunc(filter, filterValue string) (
 		}, nil
 	case "name":
 		return func(p *libpod.Pod) bool {
-			return strings.Contains(p.Name(), filterValue)
+			match, err := regexp.MatchString(filterValue, p.Name())
+			if err != nil {
+				return false
+			}
+			return match
 		}, nil
 	case "status":
 		if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created"}) {
