@@ -959,7 +959,7 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ .HostConfig.ExtraHosts }}"})
+		inspect := podmanTest.Podman([]string{"inspect", pod.Name, "--format", "{{ .InfraConfig.HostAdd}}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).
