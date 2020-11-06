@@ -911,7 +911,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	} else {
 		report.ExitCode = int(ecode)
 	}
-	if opts.Rm {
+	if opts.Rm && !ctr.ShouldRestart(ctx) {
 		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchCtr ||
 				errors.Cause(err) == define.ErrCtrRemoved {
@@ -992,7 +992,7 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 			return []*entities.ContainerCleanupReport{}, nil
 		}
 
-		if options.Remove {
+		if options.Remove && !ctr.ShouldRestart(ctx) {
 			err = ic.Libpod.RemoveContainer(ctx, ctr, false, true)
 			if err != nil {
 				report.RmErr = errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
@@ -1015,6 +1015,7 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 			_, err = ic.Libpod.RemoveImage(ctx, ctrImage, false)
 			report.RmiErr = err
 		}
+
 		reports = append(reports, &report)
 	}
 	return reports, nil
@@ -1313,4 +1314,14 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 	}()
 
 	return statsChan, nil
+}
+
+// ShouldRestart returns whether the container should be restarted
+func (ic *ContainerEngine) ShouldRestart(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	ctr, err := ic.Libpod.LookupContainer(nameOrID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entities.BoolReport{Value: ctr.ShouldRestart(ctx)}, nil
 }

@@ -390,3 +390,15 @@ func ContainerInit(ctx context.Context, nameOrID string) error {
 	}
 	return response.Process(nil)
 }
+
+func ShouldRestart(ctx context.Context, nameOrID string) (bool, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return false, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/shouldrestart", nil, nil, nameOrID)
+	if err != nil {
+		return false, err
+	}
+	return response.IsSuccess(), nil
+}

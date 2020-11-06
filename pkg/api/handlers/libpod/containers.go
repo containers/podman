@@ -344,3 +344,27 @@ func InitContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
+
+func ShouldRestart(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	// Now use the ABI implementation to prevent us from having duplicate
+	// code.
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+
+	name := utils.GetName(r)
+	report, err := containerEngine.ShouldRestart(r.Context(), name)
+	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			utils.ContainerNotFound(w, name, err)
+			return
+		}
+		utils.InternalServerError(w, err)
+		return
+
+	}
+	if report.Value {
+		utils.WriteResponse(w, http.StatusNoContent, "")
+	} else {
+		utils.ContainerNotFound(w, name, define.ErrNoSuchCtr)
+	}
+}

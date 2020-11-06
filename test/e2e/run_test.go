@@ -75,11 +75,9 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		// the --rm option conflicts with --restart, when the restartPolicy is not "" and "no"
-		// so the exitCode should not equal 0
 		session = podmanTest.Podman([]string{"run", "--rm", "--restart", "on-failure", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--restart", "always", ALPINE})
 		session.WaitWithDefaultTimeout()

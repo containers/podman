@@ -9,7 +9,7 @@ import (
 // by validate must not need any state information on the flag (i.e. changed)
 func (c *ContainerCLIOpts) validate() error {
 	var ()
-	if c.Rm && c.Restart != "" && c.Restart != "no" {
+	if c.Rm && (c.Restart != "" && c.Restart != "no" && c.Restart != "on-failure") {
 		return errors.Errorf(`the --rm option conflicts with --restart, when the restartPolicy is not "" and "no"`)
 	}
 
