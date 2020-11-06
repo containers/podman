@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-cc -E - > /dev/null 2> /dev/null << EOF
+${CPP:-${CC:-cc} -E} ${CPPFLAGS} - > /dev/null 2> /dev/null << EOF
 #include <systemd/sd-daemon.h>
 EOF
 if test $? -eq 0 ; then
