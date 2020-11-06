@@ -136,7 +136,7 @@ Release notes for recent Podman versions.
 **[Contributing](CONTRIBUTING.md)**
 Information about contributing to this project.
 
-[spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v2.0.1/config.md#posix-platform-hooks
+[spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.2/config.md#posix-platform-hooks
 
 ## Buildah and Podman relationship
 
