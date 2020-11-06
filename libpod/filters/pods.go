@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // GeneratePodFilterFunc takes a filter and filtervalue (key, value)
@@ -81,6 +82,7 @@ func GeneratePodFilterFunc(filter, filterValue string) (
 		return func(p *libpod.Pod) bool {
 			match, err := regexp.MatchString(filterValue, p.Name())
 			if err != nil {
+				logrus.Errorf("Failed to compile regex for 'name' filter: %v", err)
 				return false
 			}
 			return match

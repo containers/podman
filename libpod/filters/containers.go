@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v2/pkg/timetype"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
@@ -40,6 +41,7 @@ func GenerateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime)
 		return func(c *libpod.Container) bool {
 			match, err := regexp.MatchString(filterValue, c.Name())
 			if err != nil {
+				logrus.Errorf("Failed to compile regex for 'name' filter: %v", err)
 				return false
 			}
 			return match
