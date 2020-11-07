@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/containers/buildah/pkg/parse"
@@ -71,10 +72,46 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Deployment", path)
 		}
 		return ic.playKubeDeployment(ctx, &deploymentYAML, options)
+	case "PersistentVolume":
+		var volYAML v1.PersistentVolume
+		if err := yaml.Unmarshal(content, &volYAML); err != nil {
+			return nil, errors.Wrapf(err, "unable to read YAML %q as Kube PersistentVolume", path)
+		}
+		return ic.playKubePersistentVolume(ctx, &volYAML, options)
 	default:
 		return nil, errors.Errorf("invalid YAML kind: %q. [Pod|Deployment] are the only supported Kubernetes Kinds", kubeObject.Kind)
 	}
 
+}
+
+func (ic *ContainerEngine) playKubePersistentVolume(ctx context.Context, deploymentYAML *v1.PersistentVolume, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+	var (
+		report entities.PlayKubeReport
+	)
+
+	volOptions := []libpod.VolumeCreateOption{
+		libpod.WithVolumeLabels(deploymentYAML.GetLabels()),
+		libpod.WithVolumeName(deploymentYAML.GetName()),
+	}
+
+	uid, err := strconv.Atoi(string(deploymentYAML.GetUID()))
+	if err != nil {
+		return nil, errors.Errorf("Failed to parse UID for volume %s", err)
+	}
+	volOptions = append(volOptions, libpod.WithVolumeUID(uid))
+
+	vol, err := ic.Libpod.NewVolume(ctx, volOptions...)
+	if err != nil {
+		return nil, err
+	}
+
+	report.Volumes = append(report.Volumes, entities.PlayKubeVolume{
+		Name:       vol.Name(),
+		Labels:     vol.Labels(),
+		MountPoint: vol.MountPoint(),
+	})
+
+	return &report, nil
 }
 
 func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {

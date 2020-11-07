@@ -38,8 +38,19 @@ type PlayKubePod struct {
 	Logs []string
 }
 
+// PlayKubeVolume represents a single named volume
+type PlayKubeVolume struct {
+	// Name - Name of the volume created as a result of play kube.
+	Name string
+	// Labels - Volume Labels
+	Labels map[string]string
+	// MountPoint - Volume MountPoint
+	MountPoint string
+}
+
 // PlayKubeReport contains the results of running play kube.
 type PlayKubeReport struct {
 	// Pods - pods created by play kube.
-	Pods []PlayKubePod
+	Pods    []PlayKubePod
+	Volumes []PlayKubeVolume
 }
