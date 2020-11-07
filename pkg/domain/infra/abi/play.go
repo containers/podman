@@ -351,7 +351,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
-		conf, err := kubeContainerToCreateConfig(ctx, container, newImage, namespaces, volumes, pod.ID(), podName, podInfraID, configMaps, seccompPaths)
+
+		conf, err := kubeContainerToCreateConfig(ctx, container, newImage, namespaces, volumes, pod.ID(), podName, podInfraID, configMaps, seccompPaths, options.LogDriver)
 		if err != nil {
 			return nil, err
 		}
@@ -464,7 +465,7 @@ func setupSecurityContext(securityConfig *createconfig.SecurityConfig, userConfi
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, podName, infraID string, configMaps []v1.ConfigMap, seccompPaths *kubeSeccompPaths) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, podName, infraID string, configMaps []v1.ConfigMap, seccompPaths *kubeSeccompPaths, logDriver string) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		pidConfig       createconfig.PidConfig
@@ -592,6 +593,10 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.Cgroup = cgroupConfig
 	containerConfig.User = userConfig
 	containerConfig.Security = securityConfig
+
+	if logDriver != "" {
+		containerConfig.LogDriver = logDriver
+	}
 
 	annotations := make(map[string]string)
 	if infraID != "" {

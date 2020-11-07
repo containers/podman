@@ -1466,4 +1466,20 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		Expect(kube.ExitCode()).To(Equal(125))
 		Expect(kube.ErrorToString()).To(ContainSubstring(invalidImageName))
 	})
+
+	It("podman play kube applies log driver to containers", func() {
+		Skip("need to verify images have correct packages for journald")
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--log-driver", "journald", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .HostConfig.LogConfig.Type }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("journald"))
+	})
 })
