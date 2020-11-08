@@ -172,6 +172,23 @@ spec:
 status: {}
 `
 
+var persistentVolumeYamlTemplate = `
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Name }}
+  labels:
+    type: {{ .Type }}
+spec:
+  storageClassName: {{ .StorageClass }}
+  capacity:
+    storage: {{ .StorageCapacity }}
+  accessModes:
+    - {{ .AccessMode }}
+  hostPath:
+    path: "{{ .Path }}
+`
+
 var deploymentYamlTemplate = `
 apiVersion: v1
 kind: Deployment
@@ -316,6 +333,8 @@ func generateKubeYaml(kind string, object interface{}, pathname string) error {
 		yamlTemplate = podYamlTemplate
 	case "deployment":
 		yamlTemplate = deploymentYamlTemplate
+	case "persistentvolume":
+		yamlTemplate = persistentVolumeYamlTemplate
 	default:
 		return fmt.Errorf("unsupported kubernetes kind")
 	}
@@ -842,6 +861,21 @@ var _ = Describe("Podman play kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello world]`))
+	})
+
+	It("podman play kube test volume correct command", func() {
+		vol := getVolume("type", "path")
+		err := generateKubeYaml("persistentvolume", vol, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"volume", "inspect", vol.Name, "--format", "'{{ .Name }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(vol.Name))
 	})
 
 	It("podman play kube test restartPolicy", func() {
