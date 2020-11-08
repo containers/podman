@@ -337,4 +337,22 @@ var _ = Describe("Podman logs", func() {
 		Expect(results).To(Exit(0))
 		Expect(results.OutputToString()).To(Equal("podman podman podman"))
 	})
+
+	It("Make sure logs match expected length", func() {
+		logc := podmanTest.Podman([]string{"run", "-t", "--name", "test", ALPINE, "sh", "-c", "echo 1; echo 2"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(Exit(0))
+
+		wait := podmanTest.Podman([]string{"wait", "test"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).To(Exit(0))
+
+		results := podmanTest.Podman([]string{"logs", "test"})
+		results.WaitWithDefaultTimeout()
+		Expect(results).To(Exit(0))
+		outlines := results.OutputToStringArray()
+		Expect(len(outlines)).To(Equal(2))
+		Expect(outlines[0]).To(Equal("1\r"))
+		Expect(outlines[1]).To(Equal("2\r"))
+	})
 })
