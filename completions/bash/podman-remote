@@ -1,23 +1,23 @@
-# bash completion for podman                               -*- shell-script -*-
+# bash completion for podman-remote                        -*- shell-script -*-
 
-__podman_debug()
+__podman-remote_debug()
 {
     if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
         echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
     fi
 }
 
-__podman_perform_completion()
+__podman-remote_perform_completion()
 {
-    __podman_debug
-    __podman_debug "========= starting completion logic =========="
-    __podman_debug "cur is ${cur}, words[*] is ${words[*]}, #words[@] is ${#words[@]}, cword is $cword"
+    __podman-remote_debug
+    __podman-remote_debug "========= starting completion logic =========="
+    __podman-remote_debug "cur is ${cur}, words[*] is ${words[*]}, #words[@] is ${#words[@]}, cword is $cword"
 
     # The user could have moved the cursor backwards on the command-line.
     # We need to trigger completion from the $cword location, so we need
     # to truncate the command-line ($words) up to the $cword location.
     words=("${words[@]:0:$cword+1}")
-    __podman_debug "Truncated words[*]: ${words[*]},"
+    __podman-remote_debug "Truncated words[*]: ${words[*]},"
 
     local shellCompDirectiveError=1
     local shellCompDirectiveNoSpace=2
@@ -30,22 +30,22 @@ __podman_perform_completion()
     local out requestComp lastParam lastChar comp directive args flagPrefix
 
     # Prepare the command to request completions for the program.
-    # Calling ${words[0]} instead of directly podman allows to handle aliases
+    # Calling ${words[0]} instead of directly podman-remote allows to handle aliases
     args=("${words[@]:1}")
     requestComp="${words[0]} __completeNoDesc ${args[*]}"
 
     lastParam=${words[$((${#words[@]}-1))]}
     lastChar=${lastParam:$((${#lastParam}-1)):1}
-    __podman_debug "lastParam ${lastParam}, lastChar ${lastChar}"
+    __podman-remote_debug "lastParam ${lastParam}, lastChar ${lastChar}"
 
     if [ -z "${cur}" ] && [ "${lastChar}" != "=" ]; then
         # If the last parameter is complete (there is a space following it)
         # We add an extra empty parameter so we can indicate this to the go method.
-        __podman_debug "Adding extra empty parameter"
+        __podman-remote_debug "Adding extra empty parameter"
         requestComp="${requestComp} \"\""
     fi
 
-    # When completing a flag with an = (e.g., podman -n=<TAB>)
+    # When completing a flag with an = (e.g., podman-remote -n=<TAB>)
     # bash focuses on the part after the =, so we need to remove
     # the flag part from $cur
     if [[ "${cur}" == -*=* ]]; then
@@ -53,7 +53,7 @@ __podman_perform_completion()
         cur="${cur#*=}"
     fi
 
-    __podman_debug "Calling ${requestComp}"
+    __podman-remote_debug "Calling ${requestComp}"
     # Use eval to handle any environment variables and such
     out=$(eval "${requestComp}" 2>/dev/null)
 
@@ -65,23 +65,23 @@ __podman_perform_completion()
         # There is not directive specified
         directive=0
     fi
-    __podman_debug "The completion directive is: ${directive}"
-    __podman_debug "The completions are: ${out[*]}"
+    __podman-remote_debug "The completion directive is: ${directive}"
+    __podman-remote_debug "The completions are: ${out[*]}"
 
     if [ $((directive & shellCompDirectiveError)) -ne 0 ]; then
         # Error code.  No completion.
-        __podman_debug "Received error from custom completion go code"
+        __podman-remote_debug "Received error from custom completion go code"
         return
     else
         if [ $((directive & shellCompDirectiveNoSpace)) -ne 0 ]; then
             if [[ $(type -t compopt) = "builtin" ]]; then
-                __podman_debug "Activating no space"
+                __podman-remote_debug "Activating no space"
                 compopt -o nospace
             fi
         fi
         if [ $((directive & shellCompDirectiveNoFileComp)) -ne 0 ]; then
             if [[ $(type -t compopt) = "builtin" ]]; then
-                __podman_debug "Activating no file completion"
+                __podman-remote_debug "Activating no file completion"
                 compopt +o default
             fi
         fi
@@ -98,7 +98,7 @@ __podman_perform_completion()
         done
 
         filteringCmd="_filedir $fullFilter"
-        __podman_debug "File filtering command: $filteringCmd"
+        __podman-remote_debug "File filtering command: $filteringCmd"
         $filteringCmd
     elif [ $((directive & shellCompDirectiveFilterDirs)) -ne 0 ]; then
         # File completion for directories only
@@ -107,15 +107,15 @@ __podman_perform_completion()
         local subdir
         subdir=$(printf "%s" "${out[0]}")
         if [ -n "$subdir" ]; then
-            __podman_debug "Listing directories in $subdir"
+            __podman-remote_debug "Listing directories in $subdir"
             pushd "$subdir" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1 || return
         else
-            __podman_debug "Listing directories in ."
+            __podman-remote_debug "Listing directories in ."
             _filedir -d
         fi
     elif [ $((directive & shellCompDirectiveLegacyCustomComp)) -ne 0 ]; then
         local cmd
-        __podman_debug "Legacy custom completion. Directive: $directive, cmds: ${out[*]}"
+        __podman-remote_debug "Legacy custom completion. Directive: $directive, cmds: ${out[*]}"
 
         # The following variables should get their value through the commands
         # we have received as completions and are parsing below.
@@ -124,22 +124,22 @@ __podman_perform_completion()
 
         # Execute every command received
         while IFS='' read -r cmd; do
-            __podman_debug "About to execute: $cmd"
+            __podman-remote_debug "About to execute: $cmd"
             eval "$cmd"
         done < <(printf "%s\n" "${out[@]}")
 
-        __podman_debug "last_command: $last_command"
-        __podman_debug "nouns[0]: ${nouns[0]}, nouns[1]: ${nouns[1]}"
+        __podman-remote_debug "last_command: $last_command"
+        __podman-remote_debug "nouns[0]: ${nouns[0]}, nouns[1]: ${nouns[1]}"
 
         if [ $((directive & shellCompDirectiveLegacyCustomArgsComp)) -ne 0 ]; then
             # We should call the global legacy custom completion function, if it is defined
-            if declare -F __podman_custom_func >/dev/null; then
+            if declare -F __podman-remote_custom_func >/dev/null; then
                 # Use command name qualified legacy custom func
-                __podman_debug "About to call: __podman_custom_func"
-                __podman_custom_func
+                __podman-remote_debug "About to call: __podman-remote_custom_func"
+                __podman-remote_custom_func
             elif declare -F __custom_func >/dev/null; then
                 # Otherwise fall back to unqualified legacy custom func for compatibility
-                __podman_debug "About to call: __custom_func"
+                __podman-remote_debug "About to call: __custom_func"
                  __custom_func
             fi
         fi
@@ -161,9 +161,9 @@ __podman_perform_completion()
                 continue
             fi
 
-            __podman_debug "Original comp: $comp"
-            comp="$(__podman_format_comp_descriptions "$comp" "$longest")"
-            __podman_debug "Final comp: $comp"
+            __podman-remote_debug "Original comp: $comp"
+            comp="$(__podman-remote_format_comp_descriptions "$comp" "$longest")"
+            __podman-remote_debug "Final comp: $comp"
             completions+=("$comp")
         done < <(printf "%s\n" "${out[@]}")
 
@@ -182,19 +182,19 @@ __podman_perform_completion()
 
         # If there is a single completion left, remove the description text
         if [ ${#COMPREPLY[*]} -eq 1 ]; then
-            __podman_debug "COMPREPLY[0]: ${COMPREPLY[0]}"
+            __podman-remote_debug "COMPREPLY[0]: ${COMPREPLY[0]}"
             comp="${COMPREPLY[0]%% *}"
-            __podman_debug "Removed description from single completion, which is now: ${comp}"
+            __podman-remote_debug "Removed description from single completion, which is now: ${comp}"
             COMPREPLY=()
             COMPREPLY+=("$comp")
         fi
     fi
 
-    __podman_handle_special_char "$cur" :
-    __podman_handle_special_char "$cur" =
+    __podman-remote_handle_special_char "$cur" :
+    __podman-remote_handle_special_char "$cur" =
 }
 
-__podman_handle_special_char()
+__podman-remote_handle_special_char()
 {
     local comp="$1"
     local char=$2
@@ -207,7 +207,7 @@ __podman_handle_special_char()
     fi
 }
 
-__podman_format_comp_descriptions()
+__podman-remote_format_comp_descriptions()
 {
     local tab
     tab=$(printf '\t')
@@ -250,22 +250,22 @@ __podman_format_comp_descriptions()
     printf "%q" "${comp}"
 }
 
-__start_podman()
+__start_podman-remote()
 {
     local cur prev words cword
 
     COMPREPLY=()
     _get_comp_words_by_ref -n "=:" cur prev words cword
 
-    __podman_perform_completion
+    __podman-remote_perform_completion
 }
 
 if [[ $(type -t compopt) = "builtin" ]]; then
-    complete -o default -F __start_podman podman
+    complete -o default -F __start_podman-remote podman-remote
 else
-    complete -o default -o nospace -F __start_podman podman
+    complete -o default -o nospace -F __start_podman-remote podman-remote
 fi
 
 # ex: ts=4 sw=4 et filetype=sh
 
-# This file is generated with "podman completion"; see: podman-completion(1)
+# This file is generated with "podman-remote completion"; see: podman-completion(1)
