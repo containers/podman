@@ -54,6 +54,9 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Add the container name to the input struct
+	input.Name = query.Name
+
 	// Take input structure and convert to cliopts
 	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(input, rtc.Engine.CgroupManager)
 	if err != nil {
@@ -65,6 +68,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "fill out specgen"))
 		return
 	}
+
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.ContainerCreate(r.Context(), sg)
 	if err != nil {

@@ -62,7 +62,7 @@ class TestApi(unittest.TestCase):
 
         TestApi.podman = Podman()
         TestApi.service = TestApi.podman.open(
-            "system", "service", "tcp:localhost:8080", "--log-level=debug", "--time=0"
+            "system", "service", "tcp:localhost:8080", "--time=0"
         )
         # give the service some time to be ready...
         time.sleep(2)
