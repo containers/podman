@@ -1,7 +1,6 @@
 package containers
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -64,7 +63,6 @@ func Logs(ctx context.Context, nameOrID string, opts LogOptions, stdoutChan, std
 		if err != nil {
 			return err
 		}
-		frame = bytes.Replace(frame[0:l], []byte{13}, []byte{10}, -1)
 
 		switch fd {
 		case 0:
