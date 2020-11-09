@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v2/pkg/api/handlers"
+	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/specgen"
 )
 
@@ -129,7 +131,7 @@ func stringMaptoArray(m map[string]string) []string {
 
 // ContainerCreateToContainerCLIOpts converts a compat input struct to cliopts so it can be converted to
 // a specgen spec.
-func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig) (*ContainerCLIOpts, []string, error) {
+func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroupsManager string) (*ContainerCLIOpts, []string, error) {
 	var (
 		capAdd     []string
 		cappDrop   []string
@@ -346,16 +348,23 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig) (*Cont
 		Systemd:          "true", // podman default
 		TmpFS:            stringMaptoArray(cc.HostConfig.Tmpfs),
 		TTY:              cc.Config.Tty,
-		//Ulimit:            cc.HostConfig.Ulimits,            // ask dan, no documented format
-		Ulimit:      []string{"nproc=4194304:4194304"},
-		User:        cc.Config.User,
-		UserNS:      string(cc.HostConfig.UsernsMode),
-		UTS:         string(cc.HostConfig.UTSMode),
-		Mount:       mounts,
-		Volume:      volumes,
-		VolumesFrom: cc.HostConfig.VolumesFrom,
-		Workdir:     cc.Config.WorkingDir,
-		Net:         &netInfo,
+		User:             cc.Config.User,
+		UserNS:           string(cc.HostConfig.UsernsMode),
+		UTS:              string(cc.HostConfig.UTSMode),
+		Mount:            mounts,
+		Volume:           volumes,
+		VolumesFrom:      cc.HostConfig.VolumesFrom,
+		Workdir:          cc.Config.WorkingDir,
+		Net:              &netInfo,
+	}
+	if !rootless.IsRootless() {
+		var ulimits []string
+		if len(cc.HostConfig.Ulimits) > 0 {
+			for _, ul := range cc.HostConfig.Ulimits {
+				ulimits = append(ulimits, ul.String())
+			}
+			cliOpts.Ulimit = ulimits
+		}
 	}
 
 	if len(cc.HostConfig.BlkioWeightDevice) > 0 {
@@ -377,7 +386,11 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig) (*Cont
 		cliOpts.MemoryReservation = strconv.Itoa(int(cc.HostConfig.MemoryReservation))
 	}
 
-	if cc.HostConfig.MemorySwap > 0 {
+	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, nil, err
+	}
+	if cc.HostConfig.MemorySwap > 0 && (!rootless.IsRootless() || (rootless.IsRootless() && cgroupsv2)) {
 		cliOpts.MemorySwap = strconv.Itoa(int(cc.HostConfig.MemorySwap))
 	}
 
@@ -401,8 +414,10 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig) (*Cont
 		cliOpts.Restart = policy
 	}
 
-	if cc.HostConfig.MemorySwappiness != nil {
+	if cc.HostConfig.MemorySwappiness != nil && (!rootless.IsRootless() || rootless.IsRootless() && cgroupsv2 && cgroupsManager == "systemd") {
 		cliOpts.MemorySwappiness = *cc.HostConfig.MemorySwappiness
+	} else {
+		cliOpts.MemorySwappiness = -1
 	}
 	if cc.HostConfig.OomKillDisable != nil {
 		cliOpts.OOMKillDisable = *cc.HostConfig.OomKillDisable
