@@ -22,6 +22,7 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
+
 Can be set multiple times
 
 **--message**, **-m**=*message*
