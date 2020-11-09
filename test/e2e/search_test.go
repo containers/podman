@@ -116,6 +116,14 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
 	})
 
+	It("podman search format json", func() {
+		search := podmanTest.Podman([]string{"search", "--format", "json", "alpine"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(search.IsJSONOutputValid()).To(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
+	})
+
 	It("podman search no-trunc flag", func() {
 		search := podmanTest.Podman([]string{"search", "--no-trunc", "alpine"})
 		search.WaitWithDefaultTimeout()
