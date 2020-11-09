@@ -304,6 +304,29 @@ var _ = Describe("Podman network create", func() {
 		Expect(ncFail).To(ExitWithError())
 	})
 
+	It("podman network create two networks with same subnet should fail", func() {
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.13.0/24", "subnet1"})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork("subnet1")
+
+		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.13.0/24", "subnet2"})
+		ncFail.WaitWithDefaultTimeout()
+		Expect(ncFail).To(ExitWithError())
+	})
+
+	It("podman network create two IPv6 networks with same subnet should fail", func() {
+		SkipIfRootless("FIXME It needs the ip6tables modules loaded")
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", "subnet1v6"})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork("subnet1v6")
+
+		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", "subnet2v6"})
+		ncFail.WaitWithDefaultTimeout()
+		Expect(ncFail).To(ExitWithError())
+	})
+
 	It("podman network create with invalid network name", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "foo "})
 		nc.WaitWithDefaultTimeout()
