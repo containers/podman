@@ -6,8 +6,6 @@
 load helpers
 
 @test "podman exec - basic test" {
-    skip_if_remote "FIXME: pending #7241"
-
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
 
