@@ -120,6 +120,17 @@ Storing signatures
 ```
 
 ```
+$ podman pull alpine@sha256:d7342993700f8cd7aba8496c2d0e57be0666e80b4c441925fc6f9361fa81d10e
+Trying to pull docker.io/library/alpine@sha256:d7342993700f8cd7aba8496c2d0e57be0666e80b4c441925fc6f9361fa81d10e...
+Getting image source signatures
+Copying blob 188c0c94c7c5 done
+Copying config d6e46aa247 done
+Writing manifest to image destination
+Storing signatures
+d6e46aa2470df1d32034c6707c8041158b652f38d2a9ae3d7ad7e7532d22ebe0
+```
+
+```
 $ podman pull --authfile temp-auths/myauths.json docker://docker.io/umohnani/finaltest
 Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
 Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913

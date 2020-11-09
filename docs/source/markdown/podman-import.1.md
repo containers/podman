@@ -22,6 +22,7 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
+
 Can be set multiple times
 
 **--message**, **-m**=*message*
@@ -55,7 +56,7 @@ db65d991f3bbf7f31ed1064db9a6ced7652e3f8166c4736aa9133dadd3c7acb3
 ```
 
 ```
-$ podman import --change "ENTRYPOINT ["/bin/sh","-c","test-image"]"  --change LABEL=blue=image test-image.tar image-imported
+$ podman import --change 'ENTRYPOINT ["/bin/sh","-c","test-image"]'  --change LABEL=blue=image test-image.tar image-imported
 Getting image source signatures
 Copying blob e3b0c44298fc skipped: already exists
 Copying config 1105523502 done
