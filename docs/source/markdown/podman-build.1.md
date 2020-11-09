@@ -9,21 +9,39 @@ podman\-build - Build a container image using a Containerfile
 **podman image build** [*options*] [*context*]
 
 ## DESCRIPTION
-**podman build** Builds an image using instructions from one or more Containerfiles or Dockerfiles and a specified build context directory. A Containerfile uses the same syntax as a Dockerfile internally. For this document, a file referred to as a Containerfile can be a file named either 'Containerfile' or 'Dockerfile'.
+**podman build** Builds an image using instructions from one or more
+Containerfiles or Dockerfiles and a specified build context directory. A
+Containerfile uses the same syntax as a Dockerfile internally. For this
+document, a file referred to as a Containerfile can be a file named either
+'Containerfile' or 'Dockerfile'.
 
-The build context directory can be specified as the http(s) URL of an archive, git repository or Containerfile.
+The build context directory can be specified as the http(s) URL of an archive,
+git repository or Containerfile.
 
-If no context directory is specified, then Podman will assume the current working directory as the build context, which should contain the Containerfile.
+If no context directory is specified, then Podman will assume the current
+working directory as the build context, which should contain the Containerfile.
 
-Containerfiles ending with a ".in" suffix will be preprocessed via CPP(1).  This can be useful to decompose Containerfiles into several reusable parts that can be used via CPP's **#include** directive.  Notice, a Containerfile.in file can still be used by other tools when manually preprocessing them via `cpp -E`.
+Containerfiles ending with a ".in" suffix will be preprocessed via CPP(1).  This
+can be useful to decompose Containerfiles into several reusable parts that can
+be used via CPP's **#include** directive.  Notice, a Containerfile.in file can
+still be used by other tools when manually preprocessing them via `cpp -E`.
 
-When the URL is an archive, the contents of the URL is downloaded to a temporary location and extracted before execution.
+When the URL is an archive, the contents of the URL is downloaded to a temporary
+location and extracted before execution.
 
-When the URL is an Containerfile, the Containerfile is downloaded to a temporary location.
+When the URL is an Containerfile, the Containerfile is downloaded to a temporary
+location.
 
-When a Git repository is set as the URL, the repository is cloned locally and then set as the context.
+When a Git repository is set as the URL, the repository is cloned locally and
+then set as the context.
 
-NOTE: `podman build` uses code sourced from the `buildah` project to build container images.  This `buildah` code creates `buildah` containers for the `RUN` options in container storage. In certain situations, when the `podman build` crashes or users kill the `podman build` process, these external containers can be left in container storage. Use the `podman ps --all --storage` command to see these contaienrs. External containers can be removed with the `podman rm --storage` command.
+NOTE: `podman build` uses code sourced from the `buildah` project to build
+container images.  This `buildah` code creates `buildah` containers for the
+`RUN` options in container storage. In certain situations, when the
+`podman build` crashes or users kill the `podman build` process, these external
+containers can be left in container storage. Use the `podman ps --all --storage`
+command to see these contaienrs. External containers can be removed with the
+`podman rm --storage` command.
 
 ## OPTIONS
 
@@ -31,25 +49,32 @@ NOTE: `podman build` uses code sourced from the `buildah` project to build conta
 
 Add a custom host-to-IP mapping (host:ip)
 
-Add a line to /etc/hosts. The format is hostname:ip. The **--add-host** option can be set multiple times.
+Add a line to /etc/hosts. The format is hostname:ip. The **--add-host** option
+can be set multiple times.
 
 **--annotation**=*annotation*
 
-Add an image *annotation* (e.g. annotation=*value*) to the image metadata. Can be used multiple times.
+Add an image *annotation* (e.g. annotation=*value*) to the image metadata. Can
+be used multiple times.
 
-Note: this information is not present in Docker image formats, so it is discarded when writing images in Docker formats.
+Note: this information is not present in Docker image formats, so it is
+discarded when writing images in Docker formats.
 
 **--arch**=*arch*
 
-Set the ARCH of the image to the provided value instead of the architecture of the host.
+Set the ARCH of the image to the provided value instead of the architecture of
+the host.
 
 **--authfile**=*path*
 
-Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+Path of the authentication file. Default is
+${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
+If the authorization state is not found there, $HOME/.docker/config.json is
+checked, which is set using `docker login`.
 
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+Note: You can also override the default path of the authentication file by
+setting the REGISTRY\_AUTH\_FILE environment variable.
+`export REGISTRY_AUTH_FILE=path`
 
 **--build-arg**=*arg=value*
 
@@ -60,7 +85,8 @@ resulting image's configuration.
 
 **--cache-from**
 
-Images to utilize as potential cache sources. Podman does not currently support caching so this is a NOOP.
+Images to utilize as potential cache sources. Podman does not currently support
+caching so this is a NOOP.
 
 **--cap-add**=*CAP\_xxx*
 
@@ -85,11 +111,14 @@ given.
 **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
+Default certificates directory is _/etc/containers/certs.d_. (Not available for
+remote commands)
 
 **--cgroup-parent**=*path*
 
-Path to cgroups under which the cgroup for the container will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
+Path to cgroups under which the cgroup for the container will be created. If the
+path is not absolute, the path is considered to be relative to the cgroups path
+of the init process. Cgroups will be created if they do not already exist.
 
 **--compress**
 
@@ -137,9 +166,9 @@ https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-c
 
 CPU shares (relative weight)
 
-By default, all containers get the same proportion of CPU cycles. This proportion
-can be modified by changing the container's CPU share weighting relative
-to the weighting of all other running containers.
+By default, all containers get the same proportion of CPU cycles. This
+proportion can be modified by changing the container's CPU share weighting
+relative to the weighting of all other running containers.
 
 To modify the proportion from the default of 1024, use the **--cpu-shares**
 flag to set the weighting to 2 or higher.
@@ -162,7 +191,8 @@ use 100% of each individual CPU core.
 
 For example, consider a system with more than three cores. If you start one
 container **{C0}** with **-c=512** running one process, and another container
-**{C1}** with **-c=1024** running two processes, this can result in the following
+**{C1}** with **-c=1024** running two processes, this can result in the
+following
 division of CPU shares:
 
     PID    container	CPU	CPU share
@@ -176,7 +206,8 @@ division of CPU shares:
 
 **--cpuset-mems**=*nodes*
 
-Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
+Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on
+NUMA systems.
 
 If you have four memory nodes on your system (0-3), use `--cpuset-mems=0,1`
 then processes in your container will only use memory from the first
@@ -185,8 +216,8 @@ two memory nodes.
 **--creds**=*creds*
 
 The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and the
-value can be entered.  The password is entered without echo.
+If one or both values are not supplied, a command line prompt will appear and
+the value can be entered.  The password is entered without echo.
 
 **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
 
@@ -201,7 +232,8 @@ The container will only store the major and minor numbers of the host device.
 
 Note: if the user only has access rights via a group, accessing the device
 from inside a rootless container will fail. The **crun**(1) runtime offers a
-workaround for this by adding the option **--annotation run.oci.keep_original_groups=1**.
+workaround for this by adding the option
+**--annotation run.oci.keep_original_groups=1**.
 
 **--disable-compression**, **-D**
 
@@ -222,9 +254,14 @@ solely for scripting compatibility.
 
 Set custom DNS servers
 
-This option can be used to override the DNS configuration passed to the container. Typically this is necessary when the host DNS configuration is invalid for the container (e.g., 127.0.0.1). When this is the case the `--dns` flag is necessary for every run.
+This option can be used to override the DNS configuration passed to the
+container. Typically this is necessary when the host DNS configuration is
+invalid for the container (e.g., 127.0.0.1). When this is the case the `--dns`
+flag is necessary for every run.
 
-The special value **none** can be specified to disable creation of /etc/resolv.conf in the container by Podman. The /etc/resolv.conf file in the image will be used without changes.
+The special value **none** can be specified to disable creation of
+/etc/resolv.conf in the container by Podman. The /etc/resolv.conf file in the
+image will be used without changes.
 
 **--dns-option**=*option*
 
@@ -249,7 +286,8 @@ If you specify `-f -`, the Containerfile contents will be read from stdin.
 
 **--force-rm**=*true|false*
 
-Always remove intermediate containers after a build, even if the build fails (default false).
+Always remove intermediate containers after a build, even if the build fails
+(default false).
 
 **--format**
 
@@ -296,11 +334,15 @@ Note: You can also override the default isolation type by setting the
 BUILDAH\_ISOLATION environment variable.  `export BUILDAH_ISOLATION=oci`
 
 **--jobs**=*number*
-How many stages to run in parallel (default 1)
+
+Run up to N concurrent stages in parallel.  If the number of jobs is greater
+than 1, stdin will be read from /dev/null.  If 0 is specified, then there is
+no limit in the number of jobs that run in parallel.
 
 **--label**=*label*
 
-Add an image *label* (e.g. label=*value*) to the image metadata. Can be used multiple times.
+Add an image *label* (e.g. label=*value*) to the image metadata. Can be used
+multiple times.
 
 Users can set a special LABEL **io.containers.capabilities=CAP1,CAP2,CAP3** in
 a Containerfile that specified the list of Linux capabilities required for the
@@ -316,8 +358,8 @@ print an error message and will run the container with the default capabilities.
 
 Cache intermediate images during the build process (Default is `true`).
 
-Note: You can also override the default value of layers by setting the BUILDAH\_LAYERS
-environment variable. `export BUILDAH_LAYERS=true`
+Note: You can also override the default value of layers by setting the
+BUILDAH\_LAYERS environment variable. `export BUILDAH_LAYERS=true`
 
 **--logfile**=*filename*
 
@@ -331,13 +373,15 @@ with 3 being roughly equivalent to using the global *--debug* option, and
 values below 0 omitting even error messages which accompany fatal errors.
 
 **--memory**, **-m**=*LIMIT*
-Memory limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Memory limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes),
+m (megabytes), or g (gigabytes))
 
 Allows you to constrain the memory available to a container. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
 RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
 not limited. The actual limit may be rounded up to a multiple of the operating
-system's page size (the value would be very large, that's millions of trillions).
+system's page size (the value would be very large, that's millions of
+trillions).
 
 **--memory-swap**=*LIMIT*
 
@@ -353,19 +397,25 @@ unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 **--net**, **--network**=*string*
 
 Sets the configuration for network namespaces when handling `RUN` instructions.
-The configured value can be "" (the empty string) or "container" to indicate
-that a new network namespace should be created, or it can be "host" to indicate
-that the network namespace in which `podman` itself is being run should be
-reused, or it can be the path to a network namespace which is already in use by
-another process.
+
+Valid _mode_ values are:
+
+- **none**: no networking.
+- **host**: use the Podman host network stack. Note: the host mode gives the
+container full access to local system services such as D-bus and is therefore
+considered insecure.
+- **ns:**_path_: path to a network namespace to join.
+- `private`: create a new namespace for the container (default).
 
 **--no-cache**
 
-Do not use existing cached images for the container build. Build from the start with a new set of cached layers.
+Do not use existing cached images for the container build. Build from the start
+with a new set of cached layers.
 
 **--os**=*string*
 
-Set the OS to the provided value instead of the current operating system of the host.
+Set the OS to the provided value instead of the current operating system of the
+host.
 
 **--pid**=*pid*
 
@@ -384,23 +434,24 @@ not required for Buildah as it supports only Linux.
 
 **--pull**
 
-When the option is specified or set to "true", pull the image from the first registry
-it is found in as listed in registries.conf.  Raise an error if not found in the
-registries, even if the image is present locally.
+When the option is specified or set to "true", pull the image from the first
+registry it is found in as listed in registries.conf.  Raise an error if not
+found in the registries, even if the image is present locally.
 
-If the option is disabled (with *--pull=false*), or not specified, pull the image
-from the registry only if the image is not present locally. Raise an error if the image
-is not found in the registries.
+If the option is disabled (with *--pull=false*), or not specified, pull the
+image from the registry only if the image is not present locally. Raise an
+error if the image is not found in the registries.
 
 **--pull-always**
 
-Pull the image from the first registry it is found in as listed in registries.conf.
-Raise an error if not found in the registries, even if the image is present locally.
+Pull the image from the first registry it is found in as listed in
+registries.conf. Raise an error if not found in the registries, even if the
+image is present locally.
 
 **--pull-never**
 
-Do not pull the image from the registry, use only the local version. Raise an error
-if the image is not present locally.
+Do not pull the image from the registry, use only the local version. Raise an
+error if the image is not present locally.
 
 **--quiet**, **-q**
 
@@ -425,7 +476,8 @@ environment variable.  `export BUILDAH_RUNTIME=/usr/local/bin/runc`
 Security Options
 
 - `apparmor=unconfined` : Turn off apparmor confinement for the container
-- `apparmor=your-profile` : Set the apparmor confinement profile for the container
+- `apparmor=your-profile` : Set the apparmor confinement profile for the
+container
 
 - `label=user:USER`     : Set the label user for the container processes
 - `label=role:ROLE`     : Set the label role for the container processes
@@ -433,15 +485,19 @@ Security Options
 - `label=level:LEVEL`   : Set the label level for the container processes
 - `label=filetype:TYPE` : Set the label file type for the container files
 - `label=disable`       : Turn off label separation for the container
+- `no-new-privileges`   : Not supported
 
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
-- `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
+- `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used
+as a seccomp filter
 
 **--shm-size**=*size*
 
-Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater than `0`.
-Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or `g` (gigabytes).
-If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
+Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater
+than `0`.
+Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or
+`g` (gigabytes). If you omit the unit, the system uses bytes. If you omit the
+size entirely, the system uses `64m`.
 
 **--sign-by**=*fingerprint*
 
@@ -449,41 +505,48 @@ Sign the image using a GPG key with the specified FINGERPRINT.
 
 **--squash**
 
-Squash all of the image's new layers into a single new layer; any preexisting layers
-are not squashed.
+Squash all of the image's new layers into a single new layer; any preexisting
+layers are not squashed.
 
 **--squash-all**
 
-Squash all of the new image's layers (including those inherited from a base image) into a single new layer.
+Squash all of the new image's layers (including those inherited from a base
+image) into a single new layer.
 
 **--tag**, **-t**=*imageName*
 
 Specifies the name which will be assigned to the resulting image if the build
 process completes successfully.
-If _imageName_ does not include a registry name, the registry name *localhost* will be prepended to the image name.
+If _imageName_ does not include a registry name, the registry name *localhost*
+will be prepended to the image name.
 
 **--target**=*stageName*
 
-Set the target build stage to build.  When building a Containerfile with multiple build stages, --target
-can be used to specify an intermediate build stage by name as the final stage for the resulting image.
-Commands after the target stage will be skipped.
+Set the target build stage to build.  When building a Containerfile with
+multiple build stages, --target can be used to specify an intermediate build
+stage by name as the final stage for the resulting image. Commands after the target stage will be skipped.
 
 **--timestamp** *seconds*
 
-Set the create timestamp to seconds since epoch to allow for deterministic builds (defaults to current time).
-By default, the created timestamp is changed and written into the image manifest with every commit,
-causing the image's sha256 hash to be different even if the sources are exactly the same otherwise.
-When --timestamp is set, the created timestamp is always set to the time specified and therefore not changed, allowing the image's sha256 to remain the same. All files committed to the layers of the image will be created with the timestamp.
+Set the create timestamp to seconds since epoch to allow for deterministic
+builds (defaults to current time). By default, the created timestamp is changed
+and written into the image manifest with every commit, causing the image's
+sha256 hash to be different even if the sources are exactly the same otherwise.
+When --timestamp is set, the created timestamp is always set to the time
+specified and therefore not changed, allowing the image's sha256 hash to remain the
+same. All files committed to the layers of the image will be created with the
+timestamp.
 
 **--tls-verify**=*true|false*
 
-Require HTTPS and verify certificates when talking to container registries (defaults to true).
+Require HTTPS and verify certificates when talking to container registries
+(defaults to true).
 
 **--ulimit**=*type*=*soft-limit*[:*hard-limit*]
 
-Specifies resource limits to apply to processes launched when processing `RUN` instructions.
-This option can be specified multiple times.  Recognized resource types
-include:
+Specifies resource limits to apply to processes launched when processing `RUN`
+instructions. This option can be specified multiple times.  Recognized resource
+types include:
   "core": maximum core dump size (ulimit -c)
   "cpu": maximum CPU time (ulimit -t)
   "data": maximum size of a process's data segment (ulimit -d)
@@ -622,49 +685,65 @@ Only the current container can use a private volume.
 
   `Overlay Volume Mounts`
 
-   The `:O` flag tells Podman to mount the directory from the host as a temporary storage using the Overlay file system. The `RUN` command containers are allowed to modify contents within the mountpoint and are stored in the container storage in a separate directory.  In Overlay FS terms the source directory will be the lower, and the container storage directory will be the upper. Modifications to the mount point are destroyed when the `RUN` command finishes executing, similar to a tmpfs mount point.
+   The `:O` flag tells Podman to mount the directory from the host as a
+temporary storage using the Overlay file system. The `RUN` command containers
+are allowed to modify contents within the mountpoint and are stored in the
+container storage in a separate directory.  In Overlay FS terms the source
+directory will be the lower, and the container storage directory will be the
+upper. Modifications to the mount point are destroyed when the `RUN` command
+finishes executing, similar to a tmpfs mount point.
 
-  Any subsequent execution of `RUN` commands sees the original source directory content, any changes from previous RUN commands no longer exists.
+  Any subsequent execution of `RUN` commands sees the original source directory
+content, any changes from previous RUN commands no longer exists.
 
-  One use case of the `overlay` mount is sharing the package cache from the host into the container to allow speeding up builds.
+  One use case of the `overlay` mount is sharing the package cache from the
+host into the container to allow speeding up builds.
 
   Note:
 
      - Overlay mounts are not currently supported in rootless mode.
-     - The `O` flag is not allowed to be specified with the `Z` or `z` flags. Content mounted into the container is labeled with the private label.
-       On SELinux systems, labels in the source directory needs to be readable by the container label. If not, SELinux container separation must be disabled for the container to work.
-     - Modification of the directory volume mounted into the container with an overlay mount can cause unexpected failures.  It is recommended that you do not modify the directory until the container finishes running.
+     - The `O` flag is not allowed to be specified with the `Z` or `z` flags.
+Content mounted into the container is labeled with the private label.
+       On SELinux systems, labels in the source directory needs to be readable
+by the container label. If not, SELinux container separation must be disabled
+for the container to work.
+     - Modification of the directory volume mounted into the container with an
+overlay mount can cause unexpected failures.  It is recommended that you do not
+modify the directory until the container finishes running.
 
 By default bind mounted volumes are `private`. That means any mounts done
-inside container will not be visible on the host and vice versa. This behavior can
-be changed by specifying a volume mount propagation property.
+inside containers will not be visible on the host and vice versa. This behavior
+can be changed by specifying a volume mount propagation property.
 
-When the mount propagation policy is set to `shared`, any mounts completed inside
-the container on that volume will be visible to both the host and container. When
-the mount propagation policy is set to `slave`, one way mount propagation is enabled
-and any mounts completed on the host for that volume will be visible only inside of the container.
-To control the mount propagation property of volume use the `:[r]shared`,
-`:[r]slave` or `:[r]private` propagation flag. The propagation property can
-be specified only for bind mounted volumes and not for internal volumes or
-named volumes. For mount propagation to work on the source mount point (mount point
-where source dir is mounted on) has to have the right propagation properties. For
-shared volumes, the source mount point has to be shared. And for slave volumes,
-the source mount has to be either shared or slave. <sup>[[1]](#Footnote1)</sup>
+When the mount propagation policy is set to `shared`, any mounts completed
+inside the container on that volume will be visible to both the host and
+container. When the mount propagation policy is set to `slave`, one way mount
+propagation is enabled and any mounts completed on the host for that volume will
+be visible only inside of the container. To control the mount propagation
+property of volume use the `:[r]shared`, `:[r]slave` or `:[r]private`
+propagation flag. The propagation property canbe specified only for bind mounted
+volumes and not for internal volumes or named volumes. For mount propagation to
+work on the source mount point (mount point where source dir is mounted on) has
+to have the right propagation properties. For shared volumes, the source mount
+point has to be shared. And for slave volumes, the source mount has to be either
+shared or slave. <sup>[[1]](#Footnote1)</sup>
 
 Use `df <source-dir>` to determine the source mount and then use
 `findmnt -o TARGET,PROPAGATION <source-mount-dir>` to determine propagation
-properties of source mount, if `findmnt` utility is not available, the source mount point
-can be determined by looking at the mount entry in `/proc/self/mountinfo`. Look
-at `optional fields` and see if any propagation properties are specified.
-`shared:X` means the mount is `shared`, `master:X` means the mount is `slave` and if
-nothing is there that means the mount is `private`. <sup>[[1]](#Footnote1)</sup>
+properties of source mount, if `findmnt` utility is not available, the source
+mount point can be determined by looking at the mount entry in
+`/proc/self/mountinfo`. Look at `optional fields` and see if any propagation
+properties are specified.
+`shared:X` means the mount is `shared`, `master:X` means the mount is `slave`
+and if nothing is there that means the mount is `private`. <sup>[[1]](#Footnote1)</sup>
 
 To change propagation properties of a mount point use the `mount` command. For
 example, to bind mount the source directory `/foo` do
 `mount --bind /foo /foo` and `mount --make-private --make-shared /foo`. This
-will convert /foo into a `shared` mount point.  The propagation properties of the source
-mount can be changed directly. For instance if `/` is the source mount for
-`/foo`, then use `mount --make-shared /` to convert `/` into a `shared` mount.
+will convert /foo into a `shared` mount point.  The propagation properties of
+the source mount can be changed directly. For instance if `/` is the source
+mount for `/foo`, then use `mount --make-shared /` to convert `/` into a
+`shared` mount.
 
 ## EXAMPLES
 
@@ -712,11 +791,18 @@ $ podman build --no-cache --rm=false -t imageName .
 
 ### Building an image using a URL, Git repo, or archive
 
-  The build context directory can be specified as a URL to a Containerfile, a Git repository, or URL to an archive. If the URL is a Containerfile, it is downloaded to a temporary location and used as the context. When a Git repository is set as the URL, the repository is cloned locally to a temporary location and then used as the context. Lastly, if the URL is an archive, it is downloaded to a temporary location and extracted before being used as the context.
+  The build context directory can be specified as a URL to a Containerfile, a
+Git repository, or URL to an archive. If the URL is a Containerfile, it is
+downloaded to a temporary location and used as the context. When a Git
+repository is set as the URL, the repository is cloned locally to a temporary
+location and then used as the context. Lastly, if the URL is an archive, it is
+downloaded to a temporary location and extracted before being used as the
+context.
 
 #### Building an image using a URL to a Containerfile
 
-  Podman will download the Containerfile to a temporary location and then use it as the build context.
+  Podman will download the Containerfile to a temporary location and then use
+it as the build context.
 
 ```
 $ podman build https://10.10.10.1/podman/Containerfile
@@ -724,7 +810,9 @@ $ podman build https://10.10.10.1/podman/Containerfile
 
 #### Building an image using a Git repository
 
-  Podman will clone the specified GitHub repository to a temporary location and use it as the context. The Containerfile at the root of the repository will be used and it only works if the GitHub repository is a dedicated repository.
+  Podman will clone the specified GitHub repository to a temporary location and
+use it as the context. The Containerfile at the root of the repository will be
+used and it only works if the GitHub repository is a dedicated repository.
 
 ```
 $ podman build git://github.com/scollier/purpletest
@@ -732,13 +820,18 @@ $ podman build git://github.com/scollier/purpletest
 
 #### Building an image using a URL to an archive
 
-  Podman will fetch the archive file, decompress it, and use its contents as the build context. The Containerfile at the root of the archive and the rest of the archive will get used as the context of the build. If you pass `-f PATH/Containerfile` option as well, the system will look for that file inside the contents of the archive.
+  Podman will fetch the archive file, decompress it, and use its contents as the
+build context. The Containerfile at the root of the archive and the rest of the
+archive will get used as the context of the build. If you pass
+`-f PATH/Containerfile` option as well, the system will look for that file
+inside the contents of the archive.
 
 ```
 $ podman build -f dev/Containerfile https://10.10.10.1/podman/context.tar.gz
 ```
 
-  Note: supported compression formats are 'xz', 'bzip2', 'gzip' and 'identity' (no compression).
+  Note: supported compression formats are 'xz', 'bzip2', 'gzip' and 'identity'
+(no compression).
 
 ## Files
 
@@ -766,7 +859,8 @@ src
 ```
 
 `*/*.c`
-Excludes files and directories whose names ends with .c in any top level subdirectory. For example, the source file include/rootless.c.
+Excludes files and directories whose names ends with .c in any top level
+subdirectory. For example, the source file include/rootless.c.
 
 `**/output*`
 Excludes files and directories starting with `output` from any directory.
@@ -784,21 +878,29 @@ mechanism:
 
 Exclude all doc files except Help.doc from the image.
 
-This functionality is compatible with the handling of .dockerignore files described here:
+This functionality is compatible with the handling of .dockerignore files
+described here:
 
 https://docs.docker.com/engine/reference/builder/#dockerignore-file
 
 **registries.conf** (`/etc/containers/registries.conf`)
 
-registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+registries.conf is the configuration file which specifies which container
+registries should be consulted when completing image names which do not include
+a registry or domain portion.
 
 ## Troubleshooting
 
 ### lastlog sparse file
 
-If you are using a useradd command within a Containerfile with a large UID/GID, it will create a large sparse file `/var/log/lastlog`.  This can cause the build to hang forever.  Go language does not support sparse files correctly, which can lead to some huge files being created in your container image.
+If you are using a useradd command within a Containerfile with a large UID/GID,
+it will create a large sparse file `/var/log/lastlog`.  This can cause the
+build to hang forever.  Go language does not support sparse files correctly,
+which can lead to some huge files being created in your container image.
 
-If you are using `useradd` within your build script, you should pass the `--no-log-init or -l` option to the `useradd` command.  This option tells useradd to stop creating the lastlog file.
+If you are using `useradd` within your build script, you should pass the
+`--no-log-init or -l` option to the `useradd` command.  This option tells
+useradd to stop creating the lastlog file.
 
 ## SEE ALSO
 podman(1), buildah(1), containers-registries.conf(5), crun(8), runc(8), useradd(8), podman-ps(1), podman-rm(1)
@@ -811,4 +913,9 @@ May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
 December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>
 
 ## FOOTNOTES
-<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.
+<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a
+core value of open source. The `master` and `slave` mount propagation
+terminology used here is problematic and divisive, and should be changed.
+However, these terms are currently used within the Linux kernel and must be
+used as-is at this time. When the kernel maintainers rectify this usage,
+Podman will follow suit immediately.
