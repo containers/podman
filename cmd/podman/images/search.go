@@ -1,6 +1,7 @@
 package images
 
 import (
+	"fmt"
 	"os"
 	"text/tabwriter"
 	"text/template"
@@ -81,7 +82,7 @@ func init() {
 // searchFlags set the flags for the pull command.
 func searchFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVarP(&searchOptions.Filters, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
-	flags.StringVar(&searchOptions.Format, "format", "", "Change the output format to a Go template")
+	flags.StringVar(&searchOptions.Format, "format", "", "Change the output format to JSON or a Go template")
 	flags.IntVar(&searchOptions.Limit, "limit", 0, "Limit the number of results")
 	flags.BoolVar(&searchOptions.NoTrunc, "no-trunc", false, "Do not truncate the output")
 	flags.StringVar(&searchOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -135,6 +136,13 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 			return errors.Errorf("filters are not applicable to list tags result")
 		}
 		row = "{{.Name}}\t{{.Tag}}\n"
+	case report.IsJSON(searchOptions.Format):
+		prettyJSON, err := json.MarshalIndent(searchReport, "", "    ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(prettyJSON))
+		return nil
 	case cmd.Flags().Changed("format"):
 		renderHeaders = parse.HasTable(searchOptions.Format)
 		row = report.NormalizeFormat(searchOptions.Format)
