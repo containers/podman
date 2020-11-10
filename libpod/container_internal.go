@@ -641,12 +641,17 @@ func (c *Container) removeIPv4Allocations() error {
 		cniDefaultNetwork = c.runtime.netPlugin.GetDefaultNetworkName()
 	}
 
+	networks, err := c.networks()
+	if err != nil {
+		return err
+	}
+
 	switch {
-	case len(c.config.Networks) > 0 && len(c.config.Networks) != len(c.state.NetworkStatus):
-		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(c.config.Networks), len(c.state.NetworkStatus))
-	case len(c.config.Networks) == 0 && len(c.state.NetworkStatus) != 1:
+	case len(networks) > 0 && len(networks) != len(c.state.NetworkStatus):
+		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(networks), len(c.state.NetworkStatus))
+	case len(networks) == 0 && len(c.state.NetworkStatus) != 1:
 		return errors.Wrapf(define.ErrInternal, "network mismatch: did not specify CNI networks but joined more than one (%d)", len(c.state.NetworkStatus))
-	case len(c.config.Networks) == 0 && cniDefaultNetwork == "":
+	case len(networks) == 0 && cniDefaultNetwork == "":
 		return errors.Wrapf(define.ErrInternal, "could not retrieve name of CNI default network")
 	}
 
@@ -656,11 +661,11 @@ func (c *Container) removeIPv4Allocations() error {
 				continue
 			}
 			candidate := ""
-			if len(c.config.Networks) > 0 {
+			if len(networks) > 0 {
 				// CNI returns networks in order we passed them.
 				// So our index into results should be our index
 				// into networks.
-				candidate = filepath.Join(cniNetworksDir, c.config.Networks[index], ctrIP.Address.IP.String())
+				candidate = filepath.Join(cniNetworksDir, networks[index], ctrIP.Address.IP.String())
 			} else {
 				candidate = filepath.Join(cniNetworksDir, cniDefaultNetwork, ctrIP.Address.IP.String())
 			}

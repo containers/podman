@@ -575,6 +575,8 @@ type InspectAdditionalNetwork struct {
 	// Links is presently unused and maintained exclusively for
 	// compatibility.
 	Links []string `json:"Links"`
+	// Aliases are any network aliases the container has in this network.
+	Aliases []string `json:"Aliases,omitempty"`
 }
 
 // InspectNetworkSettings holds information about the network settings of the

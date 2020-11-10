@@ -98,20 +98,18 @@ type State interface {
 	// returned.
 	AllContainers() ([]*Container, error)
 
+	// Get networks the container is currently connected to.
+	GetNetworks(ctr *Container) ([]string, error)
 	// Get network aliases for the given container in the given network.
 	GetNetworkAliases(ctr *Container, network string) ([]string, error)
 	// Get all network aliases for the given container.
 	GetAllNetworkAliases(ctr *Container) (map[string][]string, error)
-	// Set network aliases for the given container in the given network.
-	SetNetworkAliases(ctr *Container, network string, aliases []string) error
-	// Remove network aliases for the given container in the given network.
-	RemoveNetworkAliases(ctr *Container, network string) error
-	// GetAllAliasesForNetwork returns all the aliases for a given
-	// network. Returns a map of alias to container ID.
-	GetAllAliasesForNetwork(network string) (map[string]string, error)
-	// RemoveAllAliasesForNetwork removes all the aliases for a given
-	// network.
-	RemoveAllAliasesForNetwork(network string) error
+	// Add the container to the given network, adding the given aliases
+	// (if present).
+	NetworkConnect(ctr *Container, network string, aliases []string) error
+	// Remove the container from the given network, removing all aliases for
+	// the container in that network in the process.
+	NetworkDisconnect(ctr *Container, network string) error
 
 	// Return a container config from the database by full ID
 	GetContainerConfig(id string) (*ContainerConfig, error)
