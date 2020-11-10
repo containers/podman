@@ -15,7 +15,7 @@ The user will be prompted for the remote ssh login password or key file pass phr
 
 ## OPTIONS
 
-**-d**, **--default**=*false*
+#### **-d**, **--default**=*false*
 
 Make the new destination the default for this user.
 
@@ -25,7 +25,7 @@ Path to ssh identity file. If the identity file has been encrypted, Podman promp
 If no identity file is provided and no user is given, Podman defaults to the user running the podman command.
 Podman prompts for the login password on the remote server.
 
-**-p**, **--port**=*port*
+#### **-p**, **--port**=*port*
 
 Port for ssh destination. The default value is `22`.
 

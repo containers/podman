@@ -42,6 +42,10 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+#### **--log-driver**=driver
+
+Set logging driver for all created containers.
+
 #### **--network**=*cni networks*
 
 A comma-separated list of the names of CNI networks the pod should join.

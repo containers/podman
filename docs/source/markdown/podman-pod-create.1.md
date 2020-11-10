@@ -63,7 +63,7 @@ The image that will be created for the infra container. Default: "k8s.gcr.io/pau
 
 Set a static IP for the pod's shared network.
 
-**-l**, **--label**=*label*
+#### **-l**, **--label**=*label*
 
 Add metadata to a pod (e.g., --label com.example.key=value).
 
@@ -75,7 +75,7 @@ Read in a line delimited file of labels.
 
 Set a static MAC address for the pod's shared network.
 
-**-n**, **--name**=*name*
+#### **-n**, **--name**=*name*
 
 Assign a name to the pod.
 
@@ -96,6 +96,10 @@ Set network mode for the pod. Supported values are
   - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding.
 
+#### **--network-alias**=strings
+
+Add a DNS alias for the container. When the container is joined to a CNI network with support for the dnsname plugin, the container will be accessible through this name from other containers in the network.
+
 #### **--no-hosts**=**true**|**false**
 
 Disable creation of /etc/hosts for the pod.
@@ -104,7 +108,7 @@ Disable creation of /etc/hosts for the pod.
 
 Write the pod ID to the file.
 
-**-p**, **--publish**=*port*
+#### **-p**, **--publish**=*port*
 
 Publish a port or range of ports from the pod to the host.
 
