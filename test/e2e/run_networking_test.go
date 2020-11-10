@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/uber/jaeger-client-go/utils"
@@ -601,11 +602,11 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 
-		net := "dnsNetTest"
+		net := "IntTest" + stringid.GenerateNonCryptoID()
 		session = podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
 		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
 
 		pod2 := "testpod2"
 		session = podmanTest.Podman([]string{"pod", "create", "--network", net, "--name", pod2})
