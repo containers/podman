@@ -42,8 +42,7 @@ func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, ipamCo
 }
 
 // NewIPAMHostLocalConf creates a new IPAMHostLocal configfuration
-func NewIPAMHostLocalConf(subnet *net.IPNet, routes []IPAMRoute, ipRange net.IPNet, gw net.IP) (IPAMHostLocalConf, error) {
-	var ipamRanges [][]IPAMLocalHostRangeConf
+func NewIPAMHostLocalConf(routes []IPAMRoute, ipamRanges [][]IPAMLocalHostRangeConf) (IPAMHostLocalConf, error) {
 	ipamConf := IPAMHostLocalConf{
 		PluginType: "host-local",
 		Routes:     routes,
@@ -51,22 +50,19 @@ func NewIPAMHostLocalConf(subnet *net.IPNet, routes []IPAMRoute, ipRange net.IPN
 		//ResolveConf: "",
 		//DataDir: ""
 	}
-	IPAMRange, err := newIPAMLocalHostRange(subnet, &ipRange, &gw)
-	if err != nil {
-		return ipamConf, err
-	}
-	ipamRanges = append(ipamRanges, IPAMRange)
+
 	ipamConf.Ranges = ipamRanges
 	return ipamConf, nil
 }
 
-func newIPAMLocalHostRange(subnet *net.IPNet, ipRange *net.IPNet, gw *net.IP) ([]IPAMLocalHostRangeConf, error) { //nolint:interfacer
+// NewIPAMLocalHostRange create a new IPAM range
+func NewIPAMLocalHostRange(subnet *net.IPNet, ipRange *net.IPNet, gw net.IP) ([]IPAMLocalHostRangeConf, error) { //nolint:interfacer
 	var ranges []IPAMLocalHostRangeConf
 	hostRange := IPAMLocalHostRangeConf{
 		Subnet: subnet.String(),
 	}
 	// an user provided a range, we add it here
-	if ipRange.IP != nil {
+	if ipRange != nil && ipRange.IP != nil {
 		first, err := FirstIPInSubnet(ipRange)
 		if err != nil {
 			return nil, err

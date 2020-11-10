@@ -49,6 +49,10 @@ Macvlan connection.
 
 The subnet in CIDR notation.
 
+**--ipv6**
+
+Enable IPv6 (Dual Stack) networking. You must pass a IPv6 subnet. The *subnet* option must be used with the *ipv6* option.
+
 ## EXAMPLE
 
 Create a network with no options
@@ -61,6 +65,13 @@ Create a network named *newnet* that uses *192.5.0.0/16* for its subnet.
 ```
 # podman network create --subnet 192.5.0.0/16 newnet
 /etc/cni/net.d/newnet.conflist
+```
+
+Create an IPv6 network named *newnetv6*, you must specify the subnet for this network, otherwise the command will fail.
+For this example, we use *2001:db8::/64* for its subnet.
+```
+# podman network create --subnet 2001:db8::/64 --ipv6 newnetv6
+/etc/cni/net.d/newnetv6.conflist
 ```
 
 Create a network named *newnet* that uses *192.168.33.0/24* and defines a gateway as *192.168.133.3*

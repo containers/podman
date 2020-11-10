@@ -35,8 +35,7 @@ func networkCreateFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&networkCreateOptions.MacVLAN, "macvlan", "", "create a Macvlan connection based on this device")
 	// TODO not supported yet
 	// flags.StringVar(&networkCreateOptions.IPamDriver, "ipam-driver", "",  "IP Address Management Driver")
-	// TODO enable when IPv6 is working
-	// flags.BoolVar(&networkCreateOptions.IPV6, "IPv6", false, "enable IPv6 networking")
+	flags.BoolVar(&networkCreateOptions.IPv6, "ipv6", false, "enable IPv6 networking")
 	flags.IPNetVar(&networkCreateOptions.Subnet, "subnet", net.IPNet{}, "subnet in CIDR format")
 	flags.BoolVar(&networkCreateOptions.DisableDNS, "disable-dns", false, "disable dns plugin")
 }
