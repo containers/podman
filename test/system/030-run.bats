@@ -436,6 +436,16 @@ json-file | f
 @test "podman run --log-driver journald" {
     skip_if_remote "We cannot read journalctl over remote."
 
+    # We can't use journald on RHEL as rootless, either: rhbz#1895105
+    if is_rootless; then
+        run journalctl -n 1
+        if [[ $status -ne 0 ]]; then
+            if [[ $output =~ permission ]]; then
+                skip "Cannot use rootless journald on this system"
+            fi
+        fi
+    fi
+
     msg=$(random_string 20)
     pidfile="${PODMAN_TMPDIR}/$(random_string 20)"
 
