@@ -5,6 +5,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	. "github.com/containers/podman/v2/test/utils"
@@ -125,5 +126,45 @@ var _ = Describe("Podman stats", func() {
 		session = podmanTest.Podman([]string{"stats", "--no-stream", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	// Regression test for #8265
+	It("podman stats with custom memory limits", func() {
+		// Run thre containers. One with a memory limit.  Make sure
+		// that the limits are different and the limited one has a
+		// lower limit.
+		ctrNoLimit0 := "no-limit-0"
+		ctrNoLimit1 := "no-limit-1"
+		ctrWithLimit := "with-limit"
+
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrNoLimit0, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name", ctrNoLimit1, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name", ctrWithLimit, "--memory", "50m", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "{{.MemLimit}}", ctrNoLimit0, ctrNoLimit1, ctrWithLimit})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// We have three containers.  The unlimited ones need to have
+		// the same limit, the limited one a lower one.
+		limits := session.OutputToStringArray()
+		Expect(len(limits)).To(BeNumerically("==", 3))
+		Expect(limits[0]).To(Equal(limits[1]))
+		Expect(limits[0]).ToNot(Equal(limits[2]))
+
+		defaultLimit, err := strconv.Atoi(limits[0])
+		Expect(err).To(BeNil())
+		customLimit, err := strconv.Atoi(limits[2])
+		Expect(err).To(BeNil())
+
+		Expect(customLimit).To(BeNumerically("<", defaultLimit))
 	})
 })

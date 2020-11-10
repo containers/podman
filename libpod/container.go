@@ -1,22 +1,18 @@
 package libpod
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/lock"
-	"github.com/containers/podman/v2/pkg/rootless"
-	"github.com/containers/podman/v2/utils"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -912,44 +908,23 @@ func (c *Container) CgroupManager() string {
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() (string, error) {
-	cgroupManager := c.CgroupManager()
-
-	switch {
-	case c.config.NoCgroups || c.config.CgroupsMode == "disabled":
+	if c.config.NoCgroups || c.config.CgroupsMode == "disabled" {
 		return "", errors.Wrapf(define.ErrNoCgroups, "this container is not creating cgroups")
-	case c.config.CgroupsMode == cgroupSplit:
-		if c.config.CgroupParent != "" {
-			return "", errors.Errorf("cannot specify cgroup-parent with cgroup-mode %q", cgroupSplit)
-		}
-		cg, err := utils.GetCgroupProcess(c.state.ConmonPID)
-		if err != nil {
-			return "", err
-		}
-		// Use the conmon cgroup for two reasons: we validate the container
-		// delegation was correct, and the conmon cgroup doesn't change at runtime
-		// while we are not sure about the container that can create sub cgroups.
-		if !strings.HasSuffix(cg, "supervisor") {
-			return "", errors.Errorf("invalid cgroup for conmon %q", cg)
-		}
-		return strings.TrimSuffix(cg, "/supervisor") + "/container", nil
-	case cgroupManager == config.CgroupfsCgroupsManager:
-		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case cgroupManager == config.SystemdCgroupsManager:
-		if rootless.IsRootless() {
-			uid := rootless.GetRootlessUID()
-			parts := strings.SplitN(c.config.CgroupParent, "/", 2)
-
-			dir := ""
-			if len(parts) > 1 {
-				dir = parts[1]
-			}
-
-			return filepath.Join(parts[0], fmt.Sprintf("user-%d.slice/user@%d.service/user.slice/%s", uid, uid, dir), createUnitName("libpod", c.ID())), nil
-		}
-		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
-	default:
-		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", cgroupManager)
 	}
+
+	// Read /proc/[PID]/cgroup and look at the first line.  cgroups(7)
+	// nails it down to three fields with the 3rd pointing to the cgroup's
+	// path which works both on v1 and v2.
+	procPath := fmt.Sprintf("/proc/%d/cgroup", c.state.PID)
+	lines, err := ioutil.ReadFile(procPath)
+	if err != nil {
+		return "", err
+	}
+	fields := bytes.Split(bytes.Split(lines, []byte("\n"))[0], []byte(":"))
+	if len(fields) != 3 {
+		return "", errors.Errorf("expected 3 fields but got %d: %s", len(fields), procPath)
+	}
+	return string(fields[2]), nil
 }
 
 // RootFsSize returns the root FS size of the container
