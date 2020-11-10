@@ -282,7 +282,7 @@ type EngineConfig struct {
 	PullPolicy string `toml:"pull_policy,omitempty"`
 
 	// Indicates whether the application should be running in Remote mode
-	Remote bool `toml:"-"`
+	Remote bool `toml:"remote,omitempty"`
 
 	// RemoteURI is deprecated, see ActiveService
 	// RemoteURI containers connection information used to connect to remote system.
