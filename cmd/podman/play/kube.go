@@ -52,6 +52,7 @@ func init() {
 	flags.SetNormalizeFunc(utils.AliasFlags)
 	flags.StringVar(&kubeOptions.CredentialsCLI, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVar(&kubeOptions.Network, "network", "", "Connect pod to CNI network(s)")
+	flags.StringVar(&kubeOptions.LogDriver, "log-driver", "", "Logging driver for the container")
 	flags.BoolVarP(&kubeOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.BoolVar(&kubeOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.StringVar(&kubeOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")

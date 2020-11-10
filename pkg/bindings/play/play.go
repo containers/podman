@@ -28,6 +28,7 @@ func Kube(ctx context.Context, path string, options entities.PlayKubeOptions) (*
 
 	params := url.Values{}
 	params.Set("network", options.Network)
+	params.Set("logDriver", options.LogDriver)
 	if options.SkipTLSVerify != types.OptionalBoolUndefined {
 		params.Set("tlsVerify", strconv.FormatBool(options.SkipTLSVerify == types.OptionalBoolTrue))
 	}
