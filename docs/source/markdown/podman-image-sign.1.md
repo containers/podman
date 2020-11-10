@@ -13,20 +13,20 @@ derived from the registry configuration files in /etc/containers/registries.d. B
 
 ## OPTIONS
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement.
 
-**--cert-dir**=*path*
+#### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--directory**, **-d**=*dir*
+#### **--directory**, **-d**=*dir*
 
 Store the signatures in the specified directory.  Default: /var/lib/containers/sigstore
 
-**--sign-by**=*identity*
+#### **--sign-by**=*identity*
 
 Override the default identity of the signature.
 

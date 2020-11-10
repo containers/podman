@@ -15,11 +15,11 @@ driver options can be set using the **--opt** flag.
 
 ## OPTIONS
 
-**--driver**=*driver*
+#### **--driver**=*driver*
 
 Specify the volume driver name (default local).
 
-**--help**
+#### **--help**
 
 Print usage statement
 

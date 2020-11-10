@@ -56,7 +56,7 @@ Trust may be updated using the command **podman image trust set** for an existin
 
 ## show OPTIONS
 
-**--raw**
+#### **--raw**
   Output trust policy file as raw JSON
 
 **-j**, **--json**

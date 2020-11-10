@@ -24,7 +24,7 @@ Remove all volumes.
 Remove a volume by force.
 If it is being used by containers, the containers will be removed first.
 
-**--help**
+#### **--help**
 
 Print usage statement
 

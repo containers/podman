@@ -14,19 +14,19 @@ With the **--all** option, you can delete all unused images.  Unused images are 
 By default, volumes are not removed to prevent important data from being deleted if there is currently no container using the volume. Use the **--volumes** flag when running the command to prune volumes as well.
 
 ## OPTIONS
-**--all**, **-a**
+#### **--all**, **-a**
 
 Remove all unused images not just dangling ones.
 
-**--force**, **-f**
+#### **--force**, **-f**
 
 Do not prompt for confirmation
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 
-**--volumes**
+#### **--volumes**
 
 Prune volumes currently unused by any container
 

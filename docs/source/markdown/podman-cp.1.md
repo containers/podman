@@ -59,11 +59,11 @@ If you use a : in a local machine path, you must be explicit with a relative or 
 
 ## OPTIONS
 
-**--extract**
+#### **--extract**
 
 Extract the tar file into the destination directory. If the destination directory is not provided, extract the tar file into the root directory.
 
-**--pause**
+#### **--pause**
 
 Pause the container while copying into it to avoid potential security issues around symlinks. Defaults to *true*. On rootless containers with cgroups V1, defaults to false.
 

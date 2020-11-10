@@ -10,15 +10,15 @@ podman\-network\-ls - Display a summary of CNI networks
 Displays a list of existing podman networks. This command is not available for rootless users.
 
 ## OPTIONS
-**--quiet**, **-q**
+#### **--quiet**, **-q**
 
 The `quiet` option will restrict the output to only the network names.
 
-**--format**, **-f**
+#### **--format**, **-f**
 
 Pretty-print networks to JSON or using a Go template.
 
-**--filter**
+#### **--filter**
 
 Provide filter values (e.g. 'name=podman').
 

@@ -15,51 +15,51 @@ containers added to it. The pod id is printed to STDOUT. You can then use
 
 ## OPTIONS
 
-**--add-host**=_host_:_ip_
+#### **--add-host**=_host_:_ip_
 
 Add a host to the /etc/hosts file shared between all containers in the pod.
 
-**--cgroup-parent**=*path*
+#### **--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
-**--dns**=*ipaddr*
+#### **--dns**=*ipaddr*
 
 Set custom DNS servers in the /etc/resolv.conf file that will be shared between all containers in the pod. A special option, "none" is allowed which disables creation of /etc/resolv.conf for the pod.
 
-**--dns-opt**=*option*
+#### **--dns-opt**=*option*
 
 Set custom DNS options in the /etc/resolv.conf file that will be shared between all containers in the pod.
 
-**--dns-search**=*domain*
+#### **--dns-search**=*domain*
 
 Set custom DNS search domains in the /etc/resolv.conf file that will be shared between all containers in the pod.
 
-**--help**
+#### **--help**
 
 Print usage statement.
 
-**--hostname**=name
+#### **--hostname**=name
 
 Set a hostname to the pod
 
-**--infra**=**true**|**false**
+#### **--infra**=**true**|**false**
 
 Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true.
 
-**--infra-conmon-pidfile**=*file*
+#### **--infra-conmon-pidfile**=*file*
 
 Write the pid of the infra container's **conmon** process to a file. As **conmon** runs in a separate process than Podman, this is necessary when using systemd to manage Podman containers and pods.
 
-**--infra-command**=*command*
+#### **--infra-command**=*command*
 
 The command that will be run to start the infra container. Default: "/pause".
 
-**--infra-image**=*image*
+#### **--infra-image**=*image*
 
 The image that will be created for the infra container. Default: "k8s.gcr.io/pause:3.1".
 
-**--ip**=*ipaddr*
+#### **--ip**=*ipaddr*
 
 Set a static IP for the pod's shared network.
 
@@ -67,11 +67,11 @@ Set a static IP for the pod's shared network.
 
 Add metadata to a pod (e.g., --label com.example.key=value).
 
-**--label-file**=*label*
+#### **--label-file**=*label*
 
 Read in a line delimited file of labels.
 
-**--mac-address**=*address*
+#### **--mac-address**=*address*
 
 Set a static MAC address for the pod's shared network.
 
@@ -79,7 +79,7 @@ Set a static MAC address for the pod's shared network.
 
 Assign a name to the pod.
 
-**--network**=*mode*
+#### **--network**=*mode*
 
 Set network mode for the pod. Supported values are
 - `bridge`: Create a network stack on the default bridge. This is the default for rootful containers.
@@ -96,11 +96,11 @@ Set network mode for the pod. Supported values are
   - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding.
 
-**--no-hosts**=**true**|**false**
+#### **--no-hosts**=**true**|**false**
 
 Disable creation of /etc/hosts for the pod.
 
-**--pod-id-file**=*path*
+#### **--pod-id-file**=*path*
 
 Write the pod ID to the file.
 
@@ -115,11 +115,11 @@ Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPO
 
 NOTE: This cannot be modified once the pod is created.
 
-**--replace**=**true**|**false**
+#### **--replace**=**true**|**false**
 
 If another pod with the same name already exists, replace and remove it.  The default is **false**.
 
-**--share**=*namespace*
+#### **--share**=*namespace*
 
 A comma delimited list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, uts.
 
