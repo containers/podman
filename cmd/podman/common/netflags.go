@@ -43,6 +43,10 @@ func GetNetFlags() *pflag.FlagSet {
 		"network", containerConfig.NetNS(),
 		"Connect a container to a network",
 	)
+	netFlags.StringSlice(
+		"network-alias", []string{},
+		"Add network-scoped alias for the container",
+	)
 	netFlags.StringSliceP(
 		"publish", "p", []string{},
 		"Publish a container's port, or a range of ports, to the host (default [])",
@@ -158,6 +162,9 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 	}
 
 	opts.NoHosts, err = cmd.Flags().GetBool("no-hosts")
+	if err != nil {
+		return nil, err
+	}
 
 	if cmd.Flags().Changed("network") {
 		network, err := cmd.Flags().GetString("network")
@@ -181,5 +188,12 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 		opts.CNINetworks = cniNets
 	}
 
+	aliases, err := cmd.Flags().GetStringSlice("network-alias")
+	if err != nil {
+		return nil, err
+	}
+	if len(aliases) > 0 {
+		opts.Aliases = aliases
+	}
 	return &opts, err
 }

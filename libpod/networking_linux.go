@@ -105,6 +105,13 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 	podName := getCNIPodName(ctr)
 
 	podNetwork := r.getPodNetwork(ctr.ID(), podName, ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP, requestedMAC)
+	aliases, err := ctr.runtime.state.GetAllNetworkAliases(ctr)
+	if err != nil {
+		return nil, err
+	}
+	if len(aliases) > 0 {
+		podNetwork.Aliases = aliases
+	}
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {

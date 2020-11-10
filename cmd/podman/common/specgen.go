@@ -396,6 +396,17 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		s.ShmSize = &shmSize
 	}
 	s.CNINetworks = c.Net.CNINetworks
+
+	// Network aliases
+	if len(c.Net.Aliases) > 0 {
+		// build a map of aliases where key=cniName
+		aliases := make(map[string][]string, len(s.CNINetworks))
+		for _, cniNetwork := range s.CNINetworks {
+			aliases[cniNetwork] = c.Net.Aliases
+		}
+		s.Aliases = aliases
+	}
+
 	s.HostAdd = c.Net.AddHosts
 	s.UseImageResolvConf = c.Net.UseImageResolvConf
 	s.DNSServers = c.Net.DNSServers
