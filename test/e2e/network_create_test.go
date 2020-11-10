@@ -177,6 +177,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and IPv6 subnet", func() {
+		SkipIfRootless("FIXME It needs the ip6tables modules loaded")
 		var (
 			results []network.NcList
 		)
@@ -217,6 +218,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and IPv6 flag (dual-stack)", func() {
+		SkipIfRootless("FIXME It needs the ip6tables modules loaded")
 		var (
 			results []network.NcList
 		)
