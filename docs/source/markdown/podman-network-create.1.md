@@ -17,7 +17,7 @@ If no options are provided, Podman will assign a free subnet and name for your n
 Upon completion of creating the network, Podman will display the path to the newly added network file.
 
 ## OPTIONS
-**--disable-dns**
+#### **--disable-dns**
 
 Disables the DNS plugin for this network which if enabled, can perform container to container name
 resolution.
@@ -26,30 +26,30 @@ resolution.
 
 Driver to manage the network (default "bridge").  Currently only `bridge` is supported.
 
-**--gateway**
+#### **--gateway**
 
 Define a gateway for the subnet. If you want to provide a gateway address, you must also provide a
 *subnet* option.
 
-**--internal**
+#### **--internal**
 
 Restrict external access of this network
 
-**--ip-range**
+#### **--ip-range**
 
 Allocate container IP from a range.  The range must be a complete subnet and in CIDR notation.  The *ip-range* option
 must be used with a *subnet* option.
 
-**--macvlan**
+#### **--macvlan**
 
 Create a *Macvlan* based connection rather than a classic bridge.  You must pass an interface name from the host for the
 Macvlan connection.
 
-**--subnet**
+#### **--subnet**
 
 The subnet in CIDR notation.
 
-**--ipv6**
+#### **--ipv6**
 
 Enable IPv6 (Dual Stack) networking. You must pass a IPv6 subnet. The *subnet* option must be used with the *ipv6* option.
 

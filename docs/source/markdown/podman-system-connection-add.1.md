@@ -19,7 +19,7 @@ The user will be prompted for the remote ssh login password or key file pass phr
 
 Make the new destination the default for this user.
 
-**--identity**=*path*
+#### **--identity**=*path*
 
 Path to ssh identity file. If the identity file has been encrypted, Podman prompts the user for the passphrase.
 If no identity file is provided and no user is given, Podman defaults to the user running the podman command.
@@ -29,7 +29,7 @@ Podman prompts for the login password on the remote server.
 
 Port for ssh destination. The default value is `22`.
 
-**--socket-path**=*path*
+#### **--socket-path**=*path*
 
 Path to the Podman service unix domain socket on the ssh destination host
 

@@ -19,12 +19,12 @@ Both APIs are versioned, but the server will not reject requests with an unsuppo
 
 ## OPTIONS
 
-**--time**, **-t**
+#### **--time**, **-t**
 
 The time until the session expires in _seconds_. The default is 5
 seconds. A value of `0` means no timeout and the session will not expire.
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement.
 

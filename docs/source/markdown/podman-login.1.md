@@ -28,41 +28,41 @@ For more details about format and configurations of the auth.json file, please r
 
 ## OPTIONS
 
-**--password**, **-p**=*password*
+#### **--password**, **-p**=*password*
 
 Password for registry
 
-**--password-stdin**
+#### **--password-stdin**
 
 Take the password from stdin
 
-**--username**, **-u**=*username*
+#### **--username**, **-u**=*username*
 
 Username for registry
 
-**--authfile**=*path*
+#### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json.
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-**--get-login**
+#### **--get-login**
 
 Return the logged-in user for the registry.  Return error if no login is found.
 
-**--cert-dir**=*path*
+#### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--tls-verify**=*true|false*
+#### **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

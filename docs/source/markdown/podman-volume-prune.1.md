@@ -18,7 +18,7 @@ unused volumes. To bypass the confirmation, use the **--force** flag.
 
 Do not prompt for confirmation.
 
-**--help**
+#### **--help**
 
 Print usage statement
 

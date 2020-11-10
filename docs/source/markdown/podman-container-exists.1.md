@@ -14,7 +14,7 @@ was an issue accessing the local storage.
 
 ## OPTIONS
 
-**--external**=*true|false*
+#### **--external**=*true|false*
 Check for external containers as well as Podman containers. These external containers are generally created via other container technology such as Buildah or CRI-O.
 
 **-h**, **--help**

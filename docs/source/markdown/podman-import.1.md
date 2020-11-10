@@ -25,11 +25,11 @@ Apply the following possible instructions to the created image:
 
 Can be set multiple times
 
-**--message**, **-m**=*message*
+#### **--message**, **-m**=*message*
 
 Set commit message for imported image
 
-**--quiet**, **-q**
+#### **--quiet**, **-q**
 
 Shows progress on the import
 
@@ -37,7 +37,7 @@ Shows progress on the import
 
 Print additional debugging information
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

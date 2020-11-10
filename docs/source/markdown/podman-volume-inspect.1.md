@@ -24,7 +24,7 @@ Inspect all volumes.
 
 Format volume output using Go template
 
-**--help**
+#### **--help**
 
 Print usage statement
 

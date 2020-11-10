@@ -43,7 +43,7 @@ Images are pushed from those stored in local image storage.
 
 ## OPTIONS
 
-**--authfile**=*path*
+#### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
@@ -51,50 +51,50 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-**--creds**=*[username[:password]]*
+#### **--creds**=*[username[:password]]*
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**--cert-dir**=*path*
+#### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--compress**
+#### **--compress**
 
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set when using the **dir** transport
 
-**--digestfile** *Digestfile*
+#### **--digestfile** *Digestfile*
 
 After copying the image, write the digest of the resulting image to the file.  (Not available for remote commands)
 
-**--disable-content-trust**
+#### **--disable-content-trust**
 
 This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
 solely for scripting compatibility.
 
-**--format**, **-f**=*format*
+#### **--format**, **-f**=*format*
 
 Manifest Type (oci, v2s1, or v2s2) to use when pushing an image to a directory using the 'dir:' transport (default is manifest type of source)
 Note: This flag can only be set when using the **dir** transport
 
-**--quiet**, **-q**
+#### **--quiet**, **-q**
 
 When writing the output image, suppress progress output
 
-**--remove-signatures**
+#### **--remove-signatures**
 
 Discard any pre-existing signatures in the image
 
-**--sign-by**=*key*
+#### **--sign-by**=*key*
 
 Add a signature at the destination using the specified key
 
-**--tls-verify**=*true|false*
+#### **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,

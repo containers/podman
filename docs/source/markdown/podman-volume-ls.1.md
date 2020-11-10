@@ -18,11 +18,11 @@ flag. Use the **--quiet** flag to print only the volume names.
 
 Filter volume output.
 
-**--format**=*format*
+#### **--format**=*format*
 
 Format volume output using Go template.
 
-**--help**
+#### **--help**
 
 Print usage statement.
 
