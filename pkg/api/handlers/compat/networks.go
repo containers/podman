@@ -28,17 +28,17 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 
 	// FYI scope and version are currently unused but are described by the API
 	// Leaving this for if/when we have to enable these
-	//query := struct {
+	// query := struct {
 	//	scope   string
 	//	verbose bool
-	//}{
+	// }{
 	//	// override any golang type defaults
-	//}
-	//decoder := r.Context().Value("decoder").(*schema.Decoder)
-	//if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+	// }
+	// decoder := r.Context().Value("decoder").(*schema.Decoder)
+	// if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 	//	utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 	//	return
-	//}
+	// }
 	config, err := runtime.GetConfig()
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -119,7 +119,7 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 	}
 	report := types.NetworkResource{
 		Name:       name,
-		ID:         "",
+		ID:         name,
 		Created:    time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)), // nolint: unconvert
 		Scope:      "",
 		Driver:     network.DefaultNetworkDriver,
@@ -207,6 +207,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reports := make([]*types.NetworkResource, 0, len(netNames))
+	logrus.Errorf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
 		report, err := getNetworkResourceByName(name, runtime)
 		if err != nil {
@@ -276,21 +277,14 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	report := types.NetworkCreate{
-		CheckDuplicate: networkCreate.CheckDuplicate,
-		Driver:         networkCreate.Driver,
-		Scope:          networkCreate.Scope,
-		EnableIPv6:     networkCreate.EnableIPv6,
-		IPAM:           networkCreate.IPAM,
-		Internal:       networkCreate.Internal,
-		Attachable:     networkCreate.Attachable,
-		Ingress:        networkCreate.Ingress,
-		ConfigOnly:     networkCreate.ConfigOnly,
-		ConfigFrom:     networkCreate.ConfigFrom,
-		Options:        networkCreate.Options,
-		Labels:         networkCreate.Labels,
+
+	body := struct {
+		Id      string
+		Warning []string
+	}{
+		Id: name,
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	utils.WriteResponse(w, http.StatusCreated, body)
 }
 
 func RemoveNetwork(w http.ResponseWriter, r *http.Request) {

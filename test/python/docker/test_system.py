@@ -3,7 +3,7 @@ import sys
 import time
 import unittest
 
-from docker import APIClient
+from docker import DockerClient
 
 from test.python.docker import Podman, common, constant
 
@@ -15,7 +15,7 @@ class TestSystem(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
-        self.client = APIClient(base_url="tcp://127.0.0.1:8080", timeout=15)
+        self.client = DockerClient(base_url="tcp://127.0.0.1:8080", timeout=15)
 
         TestSystem.podman.restore_image_from_cache(self.client)
         TestSystem.topContainerId = common.run_top_container(self.client)
@@ -58,9 +58,10 @@ class TestSystem(unittest.TestCase):
     def test_info_container_details(self):
         info = self.client.info()
         self.assertEqual(info["Containers"], 1)
-        self.client.create_container(image=constant.ALPINE)
+        self.client.containers.create(image=constant.ALPINE)
         info = self.client.info()
         self.assertEqual(info["Containers"], 2)
 
     def test_version(self):
-        self.assertIsNotNone(self.client.version())
+        version = self.client.version()
+        self.assertIsNotNone(version["Platform"]["Name"])

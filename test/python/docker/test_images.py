@@ -5,7 +5,7 @@ import sys
 import time
 import unittest
 
-from docker import APIClient, errors
+from docker import DockerClient, errors
 
 from test.python.docker import Podman, common, constant
 
@@ -16,7 +16,7 @@ class TestImages(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
-        self.client = APIClient(base_url="tcp://127.0.0.1:8080", timeout=15)
+        self.client = DockerClient(base_url="tcp://127.0.0.1:8080", timeout=15)
 
         TestImages.podman.restore_image_from_cache(self.client)
 
@@ -51,83 +51,57 @@ class TestImages(unittest.TestCase):
         TestImages.podman.tear_down()
         return super().tearDownClass()
 
-    def test_inspect_image(self):
-        """Inspect Image"""
-        # Check for error with wrong image name
-        with self.assertRaises(errors.NotFound):
-            self.client.inspect_image("dummy")
-        alpine_image = self.client.inspect_image(constant.ALPINE)
-        self.assertIn(constant.ALPINE, alpine_image["RepoTags"])
-
-    def test_tag_invalid_image(self):
-        """Tag Image
-
-        Validates if invalid image name is given a bad response is encountered
-        """
-        with self.assertRaises(errors.NotFound):
-            self.client.tag("dummy", "demo")
-
     def test_tag_valid_image(self):
         """Validates if the image is tagged successfully"""
-        self.client.tag(constant.ALPINE, "demo", constant.ALPINE_SHORTNAME)
-        alpine_image = self.client.inspect_image(constant.ALPINE)
-        for x in alpine_image["RepoTags"]:
-            self.assertIn("alpine", x)
+        alpine = self.client.images.get(constant.ALPINE)
+        self.assertTrue(alpine.tag("demo", constant.ALPINE_SHORTNAME))
+
+        alpine = self.client.images.get(constant.ALPINE)
+        for t in alpine.tags:
+            self.assertIn("alpine", t)
 
     # @unittest.skip("doesn't work now")
     def test_retag_valid_image(self):
         """Validates if name updates when the image is retagged"""
-        self.client.tag(constant.ALPINE_SHORTNAME, "demo", "rename")
-        alpine_image = self.client.inspect_image(constant.ALPINE)
-        self.assertNotIn("demo:test", alpine_image["RepoTags"])
+        alpine = self.client.images.get(constant.ALPINE)
+        self.assertTrue(alpine.tag("demo", "rename"))
+
+        alpine = self.client.images.get(constant.ALPINE)
+        self.assertNotIn("demo:test", alpine.tags)
 
     def test_list_images(self):
         """List images"""
-        all_images = self.client.images()
-        self.assertEqual(len(all_images), 1)
+        self.assertEqual(len(self.client.images.list()), 1)
+
         # Add more images
-        self.client.pull(constant.BB)
-        all_images = self.client.images()
-        self.assertEqual(len(all_images), 2)
+        self.client.images.pull(constant.BB)
+        self.assertEqual(len(self.client.images.list()), 2)
 
         # List images with filter
-        filters = {"reference": "alpine"}
-        all_images = self.client.images(filters=filters)
-        self.assertEqual(len(all_images), 1)
+        self.assertEqual(
+            len(self.client.images.list(filters={"reference": "alpine"})), 1
+        )
 
     def test_search_image(self):
         """Search for image"""
-        response = self.client.search("libpod/alpine")
-        for i in response:
-            self.assertIn("quay.io/libpod/alpine", i["Name"])
+        for r in self.client.images.search("libpod/alpine"):
+            self.assertIn("quay.io/libpod/alpine", r["Name"])
 
     def test_remove_image(self):
         """Remove image"""
         # Check for error with wrong image name
         with self.assertRaises(errors.NotFound):
-            self.client.remove_image("dummy")
-        all_images = self.client.images()
-        self.assertEqual(len(all_images), 1)
+            self.client.images.remove("dummy")
+        self.assertEqual(len(self.client.images.list()), 1)
 
-        alpine_image = self.client.inspect_image(constant.ALPINE)
-        self.client.remove_image(alpine_image["Id"])
-        all_images = self.client.images()
-        self.assertEqual(len(all_images), 0)
+        self.client.images.remove(constant.ALPINE)
+        self.assertEqual(len(self.client.images.list()), 0)
 
     def test_image_history(self):
         """Image history"""
-        # Check for error with wrong image name
-        with self.assertRaises(errors.NotFound):
-            self.client.history("dummy")
-
-        # NOTE: history() has incorrect return type hint
-        history = self.client.history(constant.ALPINE)
-        alpine_image = self.client.inspect_image(constant.ALPINE)
-        image_id = (
-            alpine_image["Id"][7:]
-            if alpine_image["Id"].startswith("sha256:")
-            else alpine_image["Id"]
-        )
+        img = self.client.images.get(constant.ALPINE)
+        history = img.history()
+        image_id = img.id[7:] if img.id.startswith("sha256:") else img.id
 
         found = False
         for change in history:
@@ -137,31 +111,34 @@ class TestImages(unittest.TestCase):
     def test_get_image_exists_not(self):
         """Negative test for get image"""
         with self.assertRaises(errors.NotFound):
-            response = self.client.get_image("image_does_not_exists")
+            response = self.client.images.get("image_does_not_exists")
             collections.deque(response)
 
-    def test_export_image(self):
+    def test_save_image(self):
         """Export Image"""
-        self.client.pull(constant.BB)
-        image = self.client.get_image(constant.BB)
+        image = self.client.images.pull(constant.BB)
 
         file = os.path.join(TestImages.podman.image_cache, "busybox.tar")
         with open(file, mode="wb") as tarball:
-            for frame in image:
+            for frame in image.save(named=True):
                 tarball.write(frame)
         sz = os.path.getsize(file)
         self.assertGreater(sz, 0)
 
-    def test_import_image(self):
+    def test_load_image(self):
         """Import|Load Image"""
-        all_images = self.client.images()
-        self.assertEqual(len(all_images), 1)
+        self.assertEqual(len(self.client.images.list()), 1)
 
-        file = os.path.join(TestImages.podman.image_cache, constant.ALPINE_TARBALL)
-        self.client.import_image_from_file(filename=file)
+        image = self.client.images.pull(constant.BB)
+        file = os.path.join(TestImages.podman.image_cache, "busybox.tar")
+        with open(file, mode="wb") as tarball:
+            for frame in image.save():
+                tarball.write(frame)
 
-        all_images = self.client.images()
-        self.assertEqual(len(all_images), 2)
+        with open(file, mode="rb") as saved:
+            _ = self.client.images.load(saved)
+
+        self.assertEqual(len(self.client.images.list()), 2)
 
 
 if __name__ == "__main__":
