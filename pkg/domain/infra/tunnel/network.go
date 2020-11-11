@@ -55,3 +55,13 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 func (ic *ContainerEngine) NetworkCreate(ctx context.Context, name string, options entities.NetworkCreateOptions) (*entities.NetworkCreateReport, error) {
 	return network.Create(ic.ClientCxt, options, &name)
 }
+
+// NetworkDisconnect removes a container from a given network
+func (ic *ContainerEngine) NetworkDisconnect(ctx context.Context, networkname string, options entities.NetworkDisconnectOptions) error {
+	return network.Disconnect(ic.ClientCxt, networkname, options)
+}
+
+// NetworkConnect removes a container from a given network
+func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname string, options entities.NetworkConnectOptions) error {
+	return network.Connect(ic.ClientCxt, networkname, options)
+}

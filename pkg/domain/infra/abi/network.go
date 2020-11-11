@@ -138,3 +138,12 @@ func ifPassesFilterTest(netconf *libcni.NetworkConfigList, filter []string) bool
 	}
 	return result
 }
+
+// NetworkDisconnect removes a container from a given network
+func (ic *ContainerEngine) NetworkDisconnect(ctx context.Context, networkname string, options entities.NetworkDisconnectOptions) error {
+	return ic.Libpod.DisconnectContainerFromNetwork(options.Container, networkname, options.Force)
+}
+
+func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname string, options entities.NetworkConnectOptions) error {
+	return ic.Libpod.ConnectContainerToNetwork(options.Container, networkname, options.Aliases)
+}

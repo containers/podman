@@ -206,6 +206,10 @@ type ContainerState struct {
 	// and not delegated to the OCI runtime.
 	ExtensionStageHooks map[string][]spec.Hook `json:"extensionStageHooks,omitempty"`
 
+	// NetInterfaceDescriptions describe the relationship between a CNI
+	// network and an interface names
+	NetInterfaceDescriptions ContainerNetworkDescriptions `json:"networkDescriptions,omitempty"`
+
 	// containerPlatformState holds platform-specific container state.
 	containerPlatformState
 }
@@ -243,6 +247,10 @@ type ContainerImageVolume struct {
 	// ReadWrite sets the volume writable.
 	ReadWrite bool `json:"rw"`
 }
+
+// ContainerNetworkDescriptions describes the relationship between the CNI
+// network and the ethN where N is an integer
+type ContainerNetworkDescriptions map[string]int
 
 // Config accessors
 // Unlocked
@@ -1101,4 +1109,20 @@ func (c *Container) networksByNameIndex() (map[string]int, error) {
 		networkNamesByIndex[name] = index
 	}
 	return networkNamesByIndex, nil
+}
+
+// add puts the new given CNI network name into the tracking map
+// and assigns it a new integer based on the map length
+func (d ContainerNetworkDescriptions) add(networkName string) {
+	d[networkName] = len(d)
+}
+
+// getInterfaceByName returns a formatted interface name for a given
+// network along with a bool as to whether the network existed
+func (d ContainerNetworkDescriptions) getInterfaceByName(networkName string) (string, bool) {
+	val, exists := d[networkName]
+	if !exists {
+		return "", exists
+	}
+	return fmt.Sprintf("eth%d", val), exists
 }

@@ -253,5 +253,59 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/create"), s.APIHandler(libpod.CreateNetwork)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/networks/{name}/connect libpod libpodConnectNetwork
+	// ---
+	// tags:
+	//  - networks
+	// summary: Connect container to network
+	// description: Connect a container to a network.
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the network
+	//  - in: body
+	//    name: create
+	//    description: attributes for connecting a container to a network
+	//    schema:
+	//      $ref: "#/definitions/NetworkConnectRequest"
+	// responses:
+	//   200:
+	//     description: OK
+	//   404:
+	//     $ref: "#/responses/NoSuchNetwork"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/networks/{name}/connect"), s.APIHandler(libpod.Connect)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/networks/{name}/disconnect libpod libpodDisconnectNetwork
+	// ---
+	// tags:
+	//  - networks
+	// summary: Disconnect container from network
+	// description: Disconnect a container from a network.
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the network
+	//  - in: body
+	//    name: create
+	//    description: attributes for disconnecting a container from a network
+	//    schema:
+	//      $ref: "#/definitions/NetworkDisconnectRequest"
+	// responses:
+	//   200:
+	//     description: OK
+	//   404:
+	//     $ref: "#/responses/NoSuchNetwork"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/networks/{name}/disconnect"), s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
 	return nil
 }

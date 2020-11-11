@@ -50,7 +50,9 @@ type ContainerEngine interface {
 	SystemPrune(ctx context.Context, options SystemPruneOptions) (*SystemPruneReport, error)
 	HealthCheckRun(ctx context.Context, nameOrID string, options HealthCheckOptions) (*define.HealthCheckResults, error)
 	Info(ctx context.Context) (*define.Info, error)
+	NetworkConnect(ctx context.Context, networkname string, options NetworkConnectOptions) error
 	NetworkCreate(ctx context.Context, name string, options NetworkCreateOptions) (*NetworkCreateReport, error)
+	NetworkDisconnect(ctx context.Context, networkname string, options NetworkDisconnectOptions) error
 	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]NetworkInspectReport, []error, error)
 	NetworkList(ctx context.Context, options NetworkListOptions) ([]*NetworkListReport, error)
 	NetworkRm(ctx context.Context, namesOrIds []string, options NetworkRmOptions) ([]*NetworkRmReport, error)

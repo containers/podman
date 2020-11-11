@@ -131,3 +131,29 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusOK, reports)
 }
+
+// Connect adds a container to a network
+func Connect(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	var netConnect entities.NetworkConnectOptions
+	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	name := utils.GetName(r)
+	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netConnect.Aliases)
+	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			utils.ContainerNotFound(w, netConnect.Container, err)
+			return
+		}
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "network not found", http.StatusNotFound, err)
+			return
+		}
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, "OK")
+}
