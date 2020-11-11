@@ -50,6 +50,10 @@ function _run_validate() {
     # Confirm compile via prior task + cache
     bin/podman --version
     bin/podman-remote --version
+
+    # FIXME FIXME FIXME: 2020-11-10: remove once Fedora 33 has FindBin
+    perl -MFindBin -e 0 &>/dev/null || dnf -y install perl-FindBin
+
     make validate  # Some items require a build
 }
 

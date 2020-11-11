@@ -22,7 +22,7 @@ Upon completion of creating the network, Podman will display the path to the new
 Disables the DNS plugin for this network which if enabled, can perform container to container name
 resolution.
 
-**-d**, **--driver**
+#### **-d**, **--driver**
 
 Driver to manage the network (default "bridge").  Currently only `bridge` is supported.
 

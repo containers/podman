@@ -16,11 +16,11 @@ Volumes can be queried individually by providing their full name or a unique par
 
 ## OPTIONS
 
-**-a**, **--all**
+#### **-a**, **--all**
 
 Inspect all volumes.
 
-**-f**, **--format**=*format*
+#### **-f**, **--format**=*format*
 
 Format volume output using Go template
 

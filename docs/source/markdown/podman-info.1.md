@@ -15,11 +15,11 @@ Displays information pertinent to the host, current storage stats, configured co
 
 ## OPTIONS
 
-**-D**, **--debug**
+#### **-D**, **--debug**
 
 Show additional information
 
-**-f**, **--format**=*format*
+#### **-f**, **--format**=*format*
 
 Change output format to "json" or a Go template.
 

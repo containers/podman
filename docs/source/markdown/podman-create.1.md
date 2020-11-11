@@ -342,7 +342,7 @@ The initialization time needed for a container to bootstrap. The value can be ex
 The maximum time allowed to complete the healthcheck before an interval is considered failed.  Like start-period, the
 value can be expressed in a time format such as `1m22s`.  The default value is `30s`.
 
-**-h**, **--hostname**=*name*
+#### **-h**, **--hostname**=*name*
 
 Container host name
 
