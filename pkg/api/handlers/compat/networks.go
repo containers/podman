@@ -312,48 +312,40 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 }
 
 // Connect adds a container to a network
-// TODO: For now this func is a no-op that checks the container name, network name, and
-// responds with a 200.  This allows the call to remain intact.  We need to decide how
-// we make this work with CNI networking and setup/teardown.
 func Connect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
-	var netConnect types.NetworkConnect
+	var (
+		aliases    []string
+		netConnect types.NetworkConnect
+	)
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	config, err := runtime.GetConfig()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
 	name := utils.GetName(r)
-	exists, err := network.Exists(config, name)
+	if netConnect.EndpointConfig != nil {
+		if netConnect.EndpointConfig.Aliases != nil {
+			aliases = netConnect.EndpointConfig.Aliases
+		}
+	}
+	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, aliases)
 	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	if !exists {
-		utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
-		return
-	}
-	if _, err = runtime.LookupContainer(netConnect.Container); err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, netConnect.Container, err)
 			return
 		}
-		utils.Error(w, "unable to lookup container", http.StatusInternalServerError, err)
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "network not found", http.StatusNotFound, err)
+			return
+		}
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	logrus.Warnf("network connect endpoint is not fully implemented - tried to connect container %s to network %s", netConnect.Container, name)
 	utils.WriteResponse(w, http.StatusOK, "OK")
 }
 
 // Disconnect removes a container from a network
-// TODO: For now this func is a no-op that checks the container name, network name, and
-// responds with a 200.  This allows the call to remain intact.  We need to decide how
-// we make this work with CNI networking and setup/teardown.
 func Disconnect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
@@ -362,29 +354,20 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	config, err := runtime.GetConfig()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
+
 	name := utils.GetName(r)
-	exists, err := network.Exists(config, name)
+	err := runtime.DisconnectContainerFromNetwork(netDisconnect.Container, name, netDisconnect.Force)
 	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	if !exists {
-		utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
-		return
-	}
-	if _, err = runtime.LookupContainer(netDisconnect.Container); err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
-			utils.ContainerNotFound(w, netDisconnect.Container, err)
+			utils.Error(w, "container not found", http.StatusNotFound, err)
 			return
 		}
-		utils.Error(w, "unable to lookup container", http.StatusInternalServerError, err)
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "network not found", http.StatusNotFound, err)
+			return
+		}
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	logrus.Warnf("network disconnect endpoint is not fully implemented - tried to connect container %s to network %s", netDisconnect.Container, name)
 	utils.WriteResponse(w, http.StatusOK, "OK")
 }

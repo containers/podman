@@ -110,7 +110,11 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 }
 
 func (ic *ContainerEngine) NetworkCreate(ctx context.Context, name string, options entities.NetworkCreateOptions) (*entities.NetworkCreateReport, error) {
-	return network.Create(name, options, ic.Libpod)
+	runtimeConfig, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	return network.Create(name, options, runtimeConfig)
 }
 
 func ifPassesFilterTest(netconf *libcni.NetworkConfigList, filter []string) bool {

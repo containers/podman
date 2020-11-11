@@ -5,12 +5,8 @@ package system
 import (
 	"context"
 	"net"
-	"os"
-	"os/signal"
 	"strings"
 
-	"github.com/containers/podman/v2/cmd/podman/utils"
-	"github.com/containers/podman/v2/libpod"
 	api "github.com/containers/podman/v2/pkg/api/server"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/infra"
@@ -43,7 +39,7 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 		return err
 	}
 
-	startWatcher(rt)
+	infra.StartWatcher(rt)
 	server, err := api.NewServerWithSettings(rt, opts.Timeout, listener)
 	if err != nil {
 		return err
@@ -59,25 +55,4 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 		_ = (*listener).Close()
 	}
 	return err
-}
-
-// startWatcher starts a new SIGHUP go routine for the current config.
-func startWatcher(rt *libpod.Runtime) {
-	// Setup the signal notifier
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, utils.SIGHUP)
-
-	go func() {
-		for {
-			// Block until the signal is received
-			logrus.Debugf("waiting for SIGHUP to reload configuration")
-			<-ch
-			if err := rt.Reload(); err != nil {
-				logrus.Errorf("unable to reload configuration: %v", err)
-				continue
-			}
-		}
-	}()
-
-	logrus.Debugf("registered SIGHUP watcher for config")
 }
