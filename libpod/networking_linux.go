@@ -556,7 +556,7 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 		if stdoutStr != "" {
 			// err contains full debug log and too verbose, so return stdoutStr
 			logrus.Debug(err)
-			return errors.Errorf("failed to expose ports via rootlessport: %q", stdoutStr)
+			return errors.Errorf("rootlessport " + strings.TrimSuffix(stdoutStr, "\n"))
 		}
 		return err
 	}
