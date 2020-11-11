@@ -249,7 +249,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	if flags.PullNever {
-		pullPolicy = imagebuildah.PullNever
+		pullPolicy = imagebuildah.PullIfMissing
 	}
 
 	args := make(map[string]string)
