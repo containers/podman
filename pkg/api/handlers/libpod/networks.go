@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi"
@@ -30,6 +31,9 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
+	}
+	if len(options.Driver) < 1 {
+		options.Driver = network.DefaultNetworkDriver
 	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.NetworkCreate(r.Context(), query.Name, options)

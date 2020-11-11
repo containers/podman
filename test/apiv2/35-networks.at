@@ -6,52 +6,48 @@
 t GET networks/non-existing-network 404 \
   .cause='network not found'
 
-# FIXME FIXME FIXME: failing in CI. Deferring to someone else to fix later.
-#if root; then
-if false; then
-  t POST libpod/networks/create?name=network1 '' 200 \
-    .Filename~.*/network1\\.conflist
+t POST libpod/networks/create?name=network1 '' 200 \
+.Filename~.*/network1\\.conflist
 
-  # --data '{"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]}}'
-  t POST libpod/networks/create?name=network2 '"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]}' 200 \
-    .Filename~.*/network2\\.conflist
+# --data '{"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]}}'
+t POST libpod/networks/create?name=network2 '"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]}' 200 \
+.Filename~.*/network2\\.conflist
 
-  # test for empty mask
-  t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[]}' 500 \
-    .cause~'.*cannot be empty'
-  # test for invalid mask
-  t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[0,255,255,0]}' 500 \
-    .cause~'.*mask is invalid'
+# test for empty mask
+t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[]}' 500 \
+.cause~'.*cannot be empty'
+# test for invalid mask
+t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[0,255,255,0]}' 500 \
+.cause~'.*mask is invalid'
 
-  # network list
-  t GET libpod/networks/json 200
-  t GET libpod/networks/json?filter=name=network1 200 \
-    length=1 \
-    .[0].Name=network1
-  t GET networks 200
+# network list
+t GET libpod/networks/json 200
+t GET libpod/networks/json?filter=name=network1 200 \
+length=1 \
+.[0].Name=network1
+t GET networks 200
 
-  #network list docker endpoint
-  #filters={"name":["network1","network2"]}
-  t GET networks?filters=%7B%22name%22%3A%5B%22network1%22%2C%22network2%22%5D%7D 200 \
-    length=2
-  #filters={"name":["network"]}
-  t GET networks?filters=%7B%22name%22%3A%5B%22network%22%5D%7D 200 \
-    length=2
-  # invalid filter filters={"label":"abc"}
-  t GET networks?filters=%7B%22label%22%3A%5B%22abc%22%5D%7D 500 \
-    .cause="only the name filter for listing networks is implemented"
-  # invalid filter filters={"label":"abc","name":["network"]}
-  t GET networks?filters=%7B%22label%22%3A%22abc%22%2C%22name%22%3A%5B%22network%22%5D%7D 500 \
-    .cause="only the name filter for listing networks is implemented"
+#network list docker endpoint
+#filters={"name":["network1","network2"]}
+t GET networks?filters=%7B%22name%22%3A%5B%22network1%22%2C%22network2%22%5D%7D 200 \
+length=2
+#filters={"name":["network"]}
+t GET networks?filters=%7B%22name%22%3A%5B%22network%22%5D%7D 200 \
+length=2
+# invalid filter filters={"label":"abc"}
+t GET networks?filters=%7B%22label%22%3A%5B%22abc%22%5D%7D 500 \
+.cause="only the name filter for listing networks is implemented"
+# invalid filter filters={"label":"abc","name":["network"]}
+t GET networks?filters=%7B%22label%22%3A%22abc%22%2C%22name%22%3A%5B%22network%22%5D%7D 500 \
+.cause="only the name filter for listing networks is implemented"
 
-  # clean the network
-  t DELETE libpod/networks/network1 200 \
-    .[0].Name~network1 \
-    .[0].Err=null
-  t DELETE libpod/networks/network2 200 \
-    .[0].Name~network2 \
-    .[0].Err=null
+# clean the network
+t DELETE libpod/networks/network1 200 \
+.[0].Name~network1 \
+.[0].Err=null
+t DELETE libpod/networks/network2 200 \
+.[0].Name~network2 \
+.[0].Err=null
 
-fi
 
 # vim: filetype=sh
