@@ -139,7 +139,6 @@ smoke_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
@@ -200,7 +199,6 @@ build_task:
 validate_task:
     name: "Validate $DISTRO_NV Build"
     alias: validate
-    only_if: *not_docs
     depends_on:
         - ext_svc_check
         - automation
@@ -227,7 +225,7 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    only_if: *not_docs
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     skip: *branch
     depends_on:
         - build
