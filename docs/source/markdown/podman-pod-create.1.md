@@ -63,7 +63,7 @@ The image that will be created for the infra container. Default: "k8s.gcr.io/pau
 
 Set a static IP for the pod's shared network.
 
-#### **-l**, **--label**=*label*
+#### **--label**=*label*, **-l**
 
 Add metadata to a pod (e.g., --label com.example.key=value).
 
@@ -75,17 +75,17 @@ Read in a line delimited file of labels.
 
 Set a static MAC address for the pod's shared network.
 
-#### **-n**, **--name**=*name*
+#### **--name**=*name*, **-n**
 
 Assign a name to the pod.
 
-#### **--network**=*mode*
+#### **--network**=*mode*, **--net**
 
 Set network mode for the pod. Supported values are
-- `bridge`: Create a network stack on the default bridge. This is the default for rootful containers.
-- `host`: Do not create a network namespace, all containers in the pod will use the host's network. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+- **bridge**: Create a network stack on the default bridge. This is the default for rootful containers.
+- **host**: Do not create a network namespace, all containers in the pod will use the host's network. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
 - Comma-separated list of the names of CNI networks the pod should join.
-- `slirp4netns[:OPTIONS,...]`: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
+- **slirp4netns[:OPTIONS,...]**: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
   - **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`). Default is false.
   - **cidr=CIDR**: Specify ip range to use for this network. (Default is `10.0.2.0/24`).
   - **enable_ipv6=true|false**: Enable IPv6. Default is false. (Required for `outbound_addr6`).
@@ -108,7 +108,7 @@ Disable creation of /etc/hosts for the pod.
 
 Write the pod ID to the file.
 
-#### **-p**, **--publish**=*port*
+#### **--publish**=*port*, **-p**
 
 Publish a port or range of ports from the pod to the host.
 

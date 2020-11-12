@@ -18,7 +18,7 @@ to run pods such as CRI-O, the last started pod could be from either of those me
 
 The latest option is not supported on the remote client.
 
-#### **-f**, **--format**=*format*
+#### **--format**=*format*, **-f**
 
 Change the default output format.  This can be of a supported type like 'json'
 or a Go template.

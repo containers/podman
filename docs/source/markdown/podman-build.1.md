@@ -394,7 +394,7 @@ The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
-#### **--net**, **--network**=*string*
+#### **--network**=*mode*
 
 Sets the configuration for network namespaces when handling `RUN` instructions.
 
@@ -405,7 +405,7 @@ Valid _mode_ values are:
 container full access to local system services such as D-bus and is therefore
 considered insecure.
 - **ns:**_path_: path to a network namespace to join.
-- `private`: create a new namespace for the container (default).
+- **private**: create a new namespace for the container (default).
 
 #### **--no-cache**
 
