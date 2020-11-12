@@ -29,9 +29,9 @@ $ brew install podman
 
 ### Enable the Podman service on the server machine.
 
-Before performing any  Podman client commands, you must enable the podman.sock SystemD service on the Linux server.  In these examples, we are running Podman as a normal, unprivileged user, also known as a rootless user.  By default, the rootless socket listens at  `/run/user/${UID}/podman/podman.sock`.  You can enable this socket, permanently using the following command:
+Before performing any  Podman client commands, you must enable the podman.sock SystemD service on the Linux server.  In these examples, we are running Podman as a normal, unprivileged user, also known as a rootless user.  By default, the rootless socket listens at  `/run/user/${UID}/podman/podman.sock`.  You can enable and start this socket permanently, using the following commands:
 ```
-$ systemctl --user enable podman.socket
+$ systemctl --user enable --now podman.socket
 ```
 You will need to enable linger for this user in order for the socket to work when the user is not logged in.
 
