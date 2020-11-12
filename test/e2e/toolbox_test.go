@@ -285,7 +285,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		var gid string = "2000"
 
 		// The use of bad* in the name of variables does not imply the invocation
-		// of useradd should fail The user is supposed to be created successfuly
+		// of useradd should fail The user is supposed to be created successfully
 		// but later his information (uid, home, shell,..) is changed via usermod.
 		useradd := fmt.Sprintf("useradd --home-dir %s --shell %s --uid %s %s",
 			badHomeDir, badShell, badUID, username)
