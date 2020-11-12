@@ -128,6 +128,7 @@ func buildFlags(flags *pflag.FlagSet) {
 	}
 	flags.AddFlagSet(&fromAndBudFlags)
 	_ = flags.MarkHidden("signature-policy")
+	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
 }
 
 // build executes the build command.
