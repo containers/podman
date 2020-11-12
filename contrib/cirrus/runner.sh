@@ -260,6 +260,16 @@ dotest() {
         |& logformatter
 }
 
+# Nearly every task in .cirrus.yml makes use of this shell script
+# wrapped by /usr/bin/time to collect runtime statistics.  Because the
+# --output option is used to log stats to a file, every child-process
+# inherits an open FD3 pointing at the log.  However, some testing
+# operations depend on making use of FD3, and so it must be explicitly
+# closed here (and for all further child-processes).
+# STATS_LOGFILE assumed empty/undefined outside of Cirrus-CI (.cirrus.yml)
+# shellcheck disable=SC2154
+exec 3<&-
+
 msg "************************************************************"
 # Required to be defined by caller
 # shellcheck disable=SC2154
