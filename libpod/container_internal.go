@@ -1503,6 +1503,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 // config.
 // Returns the volume that was mounted.
 func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string) (*Volume, error) {
+	logrus.Debugf("Going to mount named volume %s", v.Name)
 	vol, err := c.runtime.state.Volume(v.Name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())

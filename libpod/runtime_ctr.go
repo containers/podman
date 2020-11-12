@@ -345,8 +345,15 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 	// Lock all named volumes we are adding ourself to, to ensure we can't
 	// use a volume being removed.
+	volsLocked := make(map[string]bool)
 	for _, namedVol := range ctrNamedVolumes {
 		toLock := namedVol
+		// Ensure that we don't double-lock a named volume that is used
+		// more than once.
+		if volsLocked[namedVol.Name()] {
+			continue
+		}
+		volsLocked[namedVol.Name()] = true
 		toLock.lock.Lock()
 		defer toLock.lock.Unlock()
 	}
