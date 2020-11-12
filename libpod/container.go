@@ -1085,3 +1085,31 @@ func (c *Container) Timezone() string {
 func (c *Container) Umask() string {
 	return c.config.Umask
 }
+
+// Networks gets all the networks this container is connected to.
+// Please do NOT use ctr.config.Networks, as this can be changed from those
+// values at runtime via network connect and disconnect.
+// If the container is configured to use CNI and this function returns an empty
+// array, the container will still be connected to the default network.
+func (c *Container) Networks() ([]string, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	return c.networks()
+}
+
+// Unlocked accessor for networks
+func (c *Container) networks() ([]string, error) {
+	networks, err := c.runtime.state.GetNetworks(c)
+	if err != nil && errors.Cause(err) == define.ErrNoSuchNetwork {
+		return c.config.Networks, nil
+	}
+
+	return networks, err
+}

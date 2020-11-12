@@ -94,7 +94,6 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 		volBkt,
 		allVolsBkt,
 		execBkt,
-		aliasesBkt,
 		runtimeConfigBkt,
 	}
 
@@ -972,6 +971,58 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
+// GetNetworks returns the CNI networks this container is a part of.
+func (s *BoltState) GetNetworks(ctr *Container) ([]string, error) {
+	if !s.valid {
+		return nil, define.ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return nil, define.ErrCtrRemoved
+	}
+
+	if s.namespace != "" && s.namespace != ctr.config.Namespace {
+		return nil, errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+	}
+
+	ctrID := []byte(ctr.ID())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	networks := []string{}
+
+	err = db.View(func(tx *bolt.Tx) error {
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		dbCtr := ctrBucket.Bucket(ctrID)
+		if dbCtr == nil {
+			ctr.valid = false
+			return errors.Wrapf(define.ErrNoSuchCtr, "container %s does not exist in database", ctr.ID())
+		}
+
+		ctrNetworkBkt := dbCtr.Bucket(networksBkt)
+		if ctrNetworkBkt == nil {
+			return errors.Wrapf(define.ErrNoSuchNetwork, "container %s is not joined to any CNI networks", ctr.ID())
+		}
+
+		return ctrNetworkBkt.ForEach(func(network, v []byte) error {
+			networks = append(networks, string(network))
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return networks, nil
+}
+
 // GetNetworkAliases retrieves the network aliases for the given container in
 // the given CNI network.
 func (s *BoltState) GetNetworkAliases(ctr *Container, network string) ([]string, error) {
@@ -1032,7 +1083,8 @@ func (s *BoltState) GetNetworkAliases(ctr *Container, network string) ([]string,
 
 		netAliasesBkt := ctrAliasesBkt.Bucket([]byte(network))
 		if netAliasesBkt == nil {
-			return errors.Wrapf(define.ErrNoAliasesForNetwork, "container %s has no aliases for network %q", ctr.ID(), network)
+			// No aliases for this specific network.
+			return nil
 		}
 
 		return netAliasesBkt.ForEach(func(alias, v []byte) error {
@@ -1120,10 +1172,9 @@ func (s *BoltState) GetAllNetworkAliases(ctr *Container) (map[string][]string, e
 	return aliases, nil
 }
 
-// SetNetworkAliases sets network aliases for the given container in the given
-// network. All existing aliases for that network (if any exist) will be removed,
-// to be replaced by the new aliases given.
-func (s *BoltState) SetNetworkAliases(ctr *Container, network string, aliases []string) error {
+// NetworkConnect adds the given container to the given network. If aliases are
+// specified, those will be added to the given network.
+func (s *BoltState) NetworkConnect(ctr *Container, network string, aliases []string) error {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1154,278 +1205,124 @@ func (s *BoltState) SetNetworkAliases(ctr *Container, network string, aliases []
 			return err
 		}
 
-		allAliasesBucket, err := getAliasesBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		netAllAliasesBucket, err := allAliasesBucket.CreateBucketIfNotExists([]byte(network))
-		if err != nil {
-			return errors.Wrapf(err, "error creating network aliases bucket for network %s", network)
-		}
-
 		dbCtr := ctrBucket.Bucket(ctrID)
 		if dbCtr == nil {
 			ctr.valid = false
 			return errors.Wrapf(define.ErrNoSuchCtr, "container %s does not exist in database", ctr.ID())
 		}
 
-		ctrAliasesBkt := dbCtr.Bucket(aliasesBkt)
-		if ctrAliasesBkt == nil {
-			return errors.Wrapf(define.ErrNoAliases, "container %s has no network aliases", ctr.ID())
+		ctrAliasesBkt, err := dbCtr.CreateBucketIfNotExists(aliasesBkt)
+		if err != nil {
+			return errors.Wrapf(err, "error creating aliases bucket for container %s", ctr.ID())
 		}
 
 		ctrNetworksBkt := dbCtr.Bucket(networksBkt)
 		if ctrNetworksBkt == nil {
-			return errors.Wrapf(define.ErrInvalidArg, "container %s is not connected to any CNI networks, so cannot add aliases", ctr.ID())
-		}
-		netConnected := ctrNetworksBkt.Get([]byte(network))
-		if netConnected == nil {
-			return errors.Wrapf(define.ErrInvalidArg, "container %s is not connected to CNI network %q, so cannot add aliases for this network", ctr.ID(), network)
-		}
-
-		namesBucket, err := getNamesBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		// Check if the container already has network aliases for this network.
-		netAliasesBkt := ctrAliasesBkt.Bucket([]byte(network))
-		if netAliasesBkt != nil {
-			// We have aliases. Have to remove them.
-			forEachErr := netAliasesBkt.ForEach(func(alias, v []byte) error {
-				// Relies on errors.Wrapf(nil, ...) returning
-				// nil.
-				return errors.Wrapf(netAllAliasesBucket.Delete(alias), "error removing alias %q from network %q when changing aliases for container %s", string(alias), network, ctr.ID())
-			})
-			if forEachErr != nil {
-				return forEachErr
-			}
-		}
-
-		if netAliasesBkt == nil {
-			newBkt, err := ctrAliasesBkt.CreateBucket([]byte(network))
+			ctrNetworksBkt, err = dbCtr.CreateBucket(networksBkt)
 			if err != nil {
-				return errors.Wrapf(err, "could not create bucket for network aliases for network %q", network)
+				return errors.Wrapf(err, "error creating networks bucket for container %s", ctr.ID())
 			}
-			netAliasesBkt = newBkt
-		}
-
-		for _, alias := range aliases {
-			// Check if safe to use
-			aliasExists := netAllAliasesBucket.Get([]byte(alias))
-			if aliasExists != nil {
-				return errors.Wrapf(define.ErrAliasExists, "network alias %q already exists in network %q (used by container %s)", alias, network, string(aliasExists))
+			ctrNetworks := ctr.config.Networks
+			if len(ctrNetworks) == 0 {
+				ctrNetworks = []string{ctr.runtime.netPlugin.GetDefaultNetworkName()}
 			}
-			nameExists := namesBucket.Get([]byte(alias))
-			if nameExists != nil {
-				return errors.Wrapf(define.ErrCtrExists, "a container or pod already uses the name %q, cannot add network alias for container %s", alias, ctr.ID())
-			}
-
-			// Add alias
-			if err := netAliasesBkt.Put([]byte(alias), ctrID); err != nil {
-				return errors.Wrapf(err, "error adding container %s network %q alias %q to DB", ctr.ID(), network, alias)
-			}
-			if err := netAllAliasesBucket.Put([]byte(alias), ctrID); err != nil {
-				return errors.Wrapf(err, "error adding container %s network %q alias %q to all aliases in DB", ctr.ID(), network, alias)
-			}
-		}
-
-		return nil
-	})
-}
-
-// RemoveNetworkAliases removes network aliases of the given container in the
-// given network.
-func (s *BoltState) RemoveNetworkAliases(ctr *Container, network string) error {
-	if !s.valid {
-		return define.ErrDBClosed
-	}
-
-	if !ctr.valid {
-		return define.ErrCtrRemoved
-	}
-
-	if network == "" {
-		return errors.Wrapf(define.ErrInvalidArg, "network names must not be empty")
-	}
-
-	if s.namespace != "" && s.namespace != ctr.config.Namespace {
-		return errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
-	}
-
-	ctrID := []byte(ctr.ID())
-
-	db, err := s.getDBCon()
-	if err != nil {
-		return err
-	}
-	defer s.deferredCloseDBCon(db)
-
-	return db.Update(func(tx *bolt.Tx) error {
-		ctrBucket, err := getCtrBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		allAliasesBucket, err := getAliasesBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		netAllAliasesBucket, err := allAliasesBucket.CreateBucketIfNotExists([]byte(network))
-		if err != nil {
-			return errors.Wrapf(err, "error creating network aliases bucket for network %s", network)
-		}
-
-		dbCtr := ctrBucket.Bucket(ctrID)
-		if dbCtr == nil {
-			ctr.valid = false
-			return errors.Wrapf(define.ErrNoSuchCtr, "container %s does not exist in database", ctr.ID())
-		}
-
-		ctrAliasesBkt := dbCtr.Bucket(aliasesBkt)
-		if ctrAliasesBkt == nil {
-			return errors.Wrapf(define.ErrNoAliases, "container %s has no network aliases", ctr.ID())
-		}
-
-		ctrNetworksBkt := dbCtr.Bucket(networksBkt)
-		if ctrNetworksBkt == nil {
-			return errors.Wrapf(define.ErrInvalidArg, "container %s is not connected to any CNI networks, so cannot add aliases", ctr.ID())
-		}
-		netConnected := ctrNetworksBkt.Get([]byte(network))
-		if netConnected == nil {
-			return errors.Wrapf(define.ErrInvalidArg, "container %s is not connected to CNI network %q, so cannot add aliases for this network", ctr.ID(), network)
-		}
-
-		// Check if the container already has network aliases for this network.
-		netAliasesBkt := ctrAliasesBkt.Bucket([]byte(network))
-		if netAliasesBkt != nil {
-			// We have aliases. Remove them.
-			forEachErr := netAliasesBkt.ForEach(func(alias, v []byte) error {
-				// Relies on errors.Wrapf(nil, ...) returning
-				// nil.
-				return errors.Wrapf(netAllAliasesBucket.Delete(alias), "error removing alias %q from network %q when changing aliases for container %s", string(alias), network, ctr.ID())
-			})
-			if forEachErr != nil {
-				return forEachErr
-			}
-		}
-
-		return nil
-	})
-}
-
-// Get all network aliases for a single CNI network. Returns a map of alias to
-// container ID.
-func (s *BoltState) GetAllAliasesForNetwork(network string) (map[string]string, error) {
-	if !s.valid {
-		return nil, define.ErrDBClosed
-	}
-
-	if network == "" {
-		return nil, errors.Wrapf(define.ErrInvalidArg, "network name must not be empty")
-	}
-
-	db, err := s.getDBCon()
-	if err != nil {
-		return nil, err
-	}
-	defer s.deferredCloseDBCon(db)
-
-	aliases := make(map[string]string)
-
-	err = db.View(func(tx *bolt.Tx) error {
-		aliasBucket, err := getAliasesBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		dbAlias := aliasBucket.Bucket([]byte(network))
-		if dbAlias == nil {
-			// We can't tell if the network exists, or doesn't exist
-			// So... Assume it exists, but has no aliases.
-			return nil
-		}
-
-		return dbAlias.ForEach(func(alias, ctrId []byte) error {
-			aliases[string(alias)] = string(ctrId)
-			return nil
-		})
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return aliases, nil
-}
-
-// RemoveAllAliasesForNetwork removes all the aliases in a given CNI network, as
-// part of that network being removed.
-func (s *BoltState) RemoveAllAliasesForNetwork(network string) error {
-	if !s.valid {
-		return define.ErrDBClosed
-	}
-
-	if network == "" {
-		return errors.Wrapf(define.ErrInvalidArg, "network names must not be empty")
-	}
-
-	db, err := s.getDBCon()
-	if err != nil {
-		return err
-	}
-	defer s.deferredCloseDBCon(db)
-
-	return db.Update(func(tx *bolt.Tx) error {
-		allCtrsBucket, err := getAllCtrsBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		ctrBucket, err := getCtrBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		allAliasesBucket, err := getAliasesBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		checkAliasesBucketExists := allAliasesBucket.Bucket([]byte(network))
-		if checkAliasesBucketExists != nil {
-			if err := allAliasesBucket.DeleteBucket([]byte(network)); err != nil {
-				return errors.Wrapf(err, "error removing network %s aliases bucket from DB", network)
-			}
-		}
-
-		// Iterate through all containers and remove their aliases
-		// bucket for the network.
-		return allCtrsBucket.ForEach(func(ctrID, ctrName []byte) error {
-			dbCtr := ctrBucket.Bucket(ctrID)
-			if dbCtr == nil {
-				// DB State is inconsistent... but we can't do
-				// anything about it.
-				// Log and move on.
-				logrus.Errorf("Container %s listed in all containers, but has no bucket!", string(ctrID))
-				return nil
-			}
-
-			dbCtrAliases := dbCtr.Bucket(aliasesBkt)
-			if dbCtrAliases == nil {
-				// Container has no aliases, this is OK.
-				return nil
-			}
-
-			ctrNetAliases := dbCtrAliases.Bucket([]byte(network))
-			if ctrNetAliases != nil {
-				if err := dbCtrAliases.DeleteBucket([]byte(network)); err != nil {
-					return errors.Wrapf(err, "error removing bucket for network aliases for network %s from container %s", network, string(ctrID))
+			// Copy in all the container's CNI networks
+			for _, net := range ctrNetworks {
+				if err := ctrNetworksBkt.Put([]byte(net), ctrID); err != nil {
+					return errors.Wrapf(err, "error adding container %s network %s to DB", ctr.ID(), net)
 				}
 			}
+		}
+		netConnected := ctrNetworksBkt.Get([]byte(network))
+		if netConnected != nil {
+			return errors.Wrapf(define.ErrNetworkExists, "container %s is already connected to CNI network %q", ctr.ID(), network)
+		}
+
+		// Add the network
+		if err := ctrNetworksBkt.Put([]byte(network), ctrID); err != nil {
+			return errors.Wrapf(err, "error adding container %s to network %s in DB", ctr.ID(), network)
+		}
+
+		ctrNetAliasesBkt, err := ctrAliasesBkt.CreateBucketIfNotExists([]byte(network))
+		if err != nil {
+			return errors.Wrapf(err, "error adding container %s network aliases bucket for network %s", ctr.ID(), network)
+		}
+		for _, alias := range aliases {
+			if err := ctrNetAliasesBkt.Put([]byte(alias), ctrID); err != nil {
+				return errors.Wrapf(err, "error adding container %s network alias %s for network %s", ctr.ID(), alias, network)
+			}
+		}
+		return nil
+	})
+}
+
+// NetworkDisconnect disconnects the container from the given network, also
+// removing any aliases in the network.
+func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return define.ErrCtrRemoved
+	}
+
+	if network == "" {
+		return errors.Wrapf(define.ErrInvalidArg, "network names must not be empty")
+	}
+
+	if s.namespace != "" && s.namespace != ctr.config.Namespace {
+		return errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+	}
+
+	ctrID := []byte(ctr.ID())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	return db.Update(func(tx *bolt.Tx) error {
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		dbCtr := ctrBucket.Bucket(ctrID)
+		if dbCtr == nil {
+			ctr.valid = false
+			return errors.Wrapf(define.ErrNoSuchCtr, "container %s does not exist in database", ctr.ID())
+		}
+
+		ctrAliasesBkt := dbCtr.Bucket(aliasesBkt)
+		if ctrAliasesBkt == nil {
+			return errors.Wrapf(define.ErrNoAliases, "container %s has no network aliases", ctr.ID())
+		}
+
+		ctrNetworksBkt := dbCtr.Bucket(networksBkt)
+		if ctrNetworksBkt == nil {
+			return errors.Wrapf(define.ErrNoSuchNetwork, "container %s is not connected to any CNI networks, so cannot disconnect", ctr.ID())
+		}
+		netConnected := ctrNetworksBkt.Get([]byte(network))
+		if netConnected == nil {
+			return errors.Wrapf(define.ErrNoSuchNetwork, "container %s is not connected to CNI network %q", ctr.ID(), network)
+		}
+
+		if err := ctrNetworksBkt.Delete([]byte(network)); err != nil {
+			return errors.Wrapf(err, "error removing container %s from network %s", ctr.ID(), network)
+		}
+
+		bktExists := ctrAliasesBkt.Bucket([]byte(network))
+		if bktExists == nil {
 			return nil
-		})
+		}
+
+		if err := ctrAliasesBkt.DeleteBucket([]byte(network)); err != nil {
+			return errors.Wrapf(err, "error removing container %s network aliases for network %s", ctr.ID(), network)
+		}
+
+		return nil
 	})
 }
 

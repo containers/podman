@@ -236,6 +236,9 @@ type ContainerNetworkConfig struct {
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`
 	// Network names (CNI) to add container to. Empty to use default network.
+	// Please note that these can be altered at runtime. The actual list is
+	// stored in the DB and should be retrieved from there; this is only the
+	// set of networks the container was *created* with.
 	Networks []string `json:"networks,omitempty"`
 	// Network mode specified for the default network.
 	NetMode namespaces.NetworkMode `json:"networkMode,omitempty"`

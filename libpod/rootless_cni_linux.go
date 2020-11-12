@@ -40,8 +40,12 @@ const (
 //
 // AllocRootlessCNI does not lock c. c should be already locked.
 func AllocRootlessCNI(ctx context.Context, c *Container) (ns.NetNS, []*cnitypes.Result, error) {
-	if len(c.config.Networks) == 0 {
-		return nil, nil, errors.New("allocRootlessCNI shall not be called when len(c.config.Networks) == 0")
+	networks, err := c.networks()
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(networks) == 0 {
+		return nil, nil, errors.New("rootless CNI networking requires that the container has joined at least one CNI network")
 	}
 	l, err := getRootlessCNIInfraLock(c.runtime)
 	if err != nil {
@@ -54,8 +58,8 @@ func AllocRootlessCNI(ctx context.Context, c *Container) (ns.NetNS, []*cnitypes.
 		return nil, nil, err
 	}
 	k8sPodName := getCNIPodName(c) // passed to CNI as K8S_POD_NAME
-	cniResults := make([]*cnitypes.Result, len(c.config.Networks))
-	for i, nw := range c.config.Networks {
+	cniResults := make([]*cnitypes.Result, len(networks))
+	for i, nw := range networks {
 		cniRes, err := rootlessCNIInfraCallAlloc(infra, c.ID(), nw, k8sPodName)
 		if err != nil {
 			return nil, nil, err
@@ -77,8 +81,12 @@ func AllocRootlessCNI(ctx context.Context, c *Container) (ns.NetNS, []*cnitypes.
 //
 // DeallocRootlessCNI does not lock c. c should be already locked.
 func DeallocRootlessCNI(ctx context.Context, c *Container) error {
-	if len(c.config.Networks) == 0 {
-		return errors.New("deallocRootlessCNI shall not be called when len(c.config.Networks) == 0")
+	networks, err := c.networks()
+	if err != nil {
+		return err
+	}
+	if len(networks) == 0 {
+		return errors.New("rootless CNI networking requires that the container has joined at least one CNI network")
 	}
 	l, err := getRootlessCNIInfraLock(c.runtime)
 	if err != nil {
@@ -91,7 +99,7 @@ func DeallocRootlessCNI(ctx context.Context, c *Container) error {
 		return nil
 	}
 	var errs *multierror.Error
-	for _, nw := range c.config.Networks {
+	for _, nw := range networks {
 		err := rootlessCNIInfraCallDelloc(infra, c.ID(), nw)
 		if err != nil {
 			errs = multierror.Append(errs, err)

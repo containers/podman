@@ -104,7 +104,11 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 
 	podName := getCNIPodName(ctr)
 
-	podNetwork := r.getPodNetwork(ctr.ID(), podName, ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP, requestedMAC)
+	networks, err := ctr.networks()
+	if err != nil {
+		return nil, err
+	}
+	podNetwork := r.getPodNetwork(ctr.ID(), podName, ctrNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC)
 	aliases, err := ctr.runtime.state.GetAllNetworkAliases(ctr)
 	if err != nil {
 		return nil, err
@@ -209,7 +213,11 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	if ctr.config.NetMode.IsSlirp4netns() {
 		return r.setupSlirp4netns(ctr)
 	}
-	if len(ctr.config.Networks) > 0 {
+	networks, err := ctr.networks()
+	if err != nil {
+		return err
+	}
+	if len(networks) > 0 {
 		// set up port forwarder for CNI-in-slirp4netns
 		netnsPath := ctr.state.NetNS.Path()
 		// TODO: support slirp4netns port forwarder as well
@@ -725,6 +733,11 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
+	networks, err := ctr.networks()
+	if err != nil {
+		return err
+	}
+
 	// rootless containers do not use the CNI plugin directly
 	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		var requestedIP net.IP
@@ -745,7 +758,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 			requestedMAC = ctr.config.StaticMAC
 		}
 
-		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP, requestedMAC)
+		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC)
 
 		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
 			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
@@ -753,7 +766,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	}
 
 	// CNI-in-slirp4netns
-	if rootless.IsRootless() && len(ctr.config.Networks) != 0 {
+	if rootless.IsRootless() && len(networks) != 0 {
 		if err := DeallocRootlessCNI(context.Background(), ctr); err != nil {
 			return errors.Wrapf(err, "error tearing down CNI-in-slirp4netns for container %s", ctr.ID())
 		}
@@ -839,13 +852,18 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	settings := new(define.InspectNetworkSettings)
 	settings.Ports = makeInspectPortBindings(c.config.PortMappings)
 
+	networks, err := c.networks()
+	if err != nil {
+		return nil, err
+	}
+
 	// We can't do more if the network is down.
 	if c.state.NetNS == nil {
 		// We still want to make dummy configurations for each CNI net
 		// the container joined.
-		if len(c.config.Networks) > 0 {
-			settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(c.config.Networks))
-			for _, net := range c.config.Networks {
+		if len(networks) > 0 {
+			settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
+			for _, net := range networks {
 				cniNet := new(define.InspectAdditionalNetwork)
 				cniNet.NetworkID = net
 				settings.Networks[net] = cniNet
@@ -864,16 +882,16 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	// If we have CNI networks - handle that here
-	if len(c.config.Networks) > 0 {
-		if len(c.config.Networks) != len(c.state.NetworkStatus) {
-			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(c.config.Networks), len(c.state.NetworkStatus))
+	if len(networks) > 0 {
+		if len(networks) != len(c.state.NetworkStatus) {
+			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(networks), len(c.state.NetworkStatus))
 		}
 
 		settings.Networks = make(map[string]*define.InspectAdditionalNetwork)
 
 		// CNI results should be in the same order as the list of
 		// networks we pass into CNI.
-		for index, name := range c.config.Networks {
+		for index, name := range networks {
 			cniResult := c.state.NetworkStatus[index]
 			addedNet := new(define.InspectAdditionalNetwork)
 			addedNet.NetworkID = name
@@ -882,6 +900,13 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 			if err != nil {
 				return nil, err
 			}
+
+			aliases, err := c.runtime.state.GetNetworkAliases(c, name)
+			if err != nil {
+				return nil, err
+			}
+			addedNet.Aliases = aliases
+
 			addedNet.InspectBasicNetworkConfig = basicConfig
 
 			settings.Networks[name] = addedNet
