@@ -3,6 +3,7 @@
 Commands
 ========
 
+:doc:`Podman <markdown/podman.1>` (Pod Manager) Global Options
 
 :doc:`attach <markdown/podman-attach.1>` Attach to a running container
 
