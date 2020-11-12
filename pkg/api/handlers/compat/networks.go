@@ -276,21 +276,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	report := types.NetworkCreate{
-		CheckDuplicate: networkCreate.CheckDuplicate,
-		Driver:         networkCreate.Driver,
-		Scope:          networkCreate.Scope,
-		EnableIPv6:     networkCreate.EnableIPv6,
-		IPAM:           networkCreate.IPAM,
-		Internal:       networkCreate.Internal,
-		Attachable:     networkCreate.Attachable,
-		Ingress:        networkCreate.Ingress,
-		ConfigOnly:     networkCreate.ConfigOnly,
-		ConfigFrom:     networkCreate.ConfigFrom,
-		Options:        networkCreate.Options,
-		Labels:         networkCreate.Labels,
-	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	utils.WriteResponse(w, http.StatusCreated, "")
 }
 
 func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
