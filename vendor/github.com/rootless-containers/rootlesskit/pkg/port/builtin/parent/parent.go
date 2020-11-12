@@ -111,7 +111,7 @@ func annotateEPERM(origErr error, spec port.Spec) error {
 		// origErr is unrelated to ip_unprivileged_port_start
 		return origErr
 	}
-	text := fmt.Sprintf("cannot expose privileged port %d, you might need to add \"net.ipv4.ip_unprivileged_port_start=0\" (currently %d) to /etc/sysctl.conf", spec.ParentPort, start)
+	text := fmt.Sprintf("cannot expose privileged port %d, you can add 'net.ipv4.ip_unprivileged_port_start=%d' to /etc/sysctl.conf (currently %d)", spec.ParentPort, spec.ParentPort, start)
 	if filepath.Base(os.Args[0]) == "rootlesskit" {
 		// NOTE: The following sentence is appended only if Args[0] == "rootlesskit", because it does not apply to Podman (as of Podman v1.9).
 		// Podman launches the parent driver in the child user namespace (but in the parent network namespace), which disables the file capability.
