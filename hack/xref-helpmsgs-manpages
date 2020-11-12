@@ -331,8 +331,15 @@ sub podman_man {
             @most_recent_flags = ();
             # As of PR #8292, all options are <h4> and anchored
             if ($line =~ s/^\#{4}\s+//) {
-                # Handle any variation of '**--foo**, **-f**'
-                while ($line =~ s/^\*\*((--[a-z0-9-]+)|(-.))\*\*(,\s+)?//g) {
+                # If option has long and short form, long must come first.
+                # This is a while-loop because there may be multiple long
+                # option names, e.g. --net/--network
+                while ($line =~ s/^\*\*(--[a-z0-9-]+)\*\*(=\*[a-zA-Z0-9-]+\*)?(,\s+)?//g) {
+                    $man{$1} = 1;
+                    push @most_recent_flags, $1;
+                }
+                # Short form
+                if ($line =~ s/^\*\*(-[a-zA-Z0-9])\*\*(=\*[a-zA-Z0-9-]+\*)?//g) {
                     $man{$1} = 1;
 
                     # Keep track of them, in case we see 'Not implemented' below

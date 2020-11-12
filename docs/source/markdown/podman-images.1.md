@@ -15,7 +15,7 @@ Displays locally stored images, their names, and their IDs.
 
 ## OPTIONS
 
-#### **-a**, **--all**
+#### **--all**, **-a**
 
 Show all images (by default filter out the intermediate image layers). The default is false.
 
@@ -23,7 +23,7 @@ Show all images (by default filter out the intermediate image layers). The defau
 
 Show image digests
 
-#### **-f**, **--filter**=*filter*
+#### **--filter**=*filter*, **-f**
 
 Filter output based on conditions provided
 

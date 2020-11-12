@@ -14,7 +14,7 @@ Show podman disk usage
 
 Pretty-print images using a Go template
 
-#### **-v**, **--verbose**[=*true|false*]
+#### **--verbose**, **-v**
 Show detailed information on space usage
 
 ## EXAMPLE

@@ -46,7 +46,7 @@ value can be entered.  The password is entered without echo.
 
 Set logging driver for all created containers.
 
-#### **--network**=*cni networks*
+#### **--network**=*networks*, **--net**
 
 A comma-separated list of the names of CNI networks the pod should join.
 

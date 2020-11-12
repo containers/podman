@@ -23,11 +23,11 @@ Specify the volume driver name (default local).
 
 Print usage statement
 
-#### **-l**, **--label**=*label*
+#### **--label**=*label*, **-l**
 
 Set metadata for a volume (e.g., --label mykey=value).
 
-#### **-o**, **--opt**=*option*
+#### **--opt**=*option*, **-o**
 
 Set driver specific options.
 For the default driver, `local`, this allows a volume to be configured to mount a filesystem on the host.

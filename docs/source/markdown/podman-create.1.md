@@ -342,7 +342,7 @@ The initialization time needed for a container to bootstrap. The value can be ex
 The maximum time allowed to complete the healthcheck before an interval is considered failed.  Like start-period, the
 value can be expressed in a time format such as `1m22s`.  The default value is `30s`.
 
-#### **-h**, **--hostname**=*name*
+#### **--hostname**=*name*, **-h**
 
 Container host name
 
@@ -574,20 +574,20 @@ to the container with **--name** then it will generate a random
 string name. The name is useful any place you need to identify a container.
 This works for both background and foreground containers.
 
-#### **--network**, **--net**="*bridge*"
+#### **--network**=*bridge*, **--net**
 
-Set the Network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to 'none' or 'container:<name|id>'.
+Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_.
 
-Valid values are:
+Valid _mode_ values are:
 
-- `bridge`: create a network stack on the default bridge
-- `none`: no networking
-- `container:<name|id>`: reuse another container's network stack
-- `host`: use the Podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
-- `<network-name>|<network-id>`: connect to a user-defined network, multiple networks should be comma separated
-- `ns:<path>`: path to a network namespace to join
-- `private`: create a new namespace for the container (default)
-- `slirp4netns[:OPTIONS,...]`: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
+- **bridge**: create a network stack on the default bridge;
+- **none**: no networking;
+- **container:**_id_: reuse another container's network stack;
+- **host**: use the Podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure;
+- _network-id_: connect to a user-defined network, multiple networks should be comma separated;
+- **ns:**_path_: path to a network namespace to join;
+- **private**: create a new namespace for the container (default)
+- **slirp4netns[:OPTIONS,...]**: use **slirp4netns**(1) to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
   - **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`). Default is false.
   - **cidr=CIDR**: Specify ip range to use for this network. (Default is `10.0.2.0/24`).
   - **enable_ipv6=true|false**: Enable IPv6. Default is false. (Required for `outbound_addr6`).
