@@ -26,11 +26,11 @@ env:
     ####
     FEDORA_NAME: "fedora-33"
     PRIOR_FEDORA_NAME: "fedora-32"
-    UBUNTU_NAME: "ubuntu-20"
-    PRIOR_UBUNTU_NAME: "ubuntu-19"
+    UBUNTU_NAME: "ubuntu-2010"
+    PRIOR_UBUNTU_NAME: "ubuntu-2004"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c4704091098054656"
+    IMAGE_SUFFIX: "c6233039174893568"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"

@@ -53,7 +53,7 @@ case $1 in
                     slirp4netns \
         )
         case $OS_RELEASE_ID in
-            fedora*)
+            fedora)
                 cat /etc/fedora-release
                 PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
                 PKG_NAMES+=(\
@@ -61,7 +61,7 @@ case $1 in
                     libseccomp \
                 )
                 ;;
-            ubuntu*)
+            ubuntu)
                 cat /etc/issue
                 PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
                 PKG_NAMES+=(\
