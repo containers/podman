@@ -41,7 +41,7 @@ function _run_automation() {
     req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
                  PODBIN_NAME PRIV_NAME DISTRO_NV CONTAINER USER HOME \
                  UID AUTOMATION_LIB_PATH SCRIPT_BASE OS_RELEASE_ID \
-                 OS_RELEASE_VER CG_FS_TYPE
+                 CG_FS_TYPE
     bigto ooe.sh dnf install -y ShellCheck  # small/quick addition
     $SCRIPT_BASE/shellcheck.sh
 }
@@ -64,12 +64,6 @@ function _run_unit() {
 }
 
 function _run_apiv2() {
-    # TODO Remove once VM's with dependency
-    if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
-        dnf install -y python3-docker
-    else
-        apt-get -qq -y install python3-docker
-    fi
     make localapiv2 |& logformatter
 }
 
