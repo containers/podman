@@ -721,7 +721,7 @@ container. When the mount propagation policy is set to `slave`, one way mount
 propagation is enabled and any mounts completed on the host for that volume will
 be visible only inside of the container. To control the mount propagation
 property of volume use the `:[r]shared`, `:[r]slave` or `:[r]private`
-propagation flag. The propagation property canbe specified only for bind mounted
+propagation flag. The propagation property can be specified only for bind mounted
 volumes and not for internal volumes or named volumes. For mount propagation to
 work on the source mount point (mount point where source dir is mounted on) has
 to have the right propagation properties. For shared volumes, the source mount

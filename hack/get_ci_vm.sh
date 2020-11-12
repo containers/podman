@@ -7,7 +7,7 @@
 # problems specifically related to Cirrus-CI automated testing.  However,
 # because it's only loosely coupled to the `.cirrus.yml` configuration, it must
 # orchestrate VMs in GCP directly.  This means users need to have
-# pre-authorization (access) to manipulate google-cloud resoures.  Additionally,
+# pre-authorization (access) to manipulate google-cloud resources.  Additionally,
 # there are no guarantees it will remain in-sync with other automation-related
 # scripts.  Therefore it may not always function for everybody in every
 # future scenario without updates/modifications/tweaks.
@@ -149,7 +149,7 @@ parse_args(){
 
     VM_IMAGE_NAME="$1"
 
-    # Word-splitting is desireable in this case
+    # Word-splitting is desirable in this case
     # shellcheck disable=SC2207
     ENVS=(
         $(get_env_vars)
@@ -166,7 +166,7 @@ parse_args(){
 }
 
 # Returns true if user has run an 'init' and has a valid token for
-# the specific project-id and named-configuration argumens in $PGCLOUD.
+# the specific project-id and named-configuration arguments in $PGCLOUD.
 function has_valid_credentials() {
     if $PGCLOUD info |& grep -Eq 'Account:.*None'; then
         return 1

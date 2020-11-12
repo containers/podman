@@ -669,7 +669,7 @@ Example output might be:
 
     memory pids
 
-In the above example, `cpu` is not listed, which means the curent user does
+In the above example, `cpu` is not listed, which means the current user does
 not have permission to set CPU limits.
 
 If you want to enable CPU limit delegation for all users, you can create the
