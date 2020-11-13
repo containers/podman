@@ -8,6 +8,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
@@ -24,11 +25,12 @@ var (
 	Show podman disk usage
 	`
 	dfSystemCommand = &cobra.Command{
-		Use:   "df [options]",
-		Args:  validate.NoArgs,
-		Short: "Show podman disk usage",
-		Long:  dfSystemDescription,
-		RunE:  df,
+		Use:               "df [options]",
+		Args:              validate.NoArgs,
+		Short:             "Show podman disk usage",
+		Long:              dfSystemDescription,
+		RunE:              df,
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
 
@@ -44,7 +46,11 @@ func init() {
 	})
 	flags := dfSystemCommand.Flags()
 	flags.BoolVarP(&dfOptions.Verbose, "verbose", "v", false, "Show detailed information on disk usage")
-	flags.StringVar(&dfOptions.Format, "format", "", "Pretty-print images using a Go template")
+
+	formatFlagName := "format"
+	flags.StringVar(&dfOptions.Format, formatFlagName, "", "Pretty-print images using a Go template")
+	_ = dfSystemCommand.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+
 }
 
 func df(cmd *cobra.Command, args []string) error {

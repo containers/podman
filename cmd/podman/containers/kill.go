@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/signal"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -24,6 +24,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman kill mywebserver
   podman kill 860a4b23
   podman kill --signal TERM ctrID`,
@@ -33,10 +34,11 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
-		Use:   killCommand.Use,
-		Short: killCommand.Short,
-		Long:  killCommand.Long,
-		RunE:  killCommand.RunE,
+		Use:               killCommand.Use,
+		Short:             killCommand.Short,
+		Long:              killCommand.Long,
+		RunE:              killCommand.RunE,
+		ValidArgsFunction: killCommand.ValidArgsFunction,
 		Example: `podman container kill mywebserver
   podman container kill 860a4b23
   podman container kill --signal TERM ctrID`,
@@ -47,9 +49,14 @@ var (
 	killOptions = entities.KillOptions{}
 )
 
-func killFlags(flags *pflag.FlagSet) {
+func killFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&killOptions.All, "all", "a", false, "Signal all running containers")
-	flags.StringVarP(&killOptions.Signal, "signal", "s", "KILL", "Signal to send to the container")
+
+	signalFlagName := "signal"
+	flags.StringVarP(&killOptions.Signal, signalFlagName, "s", "KILL", "Signal to send to the container")
+	_ = cmd.RegisterFlagCompletionFunc(signalFlagName, common.AutocompleteStopSignal)
 }
 
 func init() {
@@ -57,7 +64,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: killCommand,
 	})
-	killFlags(killCommand.Flags())
+	killFlags(killCommand)
 	validate.AddLatestFlag(killCommand, &killOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -65,7 +72,7 @@ func init() {
 		Command: containerKillCommand,
 		Parent:  containerCmd,
 	})
-	killFlags(containerKillCommand.Flags())
+	killFlags(containerKillCommand)
 	validate.AddLatestFlag(containerKillCommand, &killOptions.Latest)
 }
 

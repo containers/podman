@@ -11,7 +11,9 @@ import (
 	"time"
 
 	tm "github.com/buger/goterm"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -21,17 +23,17 @@ import (
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	psDescription = "Prints out information about the containers"
 	psCommand     = &cobra.Command{
-		Use:   "ps [options]",
-		Args:  validate.NoArgs,
-		Short: "List containers",
-		Long:  psDescription,
-		RunE:  ps,
+		Use:               "ps [options]",
+		Args:              validate.NoArgs,
+		Short:             "List containers",
+		Long:              psDescription,
+		RunE:              ps,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman ps -a
   podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
   podman ps --size --sort names`,
@@ -50,26 +52,45 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: psCommand,
 	})
-	listFlagSet(psCommand.Flags())
+	listFlagSet(psCommand)
 	validate.AddLatestFlag(psCommand, &listOpts.Latest)
 }
 
-func listFlagSet(flags *pflag.FlagSet) {
+func listFlagSet(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&listOpts.All, "all", "a", false, "Show all the containers, default is only running containers")
-	flags.StringSliceVarP(&filters, "filter", "f", []string{}, "Filter output based on conditions given")
 	flags.BoolVar(&listOpts.Storage, "external", false, "Show containers in storage not controlled by Podman")
-	flags.StringVar(&listOpts.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
-	flags.IntVarP(&listOpts.Last, "last", "n", -1, "Print the n last created containers (all states)")
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
+	//TODO add custom filter function
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+
+	formatFlagName := "format"
+	flags.StringVar(&listOpts.Format, formatFlagName, "", "Pretty-print containers to JSON or using a Go template")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
+	lastFlagName := "last"
+	flags.IntVarP(&listOpts.Last, lastFlagName, "n", -1, "Print the n last created containers (all states)")
+	_ = cmd.RegisterFlagCompletionFunc(lastFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&listOpts.Namespace, "ns", false, "Display namespace information")
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Display the extended information")
 	flags.BoolVarP(&listOpts.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
 	flags.BoolVarP(&listOpts.Quiet, "quiet", "q", false, "Print the numeric IDs of the containers only")
 	flags.BoolVarP(&listOpts.Size, "size", "s", false, "Display the total file sizes")
 	flags.BoolVar(&listOpts.Sync, "sync", false, "Sync container state with OCI runtime")
-	flags.UintVarP(&listOpts.Watch, "watch", "w", 0, "Watch the ps output on an interval in seconds")
+
+	watchFlagName := "watch"
+	flags.UintVarP(&listOpts.Watch, watchFlagName, "w", 0, "Watch the ps output on an interval in seconds")
+	_ = cmd.RegisterFlagCompletionFunc(watchFlagName, completion.AutocompleteNone)
 
 	sort := validate.Value(&listOpts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
-	flags.Var(sort, "sort", "Sort output by: "+sort.Choices())
+	sortFlagName := "sort"
+	flags.Var(sort, sortFlagName, "Sort output by: "+sort.Choices())
+	_ = cmd.RegisterFlagCompletionFunc(sortFlagName, common.AutocompletePsSort)
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 func checkFlags(c *cobra.Command) error {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/libpod/define"
@@ -18,11 +19,12 @@ var (
 
   By default only volumes that are not being used by any containers will be removed. To remove the volumes anyways, use the --force flag.`
 	rmCommand = &cobra.Command{
-		Use:     "rm [options] VOLUME [VOLUME...]",
-		Aliases: []string{"remove"},
-		Short:   "Remove one or more volumes",
-		Long:    volumeRmDescription,
-		RunE:    rm,
+		Use:               "rm [options] VOLUME [VOLUME...]",
+		Aliases:           []string{"remove"},
+		Short:             "Remove one or more volumes",
+		Long:              volumeRmDescription,
+		RunE:              rm,
+		ValidArgsFunction: common.AutocompleteVolumes,
 		Example: `podman volume rm myvol1 myvol2
   podman volume rm --all
   podman volume rm --force myvol`,

@@ -9,7 +9,9 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
@@ -44,8 +46,14 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 
 	flags := cmd.Flags()
 	flags.BoolVarP(&opts.Size, "size", "s", false, "Display total file size")
-	flags.StringVarP(&opts.Format, "format", "f", "json", "Format the output to a Go template or json")
-	flags.StringVarP(&opts.Type, "type", "t", AllType, fmt.Sprintf("Specify inspect-oject type (%q, %q or %q)", ImageType, ContainerType, AllType))
+
+	formatFlagName := "format"
+	flags.StringVarP(&opts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+
+	typeFlagName := "type"
+	flags.StringVarP(&opts.Type, typeFlagName, "t", AllType, fmt.Sprintf("Specify inspect-oject type (%q, %q or %q)", ImageType, ContainerType, AllType))
+	_ = cmd.RegisterFlagCompletionFunc(typeFlagName, common.AutocompleteInspectType)
 
 	validate.AddLatestFlag(cmd, &opts.Latest)
 	return &opts

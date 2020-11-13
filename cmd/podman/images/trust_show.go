@@ -6,6 +6,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -14,12 +15,13 @@ import (
 var (
 	showTrustDescription = "Display trust policy for the system"
 	showTrustCommand     = &cobra.Command{
-		Use:     "show [options] [REGISTRY]",
-		Short:   "Display trust policy for the system",
-		Long:    showTrustDescription,
-		RunE:    showTrust,
-		Args:    cobra.MaximumNArgs(1),
-		Example: "",
+		Use:               "show [options] [REGISTRY]",
+		Short:             "Display trust policy for the system",
+		Long:              showTrustDescription,
+		RunE:              showTrust,
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: common.AutocompleteRegistries,
+		Example:           "",
 	}
 )
 

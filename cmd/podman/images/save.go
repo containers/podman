@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/libpod/define"
@@ -12,7 +14,6 @@ import (
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -42,16 +43,18 @@ var (
 			}
 			return nil
 		},
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman save --quiet -o myimage.tar imageID
   podman save --format docker-dir -o ubuntu-dir ubuntu
   podman save > alpine-all.tar alpine:latest`,
 	}
 	imageSaveCommand = &cobra.Command{
-		Args:  saveCommand.Args,
-		Use:   saveCommand.Use,
-		Short: saveCommand.Short,
-		Long:  saveCommand.Long,
-		RunE:  saveCommand.RunE,
+		Args:              saveCommand.Args,
+		Use:               saveCommand.Use,
+		Short:             saveCommand.Short,
+		Long:              saveCommand.Long,
+		RunE:              saveCommand.RunE,
+		ValidArgsFunction: saveCommand.ValidArgsFunction,
 		Example: `podman image save --quiet -o myimage.tar imageID
   podman image save --format docker-dir -o ubuntu-dir ubuntu
   podman image save > alpine-all.tar alpine:latest`,
@@ -67,20 +70,29 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: saveCommand,
 	})
-	saveFlags(saveCommand.Flags())
+	saveFlags(saveCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageSaveCommand,
 		Parent:  imageCmd,
 	})
-	saveFlags(imageSaveCommand.Flags())
+	saveFlags(imageSaveCommand)
 }
 
-func saveFlags(flags *pflag.FlagSet) {
+func saveFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVar(&saveOpts.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
-	flags.StringVar(&saveOpts.Format, "format", define.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
-	flags.StringVarP(&saveOpts.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")
+
+	formatFlagName := "format"
+	flags.StringVar(&saveOpts.Format, formatFlagName, define.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteImageSaveFormat)
+
+	outputFlagName := "output"
+	flags.StringVarP(&saveOpts.Output, outputFlagName, "o", "", "Write to a specified file (default: stdout, which must be redirected)")
+	_ = cmd.RegisterFlagCompletionFunc(outputFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVarP(&saveOpts.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.BoolVarP(&saveOpts.MultiImageArchive, "multi-image-archive", "m", containerConfig.Engine.MultiImageArchive, "Interpret additional arguments as images not tags and create a multi-image-archive (only for docker-archive)")
 }

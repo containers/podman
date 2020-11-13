@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/errorhandling"
@@ -20,10 +21,11 @@ var (
   or similar units that create new containers in order to run the updated images.
   Please refer to the podman-auto-update(1) man page for details.`
 	autoUpdateCommand = &cobra.Command{
-		Use:   "auto-update [options]",
-		Short: "Auto update containers according to their auto-update policy",
-		Long:  autoUpdateDescription,
-		RunE:  autoUpdate,
+		Use:               "auto-update [options]",
+		Short:             "Auto update containers according to their auto-update policy",
+		Long:              autoUpdateDescription,
+		RunE:              autoUpdate,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman auto-update
   podman auto-update --authfile ~/authfile.json`,
 	}
@@ -36,7 +38,10 @@ func init() {
 	})
 
 	flags := autoUpdateCommand.Flags()
-	flags.StringVar(&autoUpdateOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path to the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+
+	authfileFlagName := "authfile"
+	flags.StringVar(&autoUpdateOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path to the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	_ = autoUpdateCommand.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 }
 
 func autoUpdate(cmd *cobra.Command, args []string) error {

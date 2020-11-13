@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -25,12 +26,13 @@ var (
 `)
 
 	pruneCommand = &cobra.Command{
-		Use:     "prune [options]",
-		Short:   "Remove unused data",
-		Args:    validate.NoArgs,
-		Long:    pruneDescription,
-		RunE:    prune,
-		Example: `podman system prune`,
+		Use:               "prune [options]",
+		Short:             "Remove unused data",
+		Args:              validate.NoArgs,
+		Long:              pruneDescription,
+		RunE:              prune,
+		ValidArgsFunction: completion.AutocompleteNone,
+		Example:           `podman system prune`,
 	}
 	force bool
 )

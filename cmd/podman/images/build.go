@@ -9,6 +9,7 @@ import (
 	"github.com/containers/buildah/imagebuildah"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -17,7 +18,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // buildFlagsWrapper are local to cmd/ as the build code is using Buildah-internal
@@ -39,22 +39,24 @@ var (
 	// Command: podman _diff_ Object_ID
 	buildDescription = "Builds an OCI or Docker image using instructions from one or more Containerfiles and a specified build context directory."
 	buildCmd         = &cobra.Command{
-		Use:   "build [options] [CONTEXT]",
-		Short: "Build an image using instructions from Containerfiles",
-		Long:  buildDescription,
-		Args:  cobra.MaximumNArgs(1),
-		RunE:  build,
+		Use:               "build [options] [CONTEXT]",
+		Short:             "Build an image using instructions from Containerfiles",
+		Long:              buildDescription,
+		Args:              cobra.MaximumNArgs(1),
+		RunE:              build,
+		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman build .
   podman build --creds=username:password -t imageName -f Containerfile.simple .
   podman build --layers --force-rm --tag imageName .`,
 	}
 
 	imageBuildCmd = &cobra.Command{
-		Args:  buildCmd.Args,
-		Use:   buildCmd.Use,
-		Short: buildCmd.Short,
-		Long:  buildCmd.Long,
-		RunE:  buildCmd.RunE,
+		Args:              buildCmd.Args,
+		Use:               buildCmd.Use,
+		Short:             buildCmd.Short,
+		Long:              buildCmd.Long,
+		RunE:              buildCmd.RunE,
+		ValidArgsFunction: buildCmd.ValidArgsFunction,
 		Example: `podman image build .
   podman image build --creds=username:password -t imageName -f Containerfile.simple .
   podman image build --layers --force-rm --tag imageName .`,
@@ -78,22 +80,25 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: buildCmd,
 	})
-	buildFlags(buildCmd.Flags())
+	buildFlags(buildCmd)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageBuildCmd,
 		Parent:  imageCmd,
 	})
-	buildFlags(imageBuildCmd.Flags())
+	buildFlags(imageBuildCmd)
 }
 
-func buildFlags(flags *pflag.FlagSet) {
+func buildFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	// Podman flags
 	flags.BoolVarP(&buildOpts.SquashAll, "squash-all", "", false, "Squash all layers into a single layer")
 
 	// Bud flags
 	budFlags := buildahCLI.GetBudFlags(&buildOpts.BudResults)
+
 	// --pull flag
 	flag := budFlags.Lookup("pull")
 	if err := flag.Value.Set("true"); err != nil {
@@ -101,6 +106,9 @@ func buildFlags(flags *pflag.FlagSet) {
 	}
 	flag.DefValue = "true"
 	flags.AddFlagSet(&budFlags)
+	// Add the completion functions
+	budCompletions := buildahCLI.GetBudFlagsCompletions()
+	completion.CompleteCommandFlags(cmd, budCompletions)
 
 	// Layer flags
 	layerFlags := buildahCLI.GetLayerFlags(&buildOpts.LayerResults)
@@ -126,6 +134,9 @@ func buildFlags(flags *pflag.FlagSet) {
 		os.Exit(1)
 	}
 	flags.AddFlagSet(&fromAndBudFlags)
+	// Add the completion functions
+	fromAndBudFlagsCompletions := buildahCLI.GetFromAndBudFlagsCompletions()
+	completion.CompleteCommandFlags(cmd, fromAndBudFlagsCompletions)
 	_ = flags.MarkHidden("signature-policy")
 	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
 }

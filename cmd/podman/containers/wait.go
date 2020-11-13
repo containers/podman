@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -12,26 +14,27 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	waitDescription = `Block until one or more containers stop and then print their exit codes.
 `
 	waitCommand = &cobra.Command{
-		Use:   "wait [options] CONTAINER [CONTAINER...]",
-		Short: "Block on one or more containers",
-		Long:  waitDescription,
-		RunE:  wait,
+		Use:               "wait [options] CONTAINER [CONTAINER...]",
+		Short:             "Block on one or more containers",
+		Long:              waitDescription,
+		RunE:              wait,
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman wait --interval 5s ctrID
   podman wait ctrID1 ctrID2`,
 	}
 
 	containerWaitCommand = &cobra.Command{
-		Use:   waitCommand.Use,
-		Short: waitCommand.Short,
-		Long:  waitCommand.Long,
-		RunE:  waitCommand.RunE,
+		Use:               waitCommand.Use,
+		Short:             waitCommand.Short,
+		Long:              waitCommand.Long,
+		RunE:              waitCommand.RunE,
+		ValidArgsFunction: waitCommand.ValidArgsFunction,
 		Example: `podman container wait --interval 5s ctrID
   podman container wait ctrID1 ctrID2`,
 	}
@@ -43,9 +46,17 @@ var (
 	waitInterval  string
 )
 
-func waitFlags(flags *pflag.FlagSet) {
-	flags.StringVarP(&waitInterval, "interval", "i", "250ns", "Time Interval to wait before polling for completion")
-	flags.StringVar(&waitCondition, "condition", "stopped", "Condition to wait on")
+func waitFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	intervalFlagName := "interval"
+	flags.StringVarP(&waitInterval, intervalFlagName, "i", "250ns", "Time Interval to wait before polling for completion")
+	_ = cmd.RegisterFlagCompletionFunc(intervalFlagName, completion.AutocompleteNone)
+
+	conditionFlagName := "condition"
+	flags.StringVar(&waitCondition, conditionFlagName, "stopped", "Condition to wait on")
+	_ = cmd.RegisterFlagCompletionFunc(conditionFlagName, common.AutocompleteWaitCondition)
+
 }
 
 func init() {
@@ -53,7 +64,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: waitCommand,
 	})
-	waitFlags(waitCommand.Flags())
+	waitFlags(waitCommand)
 	validate.AddLatestFlag(waitCommand, &waitOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -61,9 +72,8 @@ func init() {
 		Command: containerWaitCommand,
 		Parent:  containerCmd,
 	})
-	waitFlags(containerWaitCommand.Flags())
+	waitFlags(containerWaitCommand)
 	validate.AddLatestFlag(containerWaitCommand, &waitOptions.Latest)
-
 }
 
 func wait(cmd *cobra.Command, args []string) error {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -11,7 +13,6 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -27,16 +28,18 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman restart ctrID
   podman restart --latest
   podman restart ctrID1 ctrID2`,
 	}
 
 	containerRestartCommand = &cobra.Command{
-		Use:   restartCommand.Use,
-		Short: restartCommand.Short,
-		Long:  restartCommand.Long,
-		RunE:  restartCommand.RunE,
+		Use:               restartCommand.Use,
+		Short:             restartCommand.Short,
+		Long:              restartCommand.Long,
+		RunE:              restartCommand.RunE,
+		ValidArgsFunction: restartCommand.ValidArgsFunction,
 		Example: `podman container restart ctrID
   podman container restart --latest
   podman container restart ctrID1 ctrID2`,
@@ -48,10 +51,15 @@ var (
 	restartTimeout uint
 )
 
-func restartFlags(flags *pflag.FlagSet) {
+func restartFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&restartOptions.All, "all", "a", false, "Restart all non-running containers")
 	flags.BoolVar(&restartOptions.Running, "running", false, "Restart only running containers when --all is used")
-	flags.UintVarP(&restartTimeout, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+
+	timeFlagName := "time"
+	flags.UintVarP(&restartTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
@@ -61,7 +69,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: restartCommand,
 	})
-	restartFlags(restartCommand.Flags())
+	restartFlags(restartCommand)
 	validate.AddLatestFlag(restartCommand, &restartOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -69,7 +77,7 @@ func init() {
 		Command: containerRestartCommand,
 		Parent:  containerCmd,
 	})
-	restartFlags(containerRestartCommand.Flags())
+	restartFlags(containerRestartCommand)
 	validate.AddLatestFlag(containerRestartCommand, &restartOptions.Latest)
 }
 

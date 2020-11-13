@@ -8,6 +8,7 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -20,28 +21,29 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	statsDescription = "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers."
 	statsCommand     = &cobra.Command{
-		Use:   "stats [options] [CONTAINER...]",
-		Short: "Display a live stream of container resource usage statistics",
-		Long:  statsDescription,
-		RunE:  stats,
-		Args:  checkStatOptions,
+		Use:               "stats [options] [CONTAINER...]",
+		Short:             "Display a live stream of container resource usage statistics",
+		Long:              statsDescription,
+		RunE:              stats,
+		Args:              checkStatOptions,
+		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman stats --all --no-stream
   podman stats ctrID
   podman stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,
 	}
 
 	containerStatsCommand = &cobra.Command{
-		Use:   statsCommand.Use,
-		Short: statsCommand.Short,
-		Long:  statsCommand.Long,
-		RunE:  statsCommand.RunE,
-		Args:  checkStatOptions,
+		Use:               statsCommand.Use,
+		Short:             statsCommand.Short,
+		Long:              statsCommand.Long,
+		RunE:              statsCommand.RunE,
+		Args:              checkStatOptions,
+		ValidArgsFunction: statsCommand.ValidArgsFunction,
 		Example: `podman container stats --all --no-stream
   podman container stats ctrID
   podman container stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,
@@ -62,9 +64,15 @@ var (
 	statsOptions statsOptionsCLI
 )
 
-func statFlags(flags *pflag.FlagSet) {
+func statFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&statsOptions.All, "all", "a", false, "Show all containers. Only running containers are shown by default. The default is false")
-	flags.StringVar(&statsOptions.Format, "format", "", "Pretty-print container statistics to JSON or using a Go template")
+
+	formatFlagName := "format"
+	flags.StringVar(&statsOptions.Format, formatFlagName, "", "Pretty-print container statistics to JSON or using a Go template")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVar(&statsOptions.NoReset, "no-reset", false, "Disable resetting the screen between intervals")
 	flags.BoolVar(&statsOptions.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result, default setting is false")
 }
@@ -74,7 +82,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: statsCommand,
 	})
-	statFlags(statsCommand.Flags())
+	statFlags(statsCommand)
 	validate.AddLatestFlag(statsCommand, &statsOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -82,7 +90,7 @@ func init() {
 		Command: containerStatsCommand,
 		Parent:  containerCmd,
 	})
-	statFlags(containerStatsCommand.Flags())
+	statFlags(containerStatsCommand)
 	validate.AddLatestFlag(containerStatsCommand, &statsOptions.Latest)
 }
 

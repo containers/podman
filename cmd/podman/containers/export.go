@@ -4,12 +4,13 @@ import (
 	"context"
 	"os"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -18,21 +19,23 @@ var (
 		" and saves it on the local machine."
 
 	exportCommand = &cobra.Command{
-		Use:   "export [options] CONTAINER",
-		Short: "Export container's filesystem contents as a tar archive",
-		Long:  exportDescription,
-		RunE:  export,
-		Args:  cobra.ExactArgs(1),
+		Use:               "export [options] CONTAINER",
+		Short:             "Export container's filesystem contents as a tar archive",
+		Long:              exportDescription,
+		RunE:              export,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman export ctrID > myCtr.tar
   podman export --output="myCtr.tar" ctrID`,
 	}
 
 	containerExportCommand = &cobra.Command{
-		Args:  cobra.ExactArgs(1),
-		Use:   exportCommand.Use,
-		Short: exportCommand.Short,
-		Long:  exportCommand.Long,
-		RunE:  exportCommand.RunE,
+		Args:              cobra.ExactArgs(1),
+		Use:               exportCommand.Use,
+		Short:             exportCommand.Short,
+		Long:              exportCommand.Long,
+		RunE:              exportCommand.RunE,
+		ValidArgsFunction: exportCommand.ValidArgsFunction,
 		Example: `podman container export ctrID > myCtr.tar
   podman container export --output="myCtr.tar" ctrID`,
 	}
@@ -42,8 +45,12 @@ var (
 	exportOpts entities.ContainerExportOptions
 )
 
-func exportFlags(flags *pflag.FlagSet) {
-	flags.StringVarP(&exportOpts.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")
+func exportFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	outputFlagName := "output"
+	flags.StringVarP(&exportOpts.Output, outputFlagName, "o", "", "Write to a specified file (default: stdout, which must be redirected)")
+	_ = cmd.RegisterFlagCompletionFunc(outputFlagName, completion.AutocompleteDefault)
 }
 
 func init() {
@@ -51,17 +58,14 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: exportCommand,
 	})
-	flags := exportCommand.Flags()
-	exportFlags(flags)
+	exportFlags(exportCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerExportCommand,
 		Parent:  containerCmd,
 	})
-
-	containerExportFlags := containerExportCommand.Flags()
-	exportFlags(containerExportFlags)
+	exportFlags(containerExportCommand)
 }
 
 func export(cmd *cobra.Command, args []string) error {

@@ -11,13 +11,13 @@ import (
 // is set to the unit's (unique) name.
 const EnvVariable = "PODMAN_SYSTEMD_UNIT"
 
-// restartPolicies includes all valid restart policies to be used in a unit
+// RestartPolicies includes all valid restart policies to be used in a unit
 // file.
-var restartPolicies = []string{"no", "on-success", "on-failure", "on-abnormal", "on-watchdog", "on-abort", "always"}
+var RestartPolicies = []string{"no", "on-success", "on-failure", "on-abnormal", "on-watchdog", "on-abort", "always"}
 
 // validateRestartPolicy checks that the user-provided policy is valid.
 func validateRestartPolicy(restart string) error {
-	for _, i := range restartPolicies {
+	for _, i := range RestartPolicies {
 		if i == restart {
 			return nil
 		}

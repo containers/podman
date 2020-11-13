@@ -3,6 +3,8 @@ package containers
 import (
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -26,6 +28,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainersExited,
 		Example: `podman container cleanup --latest
   podman container cleanup ctrID1 ctrID2 ctrID3
   podman container cleanup --all`,
@@ -44,7 +47,11 @@ func init() {
 	})
 	flags := cleanupCommand.Flags()
 	flags.BoolVarP(&cleanupOptions.All, "all", "a", false, "Cleans up all containers")
-	flags.StringVar(&cleanupOptions.Exec, "exec", "", "Clean up the given exec session instead of the container")
+
+	execFlagName := "exec"
+	flags.StringVar(&cleanupOptions.Exec, execFlagName, "", "Clean up the given exec session instead of the container")
+	_ = cleanupCommand.RegisterFlagCompletionFunc(execFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&cleanupOptions.Remove, "rm", false, "After cleanup, remove the container entirely")
 	flags.BoolVar(&cleanupOptions.RemoveImage, "rmi", false, "After cleanup, remove the image entirely")
 	validate.AddLatestFlag(cleanupCommand, &cleanupOptions.Latest)

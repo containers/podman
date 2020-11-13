@@ -1,6 +1,8 @@
 package images
 
 import (
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -12,12 +14,13 @@ import (
 var (
 	setTrustDescription = "Set default trust policy or add a new trust policy for a registry"
 	setTrustCommand     = &cobra.Command{
-		Use:     "set [options] REGISTRY",
-		Short:   "Set default trust policy or a new trust policy for a registry",
-		Long:    setTrustDescription,
-		Example: "",
-		RunE:    setTrust,
-		Args:    cobra.ExactArgs(1),
+		Use:               "set [options] REGISTRY",
+		Short:             "Set default trust policy or a new trust policy for a registry",
+		Long:              setTrustDescription,
+		Example:           "",
+		RunE:              setTrust,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: common.AutocompleteRegistries,
 	}
 )
 
@@ -34,11 +37,17 @@ func init() {
 	setFlags := setTrustCommand.Flags()
 	setFlags.StringVar(&setOptions.PolicyPath, "policypath", "", "")
 	_ = setFlags.MarkHidden("policypath")
-	setFlags.StringSliceVarP(&setOptions.PubKeysFile, "pubkeysfile", "f", []string{}, `Path of installed public key(s) to trust for TARGET.
+
+	pubkeysfileFlagName := "pubkeysfile"
+	setFlags.StringSliceVarP(&setOptions.PubKeysFile, pubkeysfileFlagName, "f", []string{}, `Path of installed public key(s) to trust for TARGET.
 Absolute path to keys is added to policy.json. May
 used multiple times to define multiple public keys.
 File(s) must exist before using this command`)
-	setFlags.StringVarP(&setOptions.Type, "type", "t", "signedBy", "Trust type, accept values: signedBy(default), accept, reject")
+	_ = setTrustCommand.RegisterFlagCompletionFunc(pubkeysfileFlagName, completion.AutocompleteDefault)
+
+	typeFlagName := "type"
+	setFlags.StringVarP(&setOptions.Type, typeFlagName, "t", "signedBy", "Trust type, accept values: signedBy(default), accept, reject")
+	_ = setTrustCommand.RegisterFlagCompletionFunc(typeFlagName, common.AutocompleteTrustType)
 }
 
 func setTrust(cmd *cobra.Command, args []string) error {

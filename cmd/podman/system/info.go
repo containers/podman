@@ -5,13 +5,14 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -20,21 +21,23 @@ var (
   Useful for the user and when reporting issues.
 `
 	infoCommand = &cobra.Command{
-		Use:     "info [options]",
-		Args:    validate.NoArgs,
-		Long:    infoDescription,
-		Short:   "Display podman system information",
-		RunE:    info,
-		Example: `podman info`,
+		Use:               "info [options]",
+		Args:              validate.NoArgs,
+		Long:              infoDescription,
+		Short:             "Display podman system information",
+		RunE:              info,
+		ValidArgsFunction: completion.AutocompleteNone,
+		Example:           `podman info`,
 	}
 
 	systemInfoCommand = &cobra.Command{
-		Args:    infoCommand.Args,
-		Use:     infoCommand.Use,
-		Short:   infoCommand.Short,
-		Long:    infoCommand.Long,
-		RunE:    infoCommand.RunE,
-		Example: `podman system info`,
+		Args:              infoCommand.Args,
+		Use:               infoCommand.Use,
+		Short:             infoCommand.Short,
+		Long:              infoCommand.Long,
+		RunE:              infoCommand.RunE,
+		ValidArgsFunction: infoCommand.ValidArgsFunction,
+		Example:           `podman system info`,
 	}
 )
 
@@ -48,19 +51,24 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: infoCommand,
 	})
-	infoFlags(infoCommand.Flags())
+	infoFlags(infoCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: systemInfoCommand,
 		Parent:  systemCmd,
 	})
-	infoFlags(systemInfoCommand.Flags())
+	infoFlags(systemInfoCommand)
 }
 
-func infoFlags(flags *pflag.FlagSet) {
+func infoFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&debug, "debug", "D", false, "Display additional debug information")
-	flags.StringVarP(&inFormat, "format", "f", "", "Change the output format to JSON or a Go template")
+
+	formatFlagName := "format"
+	flags.StringVarP(&inFormat, formatFlagName, "f", "", "Change the output format to JSON or a Go template")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 }
 
 func info(cmd *cobra.Command, args []string) error {

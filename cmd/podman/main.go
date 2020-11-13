@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	_ "github.com/containers/podman/v2/cmd/podman/completion"
 	_ "github.com/containers/podman/v2/cmd/podman/containers"
 	_ "github.com/containers/podman/v2/cmd/podman/generate"
 	_ "github.com/containers/podman/v2/cmd/podman/healthcheck"
@@ -35,6 +36,13 @@ func main() {
 		os.Setenv("TMPDIR", "/var/tmp")
 	}
 
+	rootCmd = parseCommands()
+
+	Execute()
+	os.Exit(0)
+}
+
+func parseCommands() *cobra.Command {
 	cfg := registry.PodmanConfig()
 	for _, c := range registry.Commands {
 		for _, m := range c.Mode {
@@ -75,6 +83,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	Execute()
-	os.Exit(0)
+	return rootCmd
 }

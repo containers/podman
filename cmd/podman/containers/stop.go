@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -24,6 +25,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
+		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman stop ctrID
   podman stop --latest
   podman stop --time 2 mywebserver 6e534f14da9d`,
@@ -37,6 +39,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
+		ValidArgsFunction: stopCommand.ValidArgsFunction,
 		Example: `podman container stop ctrID
   podman container stop --latest
   podman container stop --time 2 mywebserver 6e534f14da9d`,
@@ -48,11 +51,19 @@ var (
 	stopTimeout uint
 )
 
-func stopFlags(flags *pflag.FlagSet) {
+func stopFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&stopOptions.All, "all", "a", false, "Stop all running containers")
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
-	flags.StringArrayVarP(&stopOptions.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
-	flags.UintVarP(&stopTimeout, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+
+	cidfileFlagName := "cidfile"
+	flags.StringArrayVarP(&stopOptions.CIDFiles, cidfileFlagName, "", nil, "Read the container ID from the file")
+	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
+
+	timeFlagName := "time"
+	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cidfile")
@@ -66,7 +77,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: stopCommand,
 	})
-	stopFlags(stopCommand.Flags())
+	stopFlags(stopCommand)
 	validate.AddLatestFlag(stopCommand, &stopOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -74,8 +85,7 @@ func init() {
 		Command: containerStopCommand,
 		Parent:  containerCmd,
 	})
-
-	stopFlags(containerStopCommand.Flags())
+	stopFlags(containerStopCommand)
 	validate.AddLatestFlag(containerStopCommand, &stopOptions.Latest)
 }
 

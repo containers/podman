@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -26,11 +27,12 @@ var (
 	topOptions = entities.TopOptions{}
 
 	topCommand = &cobra.Command{
-		Use:   "top [options] CONTAINER [FORMAT-DESCRIPTORS|ARGS...]",
-		Short: "Display the running processes of a container",
-		Long:  topDescription,
-		RunE:  top,
-		Args:  cobra.ArbitraryArgs,
+		Use:               "top [options] CONTAINER [FORMAT-DESCRIPTORS|ARGS...]",
+		Short:             "Display the running processes of a container",
+		Long:              topDescription,
+		RunE:              top,
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman top ctrID
 podman top --latest
 podman top ctrID pid seccomp args %C
@@ -38,10 +40,11 @@ podman top ctrID -eo user,pid,comm`,
 	}
 
 	containerTopCommand = &cobra.Command{
-		Use:   topCommand.Use,
-		Short: topCommand.Short,
-		Long:  topCommand.Long,
-		RunE:  topCommand.RunE,
+		Use:               topCommand.Use,
+		Short:             topCommand.Short,
+		Long:              topCommand.Long,
+		RunE:              topCommand.RunE,
+		ValidArgsFunction: topCommand.ValidArgsFunction,
 		Example: `podman container top ctrID
 podman container top --latest
 podman container top ctrID pid seccomp args %C

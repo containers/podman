@@ -10,7 +10,9 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -25,12 +27,13 @@ var (
 
 	// Command: podman pod _ps_
 	psCmd = &cobra.Command{
-		Use:     "ps  [options]",
-		Aliases: []string{"ls", "list"},
-		Short:   "List pods",
-		Long:    psDescription,
-		RunE:    pods,
-		Args:    validate.NoArgs,
+		Use:               "ps  [options]",
+		Aliases:           []string{"ls", "list"},
+		Short:             "List pods",
+		Long:              psDescription,
+		RunE:              pods,
+		Args:              validate.NoArgs,
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
 
@@ -51,13 +54,25 @@ func init() {
 	flags.BoolVar(&psInput.CtrIds, "ctr-ids", false, "Display the container UUIDs. If no-trunc is not set they will be truncated")
 	flags.BoolVar(&psInput.CtrStatus, "ctr-status", false, "Display the container status")
 	// TODO should we make this a [] ?
-	flags.StringSliceVarP(&inputFilters, "filter", "f", []string{}, "Filter output based on conditions given")
-	flags.StringVar(&psInput.Format, "format", "", "Pretty-print pods to JSON or using a Go template")
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&inputFilters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
+	//TODO complete filters
+	_ = psCmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+
+	formatFlagName := "format"
+	flags.StringVar(&psInput.Format, formatFlagName, "", "Pretty-print pods to JSON or using a Go template")
+	_ = psCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVar(&psInput.Namespace, "namespace", false, "Display namespace information of the pod")
 	flags.BoolVar(&psInput.Namespace, "ns", false, "Display namespace information of the pod")
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Do not truncate pod and container IDs")
 	flags.BoolVarP(&psInput.Quiet, "quiet", "q", false, "Print the numeric IDs of the pods only")
-	flags.StringVar(&psInput.Sort, "sort", "created", "Sort output by created, id, name, or number")
+
+	sortFlagName := "sort"
+	flags.StringVar(&psInput.Sort, sortFlagName, "created", "Sort output by created, id, name, or number")
+	_ = psCmd.RegisterFlagCompletionFunc(sortFlagName, common.AutocompletePodPsSort)
+
 	validate.AddLatestFlag(psCmd, &psInput.Latest)
 }
 

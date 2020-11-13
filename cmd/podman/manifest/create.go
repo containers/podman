@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -13,10 +14,11 @@ import (
 var (
 	manifestCreateOpts = entities.ManifestCreateOptions{}
 	createCmd          = &cobra.Command{
-		Use:   "create [options] LIST [IMAGE]",
-		Short: "Create manifest list or image index",
-		Long:  "Creates manifest lists or image indexes.",
-		RunE:  create,
+		Use:               "create [options] LIST [IMAGE]",
+		Short:             "Create manifest list or image index",
+		Long:              "Creates manifest lists or image indexes.",
+		RunE:              create,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman manifest create mylist:v1.11
   podman manifest create mylist:v1.11 arch-specific-image-to-add
   podman manifest create --all mylist:v1.11 transport:tagged-image-to-add`,

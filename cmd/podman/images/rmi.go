@@ -10,12 +10,13 @@ import (
 
 var (
 	rmiCmd = &cobra.Command{
-		Use:     strings.Replace(rmCmd.Use, "rm ", "rmi ", 1),
-		Args:    rmCmd.Args,
-		Short:   rmCmd.Short,
-		Long:    rmCmd.Long,
-		RunE:    rmCmd.RunE,
-		Example: strings.Replace(rmCmd.Example, "podman image rm", "podman rmi", -1),
+		Use:               strings.Replace(rmCmd.Use, "rm ", "rmi ", 1),
+		Args:              rmCmd.Args,
+		Short:             rmCmd.Short,
+		Long:              rmCmd.Long,
+		RunE:              rmCmd.RunE,
+		ValidArgsFunction: rmCmd.ValidArgsFunction,
+		Example:           strings.Replace(rmCmd.Example, "podman image rm", "podman rmi", -1),
 	}
 )
 

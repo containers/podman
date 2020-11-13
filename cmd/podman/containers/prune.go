@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -21,12 +22,13 @@ var (
 
 	Removes all non running containers`)
 	pruneCommand = &cobra.Command{
-		Use:     "prune [options]",
-		Short:   "Remove all non running containers",
-		Long:    pruneDescription,
-		RunE:    prune,
-		Example: `podman container prune`,
-		Args:    validate.NoArgs,
+		Use:               "prune [options]",
+		Short:             "Remove all non running containers",
+		Long:              pruneDescription,
+		RunE:              prune,
+		ValidArgsFunction: completion.AutocompleteNone,
+		Example:           `podman container prune`,
+		Args:              validate.NoArgs,
 	}
 	force  bool
 	filter = []string{}
@@ -40,7 +42,9 @@ func init() {
 	})
 	flags := pruneCommand.Flags()
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation.  The default is false")
-	flags.StringArrayVar(&filter, "filter", []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
+	filterFlagName := "filter"
+	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
+	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
 }
 
 func prune(cmd *cobra.Command, args []string) error {

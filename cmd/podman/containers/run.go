@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -18,28 +19,29 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	runDescription = "Runs a command in a new container from the given image"
 	runCommand     = &cobra.Command{
-		Args:  cobra.MinimumNArgs(1),
-		Use:   "run [options] IMAGE [COMMAND [ARG...]]",
-		Short: "Run a command in a new container",
-		Long:  runDescription,
-		RunE:  run,
+		Args:              cobra.MinimumNArgs(1),
+		Use:               "run [options] IMAGE [COMMAND [ARG...]]",
+		Short:             "Run a command in a new container",
+		Long:              runDescription,
+		RunE:              run,
+		ValidArgsFunction: common.AutocompleteCreateRun,
 		Example: `podman run imageID ls -alF /etc
   podman run --network=host imageID dnf -y install java
   podman run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
 	}
 
 	containerRunCommand = &cobra.Command{
-		Args:  cobra.MinimumNArgs(1),
-		Use:   runCommand.Use,
-		Short: runCommand.Short,
-		Long:  runCommand.Long,
-		RunE:  runCommand.RunE,
+		Args:              cobra.MinimumNArgs(1),
+		Use:               runCommand.Use,
+		Short:             runCommand.Short,
+		Long:              runCommand.Long,
+		RunE:              runCommand.RunE,
+		ValidArgsFunction: runCommand.ValidArgsFunction,
 		Example: `podman container run imageID ls -alF /etc
 	podman container run --network=host imageID dnf -y install java
 	podman container run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
@@ -55,16 +57,26 @@ var (
 	runRmi bool
 )
 
-func runFlags(flags *pflag.FlagSet) {
+func runFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.SetInterspersed(false)
-	flags.AddFlagSet(common.GetCreateFlags(&cliVals))
-	flags.AddFlagSet(common.GetNetFlags())
+	common.DefineCreateFlags(cmd, &cliVals)
+	common.DefineNetFlags(cmd)
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 	flags.BoolVar(&runOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 	flags.BoolVar(&runRmi, "rmi", false, "Remove container image unless used by other containers")
+
+	preserveFdsFlagName := "preserve-fds"
 	flags.UintVar(&runOpts.PreserveFDs, "preserve-fds", 0, "Pass a number of additional file descriptors into the container")
+	_ = cmd.RegisterFlagCompletionFunc(preserveFdsFlagName, completion.AutocompleteNone)
+
 	flags.BoolVarP(&runOpts.Detach, "detach", "d", false, "Run container in background and print container ID")
-	flags.StringVar(&runOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-cf`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+
+	detachKeysFlagName := "detach-keys"
+	flags.StringVar(&runOpts.DetachKeys, detachKeysFlagName, containerConfig.DetachKeys(), "Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-cf`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+	_ = cmd.RegisterFlagCompletionFunc(detachKeysFlagName, common.AutocompleteDetachKeys)
 
 	_ = flags.MarkHidden("signature-policy")
 	if registry.IsRemote() {
@@ -77,8 +89,8 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: runCommand,
 	})
-	flags := runCommand.Flags()
-	runFlags(flags)
+
+	runFlags(runCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
@@ -86,8 +98,7 @@ func init() {
 		Parent:  containerCmd,
 	})
 
-	containerRunFlags := containerRunCommand.Flags()
-	runFlags(containerRunFlags)
+	runFlags(containerRunCommand)
 }
 
 func run(cmd *cobra.Command, args []string) error {

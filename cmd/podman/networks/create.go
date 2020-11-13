@@ -4,22 +4,24 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	networkCreateDescription = `create CNI networks for containers and pods`
 	networkCreateCommand     = &cobra.Command{
-		Use:     "create [options] [NETWORK]",
-		Short:   "network create",
-		Long:    networkCreateDescription,
-		RunE:    networkCreate,
-		Args:    cobra.MaximumNArgs(1),
-		Example: `podman network create podman1`,
+		Use:               "create [options] [NETWORK]",
+		Short:             "network create",
+		Long:              networkCreateDescription,
+		RunE:              networkCreate,
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: completion.AutocompleteNone,
+		Example:           `podman network create podman1`,
 	}
 )
 
@@ -27,16 +29,36 @@ var (
 	networkCreateOptions entities.NetworkCreateOptions
 )
 
-func networkCreateFlags(flags *pflag.FlagSet) {
-	flags.StringVarP(&networkCreateOptions.Driver, "driver", "d", "bridge", "driver to manage the network")
-	flags.IPVar(&networkCreateOptions.Gateway, "gateway", nil, "IPv4 or IPv6 gateway for the subnet")
+func networkCreateFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	driverFlagName := "driver"
+	flags.StringVarP(&networkCreateOptions.Driver, driverFlagName, "d", "bridge", "driver to manage the network")
+	_ = cmd.RegisterFlagCompletionFunc(driverFlagName, common.AutocompleteNetworkDriver)
+
+	gatewayFlagName := "gateway"
+	flags.IPVar(&networkCreateOptions.Gateway, gatewayFlagName, nil, "IPv4 or IPv6 gateway for the subnet")
+	_ = cmd.RegisterFlagCompletionFunc(gatewayFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&networkCreateOptions.Internal, "internal", false, "restrict external access from this network")
-	flags.IPNetVar(&networkCreateOptions.Range, "ip-range", net.IPNet{}, "allocate container IP from range")
-	flags.StringVar(&networkCreateOptions.MacVLAN, "macvlan", "", "create a Macvlan connection based on this device")
+
+	ipRangeFlagName := "ip-range"
+	flags.IPNetVar(&networkCreateOptions.Range, ipRangeFlagName, net.IPNet{}, "allocate container IP from range")
+	_ = cmd.RegisterFlagCompletionFunc(ipRangeFlagName, completion.AutocompleteNone)
+
+	macvlanFlagName := "macvlan"
+	flags.StringVar(&networkCreateOptions.MacVLAN, macvlanFlagName, "", "create a Macvlan connection based on this device")
+	_ = cmd.RegisterFlagCompletionFunc(macvlanFlagName, completion.AutocompleteNone)
+
 	// TODO not supported yet
 	// flags.StringVar(&networkCreateOptions.IPamDriver, "ipam-driver", "",  "IP Address Management Driver")
+
 	flags.BoolVar(&networkCreateOptions.IPv6, "ipv6", false, "enable IPv6 networking")
-	flags.IPNetVar(&networkCreateOptions.Subnet, "subnet", net.IPNet{}, "subnet in CIDR format")
+
+	subnetFlagName := "subnet"
+	flags.IPNetVar(&networkCreateOptions.Subnet, subnetFlagName, net.IPNet{}, "subnet in CIDR format")
+	_ = cmd.RegisterFlagCompletionFunc(subnetFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&networkCreateOptions.DisableDNS, "disable-dns", false, "disable dns plugin")
 }
 func init() {
@@ -45,8 +67,7 @@ func init() {
 		Command: networkCreateCommand,
 		Parent:  networkCmd,
 	})
-	flags := networkCreateCommand.Flags()
-	networkCreateFlags(flags)
+	networkCreateFlags(networkCreateCommand)
 
 }
 

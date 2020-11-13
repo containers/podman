@@ -3,6 +3,7 @@ package system
 import (
 	"os"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/rootless"
@@ -18,6 +19,7 @@ var (
 		Short:                 "Run a command in a modified user namespace",
 		Long:                  unshareDescription,
 		RunE:                  unshare,
+		ValidArgsFunction:     completion.AutocompleteDefault,
 		Example: `podman unshare id
   podman unshare cat /proc/self/uid_map,
   podman unshare podman-script.sh`,

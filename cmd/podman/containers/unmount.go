@@ -3,6 +3,7 @@ package containers
 import (
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -27,6 +28,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman unmount ctrID
   podman unmount ctrID1 ctrID2 ctrID3
   podman unmount --all`,
@@ -41,6 +43,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container unmount ctrID
   podman container unmount ctrID1 ctrID2 ctrID3
   podman container unmount --all`,

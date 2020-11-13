@@ -499,6 +499,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_bindir}/%{name}
 %{_datadir}/bash-completion/completions/*
 %{_datadir}/zsh/site-functions/*
+%{_datadir}/fish/vendor_completions.d/*
 %{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_unitdir}/podman-auto-update.service

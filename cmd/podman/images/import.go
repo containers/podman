@@ -3,14 +3,16 @@ package images
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -19,21 +21,23 @@ var (
   Note remote tar balls can be specified, via web address.
   Optionally tag the image. You can specify the instructions using the --change option.`
 	importCommand = &cobra.Command{
-		Use:   "import [options] PATH [REFERENCE]",
-		Short: "Import a tarball to create a filesystem image",
-		Long:  importDescription,
-		RunE:  importCon,
+		Use:               "import [options] PATH [REFERENCE]",
+		Short:             "Import a tarball to create a filesystem image",
+		Long:              importDescription,
+		RunE:              importCon,
+		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman import http://example.com/ctr.tar url-image
   cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
   cat ctr.tar | podman import -`,
 	}
 
 	imageImportCommand = &cobra.Command{
-		Args:  cobra.MinimumNArgs(1),
-		Use:   importCommand.Use,
-		Short: importCommand.Short,
-		Long:  importCommand.Long,
-		RunE:  importCommand.RunE,
+		Args:              cobra.MinimumNArgs(1),
+		Use:               importCommand.Use,
+		Short:             importCommand.Short,
+		Long:              importCommand.Long,
+		RunE:              importCommand.RunE,
+		ValidArgsFunction: importCommand.ValidArgsFunction,
 		Example: `podman image import http://example.com/ctr.tar url-image
   cat ctr.tar | podman -q image import --message "importing the ctr.tar tarball" - image-imported
   cat ctr.tar | podman image import -`,
@@ -49,19 +53,27 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: importCommand,
 	})
-	importFlags(importCommand.Flags())
+	importFlags(importCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageImportCommand,
 		Parent:  imageCmd,
 	})
-	importFlags(imageImportCommand.Flags())
+	importFlags(imageImportCommand)
 }
 
-func importFlags(flags *pflag.FlagSet) {
-	flags.StringArrayVarP(&importOpts.Changes, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
-	flags.StringVarP(&importOpts.Message, "message", "m", "", "Set commit message for imported image")
+func importFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	changeFlagName := "change"
+	flags.StringArrayVarP(&importOpts.Changes, changeFlagName, "c", []string{}, "Apply the following possible instructions to the created image (default []): "+strings.Join(common.ChangeCmds, " | "))
+	_ = cmd.RegisterFlagCompletionFunc(changeFlagName, common.AutocompleteChangeInstructions)
+
+	messageFlagName := "message"
+	flags.StringVarP(&importOpts.Message, messageFlagName, "m", "", "Set commit message for imported image")
+	_ = cmd.RegisterFlagCompletionFunc(messageFlagName, completion.AutocompleteNone)
+
 	flags.BoolVarP(&importOpts.Quiet, "quiet", "q", false, "Suppress output")
 	flags.StringVar(&importOpts.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
 	_ = flags.MarkHidden("signature-policy")

@@ -1,6 +1,7 @@
 package images
 
 import (
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/inspect"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -10,10 +11,11 @@ import (
 var (
 	// Command: podman image _inspect_
 	inspectCmd = &cobra.Command{
-		Use:   "inspect [options] IMAGE [IMAGE...]",
-		Short: "Display the configuration of an image",
-		Long:  `Displays the low-level information of an image identified by name or ID.`,
-		RunE:  inspectExec,
+		Use:               "inspect [options] IMAGE [IMAGE...]",
+		Short:             "Display the configuration of an image",
+		Long:              `Displays the low-level information of an image identified by name or ID.`,
+		RunE:              inspectExec,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman inspect alpine
   podman inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine
   podman inspect --format "image: {{.ImageName}} driver: {{.Driver}}" myctr`,
@@ -29,7 +31,10 @@ func init() {
 	})
 	inspectOpts = new(entities.InspectOptions)
 	flags := inspectCmd.Flags()
-	flags.StringVarP(&inspectOpts.Format, "format", "f", "json", "Format the output to a Go template or json")
+
+	formatFlagName := "format"
+	flags.StringVarP(&inspectOpts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
+	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 }
 
 func inspectExec(cmd *cobra.Command, args []string) error {

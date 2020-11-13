@@ -7,22 +7,24 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	commitDescription = `Create an image from a container's changes. Optionally tag the image created, set the author with the --author flag, set the commit message with the --message flag, and make changes to the instructions with the --change flag.`
 
 	commitCommand = &cobra.Command{
-		Use:   "commit [options] CONTAINER [IMAGE]",
-		Short: "Create new image based on the changed container",
-		Long:  commitDescription,
-		RunE:  commit,
-		Args:  cobra.RangeArgs(1, 2),
+		Use:               "commit [options] CONTAINER [IMAGE]",
+		Short:             "Create new image based on the changed container",
+		Long:              commitDescription,
+		RunE:              commit,
+		Args:              cobra.RangeArgs(1, 2),
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman commit -q --message "committing container to image" reverent_golick image-committed
   podman commit -q --author "firstName lastName" reverent_golick image-committed
   podman commit -q --pause=false containerID image-committed
@@ -30,19 +32,17 @@ var (
 	}
 
 	containerCommitCommand = &cobra.Command{
-		Args:  commitCommand.Args,
-		Use:   commitCommand.Use,
-		Short: commitCommand.Short,
-		Long:  commitCommand.Long,
-		RunE:  commitCommand.RunE,
+		Args:              commitCommand.Args,
+		Use:               commitCommand.Use,
+		Short:             commitCommand.Short,
+		Long:              commitCommand.Long,
+		RunE:              commitCommand.RunE,
+		ValidArgsFunction: commitCommand.ValidArgsFunction,
 		Example: `podman container commit -q --message "committing container to image" reverent_golick image-committed
   podman container commit -q --author "firstName lastName" reverent_golick image-committed
   podman container commit -q --pause=false containerID image-committed
   podman container commit containerID`,
 	}
-
-	// ChangeCmds is the list of valid Changes commands to passed to the Commit call
-	ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
 )
 
 var (
@@ -52,12 +52,29 @@ var (
 	iidFile string
 )
 
-func commitFlags(flags *pflag.FlagSet) {
-	flags.StringArrayVarP(&commitOptions.Changes, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): "+strings.Join(ChangeCmds, " | "))
-	flags.StringVarP(&commitOptions.Format, "format", "f", "oci", "`Format` of the image manifest and metadata")
-	flags.StringVarP(&iidFile, "iidfile", "", "", "`file` to write the image ID to")
-	flags.StringVarP(&commitOptions.Message, "message", "m", "", "Set commit message for imported image")
-	flags.StringVarP(&commitOptions.Author, "author", "a", "", "Set the author for the image committed")
+func commitFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	changeFlagName := "change"
+	flags.StringArrayVarP(&commitOptions.Changes, changeFlagName, "c", []string{}, "Apply the following possible instructions to the created image (default []): "+strings.Join(common.ChangeCmds, " | "))
+	_ = cmd.RegisterFlagCompletionFunc(changeFlagName, common.AutocompleteChangeInstructions)
+
+	formatFlagName := "format"
+	flags.StringVarP(&commitOptions.Format, formatFlagName, "f", "oci", "`Format` of the image manifest and metadata")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteImageFormat)
+
+	iidFileFlagName := "iidfile"
+	flags.StringVarP(&iidFile, iidFileFlagName, "", "", "`file` to write the image ID to")
+	_ = cmd.RegisterFlagCompletionFunc(iidFileFlagName, completion.AutocompleteDefault)
+
+	messageFlagName := "message"
+	flags.StringVarP(&commitOptions.Message, messageFlagName, "m", "", "Set commit message for imported image")
+	_ = cmd.RegisterFlagCompletionFunc(messageFlagName, completion.AutocompleteNone)
+
+	authorFlagName := "author"
+	flags.StringVarP(&commitOptions.Author, authorFlagName, "a", "", "Set the author for the image committed")
+	_ = cmd.RegisterFlagCompletionFunc(authorFlagName, completion.AutocompleteNone)
+
 	flags.BoolVarP(&commitOptions.Pause, "pause", "p", false, "Pause container during commit")
 	flags.BoolVarP(&commitOptions.Quiet, "quiet", "q", false, "Suppress output")
 	flags.BoolVar(&commitOptions.IncludeVolumes, "include-volumes", false, "Include container volumes as image volumes")
@@ -68,16 +85,14 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: commitCommand,
 	})
-	flags := commitCommand.Flags()
-	commitFlags(flags)
+	commitFlags(commitCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerCommitCommand,
 		Parent:  containerCmd,
 	})
-	containerCommitFlags := containerCommitCommand.Flags()
-	commitFlags(containerCommitFlags)
+	commitFlags(containerCommitCommand)
 }
 
 func commit(cmd *cobra.Command, args []string) error {

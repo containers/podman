@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
@@ -13,7 +15,6 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -25,6 +26,7 @@ var (
 		Long:                  execDescription,
 		RunE:                  exec,
 		DisableFlagsInUseLine: true,
+		ValidArgsFunction:     common.AutocompleteContainersRunning,
 		Example: `podman exec -it ctrID ls
   podman exec -it -w /tmp myCtr pwd
   podman exec --user root ctrID ls`,
@@ -36,6 +38,7 @@ var (
 		Long:                  execCommand.Long,
 		RunE:                  execCommand.RunE,
 		DisableFlagsInUseLine: true,
+		ValidArgsFunction:     execCommand.ValidArgsFunction,
 		Example: `podman container exec -it ctrID ls
   podman container exec -it -w /tmp myCtr pwd
   podman container exec --user root ctrID ls`,
@@ -48,18 +51,39 @@ var (
 	execDetach        bool
 )
 
-func execFlags(flags *pflag.FlagSet) {
+func execFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.SetInterspersed(false)
 	flags.BoolVarP(&execDetach, "detach", "d", false, "Run the exec session in detached mode (backgrounded)")
-	flags.StringVar(&execOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
-	flags.StringArrayVarP(&envInput, "env", "e", []string{}, "Set environment variables")
-	flags.StringSliceVar(&envFile, "env-file", []string{}, "Read in a file of environment variables")
+
+	detachKeysFlagName := "detach-keys"
+	flags.StringVar(&execOpts.DetachKeys, detachKeysFlagName, containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
+	_ = cmd.RegisterFlagCompletionFunc(detachKeysFlagName, common.AutocompleteDetachKeys)
+
+	envFlagName := "env"
+	flags.StringArrayVarP(&envInput, envFlagName, "e", []string{}, "Set environment variables")
+	_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
+
+	envFileFlagName := "env-file"
+	flags.StringSliceVar(&envFile, envFileFlagName, []string{}, "Read in a file of environment variables")
+	_ = cmd.RegisterFlagCompletionFunc(envFileFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVarP(&execOpts.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVar(&execOpts.Privileged, "privileged", false, "Give the process extended Linux capabilities inside the container.  The default is false")
 	flags.BoolVarP(&execOpts.Tty, "tty", "t", false, "Allocate a pseudo-TTY. The default is false")
-	flags.StringVarP(&execOpts.User, "user", "u", "", "Sets the username or UID used and optionally the groupname or GID for the specified command")
-	flags.UintVar(&execOpts.PreserveFDs, "preserve-fds", 0, "Pass N additional file descriptors to the container")
-	flags.StringVarP(&execOpts.WorkDir, "workdir", "w", "", "Working directory inside the container")
+
+	userFlagName := "user"
+	flags.StringVarP(&execOpts.User, userFlagName, "u", "", "Sets the username or UID used and optionally the groupname or GID for the specified command")
+	_ = cmd.RegisterFlagCompletionFunc(userFlagName, common.AutocompleteUserFlag)
+
+	preserveFdsFlagName := "preserve-fds"
+	flags.UintVar(&execOpts.PreserveFDs, preserveFdsFlagName, 0, "Pass N additional file descriptors to the container")
+	_ = cmd.RegisterFlagCompletionFunc(preserveFdsFlagName, completion.AutocompleteNone)
+
+	workdirFlagName := "workdir"
+	flags.StringVarP(&execOpts.WorkDir, workdirFlagName, "w", "", "Working directory inside the container")
+	_ = cmd.RegisterFlagCompletionFunc(workdirFlagName, completion.AutocompleteDefault)
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("preserve-fds")
@@ -71,7 +95,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: execCommand,
 	})
-	execFlags(execCommand.Flags())
+	execFlags(execCommand)
 	validate.AddLatestFlag(execCommand, &execOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -79,7 +103,7 @@ func init() {
 		Command: containerExecCommand,
 		Parent:  containerCmd,
 	})
-	execFlags(containerExecCommand.Flags())
+	execFlags(containerExecCommand)
 	validate.AddLatestFlag(containerExecCommand, &execOpts.Latest)
 }
 

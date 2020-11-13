@@ -3,6 +3,7 @@ package images
 import (
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -19,11 +20,12 @@ var (
   An unmount can be forced with the --force flag.
 `
 	unmountCommand = &cobra.Command{
-		Use:     "unmount [options] IMAGE [IMAGE...]",
-		Aliases: []string{"umount"},
-		Short:   "Unmount an image's root filesystem",
-		Long:    description,
-		RunE:    unmount,
+		Use:               "unmount [options] IMAGE [IMAGE...]",
+		Aliases:           []string{"umount"},
+		Short:             "Unmount an image's root filesystem",
+		Long:              description,
+		RunE:              unmount,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman unmount imgID
   podman unmount imgID1 imgID2 imgID3
   podman unmount --all`,

@@ -3,6 +3,7 @@ package images
 import (
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -11,12 +12,13 @@ import (
 var (
 	treeDescription = "Prints layer hierarchy of an image in a tree format"
 	treeCmd         = &cobra.Command{
-		Use:     "tree [options] IMAGE",
-		Args:    cobra.ExactArgs(1),
-		Short:   treeDescription,
-		Long:    treeDescription,
-		RunE:    tree,
-		Example: "podman image tree alpine:latest",
+		Use:               "tree [options] IMAGE",
+		Args:              cobra.ExactArgs(1),
+		Short:             treeDescription,
+		Long:              treeDescription,
+		RunE:              tree,
+		ValidArgsFunction: common.AutocompleteImages,
+		Example:           "podman image tree alpine:latest",
 	}
 	treeOpts entities.ImageTreeOptions
 )

@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
@@ -25,10 +27,11 @@ type manifestAddOptsWrapper struct {
 var (
 	manifestAddOpts = manifestAddOptsWrapper{}
 	addCmd          = &cobra.Command{
-		Use:   "add [options] LIST LIST",
-		Short: "Add images to a manifest list or image index",
-		Long:  "Adds an image to a manifest list or image index.",
-		RunE:  add,
+		Use:               "add [options] LIST LIST",
+		Short:             "Add images to a manifest list or image index",
+		Long:              "Adds an image to a manifest list or image index.",
+		RunE:              add,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman manifest add mylist:v1.11 image:v1.11-amd64
 		podman manifest add mylist:v1.11 transport:imageName`,
 		Args: cobra.ExactArgs(2),
@@ -43,17 +46,44 @@ func init() {
 	})
 	flags := addCmd.Flags()
 	flags.BoolVar(&manifestAddOpts.All, "all", false, "add all of the list's images if the image is a list")
-	flags.StringSliceVar(&manifestAddOpts.Annotation, "annotation", nil, "set an `annotation` for the specified image")
-	flags.StringVar(&manifestAddOpts.Arch, "arch", "", "override the `architecture` of the specified image")
-	flags.StringVar(&manifestAddOpts.Authfile, "authfile", auth.GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
-	flags.StringVar(&manifestAddOpts.CertDir, "cert-dir", "", "use certificates at the specified path to access the registry")
-	flags.StringVar(&manifestAddOpts.CredentialsCLI, "creds", "", "use `[username[:password]]` for accessing the registry")
 
-	flags.StringSliceVar(&manifestAddOpts.Features, "features", nil, "override the `features` of the specified image")
-	flags.StringVar(&manifestAddOpts.OS, "os", "", "override the `OS` of the specified image")
-	flags.StringVar(&manifestAddOpts.OSVersion, "os-version", "", "override the OS `version` of the specified image")
+	annotationFlagName := "annotation"
+	flags.StringSliceVar(&manifestAddOpts.Annotation, annotationFlagName, nil, "set an `annotation` for the specified image")
+	_ = addCmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
+
+	archFlagName := "arch"
+	flags.StringVar(&manifestAddOpts.Arch, archFlagName, "", "override the `architecture` of the specified image")
+	_ = addCmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteNone)
+
+	authfileFlagName := "authfile"
+	flags.StringVar(&manifestAddOpts.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	_ = addCmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
+
+	certDirFlagName := "cert-dir"
+	flags.StringVar(&manifestAddOpts.CertDir, certDirFlagName, "", "use certificates at the specified path to access the registry")
+	_ = addCmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
+
+	credsFlagName := "creds"
+	flags.StringVar(&manifestAddOpts.CredentialsCLI, credsFlagName, "", "use `[username[:password]]` for accessing the registry")
+	_ = addCmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
+
+	featuresFlagName := "features"
+	flags.StringSliceVar(&manifestAddOpts.Features, featuresFlagName, nil, "override the `features` of the specified image")
+	_ = addCmd.RegisterFlagCompletionFunc(featuresFlagName, completion.AutocompleteNone)
+
+	osFlagName := "os"
+	flags.StringVar(&manifestAddOpts.OS, osFlagName, "", "override the `OS` of the specified image")
+	_ = addCmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteNone)
+
+	osVersionFlagName := "os-version"
+	flags.StringVar(&manifestAddOpts.OSVersion, osVersionFlagName, "", "override the OS `version` of the specified image")
+	_ = addCmd.RegisterFlagCompletionFunc(osVersionFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&manifestAddOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
-	flags.StringVar(&manifestAddOpts.Variant, "variant", "", "override the `Variant` of the specified image")
+
+	variantFlagName := "variant"
+	flags.StringVar(&manifestAddOpts.Variant, variantFlagName, "", "override the `Variant` of the specified image")
+	_ = addCmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")

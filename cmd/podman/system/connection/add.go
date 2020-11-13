@@ -10,6 +10,7 @@ import (
 	"os/user"
 	"regexp"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/system"
@@ -34,7 +35,8 @@ var (
   "destination" is of the form [user@]hostname or
   an URI of the form ssh://[user@]hostname[:port]
 `,
-		RunE: add,
+		RunE:              add,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman system connection add laptop server.fubar.com
   podman system connection add --identity ~/.ssh/dev_rsa testing ssh://root@server.fubar.com:2222
   podman system connection add --identity ~/.ssh/dev_rsa --port 22 production root@server.fubar.com
@@ -57,9 +59,19 @@ func init() {
 	})
 
 	flags := addCmd.Flags()
-	flags.IntVarP(&cOpts.Port, "port", "p", 22, "SSH port number for destination")
-	flags.StringVar(&cOpts.Identity, "identity", "", "path to SSH identity file")
-	flags.StringVar(&cOpts.UDSPath, "socket-path", "", "path to podman socket on remote host. (default '/run/podman/podman.sock' or '/run/user/{uid}/podman/podman.sock)")
+
+	portFlagName := "port"
+	flags.IntVarP(&cOpts.Port, portFlagName, "p", 22, "SSH port number for destination")
+	_ = addCmd.RegisterFlagCompletionFunc(portFlagName, completion.AutocompleteNone)
+
+	identityFlagName := "identity"
+	flags.StringVar(&cOpts.Identity, identityFlagName, "", "path to SSH identity file")
+	_ = addCmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
+
+	socketPathFlagName := "socket-path"
+	flags.StringVar(&cOpts.UDSPath, socketPathFlagName, "", "path to podman socket on remote host. (default '/run/podman/podman.sock' or '/run/user/{uid}/podman/podman.sock)")
+	_ = addCmd.RegisterFlagCompletionFunc(socketPathFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVarP(&cOpts.Default, "default", "d", false, "Set connection to be default")
 }
 

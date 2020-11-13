@@ -48,6 +48,7 @@ OCI_RUNTIME ?= ""
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
+FISHINSTALLDIR=${PREFIX}/share/fish/vendor_completions.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 
@@ -474,6 +475,15 @@ changelog: ## Generate changelog
 	$(shell cat $(TMPFILE) >> changelog.txt)
 	$(shell rm $(TMPFILE))
 
+completions: binaries
+	install ${SELINUXOPT} -d -m 755 completions/{bash,zsh,fish}
+	./bin/podman completion bash --no-desc -f completions/bash/podman
+	./bin/podman-remote completion bash --no-desc -f completions/bash/podman-remote
+	./bin/podman completion zsh -f completions/zsh/_podman
+	./bin/podman-remote completion zsh -f completions/zsh/_podman-remote
+	./bin/podman completion fish -f completions/fish/podman.fish
+	./bin/podman-remote completion fish -f completions/fish/podman-remote.fish
+
 .PHONY: install
 install: .gopathok install.bin install.remote install.man install.cni install.systemd  ## Install binaries to system locations
 
@@ -512,8 +522,13 @@ install.man: docs install.man-nobuild
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${BASHINSTALLDIR}
 	install ${SELINUXOPT} -m 644 completions/bash/podman ${DESTDIR}${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/bash/podman-remote ${DESTDIR}${BASHINSTALLDIR}
 	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${ZSHINSTALLDIR}
 	install ${SELINUXOPT} -m 644 completions/zsh/_podman ${DESTDIR}${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/zsh/_podman-remote ${DESTDIR}${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${FISHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/fish/podman.fish ${DESTDIR}${FISHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/fish/podman-remote.fish ${DESTDIR}${FISHINSTALLDIR}
 
 .PHONY: install.cni
 install.cni:
@@ -656,9 +671,20 @@ API.md: pkg/varlink/io.podman.varlink
 	$(GO) generate ./docs/...
 
 .PHONY: validate.completions
-validate.completions: completions/bash/podman
+validate.completions: SHELL:=/usr/bin/env bash # Set shell to bash for this target
+validate.completions:
+	# Check that nobody has manually edited the completion scripts
+	# If this check fails run make completions to restore the correct scripts
+	diff completions/bash/podman <(./bin/podman completion --no-desc bash)
+	diff completions/zsh/_podman <(./bin/podman completion zsh)
+	diff completions/fish/podman.fish <(./bin/podman completion fish)
+	diff completions/bash/podman-remote <(./bin/podman-remote completion --no-desc bash)
+	diff completions/zsh/_podman-remote <(./bin/podman-remote completion zsh)
+	diff completions/fish/podman-remote.fish <(./bin/podman-remote completion fish)
+	# Check if the files can be loaded by the shell
 	. completions/bash/podman
 	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
+	if [ -x /bin/fish ]; then /bin/fish completions/fish/podman.fish; fi
 
 .PHONY: validate
 validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check

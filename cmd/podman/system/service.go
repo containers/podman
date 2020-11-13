@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/rootless"
@@ -26,12 +27,13 @@ Enable a listening service for API access to Podman commands.
 `
 
 	srvCmd = &cobra.Command{
-		Use:     "service [options] [URI]",
-		Args:    cobra.MaximumNArgs(1),
-		Short:   "Run API service",
-		Long:    srvDescription,
-		RunE:    service,
-		Example: `podman system service --time=0 unix:///tmp/podman.sock`,
+		Use:               "service [options] [URI]",
+		Args:              cobra.MaximumNArgs(1),
+		Short:             "Run API service",
+		Long:              srvDescription,
+		RunE:              service,
+		ValidArgsFunction: completion.AutocompleteDefault,
+		Example:           `podman system service --time=0 unix:///tmp/podman.sock`,
 	}
 
 	srvArgs = struct {
@@ -48,7 +50,11 @@ func init() {
 	})
 
 	flags := srvCmd.Flags()
-	flags.Int64VarP(&srvArgs.Timeout, "time", "t", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
+
+	timeFlagName := "time"
+	flags.Int64VarP(&srvArgs.Timeout, timeFlagName, "t", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
+	_ = srvCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&srvArgs.Varlink, "varlink", false, "Use legacy varlink service instead of REST. Unit of --time changes from seconds to milliseconds.")
 
 	_ = flags.MarkDeprecated("varlink", "valink API is deprecated.")
