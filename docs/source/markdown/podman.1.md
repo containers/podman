@@ -168,7 +168,7 @@ podman --remote flag, only the global options `--url`, `--identity`, `--log-leve
 
 Connection information can also be managed using the containers.conf file.
 
-## Exit Status
+## Exit Codes
 
 The exit code from `podman` gives information about why the container
 failed to run or why it exited.  When `podman` commands exit with a non-zero code,
@@ -257,7 +257,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-volume(1)](podman-volume.1.md)           | Simple management tool for volumes.                                         |
 | [podman-wait(1)](podman-wait.1.md)               | Wait on one or more containers to stop and print their exit codes.          |
 
-## FILES
+## CONFIGURATION FILES
 
 **containers.conf** (`/usr/share/containers/containers.conf`, `/etc/containers/containers.conf`, `$HOME/.config/containers/containers.conf`)
 
