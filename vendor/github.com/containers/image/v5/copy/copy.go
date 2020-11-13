@@ -1166,6 +1166,21 @@ func computeDiffID(stream io.Reader, decompressor compression.DecompressorFunc) 
 	return digest.Canonical.FromReader(stream)
 }
 
+// errorAnnotationReader wraps the io.Reader passed to PutBlob for annotating the error happened during read.
+// These errors are reported as PutBlob errors, so we would otherwise misleadingly attribute them to the copy destination.
+type errorAnnotationReader struct {
+	reader io.Reader
+}
+
+// Read annotates the error happened during read
+func (r errorAnnotationReader) Read(b []byte) (n int, err error) {
+	n, err = r.reader.Read(b)
+	if err != io.EOF {
+		return n, errors.Wrapf(err, "error happened during read")
+	}
+	return n, err
+}
+
 // copyBlobFromStream copies a blob with srcInfo (with known Digest and Annotations and possibly known Size) from srcStream to dest,
 // perhaps sending a copy to an io.Writer if getOriginalLayerCopyWriter != nil,
 // perhaps compressing it if canCompress,
@@ -1335,7 +1350,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 	}
 
 	// === Finally, send the layer stream to dest.
-	uploadedInfo, err := c.dest.PutBlob(ctx, destStream, inputInfo, c.blobInfoCache, isConfig)
+	uploadedInfo, err := c.dest.PutBlob(ctx, &errorAnnotationReader{destStream}, inputInfo, c.blobInfoCache, isConfig)
 	if err != nil {
 		return types.BlobInfo{}, errors.Wrap(err, "Error writing blob")
 	}

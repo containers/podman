@@ -17,6 +17,7 @@ import (
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -111,6 +112,15 @@ type Executor struct {
 	stagesSemaphore                *semaphore.Weighted
 	jobs                           int
 	logRusage                      bool
+	imageInfoLock                  sync.Mutex
+	imageInfoCache                 map[string]imageTypeAndHistoryAndDiffIDs
+}
+
+type imageTypeAndHistoryAndDiffIDs struct {
+	manifestType string
+	history      []v1.History
+	diffIDs      []digest.Digest
+	err          error
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
@@ -215,6 +225,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		terminatedStage:                make(map[string]struct{}),
 		jobs:                           jobs,
 		logRusage:                      options.LogRusage,
+		imageInfoCache:                 make(map[string]imageTypeAndHistoryAndDiffIDs),
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -335,22 +346,43 @@ func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebu
 	}
 }
 
-// getImageHistoryAndDiffIDs returns the history and diff IDs list of imageID.
-func (b *Executor) getImageHistoryAndDiffIDs(ctx context.Context, imageID string) ([]v1.History, []digest.Digest, error) {
+// getImageTypeAndHistoryAndDiffIDs returns the manifest type, history, and diff IDs list of imageID.
+func (b *Executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID string) (string, []v1.History, []digest.Digest, error) {
+	b.imageInfoLock.Lock()
+	imageInfo, ok := b.imageInfoCache[imageID]
+	b.imageInfoLock.Unlock()
+	if ok {
+		return imageInfo.manifestType, imageInfo.history, imageInfo.diffIDs, imageInfo.err
+	}
 	imageRef, err := is.Transport.ParseStoreReference(b.store, "@"+imageID)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error getting image reference %q", imageID)
+		return "", nil, nil, errors.Wrapf(err, "error getting image reference %q", imageID)
 	}
 	ref, err := imageRef.NewImage(ctx, nil)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating new image from reference to image %q", imageID)
+		return "", nil, nil, errors.Wrapf(err, "error creating new image from reference to image %q", imageID)
 	}
 	defer ref.Close()
 	oci, err := ref.OCIConfig(ctx)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error getting possibly-converted OCI config of image %q", imageID)
+		return "", nil, nil, errors.Wrapf(err, "error getting possibly-converted OCI config of image %q", imageID)
 	}
-	return oci.History, oci.RootFS.DiffIDs, nil
+	manifestBytes, manifestFormat, err := ref.Manifest(ctx)
+	if err != nil {
+		return "", nil, nil, errors.Wrapf(err, "error getting manifest of image %q", imageID)
+	}
+	if manifestFormat == "" && len(manifestBytes) > 0 {
+		manifestFormat = manifest.GuessMIMEType(manifestBytes)
+	}
+	b.imageInfoLock.Lock()
+	b.imageInfoCache[imageID] = imageTypeAndHistoryAndDiffIDs{
+		manifestType: manifestFormat,
+		history:      oci.History,
+		diffIDs:      oci.RootFS.DiffIDs,
+		err:          nil,
+	}
+	b.imageInfoLock.Unlock()
+	return manifestFormat, oci.History, oci.RootFS.DiffIDs, nil
 }
 
 func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageExecutor, stages imagebuilder.Stages, stageIndex int) (imageID string, ref reference.Canonical, err error) {

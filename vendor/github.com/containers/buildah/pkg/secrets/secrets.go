@@ -38,7 +38,7 @@ type secretData struct {
 // saveTo saves secret data to given directory
 func (s secretData) saveTo(dir string) error {
 	path := filepath.Join(dir, s.name)
-	if err := os.MkdirAll(filepath.Dir(path), s.dirMode); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(filepath.Dir(path), s.dirMode); err != nil {
 		return err
 	}
 	return ioutil.WriteFile(path, s.data, s.mode)

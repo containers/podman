@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"strings"
-	"time"
 
 	"github.com/containers/buildah/util"
+	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/pkg/sysregistriesv2"
+	"github.com/containers/image/v5/pkg/shortnames"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -103,145 +104,168 @@ func newContainerIDMappingOptions(idmapOptions *IDMappingOptions) storage.IDMapp
 	return options
 }
 
-func resolveImage(ctx context.Context, systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, *storage.Image, error) {
-	type failure struct {
-		resolvedImageName string
-		err               error
-	}
-	candidates, transport, searchRegistriesWereUsedButEmpty, err := util.ResolveName(options.FromImage, options.Registry, systemContext, store)
+func resolveLocalImage(systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, *storage.Image, error) {
+	candidates, _, _, err := util.ResolveName(options.FromImage, options.Registry, systemContext, store)
 	if err != nil {
-		return nil, "", nil, errors.Wrapf(err, "error parsing reference to image %q", options.FromImage)
+		return nil, "", nil, errors.Wrapf(err, "error resolving local image %q", options.FromImage)
 	}
-
-	failures := []failure{}
 	for _, image := range candidates {
-		if transport == "" {
-			img, err := store.Image(image)
-			if err != nil {
-				logrus.Debugf("error looking up known-local image %q: %v", image, err)
-				failures = append(failures, failure{resolvedImageName: image, err: err})
+		img, err := store.Image(image)
+		if err != nil {
+			if errors.Cause(err) == storage.ErrImageUnknown {
 				continue
 			}
-			ref, err := is.Transport.ParseStoreReference(store, img.ID)
-			if err != nil {
-				return nil, "", nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
-			}
-			return ref, transport, img, nil
+			return nil, "", nil, err
 		}
-
-		trans := transport
-		if transport != util.DefaultTransport {
-			trans = trans + ":"
-		}
-		srcRef, err := alltransports.ParseImageName(trans + image)
+		ref, err := is.Transport.ParseStoreReference(store, img.ID)
 		if err != nil {
-			logrus.Debugf("error parsing image name %q: %v", trans+image, err)
-			failures = append(failures, failure{
-				resolvedImageName: image,
-				err:               errors.Wrapf(err, "error parsing attempted image name %q", trans+image),
-			})
-			continue
+			return nil, "", nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
 		}
+		return ref, ref.Transport().Name(), img, nil
+	}
 
-		if options.PullPolicy == PullAlways {
-			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, srcRef, options, systemContext)
-			if err != nil {
-				logrus.Debugf("unable to pull and read image %q: %v", image, err)
-				failures = append(failures, failure{resolvedImageName: image, err: err})
-				continue
-			}
-			return pulledReference, transport, pulledImg, nil
-		}
+	return nil, "", nil, nil
+}
 
-		destImage, err := localImageNameForReference(ctx, store, srcRef)
-		if err != nil {
-			return nil, "", nil, errors.Wrapf(err, "error computing local image name for %q", transports.ImageName(srcRef))
-		}
-		if destImage == "" {
-			return nil, "", nil, errors.Errorf("error computing local image name for %q", transports.ImageName(srcRef))
-		}
-		ref, err := is.Transport.ParseStoreReference(store, destImage)
-		if err != nil {
-			return nil, "", nil, errors.Wrapf(err, "error parsing reference to image %q", destImage)
-		}
+// getShortNameMode looks up the `CONTAINERS_SHORT_NAME_ALIASING` environment
+// variable.  If it's "on", return `nil` to use the defaults from
+// containers/image and the registries.conf files on the system.  If it's
+// "off", empty or unset, return types.ShortNameModeDisabled to turn off
+// short-name aliasing by default.
+//
+// TODO: remove this function once we want to default to short-name aliasing.
+func getShortNameMode() *types.ShortNameMode {
+	env := os.Getenv("CONTAINERS_SHORT_NAME_ALIASING")
+	if strings.ToLower(env) == "on" {
+		return nil // default to whatever registries.conf and c/image decide
+	}
+	mode := types.ShortNameModeDisabled
+	return &mode
+}
 
-		if options.PullPolicy == PullIfNewer {
-			img, err := is.Transport.GetStoreImage(store, ref)
-			if err == nil {
-				// Let's see if this image is on the repository and if it's there
-				// then note it's Created date.
-				var repoImageCreated time.Time
-				repoImageFound := false
-				repoImage, err := srcRef.NewImage(ctx, systemContext)
-				if err == nil {
-					inspect, err := repoImage.Inspect(ctx)
-					if err == nil {
-						repoImageFound = true
-						repoImageCreated = *inspect.Created
-					}
-					repoImage.Close()
-				}
-				if !repoImageFound || repoImageCreated == img.Created {
-					// The image is only local or the same date is on the
-					// local and repo versions of the image, no need to pull.
-					return ref, transport, img, nil
-				}
-			}
+func resolveImage(ctx context.Context, systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, *storage.Image, error) {
+	if systemContext == nil {
+		systemContext = &types.SystemContext{}
+	}
+	systemContext.ShortNameMode = getShortNameMode()
+
+	fromImage := options.FromImage
+	// If the image name includes a transport we can use it as it.  Special
+	// treatment for docker references which are subject to pull policies
+	// that we're handling below.
+	srcRef, err := alltransports.ParseImageName(options.FromImage)
+	if err == nil {
+		if srcRef.Transport().Name() == docker.Transport.Name() {
+			fromImage = srcRef.DockerReference().String()
 		} else {
-			// Get the image from the store if present for PullNever and PullIfMissing
-			img, err := is.Transport.GetStoreImage(store, ref)
-			if err == nil {
-				return ref, transport, img, nil
+			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, srcRef, options, systemContext)
+			return pulledReference, srcRef.Transport().Name(), pulledImg, err
+		}
+	}
+
+	localImageRef, _, localImage, err := resolveLocalImage(systemContext, store, options)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	// If we could resolve the image locally, check if it was referenced by
+	// ID.  In that case, we don't need to bother any further and can
+	// prevent prompting the user.
+	if localImage != nil && strings.HasPrefix(localImage.ID, options.FromImage) {
+		return localImageRef, localImageRef.Transport().Name(), localImage, nil
+	}
+
+	if options.PullPolicy == PullNever || options.PullPolicy == PullIfMissing {
+		if localImage != nil {
+			return localImageRef, localImageRef.Transport().Name(), localImage, nil
+		}
+		if options.PullPolicy == PullNever {
+			return nil, "", nil, errors.Errorf("pull policy is %q but %q could not be found locally", "never", options.FromImage)
+		}
+	}
+
+	resolved, err := shortnames.Resolve(systemContext, fromImage)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	// Print the image-resolution description unless we're looking for a
+	// new image and already found a local image.  In many cases, the
+	// description will be more confusing than helpful (e.g., `buildah from
+	// localImage`).
+	if desc := resolved.Description(); len(desc) > 0 {
+		logrus.Debug(desc)
+		if !(options.PullPolicy == PullIfNewer && localImage != nil) {
+			if options.ReportWriter != nil {
+				if _, err := options.ReportWriter.Write([]byte(desc + "\n")); err != nil {
+					return nil, "", nil, err
+				}
 			}
-			if errors.Cause(err) == storage.ErrImageUnknown && options.PullPolicy == PullNever {
-				logrus.Debugf("no such image %q: %v", transports.ImageName(ref), err)
-				failures = append(failures, failure{
-					resolvedImageName: image,
-					err:               errors.Errorf("no such image %q", transports.ImageName(ref)),
-				})
+		}
+	}
+
+	var pullErrors []error
+	for _, pullCandidate := range resolved.PullCandidates {
+		ref, err := docker.NewReference(pullCandidate.Value)
+		if err != nil {
+			return nil, "", nil, err
+		}
+
+		// We're tasked to pull a "newer" image.  If there's no local
+		// image, we have no base for comparison, so we'll pull the
+		// first available image.
+		//
+		// If there's a local image, the `pullCandidate` is considered
+		// to be newer if its time stamp differs from the local one.
+		// Otherwise, we don't pull and skip it.
+		if options.PullPolicy == PullIfNewer && localImage != nil {
+			remoteImage, err := ref.NewImage(ctx, systemContext)
+			if err != nil {
+				logrus.Debugf("unable to remote-inspect image %q: %v", pullCandidate.Value.String(), err)
+				pullErrors = append(pullErrors, err)
+				continue
+			}
+			defer remoteImage.Close()
+
+			remoteData, err := remoteImage.Inspect(ctx)
+			if err != nil {
+				logrus.Debugf("unable to remote-inspect image %q: %v", pullCandidate.Value.String(), err)
+				pullErrors = append(pullErrors, err)
+				continue
+			}
+
+			// FIXME: we should compare image digests not time stamps.
+			// Comparing time stamps is flawed.  Be aware that fixing
+			// it may entail non-trivial changes to the tests.  Please
+			// refer to https://github.com/containers/buildah/issues/2779
+			// for more.
+			if localImage.Created.Equal(*remoteData.Created) {
 				continue
 			}
 		}
 
-		pulledImg, pulledReference, err := pullAndFindImage(ctx, store, srcRef, options, systemContext)
+		pulledImg, pulledReference, err := pullAndFindImage(ctx, store, ref, options, systemContext)
 		if err != nil {
-			logrus.Debugf("unable to pull and read image %q: %v", image, err)
-			failures = append(failures, failure{resolvedImageName: image, err: err})
+			logrus.Debugf("unable to pull and read image %q: %v", pullCandidate.Value.String(), err)
+			pullErrors = append(pullErrors, err)
 			continue
 		}
-		return pulledReference, transport, pulledImg, nil
+
+		// Make sure to record the short-name alias if necessary.
+		if err = pullCandidate.Record(); err != nil {
+			return nil, "", nil, err
+		}
+
+		return pulledReference, "", pulledImg, nil
 	}
 
-	if len(failures) != len(candidates) {
-		return nil, "", nil, errors.Errorf("internal error: %d candidates (%#v) vs. %d failures (%#v)", len(candidates), candidates, len(failures), failures)
+	// If we were looking for a newer image but could not find one, return
+	// the local image if present.
+	if options.PullPolicy == PullIfNewer && localImage != nil {
+		return localImageRef, localImageRef.Transport().Name(), localImage, nil
 	}
 
-	registriesConfPath := sysregistriesv2.ConfigPath(systemContext)
-	switch len(failures) {
-	case 0:
-		if searchRegistriesWereUsedButEmpty {
-			return nil, "", nil, errors.Errorf("image name %q is a short name and no search registries are defined in %s.", options.FromImage, registriesConfPath)
-		}
-		return nil, "", nil, errors.Errorf("internal error: no pull candidates were available for %q for an unknown reason", options.FromImage)
-
-	case 1:
-		err := failures[0].err
-		if failures[0].resolvedImageName != options.FromImage {
-			err = errors.Wrapf(err, "while pulling %q as %q", options.FromImage, failures[0].resolvedImageName)
-		}
-		if searchRegistriesWereUsedButEmpty {
-			err = errors.Wrapf(err, "(image name %q is a short name and no search registries are defined in %s)", options.FromImage, registriesConfPath)
-		}
-		return nil, "", nil, err
-
-	default:
-		// NOTE: a multi-line error string:
-		e := fmt.Sprintf("The following failures happened while trying to pull image specified by %q based on search registries in %s:", options.FromImage, registriesConfPath)
-		for _, f := range failures {
-			e = e + fmt.Sprintf("\n* %q: %s", f.resolvedImageName, f.err.Error())
-		}
-		return nil, "", nil, errors.New(e)
-	}
+	return nil, "", nil, resolved.FormatPullErrors(pullErrors)
 }
 
 func containerNameExist(name string, containers []storage.Container) bool {

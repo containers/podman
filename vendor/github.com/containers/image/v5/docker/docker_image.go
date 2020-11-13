@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
 
@@ -102,4 +105,48 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 		}
 	}
 	return tags, nil
+}
+
+// GetDigest returns the image's digest
+// Use this to optimize and avoid use of an ImageSource based on the returned digest;
+// if you are going to use an ImageSource anyway, it’s more efficient to create it first
+// and compute the digest from the value returned by GetManifest.
+// NOTE: Implemented to avoid Docker Hub API limits, and mirror configuration may be
+// ignored (but may be implemented in the future)
+func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageReference) (digest.Digest, error) {
+	dr, ok := ref.(dockerReference)
+	if !ok {
+		return "", errors.Errorf("ref must be a dockerReference")
+	}
+
+	tagOrDigest, err := dr.tagOrDigest()
+	if err != nil {
+		return "", err
+	}
+
+	client, err := newDockerClientFromRef(sys, dr, false, "pull")
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create client")
+	}
+
+	path := fmt.Sprintf(manifestPath, reference.Path(dr.ref), tagOrDigest)
+	headers := map[string][]string{
+		"Accept": manifest.DefaultRequestedManifestMIMETypes,
+	}
+
+	res, err := client.makeRequest(ctx, "HEAD", path, headers, nil, v2Auth, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.Wrapf(registryHTTPResponseToError(res), "Error reading digest %s in %s", tagOrDigest, dr.ref.Name())
+	}
+
+	dig, err := digest.Parse(res.Header.Get("Docker-Content-Digest"))
+	if err != nil {
+		return "", err
+	}
+
+	return dig, nil
 }

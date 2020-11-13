@@ -45,6 +45,11 @@ func Lgetxattrs(path string) (map[string]string, error) {
 				listSize *= 2
 				continue
 			}
+			if (unwrapError(err) == syscall.ENOTSUP) || (unwrapError(err) == syscall.ENOSYS) {
+				// treat these errors listing xattrs as equivalent to "no xattrs"
+				list = list[:0]
+				break
+			}
 			return nil, errors.Wrapf(err, "error listing extended attributes of %q", path)
 		}
 		list = list[:size]

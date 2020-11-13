@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,13 +16,14 @@ import (
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	ociarchive "github.com/containers/image/v5/oci/archive"
 	oci "github.com/containers/image/v5/oci/layout"
+	"github.com/containers/image/v5/pkg/shortnames"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/events"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/registries"
-	"github.com/hashicorp/go-multierror"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -56,9 +58,10 @@ var (
 
 // pullRefPair records a pair of prepared image references to pull.
 type pullRefPair struct {
-	image  string
-	srcRef types.ImageReference
-	dstRef types.ImageReference
+	image             string
+	srcRef            types.ImageReference
+	dstRef            types.ImageReference
+	resolvedShortname *shortnames.PullCandidate // if set, must be recorded after successful pull
 }
 
 // cleanUpFunc is a function prototype for clean-up functions.
@@ -66,11 +69,11 @@ type cleanUpFunc func() error
 
 // pullGoal represents the prepared image references and decided behavior to be executed by imagePull
 type pullGoal struct {
-	refPairs             []pullRefPair
-	pullAllPairs         bool          // Pull all refPairs instead of stopping on first success.
-	usedSearchRegistries bool          // refPairs construction has depended on registries.GetRegistries()
-	searchedRegistries   []string      // The list of search registries used; set only if usedSearchRegistries
-	cleanUpFuncs         []cleanUpFunc // Mainly used to close long-lived objects (e.g., an archive.Reader)
+	refPairs     []pullRefPair
+	pullAllPairs bool                 // Pull all refPairs instead of stopping on first success.
+	cleanUpFuncs []cleanUpFunc        // Mainly used to close long-lived objects (e.g., an archive.Reader)
+	shortName    string               // Set when pulling a short name
+	resolved     *shortnames.Resolved // Set when pulling a short name
 }
 
 // cleanUp invokes all cleanUpFuncs.  Certain resources may not be available
@@ -86,10 +89,8 @@ func (p *pullGoal) cleanUp() {
 // singlePullRefPairGoal returns a no-frills pull goal for the specified reference pair.
 func singlePullRefPairGoal(rp pullRefPair) *pullGoal {
 	return &pullGoal{
-		refPairs:             []pullRefPair{rp},
-		pullAllPairs:         false, // Does not really make a difference.
-		usedSearchRegistries: false,
-		searchedRegistries:   nil,
+		refPairs:     []pullRefPair{rp},
+		pullAllPairs: false, // Does not really make a difference.
 	}
 }
 
@@ -193,11 +194,9 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		}
 
 		return &pullGoal{
-			pullAllPairs:         true,
-			usedSearchRegistries: false,
-			refPairs:             pairs,
-			searchedRegistries:   nil,
-			cleanUpFuncs:         []cleanUpFunc{reader.Close},
+			pullAllPairs: true,
+			refPairs:     pairs,
+			cleanUpFuncs: []cleanUpFunc{reader.Close},
 		}, nil
 
 	case OCIArchive:
@@ -267,7 +266,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 		if srcTransport != nil && srcTransport.Name() != DockerTransport {
 			return nil, err
 		}
-		goal, err = ir.pullGoalFromPossiblyUnqualifiedName(inputName)
+		goal, err = ir.pullGoalFromPossiblyUnqualifiedName(sc, writer, inputName)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
@@ -325,7 +324,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 
 	var (
 		images     []string
-		pullErrors *multierror.Error
+		pullErrors []error
 	)
 
 	for _, imageInfo := range goal.refPairs {
@@ -348,12 +347,17 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			_, err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions)
 			return err
 		}, retryOptions); err != nil {
-			pullErrors = multierror.Append(pullErrors, err)
+			pullErrors = append(pullErrors, err)
 			logrus.Debugf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
 			if writer != nil {
 				_, _ = io.WriteString(writer, cleanErrorMessage(err))
 			}
 		} else {
+			if imageInfo.resolvedShortname != nil {
+				if err := imageInfo.resolvedShortname.Record(); err != nil {
+					logrus.Errorf("Error recording short-name alias %q: %v", imageInfo.resolvedShortname.Value.String(), err)
+				}
+			}
 			if !goal.pullAllPairs {
 				ir.newImageEvent(events.Pull, "")
 				return []string{imageInfo.image}, nil
@@ -361,68 +365,75 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			images = append(images, imageInfo.image)
 		}
 	}
-	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
+	// If no image was found, we should handle.  Lets be nicer to the user
+	// and see if we can figure out why.
 	if len(images) == 0 {
-		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
-			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in the registries config file.")
+		if goal.resolved != nil {
+			return nil, goal.resolved.FormatPullErrors(pullErrors)
 		}
-		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we don't need to yap about registries.
-		if !goal.usedSearchRegistries {
-			if pullErrors != nil && len(pullErrors.Errors) > 0 { // this should always be true
-				return nil, pullErrors.Errors[0]
-			}
-			return nil, errors.Errorf("unable to pull image, or you do not have pull access")
-		}
-		return nil, errors.Cause(pullErrors)
+		return nil, errorhandling.JoinErrors(pullErrors)
 	}
-	if len(images) > 0 {
-		ir.newImageEvent(events.Pull, images[0])
-	}
+
+	ir.newImageEvent(events.Pull, images[0])
 	return images, nil
+}
+
+// getShortNameMode looks up the `CONTAINERS_SHORT_NAME_ALIASING` environment
+// variable.  If it's "on", return `nil` to use the defaults from
+// containers/image and the registries.conf files on the system.  If it's
+// "off", empty or unset, return types.ShortNameModeDisabled to turn off
+// short-name aliasing by default.
+//
+// TODO: remove this function once we want to default to short-name aliasing.
+func getShortNameMode() *types.ShortNameMode {
+	env := os.Getenv("CONTAINERS_SHORT_NAME_ALIASING")
+	if strings.ToLower(env) == "on" {
+		return nil // default to whatever registries.conf and c/image decide
+	}
+	mode := types.ShortNameModeDisabled
+	return &mode
 }
 
 // pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
-func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullGoal, error) {
-	decomposedImage, err := decompose(inputName)
+func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(sys *types.SystemContext, writer io.Writer, inputName string) (*pullGoal, error) {
+	if sys == nil {
+		sys = &types.SystemContext{}
+	}
+	sys.ShortNameMode = getShortNameMode()
+
+	resolved, err := shortnames.Resolve(sys, inputName)
 	if err != nil {
 		return nil, err
 	}
 
-	if decomposedImage.hasRegistry {
-		srcRef, err := docker.ParseReference("//" + inputName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
+	if desc := resolved.Description(); len(desc) > 0 {
+		logrus.Debug(desc)
+		if writer != nil {
+			if _, err := writer.Write([]byte(desc + "\n")); err != nil {
+				return nil, err
+			}
 		}
-		return ir.getSinglePullRefPairGoal(srcRef, inputName)
 	}
 
-	searchRegistries, err := registries.GetRegistries()
-	if err != nil {
-		return nil, err
-	}
-	refPairs := make([]pullRefPair, 0, len(searchRegistries))
-	for _, registry := range searchRegistries {
-		ref, err := decomposedImage.referenceWithRegistry(registry)
+	refPairs := []pullRefPair{}
+	for i, candidate := range resolved.PullCandidates {
+		srcRef, err := docker.NewReference(candidate.Value)
 		if err != nil {
 			return nil, err
 		}
-		imageName := ref.String()
-		srcRef, err := docker.ParseReference("//" + imageName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to parse '%s'", imageName)
-		}
-		ps, err := ir.getPullRefPair(srcRef, imageName)
+		ps, err := ir.getPullRefPair(srcRef, candidate.Value.String())
 		if err != nil {
 			return nil, err
 		}
+		ps.resolvedShortname = &resolved.PullCandidates[i]
 		refPairs = append(refPairs, ps)
 	}
 	return &pullGoal{
-		refPairs:             refPairs,
-		pullAllPairs:         false,
-		usedSearchRegistries: true,
-		searchedRegistries:   searchRegistries,
+		refPairs:     refPairs,
+		pullAllPairs: false,
+		shortName:    inputName,
+		resolved:     resolved,
 	}, nil
 }
 
