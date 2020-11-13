@@ -5,6 +5,7 @@ Wants=network.target
 After=network-online.target
 
 [Service]
+Type=oneshot
 ExecStart=/usr/bin/podman auto-update
 
 [Install]
