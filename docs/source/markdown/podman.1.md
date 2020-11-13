@@ -199,62 +199,232 @@ the exit codes follow the `chroot` standard, see below:
 
 ## COMMANDS
 
-| Command                                          | Description                                                                 |
-| ------------------------------------------------ | --------------------------------------------------------------------------- |
-| [podman-attach(1)](podman-attach.1.md)           | Attach to a running container.                                              |
-| [podman-auto-update(1)](podman-auto-update.1.md) | Auto update containers according to their auto-update policy                |
-| [podman-build(1)](podman-build.1.md)             | Build a container image using a Containerfile.                              |
-| [podman-commit(1)](podman-commit.1.md)           | Create new image based on the changed container.                            |
-| [podman-container(1)](podman-container.1.md)     | Manage containers.                                                          |
-| [podman-cp(1)](podman-cp.1.md)                   | Copy files/folders between a container and the local filesystem.            |
-| [podman-create(1)](podman-create.1.md)           | Create a new container.                                                     |
-| [podman-diff(1)](podman-diff.1.md)               | Inspect changes on a container or image's filesystem.                       |
-| [podman-events(1)](podman-events.1.md)           | Monitor Podman events                                                       |
-| [podman-exec(1)](podman-exec.1.md)               | Execute a command in a running container.                                   |
-| [podman-export(1)](podman-export.1.md)           | Export a container's filesystem contents as a tar archive.                  |
-| [podman-generate(1)](podman-generate.1.md)       | Generate structured data based for a containers and pods.                   |
-| [podman-healthcheck(1)](podman-healthcheck.1.md) | Manage healthchecks for containers                                          |
-| [podman-history(1)](podman-history.1.md)         | Show the history of an image.                                               |
-| [podman-image(1)](podman-image.1.md)             | Manage images.                                                              |
-| [podman-images(1)](podman-images.1.md)           | List images in local storage.                                               |
-| [podman-import(1)](podman-import.1.md)           | Import a tarball and save it as a filesystem image.                         |
-| [podman-info(1)](podman-info.1.md)               | Displays Podman related system information.                                 |
-| [podman-init(1)](podman-init.1.md)               | Initialize one or more containers                                           |
-| [podman-inspect(1)](podman-inspect.1.md)         | Display a container, image, volume, network, or pod's configuration.        |
-| [podman-kill(1)](podman-kill.1.md)               | Kill the main process in one or more containers.                            |
-| [podman-load(1)](podman-load.1.md)               | Load an image from a container image archive into container storage.        |
-| [podman-login(1)](podman-login.1.md)             | Login to a container registry.                                              |
-| [podman-logout(1)](podman-logout.1.md)           | Logout of a container registry.                                             |
-| [podman-logs(1)](podman-logs.1.md)               | Display the logs of one or more containers.                                 |
-| [podman-manifest(1)](podman-manifest.1.md)       | Create and manipulate manifest lists and image indexes.                     |
-| [podman-mount(1)](podman-mount.1.md)             | Mount a working container's root filesystem.                                |
-| [podman-network(1)](podman-network.1.md)         | Manage Podman CNI networks.                                                 |
-| [podman-pause(1)](podman-pause.1.md)             | Pause one or more containers.                                               |
-| [podman-play(1)](podman-play.1.md)               | Play pods and containers based on a structured input file.                  |
-| [podman-pod(1)](podman-pod.1.md)                 | Management tool for groups of containers, called pods.                      |
-| [podman-port(1)](podman-port.1.md)               | List port mappings for a container.                                         |
-| [podman-ps(1)](podman-ps.1.md)                   | Prints out information about containers.                                    |
-| [podman-pull(1)](podman-pull.1.md)               | Pull an image from a registry.                                              |
-| [podman-push(1)](podman-push.1.md)               | Push an image from local storage to elsewhere.                              |
-| [podman-restart(1)](podman-restart.1.md)         | Restart one or more containers.                                             |
-| [podman-rm(1)](podman-rm.1.md)                   | Remove one or more containers.                                              |
-| [podman-rmi(1)](podman-rmi.1.md)                 | Removes one or more locally stored images.                                  |
-| [podman-run(1)](podman-run.1.md)                 | Run a command in a new container.                                           |
-| [podman-save(1)](podman-save.1.md)               | Save an image to a container archive.                                       |
-| [podman-search(1)](podman-search.1.md)           | Search a registry for an image.                                             |
-| [podman-start(1)](podman-start.1.md)             | Start one or more containers.                                               |
-| [podman-stats(1)](podman-stats.1.md)             | Display a live stream of one or more container's resource usage statistics. |
-| [podman-stop(1)](podman-stop.1.md)               | Stop one or more running containers.                                        |
-| [podman-system(1)](podman-system.1.md)           | Manage podman.                                                              |
-| [podman-tag(1)](podman-tag.1.md)                 | Add an additional name to a local image.                                    |
-| [podman-top(1)](podman-top.1.md)                 | Display the running processes of a container.                               |
-| [podman-unmount(1)](podman-unmount.1.md)           | Unmount a working container's root filesystem.                              |
-| [podman-unpause(1)](podman-unpause.1.md)         | Unpause one or more containers.                                             |
-| [podman-unshare(1)](podman-unshare.1.md)         | Run a command inside of a modified user namespace.                          |
-| [podman-untag(1)](podman-untag.1.md)             | Removes one or more names from a locally-stored image.                      |
-| [podman-version(1)](podman-version.1.md)         | Display the Podman version information.                                     |
-| [podman-volume(1)](podman-volume.1.md)           | Simple management tool for volumes.                                         |
-| [podman-wait(1)](podman-wait.1.md)               | Wait on one or more containers to stop and print their exit codes.          |
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="podman-attach.1.md">podman-attach(1)</a></td>
+<td>Attach to a running container.</td>
+</tr>
+<tr>
+<td><a href="podman-auto-update.1.md">podman-auto-update(1)</a></td>
+<td>Auto update containers according to their auto-update policy</td>
+</tr>
+<tr>
+<td><a href="podman-build.1.md">podman-build(1)</a></td>
+<td>Build a container image using a Containerfile.</td>
+</tr>
+<tr>
+<td><a href="podman-commit.1.md">podman-commit(1)</a></td>
+<td>Create new image based on the changed container.</td>
+</tr>
+<tr>
+<td><a href="podman-container.1.md">podman-container(1)</a></td>
+<td>Manage containers.</td>
+</tr>
+<tr>
+<td><a href="podman-cp.1.md">podman-cp(1)</a></td>
+<td>Copy files/folders between a container and the local filesystem.</td>
+</tr>
+<tr>
+<td><a href="podman-create.1.md">podman-create(1)</a></td>
+<td>Create a new container.</td>
+</tr>
+<tr>
+<td><a href="podman-diff.1.md">podman-diff(1)</a></td>
+<td>Inspect changes on a container or image&#39;s filesystem.</td>
+</tr>
+<tr>
+<td><a href="podman-events.1.md">podman-events(1)</a></td>
+<td>Monitor Podman events</td>
+</tr>
+<tr>
+<td><a href="podman-exec.1.md">podman-exec(1)</a></td>
+<td>Execute a command in a running container.</td>
+</tr>
+<tr>
+<td><a href="podman-export.1.md">podman-export(1)</a></td>
+<td>Export a container&#39;s filesystem contents as a tar archive.</td>
+</tr>
+<tr>
+<td><a href="podman-generate.1.md">podman-generate(1)</a></td>
+<td>Generate structured data based for a containers and pods.</td>
+</tr>
+<tr>
+<td><a href="podman-healthcheck.1.md">podman-healthcheck(1)</a></td>
+<td>Manage healthchecks for containers</td>
+</tr>
+<tr>
+<td><a href="podman-history.1.md">podman-history(1)</a></td>
+<td>Show the history of an image.</td>
+</tr>
+<tr>
+<td><a href="podman-image.1.md">podman-image(1)</a></td>
+<td>Manage images.</td>
+</tr>
+<tr>
+<td><a href="podman-images.1.md">podman-images(1)</a></td>
+<td>List images in local storage.</td>
+</tr>
+<tr>
+<td><a href="podman-import.1.md">podman-import(1)</a></td>
+<td>Import a tarball and save it as a filesystem image.</td>
+</tr>
+<tr>
+<td><a href="podman-info.1.md">podman-info(1)</a></td>
+<td>Displays Podman related system information.</td>
+</tr>
+<tr>
+<td><a href="podman-init.1.md">podman-init(1)</a></td>
+<td>Initialize one or more containers</td>
+</tr>
+<tr>
+<td><a href="podman-inspect.1.md">podman-inspect(1)</a></td>
+<td>Display a container, image, volume, network, or pod&#39;s configuration.</td>
+</tr>
+<tr>
+<td><a href="podman-kill.1.md">podman-kill(1)</a></td>
+<td>Kill the main process in one or more containers.</td>
+</tr>
+<tr>
+<td><a href="podman-load.1.md">podman-load(1)</a></td>
+<td>Load an image from a container image archive into container storage.</td>
+</tr>
+<tr>
+<td><a href="podman-login.1.md">podman-login(1)</a></td>
+<td>Login to a container registry.</td>
+</tr>
+<tr>
+<td><a href="podman-logout.1.md">podman-logout(1)</a></td>
+<td>Logout of a container registry.</td>
+</tr>
+<tr>
+<td><a href="podman-logs.1.md">podman-logs(1)</a></td>
+<td>Display the logs of one or more containers.</td>
+</tr>
+<tr>
+<td><a href="podman-manifest.1.md">podman-manifest(1)</a></td>
+<td>Create and manipulate manifest lists and image indexes.</td>
+</tr>
+<tr>
+<td><a href="podman-mount.1.md">podman-mount(1)</a></td>
+<td>Mount a working container&#39;s root filesystem.</td>
+</tr>
+<tr>
+<td><a href="podman-network.1.md">podman-network(1)</a></td>
+<td>Manage Podman CNI networks.</td>
+</tr>
+<tr>
+<td><a href="podman-pause.1.md">podman-pause(1)</a></td>
+<td>Pause one or more containers.</td>
+</tr>
+<tr>
+<td><a href="podman-play.1.md">podman-play(1)</a></td>
+<td>Play pods and containers based on a structured input file.</td>
+</tr>
+<tr>
+<td><a href="podman-pod.1.md">podman-pod(1)</a></td>
+<td>Management tool for groups of containers, called pods.</td>
+</tr>
+<tr>
+<td><a href="podman-port.1.md">podman-port(1)</a></td>
+<td>List port mappings for a container.</td>
+</tr>
+<tr>
+<td><a href="podman-ps.1.md">podman-ps(1)</a></td>
+<td>Prints out information about containers.</td>
+</tr>
+<tr>
+<td><a href="podman-pull.1.md">podman-pull(1)</a></td>
+<td>Pull an image from a registry.</td>
+</tr>
+<tr>
+<td><a href="podman-push.1.md">podman-push(1)</a></td>
+<td>Push an image from local storage to elsewhere.</td>
+</tr>
+<tr>
+<td><a href="podman-restart.1.md">podman-restart(1)</a></td>
+<td>Restart one or more containers.</td>
+</tr>
+<tr>
+<td><a href="podman-rm.1.md">podman-rm(1)</a></td>
+<td>Remove one or more containers.</td>
+</tr>
+<tr>
+<td><a href="podman-rmi.1.md">podman-rmi(1)</a></td>
+<td>Removes one or more locally stored images.</td>
+</tr>
+<tr>
+<td><a href="podman-run.1.md">podman-run(1)</a></td>
+<td>Run a command in a new container.</td>
+</tr>
+<tr>
+<td><a href="podman-save.1.md">podman-save(1)</a></td>
+<td>Save an image to a container archive.</td>
+</tr>
+<tr>
+<td><a href="podman-search.1.md">podman-search(1)</a></td>
+<td>Search a registry for an image.</td>
+</tr>
+<tr>
+<td><a href="podman-start.1.md">podman-start(1)</a></td>
+<td>Start one or more containers.</td>
+</tr>
+<tr>
+<td><a href="podman-stats.1.md">podman-stats(1)</a></td>
+<td>Display a live stream of one or more container&#39;s resource usage statistics.</td>
+</tr>
+<tr>
+<td><a href="podman-stop.1.md">podman-stop(1)</a></td>
+<td>Stop one or more running containers.</td>
+</tr>
+<tr>
+<td><a href="podman-system.1.md">podman-system(1)</a></td>
+<td>Manage podman.</td>
+</tr>
+<tr>
+<td><a href="podman-tag.1.md">podman-tag(1)</a></td>
+<td>Add an additional name to a local image.</td>
+</tr>
+<tr>
+<td><a href="podman-top.1.md">podman-top(1)</a></td>
+<td>Display the running processes of a container.</td>
+</tr>
+<tr>
+<td><a href="podman-unmount.1.md">podman-unmount(1)</a></td>
+<td>Unmount a working container&#39;s root filesystem.</td>
+</tr>
+<tr>
+<td><a href="podman-unpause.1.md">podman-unpause(1)</a></td>
+<td>Unpause one or more containers.</td>
+</tr>
+<tr>
+<td><a href="podman-unshare.1.md">podman-unshare(1)</a></td>
+<td>Run a command inside of a modified user namespace.</td>
+</tr>
+<tr>
+<td><a href="podman-untag.1.md">podman-untag(1)</a></td>
+<td>Removes one or more names from a locally-stored image.</td>
+</tr>
+<tr>
+<td><a href="podman-version.1.md">podman-version(1)</a></td>
+<td>Display the Podman version information.</td>
+</tr>
+<tr>
+<td><a href="podman-volume.1.md">podman-volume(1)</a></td>
+<td>Simple management tool for volumes.</td>
+</tr>
+<tr>
+<td><a href="podman-wait.1.md">podman-wait(1)</a></td>
+<td>Wait on one or more containers to stop and print their exit codes.</td>
+</tr>
+</tbody>
+</table>
 
 ## FILES
 
