@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import tempfile
 
+from docker import DockerClient
+
 from test.python.docker import constant
 
 
@@ -141,16 +143,15 @@ class Podman(object):
     def tear_down(self):
         shutil.rmtree(self.anchor_directory, ignore_errors=True)
 
-    def restore_image_from_cache(self, client):
-        img = os.path.join(self.image_cache, constant.ALPINE_TARBALL)
-        if not os.path.exists(img):
-            client.pull(constant.ALPINE)
-            image = client.get_image(constant.ALPINE)
-            with open(img, mode="wb") as tarball:
-                for frame in image:
+    def restore_image_from_cache(self, client: DockerClient):
+        path = os.path.join(self.image_cache, constant.ALPINE_TARBALL)
+        if not os.path.exists(path):
+            img = client.images.pull(constant.ALPINE)
+            with open(path, mode="wb") as tarball:
+                for frame in img.save(named=True):
                     tarball.write(frame)
         else:
-            self.run("load", "-i", img, check=True)
+            self.run("load", "-i", path, check=True)
 
     def flush_image_cache(self):
         for f in pathlib.Path(self.image_cache).glob("*.tar"):

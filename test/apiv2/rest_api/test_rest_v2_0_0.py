@@ -165,11 +165,34 @@ class TestApi(unittest.TestCase):
         r = requests.get(_url(ctnr("/containers/{}/logs?stdout=true")))
         self.assertEqual(r.status_code, 200, r.text)
 
-    def test_post_create(self):
-        self.skipTest("TODO: create request body")
-        r = requests.post(_url("/containers/create?args=True"))
-        self.assertEqual(r.status_code, 200, r.text)
-        json.loads(r.text)
+    def test_post_create_compat(self):
+        """Create network and container then connect to network"""
+        net = requests.post(
+            PODMAN_URL + "/v1.40/networks/create", json={"Name": "TestNetwork"}
+        )
+        self.assertEqual(net.status_code, 201, net.text)
+
+        create = requests.post(
+            PODMAN_URL + "/v1.40/containers/create?name=postCreate",
+            json={
+                "Cmd": ["date"],
+                "Image": "alpine:latest",
+                "NetworkDisabled": False,
+                "NetworkConfig": {
+                    "EndpointConfig": {"TestNetwork": {"Aliases": ["test_post_create"]}}
+                },
+            },
+        )
+        self.assertEqual(create.status_code, 201, create.text)
+        payload = json.loads(create.text)
+        self.assertIsNotNone(payload["Id"])
+
+        connect = requests.post(
+            PODMAN_URL + "/v1.40/networks/TestNetwork/connect",
+            json={"Container": payload["Id"]},
+        )
+        self.assertEqual(connect.status_code, 200, create.text)
+        self.assertEqual(connect.text, "OK\n")
 
     def test_commit(self):
         r = requests.post(_url(ctnr("/commit?container={}")))
