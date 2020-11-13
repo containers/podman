@@ -14,7 +14,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -128,6 +127,7 @@ func buildFlags(flags *pflag.FlagSet) {
 	}
 	flags.AddFlagSet(&fromAndBudFlags)
 	_ = flags.MarkHidden("signature-policy")
+	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
 }
 
 // build executes the build command.
@@ -314,20 +314,9 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		}
 	}
 
-	nsValues, err := getNsValues(flags)
+	nsValues, networkPolicy, err := parse.NamespaceOptions(c)
 	if err != nil {
 		return nil, err
-	}
-
-	networkPolicy := buildah.NetworkDefault
-	for _, ns := range nsValues {
-		if ns.Name == "none" {
-			networkPolicy = buildah.NetworkDisabled
-			break
-		} else if !filepath.IsAbs(ns.Path) {
-			networkPolicy = buildah.NetworkEnabled
-			break
-		}
 	}
 
 	// `buildah bud --layers=false` acts like `docker build --squash` does.
@@ -449,29 +438,4 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	return &entities.BuildOptions{BuildOptions: opts}, nil
-}
-
-func getNsValues(flags *buildFlagsWrapper) ([]buildah.NamespaceOption, error) {
-	var ret []buildah.NamespaceOption
-	if flags.Network != "" {
-		switch {
-		case flags.Network == "host":
-			ret = append(ret, buildah.NamespaceOption{
-				Name: string(specs.NetworkNamespace),
-				Host: true,
-			})
-		case flags.Network == "container":
-			ret = append(ret, buildah.NamespaceOption{
-				Name: string(specs.NetworkNamespace),
-			})
-		case flags.Network[0] == '/':
-			ret = append(ret, buildah.NamespaceOption{
-				Name: string(specs.NetworkNamespace),
-				Path: flags.Network,
-			})
-		default:
-			return nil, errors.Errorf("unsupported configuration network=%s", flags.Network)
-		}
-	}
-	return ret, nil
 }

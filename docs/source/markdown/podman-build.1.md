@@ -394,7 +394,7 @@ The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
-#### **--network**=*mode*
+#### **--network**=*mode*, **--net**
 
 Sets the configuration for network namespaces when handling `RUN` instructions.
 
