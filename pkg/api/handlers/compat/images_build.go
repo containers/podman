@@ -272,15 +272,13 @@ loop:
 			flush()
 		case <-runCtx.Done():
 			if !failed {
-				if utils.IsLibpodRequest(r) {
-					m.Stream = imageID
-				} else {
+				if !utils.IsLibpodRequest(r) {
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
+					if err := enc.Encode(m); err != nil {
+						logrus.Warnf("Failed to json encode error %q", err.Error())
+					}
+					flush()
 				}
-				if err := enc.Encode(m); err != nil {
-					logrus.Warnf("Failed to json encode error %q", err.Error())
-				}
-				flush()
 			}
 			break loop
 		}

@@ -187,7 +187,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		case s.Stream != "":
 			stdout.Write([]byte(s.Stream))
 			if re.Match([]byte(s.Stream)) {
-				id = s.Stream
+				id = strings.TrimSuffix(s.Stream, "\n")
 			}
 		case s.Error != "":
 			return nil, errors.New(s.Error)
