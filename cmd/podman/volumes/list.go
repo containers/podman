@@ -73,11 +73,11 @@ func list(cmd *cobra.Command, args []string) error {
 		lsOpts.Filter = make(map[string][]string)
 	}
 	for _, f := range cliOpts.Filter {
-		filterSplit := strings.Split(f, "=")
+		filterSplit := strings.SplitN(f, "=", 2)
 		if len(filterSplit) < 2 {
 			return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 		}
-		lsOpts.Filter[filterSplit[0]] = append(lsOpts.Filter[filterSplit[0]], filterSplit[1:]...)
+		lsOpts.Filter[filterSplit[0]] = append(lsOpts.Filter[filterSplit[0]], filterSplit[1])
 	}
 	responses, err := registry.ContainerEngine().VolumeList(context.Background(), lsOpts)
 	if err != nil {
