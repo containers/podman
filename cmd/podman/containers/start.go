@@ -21,6 +21,7 @@ var (
 		Short:             "Start one or more containers",
 		Long:              startDescription,
 		RunE:              start,
+		Args:              validateStart,
 		ValidArgsFunction: common.AutocompleteContainersStartable,
 		Example: `podman start --latest
   podman start 860a4b231279 5421ab43b45
@@ -32,6 +33,7 @@ var (
 		Short:             startCommand.Short,
 		Long:              startCommand.Long,
 		RunE:              startCommand.RunE,
+		Args:              startCommand.Args,
 		ValidArgsFunction: startCommand.ValidArgsFunction,
 		Example: `podman container start --latest
   podman container start 860a4b231279 5421ab43b45
@@ -76,8 +78,7 @@ func init() {
 	validate.AddLatestFlag(containerStartCommand, &startOptions.Latest)
 }
 
-func start(cmd *cobra.Command, args []string) error {
-	var errs utils.OutputErrors
+func validateStart(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 && !startOptions.Latest {
 		return errors.New("start requires at least one argument")
 	}
@@ -87,7 +88,11 @@ func start(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 && startOptions.Attach {
 		return errors.Errorf("you cannot start and attach multiple containers at once")
 	}
+	return nil
+}
 
+func start(cmd *cobra.Command, args []string) error {
+	var errs utils.OutputErrors
 	sigProxy := startOptions.SigProxy || startOptions.Attach
 	if cmd.Flag("sig-proxy").Changed {
 		sigProxy = startOptions.SigProxy

@@ -88,7 +88,7 @@ func GeneratePodFilterFunc(filter, filterValue string) (
 			return match
 		}, nil
 	case "status":
-		if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created"}) {
+		if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created", "degraded"}) {
 			return nil, errors.Errorf("%s is not a valid pod status", filterValue)
 		}
 		return func(p *libpod.Pod) bool {
