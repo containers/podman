@@ -221,6 +221,11 @@ EOF
     run_podman run --rm build_test pwd
     is "$output" "$workdir" "pwd command in container"
 
+    # Determine buildah version, so we can confirm it gets into Labels
+    run_podman info --format '{{ .Host.BuildahVersion }}'
+    is "$output" "[1-9][0-9.-]\+" ".Host.BuildahVersion is reasonable"
+    buildah_version=$output
+
     # Confirm that 'podman inspect' shows the expected values
     # FIXME: can we rely on .Env[0] being PATH, and the rest being in order??
     run_podman image inspect build_test
@@ -239,6 +244,7 @@ Cmd[0]             | /bin/mydefaultcmd
 Cmd[1]             | $s_echo
 WorkingDir         | $workdir
 Labels.$label_name | $label_value
+Labels.\"io.buildah.version\" | $buildah_version
 "
 
     parse_table "$tests" | while read field expect; do

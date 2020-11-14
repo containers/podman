@@ -198,7 +198,7 @@ WORKDIR /test
 		Expect(result.OutputToString()).To(Equal("/test"))
 	})
 
-	It("podman images filter after image", func() {
+	It("podman images filter since image", func() {
 		podmanTest.RestoreAllArtifacts()
 		rmi := podmanTest.PodmanNoCache([]string{"rmi", "busybox"})
 		rmi.WaitWithDefaultTimeout()
@@ -207,7 +207,7 @@ WORKDIR /test
 		dockerfile := `FROM quay.io/libpod/alpine:latest
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "after=quay.io/libpod/alpine:latest"})
+		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "since=quay.io/libpod/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(0))
