@@ -40,6 +40,8 @@ $ podman volume ls --format json
 $ podman volume ls --format "{{.Driver}} {{.Scope}}"
 
 $ podman volume ls --filter name=foo,label=blue
+
+$ podman volume ls --filter label=key=value
 ```
 
 ## SEE ALSO
