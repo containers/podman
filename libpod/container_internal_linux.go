@@ -1354,6 +1354,14 @@ func (c *Container) makeBindMounts() error {
 				return err
 			}
 		}
+	} else {
+		if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
+			newHosts, err := c.generateHosts("/etc/hosts")
+			if err != nil {
+				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+			}
+			c.state.BindMounts["/etc/hosts"] = newHosts
+		}
 	}
 
 	// SHM is always added when we mount the container
@@ -1614,14 +1622,11 @@ func (c *Container) getHosts() string {
 			}
 			if !hasNetNS {
 				// 127.0.1.1 and host's hostname to match Docker
-				osHostname, err := os.Hostname()
-				if err != nil {
-					osHostname = c.Hostname()
-				}
-				hosts += fmt.Sprintf("127.0.1.1 %s\n", osHostname)
+				osHostname, _ := os.Hostname()
+				hosts += fmt.Sprintf("127.0.1.1 %s %s %s\n", osHostname, c.Hostname(), c.config.Name)
 			}
 			if netNone {
-				hosts += fmt.Sprintf("127.0.1.1 %s\n", c.Hostname())
+				hosts += fmt.Sprintf("127.0.1.1 %s %s\n", c.Hostname(), c.config.Name)
 			}
 		}
 	}
