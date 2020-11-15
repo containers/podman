@@ -3,10 +3,18 @@
 load helpers
 
 @test "podman images - basic output" {
-    run_podman images -a
+    headings="REPOSITORY *TAG *IMAGE ID *CREATED *SIZE"
 
-    is "${lines[0]}" "REPOSITORY *TAG *IMAGE ID *CREATED *SIZE" "header line"
+    run_podman images -a
+    is "${lines[0]}" "$headings" "header line"
     is "${lines[1]}" "$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME *$PODMAN_TEST_IMAGE_TAG *[0-9a-f]\+" "podman images output"
+
+    # 'podman images' should emit headings even if there are no images
+    # (but --root only works locally)
+    if ! is_remote; then
+        run_podman --root ${PODMAN_TMPDIR}/nothing-here-move-along images
+        is "$output" "$headings" "'podman images' emits headings even w/o images"
+    fi
 }
 
 @test "podman images - custom formats" {

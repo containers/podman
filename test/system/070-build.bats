@@ -318,6 +318,63 @@ EOF
     run_podman rmi -f build_test
 }
 
+# #8092 - podman build should not gobble stdin (Fixes: #8066)
+@test "podman build - does not gobble stdin that does not belong to it" {
+    random1=random1-$(random_string 12)
+    random2=random2-$(random_string 15)
+    random3=random3-$(random_string 12)
+
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    cat >$tmpdir/Containerfile <<EOF
+FROM $IMAGE
+RUN echo x${random2}y
+EOF
+
+    # This is a little rococo, bear with me please. #8092 fixed a bug
+    # in which 'podman build' would slurp up any input in the pipeline.
+    # Not a problem in a contrived example such as the one below, but
+    # definitely a problem when running commands in a pipeline to bash:
+    # all commands after 'podman build' would silently be ignored.
+    # In the test below, prior to #8092, the 'sed' would not get
+    # any input, and we would never see $random3 in the output.
+    # And, we use 'sed' to massage $random3 juuuuust on the remote
+    # chance that podman itself could pass stdin through.
+    results=$(echo $random3 | (
+                  echo $random1
+                  run_podman build -t build_test $tmpdir
+                  sed -e 's/^/a/' -e 's/$/z/'
+              ))
+
+    # First simple test: confirm that we see the piped-in string, as
+    # massaged by sed. This fails in 287edd4e2, the commit before #8092.
+    # We do this before the thorough test (below) because, should it
+    # fail, the diagnostic is much clearer and easier to understand.
+    is "$results" ".*a${random3}z" "stdin remains after podman-build"
+
+    # More thorough test: verify all the required strings in order.
+    # This is unlikely to fail, but it costs us nothing and could
+    # catch a regression somewhere else.
+    # FIXME: podman-remote output differs from local: #8342 (spurious ^M)
+    # FIXME: podman-remote output differs from local: #8343 (extra SHA output)
+    remote_extra=""
+    if is_remote; then remote_extra=".*";fi
+    expect="${random1}
+.*
+STEP 1: FROM $IMAGE
+STEP 2: RUN echo x${random2}y
+x${random2}y${remote_extra}
+STEP 3: COMMIT build_test${remote_extra}
+--> [0-9a-f]\{11\}
+[0-9a-f]\{64\}
+a${random3}z"
+
+    is "$results" "$expect" "Full output from 'podman build' pipeline"
+
+    run_podman rmi -f build_test
+}
+
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent

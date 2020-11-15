@@ -162,7 +162,8 @@ EOF
     myvol=myvol$(random_string)
     rand=$(random_string)
 
-    run_podman run --rm -v $myvol:/myvol:z $IMAGE \
+    # Duplicate "-v" confirms #8307, fix for double-lock on same volume
+    run_podman run --rm -v $myvol:/myvol:z -v $myvol:/myvol2:z $IMAGE \
                sh -c "echo $rand >/myvol/myfile"
     run_podman volume ls -q
     is "$output" "$myvol" "autocreated named container persists"
