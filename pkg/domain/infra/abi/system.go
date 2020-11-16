@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -231,17 +232,25 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	dfContainers := make([]*entities.SystemDfContainerReport, 0, len(cons))
 	for _, c := range cons {
 		iid, _ := c.Image()
-		conSize, err := c.RootFsSize()
-		if err != nil {
-			return nil, err
-		}
 		state, err := c.State()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "Failed to get state of container %s", c.ID())
+		}
+		conSize, err := c.RootFsSize()
+		if err != nil {
+			if errors.Cause(err) == storage.ErrContainerUnknown {
+				logrus.Error(errors.Wrapf(err, "Failed to get root file system size of container %s", c.ID()))
+			} else {
+				return nil, errors.Wrapf(err, "Failed to get root file system size of container %s", c.ID())
+			}
 		}
 		rwsize, err := c.RWSize()
 		if err != nil {
-			return nil, err
+			if errors.Cause(err) == storage.ErrContainerUnknown {
+				logrus.Error(errors.Wrapf(err, "Failed to get read/write size of container %s", c.ID()))
+			} else {
+				return nil, errors.Wrapf(err, "Failed to get read/write size of container %s", c.ID())
+			}
 		}
 		report := entities.SystemDfContainerReport{
 			ContainerID:  c.ID(),
