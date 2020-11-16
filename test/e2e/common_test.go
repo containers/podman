@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -71,6 +72,8 @@ type testResult struct {
 	length float64
 }
 
+var noCache = "Cannot run nocache with remote"
+
 type testResultsSorted []testResult
 
 func (a testResultsSorted) Len() int      { return len(a) }
@@ -100,10 +103,16 @@ func TestLibpod(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	// make cache dir
+	if err := os.MkdirAll(ImageCacheDir, 0777); err != nil {
+		fmt.Printf("%q\n", err)
+		os.Exit(1)
+	}
+
 	// Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	podman := PodmanTestCreate("/tmp")
+	podman := PodmanTestSetup("/tmp")
 	podman.ArtifactPath = ARTIFACT_DIR
 	if _, err := os.Stat(ARTIFACT_DIR); os.IsNotExist(err) {
 		if err = os.Mkdir(ARTIFACT_DIR, 0777); err != nil {
@@ -112,16 +121,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		}
 	}
 
-	// make cache dir
-	if err := os.MkdirAll(ImageCacheDir, 0777); err != nil {
-		fmt.Printf("%q\n", err)
-		os.Exit(1)
-	}
-
-	for _, image := range CACHE_IMAGES {
+	// Pull cirros but dont put it into the cache
+	pullImages := []string{cirros, fedoraToolbox}
+	pullImages = append(pullImages, CACHE_IMAGES...)
+	for _, image := range pullImages {
 		podman.createArtifact(image)
 	}
 
+	if err := os.MkdirAll(filepath.Join(ImageCacheDir, podman.ImageCacheFS+"-images"), 0777); err != nil {
+		fmt.Printf("%q\n", err)
+		os.Exit(1)
+	}
+	podman.CrioRoot = ImageCacheDir
 	// If running localized tests, the cache dir is created and populated. if the
 	// tests are remote, this is a no-op
 	populateCache(podman)
@@ -290,17 +301,10 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	return p
 }
 
-// RestoreAllArtifacts unpacks all cached images
-func (p *PodmanTestIntegration) RestoreAllArtifacts() error {
-	if os.Getenv("NO_TEST_CACHE") != "" {
-		return nil
+func (p PodmanTestIntegration) AddImageToRWStore(image string) {
+	if err := p.RestoreArtifact(image); err != nil {
+		logrus.Errorf("unable to restore %s to RW store", image)
 	}
-	for _, image := range RESTORE_IMAGES {
-		if err := p.RestoreArtifact(image); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // createArtifact creates a cached image in the artifact dir
@@ -424,7 +428,7 @@ func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers 
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
 	err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).To(BeNil())
-	session := p.PodmanNoCache([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
+	session := p.Podman([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
 	session.Wait(120)
 	Expect(session).Should(Exit(0), fmt.Sprintf("BuildImage session output: %q", session.OutputToString()))
 }
@@ -479,23 +483,6 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)
 	}
-}
-
-// PullImages pulls multiple images
-func (p *PodmanTestIntegration) PullImages(images []string) error {
-	for _, i := range images {
-		p.PullImage(i)
-	}
-	return nil
-}
-
-// PullImage pulls a single image
-// TODO should the timeout be configurable?
-func (p *PodmanTestIntegration) PullImage(image string) error {
-	session := p.PodmanNoCache([]string{"pull", image})
-	session.Wait(60)
-	Expect(session.ExitCode()).To(Equal(0))
-	return nil
 }
 
 // InspectContainerToJSON takes the session output of an inspect
@@ -557,12 +544,6 @@ func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSe
 	}
 	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
 	return p.Podman(podmanArgs)
-}
-
-func (p *PodmanTestIntegration) ImageExistsInMainStore(idOrName string) bool {
-	results := p.PodmanNoCache([]string{"image", "exists", idOrName})
-	results.WaitWithDefaultTimeout()
-	return Expect(results.ExitCode()).To(Equal(0))
 }
 
 func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
@@ -684,4 +665,126 @@ func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd
 func (p *PodmanTestIntegration) RestartRemoteService() {
 	p.StopRemoteService()
 	p.StartRemoteService()
+}
+
+// RestoreArtifactToCache populates the imagecache from tarballs that were cached earlier
+func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
+	fmt.Printf("Restoring %s...\n", image)
+	dest := strings.Split(image, "/")
+	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+	p.CrioRoot = p.ImageCacheDir
+	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
+	restore.WaitWithDefaultTimeout()
+	return nil
+}
+
+func populateCache(podman *PodmanTestIntegration) {
+	for _, image := range CACHE_IMAGES {
+		podman.RestoreArtifactToCache(image)
+	}
+	// logformatter uses this to recognize the first test
+	fmt.Printf("-----------------------------\n")
+}
+
+func removeCache() {
+	// Remove cache dirs
+	if err := os.RemoveAll(ImageCacheDir); err != nil {
+		fmt.Printf("%q\n", err)
+	}
+}
+
+// PodmanNoCache calls the podman command with no configured imagecache
+func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanBase(args, false, true)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
+func PodmanTestSetup(tempDir string) *PodmanTestIntegration {
+	return PodmanTestCreateUtil(tempDir, false)
+}
+
+// PodmanNoEvents calls the Podman command without an imagecache and without an
+// events backend. It is used mostly for caching and uncaching images.
+func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanBase(args, true, true)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
+// MakeOptions assembles all the podman main options
+func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
+	if p.RemoteTest {
+		return args
+	}
+	var debug string
+	if _, ok := os.LookupEnv("DEBUG"); ok {
+		debug = "--log-level=debug --syslog=true "
+	}
+
+	eventsType := "file"
+	if noEvents {
+		eventsType = "none"
+	}
+
+	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
+		debug, p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
+	if os.Getenv("HOOK_OPTION") != "" {
+		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
+	}
+
+	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
+	if !noCache {
+		cacheOptions := []string{"--storage-opt",
+			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
+		podmanOptions = append(cacheOptions, podmanOptions...)
+	}
+	podmanOptions = append(podmanOptions, args...)
+	return podmanOptions
+}
+
+func writeConf(conf []byte, confPath string) {
+	if err := ioutil.WriteFile(confPath, conf, 777); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func removeConf(confPath string) {
+	if err := os.Remove(confPath); err != nil {
+		fmt.Println(err)
+	}
+}
+
+// generateNetworkConfig generates a cni config with a random name
+// it returns the network name and the filepath
+func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
+	// generate a random name to prevent conflicts with other tests
+	name := "net" + stringid.GenerateNonCryptoID()
+	path := filepath.Join(p.CNIConfigDir, fmt.Sprintf("%s.conflist", name))
+	conf := fmt.Sprintf(`{
+		"cniVersion": "0.3.0",
+		"name": "%s",
+		"plugins": [
+		  {
+			"type": "bridge",
+			"bridge": "cni1",
+			"isGateway": true,
+			"ipMasq": true,
+			"ipam": {
+				"type": "host-local",
+				"subnet": "10.99.0.0/16",
+				"routes": [
+					{ "dst": "0.0.0.0/0" }
+				]
+			}
+		  },
+		  {
+			"type": "portmap",
+			"capabilities": {
+			  "portMappings": true
+			}
+		  }
+		]
+	}`, name)
+	writeConf([]byte(conf), path)
+
+	return name, path
 }

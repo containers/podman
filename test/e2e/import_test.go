@@ -62,11 +62,14 @@ var _ = Describe("Podman import", func() {
 		export.WaitWithDefaultTimeout()
 		Expect(export.ExitCode()).To(Equal(0))
 
-		importImage := podmanTest.PodmanNoCache([]string{"import", outfile})
+		importImage := podmanTest.Podman([]string{"import", outfile})
 		importImage.WaitWithDefaultTimeout()
 		Expect(importImage.ExitCode()).To(Equal(0))
 
-		Expect(podmanTest.ImageExistsInMainStore(importImage.OutputToString())).To(BeTrue())
+		// tag the image which proves it is in R/W storage
+		tag := podmanTest.Podman([]string{"tag", importImage.OutputToString(), "foo"})
+		tag.WaitWithDefaultTimeout()
+		Expect(tag.ExitCode()).To(BeZero())
 	})
 
 	It("podman import with message flag", func() {

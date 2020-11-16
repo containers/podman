@@ -66,15 +66,16 @@ var _ = Describe("podman system df", func() {
 	})
 
 	It("podman system df image with no tag", func() {
-		session := podmanTest.PodmanNoCache([]string{"create", ALPINE})
+		podmanTest.AddImageToRWStore(ALPINE)
+		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.PodmanNoCache([]string{"image", "untag", ALPINE})
+		session = podmanTest.Podman([]string{"image", "untag", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.PodmanNoCache([]string{"system", "df"})
+		session = podmanTest.Podman([]string{"system", "df"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})

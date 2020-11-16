@@ -46,21 +46,6 @@ func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os
 	return &PodmanSessionIntegration{podmanSession}
 }
 
-// PodmanNoCache calls podman with out adding the imagecache
-func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
-	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
-	remoteArgs = append(remoteArgs, args...)
-	podmanSession := p.PodmanBase(remoteArgs, false, true)
-	return &PodmanSessionIntegration{podmanSession}
-}
-
-// PodmanNoEvents calls the Podman command without an imagecache and without an
-// events backend. It is used mostly for caching and uncaching images.
-func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, true, true)
-	return &PodmanSessionIntegration{podmanSession}
-}
-
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := filepath.Join(INTEGRATION_ROOT, "test/registries.conf")
 	os.Setenv("REGISTRIES_CONFIG_PATH", defaultFile)
@@ -93,6 +78,9 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 	remoteSocket := p.RemoteSocket
 	args = append(args, "system", "service", "--time", "0", remoteSocket)
 	podmanOptions := getRemoteOptions(p, args)
+	cacheOptions := []string{"--storage-opt",
+		fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
+	podmanOptions = append(cacheOptions, podmanOptions...)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
@@ -154,11 +142,6 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 }
 
 //MakeOptions assembles all the podman main options
-func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
-	return args
-}
-
-//MakeOptions assembles all the podman main options
 func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s",
 		p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager), " ")
@@ -170,19 +153,9 @@ func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	return podmanOptions
 }
 
-func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
-	fmt.Printf("Restoring %s...\n", image)
-	dest := strings.Split(image, "/")
-	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	p.CrioRoot = p.ImageCacheDir
-	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
-	restore.WaitWithDefaultTimeout()
-	return nil
-}
-
 // SeedImages restores all the artifacts into the main store for remote tests
 func (p *PodmanTestIntegration) SeedImages() error {
-	return p.RestoreAllArtifacts()
+	return nil
 }
 
 // RestoreArtifact puts the cached image into our test store
@@ -212,6 +185,3 @@ func (p *PodmanTestIntegration) DelayForService() error {
 	}
 	return errors.New("Service not detected")
 }
-
-func populateCache(podman *PodmanTestIntegration) {}
-func removeCache()                                {}

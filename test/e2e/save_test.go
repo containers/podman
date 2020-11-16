@@ -28,7 +28,6 @@ var _ = Describe("Podman save", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
@@ -41,7 +40,7 @@ var _ = Describe("Podman save", func() {
 	It("podman save output flag", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
-		save := podmanTest.PodmanNoCache([]string{"save", "-o", outfile, ALPINE})
+		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
@@ -49,7 +48,7 @@ var _ = Describe("Podman save", func() {
 	It("podman save oci flag", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
-		save := podmanTest.PodmanNoCache([]string{"save", "-o", outfile, "--format", "oci-archive", ALPINE})
+		save := podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
@@ -58,7 +57,7 @@ var _ = Describe("Podman save", func() {
 		Skip("Pipe redirection in ginkgo probably won't work")
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
-		save := podmanTest.PodmanNoCache([]string{"save", ALPINE, ">", outfile})
+		save := podmanTest.Podman([]string{"save", ALPINE, ">", outfile})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
@@ -66,7 +65,7 @@ var _ = Describe("Podman save", func() {
 	It("podman save quiet flag", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
-		save := podmanTest.PodmanNoCache([]string{"save", "-q", "-o", outfile, ALPINE})
+		save := podmanTest.Podman([]string{"save", "-q", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
@@ -74,7 +73,7 @@ var _ = Describe("Podman save", func() {
 	It("podman save bogus image", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
-		save := podmanTest.PodmanNoCache([]string{"save", "-o", outfile, "FOOBAR"})
+		save := podmanTest.Podman([]string{"save", "-o", outfile, "FOOBAR"})
 		save.WaitWithDefaultTimeout()
 		Expect(save).To(ExitWithError())
 	})
@@ -85,7 +84,7 @@ var _ = Describe("Podman save", func() {
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
-		save := podmanTest.PodmanNoCache([]string{"save", "--format", "oci-dir", "-o", outdir, ALPINE})
+		save := podmanTest.Podman([]string{"save", "--format", "oci-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
@@ -96,7 +95,7 @@ var _ = Describe("Podman save", func() {
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
-		save := podmanTest.PodmanNoCache([]string{"save", "--format", "docker-dir", "-o", outdir, ALPINE})
+		save := podmanTest.Podman([]string{"save", "--format", "docker-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
@@ -107,7 +106,7 @@ var _ = Describe("Podman save", func() {
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
-		save := podmanTest.PodmanNoCache([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
+		save := podmanTest.Podman([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
@@ -115,12 +114,13 @@ var _ = Describe("Podman save", func() {
 	It("podman save bad filename", func() {
 		outdir := filepath.Join(podmanTest.TempDir, "save:colon")
 
-		save := podmanTest.PodmanNoCache([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
+		save := podmanTest.Podman([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save).To(ExitWithError())
 	})
 
 	It("podman save remove signature", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
 		SkipIfRootless("FIXME: Need get in rootless push sign")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
@@ -187,13 +187,13 @@ default-docker:
 
 	It("podman save image with digest reference", func() {
 		// pull a digest reference
-		session := podmanTest.PodmanNoCache([]string{"pull", ALPINELISTDIGEST})
+		session := podmanTest.Podman([]string{"pull", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		// save a digest reference should exit without error.
 		outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
-		save := podmanTest.PodmanNoCache([]string{"save", "-o", outfile, ALPINELISTDIGEST})
+		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINELISTDIGEST})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 	})
@@ -204,7 +204,7 @@ default-docker:
 
 	It("podman save --multi-image-archive (untagged images)", func() {
 		// Refer to images via ID instead of tag.
-		session := podmanTest.PodmanNoCache([]string{"images", "--format", "{{.ID}}"})
+		session := podmanTest.Podman([]string{"images", "--format", "{{.ID}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		ids := session.OutputToStringArray()
@@ -219,17 +219,17 @@ default-docker:
 func multiImageSave(podmanTest *PodmanTestIntegration, images []string) {
 	// Create the archive.
 	outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
-	session := podmanTest.PodmanNoCache(append([]string{"save", "-o", outfile, "--multi-image-archive"}, images...))
+	session := podmanTest.Podman(append([]string{"save", "-o", outfile, "--multi-image-archive"}, images...))
 	session.WaitWithDefaultTimeout()
 	Expect(session.ExitCode()).To(Equal(0))
 
 	// Remove all images.
-	session = podmanTest.PodmanNoCache([]string{"rmi", "-af"})
+	session = podmanTest.Podman([]string{"rmi", "-af"})
 	session.WaitWithDefaultTimeout()
 	Expect(session.ExitCode()).To(Equal(0))
 
 	// Now load the archive.
-	session = podmanTest.PodmanNoCache([]string{"load", "-i", outfile})
+	session = podmanTest.Podman([]string{"load", "-i", outfile})
 	session.WaitWithDefaultTimeout()
 	Expect(session.ExitCode()).To(Equal(0))
 	// Grep for each image in the `podman load` output.
@@ -240,7 +240,7 @@ func multiImageSave(podmanTest *PodmanTestIntegration, images []string) {
 
 	// Make sure that each image has really been loaded.
 	for _, image := range images {
-		session = podmanTest.PodmanNoCache([]string{"image", "exists", image})
+		session = podmanTest.Podman([]string{"image", "exists", image})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	}

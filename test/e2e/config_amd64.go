@@ -12,4 +12,5 @@ var (
 	labels                   = "quay.io/libpod/alpine_labels:latest"
 	ubi_minimal              = "registry.access.redhat.com/ubi8-minimal"
 	ubi_init                 = "registry.access.redhat.com/ubi8-init"
+	cirros                   = "quay.io/libpod/cirros:latest"
 )
