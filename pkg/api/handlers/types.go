@@ -110,11 +110,12 @@ type ContainerWaitOKBody struct {
 	}
 }
 
+// CreateContainerConfig used when compatible endpoint creates a container
 type CreateContainerConfig struct {
-	Name string
-	dockerContainer.Config
-	HostConfig       dockerContainer.HostConfig
-	NetworkingConfig dockerNetwork.NetworkingConfig
+	Name                   string                         // container name
+	dockerContainer.Config                                // desired container configuration
+	HostConfig             dockerContainer.HostConfig     // host dependent configuration for container
+	NetworkingConfig       dockerNetwork.NetworkingConfig // network configuration for container
 }
 
 // swagger:model IDResponse
@@ -253,7 +254,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		//	StdinOnce:       false,
 		Env: info.Config.Env,
 		Cmd: info.Config.Cmd,
-		//Healthcheck: l.ImageData.HealthCheck,
+		// Healthcheck: l.ImageData.HealthCheck,
 		//	ArgsEscaped:     false,
 		//	Image:           "",
 		Volumes:    info.Config.Volumes,
@@ -261,7 +262,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		Entrypoint: info.Config.Entrypoint,
 		//	NetworkDisabled: false,
 		//	MacAddress:      "",
-		//OnBuild:    info.Config.OnBuild,
+		// OnBuild:    info.Config.OnBuild,
 		Labels:     info.Labels,
 		StopSignal: info.Config.StopSignal,
 		//	StopTimeout:     nil,

@@ -19,7 +19,6 @@ import (
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	input := handlers.CreateContainerConfig{}
 	query := struct {
 		Name string `schema:"name"`
 	}{
@@ -30,11 +29,15 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+
+	// compatible configuration
+	body := handlers.CreateContainerConfig{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	if len(input.HostConfig.Links) > 0 {
+
+	if len(body.HostConfig.Links) > 0 {
 		utils.Error(w, utils.ErrLinkNotSupport.Error(), http.StatusBadRequest, errors.Wrapf(utils.ErrLinkNotSupport, "bad parameter"))
 		return
 	}
@@ -43,7 +46,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "unable to obtain runtime config", http.StatusInternalServerError, errors.Wrap(err, "unable to get runtime config"))
 	}
 
-	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
+	newImage, err := runtime.ImageRuntime().NewFromLocal(body.Config.Image)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchImage {
 			utils.Error(w, "No such image", http.StatusNotFound, err)
@@ -54,11 +57,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add the container name to the input struct
-	input.Name = query.Name
-
-	// Take input structure and convert to cliopts
-	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(input, rtc.Engine.CgroupManager)
+	// Take body structure and convert to cliopts
+	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(body, rtc.Engine.CgroupManager)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "make cli opts()"))
 		return
@@ -68,6 +68,9 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "fill out specgen"))
 		return
 	}
+
+	// Override the container name in the body struct
+	body.Name = query.Name
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.ContainerCreate(r.Context(), sg)
