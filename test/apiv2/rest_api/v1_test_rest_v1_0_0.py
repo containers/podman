@@ -84,9 +84,7 @@ class TestApi(unittest.TestCase):
             print("\nService Stderr:\n" + stderr.decode("utf-8"))
 
         if TestApi.podman.returncode > 0:
-            sys.stderr.write(
-                "podman exited with error code {}\n".format(TestApi.podman.returncode)
-            )
+            sys.stderr.write("podman exited with error code {}\n".format(TestApi.podman.returncode))
             sys.exit(2)
 
         return super().tearDownClass()

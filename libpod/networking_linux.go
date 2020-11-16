@@ -900,7 +900,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	// If we have CNI networks - handle that here
 	if len(networks) > 0 && !isDefault {
 		if len(networks) != len(c.state.NetworkStatus) {
-			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(networks), len(c.state.NetworkStatus))
+			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI network(s) %v, but have information on %d network(s)", len(networks), networks, len(c.state.NetworkStatus))
 		}
 
 		settings.Networks = make(map[string]*define.InspectAdditionalNetwork)
