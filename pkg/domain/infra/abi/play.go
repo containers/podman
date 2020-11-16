@@ -297,20 +297,22 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		containers = append(containers, ctr)
 	}
 
-	//start the containers
-	podStartErrors, err := pod.Start(ctx)
-	if err != nil {
-		return nil, err
-	}
+	if options.Start != types.OptionalBoolFalse {
+		//start the containers
+		podStartErrors, err := pod.Start(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	// Previous versions of playkube started containers individually and then
-	// looked for errors.  Because we now use the uber-Pod start call, we should
-	// iterate the map of possible errors and return one if there is a problem. This
-	// keeps the behavior the same
+		// Previous versions of playkube started containers individually and then
+		// looked for errors.  Because we now use the uber-Pod start call, we should
+		// iterate the map of possible errors and return one if there is a problem. This
+		// keeps the behavior the same
 
-	for _, e := range podStartErrors {
-		if e != nil {
-			return nil, e
+		for _, e := range podStartErrors {
+			if e != nil {
+				return nil, e
+			}
 		}
 	}
 

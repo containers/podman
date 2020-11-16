@@ -32,6 +32,9 @@ func Kube(ctx context.Context, path string, options entities.PlayKubeOptions) (*
 	if options.SkipTLSVerify != types.OptionalBoolUndefined {
 		params.Set("tlsVerify", strconv.FormatBool(options.SkipTLSVerify == types.OptionalBoolTrue))
 	}
+	if options.Start != types.OptionalBoolUndefined {
+		params.Set("start", strconv.FormatBool(options.Start == types.OptionalBoolTrue))
+	}
 
 	// TODO: have a global system context we can pass around (1st argument)
 	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.Authfile, options.Username, options.Password)

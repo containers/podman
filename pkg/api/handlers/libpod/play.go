@@ -23,8 +23,10 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		Network   string `schema:"reference"`
 		TLSVerify bool   `schema:"tlsVerify"`
 		LogDriver string `schema:"logDriver"`
+		Start     bool   `schema:"start"`
 	}{
 		TLSVerify: true,
+		Start:     true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -72,6 +74,9 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+	if _, found := r.URL.Query()["start"]; found {
+		options.Start = types.NewOptionalBool(query.Start)
 	}
 
 	report, err := containerEngine.PlayKube(r.Context(), tmpfile.Name(), options)

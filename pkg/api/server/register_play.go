@@ -29,6 +29,11 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	//    name: logDriver
 	//    type: string
 	//    description: Logging driver for the containers in the pod.
+	//  - in: query
+	//    name: start
+	//    type: boolean
+	//    default: true
+	//    description: Start the pod after creating it.
 	//  - in: body
 	//    name: request
 	//    description: Kubernetes YAML file.
