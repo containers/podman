@@ -142,3 +142,15 @@ func isWhiteOut(stat os.FileInfo) bool {
 	s := stat.Sys().(*syscall.Stat_t)
 	return major(uint64(s.Rdev)) == 0 && minor(uint64(s.Rdev)) == 0
 }
+
+func getFileOwner(path string) (uint32, uint32, uint32, error) {
+	f, err := os.Stat(path)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	s, ok := f.Sys().(*syscall.Stat_t)
+	if ok {
+		return s.Uid, s.Gid, s.Mode & 07777, nil
+	}
+	return 0, 0, uint32(f.Mode()), nil
+}

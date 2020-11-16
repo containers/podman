@@ -3,6 +3,7 @@
 package windows
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -21,7 +22,6 @@ import (
 	"unsafe"
 
 	"github.com/Microsoft/go-winio"
-	"github.com/Microsoft/go-winio/archive/tar"
 	"github.com/Microsoft/go-winio/backuptar"
 	"github.com/Microsoft/hcsshim"
 	"github.com/containers/storage/drivers"
