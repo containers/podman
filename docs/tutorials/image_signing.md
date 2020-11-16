@@ -34,7 +34,7 @@ Now let’s assume that we run a container registry. For example we could simply
 start one on our local machine:
 
 ```bash
-> sudo podman run -d -p 5000:5000 docker.io/registry
+sudo podman run -d -p 5000:5000 docker.io/registry
 ```
 
 The registry does not know anything about image signing, it just provides the remote
@@ -44,11 +44,11 @@ have to take care of how to distribute the signatures.
 Let’s choose a standard `alpine` image for our signing experiment:
 
 ```bash
-> sudo podman pull docker://docker.io/alpine:latest
+sudo podman pull docker://docker.io/alpine:latest
 ```
 
 ```bash
-> sudo podman images alpine
+sudo podman images alpine
 REPOSITORY                 TAG      IMAGE ID       CREATED       SIZE
 docker.io/library/alpine   latest   e7d92cdc71fe   6 weeks ago   5.86 MB
 ```
@@ -56,11 +56,11 @@ docker.io/library/alpine   latest   e7d92cdc71fe   6 weeks ago   5.86 MB
 Now we can re-tag the image to point it to our local registry:
 
 ```bash
-> sudo podman tag alpine localhost:5000/alpine
+sudo podman tag alpine localhost:5000/alpine
 ```
 
 ```bash
-> sudo podman images alpine
+sudo podman images alpine
 REPOSITORY                 TAG      IMAGE ID       CREATED       SIZE
 localhost:5000/alpine      latest   e7d92cdc71fe   6 weeks ago   5.86 MB
 docker.io/library/alpine   latest   e7d92cdc71fe   6 weeks ago   5.86 MB
@@ -84,7 +84,7 @@ We can see that we have two signature stores configured:
 Now, let’s push and sign the image:
 
 ```bash
-> sudo -E GNUPGHOME=$HOME/.gnupg \
+sudo -E GNUPGHOME=$HOME/.gnupg \
     podman push \
     --tls-verify=false \
     --sign-by sgrunert@suse.com \
@@ -97,7 +97,7 @@ If we now take a look at the systems signature storage, then we see that there
 is a new signature available, which was caused by the image push:
 
 ```bash
-> sudo ls /var/lib/containers/sigstore
+sudo ls /var/lib/containers/sigstore
 'alpine@sha256=e9b65ef660a3ff91d28cc50eba84f21798a6c5c39b4dd165047db49e84ae1fb9'
 ```
 
@@ -107,14 +107,14 @@ The default signature store in our edited version of
 the local staging signature store:
 
 ```bash
-> sudo bash -c 'cd /var/lib/containers/sigstore && python3 -m http.server'
+sudo bash -c 'cd /var/lib/containers/sigstore && python3 -m http.server'
 Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 ```
 
 Let’s remove the local images for our verification test:
 
 ```
-> sudo podman rmi docker.io/alpine localhost:5000/alpine
+sudo podman rmi docker.io/alpine localhost:5000/alpine
 ```
 
 We have to write a policy to enforce that the signature has to be valid. This
@@ -142,13 +142,13 @@ below example, copy the `"docker"` entry into the `"transports"` section of your
 The `keyPath` does not exist yet, so we have to put the GPG key there:
 
 ```bash
-> gpg --output /tmp/key.gpg --armor --export sgrunert@suse.com
+gpg --output /tmp/key.gpg --armor --export sgrunert@suse.com
 ```
 
 If we now pull the image:
 
 ```bash
-> sudo podman pull --tls-verify=false localhost:5000/alpine
+sudo podman pull --tls-verify=false localhost:5000/alpine
 …
 Storing signatures
 e7d92cdc71feacf90708cb59182d0df1b911f8ae022d29e8e95d75ca6a99776a
@@ -164,14 +164,14 @@ accessed:
 As an counterpart example, if we specify the wrong key at `/tmp/key.gpg`:
 
 ```bash
-> gpg --output /tmp/key.gpg --armor --export mail@saschagrunert.de
+gpg --output /tmp/key.gpg --armor --export mail@saschagrunert.de
 File '/tmp/key.gpg' exists. Overwrite? (y/N) y
 ```
 
 Then a pull is not possible any more:
 
 ```bash
-> sudo podman pull --tls-verify=false localhost:5000/alpine
+sudo podman pull --tls-verify=false localhost:5000/alpine
 Trying to pull localhost:5000/alpine...
 Error: error pulling image "localhost:5000/alpine": unable to pull localhost:5000/alpine: unable to pull image: Source image rejected: Invalid GPG signature: …
 ```

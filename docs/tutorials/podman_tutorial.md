@@ -41,7 +41,7 @@ Note: If you add *-a* to the *ps* command, Podman will show all containers.
 You can "inspect" a running container for metadata and details about itself.  We can even use
 the inspect subcommand to see what IP address was assigned to the container. As the container is running in rootless mode, an IP address is not assigned and the value will be listed as "none" in the output from inspect.
 ```console
-$ podman inspect -l | grep IPAddress\":
+podman inspect -l | grep IPAddress\":
             "SecondaryIPAddresses": null,
             "IPAddress": "",
 ```
@@ -60,7 +60,7 @@ curl http://<IP_address>:8080
 ### Viewing the container's logs
 You can view the container's logs with Podman as well:
 ```console
-$ sudo podman logs --latest
+podman logs --latest
 10.88.0.1 - - [07/Feb/2018:15:22:11 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
@@ -71,7 +71,7 @@ $ sudo podman logs --latest
 ### Viewing the container's pids
 And you can observe the httpd pid in the container with *top*.
 ```console
-$ sudo podman top <container_id>
+podman top <container_id>
   UID   PID  PPID  C STIME TTY          TIME CMD
     0 31873 31863  0 09:21 ?        00:00:00 nginx: master process nginx -g daemon off;
   101 31889 31873  0 09:21 ?        00:00:00 nginx: worker process
@@ -81,6 +81,8 @@ $ sudo podman top <container_id>
 Checkpointing a container stops the container while writing the state of all processes in the container to disk.
 With this a container can later be restored and continue running at exactly the same point in time as the
 checkpoint. This capability requires CRIU 3.11 or later installed on the system.
+This feature is not supported as rootless; as such, if you wish to try it, you'll need to re-create your container as root, using the same command but with sudo.
+
 To checkpoint the container use:
 ```console
 sudo podman container checkpoint <container_id>
@@ -124,18 +126,18 @@ curl http://<IP_address>:8080
 ### Stopping the container
 To stop the httpd container:
 ```console
-sudo podman stop --latest
+podman stop --latest
 ```
 You can also check the status of one or more containers using the *ps* subcommand. In this case, we should
 use the *-a* argument to list all containers.
 ```console
-sudo podman ps -a
+podman ps -a
 ```
 
 ### Removing the container
 To remove the httpd container:
 ```console
-sudo podman rm --latest
+podman rm --latest
 ```
 You can verify the deletion of the container by running *podman ps -a*.
 
