@@ -492,6 +492,8 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		TargetFile:     options.Export,
 		IgnoreRootfs:   options.IgnoreRootFS,
 		KeepRunning:    options.LeaveRunning,
+		PreDump:        options.PreDump,
+		WithPrevious:   options.WithPrevious,
 	}
 
 	if options.All {

@@ -677,6 +677,10 @@ type ContainerCheckpointOptions struct {
 	// important to be able to restore a container multiple
 	// times with '--import --name'.
 	IgnoreStaticMAC bool
+	// Pre dump the container
+	PreDump bool
+	// dump container with Pre-dump images
+	WithPrevious bool
 }
 
 // Checkpoint checkpoints a container
@@ -685,6 +689,12 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 
 	if options.TargetFile != "" {
 		if err := c.prepareCheckpointExport(); err != nil {
+			return err
+		}
+	}
+
+	if options.WithPrevious {
+		if err := c.canWithPrevious(); err != nil {
 			return err
 		}
 	}

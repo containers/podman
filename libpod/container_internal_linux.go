@@ -938,7 +938,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
-	if !options.KeepRunning {
+	if !options.KeepRunning && !options.PreDump {
 		c.state.State = define.ContainerStateStopped
 
 		// Cleanup Storage and Network
@@ -947,7 +947,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		}
 	}
 
-	if !options.Keep {
+	if !options.Keep && !options.PreDump {
 		cleanup := []string{
 			"dump.log",
 			"stats-dump",

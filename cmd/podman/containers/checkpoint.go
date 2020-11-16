@@ -47,6 +47,8 @@ func init() {
 	flags.BoolVarP(&checkpointOptions.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
 	flags.BoolVarP(&checkpointOptions.LeaveRunning, "leave-running", "R", false, "Leave the container running after writing checkpoint to disk")
 	flags.BoolVar(&checkpointOptions.TCPEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
+	flags.BoolVar(&checkpointOptions.PreDump, "pre-dump", false, "Dump container's memory information only, leave the container running after this")
+	flags.BoolVar(&checkpointOptions.WithPrevious, "with-parent", false, "Checkout container with pre-dump images")
 	flags.BoolVarP(&checkpointOptions.All, "all", "a", false, "Checkpoint all running containers")
 	flags.StringVarP(&checkpointOptions.Export, "export", "e", "", "Export the checkpoint image to a tar.gz")
 	flags.BoolVar(&checkpointOptions.IgnoreRootFS, "ignore-rootfs", false, "Do not include root file-system changes when exporting")

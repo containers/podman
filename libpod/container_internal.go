@@ -134,6 +134,11 @@ func (c *Container) CheckpointPath() string {
 	return filepath.Join(c.bundlePath(), "checkpoint")
 }
 
+// CheckpointPath returns the path to the directory containing the checkpoint
+func (c *Container) PreDumpPath() string {
+	return filepath.Join(c.bundlePath(), "pre-dump")
+}
+
 // AttachSocketPath retrieves the path of the container's attach socket
 func (c *Container) AttachSocketPath() (string, error) {
 	return c.ociRuntime.AttachSocketPath(c)
@@ -2055,6 +2060,11 @@ func (c *Container) prepareCheckpointExport() error {
 	}
 
 	return nil
+}
+
+func (c *Container) canWithPrevious() error {
+	_, err := os.Stat(c.PreDumpPath())
+	return err
 }
 
 // sortUserVolumes sorts the volumes specified for a container

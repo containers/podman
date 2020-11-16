@@ -761,10 +761,14 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	}
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
+	if options.PreDump {
+		imagePath = ctr.PreDumpPath()
+	}
 	// workPath will be used to store dump.log and stats-dump
 	workPath := ctr.bundlePath()
 	logrus.Debugf("Writing checkpoint to %s", imagePath)
 	logrus.Debugf("Writing checkpoint logs to %s", workPath)
+	logrus.Debugf("Pre-dump the container %t", options.PreDump)
 	args := []string{}
 	args = append(args, r.runtimeFlags...)
 	args = append(args, "checkpoint")
@@ -772,11 +776,18 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	args = append(args, imagePath)
 	args = append(args, "--work-path")
 	args = append(args, workPath)
-	if options.KeepRunning {
-		args = append(args, "--leave-running")
-	}
 	if options.TCPEstablished {
 		args = append(args, "--tcp-established")
+	}
+	if !options.PreDump && options.KeepRunning {
+		args = append(args, "--leave-running")
+	}
+
+	if !options.PreDump && options.WithPrevious {
+		args = append(args, "--parent-path", ctr.PreDumpPath())
+	}
+	if options.PreDump {
+		args = append(args, "--pre-dump")
 	}
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
