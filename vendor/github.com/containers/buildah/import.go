@@ -154,7 +154,7 @@ func importBuilderFromImage(ctx context.Context, store storage.Store, options Im
 
 	_, img, err := util.FindImage(store, "", systemContext, options.Image)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error locating image %q for importing settings", options.Image)
+		return nil, errors.Wrapf(err, "importing settings")
 	}
 
 	builder, err := importBuilderDataFromImage(ctx, store, systemContext, img.ID, "", "")

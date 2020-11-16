@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/containers/storage/pkg/idtools"
 	fflib "github.com/pquerna/ffjson/fflib/v1"
+	"os"
 )
 
 // MarshalJSON marshal bytes to json - template
@@ -501,6 +502,12 @@ func (j *TarOptions) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	} else {
 		buf.WriteString(`,"CopyPass":false`)
 	}
+	if j.ForceMask != nil {
+		buf.WriteString(`,"ForceMask":`)
+		fflib.FormatBits2(buf, uint64(*j.ForceMask), 10, false)
+	} else {
+		buf.WriteString(`,"ForceMask":null`)
+	}
 	buf.WriteByte('}')
 	return nil
 }
@@ -538,6 +545,8 @@ const (
 	ffjtTarOptionsInUserNS
 
 	ffjtTarOptionsCopyPass
+
+	ffjtTarOptionsForceMask
 )
 
 var ffjKeyTarOptionsIncludeFiles = []byte("IncludeFiles")
@@ -569,6 +578,8 @@ var ffjKeyTarOptionsRebaseNames = []byte("RebaseNames")
 var ffjKeyTarOptionsInUserNS = []byte("InUserNS")
 
 var ffjKeyTarOptionsCopyPass = []byte("CopyPass")
+
+var ffjKeyTarOptionsForceMask = []byte("ForceMask")
 
 // UnmarshalJSON umarshall json - template of ffjson
 func (j *TarOptions) UnmarshalJSON(input []byte) error {
@@ -657,6 +668,14 @@ mainparse:
 						goto mainparse
 					}
 
+				case 'F':
+
+					if bytes.Equal(ffjKeyTarOptionsForceMask, kn) {
+						currentKey = ffjtTarOptionsForceMask
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
 				case 'G':
 
 					if bytes.Equal(ffjKeyTarOptionsGIDMaps, kn) {
@@ -730,6 +749,12 @@ mainparse:
 						goto mainparse
 					}
 
+				}
+
+				if fflib.EqualFoldRight(ffjKeyTarOptionsForceMask, kn) {
+					currentKey = ffjtTarOptionsForceMask
+					state = fflib.FFParse_want_colon
+					goto mainparse
 				}
 
 				if fflib.EqualFoldRight(ffjKeyTarOptionsCopyPass, kn) {
@@ -883,6 +908,9 @@ mainparse:
 
 				case ffjtTarOptionsCopyPass:
 					goto handle_CopyPass
+
+				case ffjtTarOptionsForceMask:
+					goto handle_ForceMask
 
 				case ffjtTarOptionsnosuchkey:
 					err = fs.SkipField(tok)
@@ -1590,6 +1618,39 @@ handle_CopyPass:
 				err = errors.New("unexpected bytes for true/false value")
 				return fs.WrapErr(err)
 			}
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_ForceMask:
+
+	/* handler: j.ForceMask type=os.FileMode kind=uint32 quoted=false*/
+
+	{
+		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for FileMode", tok))
+		}
+	}
+
+	{
+
+		if tok == fflib.FFTok_null {
+
+			j.ForceMask = nil
+
+		} else {
+
+			tval, err := fflib.ParseUint(fs.Output.Bytes(), 10, 32)
+
+			if err != nil {
+				return fs.WrapErr(err)
+			}
+
+			ttypval := os.FileMode(tval)
+			j.ForceMask = &ttypval
 
 		}
 	}

@@ -60,6 +60,8 @@ type PullOptions struct {
 	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
+	// PullPolicy takes the value PullIfMissing, PullAlways, PullIfNewer, or PullNever.
+	PullPolicy PullPolicy
 }
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference) (string, error) {
@@ -169,6 +171,7 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 		MaxPullRetries:      options.MaxRetries,
 		PullRetryDelay:      options.RetryDelay,
 		OciDecryptConfig:    options.OciDecryptConfig,
+		PullPolicy:          options.PullPolicy,
 	}
 
 	if !options.AllTags {
