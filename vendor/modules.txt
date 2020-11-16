@@ -211,6 +211,8 @@ github.com/containers/storage/pkg/truncindex
 github.com/containers/storage/pkg/unshare
 # github.com/coreos/go-iptables v0.4.5
 github.com/coreos/go-iptables/iptables
+# github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
+github.com/coreos/go-systemd/activation
 # github.com/coreos/go-systemd/v22 v22.1.0
 github.com/coreos/go-systemd/v22/activation
 github.com/coreos/go-systemd/v22/daemon
@@ -276,6 +278,9 @@ github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
 # github.com/docker/go-metrics v0.0.1
 github.com/docker/go-metrics
+# github.com/docker/go-plugins-helpers v0.0.0-20200102110956-c9a8a2d92ccc
+github.com/docker/go-plugins-helpers/sdk
+github.com/docker/go-plugins-helpers/volume
 # github.com/docker/go-units v0.4.0
 github.com/docker/go-units
 # github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316

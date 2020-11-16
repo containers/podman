@@ -23,6 +23,7 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201020191947-73dc6a680cdd+incompatible
 	github.com/docker/go-connections v0.4.0
+	github.com/docker/go-plugins-helpers v0.0.0-20200102110956-c9a8a2d92ccc
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
