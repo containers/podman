@@ -574,9 +574,9 @@ to the container with **--name** then it will generate a random
 string name. The name is useful any place you need to identify a container.
 This works for both background and foreground containers.
 
-#### **--network**=*bridge*, **--net**
+#### **--network**=*mode*, **--net**
 
-Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_.
+Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_. If used together with **--pod**, the container will not join the pods network namespace.
 
 Valid _mode_ values are:
 
