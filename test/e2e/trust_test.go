@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -21,6 +19,7 @@ var _ = Describe("Podman trust", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRemote("podman-remote does not support image trust")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

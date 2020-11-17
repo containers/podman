@@ -310,7 +310,11 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	reports, err := ic.NetworkRm(r.Context(), []string{name}, options)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "remove Network create"))
+		utils.Error(w, "remove Network failed", http.StatusInternalServerError, err)
+		return
+	}
+	if len(reports) == 0 {
+		utils.Error(w, "remove Network failed", http.StatusInternalServerError, errors.Errorf("internal error"))
 		return
 	}
 	report := reports[0]

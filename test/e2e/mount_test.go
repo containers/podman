@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -18,6 +16,7 @@ var _ = Describe("Podman mount", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRemote("Podman mount not supported for remote connections")
 		SkipIfRootless("Podman mount requires podman unshare first to work")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
