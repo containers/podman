@@ -2096,10 +2096,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
 	case cgroupManager == config.CgroupfsCgroupsManager:
-		cgroupPath, err := c.CGroupPath()
-		if err != nil {
-			return "", err
-		}
+		cgroupPath := filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()))
 		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
 		return cgroupPath, nil
 	default:
