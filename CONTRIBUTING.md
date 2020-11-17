@@ -286,16 +286,7 @@ commit automatically with `git commit -s`.
 
 ### Go Format and lint
 
-All code changes must pass ``make validate`` and ``make lint``, as
-executed in a standard container.  The container image for this
-purpose is provided at: ``quay.io/libpod/gate:master``.  With
-other tags available for different branches as needed.  These
-images are built automatically after merges to the branch.
-
-#### Building the gate container locally
-
-For local use, debugging, or experimentation, the gate image may
-be built locally from the repository root, with the command:
+All code changes must pass ``make validate`` and ``make lint``.
 
 ```
 podman build -t gate -f contrib/gate/Dockerfile .
