@@ -34,7 +34,7 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 		return stats, define.ErrCtrStateInvalid
 	}
 
-	cgroupPath, err := c.CGroupPath()
+	cgroupPath, err := c.cGroupPath()
 	if err != nil {
 		return nil, err
 	}
