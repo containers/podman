@@ -36,7 +36,7 @@ $ systemctl --user enable --now podman.socket
 You will need to enable linger for this user in order for the socket to work when the user is not logged in.
 
 ```
-$ sudo loginctl enable-linger $USER
+sudo loginctl enable-linger $USER
 ```
 
 You can verify that the socket is listening with a simple Podman command.
@@ -55,7 +55,7 @@ host:
 
 In order for the client to communicate with the server you need to enable and start the SSH daemon on your Linux machine, if it is not currently enabled.
 ```
-$ sudo systemctl enable -s sshd
+sudo systemctl enable --now -s sshd
 ```
 
 #### Setting up SSH

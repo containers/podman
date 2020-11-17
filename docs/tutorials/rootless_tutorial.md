@@ -6,14 +6,14 @@ Prior to allowing users without root privileges to run Podman, the administrator
 
 ## cgroup V2 support
 
-The cgroup V2  Linux kernel feature allows the user to limit the amount of resources a rootless container can use.  If the Linux distribution that you are running Podman on is enabled with  cgroup V2 then you might need to change the default OCI Runtime.  The default runtime `runc` does not currently work with cgroup V2 enabled systems, so you have to switch to the alternative OCI runtime `crun`.
+The cgroup V2  Linux kernel feature allows the user to limit the amount of resources a rootless container can use.  If the Linux distribution that you are running Podman on is enabled with  cgroup V2 then you might need to change the default OCI Runtime. Some older versions of `runc` do not work with cgroup V2, you might have to switch to the alternative OCI runtime `crun`.
 
-The alternative OCI runtime support for cgroup V2 can  be turned on at the command line by using the `--runtime` option:
+The alternative OCI runtime support for cgroup V2 can also be turned on at the command line by using the `--runtime` option:
 
 ```
-sudo podman --runtime /usr/bin/crun
+podman --runtime crun
 ```
-or by changing the value for the "Default OCI runtime" in the containers.conf file either at the system level or at the [user level](#user-configuration-files) from `runtime = "runc"` to `runtime = "crun"`.
+or for all commands by changing the value for the "Default OCI runtime" in the containers.conf file either at the system level or at the [user level](#user-configuration-files) from `runtime = "runc"` to `runtime = "crun"`.
 
 ## Administrator Actions
 
