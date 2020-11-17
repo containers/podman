@@ -551,6 +551,10 @@ var _ = Describe("Podman run networking", func() {
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(BeZero())
 		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
+
+		create = podmanTest.Podman([]string{"network", "rm", netName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(BeZero())
 	})
 
 	It("podman run with new:pod and static-ip", func() {
@@ -588,12 +592,43 @@ var _ = Describe("Podman run networking", func() {
 		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
 	})
 
-	It("podman run with --net=none adds hostname to /etc/hosts", func() {
+	It("podman run with --net=none sets hostname", func() {
 		hostname := "testctr"
 		run := podmanTest.Podman([]string{"run", "--net=none", "--hostname", hostname, ALPINE, "hostname"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(BeZero())
 		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
+	})
+
+	It("podman run with --net=none adds hostname to /etc/hosts", func() {
+		hostname := "testctr"
+		run := podmanTest.Podman([]string{"run", "--net=none", "--hostname", hostname, ALPINE, "cat", "/etc/hosts"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
+	})
+
+	ping_test := func(netns string) {
+		hostname := "testctr"
+		run := podmanTest.Podman([]string{"run", netns, "--hostname", hostname, ALPINE, "ping", "-c", "1", hostname})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+
+		run = podmanTest.Podman([]string{"run", netns, "--hostname", hostname, "--name", "test", ALPINE, "ping", "-c", "1", "test"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+	}
+
+	It("podman attempt to ping container name and hostname --net=none", func() {
+		ping_test("--net=none")
+	})
+
+	It("podman attempt to ping container name and hostname --net=host", func() {
+		ping_test("--net=host")
+	})
+
+	It("podman attempt to ping container name and hostname --net=private", func() {
+		ping_test("--net=private")
 	})
 
 	It("podman run check dnsname plugin", func() {
@@ -621,10 +656,10 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 
-		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, ALPINE, "nslookup", "con3"})
+		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, ALPINE, "nslookup", "con1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))
-		Expect(session.ErrorToString()).To(ContainSubstring("can't resolve 'con3'"))
+		Expect(session.ErrorToString()).To(ContainSubstring("can't resolve 'con1'"))
 
 		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, ALPINE, "nslookup", pod2})
 		session.WaitWithDefaultTimeout()
