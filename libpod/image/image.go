@@ -176,30 +176,14 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 }
 
 // SaveImages stores one more images in a multi-image archive.
-// Note that only `docker-archive` supports storing multiple
+// Note that only `docker-archive`, `oci-archive` support storing multiple
 // image.
 func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format string, outputFile string, quiet, removeSignatures bool) (finalErr error) {
-	if format != DockerArchive {
-		return errors.Errorf("multi-image archives are only supported in in the %q format", DockerArchive)
+	if format != DockerArchive && format != OCIArchive {
+		return errors.Errorf("multi-image archives are only supported in in the %q， %q format", DockerArchive, OCIArchive)
 	}
 
 	sys := GetSystemContext("", "", false)
-
-	archWriter, err := archive.NewWriter(sys, outputFile)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err := archWriter.Close()
-		if err == nil {
-			return
-		}
-		if finalErr == nil {
-			finalErr = err
-			return
-		}
-		finalErr = errors.Wrap(finalErr, err.Error())
-	}()
 
 	// Decide whether c/image's progress bars should use stderr or stdout.
 	// Use stderr in case we need to be quiet or if the output is set to
@@ -210,10 +194,22 @@ func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format s
 		writer = os.Stderr
 	}
 
+	policyContext, err := getPolicyContext(sys)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := policyContext.Destroy(); err != nil {
+			logrus.Errorf("failed to destroy policy context: %q", err)
+		}
+	}()
+
 	// extend an image with additional tags
 	type imageData struct {
 		*Image
-		tags []reference.NamedTagged
+		imageSpecifiedByID bool
+		destNames          []string
+		tags               []reference.NamedTagged
 	}
 
 	// Look up the images (and their tags) in the local storage.
@@ -236,6 +232,7 @@ func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format s
 
 		// Unless we referred to an ID, add the input as a tag.
 		if !strings.HasPrefix(id, nameOrID) {
+			iData.destNames = append(iData.destNames, nameOrID)
 			tag, err := NormalizedTag(nameOrID)
 			if err != nil {
 				return err
@@ -244,48 +241,154 @@ func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format s
 			if isTagged {
 				iData.tags = append(iData.tags, refTagged)
 			}
+		} else {
+			iData.imageSpecifiedByID = true
 		}
 	}
 
-	policyContext, err := getPolicyContext(sys)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := policyContext.Destroy(); err != nil {
-			logrus.Errorf("failed to destroy policy context: %q", err)
-		}
-	}()
-
-	// Now copy the images one-by-one.
-	for _, id := range imageQueue {
-		dest, err := archWriter.NewReference(nil)
+	switch format {
+	case DockerArchive:
+		archWriter, err := archive.NewWriter(sys, outputFile)
 		if err != nil {
 			return err
 		}
+		defer func() {
+			err := archWriter.Close()
+			if err == nil {
+				return
+			}
+			if finalErr == nil {
+				finalErr = err
+				return
+			}
+			finalErr = errors.Wrap(finalErr, err.Error())
+		}()
+		// Now copy the images one-by-one.
+		for _, id := range imageQueue {
+			dest, err := archWriter.NewReference(nil)
+			if err != nil {
+				return err
+			}
 
-		img := imageMap[id]
-		copyOptions := getCopyOptions(sys, writer, nil, nil, SigningOptions{RemoveSignatures: removeSignatures}, "", img.tags)
+			img := imageMap[id]
+			copyOptions := getCopyOptions(sys, writer, nil, nil, SigningOptions{RemoveSignatures: removeSignatures}, "", img.tags)
+			copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath()
+
+			// For copying, we need a source reference that we can create
+			// from the image.
+			src, err := is.Transport.NewStoreReference(img.imageruntime.store, nil, id)
+			if err != nil {
+				return errors.Wrapf(err, "error getting source imageReference for %q", img.InputName)
+			}
+			_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
+			if err != nil {
+				return err
+			}
+		}
+	case OCIArchive:
+		archWriter, err := ociarchive.NewWriter(ctx, sys, outputFile)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			err := archWriter.Close()
+			if err == nil {
+				return
+			}
+			if finalErr == nil {
+				finalErr = err
+			}
+			finalErr = errors.Wrap(finalErr, err.Error())
+		}()
+
+		copyOptions := getCopyOptions(sys, writer, nil, nil, SigningOptions{RemoveSignatures: removeSignatures}, "", nil)
 		copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath()
-
-		// For copying, we need a source reference that we can create
-		// from the image.
-		src, err := is.Transport.NewStoreReference(img.imageruntime.store, nil, id)
-		if err != nil {
-			return errors.Wrapf(err, "error getting source imageReference for %q", img.InputName)
+		// copy the image one by one
+		for _, id := range imageQueue {
+			img := imageMap[id]
+			// For copying, we need a source reference that we can create
+			// from the image.
+			src, err := is.Transport.NewStoreReference(img.imageruntime.store, nil, id)
+			if err != nil {
+				return errors.Wrapf(err, "error getting source imageReference for %q", img.InputName)
+			}
+			destNames := img.destNames
+			if img.imageSpecifiedByID {
+				destNames = []string{""}
+			}
+			for _, destName := range destNames {
+				dest, err := archWriter.NewReference(destName)
+				if err != nil {
+					return err
+				}
+				_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
+				if err != nil {
+					return err
+				}
+			}
 		}
-		_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
-		if err != nil {
-			return err
-		}
+	default:
+		return errors.Errorf("Internal error: supposedly unreachable code reached with format %q", format)
 	}
 
 	return nil
 }
 
+// LoadAllImagesFromOCIArchive loads all images from the docker archive that
+// fileName points to.
+func (ir *Runtime) LoadAllImagesFromOCIArchive(ctx context.Context, fileName string, signaturePolicyPath string, writer io.Writer) ([]string, error) {
+	if signaturePolicyPath == "" {
+		signaturePolicyPath = ir.SignaturePolicyPath
+	}
+	sc := GetSystemContext(signaturePolicyPath, "", false)
+	reader, err := ociarchive.NewReader(ctx, sc, fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := reader.Close(); err != nil {
+			logrus.Errorf(err.Error())
+		}
+	}()
+
+	refLists, err := reader.List()
+	if err != nil {
+		return nil, err
+	}
+
+	refPairs := []pullRefPair{}
+	for _, ref := range refLists {
+		var destName string
+		refName, ok := ref.ManifestDescriptor.Annotations[imgspecv1.AnnotationRefName]
+		if ok {
+			destName = refName
+		} else {
+			destName = "@" + ref.ManifestDescriptor.Digest.Encoded()
+		}
+		refPair, err := ir.getPullRefPair(ref.FullImageReference, destName)
+		if err != nil {
+			return nil, err
+		}
+		refPairs = append(refPairs, refPair)
+	}
+	goal := pullGoal{
+		pullAllPairs: true,
+		refPairs:     refPairs,
+	}
+
+	defer goal.cleanUp()
+
+	imageNames, err := ir.doPullImage(ctx, sc, goal, writer, SigningOptions{}, &DockerRegistryOptions{}, &retry.RetryOptions{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	ir.newImageEvent(events.LoadFromArchive, "")
+	return imageNames, nil
+}
+
 // LoadAllImagesFromDockerArchive loads all images from the docker archive that
 // fileName points to.
-func (ir *Runtime) LoadAllImagesFromDockerArchive(ctx context.Context, fileName string, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
+func (ir *Runtime) LoadAllImagesFromDockerArchive(ctx context.Context, fileName string, signaturePolicyPath string, writer io.Writer) ([]string, error) {
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
@@ -329,16 +432,8 @@ func (ir *Runtime) LoadAllImagesFromDockerArchive(ctx context.Context, fileName 
 		return nil, err
 	}
 
-	newImages := make([]*Image, 0, len(imageNames))
-	for _, name := range imageNames {
-		newImage, err := ir.NewFromLocal(name)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
-		}
-		newImages = append(newImages, newImage)
-	}
 	ir.newImageEvent(events.LoadFromArchive, "")
-	return newImages, nil
+	return imageNames, nil
 }
 
 // LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)

@@ -64,12 +64,34 @@ type ociReference struct {
 	// If image=="", it means the "only image" in the index.json is used in the case it is a source
 	// for destinations, the image name annotation "image.ref.name" is not added to the index.json
 	image string
+	sourceIndex int
 }
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an OCI ImageReference.
 func ParseReference(reference string) (types.ImageReference, error) {
 	dir, image := internal.SplitPathAndImage(reference)
 	return NewReference(dir, image)
+}
+
+// NewReferenceWithIndex returns an OCI reference for a directory and a image， sourceIndex points to an image.
+//
+// We do not expose an API supplying the resolvedDir; we could, but recomputing it
+// is generally cheap enough that we prefer being confident about the properties of resolvedDir.
+func NewReferenceWithIndex(dir, image string, sourceIndex int) (types.ImageReference, error) {
+	resolved, err := explicitfilepath.ResolvePathToFullyExplicit(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := internal.ValidateOCIPath(dir); err != nil {
+		return nil, err
+	}
+
+	if err = internal.ValidateImageName(image); err != nil {
+		return nil, err
+	}
+
+	return ociReference{dir: dir, resolvedDir: resolved, image: image, sourceIndex: sourceIndex}, nil
 }
 
 // NewReference returns an OCI reference for a directory and a image.
@@ -90,7 +112,7 @@ func NewReference(dir, image string) (types.ImageReference, error) {
 		return nil, err
 	}
 
-	return ociReference{dir: dir, resolvedDir: resolved, image: image}, nil
+	return ociReference{dir: dir, resolvedDir: resolved, image: image, sourceIndex: -1}, nil
 }
 
 func (ref ociReference) Transport() types.ImageTransport {
@@ -184,7 +206,7 @@ func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, error) {
 	}
 
 	var d *imgspecv1.Descriptor
-	if ref.image == "" {
+	if ref.image == "" && ref.sourceIndex == -1 {
 		// return manifest if only one image is in the oci directory
 		if len(index.Manifests) == 1 {
 			d = &index.Manifests[0]
@@ -194,9 +216,13 @@ func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, error) {
 		}
 	} else {
 		// if image specified, look through all manifests for a match
-		for _, md := range index.Manifests {
+		for i, md := range index.Manifests {
 			if md.MediaType != imgspecv1.MediaTypeImageManifest && md.MediaType != imgspecv1.MediaTypeImageIndex {
 				continue
+			}
+			if ref.sourceIndex == i {
+				d = &md
+				break
 			}
 			refName, ok := md.Annotations[imgspecv1.AnnotationRefName]
 			if !ok {

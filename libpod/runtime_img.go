@@ -8,22 +8,22 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker/reference"
-	ociarchive "github.com/containers/image/v5/oci/archive"
 	"github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	dockerarchive "github.com/containers/image/v5/docker/archive"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -276,31 +276,48 @@ func DownloadFromFile(reader *os.File) (string, error) {
 
 // LoadImage loads a container image into local storage
 func (r *Runtime) LoadImage(ctx context.Context, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
-	if newImages, err := r.LoadAllImageFromArchive(ctx, writer, inputFile, signaturePolicy); err == nil {
+	isArchive, err := isArchive(inputFile)
+	if err != nil {
+		return "", errors.Wrapf(err, "error deciding format of the input file.")
+	}
+	if isArchive {
+		newImages, loadErr := r.loadAllImageFromArchive(ctx, writer, inputFile, signaturePolicy)
+		if loadErr != nil {
+			return "", loadErr
+		}
 		return newImages, nil
 	}
-	return r.LoadImageFromSingleImageArchive(ctx, writer, inputFile, signaturePolicy)
-}
-
-// LoadAllImageFromArchive loads all images from the archive of multi-image that inputFile points to.
-func (r *Runtime) LoadAllImageFromArchive(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
-	newImages, err := r.ImageRuntime().LoadAllImagesFromDockerArchive(ctx, inputFile, signaturePolicy, writer)
-	if err == nil {
-		return getImageNames(newImages), nil
+	newImages, loadErr := r.loadImageFromSingleImageDir(ctx, writer, inputFile, signaturePolicy)
+	if loadErr != nil {
+		return "", loadErr
 	}
-	return "", err
+	return newImages, nil
 }
 
-// LoadImageFromSingleImageArchive load image from the archive of single image that inputFile points to.
-func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
-	var err error
+// loadAllImageFromArchive loads all images from the archive of multi-image that inputFile points to.
+func (r *Runtime) loadAllImageFromArchive(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
+	var allErrors []error
+	newImageNames, err := r.ImageRuntime().LoadAllImagesFromDockerArchive(ctx, inputFile, signaturePolicy, writer)
+	if err == nil {
+		return strings.Join(newImageNames, ", "), nil
+	}
+	allErrors = append(allErrors, err)
+	newImageNames, err = r.ImageRuntime().LoadAllImagesFromOCIArchive(ctx, inputFile, signaturePolicy, writer)
+	if err == nil {
+		return strings.Join(newImageNames, ", "), nil
+	}
+	allErrors = append(allErrors, err)
+	return "", errorhandling.JoinErrors(allErrors)
+}
+
+// loadImageFromSingleImageDir load image from the directory of single image that inputFile points to.
+func (r *Runtime) loadImageFromSingleImageDir(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
+	var (
+		src       types.ImageReference
+		err       error
+		allErrors []error
+	)
 	for _, referenceFn := range []func() (types.ImageReference, error){
-		func() (types.ImageReference, error) {
-			return dockerarchive.ParseReference(inputFile)
-		},
-		func() (types.ImageReference, error) {
-			return ociarchive.NewReference(inputFile, "")
-		},
 		func() (types.ImageReference, error) {
 			return directory.NewReference(inputFile)
 		},
@@ -308,14 +325,26 @@ func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io
 			return layout.NewReference(inputFile, "")
 		},
 	} {
-		src, err := referenceFn()
-		if err == nil && src != nil {
-			if newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
+		if src, err = referenceFn(); err != nil {
+			allErrors = append(allErrors, err)
+		} else if src != nil {
+			newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+			if err == nil {
 				return getImageNames(newImages), nil
 			}
+			allErrors = append(allErrors, err)
 		}
 	}
-	return "", errors.Wrapf(err, "error pulling image")
+	return "", errorhandling.JoinErrors(allErrors)
+}
+
+// isArchive returns true if the inputFile is archive format
+func isArchive(inputFile string) (bool, error) {
+	fInfo, err := os.Stat(inputFile)
+	if err != nil {
+		return false, err
+	}
+	return !fInfo.IsDir(), nil
 }
 
 func getImageNames(images []*image.Image) string {

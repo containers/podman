@@ -20,7 +20,7 @@ type ociArchiveImageDestination struct {
 
 // newImageDestination returns an ImageDestination for writing to an existing directory.
 func newImageDestination(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference) (types.ImageDestination, error) {
-	tempDirRef, err := createOCIRef(sys, ref.image)
+	tempDirRef, err := createOCIRef(sys, ref.image, -1)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating oci reference")
 	}

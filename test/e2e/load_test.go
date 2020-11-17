@@ -292,4 +292,12 @@ var _ = Describe("Podman load", func() {
 		Expect(result.LineInOutputContains("example.com/empty:latest")).To(BeTrue())
 		Expect(result.LineInOutputContains("example.com/empty/but:different")).To(BeTrue())
 	})
+
+	It("podman load multi-image oci-archive", func() {
+		result := podmanTest.Podman([]string{"load", "-i", "./testdata/image/oci-two-images.tar.xz"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.LineInOutputContains("example.com/empty:latest")).To(BeTrue())
+		Expect(result.LineInOutputContains("example.com/empty/but:different")).To(BeTrue())
+	})
 })

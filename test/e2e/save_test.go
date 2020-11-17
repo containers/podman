@@ -212,6 +212,22 @@ default-docker:
 		Expect(len(RESTORE_IMAGES), len(ids))
 		multiImageSave(podmanTest, ids)
 	})
+
+	It("podman save --multi-image-archive oci-archive(tagged images)", func() {
+		multiOCIArchiveImageSave(podmanTest, RESTORE_IMAGES)
+	})
+
+	It("podman save --multi-image-archive (untagged images)", func() {
+		// Refer to images via ID instead of tag.
+		session := podmanTest.Podman([]string{"images", "--format", "{{.ID}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ids := session.OutputToStringArray()
+
+		Expect(len(RESTORE_IMAGES), len(ids))
+		multiOCIArchiveImageSave(podmanTest, ids)
+	})
+
 })
 
 // Create a multi-image archive, remove all images, load it and
@@ -237,6 +253,33 @@ func multiImageSave(podmanTest *PodmanTestIntegration, images []string) {
 		found, _ := session.GrepString(image)
 		Expect(found).Should(BeTrue())
 	}
+
+	// Make sure that each image has really been loaded.
+	for _, image := range images {
+		session = podmanTest.Podman([]string{"image", "exists", image})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	}
+}
+
+// Create a multi-image archive, remove all images, load it and
+// make sure that all images are (again) present.
+func multiOCIArchiveImageSave(podmanTest *PodmanTestIntegration, images []string) {
+	// Create the archive.
+	outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
+	session := podmanTest.Podman(append([]string{"save", "-o", outfile, "--format=oci-archive", "--multi-image-archive"}, images...))
+	session.WaitWithDefaultTimeout()
+	Expect(session.ExitCode()).To(Equal(0))
+
+	// Remove all images.
+	session = podmanTest.Podman([]string{"rmi", "-af"})
+	session.WaitWithDefaultTimeout()
+	Expect(session.ExitCode()).To(Equal(0))
+
+	// Now load the archive.
+	session = podmanTest.Podman([]string{"load", "-i", outfile})
+	session.WaitWithDefaultTimeout()
+	Expect(session.ExitCode()).To(Equal(0))
 
 	// Make sure that each image has really been loaded.
 	for _, image := range images {

@@ -263,7 +263,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Format is mandatory! Currently, we only support multi-image docker
+	// Format is mandatory! Currently, we only support multi-image docker, and oci
 	// archives.
 	if len(query.References) > 1 && query.Format != define.V2s2Archive {
 		utils.Error(w, "unsupported format", http.StatusInternalServerError, errors.Errorf("multi-image archives must use format of %s", define.V2s2Archive))

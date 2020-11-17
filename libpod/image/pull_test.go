@@ -207,26 +207,45 @@ func TestPullGoalFromImageReference(t *testing.T) {
 		// == oci-archive:
 		{"oci-archive:/dev/this-does-not-exist", nil, false}, // Input does not exist.
 		{"oci-archive:/dev/null", nil, false},                // Input exists but does not contain a manifest.
-		// FIXME: The remaining tests are commented out for now, because oci-archive: does not work unprivileged.
-		// { // No name annotation
-		// 	"oci-archive:testdata/oci-unnamed.tar.gz",
-		// 	[]expected{{"@5c8aca8137ac47e84c69ae93ce650ce967917cc001ba7aad5494073fac75b8b6", "@5c8aca8137ac47e84c69ae93ce650ce967917cc001ba7aad5494073fac75b8b6"}},
-		//  false,
-		// },
-		// { // Name is a name:latest (no normalization is defined).
-		// 	"oci-archive:testdata/oci-name-only.tar.gz",
-		// 	[]expected{{"localhost/pretty-empty:latest", "localhost/pretty-empty:latest"}},
-		//  false,
-		// },
-		// { // Name is a registry/name:latest
-		// 	"oci-archive:testdata/oci-registry-name.tar.gz",
-		// 	[]expected{{"example.com/empty:latest", "example.com/empty:latest"}},
-		//  false,
-		// },
-		// // Name exists, but is an invalid Docker reference; such names will fail when creating dstReference.
-		// {"oci-archive:testdata/oci-non-docker-name.tar.gz", nil, false},
+		{ // No name annotation
+			"oci-archive:testdata/oci-unnamed.tar.gz",
+			[]expected{{"@5c8aca8137ac47e84c69ae93ce650ce967917cc001ba7aad5494073fac75b8b6", "@5c8aca8137ac47e84c69ae93ce650ce967917cc001ba7aad5494073fac75b8b6"}},
+			false,
+		},
+		{ // Name is a name:latest (no normalization is defined).
+			"oci-archive:testdata/oci-name-only.tar.gz",
+			[]expected{{"localhost/pretty-empty:latest", "localhost/pretty-empty:latest"}},
+			false,
+		},
+		{ // Name is a registry/name:latest
+			"oci-archive:testdata/oci-registry-name.tar.gz",
+			[]expected{{"example.com/empty:latest", "example.com/empty:latest"}},
+			false,
+		},
+		// Name exists, but is an invalid Docker reference; such names will fail when creating dstReference.
+		{"oci-archive:testdata/oci-non-docker-name.tar.gz", nil, false},
 		// Maybe test support of two images in a single archive? It should be transparently handled by adding a reference to srcRef.
-
+		{ // Reference image by name in multi-image archive
+			"oci-archive:testdata/oci-two-images.tar.xz:example.com/empty/but:different",
+			[]expected{
+				{"example.com/empty/but:different", "example.com/empty/but:different"},
+			},
+			false,
+		},
+		{ // Reference image by index in multi-image archive
+			"oci-archive:testdata/oci-two-images.tar.xz:@0",
+			[]expected{
+				{"example.com/empty:latest", "example.com/empty:latest"},
+			},
+			false,
+		},
+		{ // Reference image by index in multi-image archive
+			"oci-archive:testdata/oci-two-images.tar.xz:@1",
+			[]expected{
+				{"example.com/empty/but:different", "example.com/empty/but:different"},
+			},
+			false,
+		},
 		// == dir:
 		{ // Absolute path
 			"dir:/dev/this-does-not-exist",

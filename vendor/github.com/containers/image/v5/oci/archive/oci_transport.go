@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/containers/image/v5/directory/explicitfilepath"
@@ -35,6 +36,7 @@ type ociArchiveReference struct {
 	file         string
 	resolvedFile string
 	image        string
+	sourceIndex	int
 }
 
 func (t ociArchiveTransport) Name() string {
@@ -69,11 +71,27 @@ func NewReference(file, image string) (types.ImageReference, error) {
 		return nil, err
 	}
 
-	if err := internal.ValidateImageName(image); err != nil {
-		return nil, err
+	var img string
+	index := -1
+	if strings.HasPrefix(image, "@") {
+		idx, err := strconv.Atoi(image[1:])
+		if err != nil {
+			return nil, errors.Wrapf(err, "Invalid source index %s", image)
+		}
+		if idx < 0 {
+			return nil, errors.Errorf("Invalid source index @%d: must not be negative", idx)
+		}
+		index = idx
+	} else {
+		err := internal.ValidateImageName(image);
+		if err == nil {
+			img = image
+		} else {
+			return nil, err
+		}
 	}
 
-	return ociArchiveReference{file: file, resolvedFile: resolved, image: image}, nil
+	return ociArchiveReference{file: file, resolvedFile: resolved, image: img, sourceIndex: index}, nil
 }
 
 func (ref ociArchiveReference) Transport() types.ImageTransport {
@@ -160,12 +178,12 @@ func (t *tempDirOCIRef) deleteTempDir() error {
 
 // createOCIRef creates the oci reference of the image
 // If SystemContext.BigFilesTemporaryDir not "", overrides the temporary directory to use for storing big files
-func createOCIRef(sys *types.SystemContext, image string) (tempDirOCIRef, error) {
+func createOCIRef(sys *types.SystemContext, image string, sourceIndex int) (tempDirOCIRef, error) {
 	dir, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(sys), "oci")
 	if err != nil {
 		return tempDirOCIRef{}, errors.Wrapf(err, "error creating temp directory")
 	}
-	ociRef, err := ocilayout.NewReference(dir, image)
+	ociRef, err := ocilayout.NewReferenceWithIndex(dir, image, sourceIndex)
 	if err != nil {
 		return tempDirOCIRef{}, err
 	}
@@ -176,7 +194,7 @@ func createOCIRef(sys *types.SystemContext, image string) (tempDirOCIRef, error)
 
 // creates the temporary directory and copies the tarred content to it
 func createUntarTempDir(sys *types.SystemContext, ref ociArchiveReference) (tempDirOCIRef, error) {
-	tempDirRef, err := createOCIRef(sys, ref.image)
+	tempDirRef, err := createOCIRef(sys, ref.image, ref.sourceIndex)
 	if err != nil {
 		return tempDirOCIRef{}, errors.Wrap(err, "error creating oci reference")
 	}
