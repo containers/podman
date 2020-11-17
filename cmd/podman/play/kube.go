@@ -22,6 +22,7 @@ type playKubeOptionsWrapper struct {
 
 	TLSVerifyCLI   bool
 	CredentialsCLI string
+	StartCLI       bool
 }
 
 var (
@@ -68,6 +69,7 @@ func init() {
 
 	flags.BoolVarP(&kubeOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.BoolVar(&kubeOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	flags.BoolVar(&kubeOptions.StartCLI, "start", true, "Start the pod after creating it")
 
 	authfileFlagName := "authfile"
 	flags.StringVar(&kubeOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -99,6 +101,9 @@ func kube(cmd *cobra.Command, args []string) error {
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
 		kubeOptions.SkipTLSVerify = types.NewOptionalBool(!kubeOptions.TLSVerifyCLI)
+	}
+	if cmd.Flags().Changed("start") {
+		kubeOptions.Start = types.NewOptionalBool(kubeOptions.StartCLI)
 	}
 	if kubeOptions.Authfile != "" {
 		if _, err := os.Stat(kubeOptions.Authfile); err != nil {
