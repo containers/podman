@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -21,6 +19,7 @@ var _ = Describe("Podman image sign", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRemote("podman-remote image sign is not supported")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -31,6 +29,10 @@ var _ = Describe("Podman run", func() {
 		podmanTest.Setup()
 		podmanTest.SeedImages()
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
 	})
 
 	AfterEach(func() {
@@ -80,12 +82,14 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman Capabilities in containers.conf", func() {
-		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		cap := podmanTest.Podman([]string{"run", ALPINE, "grep", "CapEff", "/proc/self/status"})
 		cap.WaitWithDefaultTimeout()
 		Expect(cap.ExitCode()).To(Equal(0))
 
 		os.Setenv("CONTAINERS_CONF", "config/containers-ns.conf")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 		session := podmanTest.Podman([]string{"run", "busybox", "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -93,7 +97,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman Regular capabilities", func() {
-		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		result := podmanTest.Podman([]string{"top", "test1", "capeff"})
@@ -105,6 +108,9 @@ var _ = Describe("Podman run", func() {
 
 	It("podman drop capabilities", func() {
 		os.Setenv("CONTAINERS_CONF", "config/containers-caps.conf")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		result := podmanTest.Podman([]string{"container", "top", "test1", "capeff"})
@@ -116,6 +122,9 @@ var _ = Describe("Podman run", func() {
 
 	verifyNSHandling := func(nspath, option string) {
 		os.Setenv("CONTAINERS_CONF", "config/containers-ns.conf")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 		//containers.conf default ipcns to default to host
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls", "-l", nspath})
 		session.WaitWithDefaultTimeout()

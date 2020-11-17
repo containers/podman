@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -22,6 +20,7 @@ var _ = Describe("Podman cp", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRemote("FIXME: Podman-remote cp needs to work")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
