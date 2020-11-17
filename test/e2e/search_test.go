@@ -93,10 +93,10 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search single registry flag", func() {
-		search := podmanTest.Podman([]string{"search", "quay.io/libpod/gate:latest"})
+		search := podmanTest.Podman([]string{"search", "quay.io/skopeo/stable:latest"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
-		Expect(search.LineInOutputContains("quay.io/libpod/gate")).To(BeTrue())
+		Expect(search.LineInOutputContains("quay.io/skopeo/stable")).To(BeTrue())
 	})
 
 	It("podman search image with description", func() {
