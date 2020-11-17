@@ -802,13 +802,13 @@ func (r *Runtime) GetContainersWithoutLock(filters ...ContainerFilter) ([]*Conta
 	ctrsFiltered := make([]*Container, 0, len(ctrs))
 
 	for _, ctr := range ctrs {
-		include := true
 		for _, filter := range filters {
-			include = include && filter(ctr)
-		}
-
-		if include {
-			ctrsFiltered = append(ctrsFiltered, ctr)
+			// status filters for podman ps and podman pod ps should be inclusive
+			// issue: https://github.com/containers/podman/issues/8344
+			if filter(ctr) {
+				ctrsFiltered = append(ctrsFiltered, ctr)
+				break
+			}
 		}
 	}
 

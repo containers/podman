@@ -303,6 +303,22 @@ var _ = Describe("Podman ps", func() {
 		Expect(psAll.OutputToString()).To(Equal(psFilter.OutputToString()))
 	})
 
+	It("podman status filters should be inclusive", func() {
+		ctr := podmanTest.Podman([]string{"run", "-t", "-i", ALPINE, "ls", "/"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(Equal(0))
+
+		ctr2 := podmanTest.Podman([]string{"container", "create", ALPINE})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2.ExitCode()).To(Equal(0))
+
+		psFilter := podmanTest.Podman([]string{"ps", "--filter", "status=exited", "--filter", "status=created"})
+		psFilter.WaitWithDefaultTimeout()
+		Expect(psFilter.ExitCode()).To(Equal(0))
+		// status filters for podman ps and podman pod ps should be inclusive
+		Expect(len(psFilter.OutputToStringArray())).To(Equal(3))
+	})
+
 	It("podman filter without status does not find non-running", func() {
 		ctrName := "aContainerName"
 		ctr := podmanTest.Podman([]string{"create", "--name", ctrName, "-t", "-i", ALPINE, "ls", "/"})
