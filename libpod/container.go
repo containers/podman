@@ -1088,3 +1088,17 @@ func (c *Container) networks() ([]string, error) {
 
 	return networks, err
 }
+
+// networksByNameIndex provides us with a map of container networks where key
+// is network name and value is the index position
+func (c *Container) networksByNameIndex() (map[string]int, error) {
+	networks, err := c.networks()
+	if err != nil {
+		return nil, err
+	}
+	networkNamesByIndex := make(map[string]int, len(networks))
+	for index, name := range networks {
+		networkNamesByIndex[name] = index
+	}
+	return networkNamesByIndex, nil
+}

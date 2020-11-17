@@ -6,8 +6,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"sync"
 
+	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -16,6 +18,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
 
@@ -347,4 +350,25 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		options.HostGIDMapping = false
 	}
 	return &options, nil
+}
+
+// StartWatcher starts a new SIGHUP go routine for the current config.
+func StartWatcher(rt *libpod.Runtime) {
+	// Setup the signal notifier
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, utils.SIGHUP)
+
+	go func() {
+		for {
+			// Block until the signal is received
+			logrus.Debugf("waiting for SIGHUP to reload configuration")
+			<-ch
+			if err := rt.Reload(); err != nil {
+				logrus.Errorf("unable to reload configuration: %v", err)
+				continue
+			}
+		}
+	}()
+
+	logrus.Debugf("registered SIGHUP watcher for config")
 }

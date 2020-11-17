@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/containernetworking/cni/pkg/version"
-	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
@@ -16,25 +16,21 @@ import (
 )
 
 // Create the CNI network
-func Create(name string, options entities.NetworkCreateOptions, r *libpod.Runtime) (*entities.NetworkCreateReport, error) {
+func Create(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (*entities.NetworkCreateReport, error) {
 	var fileName string
 	if err := isSupportedDriver(options.Driver); err != nil {
 		return nil, err
 	}
-	config, err := r.GetConfig()
-	if err != nil {
-		return nil, err
-	}
 	// Acquire a lock for CNI
-	l, err := acquireCNILock(filepath.Join(config.Engine.TmpDir, LockFileName))
+	l, err := acquireCNILock(filepath.Join(runtimeConfig.Engine.TmpDir, LockFileName))
 	if err != nil {
 		return nil, err
 	}
 	defer l.releaseCNILock()
 	if len(options.MacVLAN) > 0 {
-		fileName, err = createMacVLAN(r, name, options)
+		fileName, err = createMacVLAN(name, options, runtimeConfig)
 	} else {
-		fileName, err = createBridge(r, name, options)
+		fileName, err = createBridge(name, options, runtimeConfig)
 	}
 	if err != nil {
 		return nil, err
@@ -81,17 +77,17 @@ func validateBridgeOptions(options entities.NetworkCreateOptions) error {
 }
 
 // createBridge creates a CNI network
-func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreateOptions) (string, error) {
+func createBridge(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
+	var (
+		ipamRanges [][]IPAMLocalHostRangeConf
+		err        error
+		routes     []IPAMRoute
+	)
 	isGateway := true
 	ipMasq := true
-	runtimeConfig, err := r.GetConfig()
-	if err != nil {
-		return "", err
-	}
 
 	// validate options
-	err = validateBridgeOptions(options)
-	if err != nil {
+	if err := validateBridgeOptions(options); err != nil {
 		return "", err
 	}
 
@@ -102,8 +98,6 @@ func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreate
 	subnet := &options.Subnet
 	ipRange := &options.Range
 	gateway := options.Gateway
-	var ipamRanges [][]IPAMLocalHostRangeConf
-	var routes []IPAMRoute
 	if subnet.IP != nil {
 		// if network is provided, does it conflict with existing CNI or live networks
 		err = ValidateUserNetworkIsAvailable(runtimeConfig, subnet)
@@ -201,16 +195,11 @@ func createBridge(r *libpod.Runtime, name string, options entities.NetworkCreate
 	return cniPathName, err
 }
 
-func createMacVLAN(r *libpod.Runtime, name string, options entities.NetworkCreateOptions) (string, error) {
+func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
 	var (
 		plugins []CNIPlugins
 	)
 	liveNetNames, err := GetLiveNetworkNames()
-	if err != nil {
-		return "", err
-	}
-
-	config, err := r.GetConfig()
 	if err != nil {
 		return "", err
 	}
@@ -220,7 +209,7 @@ func createMacVLAN(r *libpod.Runtime, name string, options entities.NetworkCreat
 		return "", errors.Errorf("failed to find network interface %q", options.MacVLAN)
 	}
 	if len(name) > 0 {
-		netNames, err := GetNetworkNamesFromFileSystem(config)
+		netNames, err := GetNetworkNamesFromFileSystem(runtimeConfig)
 		if err != nil {
 			return "", err
 		}
@@ -228,7 +217,7 @@ func createMacVLAN(r *libpod.Runtime, name string, options entities.NetworkCreat
 			return "", errors.Errorf("the network name %s is already used", name)
 		}
 	} else {
-		name, err = GetFreeDeviceName(config)
+		name, err = GetFreeDeviceName(runtimeConfig)
 		if err != nil {
 			return "", err
 		}
@@ -241,7 +230,7 @@ func createMacVLAN(r *libpod.Runtime, name string, options entities.NetworkCreat
 	if err != nil {
 		return "", err
 	}
-	cniPathName := filepath.Join(GetCNIConfDir(config), fmt.Sprintf("%s.conflist", name))
+	cniPathName := filepath.Join(GetCNIConfDir(runtimeConfig), fmt.Sprintf("%s.conflist", name))
 	err = ioutil.WriteFile(cniPathName, b, 0644)
 	return cniPathName, err
 }

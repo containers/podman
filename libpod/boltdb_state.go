@@ -1296,10 +1296,6 @@ func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
 		}
 
 		ctrAliasesBkt := dbCtr.Bucket(aliasesBkt)
-		if ctrAliasesBkt == nil {
-			return errors.Wrapf(define.ErrNoAliases, "container %s has no network aliases", ctr.ID())
-		}
-
 		ctrNetworksBkt := dbCtr.Bucket(networksBkt)
 		if ctrNetworksBkt == nil {
 			return errors.Wrapf(define.ErrNoSuchNetwork, "container %s is not connected to any CNI networks, so cannot disconnect", ctr.ID())
@@ -1313,13 +1309,15 @@ func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
 			return errors.Wrapf(err, "error removing container %s from network %s", ctr.ID(), network)
 		}
 
-		bktExists := ctrAliasesBkt.Bucket([]byte(network))
-		if bktExists == nil {
-			return nil
-		}
+		if ctrAliasesBkt != nil {
+			bktExists := ctrAliasesBkt.Bucket([]byte(network))
+			if bktExists == nil {
+				return nil
+			}
 
-		if err := ctrAliasesBkt.DeleteBucket([]byte(network)); err != nil {
-			return errors.Wrapf(err, "error removing container %s network aliases for network %s", ctr.ID(), network)
+			if err := ctrAliasesBkt.DeleteBucket([]byte(network)); err != nil {
+				return errors.Wrapf(err, "error removing container %s network aliases for network %s", ctr.ID(), network)
+			}
 		}
 
 		return nil

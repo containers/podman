@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -20,6 +21,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/netns"
 	"github.com/containers/podman/v2/pkg/rootless"
@@ -980,4 +982,140 @@ type logrusDebugWriter struct {
 func (w *logrusDebugWriter) Write(p []byte) (int, error) {
 	logrus.Debugf("%s%s", w.prefix, string(p))
 	return len(p), nil
+}
+
+// DisconnectContainerFromNetwork removes a container from its CNI network
+func (r *Runtime) DisconnectContainerFromNetwork(nameOrID, netName string, force bool) error {
+	ctr, err := r.LookupContainer(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	networks, err := ctr.networksByNameIndex()
+	if err != nil {
+		return err
+	}
+
+	exists, err := network.Exists(r.config, netName)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return errors.Wrap(define.ErrNoSuchNetwork, netName)
+	}
+
+	index, nameExists := networks[netName]
+	if !nameExists && len(networks) > 0 {
+		return errors.Errorf("container %s is not connected to network %s", nameOrID, netName)
+	}
+
+	ctr.lock.Lock()
+	defer ctr.lock.Unlock()
+	if err := ctr.syncContainer(); err != nil {
+		return err
+	}
+
+	podConfig := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), []string{netName}, ctr.config.PortMappings, nil, nil)
+	if err := r.netPlugin.TearDownPod(podConfig); err != nil {
+		return err
+	}
+	if err := r.state.NetworkDisconnect(ctr, netName); err != nil {
+		return err
+	}
+
+	// update network status
+	networkStatus := ctr.state.NetworkStatus
+	// if len is one and we confirmed earlier that the container is in
+	// fact connected to the network, then just return an empty slice
+	if len(networkStatus) == 1 {
+		ctr.state.NetworkStatus = make([]*cnitypes.Result, 0)
+	} else {
+		// clip out the index of the network
+		networkStatus[len(networkStatus)-1], networkStatus[index] = networkStatus[index], networkStatus[len(networkStatus)-1]
+		// shorten the slice by one
+		ctr.state.NetworkStatus = networkStatus[:len(networkStatus)-1]
+	}
+	return nil
+}
+
+// ConnectContainerToNetwork connects a container to a CNI network
+func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, aliases []string) error {
+	ctr, err := r.LookupContainer(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	networks, err := ctr.networksByNameIndex()
+	if err != nil {
+		return err
+	}
+
+	exists, err := network.Exists(r.config, netName)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return errors.Wrap(define.ErrNoSuchNetwork, netName)
+	}
+
+	_, nameExists := networks[netName]
+	if !nameExists && len(networks) > 0 {
+		return errors.Errorf("container %s is not connected to network %s", nameOrID, netName)
+	}
+
+	ctr.lock.Lock()
+	defer ctr.lock.Unlock()
+	if err := ctr.syncContainer(); err != nil {
+		return err
+	}
+
+	if err := r.state.NetworkConnect(ctr, netName, aliases); err != nil {
+		return err
+	}
+
+	podConfig := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), []string{netName}, ctr.config.PortMappings, nil, nil)
+	podConfig.Aliases = make(map[string][]string, 1)
+	podConfig.Aliases[netName] = aliases
+	results, err := r.netPlugin.SetUpPod(podConfig)
+	if err != nil {
+		return err
+	}
+	if len(results) != 1 {
+		return errors.New("when adding aliases, results must be of length 1")
+	}
+
+	networkResults := make([]*cnitypes.Result, 0)
+	for _, r := range results {
+		resultCurrent, err := cnitypes.GetResult(r.Result)
+		if err != nil {
+			return errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.Result, err)
+		}
+		networkResults = append(networkResults, resultCurrent)
+	}
+
+	// update network status
+	networkStatus := ctr.state.NetworkStatus
+	// if len is one and we confirmed earlier that the container is in
+	// fact connected to the network, then just return an empty slice
+	if len(networkStatus) == 0 {
+		ctr.state.NetworkStatus = append(ctr.state.NetworkStatus, networkResults...)
+	} else {
+		// build a list of network names so we can sort and
+		// get the new name's index
+		var networkNames []string
+		for netName := range networks {
+			networkNames = append(networkNames, netName)
+		}
+		networkNames = append(networkNames, netName)
+		// sort
+		sort.Strings(networkNames)
+		// get index of new network name
+		index := sort.SearchStrings(networkNames, netName)
+		// Append a zero value to to the slice
+		networkStatus = append(networkStatus, &cnitypes.Result{})
+		// populate network status
+		copy(networkStatus[index+1:], networkStatus[index:])
+		networkStatus[index] = networkResults[0]
+	}
+	return nil
 }
