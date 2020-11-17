@@ -30,7 +30,7 @@ func Kube(ctx context.Context, path string, options entities.PlayKubeOptions) (*
 	params.Set("network", options.Network)
 	params.Set("logDriver", options.LogDriver)
 	if options.SkipTLSVerify != types.OptionalBoolUndefined {
-		params.Set("tlsVerify", strconv.FormatBool(options.SkipTLSVerify == types.OptionalBoolTrue))
+		params.Set("tlsVerify", strconv.FormatBool(options.SkipTLSVerify != types.OptionalBoolTrue))
 	}
 
 	// TODO: have a global system context we can pass around (1st argument)
