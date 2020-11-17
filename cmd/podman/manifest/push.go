@@ -28,7 +28,7 @@ var (
 		Short:             "Push a manifest list or image index to a registry",
 		Long:              "Pushes manifest lists and image indexes to registries.",
 		RunE:              push,
-		Example:           `podman manifest push mylist:v1.11 quay.io/myimagelist`,
+		Example:           `podman manifest push mylist:v1.11 docker://quay.io/myuser/image:v1.11`,
 		Args:              cobra.ExactArgs(2),
 		ValidArgsFunction: common.AutocompleteImages,
 	}
