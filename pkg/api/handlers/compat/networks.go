@@ -289,25 +289,40 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 
 func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	config, err := runtime.GetConfig()
-	if err != nil {
-		utils.InternalServerError(w, err)
+	ic := abi.ContainerEngine{Libpod: runtime}
+
+	query := struct {
+		Force bool `schema:"force"`
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
+	options := entities.NetworkRmOptions{
+		Force: query.Force,
+	}
+
 	name := utils.GetName(r)
-	exists, err := network.Exists(config, name)
+	reports, err := ic.NetworkRm(r.Context(), []string{name}, options)
 	if err != nil {
-		utils.InternalServerError(w, err)
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "remove Network create"))
 		return
 	}
-	if !exists {
-		utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
+	report := reports[0]
+	if report.Err != nil {
+		if errors.Cause(report.Err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
+			return
+		}
+		utils.InternalServerError(w, report.Err)
 		return
 	}
-	if err := network.RemoveNetwork(config, name); err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
+
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
