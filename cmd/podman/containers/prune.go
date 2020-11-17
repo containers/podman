@@ -57,7 +57,7 @@ func prune(cmd *cobra.Command, args []string) error {
 		fmt.Print("Are you sure you want to continue? [y/N] ")
 		answer, err := reader.ReadString('\n')
 		if err != nil {
-			return errors.Wrapf(err, "error reading input")
+			return err
 		}
 		if strings.ToLower(answer)[0] != 'y' {
 			return nil

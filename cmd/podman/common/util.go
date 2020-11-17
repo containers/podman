@@ -250,7 +250,7 @@ func parseAndValidateRange(portRange string) (uint16, uint16, error) {
 func parseAndValidatePort(port string) (uint16, error) {
 	num, err := strconv.Atoi(port)
 	if err != nil {
-		return 0, errors.Wrapf(err, "cannot parse %q as a port number", port)
+		return 0, errors.Wrapf(err, "invalid port number")
 	}
 	if num < 1 || num > 65535 {
 		return 0, errors.Errorf("port numbers must be between 1 and 65535 (inclusive), got %d", num)

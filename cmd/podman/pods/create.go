@@ -218,7 +218,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	if len(podIDFile) > 0 {
 		if err = ioutil.WriteFile(podIDFile, []byte(response.Id), 0644); err != nil {
-			return errors.Wrapf(err, "failed to write pod ID to file %q", podIDFile)
+			return errors.Wrapf(err, "failed to write pod ID to file")
 		}
 	}
 	fmt.Println(response.Id)

@@ -13,7 +13,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/infra"
-	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +57,7 @@ WARNING! This will remove:
 Are you sure you want to continue? [y/N] `)
 		answer, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println(errors.Wrapf(err, "error reading input"))
+			logrus.Error(err)
 			os.Exit(1)
 		}
 		if strings.ToLower(answer)[0] != 'y' {
@@ -71,13 +71,13 @@ Are you sure you want to continue? [y/N] `)
 
 	engine, err := infra.NewSystemEngine(entities.ResetMode, registry.PodmanConfig())
 	if err != nil {
-		fmt.Println(err)
+		logrus.Error(err)
 		os.Exit(125)
 	}
 	defer engine.Shutdown(registry.Context())
 
 	if err := engine.Reset(registry.Context()); err != nil {
-		fmt.Println(err)
+		logrus.Error(err)
 		os.Exit(125)
 	}
 	os.Exit(0)

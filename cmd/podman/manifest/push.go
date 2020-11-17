@@ -108,7 +108,7 @@ func push(cmd *cobra.Command, args []string) error {
 		manifestPushOpts.SkipTLSVerify = types.NewOptionalBool(!manifestPushOpts.TLSVerifyCLI)
 	}
 	if err := registry.ImageEngine().ManifestPush(registry.Context(), args, manifestPushOpts.ManifestPushOptions); err != nil {
-		return errors.Wrapf(err, "error pushing manifest %s to %s", listImageSpec, destSpec)
+		return err
 	}
 	return nil
 }

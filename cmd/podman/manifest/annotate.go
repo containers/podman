@@ -73,7 +73,7 @@ func annotate(cmd *cobra.Command, args []string) error {
 	}
 	updatedListID, err := registry.ImageEngine().ManifestAnnotate(context.Background(), args, manifestAnnotateOpts)
 	if err != nil {
-		return errors.Wrapf(err, "error removing from manifest list %s", listImageSpec)
+		return err
 	}
 	fmt.Printf("%s\n", updatedListID)
 	return nil

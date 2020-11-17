@@ -55,7 +55,7 @@ func setTrust(cmd *cobra.Command, args []string) error {
 
 	valid, err := image.IsValidImageURI(args[0])
 	if err != nil || !valid {
-		return errors.Wrapf(err, "invalid image uri %s", args[0])
+		return err
 	}
 
 	if !util.StringInSlice(setOptions.Type, validTrustTypes) {

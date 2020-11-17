@@ -7,7 +7,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +34,7 @@ func init() {
 func inspect(cmd *cobra.Command, args []string) error {
 	buf, err := registry.ImageEngine().ManifestInspect(context.Background(), args[0])
 	if err != nil {
-		return errors.Wrapf(err, "error inspect manifest %s", args[0])
+		return err
 	}
 	fmt.Printf("%s\n", buf)
 	return nil

@@ -79,14 +79,14 @@ func add(cmd *cobra.Command, args []string) error {
 	// Default to ssh: schema if none given
 	dest := args[1]
 	if match, err := regexp.Match(schemaPattern, []byte(dest)); err != nil {
-		return errors.Wrapf(err, "internal regex error %q", schemaPattern)
+		return errors.Wrapf(err, "invalid destination")
 	} else if !match {
 		dest = "ssh://" + dest
 	}
 
 	uri, err := url.Parse(dest)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse %q", dest)
+		return err
 	}
 
 	if uri.User.Username() == "" {
@@ -109,7 +109,7 @@ func add(cmd *cobra.Command, args []string) error {
 
 	if uri.Path == "" || uri.Path == "/" {
 		if uri.Path, err = getUDS(cmd, uri); err != nil {
-			return errors.Wrapf(err, "failed to connect to  %q", uri.String())
+			return err
 		}
 	}
 
@@ -151,7 +151,7 @@ func getUserInfo(uri *url.URL) (*url.Userinfo, error) {
 	if u, found := os.LookupEnv("_CONTAINERS_ROOTLESS_UID"); found {
 		usr, err = user.LookupId(u)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to find user %q", u)
+			return nil, errors.Wrapf(err, "failed to lookup rootless user")
 		}
 	} else {
 		usr, err = user.Current()
@@ -209,7 +209,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 	}
 	dial, err := ssh.Dial("tcp", uri.Host, cfg)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to connect to %q", uri.Host)
+		return "", errors.Wrapf(err, "failed to connect")
 	}
 	defer dial.Close()
 
@@ -229,7 +229,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 	var buffer bytes.Buffer
 	session.Stdout = &buffer
 	if err := session.Run(run); err != nil {
-		return "", errors.Wrapf(err, "failed to run %q", run)
+		return "", err
 	}
 
 	var info define.Info
@@ -238,7 +238,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 	}
 
 	if info.Host.RemoteSocket == nil || len(info.Host.RemoteSocket.Path) == 0 {
-		return "", fmt.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
+		return "", errors.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
 	}
 	return info.Host.RemoteSocket.Path, nil
 }

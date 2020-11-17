@@ -33,7 +33,7 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 		address := strings.Join(fields[1:], ":")
 		l, err := net.Listen(fields[0], address)
 		if err != nil {
-			return errors.Wrapf(err, "unable to create socket %s", opts.URI)
+			return errors.Wrapf(err, "unable to create socket")
 		}
 		listener = &l
 	}

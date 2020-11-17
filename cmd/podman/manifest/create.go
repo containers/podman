@@ -7,7 +7,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +38,7 @@ func init() {
 func create(cmd *cobra.Command, args []string) error {
 	imageID, err := registry.ImageEngine().ManifestCreate(context.Background(), args[:1], args[1:], manifestCreateOpts)
 	if err != nil {
-		return errors.Wrapf(err, "error creating manifest %s", args[0])
+		return err
 	}
 	fmt.Printf("%s\n", imageID)
 	return nil
