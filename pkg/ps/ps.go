@@ -21,19 +21,17 @@ import (
 
 func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	var (
-		filterFuncs []libpod.ContainerFilter
-		pss         = []entities.ListContainer{}
+		pss = []entities.ListContainer{}
 	)
+	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 	all := options.All || options.Last > 0
 	if len(options.Filters) > 0 {
 		for k, v := range options.Filters {
-			for _, val := range v {
-				generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, val, runtime)
-				if err != nil {
-					return nil, err
-				}
-				filterFuncs = append(filterFuncs, generatedFunc)
+			generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, v, runtime)
+			if err != nil {
+				return nil, err
 			}
+			filterFuncs = append(filterFuncs, generatedFunc)
 		}
 	}
 
@@ -43,7 +41,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 		all = true
 	}
 	if !all {
-		runningOnly, err := lpfilters.GenerateContainerFilterFuncs("status", define.ContainerStateRunning.String(), runtime)
+		runningOnly, err := lpfilters.GenerateContainerFilterFuncs("status", []string{define.ContainerStateRunning.String()}, runtime)
 		if err != nil {
 			return nil, err
 		}

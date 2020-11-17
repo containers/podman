@@ -545,4 +545,126 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.OutputToString()).To(ContainSubstring("ago"))
 	})
+
+	It("podman ps filter test", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "test1", "--label", "foo=1",
+			"--label", "bar=2", "--volume", "volume1:/test", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--name", "test2", "--label", "foo=1",
+			ALPINE, "ls", "/fail"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+
+		session = podmanTest.Podman([]string{"create", "--name", "test3", ALPINE, cid1})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--name", "test4", "--volume", "volume1:/test1",
+			"--volume", "/:/test2", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "name=test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(5))
+		Expect(session.LineInOutputContains("test1")).To(BeTrue())
+		Expect(session.LineInOutputContains("test2")).To(BeTrue())
+		Expect(session.LineInOutputContains("test3")).To(BeTrue())
+		Expect(session.LineInOutputContains("test4")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "name=test1", "--filter", "name=test2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(3))
+		Expect(session.LineInOutputContains("test1")).To(BeTrue())
+		Expect(session.LineInOutputContains("test2")).To(BeTrue())
+
+		// check container id matches with regex
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "id=" + cid1[:40], "--filter", "id=" + cid1 + "$"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.LineInOutputContains("test1")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--filter", "status=created"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.LineInOutputContains("test3")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--filter", "status=created", "--filter", "status=exited"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(4))
+		Expect(session.LineInOutputContains("test2")).To(BeTrue())
+		Expect(session.LineInOutputContains("test3")).To(BeTrue())
+		Expect(session.LineInOutputContains("test4")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "label=foo=1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(3))
+		Expect(session.LineInOutputContains("test1")).To(BeTrue())
+		Expect(session.LineInOutputContains("test2")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--filter", "label=foo=1", "--filter", "status=exited"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.LineInOutputContains("test2")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "label=foo=1", "--filter", "label=non=1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(1))
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "label=foo=1", "--filter", "label=bar=2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.LineInOutputContains("test1")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "exited=1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.LineInOutputContains("test2")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "exited=1", "--filter", "exited=0"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(3))
+		Expect(session.LineInOutputContains("test2")).To(BeTrue())
+		Expect(session.LineInOutputContains("test4")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "volume=volume1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(3))
+		Expect(session.LineInOutputContains("test1")).To(BeTrue())
+		Expect(session.LineInOutputContains("test4")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "volume=/:/test2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.LineInOutputContains("test4")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "before=test2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.LineInOutputContains("test1")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--filter", "since=test2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(3))
+		Expect(session.LineInOutputContains("test3")).To(BeTrue())
+		Expect(session.LineInOutputContains("test4")).To(BeTrue())
+	})
 })

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -78,6 +79,17 @@ func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 func StringInSlice(s string, sl []string) bool {
 	for _, i := range sl {
 		if i == s {
+			return true
+		}
+	}
+	return false
+}
+
+// StringMatchRegexSlice determines if a given string matches one of the given regexes, returns bool
+func StringMatchRegexSlice(s string, re []string) bool {
+	for _, r := range re {
+		m, err := regexp.MatchString(r, s)
+		if err == nil && m {
 			return true
 		}
 	}
