@@ -87,8 +87,11 @@ func networkList(cmd *cobra.Command, args []string) error {
 		nlprs = append(nlprs, ListPrintReports{r})
 	}
 
+	// Headers() gets lost resolving the embedded field names so add them
 	headers := report.Headers(ListPrintReports{}, map[string]string{
+		"Name":       "name",
 		"CNIVersion": "version",
+		"Version":    "version",
 		"Plugins":    "plugins",
 	})
 	renderHeaders := true
@@ -110,7 +113,6 @@ func networkList(cmd *cobra.Command, args []string) error {
 		if err := tmpl.Execute(w, headers); err != nil {
 			return err
 		}
-
 	}
 	return tmpl.Execute(w, nlprs)
 }
