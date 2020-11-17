@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -60,7 +59,7 @@ WARNING! This will remove all dangling images.
 Are you sure you want to continue? [y/N] `)
 		answer, err := reader.ReadString('\n')
 		if err != nil {
-			return errors.Wrapf(err, "error reading input")
+			return err
 		}
 		if strings.ToLower(answer)[0] != 'y' {
 			return nil

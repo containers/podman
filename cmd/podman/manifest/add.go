@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -116,7 +115,7 @@ func add(cmd *cobra.Command, args []string) error {
 
 	listID, err := registry.ImageEngine().ManifestAdd(context.Background(), manifestAddOpts.ManifestAddOptions)
 	if err != nil {
-		return errors.Wrapf(err, "error adding to manifest list %s", args[0])
+		return err
 	}
 	fmt.Printf("%s\n", listID)
 	return nil

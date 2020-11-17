@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -104,7 +103,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		case doJSON:
 			jsonStr, err := event.ToJSONString()
 			if err != nil {
-				return errors.Wrapf(err, "unable to format json")
+				return err
 			}
 			fmt.Println(jsonStr)
 		case cmd.Flags().Changed("format"):

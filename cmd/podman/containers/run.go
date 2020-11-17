@@ -205,7 +205,7 @@ func run(cmd *cobra.Command, args []string) error {
 	if runRmi {
 		_, rmErrors := registry.ImageEngine().Remove(registry.GetContext(), []string{imageName}, entities.ImageRemoveOptions{})
 		if len(rmErrors) > 0 {
-			logrus.Errorf("%s", errors.Wrapf(errorhandling.JoinErrors(rmErrors), "failed removing image"))
+			logrus.Errorf("%s", errorhandling.JoinErrors(rmErrors))
 		}
 	}
 	return nil

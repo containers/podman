@@ -353,18 +353,18 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 
 	isolation, err := parse.IsolationOption(flags.Isolation)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing ID mapping options")
+		return nil, err
 	}
 
 	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c, isolation)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing ID mapping options")
+		return nil, err
 	}
 	nsValues = append(nsValues, usernsOption...)
 
 	systemContext, err := parse.SystemContextFromOptions(c)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error building system context")
+		return nil, err
 	}
 
 	format := ""

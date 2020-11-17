@@ -58,7 +58,7 @@ func sign(cmd *cobra.Command, args []string) error {
 	if len(signOptions.Directory) > 0 {
 		sigStoreDir = signOptions.Directory
 		if _, err := os.Stat(sigStoreDir); err != nil {
-			return errors.Wrapf(err, "invalid directory %s", sigStoreDir)
+			return err
 		}
 	}
 	_, err := registry.ImageEngine().Sign(registry.Context(), args, signOptions)

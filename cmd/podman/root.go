@@ -189,8 +189,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		if cmd.Flag("cpu-profile").Changed {
 			f, err := os.Create(cfg.CPUProfile)
 			if err != nil {
-				return errors.Wrapf(err, "unable to create cpu profiling file %s",
-					cfg.CPUProfile)
+				return err
 			}
 			if err := pprof.StartCPUProfile(f); err != nil {
 				return err
