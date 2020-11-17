@@ -346,7 +346,7 @@ value can be expressed in a time format such as `1m22s`.  The default value is `
 
 Container host name
 
-Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pods hostname will be used.
+Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pod's hostname will be used.
 
 #### **--help**
 
@@ -576,7 +576,7 @@ This works for both background and foreground containers.
 
 #### **--network**=*mode*, **--net**
 
-Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_. If used together with **--pod**, the container will not join the pods network namespace.
+Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_. If used together with **--pod**, the container will not join the pod's network namespace.
 
 Valid _mode_ values are:
 
