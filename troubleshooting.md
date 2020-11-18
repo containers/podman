@@ -457,7 +457,7 @@ Attempts to run podman result in
 
 One workaround is to disable Secure Boot in your BIOS.
 
-### 20) error creating libpod runtime: there might not be enough IDs available in the namespace
+### 19) error creating libpod runtime: there might not be enough IDs available in the namespace
 
 Unable to pull images
 
