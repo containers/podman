@@ -126,8 +126,8 @@ func images(cmd *cobra.Command, args []string) error {
 	case listFlag.quiet:
 		return writeID(imgs)
 	default:
-		if cmd.Flag("format").Changed {
-			listFlag.noHeading = true // V1 compatibility
+		if cmd.Flags().Changed("format") && !parse.HasTable(listFlag.format) {
+			listFlag.noHeading = true
 		}
 		return writeTemplate(imgs)
 	}
