@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -39,6 +37,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to containers/storage", func() {
+		SkipIfRemote("Remote push does not support containers-storage transport")
 		session := podmanTest.Podman([]string{"push", ALPINE, "containers-storage:busybox:test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -49,6 +48,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to dir", func() {
+		SkipIfRemote("Remote push does not support dir transport")
 		bbdir := filepath.Join(podmanTest.TempDir, "busybox")
 		session := podmanTest.Podman([]string{"push", "--remove-signatures", ALPINE,
 			fmt.Sprintf("dir:%s", bbdir)})
@@ -57,6 +57,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry", func() {
+		SkipIfRemote("FIXME: This should work")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -87,6 +88,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry with authorization", func() {
+		SkipIfRemote("FIXME: This does not seem to be returning an error")
 		SkipIfRootless("FIXME: Creating content in certs.d we use directories in homedir")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
@@ -163,6 +165,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to docker-archive", func() {
+		SkipIfRemote("Remote push does not support docker-archive transport")
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
 		session := podmanTest.Podman([]string{"push", ALPINE,
 			fmt.Sprintf("docker-archive:%s:latest", tarfn)})
@@ -171,6 +174,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to docker daemon", func() {
+		SkipIfRemote("Remote push does not support docker-daemon transport")
 		setup := SystemExec("bash", []string{"-c", "systemctl status docker 2>&1"})
 
 		if setup.LineInOutputContains("Active: inactive") {
@@ -196,6 +200,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to oci-archive", func() {
+		SkipIfRemote("Remote push does not support oci-archive transport")
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
 		session := podmanTest.Podman([]string{"push", ALPINE,
 			fmt.Sprintf("oci-archive:%s:latest", tarfn)})
@@ -204,6 +209,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to docker-archive no reference", func() {
+		SkipIfRemote("Remote push does not support docker-archive transport")
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
 		session := podmanTest.Podman([]string{"push", ALPINE,
 			fmt.Sprintf("docker-archive:%s", tarfn)})
@@ -212,6 +218,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to oci-archive no reference", func() {
+		SkipIfRemote("Remote push does not support oci-archive transport")
 		ociarc := filepath.Join(podmanTest.TempDir, "alp-oci")
 		session := podmanTest.Podman([]string{"push", ALPINE,
 			fmt.Sprintf("oci-archive:%s", ociarc)})

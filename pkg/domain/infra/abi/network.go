@@ -96,7 +96,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 					if err := ic.Libpod.RemovePod(ctx, pod, true, true); err != nil {
 						return reports, err
 					}
-				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true); err != nil {
+				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true); err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
 					return reports, err
 				}
 			}
