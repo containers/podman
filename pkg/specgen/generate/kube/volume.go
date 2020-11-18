@@ -21,12 +21,13 @@ type KubeVolumeType int
 
 const (
 	KubeVolumeTypeBindMount KubeVolumeType = iota
+	KubeVolumeTypeNamed     KubeVolumeType = iota
 )
 
 type KubeVolume struct {
 	// Type of volume to create
 	Type KubeVolumeType
-	// Path for bind mount
+	// Path for bind mount or volume name for named volume
 	Source string
 }
 
@@ -87,12 +88,22 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 	}, nil
 }
 
+// Create a KubeVolume from a PersistentVolumeClaimVolumeSource
+func VolumeFromPersistentVolumeClaim(claim *v1.PersistentVolumeClaimVolumeSource) (*KubeVolume, error) {
+	return &KubeVolume{
+		Type:   KubeVolumeTypeNamed,
+		Source: claim.ClaimName,
+	}, nil
+}
+
 // Create a KubeVolume from one of the supported VolumeSource
 func VolumeFromSource(volumeSource v1.VolumeSource) (*KubeVolume, error) {
 	if volumeSource.HostPath != nil {
 		return VolumeFromHostPath(volumeSource.HostPath)
+	} else if volumeSource.PersistentVolumeClaim != nil {
+		return VolumeFromPersistentVolumeClaim(volumeSource.PersistentVolumeClaim)
 	} else {
-		return nil, errors.Errorf("HostPath is currently the only supported VolumeSource")
+		return nil, errors.Errorf("HostPath and PersistentVolumeClaim are currently the conly supported VolumeSource")
 	}
 }
 

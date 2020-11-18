@@ -181,6 +181,15 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 				mount.Options = []string{"ro"}
 			}
 			s.Mounts = append(s.Mounts, mount)
+		case KubeVolumeTypeNamed:
+			namedVolume := specgen.NamedVolume{
+				Dest: volume.MountPath,
+				Name: volumeSource.Source,
+			}
+			if volume.ReadOnly {
+				namedVolume.Options = []string{"ro"}
+			}
+			s.Volumes = append(s.Volumes, &namedVolume)
 		default:
 			return nil, errors.Errorf("Unsupported volume source type")
 		}

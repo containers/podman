@@ -169,6 +169,10 @@ spec:
       path: {{ .HostPath.Path }}
       type: {{ .HostPath.Type }}
     {{- end }}
+    {{- if (eq .VolumeType "PersistentVolumeClaim") }}
+    persistentVolumeClaim:
+      claimName: {{ .PersistentVolumeClaim.ClaimName }}
+    {{- end }}
   {{ end }}
 {{ end }}
 status: {}
@@ -699,10 +703,15 @@ type HostPath struct {
 	Type string
 }
 
+type PersistentVolumeClaim struct {
+	ClaimName string
+}
+
 type Volume struct {
 	VolumeType string
 	Name       string
 	HostPath
+	PersistentVolumeClaim
 }
 
 // getHostPathVolume takes a type and a location for a HostPath
@@ -714,6 +723,18 @@ func getHostPathVolume(vType, vPath string) *Volume {
 		HostPath: HostPath{
 			Path: vPath,
 			Type: vType,
+		},
+	}
+}
+
+// getHostPathVolume takes a name for a Persistentvolumeclaim
+// volume giving it a default name of volName
+func getPersistentVolumeClaimVolume(vName string) *Volume {
+	return &Volume{
+		VolumeType: "PersistentVolumeClaim",
+		Name:       defaultVolName,
+		PersistentVolumeClaim: PersistentVolumeClaim{
+			ClaimName: vName,
 		},
 	}
 }
@@ -1387,6 +1408,26 @@ spec:
 
 		correct := fmt.Sprintf("%s:%s:%s", hostPathLocation, hostPathLocation, "ro")
 		Expect(inspect.OutputToString()).To(ContainSubstring(correct))
+	})
+
+	It("podman play kube test with PersistentVolumeClaim volume", func() {
+		volumeName := "namedVolume"
+
+		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		pod := getPod(withVolume(getPersistentVolumeClaimVolume(volumeName)), withCtr(ctr))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ (index .Mounts 0).Type }}:{{ (index .Mounts 0).Name }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		correct := fmt.Sprintf("volume:%s", volumeName)
+		Expect(inspect.OutputToString()).To(Equal(correct))
 	})
 
 	It("podman play kube applies labels to pods", func() {
