@@ -27,7 +27,7 @@ LAST_TAG=$(git describe --tags --abbrev=0)
 write_go_version()
 {
 	LOCAL_VERSION="$1"
-	sed -i "s/^\(var Version = semver.MustParse\( \"\).*/\1${LOCAL_VERSION}\"\)/" version/version.go
+	sed -i "s/^\(var Version = semver.MustParse( *\"\).*/\1${LOCAL_VERSION}\")/" version/version.go
 }
 
 write_spec_version()
