@@ -16,7 +16,6 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 	var (
 		delContainers []string
 		space         int64
-		filterFuncs   []libpod.ContainerFilter
 	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
@@ -28,15 +27,14 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+	filterFuncs := make([]libpod.ContainerFilter, 0, len(query.Filters))
 	for k, v := range query.Filters {
-		for _, val := range v {
-			generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, val, runtime)
-			if err != nil {
-				utils.InternalServerError(w, err)
-				return
-			}
-			filterFuncs = append(filterFuncs, generatedFunc)
+		generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, v, runtime)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
 		}
+		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 
 	// Libpod response differs

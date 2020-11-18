@@ -205,15 +205,13 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
-	var filterFuncs []libpod.ContainerFilter
+	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 	for k, v := range options.Filters {
-		for _, val := range v {
-			generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, val, ic.Libpod)
-			if err != nil {
-				return nil, err
-			}
-			filterFuncs = append(filterFuncs, generatedFunc)
+		generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
+		if err != nil {
+			return nil, err
 		}
+		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 	return ic.pruneContainersHelper(filterFuncs)
 }

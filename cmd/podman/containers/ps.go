@@ -98,14 +98,6 @@ func checkFlags(c *cobra.Command) error {
 	if listOpts.Last >= 0 && listOpts.Latest {
 		return errors.Errorf("last and latest are mutually exclusive")
 	}
-	// Filter on status forces all
-	for _, filter := range filters {
-		splitFilter := strings.SplitN(filter, "=", 2)
-		if strings.ToLower(splitFilter[0]) == "status" {
-			listOpts.All = true
-			break
-		}
-	}
 	// Quiet conflicts with size and namespace and is overridden by a Go
 	// template.
 	if listOpts.Quiet {
