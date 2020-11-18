@@ -80,19 +80,23 @@ Default: created
 
 #### **--filter**, **-f**=*filter*
 
-Filter output based on conditions given
+Filter output based on conditions given.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
 
 Valid filters are listed below:
 
-| **Filter**      | **Description**                                                     |
-| --------------- | ------------------------------------------------------------------- |
-| id              | [ID] Pod's ID                                                       |
-| name            | [Name] Pod's name                                                   |
-| label           | [Key] or [Key=Value] Label assigned to a container                  |
-| ctr-names       | Container name within the pod                                       |
-| ctr-ids         | Container ID within the pod                                         |
-| ctr-status      | Container status within the pod                                     |
-| ctr-number      | Number of containers in the pod                                     |
+| **Filter** | **Description**                                                                       |
+| ---------- | ------------------------------------------------------------------------------------- |
+| id         | [ID] Pod's ID (accepts regex)                                                         |
+| name       | [Name] Pod's name (accepts regex)                                                     |
+| label      | [Key] or [Key=Value] Label assigned to a container                                    |
+| status     | Pod's status: `stopped`, `running`, `paused`, `exited`, `dead`, `created`, `degraded` |
+| ctr-names  | Container name within the pod (accepts regex)                                         |
+| ctr-ids    | Container ID within the pod (accepts regex)                                           |
+| ctr-status | Container status within the pod                                                       |
+| ctr-number | Number of containers in the pod                                                       |
 
 #### **--help**, **-h**
 
