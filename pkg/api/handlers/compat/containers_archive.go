@@ -250,6 +250,8 @@ func statsToHeader(stats *copier.StatForItem) (string, error) {
 	return buff.String(), nil
 }
 
+// the utility functions below are copied from abi/cp.go
+
 func getUser(mountPoint string, userspec string) (specs.User, error) {
 	uid, gid, _, err := chrootuser.GetUser(mountPoint, userspec)
 	u := specs.User{
