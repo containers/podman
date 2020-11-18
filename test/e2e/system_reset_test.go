@@ -59,7 +59,7 @@ var _ = Describe("podman system reset", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		// If remote then the varlink service should have exited
+		// If remote then the API service should have exited
 		// On local tests this is a noop
 		podmanTest.StartRemoteService()
 

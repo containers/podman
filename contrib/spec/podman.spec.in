@@ -166,7 +166,6 @@ Provides: bundled(golang(github.com/tchap/go-patricia)) = v2.2.6
 Provides: bundled(golang(github.com/ulikunitz/xz)) = v0.5.4
 # "-" are not accepted in version strings, so comment out below line
 #Provides: bundled(golang(github.com/urfave/cli)) = fix-short-opts-parsing
-Provides: bundled(golang(github.com/varlink/go)) = master
 Provides: bundled(golang(github.com/vbatts/tar-split)) = v0.10.2
 Provides: bundled(golang(github.com/vishvananda/netlink)) = master
 Provides: bundled(golang(github.com/vishvananda/netns)) = master

@@ -52,10 +52,6 @@ Potential skew between multiple libpod versions operating on the same storage ca
 
 .RE
 
-.SH Varlink
-.PP
-Some code exists for this; splits the difference.  Future uncertain.
-
 .SH Making the choice
 .PP
 A good question to ask first is: Do you want users to be able to use \fB\fCpodman\fR to manipulate the containers created by your project?

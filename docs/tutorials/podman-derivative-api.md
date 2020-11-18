@@ -46,11 +46,6 @@ Disadvantages:
  - Binary size
  - Potential skew between multiple libpod versions operating on the same storage can cause problems
 
-Varlink
----
-
-The Varlink API is presently deprecated. We do not recommend adopting it for new projects.
-
 Making the choice
 ---
 

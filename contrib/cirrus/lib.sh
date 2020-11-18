@@ -71,8 +71,8 @@ SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
 # Downloaded, but not installed packages.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
-# Log remote-client system test varlink output here
-PODMAN_SERVER_LOG=$CIRRUS_WORKING_DIR/varlink.log
+# Log remote-client system test server output here
+PODMAN_SERVER_LOG=$CIRRUS_WORKING_DIR/server.log
 
 # Defaults when not running under CI
 export CI="${CI:-false}"

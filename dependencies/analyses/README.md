@@ -29,7 +29,6 @@ WORK=/tmp/go-build794287815
 2.7M github.com/containers/podman/vendor/github.com/gogo/protobuf/proto
 2.5M github.com/containers/podman/vendor/k8s.io/apimachinery/pkg/apis/meta/v1
 2.3M github.com/containers/podman/vendor/github.com/vishvananda/netlink
-2.1M github.com/containers/podman/cmd/podman/varlink
 ```
 
 The output of the `go-archive-analysis.sh` script is a sorted table with the size in bytes followed by the package.
