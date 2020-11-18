@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -18,9 +16,8 @@ var _ = Describe("Podman mount", func() {
 	)
 
 	BeforeEach(func() {
-		if os.Geteuid() == 0 {
-			Skip("This function is not enabled for rootfull podman")
-		}
+		SkipIfNotRootless("This function is not enabled for rootfull podman")
+		SkipIfRemote("Podman mount not supported for remote connections")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

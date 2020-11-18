@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -27,6 +25,7 @@ var _ = Describe("Podman checkpoint", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRemote("checkpoint not supported in remote mode")
 		SkipIfRootless("checkpoint not supported in rootless mode")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
