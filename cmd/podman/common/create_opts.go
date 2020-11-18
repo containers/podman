@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -439,4 +440,67 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	cmd := []string{cc.Image}
 	cmd = append(cmd, cc.Config.Cmd...)
 	return &cliOpts, cmd, nil
+}
+
+func ulimits() []string {
+	if !registry.IsRemote() {
+		return containerConfig.Ulimits()
+	}
+	return nil
+}
+
+func cgroupConfig() string {
+	if !registry.IsRemote() {
+		return containerConfig.Cgroups()
+	}
+	return ""
+}
+
+func devices() []string {
+	if !registry.IsRemote() {
+		return containerConfig.Devices()
+	}
+	return nil
+}
+
+func env() []string {
+	if !registry.IsRemote() {
+		return containerConfig.Env()
+	}
+	return nil
+}
+
+func initPath() string {
+	if !registry.IsRemote() {
+		return containerConfig.InitPath()
+	}
+	return ""
+}
+
+func pidsLimit() int64 {
+	if !registry.IsRemote() {
+		return containerConfig.PidsLimit()
+	}
+	return -1
+}
+
+func policy() string {
+	if !registry.IsRemote() {
+		return containerConfig.Engine.PullPolicy
+	}
+	return ""
+}
+
+func shmSize() string {
+	if !registry.IsRemote() {
+		return containerConfig.ShmSize()
+	}
+	return ""
+}
+
+func volumes() []string {
+	if !registry.IsRemote() {
+		return containerConfig.Volumes()
+	}
+	return nil
 }

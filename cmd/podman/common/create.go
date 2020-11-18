@@ -84,7 +84,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	cgroupsFlagName := "cgroups"
 	createFlags.StringVar(
 		&cf.CGroupsMode,
-		cgroupsFlagName, containerConfig.Cgroups(),
+		cgroupsFlagName, cgroupConfig(),
 		`control container cgroup configuration ("enabled"|"disabled"|"no-conmon"|"split")`,
 	)
 	_ = cmd.RegisterFlagCompletionFunc(cgroupsFlagName, AutocompleteCgroupMode)
@@ -180,7 +180,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	deviceFlagName := "device"
 	createFlags.StringSliceVar(
 		&cf.Devices,
-		deviceFlagName, containerConfig.Devices(),
+		deviceFlagName, devices(),
 		fmt.Sprintf("Add a host device to the container"),
 	)
 	_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
@@ -238,7 +238,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 
 	envFlagName := "env"
 	createFlags.StringArrayP(
-		envFlagName, "e", containerConfig.Env(),
+		envFlagName, "e", env(),
 		"Set environment variables in container",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
@@ -357,7 +357,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	initPathFlagName := "init-path"
 	createFlags.StringVar(
 		&cf.InitPath,
-		initPathFlagName, containerConfig.InitPath(),
+		initPathFlagName, initPath(),
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
 		fmt.Sprintf("Path to the container-init binary"),
 	)
@@ -508,7 +508,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 
 	pidsLimitFlagName := "pids-limit"
 	createFlags.Int64(
-		pidsLimitFlagName, containerConfig.PidsLimit(),
+		pidsLimitFlagName, pidsLimit(),
 		"Tune container pids limit (set 0 for unlimited, -1 for server defaults)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(pidsLimitFlagName, completion.AutocompleteNone)
@@ -543,7 +543,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	pullFlagName := "pull"
 	createFlags.StringVar(
 		&cf.Pull,
-		pullFlagName, containerConfig.Engine.PullPolicy,
+		pullFlagName, policy(),
 		`Pull image before creating ("always"|"missing"|"never")`,
 	)
 	_ = cmd.RegisterFlagCompletionFunc(pullFlagName, AutocompletePullOption)
@@ -606,7 +606,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 
 	shmSizeFlagName := "shm-size"
 	createFlags.String(
-		shmSizeFlagName, containerConfig.ShmSize(),
+		shmSizeFlagName, shmSize(),
 		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
 	_ = cmd.RegisterFlagCompletionFunc(shmSizeFlagName, completion.AutocompleteNone)
@@ -715,7 +715,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	ulimitFlagName := "ulimit"
 	createFlags.StringSliceVar(
 		&cf.Ulimit,
-		ulimitFlagName, containerConfig.Ulimits(),
+		ulimitFlagName, ulimits(),
 		"Ulimit options",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(ulimitFlagName, completion.AutocompleteNone)
@@ -753,7 +753,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	volumeFlagName := "volume"
 	createFlags.StringArrayVarP(
 		&cf.Volume,
-		volumeFlagName, "v", containerConfig.Volumes(),
+		volumeFlagName, "v", volumes(),
 		"Bind mount a volume into the container",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)

@@ -33,6 +33,10 @@ is located at _/run/.containerenv_.
 When running from a user defined network namespace, the _/etc/netns/NSNAME/resolv.conf_
 will be used if it exists, otherwise _/etc/resolv.conf_ will be used.
 
+Default settings are defined in `containers.conf`. Most settings for remote
+connections use the servers containers.conf, except when documented in man
+pages.
+
 ## OPTIONS
 #### **--add-host**=_host_:_ip_
 
@@ -857,6 +861,7 @@ Signal to stop a container. Default is **SIGTERM**.
 #### **--stop-timeout**=*seconds*
 
 Timeout to stop a container. Default is **10**.
+Remote connections use local containers.conf for defaults
 
 #### **--subgidname**=*name*
 
@@ -952,10 +957,12 @@ standard input.
 #### **--tz**=*timezone*
 
 Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
+Remote connections use local containers.conf for defaults
 
 #### **--umask**=*umask*
 
 Set the umask inside the container. Defaults to `0022`.
+Remote connections use local containers.conf for defaults
 
 #### **--uidmap**=*container_uid*:*host_uid*:*amount*
 

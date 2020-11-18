@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v2/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -45,7 +44,7 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 	}
 
 	// Next --volumes flag.
-	volumeMounts, volumeVolumes, overlayVolumes, err := getVolumeMounts(volumeFlag)
+	volumeMounts, volumeVolumes, overlayVolumes, err := specgen.GenVolumeMounts(volumeFlag)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -592,105 +591,6 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 	}
 
 	return newVolume, nil
-}
-
-func getVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.OverlayVolume, error) {
-	mounts := make(map[string]spec.Mount)
-	volumes := make(map[string]*specgen.NamedVolume)
-	overlayVolumes := make(map[string]*specgen.OverlayVolume)
-
-	volumeFormatErr := errors.Errorf("incorrect volume format, should be [host-dir:]ctr-dir[:option]")
-
-	for _, vol := range volumeFlag {
-		var (
-			options []string
-			src     string
-			dest    string
-			err     error
-		)
-
-		splitVol := strings.Split(vol, ":")
-		if len(splitVol) > 3 {
-			return nil, nil, nil, errors.Wrapf(volumeFormatErr, vol)
-		}
-
-		src = splitVol[0]
-		if len(splitVol) == 1 {
-			// This is an anonymous named volume. Only thing given
-			// is destination.
-			// Name/source will be blank, and populated by libpod.
-			src = ""
-			dest = splitVol[0]
-		} else if len(splitVol) > 1 {
-			dest = splitVol[1]
-		}
-		if len(splitVol) > 2 {
-			if options, err = parse.ValidateVolumeOpts(strings.Split(splitVol[2], ",")); err != nil {
-				return nil, nil, nil, err
-			}
-		}
-
-		// Do not check source dir for anonymous volumes
-		if len(splitVol) > 1 {
-			if err := parse.ValidateVolumeHostDir(src); err != nil {
-				return nil, nil, nil, err
-			}
-		}
-		if err := parse.ValidateVolumeCtrDir(dest); err != nil {
-			return nil, nil, nil, err
-		}
-
-		cleanDest := filepath.Clean(dest)
-
-		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") {
-			// This is not a named volume
-			overlayFlag := false
-			for _, o := range options {
-				if o == "O" {
-					overlayFlag = true
-					if len(options) > 1 {
-						return nil, nil, nil, errors.New("can't use 'O' with other options")
-					}
-				}
-			}
-			if overlayFlag {
-				// This is a overlay volume
-				newOverlayVol := new(specgen.OverlayVolume)
-				newOverlayVol.Destination = cleanDest
-				newOverlayVol.Source = src
-				if _, ok := overlayVolumes[newOverlayVol.Destination]; ok {
-					return nil, nil, nil, errors.Wrapf(errDuplicateDest, newOverlayVol.Destination)
-				}
-				overlayVolumes[newOverlayVol.Destination] = newOverlayVol
-			} else {
-				newMount := spec.Mount{
-					Destination: cleanDest,
-					Type:        string(TypeBind),
-					Source:      src,
-					Options:     options,
-				}
-				if _, ok := mounts[newMount.Destination]; ok {
-					return nil, nil, nil, errors.Wrapf(errDuplicateDest, newMount.Destination)
-				}
-				mounts[newMount.Destination] = newMount
-			}
-		} else {
-			// This is a named volume
-			newNamedVol := new(specgen.NamedVolume)
-			newNamedVol.Name = src
-			newNamedVol.Dest = cleanDest
-			newNamedVol.Options = options
-
-			if _, ok := volumes[newNamedVol.Dest]; ok {
-				return nil, nil, nil, errors.Wrapf(errDuplicateDest, newNamedVol.Dest)
-			}
-			volumes[newNamedVol.Dest] = newNamedVol
-		}
-
-		logrus.Debugf("User mount %s:%s options %v", src, dest, options)
-	}
-
-	return mounts, volumes, overlayVolumes, nil
 }
 
 // GetTmpfsMounts creates spec.Mount structs for user-requested tmpfs mounts

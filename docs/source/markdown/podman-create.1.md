@@ -18,6 +18,10 @@ any point.
 
 The initial status of the container created with **podman create** is 'created'.
 
+Default settings for flags are defined in `containers.conf`. Most settings for
+remote connections use the server's containers.conf, except when documented in
+man pages.
+
 ## OPTIONS
 #### **--add-host**=*host*
 
@@ -817,6 +821,7 @@ Signal to stop a container. Default is SIGTERM.
 #### **--stop-timeout**=*seconds*
 
 Timeout (in seconds) to stop a container. Default is 10.
+Remote connections use local containers.conf for defaults
 
 #### **--subgidname**=*name*
 
@@ -893,10 +898,12 @@ standard input.
 #### **--tz**=*timezone*
 
 Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
+Remote connections use local containers.conf for defaults
 
 #### **--umask**=*umask*
 
 Set the umask inside the container. Defaults to `0022`.
+Remote connections use local containers.conf for defaults
 
 #### **--uidmap**=*container_uid:host_uid:amount*
 

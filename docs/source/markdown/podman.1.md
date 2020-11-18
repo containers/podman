@@ -17,6 +17,10 @@ Podman uses Buildah(1) internally to create container images. Both tools share i
 (not container) storage, hence each can use or manipulate images (but not containers)
 created by the other.
 
+Default settings for flags are defined in `containers.conf`. Most settings for
+Remote connections use the server's containers.conf, except when documented in
+man pages.
+
 **podman [GLOBAL OPTIONS]**
 
 ## GLOBAL OPTIONS
@@ -33,6 +37,7 @@ Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d
 
 #### **--connection**, **-c**
 Connection to use for remote podman (Default connection is configured in `containers.conf`)
+Remote connections use local containers.conf for default.
 
 #### **--conmon**
 Path of the conmon binary (Default path is configured in `containers.conf`)
@@ -71,6 +76,7 @@ Identity value resolution precedence:
  - command line value
  - environment variable `CONTAINER_SSHKEY`, if `CONTAINER_HOST` is found
  - `containers.conf`
+Remote connections use local containers.conf for default.
 
 #### **--log-level**=*level*
 
@@ -86,6 +92,7 @@ Path to the command binary to use for setting up a network.  It is currently onl
 
 #### **--remote**, **-r**
 Access Podman service will be remote
+Remote connections use local containers.conf for default.
 
 #### **--url**=*value*
 URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
@@ -104,6 +111,7 @@ URL value resolution precedence:
  - environment variable `CONTAINER_HOST`
  - `containers.conf`
  - `unix://run/podman/podman.sock`
+Remote connections use local containers.conf for default.
 
 #### **--root**=*value*
 
