@@ -76,31 +76,36 @@ var _ = Describe("Podman network", func() {
 		Expect(session.LineInOutputContains(name)).To(BeFalse())
 	})
 
-	It("podman network rm no args", func() {
-		session := podmanTest.Podman([]string{"network", "rm"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).ToNot(BeZero())
-	})
+	rm_func := func(rm string) {
+		It(fmt.Sprintf("podman network %s no args", rm), func() {
+			session := podmanTest.Podman([]string{"network", rm})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).ToNot(BeZero())
 
-	It("podman network rm", func() {
-		SkipIfRootless("FIXME: This one is definitely broken in rootless mode")
-		name, path := generateNetworkConfig(podmanTest)
-		defer removeConf(path)
+		})
 
-		session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOutputContains(name)).To(BeTrue())
+		It(fmt.Sprintf("podman network %s", rm), func() {
+			name, path := generateNetworkConfig(podmanTest)
+			defer removeConf(path)
 
-		rm := podmanTest.Podman([]string{"network", "rm", name})
-		rm.WaitWithDefaultTimeout()
-		Expect(rm.ExitCode()).To(BeZero())
+			session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session.LineInOutputContains(name)).To(BeTrue())
 
-		results := podmanTest.Podman([]string{"network", "ls", "--quiet"})
-		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
-		Expect(results.LineInOutputContains(name)).To(BeFalse())
-	})
+			rm := podmanTest.Podman([]string{"network", rm, name})
+			rm.WaitWithDefaultTimeout()
+			Expect(rm.ExitCode()).To(BeZero())
+
+			results := podmanTest.Podman([]string{"network", "ls", "--quiet"})
+			results.WaitWithDefaultTimeout()
+			Expect(results.ExitCode()).To(Equal(0))
+			Expect(results.LineInOutputContains(name)).To(BeFalse())
+		})
+	}
+
+	rm_func("rm")
+	rm_func("remove")
 
 	It("podman network inspect no args", func() {
 		session := podmanTest.Podman([]string{"network", "inspect"})
