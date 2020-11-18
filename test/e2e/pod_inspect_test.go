@@ -99,4 +99,23 @@ var _ = Describe("Podman pod inspect", func() {
 		Expect(len(inspectJSON.InfraConfig.PortBindings["80/tcp"])).To(Equal(1))
 		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"][0].HostPort).To(Equal("8080"))
 	})
+
+	It("podman pod inspect outputs show correct MAC", func() {
+		SkipIfRootless("--mac-address is not supported in rootless mode")
+		podName := "testPod"
+		macAddr := "42:43:44:00:00:01"
+		create := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--mac-address", macAddr})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		create = podmanTest.Podman([]string{"run", "-d", "--pod", podName, ALPINE, "top"})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		inspectOut := podmanTest.Podman([]string{"pod", "inspect", podName})
+		inspectOut.WaitWithDefaultTimeout()
+		Expect(inspectOut.ExitCode()).To(Equal(0))
+
+		Expect(inspectOut.OutputToString()).To(ContainSubstring(macAddr))
+	})
 })
