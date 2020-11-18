@@ -11,8 +11,7 @@ import (
 
 func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport, error) {
 	var (
-		pods    []*libpod.Pod
-		filters []libpod.PodFilter
+		pods []*libpod.Pod
 	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
@@ -30,14 +29,13 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport
 		UnSupportedParameter("digests")
 	}
 
+	filters := make([]libpod.PodFilter, 0, len(query.Filters))
 	for k, v := range query.Filters {
-		for _, filter := range v {
-			f, err := lpfilters.GeneratePodFilterFunc(k, filter)
-			if err != nil {
-				return nil, err
-			}
-			filters = append(filters, f)
+		f, err := lpfilters.GeneratePodFilterFunc(k, v)
+		if err != nil {
+			return nil, err
 		}
+		filters = append(filters, f)
 	}
 	pods, err := runtime.Pods(filters...)
 	if err != nil {

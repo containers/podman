@@ -282,20 +282,17 @@ func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOp
 
 func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOptions) ([]*entities.ListPodsReport, error) {
 	var (
-		err     error
-		filters = []libpod.PodFilter{}
-		pds     = []*libpod.Pod{}
+		err error
+		pds = []*libpod.Pod{}
 	)
 
+	filters := make([]libpod.PodFilter, 0, len(options.Filters))
 	for k, v := range options.Filters {
-		for _, filter := range v {
-			f, err := lpfilters.GeneratePodFilterFunc(k, filter)
-			if err != nil {
-				return nil, err
-			}
-			filters = append(filters, f)
-
+		f, err := lpfilters.GeneratePodFilterFunc(k, v)
+		if err != nil {
+			return nil, err
 		}
+		filters = append(filters, f)
 	}
 	if options.Latest {
 		pod, err := ic.Libpod.GetLatestPod()

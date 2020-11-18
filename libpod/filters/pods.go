@@ -1,7 +1,6 @@
 package lpfilters
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -9,13 +8,12 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // GeneratePodFilterFunc takes a filter and filtervalue (key, value)
 // and generates a libpod function that can be used to filter
 // pods
-func GeneratePodFilterFunc(filter, filterValue string) (
+func GeneratePodFilterFunc(filter string, filterValues []string) (
 	func(pod *libpod.Pod) bool, error) {
 	switch filter {
 	case "ctr-ids":
@@ -24,7 +22,10 @@ func GeneratePodFilterFunc(filter, filterValue string) (
 			if err != nil {
 				return false
 			}
-			return util.StringInSlice(filterValue, ctrIds)
+			for _, id := range ctrIds {
+				return util.StringMatchRegexSlice(id, filterValues)
+			}
+			return false
 		}, nil
 	case "ctr-names":
 		return func(p *libpod.Pod) bool {
@@ -33,9 +34,7 @@ func GeneratePodFilterFunc(filter, filterValue string) (
 				return false
 			}
 			for _, ctr := range ctrs {
-				if filterValue == ctr.Name() {
-					return true
-				}
+				return util.StringMatchRegexSlice(ctr.Name(), filterValues)
 			}
 			return false
 		}, nil
@@ -45,18 +44,22 @@ func GeneratePodFilterFunc(filter, filterValue string) (
 			if err != nil {
 				return false
 			}
-
-			fVint, err2 := strconv.Atoi(filterValue)
-			if err2 != nil {
-				return false
+			for _, filterValue := range filterValues {
+				fVint, err2 := strconv.Atoi(filterValue)
+				if err2 != nil {
+					return false
+				}
+				if len(ctrIds) == fVint {
+					return true
+				}
 			}
-			return len(ctrIds) == fVint
+			return false
 		}, nil
 	case "ctr-status":
-		if !util.StringInSlice(filterValue,
-			[]string{"created", "restarting", "running", "paused",
-				"exited", "unknown"}) {
-			return nil, errors.Errorf("%s is not a valid status", filterValue)
+		for _, filterValue := range filterValues {
+			if !util.StringInSlice(filterValue, []string{"created", "running", "paused", "stopped", "exited", "unknown"}) {
+				return nil, errors.Errorf("%s is not a valid status", filterValue)
+			}
 		}
 		return func(p *libpod.Pod) bool {
 			ctrStatuses, err := p.Status()
@@ -67,55 +70,69 @@ func GeneratePodFilterFunc(filter, filterValue string) (
 				state := ctrStatus.String()
 				if ctrStatus == define.ContainerStateConfigured {
 					state = "created"
+				} else if ctrStatus == define.ContainerStateStopped {
+					state = "exited"
 				}
-				if state == filterValue {
-					return true
+				for _, filterValue := range filterValues {
+					if filterValue == "stopped" {
+						filterValue = "exited"
+					}
+					if state == filterValue {
+						return true
+					}
 				}
 			}
 			return false
 		}, nil
 	case "id":
 		return func(p *libpod.Pod) bool {
-			return strings.Contains(p.ID(), filterValue)
+			return util.StringMatchRegexSlice(p.ID(), filterValues)
 		}, nil
 	case "name":
 		return func(p *libpod.Pod) bool {
-			match, err := regexp.MatchString(filterValue, p.Name())
-			if err != nil {
-				logrus.Errorf("Failed to compile regex for 'name' filter: %v", err)
-				return false
-			}
-			return match
+			return util.StringMatchRegexSlice(p.Name(), filterValues)
 		}, nil
 	case "status":
-		if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created", "degraded"}) {
-			return nil, errors.Errorf("%s is not a valid pod status", filterValue)
+		for _, filterValue := range filterValues {
+			if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created", "degraded"}) {
+				return nil, errors.Errorf("%s is not a valid pod status", filterValue)
+			}
 		}
 		return func(p *libpod.Pod) bool {
 			status, err := p.GetPodStatus()
 			if err != nil {
 				return false
 			}
-			if strings.ToLower(status) == filterValue {
-				return true
-			}
-			return false
-		}, nil
-	case "label":
-		var filterArray = strings.SplitN(filterValue, "=", 2)
-		var filterKey = filterArray[0]
-		if len(filterArray) > 1 {
-			filterValue = filterArray[1]
-		} else {
-			filterValue = ""
-		}
-		return func(p *libpod.Pod) bool {
-			for labelKey, labelValue := range p.Labels() {
-				if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+			for _, filterValue := range filterValues {
+				if strings.ToLower(status) == filterValue {
 					return true
 				}
 			}
 			return false
+		}, nil
+	case "label":
+		return func(p *libpod.Pod) bool {
+			labels := p.Labels()
+			for _, filterValue := range filterValues {
+				matched := false
+				filterArray := strings.SplitN(filterValue, "=", 2)
+				filterKey := filterArray[0]
+				if len(filterArray) > 1 {
+					filterValue = filterArray[1]
+				} else {
+					filterValue = ""
+				}
+				for labelKey, labelValue := range labels {
+					if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					return false
+				}
+			}
+			return true
 		}, nil
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)

@@ -44,15 +44,15 @@ Display external containers that are not controlled by Podman but are stored in 
 
 Filter what containers are shown in the output.
 Multiple filters can be given with multiple uses of the --filter flag.
-If multiple filters are given, only containers which match all of the given filters will be shown.
-Results will be drawn from all containers, regardless of whether --all was given.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
 
 Valid filters are listed below:
 
 | **Filter**      | **Description**                                                                  |
 | --------------- | -------------------------------------------------------------------------------- |
-| id              | [ID] Container's ID                                                              |
-| name            | [Name] Container's name                                                          |
+| id              | [ID] Container's ID (accepts regex)                                              |
+| name            | [Name] Container's name (accepts regex)                                          |
 | label           | [Key] or [Key=Value] Label assigned to a container                               |
 | exited          | [Int] Container's exit code                                                      |
 | status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
