@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/image"
@@ -22,13 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 	v1apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-)
-
-const (
-	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
-	kubeDirectoryPermission = 0755
-	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
-	kubeFilePermission = 0644
 )
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
@@ -168,62 +160,9 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
 	}
 
-	// map from name to mount point
-	volumes := make(map[string]string)
-	for _, volume := range podYAML.Spec.Volumes {
-		hostPath := volume.VolumeSource.HostPath
-		if hostPath == nil {
-			return nil, errors.Errorf("HostPath is currently the only supported VolumeSource")
-		}
-		if hostPath.Type != nil {
-			switch *hostPath.Type {
-			case v1.HostPathDirectoryOrCreate:
-				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
-					if err := os.Mkdir(hostPath.Path, kubeDirectoryPermission); err != nil {
-						return nil, err
-					}
-				}
-				// Label a newly created volume
-				if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
-					return nil, errors.Wrapf(err, "error giving %s a label", hostPath.Path)
-				}
-			case v1.HostPathFileOrCreate:
-				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
-					f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, kubeFilePermission)
-					if err != nil {
-						return nil, errors.Wrap(err, "error creating HostPath")
-					}
-					if err := f.Close(); err != nil {
-						logrus.Warnf("Error in closing newly created HostPath file: %v", err)
-					}
-				}
-				// unconditionally label a newly created volume
-				if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
-					return nil, errors.Wrapf(err, "error giving %s a label", hostPath.Path)
-				}
-			case v1.HostPathSocket:
-				st, err := os.Stat(hostPath.Path)
-				if err != nil {
-					return nil, errors.Wrap(err, "error checking HostPathSocket")
-				}
-				if st.Mode()&os.ModeSocket != os.ModeSocket {
-					return nil, errors.Errorf("error checking HostPathSocket: path %s is not a socket", hostPath.Path)
-				}
-
-			case v1.HostPathDirectory:
-			case v1.HostPathFile:
-			case v1.HostPathUnset:
-				// do nothing here because we will verify the path exists in validateVolumeHostDir
-				break
-			default:
-				return nil, errors.Errorf("Invalid HostPath type %v", hostPath.Type)
-			}
-		}
-
-		if err := parse.ValidateVolumeHostDir(hostPath.Path); err != nil {
-			return nil, errors.Wrapf(err, "error in parsing HostPath in YAML")
-		}
-		volumes[volume.Name] = hostPath.Path
+	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes)
+	if err != nil {
+		return nil, err
 	}
 
 	seccompPaths, err := kube.InitializeSeccompPaths(podYAML.ObjectMeta.Annotations, options.SeccompProfileRoot)

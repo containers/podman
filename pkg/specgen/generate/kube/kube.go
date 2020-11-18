@@ -47,7 +47,7 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 	return p, nil
 }
 
-func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newImage *image.Image, volumes map[string]string, podID, podName, infraID string, configMaps []v1.ConfigMap, seccompPaths *KubeSeccompPaths, restartPolicy string) (*specgen.SpecGenerator, error) {
+func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newImage *image.Image, volumes map[string]*KubeVolume, podID, podName, infraID string, configMaps []v1.ConfigMap, seccompPaths *KubeSeccompPaths, restartPolicy string) (*specgen.SpecGenerator, error) {
 	s := specgen.NewSpecGenerator(iid, false)
 
 	// podName should be non-empty for Deployment objects to be able to create
@@ -163,22 +163,27 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 	s.Env = envs
 
 	for _, volume := range containerYAML.VolumeMounts {
-		hostPath, exists := volumes[volume.Name]
+		volumeSource, exists := volumes[volume.Name]
 		if !exists {
 			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
 		}
-		if err := parse.ValidateVolumeCtrDir(volume.MountPath); err != nil {
-			return nil, errors.Wrapf(err, "error in parsing MountPath")
+		switch volumeSource.Type {
+		case KubeVolumeTypeBindMount:
+			if err := parse.ValidateVolumeCtrDir(volume.MountPath); err != nil {
+				return nil, errors.Wrapf(err, "error in parsing MountPath")
+			}
+			mount := spec.Mount{
+				Destination: volume.MountPath,
+				Source:      volumeSource.Source,
+				Type:        "bind",
+			}
+			if volume.ReadOnly {
+				mount.Options = []string{"ro"}
+			}
+			s.Mounts = append(s.Mounts, mount)
+		default:
+			return nil, errors.Errorf("Unsupported volume source type")
 		}
-		mount := spec.Mount{
-			Destination: volume.MountPath,
-			Source:      hostPath,
-			Type:        "bind",
-		}
-		if volume.ReadOnly {
-			mount.Options = []string{"ro"}
-		}
-		s.Mounts = append(s.Mounts, mount)
 	}
 
 	s.RestartPolicy = restartPolicy
