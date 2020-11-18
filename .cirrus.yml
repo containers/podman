@@ -362,7 +362,8 @@ static_alt_build_task:
     # this cache ensures only the static podman binary is built.
     nix_cache:
         folder: '/var/cache/nix'
-        fingerprint_script: cat nix/*
+        # Cirrus will calculate/use sha of this output as the cache key
+        fingerprint_script: echo "${IMAGE_SUFFIX}" && cat nix/*
     setup_script: *setup
     main_script: *main
     always: *binary_artifacts
