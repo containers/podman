@@ -535,7 +535,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig = new(define.InspectPodInfraConfig)
 		infraConfig.HostNetwork = p.config.InfraContainer.HostNetwork
 		infraConfig.StaticIP = p.config.InfraContainer.StaticIP
-		infraConfig.StaticMAC = p.config.InfraContainer.StaticMAC
+		infraConfig.StaticMAC = p.config.InfraContainer.StaticMAC.String()
 		infraConfig.NoManageResolvConf = p.config.InfraContainer.UseImageResolvConf
 		infraConfig.NoManageHosts = p.config.InfraContainer.UseImageHosts
 
