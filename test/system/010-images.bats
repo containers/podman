@@ -197,9 +197,16 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
         local format=$2
 
         run_podman images --sort repository --format "$format"
-        _check_line 0 ${aaa_name} ${aaa_tag}
-        _check_line 1 "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}" "${PODMAN_TEST_IMAGE_TAG}"
-        _check_line 2 ${zzz_name} ${zzz_tag}
+
+        line_no=0
+        if [[ $format == table* ]]; then
+            # skip headers from table command
+            line_no=1
+        fi
+
+        _check_line $line_no ${aaa_name} ${aaa_tag}
+        _check_line $((line_no+1)) "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}" "${PODMAN_TEST_IMAGE_TAG}"
+        _check_line $((line_no+2)) ${zzz_name} ${zzz_tag}
     }
 
     # Begin the test: tag $IMAGE with both the given names

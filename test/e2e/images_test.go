@@ -278,7 +278,7 @@ WORKDIR /test
 	It("podman images sort by values", func() {
 		sortValueTest := func(value string, result int, format string) []string {
 			f := fmt.Sprintf("{{.%s}}", format)
-			session := podmanTest.Podman([]string{"images", "--sort", value, "--format", f})
+			session := podmanTest.Podman([]string{"images", "--noheading", "--sort", value, "--format", f})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(result))
 
