@@ -27,5 +27,6 @@ func ListenUnix(network string, path string) (net.Listener, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "net.Listen(%s, %s) failed to report the failure to create socket", network, path)
 	}
+
 	return listener, nil
 }

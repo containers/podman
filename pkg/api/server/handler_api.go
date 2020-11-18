@@ -30,14 +30,14 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 		// Wrapper to hide some boiler plate
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			rid := uuid.New().String()
+			logrus.Infof("APIHandler(%s) -- %s %s BEGIN", rid, r.Method, r.URL.String())
 			if logrus.IsLevelEnabled(logrus.DebugLevel) {
-				logrus.Debugf("APIHandler(%s) -- Method: %s URL: %s", rid, r.Method, r.URL.String())
 				for k, v := range r.Header {
 					switch auth.HeaderAuthName(k) {
 					case auth.XRegistryConfigHeader, auth.XRegistryAuthHeader:
-						logrus.Debugf("APIHandler(%s) -- Header: %s: <hidden>", rid, k)
+						logrus.Debugf("APIHandler(%s) -- Header: %s=<hidden>", rid, k)
 					default:
-						logrus.Debugf("APIHandler(%s) -- Header: %s: %v", rid, k, v)
+						logrus.Debugf("APIHandler(%s) -- Header: %s=%v", rid, k, v)
 					}
 				}
 			}
@@ -63,6 +63,7 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			w.Header().Set("Server", "Libpod/"+lv+" ("+runtime.GOOS+")")
 
 			h(w, r)
+			logrus.Debugf("APIHandler(%s) -- %s %s END", rid, r.Method, r.URL.String())
 		}
 		fn(w, r)
 	}

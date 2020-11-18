@@ -17,12 +17,14 @@ The REST API provided by **podman system service** is split into two parts: a co
 Documentation for the latter is available at *https://docs.podman.io/en/latest/_static/api.html*.
 Both APIs are versioned, but the server will not reject requests with an unsupported version set.
 
+Note: The default systemd unit files (system and user) change the log-level option to *info* from *error*. This change provides additional information on each API call.
+
 ## OPTIONS
 
 #### **--time**, **-t**
 
 The time until the session expires in _seconds_. The default is 5
-seconds. A value of `0` means no timeout and the session will not expire.
+seconds. A value of `0` means no timeout, therefore the session will not expire.
 
 #### **--help**, **-h**
 
@@ -40,3 +42,4 @@ podman(1), podman-system-service(1), podman-system-connection(1)
 
 ## HISTORY
 January 2020, Originally compiled by Brent Baude<bbaude@redhat.com>
+November 2020, Updated by Jhon Honce <jhonce at redhat.com>
