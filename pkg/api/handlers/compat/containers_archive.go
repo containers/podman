@@ -73,7 +73,7 @@ func handleHeadOrGet(w http.ResponseWriter, r *http.Request, decoder *schema.Dec
 	}
 
 	defer func() {
-		if err := ctr.Unmount(true); err != nil {
+		if err := ctr.Unmount(false); err != nil {
 			logrus.Warnf("failed to unmount container %s: %q", containerName, err)
 		}
 	}()
