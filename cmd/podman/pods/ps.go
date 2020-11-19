@@ -57,8 +57,7 @@ func init() {
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&inputFilters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
-	//TODO complete filters
-	_ = psCmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = psCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePodPsFilters)
 
 	formatFlagName := "format"
 	flags.StringVar(&psInput.Format, formatFlagName, "", "Pretty-print pods to JSON or using a Go template")

@@ -64,8 +64,7 @@ func listFlagSet(cmd *cobra.Command) {
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
-	//TODO add custom filter function
-	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	formatFlagName := "format"
 	flags.StringVar(&listOpts.Format, formatFlagName, "", "Pretty-print containers to JSON or using a Go template")
