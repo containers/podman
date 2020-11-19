@@ -8,8 +8,8 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
-	"github.com/docker/docker/pkg/homedir"
 	"github.com/pkg/errors"
 )
 
