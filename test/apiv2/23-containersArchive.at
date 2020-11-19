@@ -1,0 +1,28 @@
+# -*- sh -*-
+#
+# test more container-related endpoints
+#
+
+podman pull $IMAGE &>/dev/null
+
+# Ensure clean slate
+podman rm -a -f &>/dev/null
+
+CTR="ArchiveTestingCtr"
+
+TMPD=$(mktemp -d)
+pushd "${TMPD}"
+echo "Hello!" > "hello.txt" &> /dev/null
+tar --format=posix -cvf "hello.tar" "hello.txt" &> /dev/null
+popd
+
+HELLO_TAR="${TMPD}/hello.tar"
+
+podman run -d --name "${CTR}" "${IMAGE}" top
+
+t HEAD "containers/nonExistentCtr/archive?path=%2F" 404
+t HEAD "containers/${CTR}/archive?path=%2Fnon%2Fexistent%2Fpath" 404
+t HEAD "containers/${CTR}/archive?path=%2Fetc%2Fpasswd" 200
+
+curl "http://127.0.0.1:$PORT/containers/${CTR}/archive?path=%2Ftmp" -X PUT --upload-file "${HELLO_TAR}"
+t HEAD "containers/${CTR}/archive?path=%2Ftmp%2Fhello.txt" 200
