@@ -84,7 +84,7 @@ func getContainers(cmd *cobra.Command, toComplete string, cType completeType, st
 	containers, err := engine.ContainerList(registry.GetContext(), listOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil, cobra.ShellCompDirectiveError
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	for _, c := range containers {
@@ -119,7 +119,7 @@ func getPods(cmd *cobra.Command, toComplete string, cType completeType, statuses
 	pods, err := engine.PodPs(registry.GetContext(), listOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil, cobra.ShellCompDirectiveError
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	for _, pod := range pods {
@@ -149,7 +149,7 @@ func getVolumes(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCom
 	volumes, err := engine.VolumeList(registry.GetContext(), lsOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil, cobra.ShellCompDirectiveError
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	for _, v := range volumes {
@@ -172,7 +172,7 @@ func getImages(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellComp
 	images, err := engine.List(registry.GetContext(), listOptions)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil, cobra.ShellCompDirectiveError
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	for _, image := range images {
@@ -215,7 +215,7 @@ func getRegistries() ([]string, cobra.ShellCompDirective) {
 	regs, err := registries.GetRegistries()
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil, cobra.ShellCompDirectiveError
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return regs, cobra.ShellCompDirectiveNoFileComp
 }
@@ -232,7 +232,7 @@ func getNetworks(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCo
 	networks, err := engine.NetworkList(registry.Context(), networkListOptions)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil, cobra.ShellCompDirectiveError
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	for _, n := range networks {
@@ -485,7 +485,7 @@ func AutocompleteSystemConnections(cmd *cobra.Command, args []string, toComplete
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil, cobra.ShellCompDirectiveError
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	for k, v := range cfg.Engine.ServiceDestinations {
@@ -633,7 +633,8 @@ func AutocompleteUserFlag(cmd *cobra.Command, args []string, toComplete string) 
 		// but at this point we don't know the image.
 		file, err := os.Open("/etc/group")
 		if err != nil {
-			return nil, cobra.ShellCompDirectiveError
+			cobra.CompErrorln(err.Error())
+			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 		defer file.Close()
 
@@ -649,7 +650,8 @@ func AutocompleteUserFlag(cmd *cobra.Command, args []string, toComplete string) 
 			}
 		}
 		if err = scanner.Err(); err != nil {
-			return nil, cobra.ShellCompDirectiveError
+			cobra.CompErrorln(err.Error())
+			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 		return groups, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -658,7 +660,8 @@ func AutocompleteUserFlag(cmd *cobra.Command, args []string, toComplete string) 
 	// but at this point we don't know the image.
 	file, err := os.Open("/etc/passwd")
 	if err != nil {
-		return nil, cobra.ShellCompDirectiveError
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	defer file.Close()
 
@@ -673,7 +676,7 @@ func AutocompleteUserFlag(cmd *cobra.Command, args []string, toComplete string) 
 		}
 	}
 	if err = scanner.Err(); err != nil {
-		return nil, cobra.ShellCompDirectiveError
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return users, cobra.ShellCompDirectiveNoSpace
 }
