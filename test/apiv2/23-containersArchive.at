@@ -23,6 +23,12 @@ HELLO_TAR="${TMPD}/hello.tar"
 
 podman run -d --name "${CTR}" "${IMAGE}" top
 
+function cleanUpArchiveTest() {
+    podman container stop "${CTR}" &> /dev/null
+    podman container rm "${CTR}" &> /dev/null
+    rm -fr "${TMPD}" &> /dev/null
+}
+
 t HEAD "containers/nonExistentCtr/archive?path=%2F" 404
 t HEAD "containers/${CTR}/archive?path=%2Fnon%2Fexistent%2Fpath" 404
 t HEAD "containers/${CTR}/archive?path=%2Fetc%2Fpasswd" 200
@@ -34,6 +40,7 @@ curl "http://$HOST:$PORT/containers/${CTR}/archive?path=%2Ftmp%2F" \
 
 if ! podman exec -it "${CTR}" "grep" "Hello" "/tmp/hello.txt" &> /dev/null ; then
   echo -e "${red}NOK: The hello.txt file has not been uploaded.${nc}"  1>&2;
+  cleanUpArchiveTest
   exit 1
 fi
 
@@ -68,6 +75,7 @@ if [ "$(tar -xf "${TMPD}/body.tar" hello.txt  --to-stdout)" != "Hello" ]; then
   ARCHIVE_TEST_ERROR="1"
 fi
 
+cleanUpArchiveTest
 if [[ "${ARCHIVE_TEST_ERROR}" ]] ; then
   exit 1;
 fi
