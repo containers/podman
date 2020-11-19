@@ -79,8 +79,7 @@ func imageListFlagSet(cmd *cobra.Command) {
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&listOptions.Filter, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
-	// TODO: add completion function for filters
-	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteImageFilters)
 
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "", "Change the output format to JSON or a Go template")

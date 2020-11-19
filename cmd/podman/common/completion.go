@@ -464,6 +464,18 @@ func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string)
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
+// AutocompleteNetworkConnectCmd - Autocomplete podman network connect/disconnect command args.
+func AutocompleteNetworkConnectCmd(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return getNetworks(cmd, toComplete)
+	}
+	if len(args) == 1 {
+		return getContainers(cmd, toComplete, completeDefault)
+	}
+	// don't complete more than 2 args
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteSystemConnections - Autocomplete system connections.
 func AutocompleteSystemConnections(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {
@@ -695,8 +707,22 @@ func AutocompleteJSONFormat(cmd *cobra.Command, args []string, toComplete string
 // AutocompleteEventFilter - Autocomplete event filter flag options.
 // -> "container=", "event=", "image=", "pod=", "volume=", "type="
 func AutocompleteEventFilter(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	filters := []string{"container=", "event=", "image=", "pod=", "volume=", "type="}
-	return filters, cobra.ShellCompDirectiveNoSpace
+	eventTypes := func(_ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"attach", "checkpoint", "cleanup", "commit", "create", "exec",
+			"export", "import", "init", "kill", "mount", "pause", "prune", "remove",
+			"restart", "restore", "start", "stop", "sync", "unmount", "unpause",
+			"pull", "push", "save", "tag", "untag", "refresh", "renumber",
+		}, cobra.ShellCompDirectiveNoFileComp
+	}
+	kv := keyValueCompletion{
+		"container=": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
+		"image=":     func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) },
+		"pod=":       func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeDefault) },
+		"volume=":    func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+		"event=":     eventTypes,
+		"type=":      eventTypes,
+	}
+	return completeKeyValues(toComplete, kv)
 }
 
 // AutocompleteSystemdRestartOptions - Autocomplete systemd restart options.
@@ -843,6 +869,50 @@ func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete stri
 			return containerStatuses, cobra.ShellCompDirectiveNoFileComp
 		},
 		"label=": nil,
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
+// AutocompleteImageFilters - Autocomplete image ls --filter options.
+func AutocompleteImageFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	getBool := func(_ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"true", "false"}, cobra.ShellCompDirectiveNoFileComp
+	}
+	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
+	kv := keyValueCompletion{
+		"before=":    getImg,
+		"since=":     getImg,
+		"label=":     nil,
+		"reference=": nil,
+		"dangling=":  getBool,
+		"readonly=":  getBool,
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
+// AutocompleteNetworkFilters - Autocomplete network ls --filter options.
+func AutocompleteNetworkFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	kv := keyValueCompletion{
+		"name=":   func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s) },
+		"plugin=": nil,
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
+// AutocompleteVolumeFilters - Autocomplete volume ls --filter options.
+func AutocompleteVolumeFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	local := func(_ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"local"}, cobra.ShellCompDirectiveNoFileComp
+	}
+	kv := keyValueCompletion{
+		"name=":   func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+		"driver=": local,
+		"scope=":  local,
+		"label=":  nil,
+		"opt=":    nil,
+		"dangling=": func(_ string) ([]string, cobra.ShellCompDirective) {
+			return []string{"true", "false"}, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
 	return completeKeyValues(toComplete, kv)
 }
