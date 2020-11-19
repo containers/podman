@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/rootless"
 	docker "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -103,7 +104,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		PidsLimit:          sysInfo.PidsLimit,
 		Plugins:            docker.PluginsInfo{},
 		ProductLicense:     "Apache-2.0",
-		RegistryConfig:     nil,
+		RegistryConfig:     new(registry.ServiceConfig),
 		RuncCommit:         docker.Commit{},
 		Runtimes:           getRuntimes(configInfo),
 		SecurityOptions:    getSecOpts(sysInfo),
