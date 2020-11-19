@@ -135,10 +135,13 @@ echo "\$1"
 printenv | grep MYENV | sort | sed -e 's/^MYENV.=//'
 EOF
 
-    # For overriding with --env-file
-    cat >$PODMAN_TMPDIR/env-file <<EOF
+    # For overriding with --env-file; using multiple files confirms that
+    # the --env-file option is cumulative, not last-one-wins.
+    cat >$PODMAN_TMPDIR/env-file1 <<EOF
 MYENV3=$s_env3
 http_proxy=http-proxy-in-env-file
+EOF
+    cat >$PODMAN_TMPDIR/env-file2 <<EOF
 https_proxy=https-proxy-in-env-file
 EOF
 
@@ -185,7 +188,8 @@ EOF
     export MYENV2="$s_env2"
     export MYENV3="env-file-should-override-env-host!"
     run_podman run --rm \
-               --env-file=$PODMAN_TMPDIR/env-file \
+               --env-file=$PODMAN_TMPDIR/env-file1 \
+               --env-file=$PODMAN_TMPDIR/env-file2 \
                ${ENVHOST} \
                -e MYENV4="$s_env4" \
                build_test
@@ -205,7 +209,9 @@ EOF
 
     # Proxies - environment should override container, but not env-file
     http_proxy=http-proxy-from-env  ftp_proxy=ftp-proxy-from-env \
-              run_podman run --rm --env-file=$PODMAN_TMPDIR/env-file \
+              run_podman run --rm \
+              --env-file=$PODMAN_TMPDIR/env-file1 \
+              --env-file=$PODMAN_TMPDIR/env-file2 \
               build_test \
               printenv http_proxy https_proxy ftp_proxy
     is "${lines[0]}" "http-proxy-in-env-file"  "env-file overrides env"
@@ -222,7 +228,8 @@ EOF
     is "$output" "$workdir" "pwd command in container"
 
     # Determine buildah version, so we can confirm it gets into Labels
-    run_podman info --format '{{ .Host.BuildahVersion }}'
+    # Multiple --format options confirm command-line override (last one wins)
+    run_podman info --format '{{.Ignore}}' --format '{{ .Host.BuildahVersion }}'
     is "$output" "[1-9][0-9.-]\+" ".Host.BuildahVersion is reasonable"
     buildah_version=$output
 
