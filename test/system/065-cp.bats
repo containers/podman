@@ -7,6 +7,290 @@
 
 load helpers
 
+@test "podman cp file from host to container" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    srcdir=$PODMAN_TMPDIR/cp-test-file-host-to-ctr
+    mkdir -p $srcdir
+    local -a randomcontent=(
+        random-0-$(random_string 10)
+        random-1-$(random_string 15)
+        random-2-$(random_string 20)
+    )
+    echo "${randomcontent[0]}" > $srcdir/hostfile0
+    echo "${randomcontent[1]}" > $srcdir/hostfile1
+    echo "${randomcontent[2]}" > $srcdir/hostfile2
+
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
+    run_podman exec cpcontainer mkdir /srv/subdir
+
+    # format is: <id> | <destination arg to cp> | <full dest path> | <test name>
+    # where:
+    #    id        is 0-2, one of the random strings/files
+    #    dest arg  is the right-hand argument to 'podman cp' (may be implicit)
+    #    dest path is the full explicit path we expect to see
+    #    test name is a short description of what we're testing here
+    tests="
+0 | /                    | /hostfile0            | copy to root
+0 | /anotherbase.txt     | /anotherbase.txt      | copy to root, new name
+0 | /tmp                 | /tmp/hostfile0        | copy to /tmp
+1 | /tmp/                | /tmp/hostfile1        | copy to /tmp/
+2 | /tmp/.               | /tmp/hostfile2        | copy to /tmp/.
+0 | /tmp/hostfile2       | /tmp/hostfile2        | overwrite previous copy
+0 | /tmp/anotherbase.txt | /tmp/anotherbase.txt  | copy to /tmp, new name
+0 | .                    | /srv/hostfile0        | copy to workdir (rel path), new name
+1 | ./                   | /srv/hostfile1        | copy to workdir (rel path), new name
+0 | anotherbase.txt      | /srv/anotherbase.txt  | copy to workdir (rel path), new name
+0 | subdir               | /srv/subdir/hostfile0 | copy to workdir/subdir
+"
+
+    # Copy one of the files into container, exec+cat, confirm the file
+    # is there and matches what we expect
+    while read id dest dest_fullname description; do
+        run_podman cp $srcdir/hostfile$id cpcontainer:$dest
+        run_podman exec cpcontainer cat $dest_fullname
+        is "$output" "${randomcontent[$id]}" "$description (cp -> ctr:$dest)"
+    done < <(parse_table "$tests")
+
+    # Host path does not exist.
+    run_podman 125 cp $srcdir/IdoNotExist cpcontainer:/tmp
+    is "$output" 'Error: ".*/IdoNotExist" could not be found on the host' \
+       "copy nonexistent host path"
+
+    # Container path does not exist.  Notice that the error message shows how
+    # the specified container is resolved.
+    run_podman 125 cp $srcdir/hostfile0 cpcontainer:/IdoNotExist/
+    is "$output" 'Error: "/IdoNotExist/" could not be found on container.*(resolved to .*/IdoNotExist.*' \
+       "copy into nonexistent path in container"
+
+    run_podman rm -f cpcontainer
+}
+
+
+@test "podman cp --extract=true tar archive to container" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    # Create tempfile with random name and content
+    dirname=cp-test-extract
+    srcdir=$PODMAN_TMPDIR/$dirname
+    mkdir -p $srcdir
+    rand_filename=$(random_string 20)
+    rand_content=$(random_string 50)
+    echo $rand_content > $srcdir/$rand_filename
+    chmod 644 $srcdir/$rand_filename
+
+    # Now tar it up!
+    tar_file=$PODMAN_TMPDIR/archive.tar.gz
+    tar -C $PODMAN_TMPDIR -zvcf $tar_file $dirname
+
+    run_podman run -d --name cpcontainer $IMAGE sleep infinity
+
+    # First just copy without extracting the archive.
+    run_podman cp $tar_file cpcontainer:/tmp
+    # Now remove the archive which will also test if it exists and is a file.
+    # To save expensive exec'ing, create a file for the next tests.
+    run_podman exec cpcontainer sh -c "rm /tmp/archive.tar.gz; touch /tmp/file.txt"
+
+    # Now copy with extracting the archive. NOTE that Podman should
+    # auto-decompress the file if needed.
+    run_podman cp --extract=true $tar_file cpcontainer:/tmp
+    run_podman exec cpcontainer cat /tmp/$dirname/$rand_filename
+    is "$output" "$rand_content"
+
+    # Test extract on non archive.
+    run_podman cp --extract=true $srcdir/$rand_filename cpcontainer:/foo.txt
+
+    # Cannot extract an archive to a file!
+    run_podman 125 cp --extract=true $tar_file cpcontainer:/tmp/file.txt
+    is "$output" 'Error: cannot extract archive .* to file "/tmp/file.txt"'
+
+    run_podman rm -f cpcontainer
+}
+
+
+@test "podman cp file from container to host" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    srcdir=$PODMAN_TMPDIR/cp-test-file-ctr-to-host
+    mkdir -p $srcdir
+
+    # Create 3 files with random content in the container.
+    local -a randomcontent=(
+        random-0-$(random_string 10)
+        random-1-$(random_string 15)
+        random-2-$(random_string 20)
+    )
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
+    run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/containerfile"
+    run_podman exec cpcontainer sh -c "echo ${randomcontent[1]} > /srv/containerfile1"
+    run_podman exec cpcontainer sh -c "mkdir /srv/subdir; echo ${randomcontent[2]} > /srv/subdir/containerfile2"
+
+    # format is: <id> | <source arg to cp> | <destination arg (appended to $srcdir) to cp> | <full dest path (appended to $srcdir)> | <test name>
+    tests="
+0 | /tmp/containerfile    |          | /containerfile  | copy to srcdir/
+0 | /tmp/containerfile    | /        | /containerfile  | copy to srcdir/
+0 | /tmp/containerfile    | /.       | /containerfile  | copy to srcdir/.
+0 | /tmp/containerfile    | /newfile | /newfile        | copy to srcdir/newfile
+1 | containerfile1        | /        | /containerfile1 | copy from workdir (rel path) to srcdir
+2 | subdir/containerfile2 | /        | /containerfile2 | copy from workdir/subdir (rel path) to srcdir
+"
+
+    # Copy one of the files to the host, cat, confirm the file
+    # is there and matches what we expect
+    while read id src dest dest_fullname description; do
+        # dest may be "''" for empty table cells
+        if [[ $dest == "''" ]];then
+            unset dest
+        fi
+        run_podman cp cpcontainer:$src "$srcdir$dest"
+        run cat $srcdir$dest_fullname
+        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to \$srcdir$dest)"
+        rm $srcdir/$dest_fullname
+    done < <(parse_table "$tests")
+
+    run_podman rm -f cpcontainer
+}
+
+
+@test "podman cp dir from host to container" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    dirname=dir-test
+    srcdir=$PODMAN_TMPDIR/$dirname
+    mkdir -p $srcdir
+    local -a randomcontent=(
+        random-0-$(random_string 10)
+        random-1-$(random_string 15)
+    )
+    echo "${randomcontent[0]}" > $srcdir/hostfile0
+    echo "${randomcontent[1]}" > $srcdir/hostfile1
+
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
+    run_podman exec cpcontainer mkdir /srv/subdir
+
+    # format is: <source arg to cp (appended to srcdir)> | <destination arg to cp> | <full dest path> | <test name>
+    tests="
+    | /        | /dir-test             | copy to root
+ /  | /tmp     | /tmp/dir-test         | copy to tmp
+ /. | /usr/    | /usr/                 | copy contents of dir to usr/
+    | .        | /srv/dir-test         | copy to workdir (rel path)
+    | subdir/. | /srv/subdir/dir-test | copy to workdir subdir (rel path)
+"
+
+    while read src dest dest_fullname description; do
+        # src may be "''" for empty table cells
+        if [[ $src == "''" ]];then
+            unset src
+        fi
+        run_podman cp $srcdir$src cpcontainer:$dest
+        run_podman exec cpcontainer ls $dest_fullname
+        run_podman exec cpcontainer cat $dest_fullname/hostfile0
+        is "$output" "${randomcontent[0]}" "$description (cp -> ctr:$dest)"
+        run_podman exec cpcontainer cat $dest_fullname/hostfile1
+        is "$output" "${randomcontent[1]}" "$description (cp -> ctr:$dest)"
+    done < <(parse_table "$tests")
+
+    run_podman rm -f cpcontainer
+}
+
+
+@test "podman cp dir from container to host" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    srcdir=$PODMAN_TMPDIR/dir-test
+    mkdir -p $srcdir
+
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
+    run_podman exec cpcontainer sh -c 'mkdir /srv/subdir; echo "This first file is on the container" > /srv/subdir/containerfile1'
+    run_podman exec cpcontainer sh -c 'echo "This second file is on the container as well" > /srv/subdir/containerfile2'
+
+    run_podman cp cpcontainer:/srv $srcdir
+    run cat $srcdir/srv/subdir/containerfile1
+    is "$output" "This first file is on the container"
+    run cat $srcdir/srv/subdir/containerfile2
+    is "$output" "This second file is on the container as well"
+    rm -rf $srcdir/srv/subdir
+
+    run_podman cp cpcontainer:/srv/. $srcdir
+    run ls $srcdir/subdir
+    run cat $srcdir/subdir/containerfile1
+    is "$output" "This first file is on the container"
+    run cat $srcdir/subdir/containerfile2
+    is "$output" "This second file is on the container as well"
+    rm -rf $srcdir/subdir
+
+    run_podman cp cpcontainer:/srv/subdir/. $srcdir
+    run cat $srcdir/containerfile1
+    is "$output" "This first file is on the container"
+    run cat $srcdir/containerfile2
+    is "$output" "This second file is on the container as well"
+
+    run_podman rm -f cpcontainer
+}
+
+
+@test "podman cp file from host to container volume" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    srcdir=$PODMAN_TMPDIR/cp-test-volume
+    mkdir -p $srcdir
+    echo "This file should be in volume2" > $srcdir/hostfile
+    volume1=$(random_string 20)
+    volume2=$(random_string 20)
+
+    run_podman volume create $volume1
+    run_podman volume inspect $volume1 --format "{{.Mountpoint}}"
+    volume1_mount="$output"
+    run_podman volume create $volume2
+    run_podman volume inspect $volume2 --format "{{.Mountpoint}}"
+    volume2_mount="$output"
+
+    # Create a container using the volume.  Note that copying on not-running
+    # containers is allowed, so Podman has to analyze the container paths and
+    # check if they are hitting a volume, and eventually resolve to the path on
+    # the *host*.
+    # This test is extra tricky, as volume2 is mounted into a sub-directory of
+    # volume1.  Podman must copy the file into volume2 and not volume1.
+    run_podman create --name cpcontainer -v $volume1:/tmp/volume -v $volume2:/tmp/volume/sub-volume $IMAGE
+
+    run_podman cp $srcdir/hostfile cpcontainer:/tmp/volume/sub-volume
+
+    run cat $volume2_mount/hostfile
+    is "$output" "This file should be in volume2"
+
+    # Volume 1 must be empty.
+    run ls $volume1_mount
+    is "$output" ""
+
+    run_podman rm -f cpcontainer
+    run_podman volume rm $volume1 $volume2
+}
+
+
+@test "podman cp file from host to container mount" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    srcdir=$PODMAN_TMPDIR/cp-test-mount-src
+    mountdir=$PODMAN_TMPDIR/cp-test-mount
+    mkdir -p $srcdir $mountdir
+    echo "This file should be in the mount" > $srcdir/hostfile
+
+    volume=$(random_string 20)
+    run_podman volume create $volume
+
+    # Make it a bit more complex and put the mount on a volume.
+    run_podman create --name cpcontainer -v $volume:/tmp/volume -v $mountdir:/tmp/volume/mount $IMAGE
+
+    run_podman cp $srcdir/hostfile cpcontainer:/tmp/volume/mount
+
+    run cat $mountdir/hostfile
+    is "$output" "This file should be in the mount"
+
+    run_podman rm -f cpcontainer
+    run_podman volume rm $volume
+}
+
+
 # Create two random-name random-content files in /tmp in the container
 # podman-cp them into the host using '/tmp/*', i.e. asking podman to
 # perform wildcard expansion in the container. We should get both
@@ -51,8 +335,7 @@ load helpers
     run_podman 125 cp 'cpcontainer:/tmp/*' $dstdir/
 
     # FIXME: this might not be the exactly correct error message
-    is "$output" ".*error evaluating symlinks.*lstat.*no such file or dir" \
-       "Expected error from copying invalid symlink"
+    is "$output" 'Error: "/tmp/\*" could not be found on container.*'
 
     # make sure there are no files in dstdir
     is "$(/bin/ls -1 $dstdir)" "" "incorrectly copied symlink from host"
@@ -78,8 +361,7 @@ load helpers
                sh -c "ln -s $srcdir/hostfile file1;ln -s file\* copyme"
     run_podman 125 cp cpcontainer:copyme $dstdir
 
-    is "$output" ".*error evaluating symlinks.*lstat.*no such file or dir" \
-       "Expected error from copying invalid symlink"
+    is "$output" 'Error: "copyme*" could not be found on container.*'
 
     # make sure there are no files in dstdir
     is "$(/bin/ls -1 $dstdir)" "" "incorrectly copied symlink from host"
@@ -101,8 +383,7 @@ load helpers
                sh -c "ln -s $srcdir/hostfile /tmp/\*"
     run_podman 125 cp 'cpcontainer:/tmp/*' $dstdir
 
-    is "$output" ".*error evaluating symlinks.*lstat.*no such file or dir" \
-       "Expected error from copying invalid symlink"
+    is "$output" 'Error: "/tmp/\*" could not be found on container.*'
 
     # dstdir must be empty
     is "$(/bin/ls -1 $dstdir)" "" "incorrectly copied symlink from host"
@@ -110,8 +391,6 @@ load helpers
     run_podman rm cpcontainer
 }
 
-###############################################################################
-# cp INTO container
 
 # THIS IS EXTREMELY WEIRD. Podman expands symlinks in weird ways.
 @test "podman cp into container: weird symlink expansion" {
@@ -148,7 +427,7 @@ load helpers
     is "$output" "" "output from podman cp 1"
 
     run_podman 125 cp --pause=false $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
-    is "$output" ".*stat.* no such file or directory" "cp will not create nonexistent destination directory"
+    is "$output" 'Error: "/tmp/d2/x/" could not be found on container.*' "cp will not create nonexistent destination directory"
 
     run_podman cp --pause=false $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
     is "$output" "" "output from podman cp 3"
@@ -160,6 +439,7 @@ load helpers
     run_podman exec cpcontainer cat /tmp/nonesuch1
     is "$output" "$rand_content1" "cp creates destination file"
 
+
     # cp into nonexistent directory should not mkdir nonesuch2 directory
     run_podman 1 exec cpcontainer test -e /tmp/nonesuch2
 
@@ -168,8 +448,6 @@ load helpers
     is "$output" "$rand_content3" "cp creates file named x"
 
     run_podman rm -f cpcontainer
-
-
 }
 
 
@@ -211,6 +489,103 @@ load helpers
     run_podman rm -f cpcontainer
 }
 
+
+@test "podman cp from stdin to container" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    # Create tempfile with random name and content
+    srcdir=$PODMAN_TMPDIR/cp-test-stdin
+    mkdir -p $srcdir
+    rand_filename=$(random_string 20)
+    rand_content=$(random_string 50)
+    echo $rand_content > $srcdir/$rand_filename
+    chmod 644 $srcdir/$rand_filename
+
+    # Now tar it up!
+    tar_file=$PODMAN_TMPDIR/archive.tar.gz
+    tar -zvcf $tar_file $srcdir
+
+    run_podman run -d --name cpcontainer $IMAGE sleep infinity
+
+    # NOTE: podman is supposed to auto-detect the gzip compression and
+    # decompress automatically.
+    #
+    # "-" will evaluate to "/dev/stdin" when used a source.
+    run_podman cp - cpcontainer:/tmp < $tar_file
+    run_podman exec cpcontainer cat /tmp/$srcdir/$rand_filename
+    is "$output" "$rand_content"
+    run_podman exec cpcontainer rm -rf /tmp/$srcdir
+
+    # Now for "/dev/stdin".
+    run_podman cp /dev/stdin cpcontainer:/tmp < $tar_file
+    run_podman exec cpcontainer cat /tmp/$srcdir/$rand_filename
+    is "$output" "$rand_content"
+
+    # Error checks below ...
+
+    # Input stream must be a (compressed) tar archive.
+    run_podman 125 cp - cpcontainer:/tmp < $srcdir/$rand_filename
+    is "$output" "Error:.*: error reading tar stream.*" "input stream must be a (compressed) tar archive"
+
+    # Destination must be a directory (on an existing file).
+    run_podman exec cpcontainer touch /tmp/file.txt
+    run_podman 125 cp /dev/stdin cpcontainer:/tmp/file.txt < $tar_file
+    is "$output" 'Error: destination must be a directory or stream when copying from a stream'
+
+    # Destination must be a directory (on an absent path).
+    run_podman 125 cp /dev/stdin cpcontainer:/tmp/IdoNotExist < $tar_file
+    is "$output" 'Error: destination must be a directory or stream when copying from a stream'
+
+    run_podman rm -f cpcontainer
+}
+
+
+@test "podman cp from container to stdout" {
+    skip_if_remote "podman-remote does not yet handle cp"
+
+    srcdir=$PODMAN_TMPDIR/cp-test-stdout
+    mkdir -p $srcdir
+    rand_content=$(random_string 50)
+
+    run_podman run -d --name cpcontainer $IMAGE sleep infinity
+
+    run_podman exec cpcontainer sh -c "echo '$rand_content' > /tmp/file.txt"
+    run_podman exec cpcontainer touch /tmp/empty.txt
+
+    # Copying from stdout will always compress.  So let's copy the previously
+    # created file from the container via stdout, untar the archive and make
+    # sure the file exists with the expected content.
+    #
+    # NOTE that we can't use run_podman because that uses the BATS 'run'
+    # function which redirects stdout and stderr. Here we need to guarantee
+    # that podman's stdout is a pipe, not any other form of redirection.
+
+    # Copy file.
+    $PODMAN cp cpcontainer:/tmp/file.txt - > $srcdir/stdout.tar
+    if [ $? -ne 0 ]; then
+        die "Command failed: podman cp ... - | cat"
+    fi
+
+    tar xvf $srcdir/stdout.tar -C $srcdir
+    run cat $srcdir/file.txt
+    is "$output" "$rand_content"
+    run 1 ls $srcfir/empty.txt
+    rm -f $srcdir/*
+
+    # Copy directory.
+    $PODMAN cp cpcontainer:/tmp - > $srcdir/stdout.tar
+    if [ $? -ne 0 ]; then
+        die "Command failed: podman cp ... - | cat : $output"
+    fi
+
+    tar xvf $srcdir/stdout.tar -C $srcdir
+    run cat $srcdir/file.txt
+    is "$output" "$rand_content"
+    run cat $srcdir/empty.txt
+    is "$output" ""
+
+    run_podman rm -f cpcontainer
+}
 
 function teardown() {
     # In case any test fails, clean up the container we left behind

@@ -9,12 +9,12 @@ podman\-cp - Copy files/folders between a container and the local filesystem
 **podman container cp** [*options*] [*container*:]*src_path* [*container*:]*dest_path*
 
 ## DESCRIPTION
-Copies the contents of **src_path** to the **dest_path**. You can copy from the container's filesystem to the local machine or the reverse, from the local filesystem to the container.
-If - is specified for either the SRC_PATH or DEST_PATH, you can also stream a tar archive from STDIN or to STDOUT.
+Copy the contents of **src_path** to the **dest_path**. You can copy from the container's filesystem to the local machine or the reverse, from the local filesystem to the container.
+If `-` is specified for either the SRC_PATH or DEST_PATH, you can also stream a tar archive from STDIN or to STDOUT.
 
 The CONTAINER can be a running or stopped container. The **src_path** or **dest_path** can be a file or directory.
 
-The **podman cp** command assumes container paths are relative to the container's / (root) directory.
+The **podman cp** command assumes container paths are relative to the container's root directory (i.e., `/`).
 
 This means supplying the initial forward slash is optional;
 
@@ -27,24 +27,22 @@ Assuming a path separator of /, a first argument of **src_path** and second argu
 
 **src_path** specifies a file
   - **dest_path** does not exist
-	- the file is saved to a file created at **dest_path**
-  - **dest_path** does not exist and ends with /
-	- Error condition: the destination directory must exist.
+    - the file is saved to a file created at **dest_path** (note that parent directory must exist)
   - **dest_path** exists and is a file
-	- the destination is overwritten with the source file's contents
+    - the destination is overwritten with the source file's contents
   - **dest_path** exists and is a directory
-	- the file is copied into this directory using the basename from **src_path**
+    - the file is copied into this directory using the basename from **src_path**
 
 **src_path** specifies a directory
   - **dest_path** does not exist
-	- **dest_path** is created as a directory and the contents of the source directory are copied into this directory
+    - **dest_path** is created as a directory and the contents of the source directory are copied into this directory
   - **dest_path** exists and is a file
-	- Error condition: cannot copy a directory to a file
+    - Error condition: cannot copy a directory to a file
   - **dest_path** exists and is a directory
-	- **src_path** ends with /
-		- the source directory is copied into this directory
-	- **src_path** ends with /. (that is: slash followed by dot)
-		- the content of the source directory is copied into this directory
+    - **src_path** ends with `/`
+      - the source directory is copied into this directory
+    - **src_path** ends with `/.` (i.e., slash followed by dot)
+      - the content of the source directory is copied into this directory
 
 The command requires **src_path** and **dest_path** to exist according to the above rules.
 
@@ -57,11 +55,13 @@ You can also use : when specifying paths to a **src_path** or **dest_path** on a
 If you use a : in a local machine path, you must be explicit with a relative or absolute path, for example:
 	`/path/to/file:name.txt` or `./file:name.txt`
 
+Using `-` as the *src_path* streams the contents of STDIN as a tar archive. The command extracts the content of the tar to the *DEST_PATH* in the container. In this case, *dest_path* must specify a directory. Using `-` as the *dest_path* streams the contents of the resource (can be a directory) as a tar archive to STDOUT.
+
 ## OPTIONS
 
 #### **--extract**
 
-Extract the tar file into the destination directory. If the destination directory is not provided, extract the tar file into the root directory.
+If the source is a tar archive, extract it to the provided destination (must be a directory).  If the source is not a tar archive, follow the above rules.
 
 #### **--pause**
 

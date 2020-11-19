@@ -403,14 +403,12 @@ type ContainerPortReport struct {
 	Ports []ocicni.PortMapping
 }
 
-// ContainerCpOptions describes input options for cp
+// ContainerCpOptions describes input options for cp.
 type ContainerCpOptions struct {
-	Pause   bool
+	// Pause the container while copying.
+	Pause bool
+	// Extract the tarfile into the destination directory.
 	Extract bool
-}
-
-// ContainerCpReport describes the output from a cp operation
-type ContainerCpReport struct {
 }
 
 // ContainerStatsOptions describes input options for getting

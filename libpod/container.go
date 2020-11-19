@@ -267,6 +267,11 @@ func (c *Container) Config() *ContainerConfig {
 	return returnConfig
 }
 
+// Runtime returns the container's Runtime.
+func (c *Container) Runtime() *Runtime {
+	return c.runtime
+}
+
 // Spec returns the container's OCI runtime spec
 // The spec returned is the one used to create the container. The running
 // spec may differ slightly as mounts are added based on the image
