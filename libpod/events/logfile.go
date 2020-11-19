@@ -76,7 +76,7 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 			return err
 		}
 		switch event.Type {
-		case Image, Volume, Pod, System, Container:
+		case Image, Volume, Pod, System, Container, Network:
 		//	no-op
 		default:
 			return errors.Errorf("event type %s is not valid in %s", event.Type.String(), e.options.LogFilePath)

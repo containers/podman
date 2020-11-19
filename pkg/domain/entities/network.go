@@ -49,3 +49,17 @@ type NetworkCreateOptions struct {
 type NetworkCreateReport struct {
 	Filename string
 }
+
+// NetworkDisconnectOptions describes options for disconnecting
+// containers from networks
+type NetworkDisconnectOptions struct {
+	Container string
+	Force     bool
+}
+
+// NetworkConnectOptions describes options for connecting
+// a container to a network
+type NetworkConnectOptions struct {
+	Aliases   []string
+	Container string
+}

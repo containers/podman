@@ -178,4 +178,7 @@ var (
 	// ErrStoreNotInitialized indicates that the container storage was never
 	// initialized.
 	ErrStoreNotInitialized = errors.New("the container storage was never initialized")
+
+	// ErrNoNetwork indicates that a container has no net namespace, like network=none
+	ErrNoNetwork = errors.New("container has no network namespace")
 )

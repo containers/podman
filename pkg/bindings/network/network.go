@@ -88,3 +88,41 @@ func List(ctx context.Context, options entities.NetworkListOptions) ([]*entities
 	}
 	return netList, response.Process(&netList)
 }
+
+// Disconnect removes a container from a given network
+func Disconnect(ctx context.Context, networkName string, options entities.NetworkDisconnectOptions) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	params := url.Values{}
+	body, err := jsoniter.MarshalToString(options)
+	if err != nil {
+		return err
+	}
+	stringReader := strings.NewReader(body)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/networks/%s/disconnect", params, nil, networkName)
+	if err != nil {
+		return err
+	}
+	return response.Process(nil)
+}
+
+// Connect adds a container to a network
+func Connect(ctx context.Context, networkName string, options entities.NetworkConnectOptions) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	params := url.Values{}
+	body, err := jsoniter.MarshalToString(options)
+	if err != nil {
+		return err
+	}
+	stringReader := strings.NewReader(body)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/networks/%s/connect", params, nil, networkName)
+	if err != nil {
+		return err
+	}
+	return response.Process(nil)
+}

@@ -21,6 +21,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/netns"
@@ -34,16 +35,16 @@ import (
 )
 
 // Get an OCICNI network config
-func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP, staticMAC net.HardwareAddr) ocicni.PodNetwork {
+func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP, staticMAC net.HardwareAddr, netDescriptions ContainerNetworkDescriptions) ocicni.PodNetwork {
 	var networkKey string
 	if len(networks) > 0 {
-		// This is inconsistent for >1 network, but it's probably the
+		// This is inconsistent for >1 ctrNetwork, but it's probably the
 		// best we can do.
 		networkKey = networks[0]
 	} else {
 		networkKey = r.netPlugin.GetDefaultNetworkName()
 	}
-	network := ocicni.PodNetwork{
+	ctrNetwork := ocicni.PodNetwork{
 		Name:      name,
 		Namespace: name, // TODO is there something else we should put here? We don't know about Kube namespaces
 		ID:        id,
@@ -55,9 +56,12 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 
 	// If we have extra networks, add them
 	if len(networks) > 0 {
-		network.Networks = make([]ocicni.NetAttachment, len(networks))
+		ctrNetwork.Networks = make([]ocicni.NetAttachment, len(networks))
 		for i, netName := range networks {
-			network.Networks[i].Name = netName
+			ctrNetwork.Networks[i].Name = netName
+			if eth, exists := netDescriptions.getInterfaceByName(netName); exists {
+				ctrNetwork.Networks[i].Ifname = eth
+			}
 		}
 	}
 
@@ -66,8 +70,8 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 		// it's just the default.
 		if len(networks) == 0 {
 			// If len(networks) == 0 this is guaranteed to be the
-			// default network.
-			network.Networks = []ocicni.NetAttachment{{Name: networkKey}}
+			// default ctrNetwork.
+			ctrNetwork.Networks = []ocicni.NetAttachment{{Name: networkKey}}
 		}
 		var rt ocicni.RuntimeConfig = ocicni.RuntimeConfig{PortMappings: ports}
 		if staticIP != nil {
@@ -76,12 +80,12 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 		if staticMAC != nil {
 			rt.MAC = staticMAC.String()
 		}
-		network.RuntimeConfig = map[string]ocicni.RuntimeConfig{
+		ctrNetwork.RuntimeConfig = map[string]ocicni.RuntimeConfig{
 			networkKey: rt,
 		}
 	}
 
-	return network
+	return ctrNetwork
 }
 
 // Create and configure a new network namespace for a container
@@ -110,7 +114,12 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 	if err != nil {
 		return nil, err
 	}
-	podNetwork := r.getPodNetwork(ctr.ID(), podName, ctrNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC)
+
+	// Update container map of interface descriptions
+	if err := ctr.setupNetworkDescriptions(networks); err != nil {
+		return nil, err
+	}
+	podNetwork := r.getPodNetwork(ctr.ID(), podName, ctrNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC, ctr.state.NetInterfaceDescriptions)
 	aliases, err := ctr.runtime.state.GetAllNetworkAliases(ctr)
 	if err != nil {
 		return nil, err
@@ -760,7 +769,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 			requestedMAC = ctr.config.StaticMAC
 		}
 
-		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC)
+		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC, ContainerNetworkDescriptions{})
 
 		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
 			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
@@ -934,6 +943,29 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	return settings, nil
 }
 
+// setupNetworkDescriptions adds networks and eth values to the container's
+// network descriptions
+func (c *Container) setupNetworkDescriptions(networks []string) error {
+	// if the map is nil and we have networks
+	if c.state.NetInterfaceDescriptions == nil && len(networks) > 0 {
+		c.state.NetInterfaceDescriptions = make(ContainerNetworkDescriptions)
+	}
+	origLen := len(c.state.NetInterfaceDescriptions)
+	for _, n := range networks {
+		// if the network is not in the map, add it
+		if _, exists := c.state.NetInterfaceDescriptions[n]; !exists {
+			c.state.NetInterfaceDescriptions.add(n)
+		}
+	}
+	// if the map changed, we need to save the container state
+	if origLen != len(c.state.NetInterfaceDescriptions) {
+		if err := c.save(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
 // result
 func resultToBasicNetworkConfig(result *cnitypes.Result) (define.InspectBasicNetworkConfig, error) {
@@ -984,19 +1016,14 @@ func (w *logrusDebugWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// DisconnectContainerFromNetwork removes a container from its CNI network
-func (r *Runtime) DisconnectContainerFromNetwork(nameOrID, netName string, force bool) error {
-	ctr, err := r.LookupContainer(nameOrID)
+// NetworkDisconnect removes a container from the network
+func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) error {
+	networks, err := c.networksByNameIndex()
 	if err != nil {
 		return err
 	}
 
-	networks, err := ctr.networksByNameIndex()
-	if err != nil {
-		return err
-	}
-
-	exists, err := network.Exists(r.config, netName)
+	exists, err := network.Exists(c.runtime.config, netName)
 	if err != nil {
 		return err
 	}
@@ -1009,48 +1036,48 @@ func (r *Runtime) DisconnectContainerFromNetwork(nameOrID, netName string, force
 		return errors.Errorf("container %s is not connected to network %s", nameOrID, netName)
 	}
 
-	ctr.lock.Lock()
-	defer ctr.lock.Unlock()
-	if err := ctr.syncContainer(); err != nil {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
 		return err
 	}
 
-	podConfig := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), []string{netName}, ctr.config.PortMappings, nil, nil)
-	if err := r.netPlugin.TearDownPod(podConfig); err != nil {
+	if c.state.State != define.ContainerStateRunning {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot disconnect container %s from networks as it is not running", nameOrID)
+	}
+	if c.state.NetNS == nil {
+		return errors.Wrapf(define.ErrNoNetwork, "unable to disconnect %s from %s", nameOrID, netName)
+	}
+	podConfig := c.runtime.getPodNetwork(c.ID(), c.Name(), c.state.NetNS.Path(), []string{netName}, c.config.PortMappings, nil, nil, c.state.NetInterfaceDescriptions)
+	if err := c.runtime.netPlugin.TearDownPod(podConfig); err != nil {
 		return err
 	}
-	if err := r.state.NetworkDisconnect(ctr, netName); err != nil {
+	if err := c.runtime.state.NetworkDisconnect(c, netName); err != nil {
 		return err
 	}
 
 	// update network status
-	networkStatus := ctr.state.NetworkStatus
-	// if len is one and we confirmed earlier that the container is in
-	// fact connected to the network, then just return an empty slice
-	if len(networkStatus) == 1 {
-		ctr.state.NetworkStatus = make([]*cnitypes.Result, 0)
-	} else {
-		// clip out the index of the network
-		networkStatus[len(networkStatus)-1], networkStatus[index] = networkStatus[index], networkStatus[len(networkStatus)-1]
-		// shorten the slice by one
-		ctr.state.NetworkStatus = networkStatus[:len(networkStatus)-1]
+	networkStatus := c.state.NetworkStatus
+	// clip out the index of the network
+	tmpNetworkStatus := make([]*cnitypes.Result, len(networkStatus)-1)
+	for k, v := range networkStatus {
+		if index != k {
+			tmpNetworkStatus = append(tmpNetworkStatus, v)
+		}
 	}
-	return nil
+	c.state.NetworkStatus = tmpNetworkStatus
+	c.newNetworkEvent(events.NetworkDisconnect, netName)
+	return c.save()
 }
 
-// ConnectContainerToNetwork connects a container to a CNI network
-func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, aliases []string) error {
-	ctr, err := r.LookupContainer(nameOrID)
+// ConnnectNetwork connects a container to a given network
+func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) error {
+	networks, err := c.networksByNameIndex()
 	if err != nil {
 		return err
 	}
 
-	networks, err := ctr.networksByNameIndex()
-	if err != nil {
-		return err
-	}
-
-	exists, err := network.Exists(r.config, netName)
+	exists, err := network.Exists(c.runtime.config, netName)
 	if err != nil {
 		return err
 	}
@@ -1058,25 +1085,34 @@ func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, aliases []
 		return errors.Wrap(define.ErrNoSuchNetwork, netName)
 	}
 
-	_, nameExists := networks[netName]
-	if !nameExists && len(networks) > 0 {
-		return errors.Errorf("container %s is not connected to network %s", nameOrID, netName)
-	}
-
-	ctr.lock.Lock()
-	defer ctr.lock.Unlock()
-	if err := ctr.syncContainer(); err != nil {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
 		return err
 	}
 
-	if err := r.state.NetworkConnect(ctr, netName, aliases); err != nil {
+	if c.state.State != define.ContainerStateRunning {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot connect container %s to networks as it is not running", nameOrID)
+	}
+	if c.state.NetNS == nil {
+		return errors.Wrapf(define.ErrNoNetwork, "unable to connect %s to %s", nameOrID, netName)
+	}
+	if err := c.runtime.state.NetworkConnect(c, netName, aliases); err != nil {
 		return err
 	}
 
-	podConfig := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), []string{netName}, ctr.config.PortMappings, nil, nil)
+	ctrNetworks, err := c.networks()
+	if err != nil {
+		return err
+	}
+	// Update network descriptions
+	if err := c.setupNetworkDescriptions(ctrNetworks); err != nil {
+		return err
+	}
+	podConfig := c.runtime.getPodNetwork(c.ID(), c.Name(), c.state.NetNS.Path(), []string{netName}, c.config.PortMappings, nil, nil, c.state.NetInterfaceDescriptions)
 	podConfig.Aliases = make(map[string][]string, 1)
 	podConfig.Aliases[netName] = aliases
-	results, err := r.netPlugin.SetUpPod(podConfig)
+	results, err := c.runtime.netPlugin.SetUpPod(podConfig)
 	if err != nil {
 		return err
 	}
@@ -1094,11 +1130,11 @@ func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, aliases []
 	}
 
 	// update network status
-	networkStatus := ctr.state.NetworkStatus
+	networkStatus := c.state.NetworkStatus
 	// if len is one and we confirmed earlier that the container is in
 	// fact connected to the network, then just return an empty slice
 	if len(networkStatus) == 0 {
-		ctr.state.NetworkStatus = append(ctr.state.NetworkStatus, networkResults...)
+		c.state.NetworkStatus = append(c.state.NetworkStatus, networkResults...)
 	} else {
 		// build a list of network names so we can sort and
 		// get the new name's index
@@ -1117,5 +1153,30 @@ func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, aliases []
 		copy(networkStatus[index+1:], networkStatus[index:])
 		networkStatus[index] = networkResults[0]
 	}
-	return nil
+	c.newNetworkEvent(events.NetworkConnect, netName)
+	return c.save()
+}
+
+// DisconnectContainerFromNetwork removes a container from its CNI network
+func (r *Runtime) DisconnectContainerFromNetwork(nameOrID, netName string, force bool) error {
+	if rootless.IsRootless() {
+		return errors.New("network connect is not enabled for rootless containers")
+	}
+	ctr, err := r.LookupContainer(nameOrID)
+	if err != nil {
+		return err
+	}
+	return ctr.NetworkDisconnect(nameOrID, netName, force)
+}
+
+// ConnectContainerToNetwork connects a container to a CNI network
+func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, aliases []string) error {
+	if rootless.IsRootless() {
+		return errors.New("network disconnect is not enabled for rootless containers")
+	}
+	ctr, err := r.LookupContainer(nameOrID)
+	if err != nil {
+		return err
+	}
+	return ctr.NetworkConnect(nameOrID, netName, aliases)
 }

@@ -30,6 +30,8 @@ type Event struct {
 	Image string `json:",omitempty"`
 	// Name where applicable
 	Name string `json:",omitempty"`
+	// Network is the network name in a network event
+	Network string `json:"network,omitempty"`
 	// Status describes the event that occurred
 	Status Status
 	// Time the event occurred
@@ -101,6 +103,8 @@ const (
 	Container Type = "container"
 	// Image - event is related to images
 	Image Type = "image"
+	// Network - event is related to networks
+	Network Type = "network"
 	// Pod - event is related to pods
 	Pod Type = "pod"
 	// System - event is related to Podman whole and not to any specific
@@ -141,6 +145,10 @@ const (
 	LoadFromArchive Status = "loadfromarchive"
 	// Mount ...
 	Mount Status = "mount"
+	// NetworkConnect
+	NetworkConnect Status = "connect"
+	// NetworkDisconnect
+	NetworkDisconnect Status = "disconnect"
 	// Pause ...
 	Pause Status = "pause"
 	// Prune ...
