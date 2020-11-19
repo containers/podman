@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -475,5 +476,24 @@ entrypoint ["/fromimage"]
 		status3.WaitWithDefaultTimeout()
 		Expect(status3.ExitCode()).To(Equal(0))
 		Expect(strings.Contains(status3.OutputToString(), "Degraded")).To(BeTrue())
+	})
+
+	It("podman create pod invalid network config", func() {
+		net1 := "n1" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", net1})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net1)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"pod", "create", "--network", "host", "--network", net1})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("host"))
+		Expect(session.ErrorToString()).To(ContainSubstring("bridge"))
+
+		session = podmanTest.Podman([]string{"pod", "create", "--network", "container:abc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("pods presently do not support network mode container"))
 	})
 })
