@@ -12,7 +12,7 @@ CTR="ArchiveTestingCtr"
 
 TMPD=$(mktemp -d)
 pushd "${TMPD}"
-echo "Hello!" > "hello.txt" &> /dev/null
+echo "Hello" > "hello.txt"
 tar --format=posix -cvf "hello.tar" "hello.txt" &> /dev/null
 popd
 
@@ -24,5 +24,46 @@ t HEAD "containers/nonExistentCtr/archive?path=%2F" 404
 t HEAD "containers/${CTR}/archive?path=%2Fnon%2Fexistent%2Fpath" 404
 t HEAD "containers/${CTR}/archive?path=%2Fetc%2Fpasswd" 200
 
-curl "http://127.0.0.1:$PORT/containers/${CTR}/archive?path=%2Ftmp" -X PUT --upload-file "${HELLO_TAR}"
+curl "http://$HOST:$PORT/containers/${CTR}/archive?path=%2Ftmp%2F" \
+  -X PUT \
+  -H "Content-Type: application/x-tar" \
+  --upload-file "${HELLO_TAR}" &> /dev/null
+
+
 t HEAD "containers/${CTR}/archive?path=%2Ftmp%2Fhello.txt" 200
+
+curl "http://$HOST:$PORT/containers/${CTR}/archive?path=%2Ftmp%2Fhello.txt" \
+  --dump-header "${TMPD}/headers.txt" \
+  -o "${TMPD}/body.tar" \
+  -X GET &> /dev/null
+
+PATH_STAT="$(grep X-Docker-Container-Path-Stat "${TMPD}/headers.txt" | cut -d " " -f 2 | base64 -d --ignore-garbage)"
+
+ARCHIVE_TEST_ERROR=""
+
+red='\e[31m'
+nc='\e[0m'
+
+if [ "$(echo "${PATH_STAT}" | jq ".name")" != '"hello.txt"' ]; then
+  echo -e "${red}NOK: Wrong name in X-Docker-Container-Path-Stat header.${nc}"  1>&2;
+  ARCHIVE_TEST_ERROR="1"
+fi
+
+if [ "$(echo "${PATH_STAT}" | jq ".size")" != "6" ]; then
+  echo -e "${red}NOK: Wrong size in X-Docker-Container-Path-Stat header.${nc}"  1>&2;
+  ARCHIVE_TEST_ERROR="1"
+fi
+
+if ! tar -tf "${TMPD}/body.tar" | grep "hello.txt" &> /dev/null; then
+  echo -e "${red}NOK: Body doesn't contain expected file.${nc}"  1>&2;
+  ARCHIVE_TEST_ERROR="1"
+fi
+
+if [ "$(tar -xf "${TMPD}/body.tar" hello.txt  --to-stdout)" != "Hello" ]; then
+  echo -e "${red}NOK: Content of file doesn't match.${nc}" 1>&2;
+  ARCHIVE_TEST_ERROR="1"
+fi
+
+if [[ "${ARCHIVE_TEST_ERROR}" ]] ; then
+  exit 1;
+fi
