@@ -1,0 +1,36 @@
+name: Build rootless-cni-infra
+on: [push, pull_request]
+jobs:
+  release:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: "Register QEMU to /proc/sys/fs/binfmt_misc"
+      run: docker run --privileged --rm tonistiigi/binfmt --install all
+    - name: "Fetch buildx binary"
+      run: |
+        wget -O buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
+        chmod +x buildx
+    - name: "Initialize buildx"
+      run: |
+        ./buildx create --name cross --platform=amd64,arm,arm64,s390x,ppc64le --use
+        ./buildx inspect --bootstrap
+    - name: "Build rootless-cni-infra.tar.gz (Multi-arch OCI archive)"
+      run: |
+        ./buildx build \
+          --output type=oci,dest=rootless-cni-infra.tar \
+          --platform amd64,arm,arm64,s390x,ppc64le \
+          -f contrib/rootless-cni-infra/Containerfile \
+          contrib/rootless-cni-infra
+        gzip -9 rootless-cni-infra.tar
+    - name: "Print SHA256SUM of rootless-cni-infra.tar.gz"
+      run: |
+        sha256sum rootless-cni-infra.tar.gz
+    - name: "Upload rootless-cni-infra.tar.gz as a GitHub Artifact"
+      uses: actions/upload-artifact@v1
+      with:
+        name: rootless-cni-infra.tar.gz
+        path: rootless-cni-infra.tar.gz
+    - name: "Notice"
+      run: |
+        echo "The image is NOT pushed to quay. To push the image to quay, run skopeo manually with the artifact archive."

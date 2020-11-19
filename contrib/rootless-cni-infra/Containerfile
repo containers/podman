@@ -4,22 +4,22 @@ ARG CNI_VERSION=v0.8.0
 ARG CNI_PLUGINS_VERSION=v0.8.7
 ARG DNSNAME_VESION=v1.0.0
 
-FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS golang-base
+FROM --platform=$BUILDPLATFORM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS golang-base
 RUN apk add --no-cache git
 
-FROM golang-base AS cnitool
+FROM --platform=$BUILDPLATFORM golang-base AS cnitool
 RUN git clone https://github.com/containernetworking/cni /go/src/github.com/containernetworking/cni
 WORKDIR /go/src/github.com/containernetworking/cni
 ARG CNI_VERSION
 RUN git checkout ${CNI_VERSION}
-RUN go build -o /cnitool ./cnitool
+RUN GOARCH=$TARGETARCH go build -o /cnitool ./cnitool
 
-FROM golang-base AS dnsname
+FROM --platform=$BUILDPLATFORM golang-base AS dnsname
 RUN git clone https://github.com/containers/dnsname /go/src/github.com/containers/dnsname
 WORKDIR /go/src/github.com/containers/dnsname
 ARG DNSNAME_VERSION
 RUN git checkout ${DNSNAME_VERSION}
-RUN go build -o /dnsname ./plugins/meta/dnsname
+RUN GOARCH=$TARGETARCH go build -o /dnsname ./plugins/meta/dnsname
 
 FROM alpine:${ALPINE_VERSION}
 RUN apk add --no-cache curl dnsmasq iptables ip6tables iproute2
@@ -33,4 +33,4 @@ COPY rootless-cni-infra /usr/local/bin
 ENV CNI_PATH=/opt/cni/bin
 CMD ["sleep", "infinity"]
 
-ENV ROOTLESS_CNI_INFRA_VERSION=3
+ENV ROOTLESS_CNI_INFRA_VERSION=4
