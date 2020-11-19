@@ -118,7 +118,7 @@ EOF
         /proc/scsi
         /sys/firmware
         /sys/fs/selinux
-        /sys/dev
+        /sys/dev/block
     )
 
     # Some of the above may not exist on our host. Find only the ones that do.
