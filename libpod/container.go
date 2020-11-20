@@ -17,6 +17,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
@@ -920,19 +921,39 @@ func (c *Container) CGroupPath() (string, error) {
 		return "", errors.Wrapf(define.ErrNoCgroups, "this container is not creating cgroups")
 	}
 
-	// Read /proc/[PID]/cgroup and look at the first line.  cgroups(7)
-	// nails it down to three fields with the 3rd pointing to the cgroup's
-	// path which works both on v1 and v2.
+	// Read /proc/[PID]/cgroup and find the *longest* cgroup entry.  That's
+	// needed to account for hacks in cgroups v1, where each line in the
+	// file could potentially point to a cgroup.  The longest one, however,
+	// is the libpod-specific one we're looking for.
+	//
+	// See #8397 on the need for the longest-path look up.
 	procPath := fmt.Sprintf("/proc/%d/cgroup", c.state.PID)
 	lines, err := ioutil.ReadFile(procPath)
 	if err != nil {
 		return "", err
 	}
-	fields := bytes.Split(bytes.Split(lines, []byte("\n"))[0], []byte(":"))
-	if len(fields) != 3 {
-		return "", errors.Errorf("expected 3 fields but got %d: %s", len(fields), procPath)
+
+	var cgroupPath string
+	for _, line := range bytes.Split(lines, []byte("\n")) {
+		// cgroups(7) nails it down to three fields with the 3rd
+		// pointing to the cgroup's path which works both on v1 and v2.
+		fields := bytes.Split(line, []byte(":"))
+		if len(fields) != 3 {
+			logrus.Debugf("Error parsing cgroup: expected 3 fields but got %d: %s", len(fields), procPath)
+			continue
+		}
+		path := string(fields[2])
+		if len(path) > len(cgroupPath) {
+			cgroupPath = path
+		}
+
 	}
-	return string(fields[2]), nil
+
+	if len(cgroupPath) == 0 {
+		return "", errors.Errorf("could not find any cgroup in %q", procPath)
+	}
+
+	return cgroupPath, nil
 }
 
 // RootFsSize returns the root FS size of the container
