@@ -641,18 +641,13 @@ func (c *Container) removeIPv4Allocations() error {
 		cniDefaultNetwork = c.runtime.netPlugin.GetDefaultNetworkName()
 	}
 
-	networks, err := c.networks()
+	networks, _, err := c.networks()
 	if err != nil {
 		return err
 	}
 
-	switch {
-	case len(networks) > 0 && len(networks) != len(c.state.NetworkStatus):
+	if len(networks) != len(c.state.NetworkStatus) {
 		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(networks), len(c.state.NetworkStatus))
-	case len(networks) == 0 && len(c.state.NetworkStatus) != 1:
-		return errors.Wrapf(define.ErrInternal, "network mismatch: did not specify CNI networks but joined more than one (%d)", len(c.state.NetworkStatus))
-	case len(networks) == 0 && cniDefaultNetwork == "":
-		return errors.Wrapf(define.ErrInternal, "could not retrieve name of CNI default network")
 	}
 
 	for index, result := range c.state.NetworkStatus {

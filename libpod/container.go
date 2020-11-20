@@ -13,6 +13,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/lock"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -1095,13 +1096,17 @@ func (c *Container) Umask() string {
 // values at runtime via network connect and disconnect.
 // If the container is configured to use CNI and this function returns an empty
 // array, the container will still be connected to the default network.
-func (c *Container) Networks() ([]string, error) {
+// The second return parameter, a bool, indicates that the container container
+// is joining the default CNI network - the network name will be included in the
+// returned array of network names, but the container did not explicitly join
+// this network.
+func (c *Container) Networks() ([]string, bool, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
@@ -1109,19 +1114,22 @@ func (c *Container) Networks() ([]string, error) {
 }
 
 // Unlocked accessor for networks
-func (c *Container) networks() ([]string, error) {
+func (c *Container) networks() ([]string, bool, error) {
 	networks, err := c.runtime.state.GetNetworks(c)
 	if err != nil && errors.Cause(err) == define.ErrNoSuchNetwork {
-		return c.config.Networks, nil
+		if len(c.config.Networks) == 0 && !rootless.IsRootless() {
+			return []string{c.runtime.netPlugin.GetDefaultNetworkName()}, true, nil
+		}
+		return c.config.Networks, false, nil
 	}
 
-	return networks, err
+	return networks, false, err
 }
 
 // networksByNameIndex provides us with a map of container networks where key
 // is network name and value is the index position
 func (c *Container) networksByNameIndex() (map[string]int, error) {
-	networks, err := c.networks()
+	networks, _, err := c.networks()
 	if err != nil {
 		return nil, err
 	}
