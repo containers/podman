@@ -33,17 +33,17 @@ var (
 )
 
 // Produce final mounts and named volumes for a container
-func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, img *image.Image) ([]spec.Mount, []*specgen.NamedVolume, error) {
+func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, img *image.Image) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, error) {
 	// Get image volumes
 	baseMounts, baseVolumes, err := getImageVolumes(ctx, img, s)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Get volumes-from mounts
 	volFromMounts, volFromVolumes, err := getVolumesFrom(s.VolumesFrom, rt)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Supersede from --volumes-from.
@@ -57,17 +57,51 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// Need to make map forms of specgen mounts/volumes.
 	unifiedMounts := map[string]spec.Mount{}
 	unifiedVolumes := map[string]*specgen.NamedVolume{}
+	unifiedOverlays := map[string]*specgen.OverlayVolume{}
+
+	// Need to make map forms of specgen mounts/volumes.
+	commonMounts, commonVolumes, commonOverlayVolumes, err := specgen.GenVolumeMounts(rtc.Volumes())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	for _, m := range s.Mounts {
 		if _, ok := unifiedMounts[m.Destination]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified mounts - multiple mounts at %q", m.Destination)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified mounts - multiple mounts at %q", m.Destination)
 		}
 		unifiedMounts[m.Destination] = m
 	}
+
+	for _, m := range commonMounts {
+		if _, ok := unifiedMounts[m.Destination]; !ok {
+			unifiedMounts[m.Destination] = m
+		}
+	}
+
 	for _, v := range s.Volumes {
 		if _, ok := unifiedVolumes[v.Dest]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified volumes - multiple volumes at %q", v.Dest)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified volumes - multiple volumes at %q", v.Dest)
 		}
 		unifiedVolumes[v.Dest] = v
+	}
+
+	for _, v := range commonVolumes {
+		if _, ok := unifiedVolumes[v.Dest]; !ok {
+			unifiedVolumes[v.Dest] = v
+		}
+	}
+
+	for _, v := range s.OverlayVolumes {
+		if _, ok := unifiedOverlays[v.Destination]; ok {
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified volumes - multiple volumes at %q", v.Destination)
+		}
+		unifiedOverlays[v.Destination] = v
+	}
+
+	for _, v := range commonOverlayVolumes {
+		if _, ok := unifiedOverlays[v.Destination]; ok {
+			unifiedOverlays[v.Destination] = v
+		}
 	}
 
 	// If requested, add container init binary
@@ -78,10 +112,10 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 		}
 		initMount, err := addContainerInitBinary(s, initPath)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if _, ok := unifiedMounts[initMount.Destination]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict with mount added by --init to %q", initMount.Destination)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict with mount added by --init to %q", initMount.Destination)
 		}
 		unifiedMounts[initMount.Destination] = initMount
 	}
@@ -115,12 +149,12 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// Check for conflicts between named volumes and mounts
 	for dest := range baseMounts {
 		if _, ok := baseVolumes[dest]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
 		}
 	}
 	for dest := range baseVolumes {
 		if _, ok := baseMounts[dest]; ok {
-			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
 		}
 	}
 	// Final step: maps to arrays
@@ -129,7 +163,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 		if mount.Type == TypeBind {
 			absSrc, err := filepath.Abs(mount.Source)
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
+				return nil, nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
 			}
 			mount.Source = absSrc
 		}
@@ -140,7 +174,12 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 		finalVolumes = append(finalVolumes, volume)
 	}
 
-	return finalMounts, finalVolumes, nil
+	finalOverlays := make([]*specgen.OverlayVolume, 0, len(unifiedOverlays))
+	for _, volume := range unifiedOverlays {
+		finalOverlays = append(finalOverlays, volume)
+	}
+
+	return finalMounts, finalVolumes, finalOverlays, nil
 }
 
 // Get image volumes from the given image
