@@ -110,9 +110,14 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 
 	podName := getCNIPodName(ctr)
 
-	networks, err := ctr.networks()
+	networks, _, err := ctr.networks()
 	if err != nil {
 		return nil, err
+	}
+	// All networks have been removed from the container.
+	// This is effectively forcing net=none.
+	if len(networks) == 0 {
+		return nil, nil
 	}
 
 	// Update container map of interface descriptions
@@ -224,7 +229,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	if ctr.config.NetMode.IsSlirp4netns() {
 		return r.setupSlirp4netns(ctr)
 	}
-	networks, err := ctr.networks()
+	networks, _, err := ctr.networks()
 	if err != nil {
 		return err
 	}
@@ -744,13 +749,13 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
-	networks, err := ctr.networks()
+	networks, _, err := ctr.networks()
 	if err != nil {
 		return err
 	}
 
 	// rootless containers do not use the CNI plugin directly
-	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
+	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
 		var requestedIP net.IP
 		if ctr.requestedIP != nil {
 			requestedIP = ctr.requestedIP
@@ -863,7 +868,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	settings := new(define.InspectNetworkSettings)
 	settings.Ports = makeInspectPortBindings(c.config.PortMappings)
 
-	networks, err := c.networks()
+	networks, isDefault, err := c.networks()
 	if err != nil {
 		return nil, err
 	}
@@ -872,7 +877,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	if c.state.NetNS == nil {
 		// We still want to make dummy configurations for each CNI net
 		// the container joined.
-		if len(networks) > 0 {
+		if len(networks) > 0 && !isDefault {
 			settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
 			for _, net := range networks {
 				cniNet := new(define.InspectAdditionalNetwork)
@@ -893,7 +898,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	// If we have CNI networks - handle that here
-	if len(networks) > 0 {
+	if len(networks) > 0 && !isDefault {
 		if len(networks) != len(c.state.NetworkStatus) {
 			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(networks), len(c.state.NetworkStatus))
 		}
@@ -1101,7 +1106,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		return err
 	}
 
-	ctrNetworks, err := c.networks()
+	ctrNetworks, _, err := c.networks()
 	if err != nil {
 		return err
 	}

@@ -40,7 +40,7 @@ const (
 //
 // AllocRootlessCNI does not lock c. c should be already locked.
 func AllocRootlessCNI(ctx context.Context, c *Container) (ns.NetNS, []*cnitypes.Result, error) {
-	networks, err := c.networks()
+	networks, _, err := c.networks()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -81,7 +81,7 @@ func AllocRootlessCNI(ctx context.Context, c *Container) (ns.NetNS, []*cnitypes.
 //
 // DeallocRootlessCNI does not lock c. c should be already locked.
 func DeallocRootlessCNI(ctx context.Context, c *Container) error {
-	networks, err := c.networks()
+	networks, _, err := c.networks()
 	if err != nil {
 		return err
 	}
