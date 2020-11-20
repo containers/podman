@@ -126,7 +126,7 @@ func checkFlags(c *cobra.Command) error {
 func jsonOut(responses []entities.ListContainer) error {
 	r := make([]entities.ListContainer, 0)
 	for _, con := range responses {
-		con.CreatedAt = units.HumanDuration(time.Since(time.Unix(con.Created, 0))) + " ago"
+		con.CreatedAt = units.HumanDuration(time.Since(con.Created)) + " ago"
 		con.Status = psReporter{con}.Status()
 		r = append(r, con)
 	}
@@ -386,12 +386,12 @@ func (l psReporter) Ports() string {
 // CreatedAt returns the container creation time in string format.  podman
 // and docker both return a timestamped value for createdat
 func (l psReporter) CreatedAt() string {
-	return time.Unix(l.Created, 0).String()
+	return l.Created.String()
 }
 
 // CreateHuman allows us to output the created time in human readable format
 func (l psReporter) CreatedHuman() string {
-	return units.HumanDuration(time.Since(time.Unix(l.Created, 0))) + " ago"
+	return units.HumanDuration(time.Since(l.Created)) + " ago"
 }
 
 // Cgroup exposes .Namespaces.Cgroup

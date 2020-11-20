@@ -180,7 +180,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 
 	ps := entities.ListContainer{
 		Command:   conConfig.Command,
-		Created:   conConfig.CreatedTime.Unix(),
+		Created:   conConfig.CreatedTime,
 		Exited:    exited,
 		ExitCode:  exitCode,
 		ExitedAt:  exitedTime.Unix(),
@@ -231,7 +231,7 @@ func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container, opts entiti
 
 	ps := entities.ListContainer{
 		ID:      ctr.ID,
-		Created: ctr.Created.Unix(),
+		Created: ctr.Created,
 		ImageID: ctr.ImageID,
 		State:   "storage",
 		Names:   []string{name},
@@ -301,5 +301,5 @@ func (a SortPSContainers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 type SortPSCreateTime struct{ SortPSContainers }
 
 func (a SortPSCreateTime) Less(i, j int) bool {
-	return a.SortPSContainers[i].Created > a.SortPSContainers[j].Created
+	return a.SortPSContainers[i].Created.Before(a.SortPSContainers[j].Created)
 }
