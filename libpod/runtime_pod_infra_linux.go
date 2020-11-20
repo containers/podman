@@ -34,40 +34,56 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 	// Set Pod hostname
 	g.Config.Hostname = p.config.Hostname
 
+	var options []CtrCreateOption
+
+	// Command: If user-specified, use that preferentially.
+	// If not set and the config file is set, fall back to that.
+	var infraCtrCommand []string
+	if p.config.InfraContainer.InfraCommand != nil {
+		logrus.Debugf("User-specified infra container entrypoint %v", p.config.InfraContainer.InfraCommand)
+		infraCtrCommand = p.config.InfraContainer.InfraCommand
+	} else if r.config.Engine.InfraCommand != "" {
+		logrus.Debugf("Config-specified infra container entrypoint %s", r.config.Engine.InfraCommand)
+		infraCtrCommand = []string{r.config.Engine.InfraCommand}
+	}
+	// Only if set by the user or containers.conf, we set entrypoint for the
+	// infra container.
+	// This is only used by commit, so it shouldn't matter... But someone
+	// may eventually want to commit an infra container?
+	// TODO: Should we actually do this if set by containers.conf?
+	if infraCtrCommand != nil {
+		// Need to duplicate the array - we are going to add Cmd later
+		// so the current array will be changed.
+		newArr := make([]string, 0, len(infraCtrCommand))
+		newArr = append(newArr, infraCtrCommand...)
+		options = append(options, WithEntrypoint(newArr))
+	}
+
 	isRootless := rootless.IsRootless()
 
-	entrypointSet := len(p.config.InfraContainer.InfraCommand) > 0
-	entryPoint := p.config.InfraContainer.InfraCommand
-	entryCmd := []string{}
-	var options []CtrCreateOption
 	// I've seen circumstances where config is being passed as nil.
 	// Let's err on the side of safety and make sure it's safe to use.
 	if config != nil {
-		// default to entrypoint in image if there is one
-		if !entrypointSet {
-			if len(config.Entrypoint) > 0 {
-				entrypointSet = true
-				entryPoint = config.Entrypoint
-				entryCmd = config.Entrypoint
+		if infraCtrCommand == nil {
+			// If we have no entrypoint and command from the image,
+			// we can't go on - the infra container has no command.
+			if len(config.Entrypoint) == 0 && len(config.Cmd) == 0 {
+				return nil, errors.Errorf("infra container has no command")
 			}
-		} else { // so use the InfraCommand
-			entrypointSet = true
-			entryCmd = entryPoint
-		}
-
-		if len(config.Cmd) > 0 {
-			// We can't use the default pause command, since we're
-			// sourcing from the image. If we didn't already set an
-			// entrypoint, set one now.
-			if !entrypointSet {
+			if len(config.Entrypoint) > 0 {
+				infraCtrCommand = config.Entrypoint
+			} else {
 				// Use the Docker default "/bin/sh -c"
 				// entrypoint, as we're overriding command.
 				// If an image doesn't want this, it can
 				// override entrypoint too.
-				entryCmd = []string{"/bin/sh", "-c"}
+				infraCtrCommand = []string{"/bin/sh", "-c"}
 			}
-			entryCmd = append(entryCmd, config.Cmd...)
 		}
+		if len(config.Cmd) > 0 {
+			infraCtrCommand = append(infraCtrCommand, config.Cmd...)
+		}
+
 		if len(config.Env) > 0 {
 			for _, nameValPair := range config.Env {
 				nameValSlice := strings.Split(nameValPair, "=")
@@ -127,9 +143,9 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 	}
 
 	g.SetRootReadonly(true)
-	g.SetProcessArgs(entryCmd)
+	g.SetProcessArgs(infraCtrCommand)
 
-	logrus.Debugf("Using %q as infra container entrypoint", entryCmd)
+	logrus.Debugf("Using %q as infra container command", infraCtrCommand)
 
 	g.RemoveMount("/dev/shm")
 	if isRootless {
@@ -148,9 +164,6 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 	options = append(options, WithRootFSFromImage(imgID, imgName, rawImageName))
 	options = append(options, WithName(containerName))
 	options = append(options, withIsInfra())
-	if entrypointSet {
-		options = append(options, WithEntrypoint(entryPoint))
-	}
 	if len(p.config.InfraContainer.ConmonPidFile) > 0 {
 		options = append(options, WithConmonPidFile(p.config.InfraContainer.ConmonPidFile))
 	}
