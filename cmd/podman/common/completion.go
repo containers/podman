@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/registries"
+	"github.com/containers/podman/v2/pkg/rootless"
 	systemdGen "github.com/containers/podman/v2/pkg/systemd/generate"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +37,35 @@ const (
 
 type keyValueCompletion map[string]func(s string) ([]string, cobra.ShellCompDirective)
 
-func getContainers(toComplete string, cType completeType, statuses ...string) ([]string, cobra.ShellCompDirective) {
+func setupContainerEngine(cmd *cobra.Command) (entities.ContainerEngine, error) {
+	containerEngine, err := registry.NewContainerEngine(cmd, []string{})
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, err
+	}
+	if !registry.IsRemote() && rootless.IsRootless() {
+		err := containerEngine.SetupRootless(registry.Context(), cmd)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return containerEngine, nil
+}
+
+func setupImageEngine(cmd *cobra.Command) (entities.ImageEngine, error) {
+	imageEngine, err := registry.NewImageEngine(cmd, []string{})
+	if err != nil {
+		return nil, err
+	}
+	// we also need to set up the container engine since this
+	// is required to setup the rootless namespace
+	if _, err = setupContainerEngine(cmd); err != nil {
+		return nil, err
+	}
+	return imageEngine, nil
+}
+
+func getContainers(cmd *cobra.Command, toComplete string, cType completeType, statuses ...string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 	listOpts := entities.ContainerListOptions{
 		Filters: make(map[string][]string),
@@ -47,7 +76,12 @@ func getContainers(toComplete string, cType completeType, statuses ...string) ([
 		listOpts.Filters["status"] = statuses
 	}
 
-	containers, err := registry.ContainerEngine().ContainerList(registry.GetContext(), listOpts)
+	engine, err := setupContainerEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	containers, err := engine.ContainerList(registry.GetContext(), listOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveError
@@ -68,7 +102,7 @@ func getContainers(toComplete string, cType completeType, statuses ...string) ([
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
-func getPods(toComplete string, cType completeType, statuses ...string) ([]string, cobra.ShellCompDirective) {
+func getPods(cmd *cobra.Command, toComplete string, cType completeType, statuses ...string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 	listOpts := entities.PodPSOptions{
 		Filters: make(map[string][]string),
@@ -77,7 +111,12 @@ func getPods(toComplete string, cType completeType, statuses ...string) ([]strin
 		listOpts.Filters["status"] = statuses
 	}
 
-	pods, err := registry.ContainerEngine().PodPs(registry.GetContext(), listOpts)
+	engine, err := setupContainerEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	pods, err := engine.PodPs(registry.GetContext(), listOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveError
@@ -98,11 +137,16 @@ func getPods(toComplete string, cType completeType, statuses ...string) ([]strin
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
-func getVolumes(toComplete string) ([]string, cobra.ShellCompDirective) {
+func getVolumes(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 	lsOpts := entities.VolumeListOptions{}
 
-	volumes, err := registry.ContainerEngine().VolumeList(registry.GetContext(), lsOpts)
+	engine, err := setupContainerEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	volumes, err := engine.VolumeList(registry.GetContext(), lsOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveError
@@ -116,11 +160,16 @@ func getVolumes(toComplete string) ([]string, cobra.ShellCompDirective) {
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
-func getImages(toComplete string) ([]string, cobra.ShellCompDirective) {
+func getImages(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 	listOptions := entities.ImageListOptions{}
 
-	images, err := registry.ImageEngine().List(registry.GetContext(), listOptions)
+	engine, err := setupImageEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	images, err := engine.List(registry.GetContext(), listOptions)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveError
@@ -171,11 +220,16 @@ func getRegistries() ([]string, cobra.ShellCompDirective) {
 	return regs, cobra.ShellCompDirectiveNoFileComp
 }
 
-func getNetworks(toComplete string) ([]string, cobra.ShellCompDirective) {
+func getNetworks(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 	networkListOptions := entities.NetworkListOptions{}
 
-	networks, err := registry.ContainerEngine().NetworkList(registry.Context(), networkListOptions)
+	engine, err := setupContainerEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	networks, err := engine.NetworkList(registry.Context(), networkListOptions)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveError
@@ -266,7 +320,7 @@ func AutocompleteContainers(cmd *cobra.Command, args []string, toComplete string
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getContainers(toComplete, completeDefault)
+	return getContainers(cmd, toComplete, completeDefault)
 }
 
 // AutocompleteContainersCreated - Autocomplete only created container names.
@@ -274,7 +328,7 @@ func AutocompleteContainersCreated(cmd *cobra.Command, args []string, toComplete
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getContainers(toComplete, completeDefault, "created")
+	return getContainers(cmd, toComplete, completeDefault, "created")
 }
 
 // AutocompleteContainersExited - Autocomplete only exited container names.
@@ -282,7 +336,7 @@ func AutocompleteContainersExited(cmd *cobra.Command, args []string, toComplete 
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getContainers(toComplete, completeDefault, "exited")
+	return getContainers(cmd, toComplete, completeDefault, "exited")
 }
 
 // AutocompleteContainersPaused - Autocomplete only paused container names.
@@ -290,7 +344,7 @@ func AutocompleteContainersPaused(cmd *cobra.Command, args []string, toComplete 
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getContainers(toComplete, completeDefault, "paused")
+	return getContainers(cmd, toComplete, completeDefault, "paused")
 }
 
 // AutocompleteContainersRunning - Autocomplete only running container names.
@@ -298,7 +352,7 @@ func AutocompleteContainersRunning(cmd *cobra.Command, args []string, toComplete
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getContainers(toComplete, completeDefault, "running")
+	return getContainers(cmd, toComplete, completeDefault, "running")
 }
 
 // AutocompleteContainersStartable - Autocomplete only created and exited container names.
@@ -306,7 +360,7 @@ func AutocompleteContainersStartable(cmd *cobra.Command, args []string, toComple
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getContainers(toComplete, completeDefault, "created", "exited")
+	return getContainers(cmd, toComplete, completeDefault, "created", "exited")
 }
 
 // AutocompletePods - Autocomplete all pod names.
@@ -314,7 +368,7 @@ func AutocompletePods(cmd *cobra.Command, args []string, toComplete string) ([]s
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getPods(toComplete, completeDefault)
+	return getPods(cmd, toComplete, completeDefault)
 }
 
 // AutocompletePodsRunning - Autocomplete only running pod names.
@@ -323,7 +377,7 @@ func AutocompletePodsRunning(cmd *cobra.Command, args []string, toComplete strin
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getPods(toComplete, completeDefault, "running", "degraded")
+	return getPods(cmd, toComplete, completeDefault, "running", "degraded")
 }
 
 // AutocompleteContainersAndPods - Autocomplete container names and pod names.
@@ -331,8 +385,8 @@ func AutocompleteContainersAndPods(cmd *cobra.Command, args []string, toComplete
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	containers, _ := getContainers(toComplete, completeDefault)
-	pods, _ := getPods(toComplete, completeDefault)
+	containers, _ := getContainers(cmd, toComplete, completeDefault)
+	pods, _ := getPods(cmd, toComplete, completeDefault)
 	return append(containers, pods...), cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -341,8 +395,8 @@ func AutocompleteContainersAndImages(cmd *cobra.Command, args []string, toComple
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	containers, _ := getContainers(toComplete, completeDefault)
-	images, _ := getImages(toComplete)
+	containers, _ := getContainers(cmd, toComplete, completeDefault)
+	images, _ := getImages(cmd, toComplete)
 	return append(containers, images...), cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -351,7 +405,7 @@ func AutocompleteVolumes(cmd *cobra.Command, args []string, toComplete string) (
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getVolumes(toComplete)
+	return getVolumes(cmd, toComplete)
 }
 
 // AutocompleteImages - Autocomplete images.
@@ -359,7 +413,7 @@ func AutocompleteImages(cmd *cobra.Command, args []string, toComplete string) ([
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getImages(toComplete)
+	return getImages(cmd, toComplete)
 }
 
 // AutocompleteCreateRun - Autocomplete only the fist argument as image and then do file completion.
@@ -368,7 +422,7 @@ func AutocompleteCreateRun(cmd *cobra.Command, args []string, toComplete string)
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) < 1 {
-		return getImages(toComplete)
+		return getImages(cmd, toComplete)
 	}
 	// TODO: add path completion for files in the image
 	return nil, cobra.ShellCompDirectiveDefault
@@ -387,7 +441,7 @@ func AutocompleteNetworks(cmd *cobra.Command, args []string, toComplete string) 
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getNetworks(toComplete)
+	return getNetworks(cmd, toComplete)
 }
 
 // AutocompleteCpCommand - Autocomplete podman cp command args.
@@ -396,7 +450,7 @@ func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string)
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) < 2 {
-		containers, _ := getContainers(toComplete, completeDefault)
+		containers, _ := getContainers(cmd, toComplete, completeDefault)
 		for _, container := range containers {
 			// TODO: Add path completion for inside the container if possible
 			if strings.HasPrefix(container, toComplete) {
@@ -464,7 +518,7 @@ func AutocompleteCreateAttach(cmd *cobra.Command, args []string, toComplete stri
 // -> host,container:[name],ns:[path],private
 func AutocompleteNamespace(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
-		"container:": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(s, completeDefault) },
+		"container:": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
 		"ns:":        func(s string) ([]string, cobra.ShellCompDirective) { return nil, cobra.ShellCompDirectiveDefault },
 		"host":       nil,
 		"private":    nil,
@@ -623,7 +677,7 @@ func AutocompleteMountFlag(cmd *cobra.Command, args []string, toComplete string)
 // AutocompleteVolumeFlag - Autocomplete volume flag options.
 // -> volumes and paths
 func AutocompleteVolumeFlag(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	volumes, _ := getVolumes(toComplete)
+	volumes, _ := getVolumes(cmd, toComplete)
 	directive := cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveDefault
 	if strings.Contains(toComplete, ":") {
 		// add space after second path
@@ -753,15 +807,15 @@ var containerStatuses = []string{"created", "running", "paused", "stopped", "exi
 // AutocompletePsFilters - Autocomplete ps filter options.
 func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
-		"id=":   func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(s, completeIDs) },
-		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(s, completeNames) },
+		"id=":   func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeIDs) },
+		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeNames) },
 		"status=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return containerStatuses, cobra.ShellCompDirectiveNoFileComp
 		},
-		"ancestor": func(s string) ([]string, cobra.ShellCompDirective) { return getImages(s) },
-		"before=":  func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(s, completeDefault) },
-		"since=":   func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(s, completeDefault) },
-		"volume=":  func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(s) },
+		"ancestor": func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) },
+		"before=":  func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
+		"since=":   func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
+		"volume=":  func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
 		"health=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return []string{define.HealthCheckHealthy,
 				define.HealthCheckUnhealthy}, cobra.ShellCompDirectiveNoFileComp
@@ -776,14 +830,14 @@ func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string)
 // AutocompletePodPsFilters - Autocomplete pod ps filter options.
 func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
-		"id=":   func(s string) ([]string, cobra.ShellCompDirective) { return getPods(s, completeIDs) },
-		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getPods(s, completeNames) },
+		"id=":   func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeIDs) },
+		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeNames) },
 		"status=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return []string{"stopped", "running",
 				"paused", "exited", "dead", "created", "degraded"}, cobra.ShellCompDirectiveNoFileComp
 		},
-		"ctr-ids=":    func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(s, completeIDs) },
-		"ctr-names=":  func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(s, completeNames) },
+		"ctr-ids=":    func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeIDs) },
+		"ctr-names=":  func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeNames) },
 		"ctr-number=": nil,
 		"ctr-status=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return containerStatuses, cobra.ShellCompDirectiveNoFileComp
