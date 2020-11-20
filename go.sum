@@ -115,6 +115,7 @@ github.com/containers/storage v1.23.9 h1:qbgnTp76pLSyW3vYwY5GH4vk5cHYVXFJ+CsUEBp
 github.com/containers/storage v1.23.9/go.mod h1:3b2ktpB6pw53SEeIoFfO0sQfP9+IoJJKPq5iJk74gxE=
 github.com/containers/storage v1.24.0 h1:Fo2LkF7tkMLmo38sTZ/G8wHjcn8JfUFPfyTxM4WwMfk=
 github.com/containers/storage v1.24.0/go.mod h1:A4d3BzuZK9b3oLVEsiSRhZLPIx3z7utgiPyXLK/YMhY=
+github.com/containers/storage v1.24.1/go.mod h1:0xJL06Dmd+ZYXIUdnBUPN0JnhHGgwMkLvnnAonJfWJU=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5 h1:DpHb9vJrZQEFMcVLFKAAGMUVX0XoRC0ptCthinRYm38=
@@ -322,6 +323,7 @@ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+o
 github.com/klauspost/compress v1.11.1/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.11.2 h1:MiK62aErc3gIiVEtyzKfeOHgW7atJb5g/KNX5m3c2nQ=
 github.com/klauspost/compress v1.11.2/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
+github.com/klauspost/compress v1.11.3/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/pgzip v1.2.5 h1:qnWYvvKqedOF2ulHpMG72XQol4ILEJ8k2wwRl/Km8oE=
 github.com/klauspost/pgzip v1.2.5/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
