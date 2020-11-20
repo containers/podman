@@ -8,4 +8,5 @@ StartLimitIntervalSec=0
 [Service]
 Type=notify
 KillMode=process
-ExecStart=/usr/bin/podman system service
+Environment=LOGGING="--log-level=info"
+ExecStart=/usr/bin/podman $LOGGING system service
