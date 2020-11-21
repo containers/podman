@@ -298,6 +298,9 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		state.Running = true
 	}
 
+	formatCapabilities(inspect.HostConfig.CapDrop)
+	formatCapabilities(inspect.HostConfig.CapAdd)
+
 	h, err := json.Marshal(inspect.HostConfig)
 	if err != nil {
 		return nil, err
@@ -427,4 +430,10 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		NetworkSettings:   &networkSettings,
 	}
 	return &c, nil
+}
+
+func formatCapabilities(slice []string) {
+	for i := range slice {
+		slice[i] = strings.TrimPrefix(slice[i], "CAP_")
+	}
 }
