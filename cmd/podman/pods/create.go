@@ -94,7 +94,7 @@ func init() {
 	flags.StringVar(&podIDFile, podIDFileFlagName, "", "Write the pod ID to the file")
 	_ = createCommand.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
 
-	flags.BoolVar(&replace, "replace", false, "If a pod with the same exists, replace it")
+	flags.BoolVar(&replace, "replace", false, "If a pod with the same name exists, replace it")
 
 	shareFlagName := "share"
 	flags.StringVar(&share, shareFlagName, specgen.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
