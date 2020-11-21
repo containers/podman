@@ -665,4 +665,33 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 	})
+
+	It("podman run with multiple networks", func() {
+		net1 := "n1" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", net1})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net1)
+		Expect(session.ExitCode()).To(BeZero())
+
+		net2 := "n2" + stringid.GenerateNonCryptoID()
+		session = podmanTest.Podman([]string{"network", "create", net2})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net2)
+		Expect(session.ExitCode()).To(BeZero())
+
+		run := podmanTest.Podman([]string{"run", "--network", net1, "--network", net2, ALPINE, "ip", "-o", "-4", "addr"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+		Expect(len(run.OutputToStringArray())).To(Equal(3))
+		Expect(run.OutputToString()).To(ContainSubstring("lo"))
+		Expect(run.OutputToString()).To(ContainSubstring("eth0"))
+		Expect(run.OutputToString()).To(ContainSubstring("eth1"))
+
+		//invalid config network host and cni should fail
+		run = podmanTest.Podman([]string{"run", "--network", "host", "--network", net2, ALPINE, "ip", "-o", "-4", "addr"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(125))
+		Expect(run.ErrorToString()).To(ContainSubstring("host"))
+		Expect(run.ErrorToString()).To(ContainSubstring("bridge"))
+	})
 })

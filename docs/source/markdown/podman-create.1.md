@@ -588,7 +588,7 @@ Valid _mode_ values are:
 - **none**: no networking;
 - **container:**_id_: reuse another container's network stack;
 - **host**: use the Podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure;
-- _network-id_: connect to a user-defined network, multiple networks should be comma separated;
+- **cni-network**: connect to a user-defined network, multiple networks should be comma-separated or they can be specified with multiple uses of the **--network** option;
 - **ns:**_path_: path to a network namespace to join;
 - **private**: create a new namespace for the container (default)
 - **slirp4netns[:OPTIONS,...]**: use **slirp4netns**(1) to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:

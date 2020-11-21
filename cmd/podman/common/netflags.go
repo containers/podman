@@ -59,8 +59,8 @@ func DefineNetFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(macAddressFlagName, completion.AutocompleteNone)
 
 	networkFlagName := "network"
-	netFlags.String(
-		networkFlagName, containerConfig.NetNS(),
+	netFlags.StringArray(
+		networkFlagName, []string{containerConfig.NetNS()},
 		"Connect a container to a network",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(networkFlagName, AutocompleteNetworks)
@@ -194,25 +194,29 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 	}
 
 	if cmd.Flags().Changed("network") {
-		network, err := cmd.Flags().GetString("network")
+		networks, err := cmd.Flags().GetStringArray("network")
 		if err != nil {
 			return nil, err
 		}
+		for i, network := range networks {
+			parts := strings.SplitN(network, ":", 2)
 
-		parts := strings.SplitN(network, ":", 2)
+			ns, cniNets, err := specgen.ParseNetworkNamespace(network)
+			if err != nil {
+				return nil, err
+			}
+			if i > 0 && (len(cniNets) == 0 || len(opts.CNINetworks) == 0) {
+				return nil, errors.Errorf("network conflict between type %s and %s", opts.Network.NSMode, ns.NSMode)
+			}
 
-		ns, cniNets, err := specgen.ParseNetworkNamespace(network)
-		if err != nil {
-			return nil, err
+			if len(parts) > 1 {
+				opts.NetworkOptions = make(map[string][]string)
+				opts.NetworkOptions[parts[0]] = strings.Split(parts[1], ",")
+				cniNets = nil
+			}
+			opts.Network = ns
+			opts.CNINetworks = append(opts.CNINetworks, cniNets...)
 		}
-
-		if len(parts) > 1 {
-			opts.NetworkOptions = make(map[string][]string)
-			opts.NetworkOptions[parts[0]] = strings.Split(parts[1], ",")
-			cniNets = nil
-		}
-		opts.Network = ns
-		opts.CNINetworks = cniNets
 	}
 
 	aliases, err := cmd.Flags().GetStringSlice("network-alias")
