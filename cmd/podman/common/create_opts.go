@@ -137,7 +137,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		aliases    []string
 		capAdd     []string
 		cappDrop   []string
-		entrypoint string
+		entrypoint *string
 		init       bool
 		specPorts  []specgen.PortMapping
 	)
@@ -181,13 +181,14 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	// marshall it to json; otherwise it should just be the string
 	// value
 	if len(cc.Config.Entrypoint) > 0 {
-		entrypoint = cc.Config.Entrypoint[0]
+		entrypoint = &cc.Config.Entrypoint[0]
 		if len(cc.Config.Entrypoint) > 1 {
 			b, err := json.Marshal(cc.Config.Entrypoint)
 			if err != nil {
 				return nil, nil, err
 			}
-			entrypoint = string(b)
+			var jsonString = string(b)
+			entrypoint = &jsonString
 		}
 	}
 
@@ -322,7 +323,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		DeviceReadIOPs:   readIops,
 		DeviceWriteBPs:   writeBps,
 		DeviceWriteIOPs:  writeIops,
-		Entrypoint:       &entrypoint,
+		Entrypoint:       entrypoint,
 		Env:              cc.Config.Env,
 		Expose:           expose,
 		GroupAdd:         cc.HostConfig.GroupAdd,
