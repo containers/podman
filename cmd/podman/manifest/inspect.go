@@ -12,14 +12,13 @@ import (
 
 var (
 	inspectCmd = &cobra.Command{
-		Use:                   "inspect IMAGE",
-		Short:                 "Display the contents of a manifest list or image index",
-		Long:                  "Display the contents of a manifest list or image index.",
-		RunE:                  inspect,
-		ValidArgsFunction:     common.AutocompleteImages,
-		Example:               "podman manifest inspect localhost/list",
-		Args:                  cobra.ExactArgs(1),
-		DisableFlagsInUseLine: true,
+		Use:               "inspect IMAGE",
+		Short:             "Display the contents of a manifest list or image index",
+		Long:              "Display the contents of a manifest list or image index.",
+		RunE:              inspect,
+		ValidArgsFunction: common.AutocompleteImages,
+		Example:           "podman manifest inspect localhost/list",
+		Args:              cobra.ExactArgs(1),
 	}
 )
 

@@ -15,6 +15,7 @@ var (
 		Short:             "Display the configuration of an image",
 		Long:              `Displays the low-level information of an image identified by name or ID.`,
 		RunE:              inspectExec,
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman inspect alpine
   podman inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine

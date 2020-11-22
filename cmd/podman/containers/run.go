@@ -24,11 +24,11 @@ import (
 var (
 	runDescription = "Runs a command in a new container from the given image"
 	runCommand     = &cobra.Command{
-		Args:              cobra.MinimumNArgs(1),
 		Use:               "run [options] IMAGE [COMMAND [ARG...]]",
 		Short:             "Run a command in a new container",
 		Long:              runDescription,
 		RunE:              run,
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteCreateRun,
 		Example: `podman run imageID ls -alF /etc
   podman run --network=host imageID dnf -y install java
@@ -36,11 +36,11 @@ var (
 	}
 
 	containerRunCommand = &cobra.Command{
-		Args:              cobra.MinimumNArgs(1),
 		Use:               runCommand.Use,
 		Short:             runCommand.Short,
 		Long:              runCommand.Long,
 		RunE:              runCommand.RunE,
+		Args:              runCommand.Args,
 		ValidArgsFunction: runCommand.ValidArgsFunction,
 		Example: `podman container run imageID ls -alF /etc
 	podman container run --network=host imageID dnf -y install java

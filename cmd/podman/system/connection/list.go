@@ -16,17 +16,15 @@ import (
 
 var (
 	listCmd = &cobra.Command{
-		Use:                   "list",
-		Aliases:               []string{"ls"},
-		Args:                  validate.NoArgs,
-		Short:                 "List destination for the Podman service(s)",
-		Long:                  `List destination information for the Podman service(s) in podman configuration`,
-		DisableFlagsInUseLine: true,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Args:    validate.NoArgs,
+		Short:   "List destination for the Podman service(s)",
+		Long:    `List destination information for the Podman service(s) in podman configuration`,
 		Example: `podman system connection list
   podman system connection ls`,
 		ValidArgsFunction: completion.AutocompleteNone,
 		RunE:              list,
-		TraverseChildren:  false,
 	}
 )
 

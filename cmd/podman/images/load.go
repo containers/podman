@@ -31,12 +31,12 @@ var (
 	}
 
 	imageLoadCommand = &cobra.Command{
-		Args:              loadCommand.Args,
 		Use:               loadCommand.Use,
 		Short:             loadCommand.Short,
 		Long:              loadCommand.Long,
-		ValidArgsFunction: loadCommand.ValidArgsFunction,
 		RunE:              loadCommand.RunE,
+		Args:              loadCommand.Args,
+		ValidArgsFunction: loadCommand.ValidArgsFunction,
 	}
 )
 

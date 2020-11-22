@@ -9,26 +9,24 @@ import (
 
 var (
 	untagCommand = &cobra.Command{
-		Use:                   "untag IMAGE [NAME...]",
-		Short:                 "Remove a name from a local image",
-		Long:                  "Removes one or more names from a locally-stored image.",
-		RunE:                  untag,
-		Args:                  cobra.MinimumNArgs(1),
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteImages,
+		Use:               "untag IMAGE [NAME...]",
+		Short:             "Remove a name from a local image",
+		Long:              "Removes one or more names from a locally-stored image.",
+		RunE:              untag,
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman untag 0e3bbc2
   podman untag imageID:latest otherImageName:latest
   podman untag httpd myregistryhost:5000/fedora/httpd:v2`,
 	}
 
 	imageUntagCommand = &cobra.Command{
-		Args:                  untagCommand.Args,
-		DisableFlagsInUseLine: true,
-		Use:                   untagCommand.Use,
-		Short:                 untagCommand.Short,
-		Long:                  untagCommand.Long,
-		RunE:                  untagCommand.RunE,
-		ValidArgsFunction:     untagCommand.ValidArgsFunction,
+		Args:              untagCommand.Args,
+		Use:               untagCommand.Use,
+		Short:             untagCommand.Short,
+		Long:              untagCommand.Long,
+		RunE:              untagCommand.RunE,
+		ValidArgsFunction: untagCommand.ValidArgsFunction,
 		Example: `podman image untag 0e3bbc2
   podman image untag imageID:latest otherImageName:latest
   podman image untag httpd myregistryhost:5000/fedora/httpd:v2`,

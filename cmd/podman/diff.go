@@ -19,7 +19,7 @@ var (
 	diffDescription = `Displays changes on a container or image's filesystem.  The container or image will be compared to its parent layer.`
 	diffCmd         = &cobra.Command{
 		Use:               "diff [options] {CONTAINER_ID | IMAGE_ID}",
-		Args:              validate.IDOrLatestArgs,
+		Args:              validate.OneContainerOrLatestArgs,
 		Short:             "Display the changes to the object's file system",
 		Long:              diffDescription,
 		RunE:              diff,

@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +23,7 @@ var (
 		Short:             "Block on one or more containers",
 		Long:              waitDescription,
 		RunE:              wait,
+		Args:              validate.ContainersOrLatestArgs,
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman wait --interval 5s ctrID
   podman wait ctrID1 ctrID2`,
@@ -34,6 +34,7 @@ var (
 		Short:             waitCommand.Short,
 		Long:              waitCommand.Long,
 		RunE:              waitCommand.RunE,
+		Args:              waitCommand.Args,
 		ValidArgsFunction: waitCommand.ValidArgsFunction,
 		Example: `podman container wait --interval 5s ctrID
   podman container wait ctrID1 ctrID2`,
@@ -86,13 +87,6 @@ func wait(cmd *cobra.Command, args []string) error {
 		if waitOptions.Interval, err1 = time.ParseDuration(waitInterval + "ms"); err1 != nil {
 			return err
 		}
-	}
-
-	if !waitOptions.Latest && len(args) == 0 {
-		return errors.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
-	}
-	if waitOptions.Latest && len(args) > 0 {
-		return errors.New("--latest and containers cannot be used together")
 	}
 
 	waitOptions.Condition, err = define.StringToContainerStatus(waitCondition)

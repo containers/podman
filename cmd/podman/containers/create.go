@@ -39,11 +39,11 @@ var (
 	}
 
 	containerCreateCommand = &cobra.Command{
-		Args:              cobra.MinimumNArgs(1),
 		Use:               createCommand.Use,
 		Short:             createCommand.Short,
 		Long:              createCommand.Long,
 		RunE:              createCommand.RunE,
+		Args:              createCommand.Args,
 		ValidArgsFunction: createCommand.ValidArgsFunction,
 		Example: `podman container create alpine ls
   podman container create --annotation HELLO=WORLD alpine ls

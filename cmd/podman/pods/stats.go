@@ -38,6 +38,7 @@ var (
 		Short:             "Display a live stream of resource usage statistics for the containers in one or more pods",
 		Long:              statsDescription,
 		RunE:              stats,
+		Args:              validate.CheckStatOptions,
 		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod stats
   podman pod stats a69b23034235 named-pod

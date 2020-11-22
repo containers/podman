@@ -5,9 +5,9 @@ import (
 
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/errorhandling"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -19,6 +19,7 @@ var (
 		Short:             "Removes one or more images from local storage",
 		Long:              rmDescription,
 		RunE:              rm,
+		Args:              validate.ImagesOrAllArgs,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image rm imageID
   podman image rm --force alpine
@@ -44,13 +45,6 @@ func imageRemoveFlagSet(flags *pflag.FlagSet) {
 }
 
 func rm(cmd *cobra.Command, args []string) error {
-	if len(args) < 1 && !imageOpts.All {
-		return errors.Errorf("image name or ID must be specified")
-	}
-	if len(args) > 0 && imageOpts.All {
-		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
-	}
-
 	// Note: certain image-removal errors are non-fatal.  Hence, the report
 	// might be set even if err != nil.
 	report, rmErrors := registry.ImageEngine().Remove(registry.GetContext(), args, imageOpts)

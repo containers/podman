@@ -46,7 +46,6 @@ var (
 		Example: `podman image list --format json
   podman image list --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
   podman image list --filter dangling=true`,
-		DisableFlagsInUseLine: true,
 	}
 
 	// Options to pull data

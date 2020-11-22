@@ -32,13 +32,11 @@ var (
 	}
 
 	containerStopCommand = &cobra.Command{
-		Use:   stopCommand.Use,
-		Short: stopCommand.Short,
-		Long:  stopCommand.Long,
-		RunE:  stopCommand.RunE,
-		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
-		},
+		Use:               stopCommand.Use,
+		Short:             stopCommand.Short,
+		Long:              stopCommand.Long,
+		RunE:              stopCommand.RunE,
+		Args:              stopCommand.Args,
 		ValidArgsFunction: stopCommand.ValidArgsFunction,
 		Example: `podman container stop ctrID
   podman container stop --latest

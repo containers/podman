@@ -33,13 +33,11 @@ var (
 	}
 
 	containerPortCommand = &cobra.Command{
-		Use:   "port [options] CONTAINER [PORT]",
-		Short: portCommand.Short,
-		Long:  portDescription,
-		RunE:  portCommand.RunE,
-		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
-		},
+		Use:               "port [options] CONTAINER [PORT]",
+		Short:             portCommand.Short,
+		Long:              portDescription,
+		RunE:              portCommand.RunE,
+		Args:              portCommand.Args,
 		ValidArgsFunction: portCommand.ValidArgsFunction,
 		Example: `podman container port --all
   podman container port --latest 80`,

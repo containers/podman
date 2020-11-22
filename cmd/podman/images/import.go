@@ -25,6 +25,7 @@ var (
 		Short:             "Import a tarball to create a filesystem image",
 		Long:              importDescription,
 		RunE:              importCon,
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman import http://example.com/ctr.tar url-image
   cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
@@ -32,11 +33,11 @@ var (
 	}
 
 	imageImportCommand = &cobra.Command{
-		Args:              cobra.MinimumNArgs(1),
 		Use:               importCommand.Use,
 		Short:             importCommand.Short,
 		Long:              importCommand.Long,
 		RunE:              importCommand.RunE,
+		Args:              importCommand.Args,
 		ValidArgsFunction: importCommand.ValidArgsFunction,
 		Example: `podman image import http://example.com/ctr.tar url-image
   cat ctr.tar | podman -q image import --message "importing the ctr.tar tarball" - image-imported

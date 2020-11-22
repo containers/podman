@@ -21,7 +21,6 @@ var (
 		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod exists podID
   podman pod exists mypod || podman pod create --name mypod`,
-		DisableFlagsInUseLine: true,
 	}
 )
 

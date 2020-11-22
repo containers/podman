@@ -27,7 +27,7 @@ var (
 		Long:  restoreDescription,
 		RunE:  restore,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container restore ctrID
@@ -88,12 +88,6 @@ func restore(_ *cobra.Command, args []string) error {
 		if argLen > 0 {
 			return errors.Errorf("Cannot use --import with positional arguments")
 		}
-	}
-	if (restoreOptions.All || restoreOptions.Latest) && argLen > 0 {
-		return errors.Errorf("--all or --latest and containers cannot be used together")
-	}
-	if argLen < 1 && !restoreOptions.All && !restoreOptions.Latest && restoreOptions.Import == "" {
-		return errors.Errorf("you must provide at least one name or id")
 	}
 	responses, err := registry.ContainerEngine().ContainerRestore(context.Background(), args, restoreOptions)
 	if err != nil {

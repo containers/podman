@@ -20,6 +20,7 @@ var (
 		Short:             "Create a new volume",
 		Long:              createDescription,
 		RunE:              create,
+		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman volume create myvol
   podman volume create

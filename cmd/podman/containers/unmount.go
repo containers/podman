@@ -35,14 +35,12 @@ var (
 	}
 
 	containerUnmountCommand = &cobra.Command{
-		Use:     unmountCommand.Use,
-		Short:   unmountCommand.Short,
-		Aliases: unmountCommand.Aliases,
-		Long:    unmountCommand.Long,
-		RunE:    unmountCommand.RunE,
-		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
-		},
+		Use:               unmountCommand.Use,
+		Short:             unmountCommand.Short,
+		Aliases:           unmountCommand.Aliases,
+		Long:              unmountCommand.Long,
+		RunE:              unmountCommand.RunE,
+		Args:              unmountCommand.Args,
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container unmount ctrID
   podman container unmount ctrID1 ctrID2 ctrID3

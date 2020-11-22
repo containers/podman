@@ -4,6 +4,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/inspect"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +25,7 @@ var (
 		Short:             "Display the configuration of object denoted by ID",
 		RunE:              inspectExec,
 		Long:              inspectDescription,
-		TraverseChildren:  true,
+		Args:              validate.ContainersOrLatestArgs,
 		ValidArgsFunction: common.AutocompleteContainersAndImages,
 		Example: `podman inspect fedora
   podman inspect --type image fedora

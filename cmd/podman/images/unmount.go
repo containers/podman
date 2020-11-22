@@ -6,8 +6,8 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
+	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -25,6 +25,7 @@ var (
 		Short:             "Unmount an image's root filesystem",
 		Long:              description,
 		RunE:              unmount,
+		Args:              validate.ImagesOrAllArgs,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman unmount imgID
   podman unmount imgID1 imgID2 imgID3
@@ -52,12 +53,6 @@ func init() {
 
 func unmount(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
-	if len(args) < 1 && !unmountOpts.All {
-		return errors.New("image name or ID must be specified")
-	}
-	if len(args) > 0 && unmountOpts.All {
-		return errors.New("when using the --all switch, you may not pass any image names or IDs")
-	}
 	reports, err := registry.ImageEngine().Unmount(registry.GetContext(), args, unmountOpts)
 	if err != nil {
 		return err

@@ -12,14 +12,13 @@ import (
 var (
 	// Skip creating engines since this command will obtain connection information to said engines
 	rmCmd = &cobra.Command{
-		Use:                   "remove NAME",
-		Args:                  cobra.ExactArgs(1),
-		Aliases:               []string{"rm"},
-		Long:                  `Delete named destination from podman configuration`,
-		Short:                 "Delete named destination",
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteSystemConnections,
-		RunE:                  rm,
+		Use:               "remove NAME",
+		Args:              cobra.ExactArgs(1),
+		Aliases:           []string{"rm"},
+		Long:              `Delete named destination from podman configuration`,
+		Short:             "Delete named destination",
+		ValidArgsFunction: common.AutocompleteSystemConnections,
+		RunE:              rm,
 		Example: `podman system connection remove devl
   podman system connection rm devl`,
 	}

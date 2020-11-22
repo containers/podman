@@ -29,7 +29,6 @@ var (
 		Short:             "Display the running processes of a container",
 		Long:              topDescription,
 		RunE:              top,
-		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: common.AutocompleteTopCmd,
 		Example: `podman top ctrID
 podman top --latest

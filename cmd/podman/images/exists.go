@@ -17,7 +17,6 @@ var (
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image exists ID
   podman image exists IMAGE && podman pull IMAGE`,
-		DisableFlagsInUseLine: true,
 	}
 )
 

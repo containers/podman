@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	// TODO: make pause support --latest and add Args function
 	pauseDescription = `Pauses one or more running containers.  The container name or ID can be used.`
 	pauseCommand     = &cobra.Command{
 		Use:               "pause [options] CONTAINER [CONTAINER...]",

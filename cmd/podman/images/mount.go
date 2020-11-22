@@ -64,10 +64,6 @@ func init() {
 }
 
 func mount(cmd *cobra.Command, args []string) error {
-	if len(args) > 0 && mountOpts.All {
-		return errors.New("when using the --all switch, you may not pass any image names or IDs")
-	}
-
 	reports, err := registry.ImageEngine().Mount(registry.GetContext(), args, mountOpts)
 	if err != nil {
 		return err

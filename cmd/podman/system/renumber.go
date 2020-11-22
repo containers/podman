@@ -23,13 +23,12 @@ var (
 `
 
 	renumberCommand = &cobra.Command{
-		Use:                   "renumber",
-		Args:                  validate.NoArgs,
-		DisableFlagsInUseLine: true,
-		Short:                 "Migrate lock numbers",
-		Long:                  renumberDescription,
-		Run:                   renumber,
-		ValidArgsFunction:     completion.AutocompleteNone,
+		Use:               "renumber",
+		Args:              validate.NoArgs,
+		Short:             "Migrate lock numbers",
+		Long:              renumberDescription,
+		Run:               renumber,
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
 

@@ -14,12 +14,11 @@ import (
 var (
 	unshareDescription = "Runs a command in a modified user namespace."
 	unshareCommand     = &cobra.Command{
-		Use:                   "unshare [COMMAND [ARG ...]]",
-		DisableFlagsInUseLine: true,
-		Short:                 "Run a command in a modified user namespace",
-		Long:                  unshareDescription,
-		RunE:                  unshare,
-		ValidArgsFunction:     completion.AutocompleteDefault,
+		Use:               "unshare [COMMAND [ARG ...]]",
+		Short:             "Run a command in a modified user namespace",
+		Long:              unshareDescription,
+		RunE:              unshare,
+		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman unshare id
   podman unshare cat /proc/self/uid_map,
   podman unshare podman-script.sh`,

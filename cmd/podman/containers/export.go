@@ -30,11 +30,11 @@ var (
 	}
 
 	containerExportCommand = &cobra.Command{
-		Args:              cobra.ExactArgs(1),
 		Use:               exportCommand.Use,
 		Short:             exportCommand.Short,
 		Long:              exportCommand.Long,
 		RunE:              exportCommand.RunE,
+		Args:              exportCommand.Args,
 		ValidArgsFunction: exportCommand.ValidArgsFunction,
 		Example: `podman container export ctrID > myCtr.tar
   podman container export --output="myCtr.tar" ctrID`,

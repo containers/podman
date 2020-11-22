@@ -31,13 +31,11 @@ var (
 	}
 
 	containerKillCommand = &cobra.Command{
-		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
-		},
 		Use:               killCommand.Use,
 		Short:             killCommand.Short,
 		Long:              killCommand.Long,
 		RunE:              killCommand.RunE,
+		Args:              killCommand.Args,
 		ValidArgsFunction: killCommand.ValidArgsFunction,
 		Example: `podman container kill mywebserver
   podman container kill 860a4b23

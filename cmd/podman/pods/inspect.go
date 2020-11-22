@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +29,7 @@ var (
 		Short:             "Displays a pod configuration",
 		Long:              inspectDescription,
 		RunE:              inspect,
+		Args:              validate.ContainersOrLatestArgs,
 		ValidArgsFunction: common.AutocompletePods,
 		Example:           `podman pod inspect podID`,
 	}
@@ -51,14 +51,6 @@ func init() {
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-
-	if len(args) < 1 && !inspectOptions.Latest {
-		return errors.Errorf("you must provide the name or id of a running pod")
-	}
-	if len(args) > 0 && inspectOptions.Latest {
-		return errors.Errorf("--latest and containers cannot be used together")
-	}
-
 	if !inspectOptions.Latest {
 		inspectOptions.NameOrID = args[0]
 	}

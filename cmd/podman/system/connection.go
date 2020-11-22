@@ -14,14 +14,12 @@ var (
 	}
 
 	ConnectionCmd = &cobra.Command{
-		Use:                   "connection",
-		Short:                 "Manage remote ssh destinations",
-		Long:                  `Manage ssh destination information in podman configuration`,
-		DisableFlagsInUseLine: true,
-		PersistentPreRunE:     noOp,
-		RunE:                  validate.SubCommandExists,
-		PersistentPostRunE:    noOp,
-		TraverseChildren:      false,
+		Use:                "connection",
+		Short:              "Manage remote ssh destinations",
+		Long:               `Manage ssh destination information in podman configuration`,
+		PersistentPreRunE:  noOp,
+		RunE:               validate.SubCommandExists,
+		PersistentPostRunE: noOp,
 	}
 )
 

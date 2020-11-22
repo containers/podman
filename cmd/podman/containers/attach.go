@@ -18,7 +18,7 @@ var (
 		Short:             "Attach to a running container",
 		Long:              attachDescription,
 		RunE:              attach,
-		Args:              validate.IDOrLatestArgs,
+		Args:              validate.OneContainerOrLatestArgs,
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman attach ctrID
   podman attach 1234
@@ -30,7 +30,7 @@ var (
 		Short:             attachCommand.Short,
 		Long:              attachCommand.Long,
 		RunE:              attachCommand.RunE,
-		Args:              validate.IDOrLatestArgs,
+		Args:              validate.OneContainerOrLatestArgs,
 		ValidArgsFunction: attachCommand.ValidArgsFunction,
 		Example: `podman container attach ctrID
 	podman container attach 1234

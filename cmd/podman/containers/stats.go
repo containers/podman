@@ -30,7 +30,7 @@ var (
 		Short:             "Display a live stream of container resource usage statistics",
 		Long:              statsDescription,
 		RunE:              stats,
-		Args:              checkStatOptions,
+		Args:              validate.CheckStatOptions,
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman stats --all --no-stream
   podman stats ctrID
@@ -42,7 +42,7 @@ var (
 		Short:             statsCommand.Short,
 		Long:              statsCommand.Long,
 		RunE:              statsCommand.RunE,
-		Args:              checkStatOptions,
+		Args:              statsCommand.Args,
 		ValidArgsFunction: statsCommand.ValidArgsFunction,
 		Example: `podman container stats --all --no-stream
   podman container stats ctrID
@@ -92,25 +92,6 @@ func init() {
 	})
 	statFlags(containerStatsCommand)
 	validate.AddLatestFlag(containerStatsCommand, &statsOptions.Latest)
-}
-
-// stats is different in that it will assume running containers if
-// no input is given, so we need to validate differently
-func checkStatOptions(cmd *cobra.Command, args []string) error {
-	opts := 0
-	if statsOptions.All {
-		opts++
-	}
-	if statsOptions.Latest {
-		opts++
-	}
-	if len(args) > 0 {
-		opts++
-	}
-	if opts > 1 {
-		return errors.Errorf("--all, --latest and containers cannot be used together")
-	}
-	return nil
 }
 
 func stats(cmd *cobra.Command, args []string) error {

@@ -11,14 +11,13 @@ import (
 var (
 	// podman _images_  Alias for podman image _list_
 	imagesCmd = &cobra.Command{
-		Use:                   strings.Replace(listCmd.Use, "list", "images", 1),
-		Args:                  listCmd.Args,
-		Short:                 listCmd.Short,
-		Long:                  listCmd.Long,
-		RunE:                  listCmd.RunE,
-		ValidArgsFunction:     listCmd.ValidArgsFunction,
-		Example:               strings.Replace(listCmd.Example, "podman image list", "podman images", -1),
-		DisableFlagsInUseLine: true,
+		Use:               strings.Replace(listCmd.Use, "list", "images", 1),
+		Args:              listCmd.Args,
+		Short:             listCmd.Short,
+		Long:              listCmd.Long,
+		RunE:              listCmd.RunE,
+		ValidArgsFunction: listCmd.ValidArgsFunction,
+		Example:           strings.Replace(listCmd.Example, "podman image list", "podman images", -1),
 	}
 )
 

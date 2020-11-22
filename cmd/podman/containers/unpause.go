@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	// TODO: make unpause support --latest and add Args function
 	unpauseDescription = `Unpauses one or more previously paused containers.  The container name or ID can be used.`
 	unpauseCommand     = &cobra.Command{
 		Use:               "unpause [options] CONTAINER [CONTAINER...]",

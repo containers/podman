@@ -16,6 +16,7 @@ var (
 		Short:             "Display the configuration of a container",
 		Long:              `Displays the low-level information on a container identified by name or ID.`,
 		RunE:              inspectExec,
+		Args:              validate.ContainersOrLatestArgs,
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container inspect myCtr
   podman container inspect -l --format '{{.Id}} {{.Config.Labels}}'`,

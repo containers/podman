@@ -14,14 +14,13 @@ import (
 var (
 	// Skip creating engines since this command will obtain connection information to said engines
 	renameCmd = &cobra.Command{
-		Use:                   "rename OLD NEW",
-		Aliases:               []string{"mv"},
-		Args:                  cobra.ExactArgs(2),
-		Short:                 "Rename \"old\" to \"new\"",
-		Long:                  `Rename destination for the Podman service from "old" to "new"`,
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteSystemConnections,
-		RunE:                  rename,
+		Use:               "rename OLD NEW",
+		Aliases:           []string{"mv"},
+		Args:              cobra.ExactArgs(2),
+		Short:             "Rename \"old\" to \"new\"",
+		Long:              `Rename destination for the Podman service from "old" to "new"`,
+		ValidArgsFunction: common.AutocompleteSystemConnections,
+		RunE:              rename,
 		Example: `podman system connection rename laptop devl,
   podman system connection mv laptop devl`,
 	}

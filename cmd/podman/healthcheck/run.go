@@ -13,14 +13,13 @@ import (
 var (
 	healthcheckRunDescription = "run the health check of a container"
 	healthcheckrunCommand     = &cobra.Command{
-		Use:                   "run CONTAINER",
-		Short:                 "run the health check of a container",
-		Long:                  healthcheckRunDescription,
-		Example:               `podman healthcheck run mywebapp`,
-		RunE:                  run,
-		Args:                  cobra.ExactArgs(1),
-		ValidArgsFunction:     common.AutocompleteContainersRunning,
-		DisableFlagsInUseLine: true,
+		Use:               "run CONTAINER",
+		Short:             "run the health check of a container",
+		Long:              healthcheckRunDescription,
+		Example:           `podman healthcheck run mywebapp`,
+		RunE:              run,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: common.AutocompleteContainersRunning,
 	}
 )
 

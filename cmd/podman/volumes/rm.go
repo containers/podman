@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
+	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -24,6 +25,7 @@ var (
 		Short:             "Remove one or more volumes",
 		Long:              volumeRmDescription,
 		RunE:              rm,
+		Args:              validate.VolumesOrAllArgs,
 		ValidArgsFunction: common.AutocompleteVolumes,
 		Example: `podman volume rm myvol1 myvol2
   podman volume rm --all
@@ -50,9 +52,6 @@ func rm(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	if (len(args) > 0 && rmOptions.All) || (len(args) < 1 && !rmOptions.All) {
-		return errors.New("choose either one or more volumes or all")
-	}
 	responses, err := registry.ContainerEngine().VolumeRm(context.Background(), args, rmOptions)
 	if err != nil {
 		setExitCode(err)

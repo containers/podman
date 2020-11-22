@@ -14,11 +14,10 @@ var (
 
 	// Command: podman _container_
 	containerCmd = &cobra.Command{
-		Use:              "container",
-		Short:            "Manage containers",
-		Long:             "Manage containers",
-		TraverseChildren: true,
-		RunE:             validate.SubCommandExists,
+		Use:   "container",
+		Short: "Manage containers",
+		Long:  "Manage containers",
+		RunE:  validate.SubCommandExists,
 	}
 
 	containerConfig = util.DefaultContainerConfig()

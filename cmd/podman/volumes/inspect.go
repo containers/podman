@@ -4,8 +4,8 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/inspect"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -18,6 +18,7 @@ var (
 		Short:             "Display detailed information on one or more volumes",
 		Long:              volumeInspectDescription,
 		RunE:              volumeInspect,
+		Args:              validate.VolumesOrAllArgs,
 		ValidArgsFunction: common.AutocompleteVolumes,
 		Example: `podman volume inspect myvol
   podman volume inspect --all
@@ -45,9 +46,6 @@ func init() {
 }
 
 func volumeInspect(cmd *cobra.Command, args []string) error {
-	if (inspectOpts.All && len(args) > 0) || (!inspectOpts.All && len(args) < 1) {
-		return errors.New("provide one or more volume names or use --all")
-	}
 	inspectOpts.Type = inspect.VolumeType
 	return inspect.Inspect(args, *inspectOpts)
 }

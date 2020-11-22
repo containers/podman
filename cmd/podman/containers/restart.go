@@ -39,6 +39,7 @@ var (
 		Short:             restartCommand.Short,
 		Long:              restartCommand.Long,
 		RunE:              restartCommand.RunE,
+		Args:              restartCommand.Args,
 		ValidArgsFunction: restartCommand.ValidArgsFunction,
 		Example: `podman container restart ctrID
   podman container restart --latest

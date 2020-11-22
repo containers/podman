@@ -14,14 +14,13 @@ import (
 var (
 	// Skip creating engines since this command will obtain connection information to said engines
 	dfltCmd = &cobra.Command{
-		Use:                   "default NAME",
-		Args:                  cobra.ExactArgs(1),
-		Short:                 "Set named destination as default",
-		Long:                  `Set named destination as default for the Podman service`,
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteSystemConnections,
-		RunE:                  defaultRunE,
-		Example:               `podman system connection default testing`,
+		Use:               "default NAME",
+		Args:              cobra.ExactArgs(1),
+		Short:             "Set named destination as default",
+		Long:              `Set named destination as default for the Podman service`,
+		ValidArgsFunction: common.AutocompleteSystemConnections,
+		RunE:              defaultRunE,
+		Example:           `podman system connection default testing`,
 	}
 )
 
