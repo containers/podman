@@ -44,6 +44,12 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman container ps no containers", func() {
+		session := podmanTest.Podman([]string{"container", "ps"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman ps default", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()

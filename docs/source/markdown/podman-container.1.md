@@ -32,6 +32,7 @@ The container command allows you to manage containers
 | pause      | [podman-pause(1)](podman-pause.1.md)                | Pause one or more containers.                                                |
 | port       | [podman-port(1)](podman-port.1.md)                  | List port mappings for the container.                                        |
 | prune      | [podman-container-prune(1)](podman-container-prune.1.md)| Remove all stopped containers from local storage.                        |
+| ps         | [podman-ps(1)](podman-ps.1.md)                      | Prints out information about containers.                                     |
 | restart    | [podman-restart(1)](podman-restart.1.md)            | Restart one or more containers.                                              |
 | restore    | [podman-container-restore(1)](podman-container-restore.1.md)  | Restores one or more containers from a checkpoint.                 |
 | rm         | [podman-rm(1)](podman-rm.1.md)                      | Remove one or more containers.                                               |
