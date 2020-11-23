@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v2/pkg/registries"
 	"github.com/containers/podman/v2/pkg/rootless"
 	systemdGen "github.com/containers/podman/v2/pkg/systemd/generate"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -474,6 +475,25 @@ func AutocompleteNetworkConnectCmd(cmd *cobra.Command, args []string, toComplete
 	}
 	// don't complete more than 2 args
 	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteTopCmd - Autocomplete podman top/pod top command args.
+func AutocompleteTopCmd(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	latest := cmd.Flags().Lookup("latest")
+	// only complete containers/pods as first arg if latest is not set
+	if len(args) == 0 && (latest == nil || !latest.Changed) {
+		if cmd.Parent().Name() == "pod" {
+			// need to complete pods since we are using pod top
+			return getPods(cmd, toComplete, completeDefault)
+		}
+		return getContainers(cmd, toComplete, completeDefault)
+	}
+	descriptors, err := util.GetContainerPidInformationDescriptors()
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return descriptors, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteSystemConnections - Autocomplete system connections.

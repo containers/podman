@@ -29,7 +29,7 @@ var (
 		Long:              topDescription,
 		RunE:              top,
 		Args:              cobra.ArbitraryArgs,
-		ValidArgsFunction: common.AutocompletePodsRunning,
+		ValidArgsFunction: common.AutocompleteTopCmd,
 		Example: `podman pod top podID
 podman pod top --latest
 podman pod top podID pid seccomp args %C
