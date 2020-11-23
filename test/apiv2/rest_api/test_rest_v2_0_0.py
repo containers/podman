@@ -61,9 +61,7 @@ class TestApi(unittest.TestCase):
         super().setUpClass()
 
         TestApi.podman = Podman()
-        TestApi.service = TestApi.podman.open(
-            "system", "service", "tcp:localhost:8080", "--time=0"
-        )
+        TestApi.service = TestApi.podman.open("system", "service", "tcp:localhost:8080", "--time=0")
         # give the service some time to be ready...
         time.sleep(2)
 
@@ -165,11 +163,71 @@ class TestApi(unittest.TestCase):
         r = requests.get(_url(ctnr("/containers/{}/logs?stdout=true")))
         self.assertEqual(r.status_code, 200, r.text)
 
-    def test_post_create_compat(self):
+    # TODO Need to support Docker-py order of network/container creates
+    def test_post_create_compat_connect(self):
         """Create network and container then connect to network"""
-        net = requests.post(
-            PODMAN_URL + "/v1.40/networks/create", json={"Name": "TestNetwork"}
+        net_default = requests.post(
+            PODMAN_URL + "/v1.40/networks/create", json={"Name": "TestDefaultNetwork"}
         )
+        self.assertEqual(net_default.status_code, 201, net_default.text)
+
+        create = requests.post(
+            PODMAN_URL + "/v1.40/containers/create?name=postCreate",
+            json={
+                "Cmd": ["top"],
+                "Image": "alpine:latest",
+                "NetworkDisabled": False,
+                # FIXME adding these 2 lines cause: (This is sampled from docker-py)
+                #   "network already exists","message":"container
+                #  01306e499df5441560d70071a54342611e422a94de20865add50a9565fd79fb9 is already connected to CNI network \"TestDefaultNetwork\": network already exists"
+                # "HostConfig": {"NetworkMode": "TestDefaultNetwork"},
+                # "NetworkingConfig": {"EndpointsConfig": {"TestDefaultNetwork": None}},
+                # FIXME These two lines cause:
+                # CNI network \"TestNetwork\" not found","message":"error configuring network namespace for container 369ddfa7d3211ebf1fbd5ddbff91bd33fa948858cea2985c133d6b6507546dff: CNI network \"TestNetwork\" not found"
+                # "HostConfig": {"NetworkMode": "TestNetwork"},
+                # "NetworkingConfig": {"EndpointsConfig": {"TestNetwork": None}},
+                # FIXME no networking defined cause: (note this error is from the container inspect below)
+                # "internal libpod error","message":"network inspection mismatch: asked to join 2 CNI network(s) [TestDefaultNetwork podman], but have information on 1 network(s): internal libpod error"
+            },
+        )
+        self.assertEqual(create.status_code, 201, create.text)
+        payload = json.loads(create.text)
+        self.assertIsNotNone(payload["Id"])
+
+        start = requests.post(PODMAN_URL + f"/v1.40/containers/{payload['Id']}/start")
+        self.assertEqual(start.status_code, 204, start.text)
+
+        connect = requests.post(
+            PODMAN_URL + "/v1.40/networks/TestDefaultNetwork/connect",
+            json={"Container": payload["Id"]},
+        )
+        self.assertEqual(connect.status_code, 200, connect.text)
+        self.assertEqual(connect.text, "OK\n")
+
+        inspect = requests.get(f"{PODMAN_URL}/v1.40/containers/{payload['Id']}/json")
+        self.assertEqual(inspect.status_code, 200, inspect.text)
+
+        payload = json.loads(inspect.text)
+        self.assertFalse(payload["Config"].get("NetworkDisabled", False))
+
+        self.assertEqual(
+            "TestDefaultNetwork",
+            payload["NetworkSettings"]["Networks"]["TestDefaultNetwork"]["NetworkID"],
+        )
+        # TODO restore this to test, when joining multiple networks possible
+        # self.assertEqual(
+        #     "TestNetwork",
+        #     payload["NetworkSettings"]["Networks"]["TestNetwork"]["NetworkID"],
+        # )
+        # TODO Need to support network aliases
+        # self.assertIn(
+        #     "test_post_create",
+        #     payload["NetworkSettings"]["Networks"]["TestNetwork"]["Aliases"],
+        # )
+
+    def test_post_create_compat(self):
+        """Create network and connect container during create"""
+        net = requests.post(PODMAN_URL + "/v1.40/networks/create", json={"Name": "TestNetwork"})
         self.assertEqual(net.status_code, 201, net.text)
 
         create = requests.post(
@@ -178,23 +236,21 @@ class TestApi(unittest.TestCase):
                 "Cmd": ["date"],
                 "Image": "alpine:latest",
                 "NetworkDisabled": False,
-                "NetworkConfig": {
-                    "EndpointConfig": {"TestNetwork": {"Aliases": ["test_post_create"]}}
-                },
+                "HostConfig": {"NetworkMode": "TestNetwork"},
             },
         )
         self.assertEqual(create.status_code, 201, create.text)
         payload = json.loads(create.text)
         self.assertIsNotNone(payload["Id"])
 
-        # This cannot be done until full completion of the network connect
-        # stack and network disconnect stack are complete
-        # connect = requests.post(
-        #     PODMAN_URL + "/v1.40/networks/TestNetwork/connect",
-        #     json={"Container": payload["Id"]},
-        # )
-        # self.assertEqual(connect.status_code, 200, connect.text)
-        # self.assertEqual(connect.text, "OK\n")
+        inspect = requests.get(f"{PODMAN_URL}/v1.40/containers/{payload['Id']}/json")
+        self.assertEqual(inspect.status_code, 200, inspect.text)
+        payload = json.loads(inspect.text)
+        self.assertFalse(payload["Config"].get("NetworkDisabled", False))
+        self.assertEqual(
+            "TestNetwork",
+            payload["NetworkSettings"]["Networks"]["TestNetwork"]["NetworkID"],
+        )
 
     def test_commit(self):
         r = requests.post(_url(ctnr("/commit?container={}")))

@@ -900,7 +900,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	// If we have CNI networks - handle that here
 	if len(networks) > 0 && !isDefault {
 		if len(networks) != len(c.state.NetworkStatus) {
-			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(networks), len(c.state.NetworkStatus))
+			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI network(s) %v, but have information on %d network(s)", len(networks), networks, len(c.state.NetworkStatus))
 		}
 
 		settings.Networks = make(map[string]*define.InspectAdditionalNetwork)
@@ -1144,8 +1144,8 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		// build a list of network names so we can sort and
 		// get the new name's index
 		var networkNames []string
-		for netName := range networks {
-			networkNames = append(networkNames, netName)
+		for name := range networks {
+			networkNames = append(networkNames, name)
 		}
 		networkNames = append(networkNames, netName)
 		// sort
@@ -1157,6 +1157,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		// populate network status
 		copy(networkStatus[index+1:], networkStatus[index:])
 		networkStatus[index] = networkResults[0]
+		c.state.NetworkStatus = networkStatus
 	}
 	c.newNetworkEvent(events.NetworkConnect, netName)
 	return c.save()
