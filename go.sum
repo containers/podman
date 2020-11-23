@@ -96,8 +96,8 @@ github.com/containernetworking/plugins v0.8.7/go.mod h1:R7lXeZaBzpfqapcAbHRW8/CY
 github.com/containers/buildah v1.18.0 h1:mWEm013LVNGecF++sYo0T7fe/4pqMas/PQxQ/qviC68=
 github.com/containers/buildah v1.18.0/go.mod h1:qHLk7RUL7cHfA7ve1MKkZ6cyKUxHD0YxiLJcKY+mJe8=
 github.com/containers/common v0.26.3/go.mod h1:hJWZIlrl5MsE2ELNRa+MPp6I1kPbXHauuj0Ym4BsLG4=
-github.com/containers/common v0.27.0 h1:+QlYEOitVYtU9/x8xebRgxdGqt4sLaIqV6MBOns+zLk=
-github.com/containers/common v0.27.0/go.mod h1:ZTswJJfu4aGF6Anyi2yON8Getda9NDYcdIzurOEHHXI=
+github.com/containers/common v0.29.0 h1:hTMC+urdkk5bKfhL/OgCixIX5xjJgQ2l2jPG745ECFQ=
+github.com/containers/common v0.29.0/go.mod h1:yT4GTUHsKRmpaDb+mecXRnIMre7W3ZgwXqaYMywXlaA=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.7.0/go.mod h1:8aOy+YaItukxghRORkvhq5ibWttHErzDLy6egrKfKos=
@@ -113,8 +113,6 @@ github.com/containers/psgo v1.5.1 h1:MQNb7FLbXqBdqz6u4lI2QWizVz4RSTzs1+Nk9XT1iVA
 github.com/containers/psgo v1.5.1/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzPUWfawVU=
 github.com/containers/storage v1.23.6/go.mod h1:haFs0HRowKwyzvWEx9EgI3WsL8XCSnBDb5f8P5CAxJY=
 github.com/containers/storage v1.23.7/go.mod h1:cUT2zHjtx+WlVri30obWmM2gpqpi8jfPsmIzP1TVpEI=
-github.com/containers/storage v1.23.9 h1:qbgnTp76pLSyW3vYwY5GH4vk5cHYVXFJ+CsUEBp9TMw=
-github.com/containers/storage v1.23.9/go.mod h1:3b2ktpB6pw53SEeIoFfO0sQfP9+IoJJKPq5iJk74gxE=
 github.com/containers/storage v1.24.0 h1:Fo2LkF7tkMLmo38sTZ/G8wHjcn8JfUFPfyTxM4WwMfk=
 github.com/containers/storage v1.24.0/go.mod h1:A4d3BzuZK9b3oLVEsiSRhZLPIx3z7utgiPyXLK/YMhY=
 github.com/containers/storage v1.24.1 h1:1+f8fy6ly35c8SLet5jzZ8t0WJJs5+xSpfMAYw0R3kc=
