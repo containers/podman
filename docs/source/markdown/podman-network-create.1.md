@@ -26,6 +26,13 @@ resolution.
 
 Driver to manage the network (default "bridge").  Currently only `bridge` is supported.
 
+#### **--opt**=*option*, **-o**
+
+Set driver specific options.
+
+For the `bridge` driver the following options are supported: `mtu`.
+The `mtu` option sets the Maximum Transmission Unit (MTU) and takes an integer value.
+
 #### **--gateway**
 
 Define a gateway for the subnet. If you want to provide a gateway address, you must also provide a

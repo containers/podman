@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/common/pkg/config"
@@ -74,6 +75,21 @@ func validateBridgeOptions(options entities.NetworkCreateOptions) error {
 
 	return nil
 
+}
+
+// parseMTU parses the mtu option
+func parseMTU(mtu string) (int, error) {
+	if mtu == "" {
+		return 0, nil // default
+	}
+	m, err := strconv.Atoi(mtu)
+	if err != nil {
+		return 0, err
+	}
+	if m < 0 {
+		return 0, errors.Errorf("the value %d for mtu is less than zero", m)
+	}
+	return m, nil
 }
 
 // createBridge creates a CNI network
@@ -149,6 +165,11 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 		ipMasq = false
 	}
 
+	mtu, err := parseMTU(options.Options["mtu"])
+	if err != nil {
+		return "", err
+	}
+
 	// obtain host bridge name
 	bridgeDeviceName, err := GetFreeDeviceName(runtimeConfig)
 	if err != nil {
@@ -172,7 +193,7 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 	ncList := NewNcList(name, version.Current(), options.Labels)
 	var plugins []CNIPlugins
 	// TODO need to iron out the role of isDefaultGW and IPMasq
-	bridge := NewHostLocalBridge(bridgeDeviceName, isGateway, false, ipMasq, ipamConfig)
+	bridge := NewHostLocalBridge(bridgeDeviceName, isGateway, false, ipMasq, mtu, ipamConfig)
 	plugins = append(plugins, bridge)
 	plugins = append(plugins, NewPortMapPlugin())
 	plugins = append(plugins, NewFirewallPlugin())
