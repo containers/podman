@@ -113,6 +113,28 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	cfg := registry.PodmanConfig()
+
+	// --connection is not as "special" as --remote so we can wait and process it here
+	conn := cmd.Root().LocalFlags().Lookup("connection")
+	if conn != nil && conn.Changed {
+		cfg.Engine.ActiveService = conn.Value.String()
+
+		var err error
+		cfg.URI, cfg.Identity, err = cfg.ActiveDestination()
+		if err != nil {
+			return errors.Wrap(err, "failed to resolve active destination")
+		}
+
+		if err := cmd.Root().LocalFlags().Set("url", cfg.URI); err != nil {
+			return errors.Wrap(err, "failed to override --url flag")
+		}
+
+		if err := cmd.Root().LocalFlags().Set("identity", cfg.Identity); err != nil {
+			return errors.Wrap(err, "failed to override --identity flag")
+		}
+	}
+
 	// Special case if command is hidden completion command ("__complete","__completeNoDesc")
 	// Since __completeNoDesc is an alias the cm.Name is always __complete
 	if cmd.Name() == cobra.ShellCompRequestCmd {
@@ -129,37 +151,9 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 				flag.Hidden = true
 			})
 		}
-		// No need for further setup when completing commands with subcommands.
-		if compCmd.HasSubCommands() {
-			requireCleanup = false
-			return nil
-		}
-	}
-
-	cfg := registry.PodmanConfig()
-
-	// --connection is not as "special" as --remote so we can wait and process it here
-	var connErr error
-	conn := cmd.Root().LocalFlags().Lookup("connection")
-	if conn != nil && conn.Changed {
-		cfg.Engine.ActiveService = conn.Value.String()
-
-		var err error
-		cfg.URI, cfg.Identity, err = cfg.ActiveDestination()
-		if err != nil {
-			connErr = errors.Wrap(err, "failed to resolve active destination")
-		}
-
-		if err := cmd.Root().LocalFlags().Set("url", cfg.URI); err != nil {
-			connErr = errors.Wrap(err, "failed to override --url flag")
-		}
-
-		if err := cmd.Root().LocalFlags().Set("identity", cfg.Identity); err != nil {
-			connErr = errors.Wrap(err, "failed to override --identity flag")
-		}
-	}
-	if connErr != nil {
-		return connErr
+		// No need for further setup the completion logic setups the engines as needed.
+		requireCleanup = false
+		return nil
 	}
 
 	// Prep the engines
