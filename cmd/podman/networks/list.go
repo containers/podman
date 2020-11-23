@@ -46,7 +46,7 @@ func networkListFlags(flags *pflag.FlagSet) {
 
 	filterFlagName := "filter"
 	flags.StringVarP(&networkListOptions.Filter, filterFlagName, "", "", "Provide filter values (e.g. 'name=podman')")
-	_ = networklistCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = networklistCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteNetworkFilters)
 
 }
 
