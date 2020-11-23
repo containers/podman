@@ -714,3 +714,17 @@ func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOpti
 	defer c.newContainerEvent(events.Restore)
 	return c.restore(ctx, options)
 }
+
+// Indicate whether or not the container should restart
+func (c *Container) ShouldRestart(ctx context.Context) bool {
+	logrus.Debugf("Checking if container %s should restart", c.ID())
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return false
+		}
+	}
+	return c.shouldRestart()
+}

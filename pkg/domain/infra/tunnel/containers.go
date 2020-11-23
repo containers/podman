@@ -595,12 +595,20 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		// Defer the removal, so we can return early if needed and
 		// de-spaghetti the code.
 		defer func() {
-			if err := containers.Remove(ic.ClientCxt, con.ID, bindings.PFalse, bindings.PTrue); err != nil {
-				if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
-					errorhandling.Contains(err, define.ErrCtrRemoved) {
-					logrus.Warnf("Container %s does not exist: %v", con.ID, err)
-				} else {
-					logrus.Errorf("Error removing container %s: %v", con.ID, err)
+			shouldRestart, err := containers.ShouldRestart(ic.ClientCxt, con.ID)
+			if err != nil {
+				logrus.Errorf("Failed to check if %s should restart: %v", con.ID, err)
+				return
+			}
+
+			if !shouldRestart {
+				if err := containers.Remove(ic.ClientCxt, con.ID, bindings.PFalse, bindings.PTrue); err != nil {
+					if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
+						errorhandling.Contains(err, define.ErrCtrRemoved) {
+						logrus.Warnf("Container %s does not exist: %v", con.ID, err)
+					} else {
+						logrus.Errorf("Error removing container %s: %v", con.ID, err)
+					}
 				}
 			}
 		}()
@@ -736,4 +744,9 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 		return nil, errors.New("latest is not supported for the remote client")
 	}
 	return containers.Stats(ic.ClientCxt, namesOrIds, &options.Stream)
+}
+
+// ShouldRestart reports back whether the containre will restart
+func (ic *ContainerEngine) ShouldRestart(_ context.Context, id string) (bool, error) {
+	return containers.ShouldRestart(ic.ClientCxt, id)
 }
