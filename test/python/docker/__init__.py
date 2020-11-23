@@ -60,7 +60,7 @@ class Podman(object):
             """
             {
               "cniVersion": "0.3.0",
-              "name": "podman",
+              "name": "default",
               "plugins": [{
                   "type": "bridge",
                   "bridge": "cni0",

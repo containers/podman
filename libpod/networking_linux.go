@@ -1144,8 +1144,8 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		// build a list of network names so we can sort and
 		// get the new name's index
 		var networkNames []string
-		for netName := range networks {
-			networkNames = append(networkNames, netName)
+		for name := range networks {
+			networkNames = append(networkNames, name)
 		}
 		networkNames = append(networkNames, netName)
 		// sort
@@ -1157,6 +1157,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		// populate network status
 		copy(networkStatus[index+1:], networkStatus[index:])
 		networkStatus[index] = networkResults[0]
+		c.state.NetworkStatus = networkStatus
 	}
 	c.newNetworkEvent(events.NetworkConnect, netName)
 	return c.save()

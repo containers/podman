@@ -87,7 +87,7 @@ class TestContainers(unittest.TestCase):
         self.assertEqual(len(containers), 2)
 
     def test_stop_container(self):
-        top = self.client.containers.get("top")
+        top = self.client.containers.get(TestContainers.topContainerId)
         self.assertEqual(top.status, "running")
 
         # Stop a running container and validate the state
