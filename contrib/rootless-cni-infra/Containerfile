@@ -33,4 +33,4 @@ COPY rootless-cni-infra /usr/local/bin
 ENV CNI_PATH=/opt/cni/bin
 CMD ["sleep", "infinity"]
 
-ENV ROOTLESS_CNI_INFRA_VERSION=3
+ENV ROOTLESS_CNI_INFRA_VERSION=4

@@ -20,7 +20,7 @@ func exclusivePodOptions(opt1, opt2 string) error {
 // Validate verifies the input is valid
 func (p *PodSpecGenerator) Validate() error {
 
-	if rootless.IsRootless() {
+	if rootless.IsRootless() && len(p.CNINetworks) == 0 {
 		if p.StaticIP != nil {
 			return ErrNoStaticIPRootless
 		}
