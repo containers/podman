@@ -119,6 +119,13 @@ func NewFirewallPlugin() FirewallConfig {
 	}
 }
 
+// NewTuningPlugin creates a generic tuning section
+func NewTuningPlugin() TuningConfig {
+	return TuningConfig{
+		PluginType: "tuning",
+	}
+}
+
 // NewDNSNamePlugin creates the dnsname config with a given
 // domainname
 func NewDNSNamePlugin(domainName string) DNSNameConfig {
