@@ -1,3 +1,33 @@
+- Changelog for HEAD (2020-11-24):
+  * Set PATH env in systemd timer.
+  * Docker compat API fixes
+  * shell completions: remove usage of ShellCompDirectiveError
+  * more shell completion improvements
+  * Fix ip-range for classless subnet masks
+  * Bump github.com/containers/common from 0.27.0 to 0.29.0
+  * Add podman container ps command
+  * clarify ps(1) fallback of `podman top`
+  * APIv2 - create container sets wrong entrypoint
+  * Enable remote shell completion without a running endpoint
+  * Specify what the replace flag replaces in help text
+  * APIv2 - strip CAP_ prefix from capabilities in json
+  * Make c.networks() list include the default network
+  * Allow containers to --restart on-failure with --rm
+  * REST API v2 - list of images - mandatory Created attribute
+  * Allow multiple --network flags for podman run/create
+  * fix container cgroup lookup
+  * Make podman service log events
+  * vendor in containers/storage v1.24.1 containers/image v5.8.1
+  * Document containers.conf settings for remote connections
+  * Shell completion for podman ps and podman pod ps --filter
+  * Add alias for podman network rm -> remove
+  * add network connect|disconnect compat endpoints
+  * Fix sed regex to update version in version/version.go
+  * Github-Actions: Send e-mail on Cirrus cron failure
+  * Align the podman pod ps --filter behavior with podman ps
+  * podman-remote network rm --force is broken
+  * Remove build \!remote flags from test
+
 - Changelog for v2.2.0-rc1 (2020-11-18):
   * Add release notes for v2.2.0-RC1
   * correct numbering typo
