@@ -23,7 +23,7 @@ var (
 	loadDescription = "Loads an image from a locally stored archive (tar file) into container storage."
 	loadCommand     = &cobra.Command{
 		Use:               "load [options] [NAME[:TAG]]",
-		Short:             "Load an image from container archive",
+		Short:             "Load image(s) from a tar archive",
 		Long:              loadDescription,
 		RunE:              load,
 		Args:              cobra.MaximumNArgs(1),
