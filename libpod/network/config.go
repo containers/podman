@@ -129,6 +129,16 @@ func (f FirewallConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(f, "", "\t")
 }
 
+// TuningConfig describes the tuning plugin
+type TuningConfig struct {
+	PluginType string `json:"type"`
+}
+
+// Bytes outputs the configuration as []byte
+func (f TuningConfig) Bytes() ([]byte, error) {
+	return json.MarshalIndent(f, "", "\t")
+}
+
 // DNSNameConfig describes the dns container name resolution plugin config
 type DNSNameConfig struct {
 	PluginType   string          `json:"type"`
