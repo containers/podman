@@ -55,7 +55,7 @@ host:
 
 In order for the client to communicate with the server you need to enable and start the SSH daemon on your Linux machine, if it is not currently enabled.
 ```
-sudo systemctl enable --now -s sshd
+sudo systemctl enable --now sshd
 ```
 
 #### Setting up SSH
