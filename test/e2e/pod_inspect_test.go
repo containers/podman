@@ -101,7 +101,7 @@ var _ = Describe("Podman pod inspect", func() {
 	})
 
 	It("podman pod inspect outputs show correct MAC", func() {
-		SkipIfRootless("--mac-address is not supported in rootless mode")
+		SkipIfRootless("--mac-address is not supported in rootless mode without network")
 		podName := "testPod"
 		macAddr := "42:43:44:00:00:01"
 		create := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--mac-address", macAddr})

@@ -234,7 +234,7 @@ var _ = Describe("Podman pod create", func() {
 		ip := GetRandomIPAddress()
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", name})
 		podCreate.WaitWithDefaultTimeout()
-		// Rootless should error
+		// Rootless should error without network
 		if rootless.IsRootless() {
 			Expect(podCreate.ExitCode()).To(Equal(125))
 		} else {
@@ -247,7 +247,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman container in pod with IP address shares IP address", func() {
-		SkipIfRootless("Rootless does not support --ip")
+		SkipIfRootless("Rootless does not support --ip without network")
 		podName := "test"
 		ctrName := "testCtr"
 		ip := GetRandomIPAddress()
