@@ -621,7 +621,6 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {
-		SkipIfRootless("Rootless mode does not support --ip")
 		netName := stringid.GenerateNonCryptoID()
 		ipAddr := "10.25.30.128"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
@@ -633,10 +632,6 @@ var _ = Describe("Podman run networking", func() {
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(BeZero())
 		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
-
-		create = podmanTest.Podman([]string{"network", "rm", netName})
-		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(BeZero())
 	})
 
 	It("podman rootless fails custom CNI network with --uidmap", func() {
@@ -658,7 +653,6 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run with new:pod and static-ip", func() {
-		SkipIfRootless("Rootless does not support --ip")
 		netName := stringid.GenerateNonCryptoID()
 		ipAddr := "10.25.40.128"
 		podname := "testpod"

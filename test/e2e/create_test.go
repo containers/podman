@@ -553,7 +553,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("create container in pod with IP should fail", func() {
-		SkipIfRootless("Setting IP not supported in rootless mode")
+		SkipIfRootless("Setting IP not supported in rootless mode without network")
 		name := "createwithstaticip"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()
@@ -565,7 +565,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("create container in pod with mac should fail", func() {
-		SkipIfRootless("Setting MAC Address not supported in rootless mode")
+		SkipIfRootless("Setting MAC Address not supported in rootless mode without network")
 		name := "createwithstaticmac"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()

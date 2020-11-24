@@ -21,16 +21,18 @@ wait_unshare_net() {
 	done
 }
 
-# CLI subcommand: "alloc $CONTAINER_ID $NETWORK_NAME $POD_NAME"
+# CLI subcommand: "alloc $CONTAINER_ID $NETWORK_NAME $POD_NAME $IP $MAC"
 cmd_entrypoint_alloc() {
-	if [ "$#" -ne 3 ]; then
-		echo >&2 "Usage: $ARG0 alloc CONTAINER_ID NETWORK_NAME POD_NAME"
+	if [ "$#" -ne 5 ]; then
+		echo >&2 "Usage: $ARG0 alloc CONTAINER_ID NETWORK_NAME POD_NAME IP MAC"
 		exit 1
 	fi
 
 	ID="$1"
 	NET="$2"
 	K8S_POD_NAME="$3"
+	IP="$4"
+	MAC="$5"
 
 	dir="${BASE}/${ID}"
 	mkdir -p "${dir}/attached" "${dir}/attached-args"
@@ -46,6 +48,12 @@ cmd_entrypoint_alloc() {
 		nsenter -t "${pid}" -n ip link set lo up
 	fi
 	CNI_ARGS="IgnoreUnknown=1;K8S_POD_NAME=${K8S_POD_NAME}"
+	if [ "$IP" ]; then
+		CNI_ARGS="$CNI_ARGS;IP=${IP}"
+	fi
+	if [ "$MAC" ]; then
+		CNI_ARGS="$CNI_ARGS;MAC=${MAC}"
+	fi
 	nwcount=$(find "${dir}/attached" -type f | wc -l)
 	CNI_IFNAME="eth${nwcount}"
 	export CNI_ARGS CNI_IFNAME
