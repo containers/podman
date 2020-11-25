@@ -25,10 +25,10 @@ import (
 	"github.com/containers/buildah/chroot"
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/pkg/overlay"
-	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
@@ -216,16 +216,28 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 	// Empty file, so no need to recreate if it exists
 	if _, ok := bindFiles["/run/.containerenv"]; !ok {
-		// Empty string for now, but we may consider populating this later
 		containerenvPath := filepath.Join(path, "/run/.containerenv")
 		if err = os.MkdirAll(filepath.Dir(containerenvPath), 0755); err != nil {
 			return err
 		}
-		emptyFile, err := os.Create(containerenvPath)
-		if err != nil {
+
+		rootless := 0
+		if unshare.IsRootless() {
+			rootless = 1
+		}
+		// Populate the .containerenv with container information
+		containerenv := fmt.Sprintf(`\
+engine="buildah-%s"
+name=%q
+id=%q
+image=%q
+imageid=%q
+rootless=%d
+`, Version, b.Container, b.ContainerID, b.FromImage, b.FromImageID, rootless)
+
+		if err = ioutils.AtomicWriteFile(containerenvPath, []byte(containerenv), 0755); err != nil {
 			return err
 		}
-		emptyFile.Close()
 		if err := label.Relabel(containerenvPath, b.MountLabel, false); err != nil {
 			return err
 		}
@@ -477,15 +489,15 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		return errors.Wrapf(err, "error determining work directory for container %q", b.ContainerID)
 	}
 
-	// Figure out which UID and GID to tell the secrets package to use
+	// Figure out which UID and GID to tell the subscritions package to use
 	// for files that it creates.
 	rootUID, rootGID, err := util.GetHostRootIDs(spec)
 	if err != nil {
 		return err
 	}
 
-	// Get the list of secrets mounts.
-	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, mountPoint, int(rootUID), int(rootGID), unshare.IsRootless(), false)
+	// Get the list of subscriptionss mounts.
+	secretMounts := subscriptions.MountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, mountPoint, int(rootUID), int(rootGID), unshare.IsRootless(), false)
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.

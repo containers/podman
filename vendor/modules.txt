@@ -67,7 +67,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.18.0
+# github.com/containers/buildah v1.18.1-0.20201125084616-dd26b137459c
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -84,9 +84,7 @@ github.com/containers/buildah/pkg/manifests
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
-github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
-github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
 # github.com/containers/common v0.29.0
 github.com/containers/common/pkg/apparmor
@@ -100,7 +98,9 @@ github.com/containers/common/pkg/report
 github.com/containers/common/pkg/report/camelcase
 github.com/containers/common/pkg/retry
 github.com/containers/common/pkg/seccomp
+github.com/containers/common/pkg/subscriptions
 github.com/containers/common/pkg/sysinfo
+github.com/containers/common/pkg/umask
 github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 github.com/containers/conmon/runner/config

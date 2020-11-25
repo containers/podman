@@ -59,35 +59,31 @@ sudo dnf -y install buildah
 
 #### [Debian](https://debian.org)
 
-The buildah package is [being worked on](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=928083)
-for inclusion in the default Debian repos.
-
-Alternatively, the [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
-provides packages for Debian 10, testing and unstable.
+The buildah package is available in
+the [Bullseye (testing) branch](https://packages.debian.org/bullseye/buildah), which
+will be the next stable release (Debian 11) as well as Debian Unstable/Sid.
 
 ```bash
-# Debian Unstable/Sid
-echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Unstable/Release.key -O Release.key
-
-# Debian Testing
-echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Testing/Release.key -O Release.key
-
-# Debian 10
-echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_10/Release.key -O Release.key
-
-sudo apt-key add - < Release.key
-sudo apt-get update -qq
-sudo apt-get -qq -y install buildah
+# Debian Testing/Bullseye or Unstable/Sid
+sudo apt-get update
+sudo apt-get -y install buildah
 ```
 
+The [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
+provides packages for Debian 10. The Kubic packages for Debian Testing/Bullseye and Debian Unstable/Sid
+have been discontinued to avoid
+[conflicts](https://github.com/containers/buildah/issues/2797) with the official packages.
 
-### [Fedora](https://www.fedoraproject.org), [CentOS](https://www.centos.org)
+Caution: If you upgrade from Debian 10 to Testing/Bullseye or
+Unstable/Sid you would likely end up downgrading Buildah because the version in
+OBS is more frequently updated than the one in Debian's official repositories,
+due to how Debian works.
+
+
+### [Fedora](https://www.fedoraproject.org)
 
 ```bash
-sudo yum -y install buildah
+sudo dnf -y install buildah
 ```
 
 ### [Fedora SilverBlue](https://silverblue.fedoraproject.org)
@@ -127,18 +123,24 @@ sudo subscription-manager repos --enable=rhel-7-server-extras-rpms
 sudo yum -y install buildah
 ```
 
-#### [Raspbian](https://raspbian.org)
+#### [Raspberry Pi OS armhf (ex Raspbian)](https://www.raspberrypi.org/downloads/raspberry-pi-os/)
 
 The Kubic project provides packages for Raspbian 10.
 
 ```bash
 # Raspbian 10
-echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Raspbian_10/Release.key -O Release.key
-sudo apt-key add - < Release.key
+echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/ /' | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/Release.key | sudo apt-key add -
 sudo apt-get update -qq
 sudo apt-get -qq -y install buildah
 ```
+
+#### [Raspberry Pi OS arm64 (beta)](https://downloads.raspberrypi.org/raspios_arm64/images/)
+
+Raspberry Pi OS use the standard Debian's repositories,
+so it is fully compatible with Debian's arm64 repository.
+You can simply follow the [steps for Debian](#debian) to install podman.
+
 
 ### [RHEL8 Beta](https://www.redhat.com/en/blog/powering-its-future-while-preserving-present-introducing-red-hat-enterprise-linux-8-beta?intcmp=701f2000001Cz6OAAS)
 
@@ -149,7 +151,16 @@ sudo yum module install -y buildah
 
 ### [Ubuntu](https://www.ubuntu.com)
 
-The Kubic project provides packages for Ubuntu 18.04, 19.04 and 19.10 (it should also work with direct derivatives like Pop!\_OS).
+The buildah package is available in the official repositories for Ubuntu 20.10
+and newer.
+
+```bash
+# Ubuntu 20.10 and newer
+sudo apt-get -y update
+sudo apt-get -y install buildah
+```
+
+The [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah) provides packages for some older but supported Ubuntu versions (it should also work with direct derivatives like Pop!\_OS).
 
 ```bash
 . /etc/os-release

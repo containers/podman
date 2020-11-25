@@ -317,6 +317,10 @@ Pass through HTTP Proxy environment variables.
 
 Write the image ID to the file.
 
+#### **--ignorefile**
+
+Path to an alternative .dockerignore file.
+
 #### **--ipc**=*how*
 
 Sets the configuration for IPC namespaces when handling `RUN` instructions.
@@ -844,9 +848,10 @@ $ podman build -f dev/Containerfile https://10.10.10.1/podman/context.tar.gz
 
 ### `.dockerignore`
 
-If the file .dockerignore exists in the context directory, `podman build` reads
-its contents. Podman uses the content to exclude files and directories from
-the context directory, when executing COPY and ADD directives in the
+If the file .dockerignore exists in the context directory, `buildah copy` reads
+its contents. Use the `--ignorefile` flag to override .dockerignore path location.
+Podman uses the content to exclude files and directories from the context
+directory, when executing COPY and ADD directives in the
 Containerfile/Dockerfile
 
 Users can specify a series of Unix shell globals in a .dockerignore file to
