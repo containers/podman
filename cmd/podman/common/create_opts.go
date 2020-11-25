@@ -78,6 +78,7 @@ type ContainerCLIOpts struct {
 	OverrideVariant   string
 	PID               string
 	PIDsLimit         *int64
+	Platform          string
 	Pod               string
 	PodIDFile         string
 	PreserveFDs       uint

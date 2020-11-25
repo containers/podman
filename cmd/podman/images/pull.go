@@ -3,6 +3,7 @@ package images
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
@@ -11,6 +12,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -94,6 +96,10 @@ func pullFlags(cmd *cobra.Command) {
 	flags.StringVar(&pullOptions.OverrideVariant, overrideVariantFlagName, "", " use VARIANT instead of the running architecture variant for choosing images")
 	_ = cmd.RegisterFlagCompletionFunc(overrideVariantFlagName, completion.AutocompleteNone)
 
+	platformFlagName := "platform"
+	flags.String(platformFlagName, "", "Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)")
+	_ = cmd.RegisterFlagCompletionFunc(platformFlagName, completion.AutocompleteNone)
+
 	flags.Bool("disable-content-trust", false, "This is a Docker specific option and is a NOOP")
 	flags.BoolVarP(&pullOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.StringVar(&pullOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
@@ -125,6 +131,20 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	if pullOptions.Authfile != "" {
 		if _, err := os.Stat(pullOptions.Authfile); err != nil {
 			return err
+		}
+	}
+	platform, err := cmd.Flags().GetString("platform")
+	if err != nil {
+		return err
+	}
+	if platform != "" {
+		if pullOptions.OverrideArch != "" || pullOptions.OverrideOS != "" {
+			return errors.Errorf("--platform option can not be specified with --overide-arch or --override-os")
+		}
+		split := strings.SplitN(platform, "/", 2)
+		pullOptions.OverrideOS = split[0]
+		if len(split) > 1 {
+			pullOptions.OverrideArch = split[1]
 		}
 	}
 
