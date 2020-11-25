@@ -111,7 +111,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, errors.Wrap(err, "invalid config provided")
 	}
 
-	finalMounts, finalVolumes, err := finalizeMounts(ctx, s, rt, rtc, newImage)
+	finalMounts, finalVolumes, finalOverlays, err := finalizeMounts(ctx, s, rt, rtc, newImage)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, err
 	}
 
-	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, newImage, command)
+	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, newImage, command)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	return rt.NewContainer(ctx, runtimeSpec, options...)
 }
 
-func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, img *image.Image, command []string) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, img *image.Image, command []string) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -224,7 +224,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	for _, volume := range volumes {
 		destinations = append(destinations, volume.Dest)
 	}
-	for _, overlayVolume := range s.OverlayVolumes {
+	for _, overlayVolume := range overlays {
 		destinations = append(destinations, overlayVolume.Destination)
 	}
 	for _, imageVolume := range s.ImageVolumes {
@@ -244,9 +244,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		options = append(options, libpod.WithNamedVolumes(vols))
 	}
 
-	if len(s.OverlayVolumes) != 0 {
+	if len(overlays) != 0 {
 		var vols []*libpod.ContainerOverlayVolume
-		for _, v := range s.OverlayVolumes {
+		for _, v := range overlays {
 			vols = append(vols, &libpod.ContainerOverlayVolume{
 				Dest:   v.Destination,
 				Source: v.Source,

@@ -30,7 +30,7 @@ func RetryIfNecessary(ctx context.Context, operation func() error, retryOptions 
 		if retryOptions.Delay != 0 {
 			delay = retryOptions.Delay
 		}
-		logrus.Infof("Warning: failed, retrying in %s ... (%d/%d)", delay, attempt+1, retryOptions.MaxRetry)
+		logrus.Infof("Warning: failed, retrying in %s ... (%d/%d). Error: %v", delay, attempt+1, retryOptions.MaxRetry, err)
 		select {
 		case <-time.After(delay):
 			break

@@ -17,7 +17,7 @@ var (
 		RunE:              networkDisconnect,
 		Example:           `podman network disconnect web secondary`,
 		Args:              cobra.ExactArgs(2),
-		ValidArgsFunction: common.AutocompleteNetworks,
+		ValidArgsFunction: common.AutocompleteNetworkConnectCmd,
 	}
 )
 

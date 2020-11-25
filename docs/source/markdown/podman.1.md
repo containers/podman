@@ -17,6 +17,10 @@ Podman uses Buildah(1) internally to create container images. Both tools share i
 (not container) storage, hence each can use or manipulate images (but not containers)
 created by the other.
 
+Default settings for flags are defined in `containers.conf`. Most settings for
+Remote connections use the server's containers.conf, except when documented in
+man pages.
+
 **podman [GLOBAL OPTIONS]**
 
 ## GLOBAL OPTIONS
@@ -33,6 +37,7 @@ Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d
 
 #### **--connection**, **-c**
 Connection to use for remote podman (Default connection is configured in `containers.conf`)
+Remote connections use local containers.conf for default.
 
 #### **--conmon**
 Path of the conmon binary (Default path is configured in `containers.conf`)
@@ -71,6 +76,7 @@ Identity value resolution precedence:
  - command line value
  - environment variable `CONTAINER_SSHKEY`, if `CONTAINER_HOST` is found
  - `containers.conf`
+Remote connections use local containers.conf for default.
 
 #### **--log-level**=*level*
 
@@ -86,6 +92,7 @@ Path to the command binary to use for setting up a network.  It is currently onl
 
 #### **--remote**, **-r**
 Access Podman service will be remote
+Remote connections use local containers.conf for default.
 
 #### **--url**=*value*
 URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
@@ -104,6 +111,7 @@ URL value resolution precedence:
  - environment variable `CONTAINER_HOST`
  - `containers.conf`
  - `unix://run/podman/podman.sock`
+Remote connections use local containers.conf for default.
 
 #### **--root**=*value*
 
@@ -223,7 +231,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-init(1)](podman-init.1.md)               | Initialize one or more containers                                           |
 | [podman-inspect(1)](podman-inspect.1.md)         | Display a container, image, volume, network, or pod's configuration.        |
 | [podman-kill(1)](podman-kill.1.md)               | Kill the main process in one or more containers.                            |
-| [podman-load(1)](podman-load.1.md)               | Load an image from a container image archive into container storage.        |
+| [podman-load(1)](podman-load.1.md)               | Load image(s) from a tar archive into container storage.                    |
 | [podman-login(1)](podman-login.1.md)             | Login to a container registry.                                              |
 | [podman-logout(1)](podman-logout.1.md)           | Logout of a container registry.                                             |
 | [podman-logs(1)](podman-logs.1.md)               | Display the logs of one or more containers.                                 |
@@ -241,7 +249,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-rm(1)](podman-rm.1.md)                   | Remove one or more containers.                                              |
 | [podman-rmi(1)](podman-rmi.1.md)                 | Removes one or more locally stored images.                                  |
 | [podman-run(1)](podman-run.1.md)                 | Run a command in a new container.                                           |
-| [podman-save(1)](podman-save.1.md)               | Save an image to a container archive.                                       |
+| [podman-save(1)](podman-save.1.md)               | Save image(s) to an archive.                                                |
 | [podman-search(1)](podman-search.1.md)           | Search a registry for an image.                                             |
 | [podman-start(1)](podman-start.1.md)             | Start one or more containers.                                               |
 | [podman-stats(1)](podman-stats.1.md)             | Display a live stream of one or more container's resource usage statistics. |

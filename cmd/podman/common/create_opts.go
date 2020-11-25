@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -133,10 +134,9 @@ func stringMaptoArray(m map[string]string) []string {
 // a specgen spec.
 func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroupsManager string) (*ContainerCLIOpts, []string, error) {
 	var (
-		aliases    []string
 		capAdd     []string
 		cappDrop   []string
-		entrypoint string
+		entrypoint *string
 		init       bool
 		specPorts  []specgen.PortMapping
 	)
@@ -180,13 +180,14 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	// marshall it to json; otherwise it should just be the string
 	// value
 	if len(cc.Config.Entrypoint) > 0 {
-		entrypoint = cc.Config.Entrypoint[0]
+		entrypoint = &cc.Config.Entrypoint[0]
 		if len(cc.Config.Entrypoint) > 1 {
 			b, err := json.Marshal(cc.Config.Entrypoint)
 			if err != nil {
 				return nil, nil, err
 			}
-			entrypoint = string(b)
+			var jsonString = string(b)
+			entrypoint = &jsonString
 		}
 	}
 
@@ -210,7 +211,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		mounts = append(mounts, mount)
 	}
 
-	//volumes
+	// volumes
 	volumes := make([]string, 0, len(cc.Config.Volumes))
 	for v := range cc.Config.Volumes {
 		volumes = append(volumes, v)
@@ -240,16 +241,6 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		}
 	}
 
-	// network names
-	endpointsConfig := cc.NetworkingConfig.EndpointsConfig
-	cniNetworks := make([]string, 0, len(endpointsConfig))
-	for netName, endpoint := range endpointsConfig {
-		cniNetworks = append(cniNetworks, netName)
-		if len(endpoint.Aliases) > 0 {
-			aliases = append(aliases, endpoint.Aliases...)
-		}
-	}
-
 	// netMode
 	nsmode, _, err := specgen.ParseNetworkNamespace(cc.HostConfig.NetworkMode.NetworkName())
 	if err != nil {
@@ -266,8 +257,6 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	// defined when there is only one network.
 	netInfo := entities.NetOptions{
 		AddHosts:     cc.HostConfig.ExtraHosts,
-		Aliases:      aliases,
-		CNINetworks:  cniNetworks,
 		DNSOptions:   cc.HostConfig.DNSOptions,
 		DNSSearch:    cc.HostConfig.DNSSearch,
 		DNSServers:   dns,
@@ -275,31 +264,58 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		PublishPorts: specPorts,
 	}
 
-	// static IP and MAC
-	if len(endpointsConfig) == 1 {
-		for _, ep := range endpointsConfig {
-			// if IP address is provided
-			if len(ep.IPAddress) > 0 {
-				staticIP := net.ParseIP(ep.IPAddress)
-				netInfo.StaticIP = &staticIP
+	// network names
+	switch {
+	case len(cc.NetworkingConfig.EndpointsConfig) > 0:
+		var aliases []string
+
+		endpointsConfig := cc.NetworkingConfig.EndpointsConfig
+		cniNetworks := make([]string, 0, len(endpointsConfig))
+		for netName, endpoint := range endpointsConfig {
+
+			cniNetworks = append(cniNetworks, netName)
+
+			if endpoint == nil {
+				continue
 			}
-			// If MAC address is provided
-			if len(ep.MacAddress) > 0 {
-				staticMac, err := net.ParseMAC(ep.MacAddress)
-				if err != nil {
-					return nil, nil, err
-				}
-				netInfo.StaticMAC = &staticMac
+			if len(endpoint.Aliases) > 0 {
+				aliases = append(aliases, endpoint.Aliases...)
 			}
-			break
 		}
+
+		// static IP and MAC
+		if len(endpointsConfig) == 1 {
+			for _, ep := range endpointsConfig {
+				if ep == nil {
+					continue
+				}
+				// if IP address is provided
+				if len(ep.IPAddress) > 0 {
+					staticIP := net.ParseIP(ep.IPAddress)
+					netInfo.StaticIP = &staticIP
+				}
+				// If MAC address is provided
+				if len(ep.MacAddress) > 0 {
+					staticMac, err := net.ParseMAC(ep.MacAddress)
+					if err != nil {
+						return nil, nil, err
+					}
+					netInfo.StaticMAC = &staticMac
+				}
+				break
+			}
+		}
+		netInfo.Aliases = aliases
+		netInfo.CNINetworks = cniNetworks
+	case len(cc.HostConfig.NetworkMode) > 0:
+		netInfo.CNINetworks = []string{string(cc.HostConfig.NetworkMode)}
 	}
 
 	// Note: several options here are marked as "don't need". this is based
 	// on speculation by Matt and I. We think that these come into play later
 	// like with start. We believe this is just a difference in podman/compat
 	cliOpts := ContainerCLIOpts{
-		//Attach:            nil, // dont need?
+		// Attach:            nil, // dont need?
 		Authfile:     "",
 		CapAdd:       append(capAdd, cc.HostConfig.CapAdd...),
 		CapDrop:      append(cappDrop, cc.HostConfig.CapDrop...),
@@ -310,18 +326,18 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		CPURTPeriod:  uint64(cc.HostConfig.CPURealtimePeriod),
 		CPURTRuntime: cc.HostConfig.CPURealtimeRuntime,
 		CPUShares:    uint64(cc.HostConfig.CPUShares),
-		//CPUS:              0, // dont need?
+		// CPUS:              0, // dont need?
 		CPUSetCPUs: cc.HostConfig.CpusetCpus,
 		CPUSetMems: cc.HostConfig.CpusetMems,
-		//Detach:            false, // dont need
-		//DetachKeys:        "",    // dont need
+		// Detach:            false, // dont need
+		// DetachKeys:        "",    // dont need
 		Devices:          devices,
 		DeviceCGroupRule: nil,
 		DeviceReadBPs:    readBps,
 		DeviceReadIOPs:   readIops,
 		DeviceWriteBPs:   writeBps,
 		DeviceWriteIOPs:  writeIops,
-		Entrypoint:       &entrypoint,
+		Entrypoint:       entrypoint,
 		Env:              cc.Config.Env,
 		Expose:           expose,
 		GroupAdd:         cc.HostConfig.GroupAdd,
@@ -436,7 +452,70 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	}
 
 	// specgen assumes the image name is arg[0]
-	cmd := []string{cc.Image}
+	cmd := []string{cc.Config.Image}
 	cmd = append(cmd, cc.Config.Cmd...)
 	return &cliOpts, cmd, nil
+}
+
+func ulimits() []string {
+	if !registry.IsRemote() {
+		return containerConfig.Ulimits()
+	}
+	return nil
+}
+
+func cgroupConfig() string {
+	if !registry.IsRemote() {
+		return containerConfig.Cgroups()
+	}
+	return ""
+}
+
+func devices() []string {
+	if !registry.IsRemote() {
+		return containerConfig.Devices()
+	}
+	return nil
+}
+
+func env() []string {
+	if !registry.IsRemote() {
+		return containerConfig.Env()
+	}
+	return nil
+}
+
+func initPath() string {
+	if !registry.IsRemote() {
+		return containerConfig.InitPath()
+	}
+	return ""
+}
+
+func pidsLimit() int64 {
+	if !registry.IsRemote() {
+		return containerConfig.PidsLimit()
+	}
+	return -1
+}
+
+func policy() string {
+	if !registry.IsRemote() {
+		return containerConfig.Engine.PullPolicy
+	}
+	return ""
+}
+
+func shmSize() string {
+	if !registry.IsRemote() {
+		return containerConfig.ShmSize()
+	}
+	return ""
+}
+
+func volumes() []string {
+	if !registry.IsRemote() {
+		return containerConfig.Volumes()
+	}
+	return nil
 }

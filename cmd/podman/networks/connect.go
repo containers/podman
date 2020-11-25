@@ -17,7 +17,7 @@ var (
 		RunE:              networkConnect,
 		Example:           `podman network connect web secondary`,
 		Args:              cobra.ExactArgs(2),
-		ValidArgsFunction: common.AutocompleteNetworks,
+		ValidArgsFunction: common.AutocompleteNetworkConnectCmd,
 	}
 )
 

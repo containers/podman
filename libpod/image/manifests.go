@@ -2,13 +2,14 @@ package image
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/containers/buildah/manifests"
+	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 // Options for adding a manifest
@@ -69,19 +70,10 @@ func CreateManifestList(rt *Runtime, systemContext types.SystemContext, names []
 	list := manifests.Create()
 	opts := ManifestAddOpts{Images: names, All: all}
 	for _, img := range imgs {
-		var ref types.ImageReference
-		newImage, err := rt.NewFromLocal(img)
-		if err == nil {
-			ir, err := newImage.toImageRef(context.Background())
-			if err != nil {
-				return "", err
-			}
-			if ir == nil {
-				return "", errors.New("unable to convert image to ImageReference")
-			}
-			ref = ir.Reference()
-		} else {
-			ref, err = alltransports.ParseImageName(img)
+		ref, err := alltransports.ParseImageName(img)
+		if err != nil {
+			dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
+			ref, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, img))
 			if err != nil {
 				return "", err
 			}
@@ -134,18 +126,10 @@ func addManifestToList(ref types.ImageReference, list manifests.List, systemCont
 
 // AddManifest adds a manifest to a given manifest list.
 func (i *Image) AddManifest(systemContext types.SystemContext, opts ManifestAddOpts) (string, error) {
-	var (
-		ref types.ImageReference
-	)
-	newImage, err := i.imageruntime.NewFromLocal(opts.Images[0])
-	if err == nil {
-		ir, err := newImage.toImageRef(context.Background())
-		if err != nil {
-			return "", err
-		}
-		ref = ir.Reference()
-	} else {
-		ref, err = alltransports.ParseImageName(opts.Images[0])
+	ref, err := alltransports.ParseImageName(opts.Images[0])
+	if err != nil {
+		dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
+		ref, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, opts.Images[0]))
 		if err != nil {
 			return "", err
 		}

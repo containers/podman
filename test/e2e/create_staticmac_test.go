@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -43,6 +44,23 @@ var _ = Describe("Podman run with --mac-address flag", func() {
 		} else {
 			Expect(result.ExitCode()).To(Equal(0))
 			Expect(result.OutputToString()).To(ContainSubstring("92:d0:c6:0a:29:34"))
+		}
+	})
+
+	It("Podman run --mac-address with custom network", func() {
+		net := "n1" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
+
+		result := podmanTest.Podman([]string{"run", "--network", net, "--mac-address", "92:d0:c6:00:29:34", ALPINE, "ip", "addr"})
+		result.WaitWithDefaultTimeout()
+		if rootless.IsRootless() {
+			Expect(result.ExitCode()).To(Equal(125))
+		} else {
+			Expect(result.ExitCode()).To(Equal(0))
+			Expect(result.OutputToString()).To(ContainSubstring("92:d0:c6:00:29:34"))
 		}
 	})
 })

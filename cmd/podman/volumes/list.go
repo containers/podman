@@ -56,7 +56,7 @@ func init() {
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&cliOpts.Filter, filterFlagName, "f", []string{}, "Filter volume output")
-	_ = lsCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = lsCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumeFilters)
 
 	formatFlagName := "format"
 	flags.StringVar(&cliOpts.Format, formatFlagName, "{{.Driver}}\t{{.Name}}\n", "Format volume output using Go template")

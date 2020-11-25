@@ -18,12 +18,10 @@ import (
 )
 
 var (
-	topDescription = `Similar to system "top" command.
+	topDescription = `Display the running processes of a container.
 
-  Specify format descriptors to alter the output.
-
-  Running "podman top -l pid pcpu seccomp" will print the process ID, the CPU percentage and the seccomp mode of each process of the latest container.`
-
+  The top command extends the ps(1) compatible AIX descriptors with container-specific ones as shown below.  In the presence of ps(1) specific flags (e.g, -eo), Podman will execute ps(1) inside the container.
+`
 	topOptions = entities.TopOptions{}
 
 	topCommand = &cobra.Command{
@@ -32,7 +30,7 @@ var (
 		Long:              topDescription,
 		RunE:              top,
 		Args:              cobra.ArbitraryArgs,
-		ValidArgsFunction: common.AutocompleteContainersRunning,
+		ValidArgsFunction: common.AutocompleteTopCmd,
 		Example: `podman top ctrID
 podman top --latest
 podman top ctrID pid seccomp args %C

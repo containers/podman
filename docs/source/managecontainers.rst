@@ -39,6 +39,8 @@ Manage Containers
 
 :doc:`prune <markdown/podman-container-prune.1>` Remove all stopped containers
 
+:doc:`ps <markdown/podman-ps.1>` List containers
+
 :doc:`restart <markdown/podman-restart.1>` Restart one or more containers
 
 :doc:`restore <markdown/podman-container-restore.1>` Restores one or more containers from a checkpoint

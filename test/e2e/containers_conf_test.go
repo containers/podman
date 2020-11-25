@@ -177,6 +177,9 @@ var _ = Describe("Podman run", func() {
 		}
 
 		os.Setenv("CONTAINERS_CONF", conffile)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 		result := podmanTest.Podman([]string{"run", ALPINE, "ls", tempdir})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -224,6 +227,17 @@ var _ = Describe("Podman run", func() {
 		Expect(session.LineInOuputStartsWith("search")).To(BeFalse())
 	})
 
+	It("podman run use containers.conf search domain", func() {
+		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOuputStartsWith("search")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("foobar.com"))
+
+		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
+		Expect(session.OutputToString()).To(ContainSubstring("debug"))
+	})
+
 	It("podman run containers.conf timezone", func() {
 		//containers.conf timezone set to Pacific/Honolulu
 		session := podmanTest.Podman([]string{"run", ALPINE, "date", "+'%H %Z'"})
@@ -231,6 +245,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("HST"))
 	})
+
 	It("podman run containers.conf umask", func() {
 		//containers.conf umask set to 0002
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
@@ -243,4 +258,57 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(Equal("0002"))
 	})
 
+	It("podman-remote test localcontainers.conf versus remote containers.conf", func() {
+		if !IsRemote() {
+			Skip("this test is only for remote")
+		}
+
+		os.Setenv("CONTAINERS_CONF", "config/containers-remote.conf")
+		// Configuration that comes from remote server
+		// env
+		session := podmanTest.Podman([]string{"run", ALPINE, "printenv", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("bar"))
+
+		// dns-search, server, options
+		session = podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOuputStartsWith("search")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("foobar.com"))
+		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
+		Expect(session.OutputToString()).To(ContainSubstring("debug"))
+
+		// sysctls
+		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/proc/sys/net/ipv4/ping_group_range"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("1000"))
+
+		// shm-size
+		session = podmanTest.Podman([]string{"run", ALPINE, "grep", "shm", "/proc/self/mounts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("size=200k"))
+
+		// ulimits
+		session = podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("500"))
+
+		// Configuration that comes from remote client
+		// Timezone
+		session = podmanTest.Podman([]string{"run", ALPINE, "date", "+'%H %Z'"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("EST"))
+
+		// Umask
+		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "umask"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("0022"))
+	})
 })

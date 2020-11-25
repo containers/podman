@@ -51,10 +51,10 @@ func (i *Image) Id() string { // nolint
 }
 
 type ImageSummary struct {
-	ID          string            `json:"Id"`
-	ParentId    string            `json:",omitempty"` // nolint
-	RepoTags    []string          `json:",omitempty"`
-	Created     int64             `json:",omitempty"`
+	ID          string   `json:"Id"`
+	ParentId    string   // nolint
+	RepoTags    []string `json:",omitempty"`
+	Created     int64
 	Size        int64             `json:",omitempty"`
 	SharedSize  int               `json:",omitempty"`
 	VirtualSize int64             `json:",omitempty"`

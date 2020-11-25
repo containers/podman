@@ -29,14 +29,24 @@ var (
 	psDescription = "Prints out information about the containers"
 	psCommand     = &cobra.Command{
 		Use:               "ps [options]",
-		Args:              validate.NoArgs,
 		Short:             "List containers",
 		Long:              psDescription,
 		RunE:              ps,
+		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman ps -a
   podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
   podman ps --size --sort names`,
+	}
+
+	psContainerCommand = &cobra.Command{
+		Use:               psCommand.Use,
+		Short:             psCommand.Short,
+		Long:              psCommand.Long,
+		RunE:              psCommand.RunE,
+		Args:              psCommand.Args,
+		ValidArgsFunction: psCommand.ValidArgsFunction,
+		Example:           strings.ReplaceAll(psCommand.Example, "podman ps", "podman container ps"),
 	}
 )
 var (
@@ -54,6 +64,14 @@ func init() {
 	})
 	listFlagSet(psCommand)
 	validate.AddLatestFlag(psCommand, &listOpts.Latest)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: psContainerCommand,
+		Parent:  containerCmd,
+	})
+	listFlagSet(psContainerCommand)
+	validate.AddLatestFlag(psContainerCommand, &listOpts.Latest)
 }
 
 func listFlagSet(cmd *cobra.Command) {

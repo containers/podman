@@ -298,6 +298,9 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		state.Running = true
 	}
 
+	formatCapabilities(inspect.HostConfig.CapDrop)
+	formatCapabilities(inspect.HostConfig.CapAdd)
+
 	h, err := json.Marshal(inspect.HostConfig)
 	if err != nil {
 		return nil, err
@@ -318,8 +321,8 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	cb := types.ContainerJSONBase{
 		ID:              l.ID(),
 		Created:         l.CreatedTime().Format(time.RFC3339Nano),
-		Path:            "",
-		Args:            nil,
+		Path:            inspect.Path,
+		Args:            inspect.Args,
 		State:           &state,
 		Image:           imageName,
 		ResolvConfPath:  inspect.ResolvConfPath,
@@ -328,7 +331,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		LogPath:         l.LogPath(),
 		Node:            nil,
 		Name:            fmt.Sprintf("/%s", l.Name()),
-		RestartCount:    0,
+		RestartCount:    int(inspect.RestartCount),
 		Driver:          inspect.Driver,
 		Platform:        "linux",
 		MountLabel:      inspect.MountLabel,
@@ -427,4 +430,10 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		NetworkSettings:   &networkSettings,
 	}
 	return &c, nil
+}
+
+func formatCapabilities(slice []string) {
+	for i := range slice {
+		slice[i] = strings.TrimPrefix(slice[i], "CAP_")
+	}
 }

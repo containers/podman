@@ -13,10 +13,12 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/lock"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
@@ -920,19 +922,39 @@ func (c *Container) CGroupPath() (string, error) {
 		return "", errors.Wrapf(define.ErrNoCgroups, "this container is not creating cgroups")
 	}
 
-	// Read /proc/[PID]/cgroup and look at the first line.  cgroups(7)
-	// nails it down to three fields with the 3rd pointing to the cgroup's
-	// path which works both on v1 and v2.
+	// Read /proc/[PID]/cgroup and find the *longest* cgroup entry.  That's
+	// needed to account for hacks in cgroups v1, where each line in the
+	// file could potentially point to a cgroup.  The longest one, however,
+	// is the libpod-specific one we're looking for.
+	//
+	// See #8397 on the need for the longest-path look up.
 	procPath := fmt.Sprintf("/proc/%d/cgroup", c.state.PID)
 	lines, err := ioutil.ReadFile(procPath)
 	if err != nil {
 		return "", err
 	}
-	fields := bytes.Split(bytes.Split(lines, []byte("\n"))[0], []byte(":"))
-	if len(fields) != 3 {
-		return "", errors.Errorf("expected 3 fields but got %d: %s", len(fields), procPath)
+
+	var cgroupPath string
+	for _, line := range bytes.Split(lines, []byte("\n")) {
+		// cgroups(7) nails it down to three fields with the 3rd
+		// pointing to the cgroup's path which works both on v1 and v2.
+		fields := bytes.Split(line, []byte(":"))
+		if len(fields) != 3 {
+			logrus.Debugf("Error parsing cgroup: expected 3 fields but got %d: %s", len(fields), procPath)
+			continue
+		}
+		path := string(fields[2])
+		if len(path) > len(cgroupPath) {
+			cgroupPath = path
+		}
+
 	}
-	return string(fields[2]), nil
+
+	if len(cgroupPath) == 0 {
+		return "", errors.Errorf("could not find any cgroup in %q", procPath)
+	}
+
+	return cgroupPath, nil
 }
 
 // RootFsSize returns the root FS size of the container
@@ -1074,13 +1096,17 @@ func (c *Container) Umask() string {
 // values at runtime via network connect and disconnect.
 // If the container is configured to use CNI and this function returns an empty
 // array, the container will still be connected to the default network.
-func (c *Container) Networks() ([]string, error) {
+// The second return parameter, a bool, indicates that the container container
+// is joining the default CNI network - the network name will be included in the
+// returned array of network names, but the container did not explicitly join
+// this network.
+func (c *Container) Networks() ([]string, bool, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
@@ -1088,19 +1114,22 @@ func (c *Container) Networks() ([]string, error) {
 }
 
 // Unlocked accessor for networks
-func (c *Container) networks() ([]string, error) {
+func (c *Container) networks() ([]string, bool, error) {
 	networks, err := c.runtime.state.GetNetworks(c)
 	if err != nil && errors.Cause(err) == define.ErrNoSuchNetwork {
-		return c.config.Networks, nil
+		if len(c.config.Networks) == 0 && !rootless.IsRootless() {
+			return []string{c.runtime.netPlugin.GetDefaultNetworkName()}, true, nil
+		}
+		return c.config.Networks, false, nil
 	}
 
-	return networks, err
+	return networks, false, err
 }
 
 // networksByNameIndex provides us with a map of container networks where key
 // is network name and value is the index position
 func (c *Container) networksByNameIndex() (map[string]int, error) {
-	networks, err := c.networks()
+	networks, _, err := c.networks()
 	if err != nil {
 		return nil, err
 	}

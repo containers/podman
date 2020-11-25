@@ -4,9 +4,7 @@ from test.python.docker import constant
 
 
 def run_top_container(client: DockerClient):
-    c = client.containers.create(
-        constant.ALPINE, command="top", detach=True, tty=True, name="top"
-    )
+    c = client.containers.create(constant.ALPINE, command="top", detach=True, tty=True, name="top")
     c.start()
     return c.id
 

@@ -206,37 +206,39 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	return nil
 }
 
-// Handle container restart policy.
-// This is called when a container has exited, and was not explicitly stopped by
-// an API call to stop the container or pod it is in.
-func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr error) {
-	// If we did not get a restart policy match, exit immediately.
+func (c *Container) shouldRestart() bool {
+	// If we did not get a restart policy match, return false
 	// Do the same if we're not a policy that restarts.
 	if !c.state.RestartPolicyMatch ||
 		c.config.RestartPolicy == RestartPolicyNo ||
 		c.config.RestartPolicy == RestartPolicyNone {
-		return false, nil
+		return false
 	}
 
 	// If we're RestartPolicyOnFailure, we need to check retries and exit
 	// code.
 	if c.config.RestartPolicy == RestartPolicyOnFailure {
 		if c.state.ExitCode == 0 {
-			return false, nil
+			return false
 		}
 
 		// If we don't have a max retries set, continue
 		if c.config.RestartRetries > 0 {
-			if c.state.RestartCount < c.config.RestartRetries {
-				logrus.Debugf("Container %s restart policy trigger: on retry %d (of %d)",
-					c.ID(), c.state.RestartCount, c.config.RestartRetries)
-			} else {
-				logrus.Debugf("Container %s restart policy trigger: retries exhausted", c.ID())
-				return false, nil
+			if c.state.RestartCount >= c.config.RestartRetries {
+				return false
 			}
 		}
 	}
+	return true
+}
 
+// Handle container restart policy.
+// This is called when a container has exited, and was not explicitly stopped by
+// an API call to stop the container or pod it is in.
+func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr error) {
+	if !c.shouldRestart() {
+		return false, nil
+	}
 	logrus.Debugf("Restarting container %s due to restart policy %s", c.ID(), c.config.RestartPolicy)
 
 	// Need to check if dependencies are alive.
@@ -641,18 +643,13 @@ func (c *Container) removeIPv4Allocations() error {
 		cniDefaultNetwork = c.runtime.netPlugin.GetDefaultNetworkName()
 	}
 
-	networks, err := c.networks()
+	networks, _, err := c.networks()
 	if err != nil {
 		return err
 	}
 
-	switch {
-	case len(networks) > 0 && len(networks) != len(c.state.NetworkStatus):
+	if len(networks) != len(c.state.NetworkStatus) {
 		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(networks), len(c.state.NetworkStatus))
-	case len(networks) == 0 && len(c.state.NetworkStatus) != 1:
-		return errors.Wrapf(define.ErrInternal, "network mismatch: did not specify CNI networks but joined more than one (%d)", len(c.state.NetworkStatus))
-	case len(networks) == 0 && cniDefaultNetwork == "":
-		return errors.Wrapf(define.ErrInternal, "could not retrieve name of CNI default network")
 	}
 
 	for index, result := range c.state.NetworkStatus {

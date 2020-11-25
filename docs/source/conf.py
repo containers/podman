@@ -28,11 +28,11 @@ author = "team"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx_markdown_tables',
+    "sphinx_markdown_tables",
 ]
 
 source_parsers = {
-    '.md': 'recommonmark.parser.CommonMarkParser',
+    ".md": "recommonmark.parser.CommonMarkParser",
 }
 
 
