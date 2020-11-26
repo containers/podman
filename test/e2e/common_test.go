@@ -317,7 +317,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 	fmt.Printf("Caching %s at %s...", image, destName)
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
 		pull := p.PodmanNoCache([]string{"pull", image})
-		pull.Wait(90)
+		pull.Wait(240)
 		Expect(pull.ExitCode()).To(Equal(0))
 
 		save := p.PodmanNoCache([]string{"save", "-o", destName, image})
