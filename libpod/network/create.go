@@ -173,14 +173,26 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 		ipMasq = false
 	}
 
-	mtu, err := parseMTU(options.Options["mtu"])
-	if err != nil {
-		return "", err
-	}
+	var mtu int
+	var vlan int
+	for k, v := range options.Options {
+		var err error
+		switch k {
+		case "mtu":
+			mtu, err = parseMTU(v)
+			if err != nil {
+				return "", err
+			}
 
-	vlan, err := parseVlan(options.Options["vlan"])
-	if err != nil {
-		return "", err
+		case "vlan":
+			vlan, err = parseVlan(v)
+			if err != nil {
+				return "", err
+			}
+
+		default:
+			return "", errors.Errorf("unsupported option %s", k)
+		}
 	}
 
 	// obtain host bridge name

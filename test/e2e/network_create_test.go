@@ -355,4 +355,11 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc.OutputToString()).To(ContainSubstring(`"vlan": 9`))
 	})
 
+	It("podman network create with invalid option", func() {
+		net := "invalid-test"
+		nc := podmanTest.Podman([]string{"network", "create", "--opt", "foo=bar", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).To(ExitWithError())
+	})
+
 })
