@@ -190,7 +190,7 @@ func hasCurrentUserMapped(ctr *Container) bool {
 }
 
 // CreateContainer creates a container.
-func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerRestoreOptions) error {
 	if !hasCurrentUserMapped(ctr) {
 		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.Engine.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.Engine.VolumePath} {
 			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
@@ -761,14 +761,14 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	}
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
-	if options.PreDump {
-		imagePath = ctr.PreDumpPath()
+	if options.PreCheckPoint {
+		imagePath = ctr.PreCheckPointPath()
 	}
 	// workPath will be used to store dump.log and stats-dump
 	workPath := ctr.bundlePath()
 	logrus.Debugf("Writing checkpoint to %s", imagePath)
 	logrus.Debugf("Writing checkpoint logs to %s", workPath)
-	logrus.Debugf("Pre-dump the container %t", options.PreDump)
+	logrus.Debugf("Pre-dump the container %t", options.PreCheckPoint)
 	args := []string{}
 	args = append(args, r.runtimeFlags...)
 	args = append(args, "checkpoint")
@@ -779,16 +779,16 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	if options.TCPEstablished {
 		args = append(args, "--tcp-established")
 	}
-	if !options.PreDump && options.KeepRunning {
+	if !options.PreCheckPoint && options.KeepRunning {
 		args = append(args, "--leave-running")
 	}
-
-	if !options.PreDump && options.WithPrevious {
-		args = append(args, "--parent-path", ctr.PreDumpPath())
-	}
-	if options.PreDump {
+	if options.PreCheckPoint {
 		args = append(args, "--pre-dump")
 	}
+	if !options.PreCheckPoint && options.WithPrevious {
+		args = append(args, "--parent-path", ctr.PreCheckPointPath())
+	}
+
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
@@ -797,6 +797,7 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 	}
 	args = append(args, ctr.ID())
+	logrus.Debugf("the args to checkpoint: %s", strings.Join(args, " "))
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
 }
 
@@ -981,7 +982,7 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 }
 
 // createOCIContainer generates this container's main conmon instance and prepares it for starting
-func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerRestoreOptions) error {
 	var stderrBuf bytes.Buffer
 
 	runtimeDir, err := util.GetRuntimeDir()

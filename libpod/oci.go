@@ -24,7 +24,7 @@ type OCIRuntime interface {
 	Path() string
 
 	// CreateContainer creates the container in the OCI runtime.
-	CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error
+	CreateContainer(ctr *Container, restoreOptions *ContainerRestoreOptions) error
 	// UpdateContainerStatus updates the status of the given container.
 	UpdateContainerStatus(ctr *Container) error
 	// StartContainer starts the given container.

@@ -135,8 +135,8 @@ func (c *Container) CheckpointPath() string {
 }
 
 // CheckpointPath returns the path to the directory containing the checkpoint
-func (c *Container) PreDumpPath() string {
-	return filepath.Join(c.bundlePath(), "pre-dump")
+func (c *Container) PreCheckPointPath() string {
+	return filepath.Join(c.bundlePath(), "pre-checkpoint")
 }
 
 // AttachSocketPath retrieves the path of the container's attach socket
@@ -2063,7 +2063,7 @@ func (c *Container) prepareCheckpointExport() error {
 }
 
 func (c *Container) canWithPrevious() error {
-	_, err := os.Stat(c.PreDumpPath())
+	_, err := os.Stat(c.PreCheckPointPath())
 	return err
 }
 

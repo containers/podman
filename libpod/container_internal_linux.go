@@ -758,7 +758,7 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) error {
+func (c *Container) exportCheckpoint(dest string, ignoreRootfs, preCheckpoint bool) error {
 	if (len(c.config.NamedVolumes) > 0) || (len(c.Dependencies()) > 0) {
 		return errors.Errorf("Cannot export checkpoints of containers with named volumes or dependencies")
 	}
@@ -770,7 +770,11 @@ func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) error {
 		"ctr.log",
 		"config.dump",
 		"spec.dump",
-		"network.status"}
+		"network.status",
+	}
+	if preCheckpoint {
+		includeFiles[0] = "pre-checkpoint"
+	}
 
 	// Get root file-system changes included in the checkpoint archive
 	rootfsDiffPath := filepath.Join(c.bundlePath(), "rootfs-diff.tar")
@@ -931,14 +935,14 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	defer c.newContainerEvent(events.Checkpoint)
 
 	if options.TargetFile != "" {
-		if err = c.exportCheckpoint(options.TargetFile, options.IgnoreRootfs); err != nil {
+		if err = c.exportCheckpoint(options.TargetFile, options.IgnoreRootfs, options.PreCheckPoint); err != nil {
 			return err
 		}
 	}
 
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
-	if !options.KeepRunning && !options.PreDump {
+	if !options.KeepRunning && !options.PreCheckPoint {
 		c.state.State = define.ContainerStateStopped
 
 		// Cleanup Storage and Network
@@ -947,7 +951,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		}
 	}
 
-	if !options.Keep && !options.PreDump {
+	if !options.Keep && !options.PreCheckPoint {
 		cleanup := []string{
 			"dump.log",
 			"stats-dump",
@@ -995,7 +999,22 @@ func (c *Container) importCheckpoint(input string) error {
 	return nil
 }
 
-func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (retErr error) {
+func (c *Container) importPreCheckpoint(input string) error {
+	archiveFile, err := os.Open(input)
+	if err != nil {
+		return errors.Wrap(err, "failed to open pre-checkpoint archive for import")
+	}
+
+	defer archiveFile.Close()
+
+	err = archive.Untar(archiveFile, c.bundlePath(), nil)
+	if err != nil {
+		return errors.Wrapf(err, "Unpacking of pre-checkpoint archive %s failed", input)
+	}
+	return nil
+}
+
+func (c *Container) restore(ctx context.Context, options ContainerRestoreOptions) (retErr error) {
 	if err := c.checkpointRestoreSupported(); err != nil {
 		return err
 	}
@@ -1004,6 +1023,11 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
 	}
 
+	if options.ImportPrevious != "" {
+		if err := c.importPreCheckpoint(options.TargetFile); err != nil {
+			return err
+		}
+	}
 	if options.TargetFile != "" {
 		if err := c.importCheckpoint(options.TargetFile); err != nil {
 			return err

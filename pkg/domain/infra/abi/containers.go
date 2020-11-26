@@ -486,15 +486,14 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		err  error
 		cons []*libpod.Container
 	)
-	checkOpts := libpod.ContainerCheckpointOptions{
-		Keep:           options.Keep,
-		TCPEstablished: options.TCPEstablished,
-		TargetFile:     options.Export,
-		IgnoreRootfs:   options.IgnoreRootFS,
-		KeepRunning:    options.LeaveRunning,
-		PreDump:        options.PreDump,
-		WithPrevious:   options.WithPrevious,
-	}
+	checkOpts := libpod.ContainerCheckpointOptions{}
+	checkOpts.Keep = options.Keep
+	checkOpts.TCPEstablished = options.TCPEstablished
+	checkOpts.TargetFile = options.Export
+	checkOpts.IgnoreRootfs = options.IgnoreRootFS
+	checkOpts.KeepRunning = options.LeaveRunning
+	checkOpts.PreCheckPoint = options.PreCheckPoint
+	checkOpts.WithPrevious = options.WithPrevious
 
 	if options.All {
 		running := func(c *libpod.Container) bool {
@@ -524,16 +523,15 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		cons []*libpod.Container
 		err  error
 	)
-
-	restoreOptions := libpod.ContainerCheckpointOptions{
-		Keep:            options.Keep,
-		TCPEstablished:  options.TCPEstablished,
-		TargetFile:      options.Import,
-		Name:            options.Name,
-		IgnoreRootfs:    options.IgnoreRootFS,
-		IgnoreStaticIP:  options.IgnoreStaticIP,
-		IgnoreStaticMAC: options.IgnoreStaticMAC,
-	}
+	restoreOpts := libpod.ContainerRestoreOptions{}
+	restoreOpts.Keep = options.Keep
+	restoreOpts.TCPEstablished = options.TCPEstablished
+	restoreOpts.TargetFile = options.Import
+	restoreOpts.IgnoreRootfs = options.IgnoreRootFS
+	restoreOpts.Name = options.Name
+	restoreOpts.IgnoreStaticIP = options.IgnoreStaticIP
+	restoreOpts.IgnoreStaticMAC = options.IgnoreStaticMAC
+	restoreOpts.ImportPrevious = options.ImportPrevious
 
 	filterFuncs := []libpod.ContainerFilter{
 		func(c *libpod.Container) bool {
@@ -555,7 +553,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	}
 	reports := make([]*entities.RestoreReport, 0, len(cons))
 	for _, con := range cons {
-		err := con.Restore(ctx, restoreOptions)
+		err := con.Restore(ctx, restoreOpts)
 		reports = append(reports, &entities.RestoreReport{
 			Err: err,
 			Id:  con.ID(),

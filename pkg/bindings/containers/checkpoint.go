@@ -12,7 +12,7 @@ import (
 
 // Checkpoint checkpoints the given container (identified by nameOrID).  All additional
 // options are options and allow for more fine grained control of the checkpoint process.
-func Checkpoint(ctx context.Context, nameOrID string, keep, leaveRunning, tcpEstablished, ignoreRootFS *bool, export *string) (*entities.CheckpointReport, error) {
+func Checkpoint(ctx context.Context, nameOrID string, keep, leaveRunning, tcpEstablished, ignoreRootFS, preCheckPoint, withPrevious *bool, export *string) (*entities.CheckpointReport, error) {
 	var report entities.CheckpointReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -30,6 +30,12 @@ func Checkpoint(ctx context.Context, nameOrID string, keep, leaveRunning, tcpEst
 	}
 	if ignoreRootFS != nil {
 		params.Set("ignoreRootFS", strconv.FormatBool(*ignoreRootFS))
+	}
+	if preCheckPoint != nil {
+		params.Set("preCheckPoint", strconv.FormatBool(*preCheckPoint))
+	}
+	if withPrevious != nil {
+		params.Set("withPrevious", strconv.FormatBool(*withPrevious))
 	}
 	if export != nil {
 		params.Set("export", *export)

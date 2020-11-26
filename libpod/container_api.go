@@ -648,25 +648,43 @@ func (c *Container) Refresh(ctx context.Context) error {
 
 // ContainerCheckpointOptions is a struct used to pass the parameters
 // for checkpointing (and restoring) to the corresponding functions
-type ContainerCheckpointOptions struct {
+type ContainerCriu struct {
 	// Keep tells the API to not delete checkpoint artifacts
 	Keep bool
-	// KeepRunning tells the API to keep the container running
-	// after writing the checkpoint to disk
-	KeepRunning bool
 	// TCPEstablished tells the API to checkpoint a container
 	// even if it contains established TCP connections
 	TCPEstablished bool
 	// TargetFile tells the API to read (or write) the checkpoint image
 	// from (or to) the filename set in TargetFile
 	TargetFile string
+	// IgnoreRootfs tells the API to not export changes to
+	// the container's root file-system (or to not import)
+	IgnoreRootfs bool
+}
+
+type ContainerCheckpointOptions struct {
+	// The common params for checkpoint
+	ContainerCriu
+	// KeepRunning tells the API to keep the container running
+	// after writing the checkpoint to disk
+	KeepRunning bool
 	// Name tells the API that during restore from an exported
 	// checkpoint archive a new name should be used for the
 	// restored container
 	Name string
-	// IgnoreRootfs tells the API to not export changes to
-	// the container's root file-system (or to not import)
-	IgnoreRootfs bool
+	// Pre Checkpoint container and leave container running
+	PreCheckPoint bool
+	// Dump container with Pre-dump images
+	WithPrevious bool
+}
+
+type ContainerRestoreOptions struct {
+	// The common params for restore
+	ContainerCriu
+	// Name tells the API that during restore from an exported
+	// checkpoint archive a new name should be used for the
+	// restored container
+	Name string
 	// IgnoreStaticIP tells the API to ignore the IP set
 	// during 'podman run' with '--ip'. This is especially
 	// important to be able to restore a container multiple
@@ -677,10 +695,9 @@ type ContainerCheckpointOptions struct {
 	// important to be able to restore a container multiple
 	// times with '--import --name'.
 	IgnoreStaticMAC bool
-	// Pre dump the container
-	PreDump bool
-	// dump container with Pre-dump images
-	WithPrevious bool
+	// ImportPrevious tells the API to restore container with two
+	// images. One is TargetFile, the other is ImportPrevious.
+	ImportPrevious string
 }
 
 // Checkpoint checkpoints a container
@@ -711,7 +728,7 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 }
 
 // Restore restores a container
-func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) error {
+func (c *Container) Restore(ctx context.Context, options ContainerRestoreOptions) error {
 	logrus.Debugf("Trying to restore container %s", c.ID())
 	if !c.batched {
 		c.lock.Lock()
