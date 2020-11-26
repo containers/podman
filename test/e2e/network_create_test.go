@@ -329,4 +329,30 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(ExitWithError())
 	})
 
+	It("podman network create with mtu option", func() {
+		net := "mtu-test"
+		nc := podmanTest.Podman([]string{"network", "create", "--opt", "mtu=9000", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(net)
+
+		nc = podmanTest.Podman([]string{"network", "inspect", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc.OutputToString()).To(ContainSubstring(`"mtu": 9000,`))
+	})
+
+	It("podman network create with vlan option", func() {
+		net := "vlan-test"
+		nc := podmanTest.Podman([]string{"network", "create", "--opt", "vlan=9", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(net)
+
+		nc = podmanTest.Podman([]string{"network", "inspect", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc.OutputToString()).To(ContainSubstring(`"vlan": 9`))
+	})
+
 })
