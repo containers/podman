@@ -30,8 +30,9 @@ Driver to manage the network (default "bridge").  Currently only `bridge` is sup
 
 Set driver specific options.
 
-For the `bridge` driver the following options are supported: `mtu`.
+For the `bridge` driver the following options are supported: `mtu` and `vlan`.
 The `mtu` option sets the Maximum Transmission Unit (MTU) and takes an integer value.
+The `vlan` option assign VLAN tag and enables vlan\_filtering. Defaults to none.
 
 #### **--gateway**
 

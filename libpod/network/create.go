@@ -92,6 +92,14 @@ func parseMTU(mtu string) (int, error) {
 	return m, nil
 }
 
+// parseVlan parses the vlan option
+func parseVlan(vlan string) (int, error) {
+	if vlan == "" {
+		return 0, nil // default
+	}
+	return strconv.Atoi(vlan)
+}
+
 // createBridge creates a CNI network
 func createBridge(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
 	var (
@@ -170,6 +178,11 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 		return "", err
 	}
 
+	vlan, err := parseVlan(options.Options["vlan"])
+	if err != nil {
+		return "", err
+	}
+
 	// obtain host bridge name
 	bridgeDeviceName, err := GetFreeDeviceName(runtimeConfig)
 	if err != nil {
@@ -193,7 +206,7 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 	ncList := NewNcList(name, version.Current(), options.Labels)
 	var plugins []CNIPlugins
 	// TODO need to iron out the role of isDefaultGW and IPMasq
-	bridge := NewHostLocalBridge(bridgeDeviceName, isGateway, false, ipMasq, mtu, ipamConfig)
+	bridge := NewHostLocalBridge(bridgeDeviceName, isGateway, false, ipMasq, mtu, vlan, ipamConfig)
 	plugins = append(plugins, bridge)
 	plugins = append(plugins, NewPortMapPlugin())
 	plugins = append(plugins, NewFirewallPlugin())

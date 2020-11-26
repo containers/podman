@@ -41,13 +41,14 @@ func NewNcList(name, version string, labels NcLabels) NcList {
 }
 
 // NewHostLocalBridge creates a new LocalBridge for host-local
-func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, mtu int, ipamConf IPAMHostLocalConf) *HostLocalBridge {
+func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, mtu int, vlan int, ipamConf IPAMHostLocalConf) *HostLocalBridge {
 	hostLocalBridge := HostLocalBridge{
 		PluginType:  "bridge",
 		BrName:      name,
 		IPMasq:      ipMasq,
 		MTU:         mtu,
 		HairpinMode: true,
+		Vlan:        vlan,
 		IPAM:        ipamConf,
 	}
 	if isGateWay {
