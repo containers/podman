@@ -178,55 +178,34 @@ type ExecStartConfig struct {
 }
 
 func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
+	imageData, err := l.Inspect(context.TODO())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to obtain summary for image %s", l.ID())
+	}
+
 	containers, err := l.Containers()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to obtain Containers for image %s", l.ID())
 	}
 	containerCount := len(containers)
 
-	// FIXME: GetParent() panics
-	// parent, err := l.GetParent(context.TODO())
-	// if err != nil {
-	// 	return nil, errors.Wrapf(err, "failed to obtain ParentID for image %s", l.ID())
-	// }
-
-	labels, err := l.Labels(context.TODO())
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to obtain Labels for image %s", l.ID())
-	}
-
-	size, err := l.Size(context.TODO())
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to obtain Size for image %s", l.ID())
-	}
-
-	repoTags, err := l.RepoTags()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to obtain RepoTags for image %s", l.ID())
-	}
-
-	digests := make([]string, len(l.Digests()))
-	for i, d := range l.Digests() {
-		digests[i] = string(d)
-	}
-
 	is := entities.ImageSummary{
 		ID:           l.ID(),
-		ParentId:     l.Parent,
-		RepoTags:     repoTags,
-		RepoDigests:  digests,
+		ParentId:     imageData.Parent,
+		RepoTags:     imageData.RepoTags,
+		RepoDigests:  imageData.RepoDigests,
 		Created:      l.Created().Unix(),
-		Size:         int64(*size),
+		Size:         imageData.Size,
 		SharedSize:   0,
-		VirtualSize:  l.VirtualSize,
-		Labels:       labels,
+		VirtualSize:  imageData.VirtualSize,
+		Labels:       imageData.Labels,
 		Containers:   containerCount,
 		ReadOnly:     l.IsReadOnly(),
 		Dangling:     l.Dangling(),
 		Names:        l.Names(),
-		Digest:       string(l.Digest()),
+		Digest:       string(imageData.Digest),
 		ConfigDigest: string(l.ConfigDigest),
-		History:      l.NamesHistory(),
+		History:      imageData.NamesHistory,
 	}
 	return &is, nil
 }
@@ -283,8 +262,8 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		}
 	}
 	dockerImageInspect := docker.ImageInspect{
-		Architecture:  l.Architecture,
-		Author:        l.Author,
+		Architecture:  info.Architecture,
+		Author:        info.Author,
 		Comment:       info.Comment,
 		Config:        &config,
 		Created:       l.Created().Format(time.RFC3339Nano),
@@ -292,9 +271,9 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		GraphDriver:   docker.GraphDriverData{},
 		ID:            fmt.Sprintf("sha256:%s", l.ID()),
 		Metadata:      docker.ImageMetadata{},
-		Os:            l.Os,
-		OsVersion:     l.Version,
-		Parent:        l.Parent,
+		Os:            info.Os,
+		OsVersion:     info.Version,
+		Parent:        info.Parent,
 		RepoDigests:   info.RepoDigests,
 		RepoTags:      info.RepoTags,
 		RootFS:        rootfs,

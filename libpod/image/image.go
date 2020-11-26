@@ -1222,6 +1222,11 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 		}
 	}
 
+	parent, err := i.ParentID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	repoTags, err := i.RepoTags()
 	if err != nil {
 		return nil, err
@@ -1248,6 +1253,7 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 
 	data := &inspect.ImageData{
 		ID:           i.ID(),
+		Parent:       parent,
 		RepoTags:     repoTags,
 		RepoDigests:  repoDigests,
 		Comment:      comment,
@@ -1258,10 +1264,12 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 		Config:       &ociv1Img.Config,
 		Version:      info.DockerVersion,
 		Size:         size,
-		VirtualSize:  size,
-		Annotations:  annotations,
-		Digest:       i.Digest(),
-		Labels:       info.Labels,
+		// This is good enough for now, but has to be
+		// replaced later with correct calculation logic
+		VirtualSize: size,
+		Annotations: annotations,
+		Digest:      i.Digest(),
+		Labels:      info.Labels,
 		RootFS: &inspect.RootFS{
 			Type:   ociv1Img.RootFS.Type,
 			Layers: ociv1Img.RootFS.DiffIDs,
@@ -1503,6 +1511,15 @@ func (i *Image) GetParent(ctx context.Context) (*Image, error) {
 		return nil, err
 	}
 	return tree.parent(ctx, i)
+}
+
+// ParentID returns the image ID of the parent. Return empty string if a parent is not found.
+func (i *Image) ParentID(ctx context.Context) (string, error) {
+	parent, err := i.GetParent(ctx)
+	if err == nil && parent != nil {
+		return parent.ID(), nil
+	}
+	return "", err
 }
 
 // GetChildren returns a list of the imageIDs that depend on the image
