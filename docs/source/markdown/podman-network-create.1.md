@@ -40,6 +40,10 @@ Restrict external access of this network
 Allocate container IP from a range.  The range must be a complete subnet and in CIDR notation.  The *ip-range* option
 must be used with a *subnet* option.
 
+#### **--label**
+
+Set metadata for a network (e.g., --label mykey=value).
+
 #### **--macvlan**
 
 Create a *Macvlan* based connection rather than a classic bridge.  You must pass an interface name from the host for the

@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -79,8 +80,12 @@ func List(ctx context.Context, options entities.NetworkListOptions) ([]*entities
 		return nil, err
 	}
 	params := url.Values{}
-	if options.Filter != "" {
-		params.Set("filter", options.Filter)
+	if options.Filters != nil {
+		b, err := json.Marshal(options.Filters)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("filters", string(b))
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/json", params, nil)
 	if err != nil {

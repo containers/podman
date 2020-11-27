@@ -66,6 +66,65 @@ var _ = Describe("Podman network", func() {
 		Expect(session.LineInOutputContains(name)).To(BeTrue())
 	})
 
+	It("podman network list --filter plugin and name", func() {
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
+
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=bridge", "--filter", "name=" + name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(name))
+	})
+
+	It("podman network list --filter two names", func() {
+		name1, path1 := generateNetworkConfig(podmanTest)
+		defer removeConf(path1)
+
+		name2, path2 := generateNetworkConfig(podmanTest)
+		defer removeConf(path2)
+
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "name=" + name1, "--filter", "name=" + name2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(name1))
+		Expect(session.OutputToString()).To(ContainSubstring(name2))
+	})
+
+	It("podman network list --filter labels", func() {
+		net1 := "labelnet" + stringid.GenerateNonCryptoID()
+		label1 := "testlabel1=abc"
+		label2 := "abcdef"
+		session := podmanTest.Podman([]string{"network", "create", "--label", label1, net1})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net1)
+		Expect(session.ExitCode()).To(BeZero())
+
+		net2 := "labelnet" + stringid.GenerateNonCryptoID()
+		session = podmanTest.Podman([]string{"network", "create", "--label", label1, "--label", label2, net2})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net2)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "label=" + label1})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(net1))
+		Expect(session.OutputToString()).To(ContainSubstring(net2))
+
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "label=" + label1, "--filter", "label=" + label2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).ToNot(ContainSubstring(net1))
+		Expect(session.OutputToString()).To(ContainSubstring(net2))
+	})
+
+	It("podman network list --filter invalid value", func() {
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "namr=ab"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring(`invalid filter "namr"`))
+	})
+
 	It("podman network list --filter failure", func() {
 		name, path := generateNetworkConfig(podmanTest)
 		defer removeConf(path)

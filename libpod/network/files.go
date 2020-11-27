@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // GetCNIConfDir get CNI configuration directory
@@ -84,6 +85,35 @@ func GetCNIPlugins(list *libcni.NetworkConfigList) string {
 		plugins = append(plugins, plug.Network.Type)
 	}
 	return strings.Join(plugins, ",")
+}
+
+// GetNetworkLabels returns a list of labels as a string
+func GetNetworkLabels(list *libcni.NetworkConfigList) NcLabels {
+	cniJSON := make(map[string]interface{})
+	err := json.Unmarshal(list.Bytes, &cniJSON)
+	if err != nil {
+		logrus.Errorf("failed to unmarshal network config %v %v", cniJSON["name"], err)
+		return nil
+	}
+	if args, ok := cniJSON["args"]; ok {
+		if key, ok := args.(map[string]interface{}); ok {
+			if labels, ok := key[PodmanLabelKey]; ok {
+				if labels, ok := labels.(map[string]interface{}); ok {
+					result := make(NcLabels, len(labels))
+					for k, v := range labels {
+						if v, ok := v.(string); ok {
+							result[k] = v
+						} else {
+							logrus.Errorf("network config %v invalid label value type %T should be string", cniJSON["name"], labels)
+						}
+					}
+					return result
+				}
+				logrus.Errorf("network config %v invalid label type %T should be map[string]string", cniJSON["name"], labels)
+			}
+		}
+	}
+	return nil
 }
 
 // GetNetworksFromFilesystem gets all the networks from the cni configuration

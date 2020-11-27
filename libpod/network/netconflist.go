@@ -4,6 +4,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/containernetworking/cni/libcni"
+	"github.com/containers/podman/v2/pkg/util"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -14,12 +19,24 @@ const (
 // NcList describes a generic map
 type NcList map[string]interface{}
 
+// NcArgs describes the cni args field
+type NcArgs map[string]NcLabels
+
+// NcLabels describes the label map
+type NcLabels map[string]string
+
+// PodmanLabelKey key used to store the podman network label in a cni config
+const PodmanLabelKey = "podman_labels"
+
 // NewNcList creates a generic map of values with string
 // keys and adds in version and network name
-func NewNcList(name, version string) NcList {
+func NewNcList(name, version string, labels NcLabels) NcList {
 	n := NcList{}
 	n["cniVersion"] = version
 	n["name"] = name
+	if len(labels) > 0 {
+		n["args"] = NcArgs{PodmanLabelKey: labels}
+	}
 	return n
 }
 
@@ -158,4 +175,65 @@ func NewMacVLANPlugin(device string) MacVLANConfig {
 		IPAM:       i,
 	}
 	return m
+}
+
+// IfPassesFilter filters NetworkListReport and returns true if the filter match the given config
+func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]string) (bool, error) {
+	result := true
+	for key, filterValues := range filters {
+		result = false
+		switch strings.ToLower(key) {
+		case "name":
+			// matches one name, regex allowed
+			result = util.StringMatchRegexSlice(netconf.Name, filterValues)
+
+		case "plugin":
+			// match one plugin
+			plugins := GetCNIPlugins(netconf)
+			for _, val := range filterValues {
+				if strings.Contains(plugins, val) {
+					result = true
+					break
+				}
+			}
+
+		case "label":
+			// matches all labels
+			labels := GetNetworkLabels(netconf)
+		outer:
+			for _, filterValue := range filterValues {
+				filterArray := strings.SplitN(filterValue, "=", 2)
+				filterKey := filterArray[0]
+				if len(filterArray) > 1 {
+					filterValue = filterArray[1]
+				} else {
+					filterValue = ""
+				}
+				for labelKey, labelValue := range labels {
+					if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+						result = true
+						continue outer
+					}
+				}
+				result = false
+			}
+
+		case "driver":
+			// matches only for the DefaultNetworkDriver
+			for _, filterValue := range filterValues {
+				plugins := GetCNIPlugins(netconf)
+				if filterValue == DefaultNetworkDriver &&
+					strings.Contains(plugins, DefaultNetworkDriver) {
+					result = true
+				}
+			}
+
+		// TODO: add dangling filter
+		// TODO TODO: add id filter if we support ids
+
+		default:
+			return false, errors.Errorf("invalid filter %q", key)
+		}
+	}
+	return result, nil
 }

@@ -169,7 +169,7 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 	}
 
 	// create CNI plugin configuration
-	ncList := NewNcList(name, version.Current())
+	ncList := NewNcList(name, version.Current(), options.Labels)
 	var plugins []CNIPlugins
 	// TODO need to iron out the role of isDefaultGW and IPMasq
 	bridge := NewHostLocalBridge(bridgeDeviceName, isGateway, false, ipMasq, ipamConfig)
@@ -223,7 +223,7 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 			return "", err
 		}
 	}
-	ncList := NewNcList(name, version.Current())
+	ncList := NewNcList(name, version.Current(), options.Labels)
 	macvlan := NewMacVLANPlugin(options.MacVLAN)
 	plugins = append(plugins, macvlan)
 	ncList["plugins"] = plugins

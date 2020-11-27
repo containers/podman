@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -35,17 +36,18 @@ var (
 
 var (
 	networkListOptions entities.NetworkListOptions
+	filters            []string
 )
 
 func networkListFlags(flags *pflag.FlagSet) {
 	formatFlagName := "format"
-	flags.StringVarP(&networkListOptions.Format, formatFlagName, "f", "", "Pretty-print networks to JSON or using a Go template")
+	flags.StringVar(&networkListOptions.Format, formatFlagName, "", "Pretty-print networks to JSON or using a Go template")
 	_ = networklistCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 
 	flags.BoolVarP(&networkListOptions.Quiet, "quiet", "q", false, "display only names")
 
 	filterFlagName := "filter"
-	flags.StringVarP(&networkListOptions.Filter, filterFlagName, "", "", "Provide filter values (e.g. 'name=podman')")
+	flags.StringArrayVarP(&filters, filterFlagName, "f", nil, "Provide filter values (e.g. 'name=podman')")
 	_ = networklistCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteNetworkFilters)
 
 }
@@ -61,14 +63,14 @@ func init() {
 }
 
 func networkList(cmd *cobra.Command, args []string) error {
-	// validate the filter pattern.
-	if len(networkListOptions.Filter) > 0 {
-		tokens := strings.Split(networkListOptions.Filter, "=")
-		if len(tokens) != 2 {
-			return fmt.Errorf("invalid filter syntax : %s", networkListOptions.Filter)
+	networkListOptions.Filters = make(map[string][]string)
+	for _, f := range filters {
+		split := strings.SplitN(f, "=", 2)
+		if len(split) == 1 {
+			return errors.Errorf("invalid filter %q", f)
 		}
+		networkListOptions.Filters[split[0]] = append(networkListOptions.Filters[split[0]], split[1])
 	}
-
 	responses, err := registry.ContainerEngine().NetworkList(registry.Context(), networkListOptions)
 	if err != nil {
 		return err
@@ -93,6 +95,7 @@ func networkList(cmd *cobra.Command, args []string) error {
 		"CNIVersion": "version",
 		"Version":    "version",
 		"Plugins":    "plugins",
+		"Labels":     "labels",
 	})
 	renderHeaders := true
 	row := "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
@@ -143,4 +146,12 @@ func (n ListPrintReports) Version() string {
 
 func (n ListPrintReports) Plugins() string {
 	return network.GetCNIPlugins(n.NetworkConfigList)
+}
+
+func (n ListPrintReports) Labels() string {
+	list := make([]string, 0, len(n.NetworkListReport.Labels))
+	for k, v := range n.NetworkListReport.Labels {
+		list = append(list, k+"="+v)
+	}
+	return strings.Join(list, ",")
 }

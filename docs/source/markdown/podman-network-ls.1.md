@@ -14,13 +14,25 @@ Displays a list of existing podman networks. This command is not available for r
 
 The `quiet` option will restrict the output to only the network names.
 
-#### **--format**, **-f**
+#### **--format**
 
 Pretty-print networks to JSON or using a Go template.
 
-#### **--filter**
+#### **--filter**, **-f**
 
-Provide filter values (e.g. 'name=podman').
+Filter output based on conditions given.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
+
+Valid filters are listed below:
+
+| **Filter** | **Description**                                                                       |
+| ---------- | ------------------------------------------------------------------------------------- |
+| name       | [Name] Network name (accepts regex)                                                   |
+| label      | [Key] or [Key=Value] Label assigned to a network                                      |
+| plugin     | [Plugin] CNI plugins included in a network (e.g `bridge`,`portmap`,`firewall`,`tuning`,`dnsname`,`macvlan`) |
+| driver     | [Driver] Only `bridge` is supported                                                   |
 
 ## EXAMPLE
 
