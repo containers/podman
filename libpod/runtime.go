@@ -162,6 +162,10 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 
 	runtime.config = conf
 
+	if err := SetXdgDirs(); err != nil {
+		return nil, err
+	}
+
 	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err
