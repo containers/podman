@@ -1043,7 +1043,7 @@ Set the user namespace mode for the container. It defaults to the **PODMAN_USERN
 - **private**: create a new namespace for the container.
 - **container**: join the user namespace of the specified container.
 
-This option is incompatible with **--gidmap**, **--uidmap**, **--subuid** and **--subgid**.
+This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** and **--subgidname**.
 
 #### **--uts**=*mode*
 
