@@ -499,4 +499,15 @@ var _ = Describe("Podman network", func() {
 		exec.WaitWithDefaultTimeout()
 		Expect(exec.ExitCode()).To(BeZero())
 	})
+
+	It("podman network create/remove macvlan", func() {
+		net := "macvlan" + stringid.GenerateNonCryptoID()
+		nc := podmanTest.Podman([]string{"network", "create", "--macvlan", "lo", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(Equal(0))
+
+		nc = podmanTest.Podman([]string{"network", "rm", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(Equal(0))
+	})
 })

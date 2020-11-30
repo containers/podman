@@ -323,8 +323,8 @@ func getBindMount(args []string) (spec.Mount, error) {
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
-			if err := parse.ValidateVolumeHostDir(kv[1]); err != nil {
-				return newMount, err
+			if len(kv[1]) == 0 {
+				return newMount, errors.Wrapf(optionArgError, "host directory cannot be empty")
 			}
 			newMount.Source = kv[1]
 			setSource = true

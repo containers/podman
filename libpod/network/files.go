@@ -14,6 +14,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrNoSuchNetworkInterface indicates that no network interface exists
+var ErrNoSuchNetworkInterface = errors.New("unable to find interface name for network")
+
 // GetCNIConfDir get CNI configuration directory
 func GetCNIConfDir(configArg *config.Config) string {
 	if len(configArg.Network.NetworkConfigDir) < 1 {
@@ -142,7 +145,7 @@ func GetInterfaceNameFromConfig(path string) (string, error) {
 		}
 	}
 	if len(name) == 0 {
-		return "", errors.New("unable to find interface name for network")
+		return "", ErrNoSuchNetworkInterface
 	}
 	return name, nil
 }

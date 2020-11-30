@@ -87,8 +87,8 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 
 		// Do not check source dir for anonymous volumes
 		if len(splitVol) > 1 {
-			if err := parse.ValidateVolumeHostDir(src); err != nil {
-				return nil, nil, nil, err
+			if len(src) == 0 {
+				return nil, nil, nil, errors.New("host directory cannot be empty")
 			}
 		}
 		if err := parse.ValidateVolumeCtrDir(dest); err != nil {

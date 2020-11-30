@@ -164,9 +164,15 @@ spec:
   volumes:
   {{ range . }}
   - name: {{ .Name }}
+    {{- if (eq .VolumeType "HostPath") }}
     hostPath:
-      path: {{ .Path }}
-      type: {{ .Type }}
+      path: {{ .HostPath.Path }}
+      type: {{ .HostPath.Type }}
+    {{- end }}
+    {{- if (eq .VolumeType "PersistentVolumeClaim") }}
+    persistentVolumeClaim:
+      claimName: {{ .PersistentVolumeClaim.ClaimName }}
+    {{- end }}
   {{ end }}
 {{ end }}
 status: {}
@@ -692,19 +698,44 @@ func getCtrNameInPod(pod *Pod) string {
 	return fmt.Sprintf("%s-%s", pod.Name, defaultCtrName)
 }
 
-type Volume struct {
-	Name string
+type HostPath struct {
 	Path string
 	Type string
 }
 
-// getVolume takes a type and a location for a volume
-// giving it a default name of volName
-func getVolume(vType, vPath string) *Volume {
+type PersistentVolumeClaim struct {
+	ClaimName string
+}
+
+type Volume struct {
+	VolumeType string
+	Name       string
+	HostPath
+	PersistentVolumeClaim
+}
+
+// getHostPathVolume takes a type and a location for a HostPath
+// volume giving it a default name of volName
+func getHostPathVolume(vType, vPath string) *Volume {
 	return &Volume{
-		Name: defaultVolName,
-		Path: vPath,
-		Type: vType,
+		VolumeType: "HostPath",
+		Name:       defaultVolName,
+		HostPath: HostPath{
+			Path: vPath,
+			Type: vType,
+		},
+	}
+}
+
+// getHostPathVolume takes a name for a Persistentvolumeclaim
+// volume giving it a default name of volName
+func getPersistentVolumeClaimVolume(vName string) *Volume {
+	return &Volume{
+		VolumeType: "PersistentVolumeClaim",
+		Name:       defaultVolName,
+		PersistentVolumeClaim: PersistentVolumeClaim{
+			ClaimName: vName,
+		},
 	}
 }
 
@@ -1257,7 +1288,7 @@ spec:
 	It("podman play kube test with non-existent empty HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
-		pod := getPod(withVolume(getVolume(`""`, hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume(`""`, hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1272,7 +1303,7 @@ spec:
 		Expect(err).To(BeNil())
 		f.Close()
 
-		pod := getPod(withVolume(getVolume(`""`, hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume(`""`, hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1284,7 +1315,7 @@ spec:
 	It("podman play kube test with non-existent File HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
-		pod := getPod(withVolume(getVolume("File", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1299,7 +1330,7 @@ spec:
 		Expect(err).To(BeNil())
 		f.Close()
 
-		pod := getPod(withVolume(getVolume("File", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1311,7 +1342,7 @@ spec:
 	It("podman play kube test with FileOrCreate HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
-		pod := getPod(withVolume(getVolume("FileOrCreate", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("FileOrCreate", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1327,7 +1358,7 @@ spec:
 	It("podman play kube test with DirectoryOrCreate HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
-		pod := getPod(withVolume(getVolume("DirectoryOrCreate", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1347,7 +1378,7 @@ spec:
 		Expect(err).To(BeNil())
 		f.Close()
 
-		pod := getPod(withVolume(getVolume("Socket", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("Socket", hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1356,14 +1387,14 @@ spec:
 		Expect(kube.ExitCode()).NotTo(Equal(0))
 	})
 
-	It("podman play kube test with read only volume", func() {
+	It("podman play kube test with read only HostPath volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 		f, err := os.Create(hostPathLocation)
 		Expect(err).To(BeNil())
 		f.Close()
 
 		ctr := getCtr(withVolumeMount(hostPathLocation, true), withImage(BB))
-		pod := getPod(withVolume(getVolume("File", hostPathLocation)), withCtr(ctr))
+		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1377,6 +1408,26 @@ spec:
 
 		correct := fmt.Sprintf("%s:%s:%s", hostPathLocation, hostPathLocation, "ro")
 		Expect(inspect.OutputToString()).To(ContainSubstring(correct))
+	})
+
+	It("podman play kube test with PersistentVolumeClaim volume", func() {
+		volumeName := "namedVolume"
+
+		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		pod := getPod(withVolume(getPersistentVolumeClaimVolume(volumeName)), withCtr(ctr))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ (index .Mounts 0).Type }}:{{ (index .Mounts 0).Name }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		correct := fmt.Sprintf("volume:%s", volumeName)
+		Expect(inspect.OutputToString()).To(Equal(correct))
 	})
 
 	It("podman play kube applies labels to pods", func() {
