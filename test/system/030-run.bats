@@ -532,4 +532,9 @@ json-file | f
     run_podman untag $IMAGE $newtag $newtag2
 }
 
+@test "podman run with --net=host and --port prints warning" {
+    run_podman run -d --rm -p 8080 --net=host $IMAGE ls > /dev/null
+    is "$output" ".*Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use"
+}
+
 # vim: filetype=sh
