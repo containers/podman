@@ -40,7 +40,7 @@ pages.
 ## IMAGE
 
   The image is specified using transport:path format. If no transport is specified, the `docker` (container registry)
-transport will be used by default. For remote Podman, `docker` is the only allowed transport."
+transport will be used by default. For remote Podman, `docker` is the only allowed transport.
 
   **dir:**_path_
   An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This
