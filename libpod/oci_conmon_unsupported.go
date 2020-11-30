@@ -32,7 +32,7 @@ func (r *ConmonOCIRuntime) Path() string {
 }
 
 // CreateContainer is not supported on this OS.
-func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerRestoreOptions) error {
 	return define.ErrNotImplemented
 }
 
