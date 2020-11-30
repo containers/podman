@@ -946,7 +946,7 @@ Set the user namespace mode for the container.  It defaults to the **PODMAN_USER
 - `ns`: run the container in the given existing user namespace.
 - `private`: create a new namespace for the container (default)
 
-This option is incompatible with --gidmap, --uidmap, --subuid and --subgid
+This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** and **--subgidname**.
 
 #### **--uts**=*mode*
 
