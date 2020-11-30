@@ -272,10 +272,16 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 		toReturn.NSMode = Private
 	case strings.HasPrefix(ns, "ns:"):
 		split := strings.SplitN(ns, ":", 2)
+		if len(split) != 2 {
+			return toReturn, nil, errors.Errorf("must provide a path to a namespace when specifying ns:")
+		}
 		toReturn.NSMode = Path
 		toReturn.Value = split[1]
 	case strings.HasPrefix(ns, "container:"):
 		split := strings.SplitN(ns, ":", 2)
+		if len(split) != 2 {
+			return toReturn, nil, errors.Errorf("must provide name or ID or a container when specifying container:")
+		}
 		toReturn.NSMode = FromContainer
 		toReturn.Value = split[1]
 	default:
