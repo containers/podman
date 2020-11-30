@@ -171,7 +171,33 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	createOptions.Net.Network = specgen.Namespace{}
+	if cmd.Flag("network").Changed {
+		netInput, err := cmd.Flags().GetString("network")
+		if err != nil {
+			return err
+		}
+		parts := strings.SplitN(netInput, ":", 2)
 
+		n := specgen.Namespace{}
+		switch {
+		case netInput == "bridge":
+			n.NSMode = specgen.Bridge
+		case netInput == "host":
+			n.NSMode = specgen.Host
+		case netInput == "slirp4netns", strings.HasPrefix(netInput, "slirp4netns:"):
+			n.NSMode = specgen.Slirp
+			if len(parts) > 1 {
+				createOptions.Net.NetworkOptions = make(map[string][]string)
+				createOptions.Net.NetworkOptions[parts[0]] = strings.Split(parts[1], ",")
+			}
+		default:
+			// Container and NS mode are presently unsupported
+			n.NSMode = specgen.Bridge
+			createOptions.Net.CNINetworks = strings.Split(netInput, ",")
+		}
+		createOptions.Net.Network = n
+	}
 	if len(createOptions.Net.PublishPorts) > 0 {
 		if !createOptions.Infra {
 			return errors.Errorf("you must have an infra container to publish port bindings to the host")
