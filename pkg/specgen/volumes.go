@@ -84,6 +84,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				return nil, nil, nil, err
 			}
 		}
+
 		// Do not check source dir for anonymous volumes
 		if len(splitVol) > 1 {
 			if len(src) == 0 {
