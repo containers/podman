@@ -53,8 +53,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 
 	imageRef, err := utils.ParseDockerReference(query.Reference)
 	if err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "image destination %q is not a docker-transport reference", query.Reference))
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
 

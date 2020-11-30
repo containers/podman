@@ -119,7 +119,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 		)
 		ref, err := reference.Parse(newTag)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "error parsing reference %q", newTag)
 		}
 		if t, ok := ref.(reference.Tagged); ok {
 			tag = t.Tag()
@@ -148,7 +148,7 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 		)
 		ref, err := reference.Parse(newTag)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "error parsing reference %q", newTag)
 		}
 		if t, ok := ref.(reference.Tagged); ok {
 			tag = t.Tag()

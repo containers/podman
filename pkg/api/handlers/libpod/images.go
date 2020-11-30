@@ -422,8 +422,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 	source := strings.TrimSuffix(utils.GetName(r), "/push") // GetName returns the entire path
 	if _, err := utils.ParseStorageReference(source); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "image source %q is not a containers-storage-transport reference", source))
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
 
@@ -433,8 +432,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := utils.ParseDockerReference(destination); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "image destination %q is not a docker-transport reference", destination))
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
 
