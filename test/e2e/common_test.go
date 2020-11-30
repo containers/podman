@@ -788,3 +788,9 @@ func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
 
 	return name, path
 }
+
+func (p *PodmanTestIntegration) removeCNINetwork(name string) {
+	session := p.Podman([]string{"network", "rm", "-f", name})
+	session.WaitWithDefaultTimeout()
+	Expect(session.ExitCode()).To(BeNumerically("<=", 1))
+}
