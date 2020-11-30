@@ -3,12 +3,14 @@
 ## 2.2.0
 ### Features
 - Experimental support for shortname aliasing has been added. This is not enabled by default, but can be turned on by setting the environment variable `CONTAINERS_SHORT_NAME_ALIASING` to `on`. Documentation is [available here](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md#short-name-aliasing).
+- Initial support has been added for the `podman network connect` and `podman network disconnect` commands, which allow existing containers to modify what networks they are connected to. At present, these commands can only be used on running containers that did not specify `--network=none` when they were created.
+- The `podman run` command now supports the `--network-alias` option to set network aliases (additional names the container can be accessed at from other containers via DNS if the `dnsname` CNI plugin is in use). Aliases can also be added and removed using the new `podman network connect` and `podman network disconnect` commands. Please note that this requires a new release (v1.1.0) of the `dnsname` plugin, and will only work on newly-created CNI networks.
 - The `podman generate kube` command now features support for exporting container's memory and CPU limits ([#7855](https://github.com/containers/podman/issues/7855)).
 - The `podman play kube` command now features support for setting CPU and Memory limits for containers ([#7742](https://github.com/containers/podman/issues/7742)).
+- The `podman play kube` command now supports persistent volumes claims using Podman named volumes.
 - The `podman play kube` command now supports Kubernetes configmaps via the `--configmap` option ([#7567](https://github.com/containers/podman/issues/7567)).
 - The `podman play kube` command now supports a `--log-driver` option to set the log driver for created containers.
 - The `podman play kube` command now supports a `--start` option, enabled by default, to start the pod after creating it. This allows for `podman play kube` to be more easily used in systemd unitfiles.
-- The `podman run` command now supports the `--network-alias` option to set network aliases (additional names the container can be accessed at from other containers via DNS if the `dnsname` CNI plugin is in use). Please note that this requires a new release (v1.1.0) of the `dnsname` plugin, and will only work on newly-created CNI networks.
 - The `podman network create` command now supports the `--ipv6` option to enable dual-stack IPv6 networking for created networks ([#7302](https://github.com/containers/podman/issues/7302)).
 - The `podman inspect` command can now inspect pods, networks, and volumes, in addition to containers and images ([#6757](https://github.com/containers/podman/issues/6757)).
 - The `--mount` option for `podman run` and `podman create` now supports a new type, `image`, to mount the contents of an image into the container at a given location.
@@ -25,7 +27,8 @@
 - The `podman events` command now supports filtering events based on the labels of the container they occurred on using the `--filter label=key=value` option.
 - The `podman volume ls` command now supports filtering volumes based on their labels using the `--filter label=key=value` option.
 - The `--volume` and `--mount` options to `podman run` and `podman create` now support two new mount propagation options, `unbindable` and `runbindable`.
-- The `name` filter for `podman pod ps` now matches based on a regular expression, instead of requiring an exact match.
+- The `name` and `id` filters for `podman pod ps` now match based on a regular expression, instead of requiring an exact match.
+- The `podman pod ps` command now supports a new filter `status`, that matches pods in a certain state.
 
 ### Changes
 - The `podman network rm --force` command will now also remove pods that are using the network ([#7791](https://github.com/containers/podman/issues/7791)).
@@ -38,6 +41,10 @@
 - Podman now delays the SIGTERM and SIGINT signals during container creation to ensure that Podman is not stopped midway through creating a container resulting in potential resource leakage ([#7941](https://github.com/containers/podman/issues/7941)).
 - The `podman save` command now strips signatures from images it is exporting, as the formats we export to do not support signatures ([#7659](https://github.com/containers/podman/issues/7659)).
 - A new `Degraded` state has been added to pods. Pods that have some, but not all, of their containers running are now considered to be `Degraded` instead of `Running`.
+- Podman will now print a warning when conflicting network options related to port forwarding (e.g. `--publish` and `--net=host`) are specified when creating a container.
+- The `--restart on-failure` and `--rm` options for containers no longer conflict. When both are specified, the container will be restarted if it exits with a non-zero error code, and removed if it exits cleanly ([#7906](https://github.com/containers/podman/issues/7906)).
+- Remote Podman will no longer use settings from the client's `containers.conf`; defaults will instead be provided by the server's `containers.conf` ([#7657](https://github.com/containers/podman/issues/7657)).
+- The `podman network rm` command now has a new alias, `podman network remove` ([#8402](https://github.com/containers/podman/issues/8402)).
 
 ### Bugfixes
 - Fixed a bug where `podman load` on the remote client did not error when attempting to load a directory, which is not yet supported for remote use.
@@ -103,6 +110,14 @@
 - Fixed a bug where the `podman stats` command did not show memory limits for containers ([#8265](https://github.com/containers/podman/issues/8265)).
 - Fixed a bug where the `podman pod inspect` command printed the static MAC address of the pod in a non-human-readable format ([#8386](https://github.com/containers/podman/pull/8386)).
 - Fixed a bug where the `--tls-verify` option of the `podman play kube` command had its logic inverted (`false` would enforce the use of TLS, `true` would disable it).
+- Fixed a bug where the `podman network rm` command would error when trying to remove `macvlan` networks and rootless CNI networks ([#8491](https://github.com/containers/podman/issues/8491)).
+- Fixed a bug where Podman was not setting sane defaults for missing `XDG_` environment variables.
+- Fixed a bug where remote Podman would check if volume paths to be mounted in the container existed on the host, not the server ([#8473](https://github.com/containers/podman/issues/8473)).
+- Fixed a bug where the `podman manifest create` and `podman manifest add` commands on local images would drop any images in the manifest not pulled by the host.
+- Fixed a bug where networks made by `podman network create` did not include the `tuning` plugin, and as such did not support setting custom MAC addresses ([#8385](https://github.com/containers/podman/issues/8385)).
+- Fixed a bug where container healthchecks did not use `$PATH` when searching for the Podman executable to run the healthcheck.
+- Fixed a bug where the `--ip-range` option to `podman network create` did not properly handle non-classful subnets when calculating the last usable IP for DHCP assignment ([#8448](https://github.com/containers/podman/issues/8448)).
+- Fixed a bug where the `podman container ps` alias for `podman ps` was missing ([#8445](https://github.com/containers/podman/issues/8445)).
 
 ### API
 - The Compat Create endpoint for Container has received a major refactor to share more code with the Libpod Create endpoint, and should be significantly more stable.
@@ -112,22 +127,28 @@
 - The Compat Create endpoint for images now properly supports specifying images by digest.
 - The Libpod Build endpoint for images now supports an `httpproxy` query parameter which, if set to true, will forward the server's HTTP proxy settings into the build container for `RUN` instructions.
 - The Libpod Untag endpoint for images will now remove all tags for the given image if no repository and tag are specified for removal.
+- Fixed a bug where the Ping endpoint misspelled a header name (`Libpod-Buildha-Version` instead of `Libpod-Buildah-Version`).
+- Fixed a bug where the Ping endpoint sent an extra newline at the end of its response where Docker did not.
 - Fixed a bug where the Compat Logs endpoint for containers did not send a newline character after each log line.
 - Fixed a bug where the Compat Logs endpoint for containers would mangle line endings to change newline characters to add a preceding carriage return ([#7942](https://github.com/containers/podman/issues/7942)).
 - Fixed a bug where the Compat Inspect endpoint for Containers did not properly list the container's stop signal ([#7917](https://github.com/containers/podman/issues/7917)).
 - Fixed a bug where the Compat Inspect endpoint for Containers formatted the container's create time incorrectly ([#7860](https://github.com/containers/podman/issues/7860)).
-- Fixed a bug where the Compat Inspect endpoint for Containers did not include complete network information on the container.
+- Fixed a bug where the Compat Inspect endpoint for Containers did not include the container's Path, Args, and Restart Count.
+- Fixed a bug where the Compat Inspect endpoint for Containers prefixed added and dropped capabilities with `CAP_` (Docker does not do so).
+- Fixed a bug where the Compat Info endpoint for the Engine did not include configured registries.
 - Fixed a bug where the server could panic if a client closed a connection midway through an image pull ([#7896](https://github.com/containers/podman/issues/7896)).
 - Fixed a bug where the Compat Create endpoint for volumes returned an error when a volume with the same name already existed, instead of succeeding with a 201 code ([#7740](https://github.com/containers/podman/issues/7740)).
 - Fixed a bug where a client disconnecting from the Libpod or Compat events endpoints could result in the server using 100% CPU ([#7946](https://github.com/containers/podman/issues/7946)).
 - Fixed a bug where the "no such image" error message sent by the Compat Inspect endpoint for Images returned a 404 status code with an error that was improperly formatted for Docker compatibility.
 - Fixed a bug where the Compat Create endpoint for networks did not properly set a default for the `driver` parameter if it was not provided by the client.
 - Fixed a bug where the Compat Inspect endpoint for images did not populate the `RootFS` field of the response.
+- Fixed a bug where the Compat Inspect endpoint for images would omit the `ParentId` field if the image had no parent, and the `Created` field if the image did not have a creation time.
+- Fixed a bug where the Compat Remove endpoint for Networks did not support the `Force` query parameter.
 
 ### Misc
 - Updated Buildah to v1.18.0
-- Updated the containers/storage library to v1.24.0
-- Updated the containers/image library to v5.8.0
+- Updated the containers/storage library to v1.24.1
+- Updated the containers/image library to v5.8.1
 - Updated the containers/common library to v0.27.0
 
 ## 2.1.1
