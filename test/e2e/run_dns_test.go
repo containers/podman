@@ -36,14 +36,14 @@ var _ = Describe("Podman run dns", func() {
 		session := podmanTest.Podman([]string{"run", "--dns-search=foobar.com", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session.LineInOuputStartsWith("search foobar.com")
+		session.LineInOutputStartsWith("search foobar.com")
 	})
 
 	It("podman run remove all search domain", func() {
 		session := podmanTest.Podman([]string{"run", "--dns-search=.", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOuputStartsWith("search")).To(BeFalse())
+		Expect(session.LineInOutputStartsWith("search")).To(BeFalse())
 	})
 
 	It("podman run add bad dns server", func() {
@@ -56,14 +56,14 @@ var _ = Describe("Podman run dns", func() {
 		session := podmanTest.Podman([]string{"run", "--dns=1.2.3.4", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session.LineInOuputStartsWith("server 1.2.3.4")
+		session.LineInOutputStartsWith("server 1.2.3.4")
 	})
 
 	It("podman run add dns option", func() {
 		session := podmanTest.Podman([]string{"run", "--dns-opt=debug", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session.LineInOuputStartsWith("options debug")
+		session.LineInOutputStartsWith("options debug")
 	})
 
 	It("podman run add bad host", func() {
@@ -76,8 +76,8 @@ var _ = Describe("Podman run dns", func() {
 		session := podmanTest.Podman([]string{"run", "--add-host=foobar:1.1.1.1", "--add-host=foobaz:2001:db8::68", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session.LineInOuputStartsWith("1.1.1.1 foobar")
-		session.LineInOuputStartsWith("2001:db8::68 foobaz")
+		session.LineInOutputStartsWith("1.1.1.1 foobar")
+		session.LineInOutputStartsWith("2001:db8::68 foobaz")
 	})
 
 	It("podman run add hostname", func() {
