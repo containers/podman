@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
@@ -493,5 +494,32 @@ var _ = Describe("Podman pull", func() {
 			Expect(data[0].RepoTags[0]).To(Equal(t.tag1))
 			Expect(data[0].ID).To(Equal(image1))
 		}
+	})
+
+	It("podman pull --platform", func() {
+		session := podmanTest.Podman([]string{"pull", "--platform=linux/bogus", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		expectedError := "no image found in manifest list for architecture bogus"
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
+
+		session = podmanTest.Podman([]string{"pull", "--platform=linux/arm64", "--override-os", "windows", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		expectedError = "--platform option can not be specified with --overide-arch or --override-os"
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
+
+		session = podmanTest.Podman([]string{"pull", "-q", "--platform=linux/arm64", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		setup := podmanTest.Podman([]string{"image", "inspect", session.OutputToString()})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		data := setup.InspectImageJSON() // returns []inspect.ImageData
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Os).To(Equal(runtime.GOOS))
+		Expect(data[0].Architecture).To(Equal("arm64"))
 	})
 })

@@ -513,6 +513,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(pidsLimitFlagName, completion.AutocompleteNone)
 
+	platformFlagName := "platform"
+	createFlags.StringVar(
+		&cf.Platform,
+		platformFlagName, "",
+		"Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(platformFlagName, completion.AutocompleteNone)
+
 	podFlagName := "pod"
 	createFlags.StringVar(
 		&cf.Pod,

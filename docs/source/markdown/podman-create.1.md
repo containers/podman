@@ -689,6 +689,11 @@ Default is to create a private PID namespace for the container
 
 Tune the container's pids limit. Set `0` to have unlimited pids for the container. (default "4096" on systems that support PIDS cgroups).
 
+#### **--platform**=*OS/ARCH*
+
+Specify the platform for selecting the image.   (Conflicts with override-arch and override-os)
+The `--platform` option can be used to override the current architecture and operating system.
+
 #### **--pod**=*name*
 
 Run container in an existing pod. If you want Podman to make the pod for you, preference the pod name with `new:`.

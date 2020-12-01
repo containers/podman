@@ -106,6 +106,11 @@ Override the OS, defaults to hosts, of the image to be pulled. For example, `win
 
 Use _VARIANT_ instead of the default architecture variant of the container image.  Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
+#### **--platform**=*OS/ARCH*
+
+Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)
+The `--platform` option can be used to override the current architecture and operating system.
+
 #### **--quiet**, **-q**
 
 Suppress output information when pulling images

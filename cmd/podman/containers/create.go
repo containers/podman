@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -234,6 +235,21 @@ func pullImage(imageName string) (string, error) {
 			return "", err
 		}
 		imageMissing = !br.Value
+	}
+
+	if cliVals.Platform != "" {
+		if cliVals.OverrideArch != "" || cliVals.OverrideOS != "" {
+			return "", errors.Errorf("--platform option can not be specified with --overide-arch or --override-os")
+		}
+		split := strings.SplitN(cliVals.Platform, "/", 2)
+		cliVals.OverrideOS = split[0]
+		if len(split) > 1 {
+			cliVals.OverrideArch = split[1]
+		}
+		if pullPolicy != config.PullImageAlways {
+			logrus.Info("--platform causes the pull policy to be \"always\"")
+			pullPolicy = config.PullImageAlways
+		}
 	}
 
 	if imageMissing || pullPolicy == config.PullImageAlways {
