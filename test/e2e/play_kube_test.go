@@ -1114,7 +1114,7 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube should share ipc,net,uts when shareProcessNamespace is set", func() {
-		SkipIfRootless("Requires root priviledges for sharing few namespaces")
+		SkipIfRootless("Requires root privileges for sharing few namespaces")
 		err := writeYaml(sharedNamespacePodYaml, kubeYaml)
 		Expect(err).To(BeNil())
 

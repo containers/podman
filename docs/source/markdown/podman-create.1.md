@@ -1123,9 +1123,9 @@ Podman allocates unique ranges of UIDs and GIDs from the `containers` subpordina
 
   Valid `auto`options:
 
-  - *gidmapping*=_HOST_GID:CONTAINER_GID:SIZE_: to force a GID mapping to be present in the user namespace.
+  - *gidmapping*=_CONTAINER_GID:HOST_GID:SIZE_: to force a GID mapping to be present in the user namespace.
   - *size*=_SIZE_: to specify an explicit size for the automatic user namespace. e.g. `--userns=auto:size=8192`. If `size` is not specified, `auto` will estimate a size for the user namespace.
-  - *uidmapping*=_HOST_UID:CONTAINER_UID:SIZE_: to force a UID mapping to be present in the user namespace.
+  - *uidmapping*=_CONTAINER_UID:HOST_UID:SIZE_: to force a UID mapping to be present in the user namespace.
 
 **container:**_id_: join the user namespace of the specified container.
 

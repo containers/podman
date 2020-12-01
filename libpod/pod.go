@@ -117,6 +117,7 @@ type InfraContainerConfig struct {
 	Slirp4netns        bool                  `json:"slirp4netns,omitempty"`
 	NetworkOptions     map[string][]string   `json:"network_options,omitempty"`
 	ResourceLimits     *specs.LinuxResources `json:"resource_limits,omitempty"`
+	Userns             specgen.Namespace     `json:"userns,omitempty"`
 }
 
 // ID retrieves the pod's ID

@@ -122,6 +122,7 @@ type PodCreateOptions struct {
 	Pid                string
 	Cpus               float64
 	CpusetCpus         string
+	Userns             specgen.Namespace
 }
 
 type PodCreateReport struct {
@@ -217,6 +218,7 @@ func (p *PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) error {
 			s.CPUQuota = *cpuDat.Quota
 		}
 	}
+	s.Userns = p.Userns
 	return nil
 }
 

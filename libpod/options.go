@@ -956,8 +956,9 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		}
 
 		ctr.config.UserNsCtr = nsCtr.ID()
-		ctr.config.IDMappings = nsCtr.config.IDMappings
-
+		if err := JSONDeepCopy(nsCtr.IDMappings(), &ctr.config.IDMappings); err != nil {
+			return err
+		}
 		g := generate.Generator{Config: ctr.config.Spec}
 
 		g.ClearLinuxUIDMappings()
@@ -968,7 +969,6 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		for _, gidmap := range nsCtr.config.IDMappings.GIDMap {
 			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
-		ctr.config.IDMappings = nsCtr.config.IDMappings
 		return nil
 	}
 }
@@ -2423,6 +2423,24 @@ func WithVolatile() CtrCreateOption {
 		}
 
 		ctr.config.Volatile = true
+
+		return nil
+	}
+}
+
+// WithPodUserns sets the userns for the infra container in a pod.
+func WithPodUserns(userns specgen.Namespace) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod userns as no infra container is being created")
+		}
+
+		pod.config.InfraContainer.Userns = userns
+
 		return nil
 	}
 }

@@ -30,6 +30,12 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "failed to decode specgen", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
 		return
 	}
+	// parse userns so we get the valid default value of userns
+	psg.Userns, err = specgen.ParseUserNamespace(psg.Userns.String())
+	if err != nil {
+		utils.Error(w, "failed to parse userns", http.StatusInternalServerError, errors.Wrap(err, "failed to parse userns"))
+		return
+	}
 	pod, err := generate.MakePod(&psg, runtime)
 	if err != nil {
 		httpCode := http.StatusInternalServerError
