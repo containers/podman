@@ -387,8 +387,8 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
 			// runtimes that might not be installed (crun, kata).
-			// Only a warnf so default configs don't spec errors.
-			logrus.Warnf("Error initializing configured OCI runtime %s: %v", name, err)
+			// Only a infof so default configs don't spec errors.
+			logrus.Infof("Error initializing configured OCI runtime %s: %v", name, err)
 			continue
 		}
 

@@ -352,7 +352,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if !MountExists(g.Mounts(), dstPath) {
 			g.AddMount(newMount)
 		} else {
-			logrus.Warnf("User mount overriding libpod mount at %q", dstPath)
+			logrus.Infof("User mount overriding libpod mount at %q", dstPath)
 		}
 	}
 

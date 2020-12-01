@@ -22,7 +22,7 @@ var (
 	// ChangeCmds is the list of valid Change commands to passed to the Commit call
 	ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
 	// LogLevels supported by podman
-	LogLevels = []string{"debug", "info", "warn", "error", "fatal", "panic"}
+	LogLevels = []string{"debug", "info", "warn", "warning", "error", "fatal", "panic"}
 )
 
 type completeType int

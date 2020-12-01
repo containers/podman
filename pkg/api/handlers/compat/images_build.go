@@ -263,7 +263,7 @@ loop:
 			failed = true
 			m.Error = string(e)
 			if err := enc.Encode(m); err != nil {
-				logrus.Warnf("Failed to json encode error %q", err.Error())
+				logrus.Warnf("Failed to json encode error %v", err)
 			}
 			flush()
 		case <-runCtx.Done():
@@ -271,7 +271,7 @@ loop:
 				if !utils.IsLibpodRequest(r) {
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
 					if err := enc.Encode(m); err != nil {
-						logrus.Warnf("Failed to json encode error %q", err.Error())
+						logrus.Warnf("Failed to json encode error %v", err)
 					}
 					flush()
 				}

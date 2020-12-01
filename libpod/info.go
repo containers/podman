@@ -117,7 +117,6 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 
 	if rootless.IsRootless() {
 		if path, err := exec.LookPath("slirp4netns"); err == nil {
-			logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
 			version, err := programVersion(path)
 			if err != nil {
 				logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
