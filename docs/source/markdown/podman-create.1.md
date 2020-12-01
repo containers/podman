@@ -1021,18 +1021,21 @@ The _options_ is a comma delimited list and can be:
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
 will be mounted into the container at this directory.
 
-Volumes may specify a source as well, as either a directory on the host or the
-name of a named volume. If no source is given, the volume will be created as an
-anonymous named volume with a randomly generated name, and will be removed when
+Volumes may specify a source as well, as either a directory on the host
+or the name of a named volume. If no source is given, the volume will be created as an
+anonymously named volume with a randomly generated name, and will be removed when
 the container is removed via the `--rm` flag or `podman rm --volumes`.
 
 If a volume source is specified, it must be a path on the host or the name of a
 named volume. Host paths are allowed to be absolute or relative; relative paths
-are resolved relative to the directory Podman is run in. Any source that does
-not begin with a `.` or `/` will be treated as the name of a named volume.
-If a volume with that name does not exist, it will be created. Volumes created
-with names are not anonymous. They are not removed by the `--rm` option and the
-`podman rm --volumes` command.
+are resolved relative to the directory Podman is run in. If the source does not
+exist, Podman will return an error. Users must pre-create the source files or
+directories.
+
+Any source that does not begin with a `.` or `/` will be treated as the name of
+a named volume. If a volume with that name does not exist, it will be created.
+Volumes created with names are not anonymous, and they are not removed by the `--rm`
+option and the `podman rm --volumes` command.
 
 You can specify multiple  **-v** options to mount one or more volumes into a
 container.
@@ -1069,7 +1072,7 @@ upper. Modifications to the mount point are destroyed when the container
 finishes executing, similar to a tmpfs mount point being unmounted.
 
   Subsequent executions of the container will see the original source directory
-content, any changes from previous container executions no longer exists.
+content, any changes from previous container executions no longer exist.
 
   One use case of the overlay mount is sharing the package cache from the
 host into the container to allow speeding up builds.
