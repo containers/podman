@@ -67,11 +67,7 @@ func completion(cmd *cobra.Command, args []string) error {
 	var err error
 	switch args[0] {
 	case "bash":
-		if noDesc {
-			err = cmd.Root().GenBashCompletion(w)
-		} else {
-			err = cmd.Root().GenBashCompletionWithDesc(w)
-		}
+		err = cmd.Root().GenBashCompletion(w)
 	case "zsh":
 		if noDesc {
 			err = cmd.Root().GenZshCompletionNoDesc(w)
