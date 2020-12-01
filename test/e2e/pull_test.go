@@ -384,7 +384,7 @@ var _ = Describe("Podman pull", func() {
 		session := podmanTest.Podman([]string{"pull", "--all-tags", "k8s.gcr.io/pause"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOuputStartsWith("Pulled Images:")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("Pulled Images:")).To(BeTrue())
 
 		session = podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()

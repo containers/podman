@@ -277,7 +277,7 @@ func (s *PodmanSession) ErrorGrepString(term string) (bool, []string) {
 
 // LineInOutputStartsWith returns true if a line in a
 // session output starts with the supplied string
-func (s *PodmanSession) LineInOuputStartsWith(term string) bool {
+func (s *PodmanSession) LineInOutputStartsWith(term string) bool {
 	for _, i := range s.OutputToStringArray() {
 		if strings.HasPrefix(i, term) {
 			return true
