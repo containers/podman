@@ -1047,21 +1047,25 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	}
 
-	if c.state.State != define.ContainerStateRunning {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot disconnect container %s from networks as it is not running", nameOrID)
-	}
-	if c.state.NetNS == nil {
-		return errors.Wrapf(define.ErrNoNetwork, "unable to disconnect %s from %s", nameOrID, netName)
-	}
-	podConfig := c.runtime.getPodNetwork(c.ID(), c.Name(), c.state.NetNS.Path(), []string{netName}, c.config.PortMappings, nil, nil, c.state.NetInterfaceDescriptions)
-	if err := c.runtime.netPlugin.TearDownPod(podConfig); err != nil {
-		return err
-	}
 	if err := c.runtime.state.NetworkDisconnect(c, netName); err != nil {
 		return err
 	}
 
-	// update network status
+	c.newNetworkEvent(events.NetworkDisconnect, netName)
+	if c.state.State != define.ContainerStateRunning {
+		return nil
+	}
+
+	if c.state.NetNS == nil {
+		return errors.Wrapf(define.ErrNoNetwork, "unable to disconnect %s from %s", nameOrID, netName)
+	}
+
+	podConfig := c.runtime.getPodNetwork(c.ID(), c.Name(), c.state.NetNS.Path(), []string{netName}, c.config.PortMappings, nil, nil, c.state.NetInterfaceDescriptions)
+	if err := c.runtime.netPlugin.TearDownPod(podConfig); err != nil {
+		return err
+	}
+
+	// update network status if container is not running
 	networkStatus := c.state.NetworkStatus
 	// clip out the index of the network
 	tmpNetworkStatus := make([]*cnitypes.Result, len(networkStatus)-1)
@@ -1071,7 +1075,6 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		}
 	}
 	c.state.NetworkStatus = tmpNetworkStatus
-	c.newNetworkEvent(events.NetworkDisconnect, netName)
 	return c.save()
 }
 
@@ -1096,14 +1099,15 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		return err
 	}
 
+	if err := c.runtime.state.NetworkConnect(c, netName, aliases); err != nil {
+		return err
+	}
+	c.newNetworkEvent(events.NetworkConnect, netName)
 	if c.state.State != define.ContainerStateRunning {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot connect container %s to networks as it is not running", nameOrID)
+		return nil
 	}
 	if c.state.NetNS == nil {
 		return errors.Wrapf(define.ErrNoNetwork, "unable to connect %s to %s", nameOrID, netName)
-	}
-	if err := c.runtime.state.NetworkConnect(c, netName, aliases); err != nil {
-		return err
 	}
 
 	ctrNetworks, _, err := c.networks()
@@ -1159,7 +1163,6 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		networkStatus[index] = networkResults[0]
 		c.state.NetworkStatus = networkStatus
 	}
-	c.newNetworkEvent(events.NetworkConnect, netName)
 	return c.save()
 }
 
