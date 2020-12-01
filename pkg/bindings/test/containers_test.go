@@ -290,17 +290,17 @@ var _ = Describe("Podman containers ", func() {
 		Expect(wait).To(BeNil())
 		Expect(exitCode).To(BeNumerically("==", -1))
 
-		errChan = make(chan error)
+		unpauseErrChan := make(chan error)
 		go func() {
 			defer GinkgoRecover()
 
 			_, waitErr := containers.Wait(bt.conn, name, &running)
-			errChan <- waitErr
-			close(errChan)
+			unpauseErrChan <- waitErr
+			close(unpauseErrChan)
 		}()
 		err = containers.Unpause(bt.conn, name)
 		Expect(err).To(BeNil())
-		unPausewait := <-errChan
+		unPausewait := <-unpauseErrChan
 		Expect(unPausewait).To(BeNil())
 		Expect(exitCode).To(BeNumerically("==", -1))
 	})
