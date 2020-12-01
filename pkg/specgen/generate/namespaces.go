@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -365,46 +366,8 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	g.AddProcessEnv("HOSTNAME", hostname)
 
 	// User
-	switch s.UserNS.NSMode {
-	case specgen.Path:
-		if _, err := os.Stat(s.UserNS.Value); err != nil {
-			return errors.Wrap(err, "cannot find specified user namespace path")
-		}
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), s.UserNS.Value); err != nil {
-			return err
-		}
-		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
-		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
-		g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
-	case specgen.Host:
-		if err := g.RemoveLinuxNamespace(string(spec.UserNamespace)); err != nil {
-			return err
-		}
-	case specgen.KeepID:
-		var (
-			err      error
-			uid, gid int
-		)
-		s.IDMappings, uid, gid, err = util.GetKeepIDMapping()
-		if err != nil {
-			return err
-		}
-		g.SetProcessUID(uint32(uid))
-		g.SetProcessGID(uint32(gid))
-		fallthrough
-	case specgen.Private:
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
-			return err
-		}
-		if s.IDMappings == nil || (len(s.IDMappings.UIDMap) == 0 && len(s.IDMappings.GIDMap) == 0) {
-			return errors.Errorf("must provide at least one UID or GID mapping to configure a user namespace")
-		}
-		for _, uidmap := range s.IDMappings.UIDMap {
-			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
-		}
-		for _, gidmap := range s.IDMappings.GIDMap {
-			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
-		}
+	if err := SetupUserNSSetup(s.IDMappings, s.UserNS, g); err != nil {
+		return err
 	}
 
 	// Cgroup
@@ -491,4 +454,47 @@ func GetNamespaceOptions(ns []string) ([]libpod.PodCreateOption, error) {
 		}
 	}
 	return options, nil
+}
+
+func SetupUserNSSetup(idmappings *storage.IDMappingOptions, userns specgen.Namespace, g *generate.Generator) error {
+	// User
+	switch userns.NSMode {
+	case specgen.Path:
+		if _, err := os.Stat(userns.Value); err != nil {
+			return errors.Wrap(err, "cannot find specified user namespace path")
+		}
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), userns.Value); err != nil {
+			return err
+		}
+		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
+		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
+		g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
+	case specgen.Host:
+		if err := g.RemoveLinuxNamespace(string(spec.UserNamespace)); err != nil {
+			return err
+		}
+	case specgen.KeepID:
+		mappings, uid, gid, err := util.GetKeepIDMapping()
+		if err != nil {
+			return err
+		}
+		idmappings = mappings
+		g.SetProcessUID(uint32(uid))
+		g.SetProcessGID(uint32(gid))
+		fallthrough
+	case specgen.Private:
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
+			return err
+		}
+		if idmappings == nil || (len(idmappings.UIDMap) == 0 && len(idmappings.GIDMap) == 0) {
+			return errors.Errorf("must provide at least one UID or GID mapping to configure a user namespace")
+		}
+		for _, uidmap := range idmappings.UIDMap {
+			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
+		for _, gidmap := range idmappings.GIDMap {
+			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+	}
+	return nil
 }

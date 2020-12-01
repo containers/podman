@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/lock"
+	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
@@ -109,6 +110,7 @@ type InfraContainerConfig struct {
 	InfraCommand       []string             `json:"infraCommand,omitempty"`
 	Slirp4netns        bool                 `json:"slirp4netns,omitempty"`
 	NetworkOptions     map[string][]string  `json:"network_options,omitempty"`
+	Userns             specgen.Namespace    `json:"userns,omitempty"`
 }
 
 // ID retrieves the pod's ID

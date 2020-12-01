@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/namespaces"
 	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
@@ -2252,6 +2253,18 @@ func WithPodSlirp4netns(networkOptions map[string][]string) PodCreateOption {
 		}
 		pod.config.InfraContainer.Slirp4netns = true
 		pod.config.InfraContainer.NetworkOptions = networkOptions
+
+		return nil
+	}
+}
+
+func WithInfraUserns(userns specgen.Namespace) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.InfraContainer.Userns = userns
 
 		return nil
 	}

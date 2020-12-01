@@ -4,11 +4,13 @@ package libpod
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -142,10 +144,22 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 		}
 	}
 
+	for _, ctl := range r.config.Containers.DefaultSysctls {
+		sysctl := strings.SplitN(ctl, "=", 2)
+		if len(sysctl) < 2 {
+			return nil, errors.Errorf("invalid default sysctl %s", ctl)
+		}
+		g.AddLinuxSysctl(sysctl[0], sysctl[1])
+	}
+
 	g.SetRootReadonly(true)
 	g.SetProcessArgs(infraCtrCommand)
 
 	logrus.Debugf("Using %q as infra container command", infraCtrCommand)
+
+	if err := setupUserNSSetup(p.config.InfraContainer.Userns, &g); err != nil {
+		return nil, err
+	}
 
 	g.RemoveMount("/dev/shm")
 	if isRootless {
@@ -196,4 +210,43 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	imageID := data.ID
 
 	return r.makeInfraContainer(ctx, p, imageName, r.config.Engine.InfraImage, imageID, data.Config)
+}
+
+func setupUserNSSetup(userns specgen.Namespace, g *generate.Generator) error {
+	// User
+	switch userns.NSMode {
+	case specgen.Path:
+		if _, err := os.Stat(userns.Value); err != nil {
+			return errors.Wrap(err, "cannot find specified user namespace path")
+		}
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), userns.Value); err != nil {
+			return err
+		}
+		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
+		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
+		g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
+	case specgen.Host:
+		if err := g.RemoveLinuxNamespace(string(spec.UserNamespace)); err != nil {
+			return err
+		}
+	case specgen.KeepID:
+		mappings, uid, gid, err := util.GetKeepIDMapping()
+		if err != nil {
+			return err
+		}
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
+			return err
+		}
+		for _, uidmap := range mappings.UIDMap {
+			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
+		for _, gidmap := range mappings.GIDMap {
+			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+		g.SetProcessUID(uint32(uid))
+		g.SetProcessGID(uint32(gid))
+		return nil
+	}
+
+	return nil
 }

@@ -114,6 +114,7 @@ type PodCreateOptions struct {
 	Name               string
 	Net                *NetOptions
 	Share              []string
+	Userns             specgen.Namespace
 }
 
 type PodCreateReport struct {
@@ -154,6 +155,8 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 
 	// Cgroup
 	s.CgroupParent = p.CGroupParent
+
+	s.Userns = p.Userns
 }
 
 type PodPruneOptions struct {

@@ -284,12 +284,19 @@ func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions
 	if len(podName) < 1 {
 		return nil, errors.Errorf("new pod name must be at least one character")
 	}
+
+	userns, err := specgen.ParseUserNamespace(cliVals.UserNS)
+	if err != nil {
+		return nil, err
+	}
+
 	createOptions := entities.PodCreateOptions{
 		Name:          podName,
 		Infra:         true,
 		Net:           netOpts,
 		CreateCommand: os.Args,
 		Hostname:      s.ContainerBasicConfig.Hostname,
+		Userns:        userns,
 	}
 	// Unset config values we passed to the pod to prevent them being used twice for the container and pod.
 	s.ContainerBasicConfig.Hostname = ""

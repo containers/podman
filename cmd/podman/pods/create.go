@@ -43,6 +43,7 @@ var (
 	podIDFile         string
 	replace           bool
 	share             string
+	userns            string
 )
 
 func init() {
@@ -59,6 +60,10 @@ func init() {
 	cgroupParentflagName := "cgroup-parent"
 	flags.StringVar(&createOptions.CGroupParent, cgroupParentflagName, "", "Set parent cgroup for the pod")
 	_ = createCommand.RegisterFlagCompletionFunc(cgroupParentflagName, completion.AutocompleteDefault)
+
+	usernsFlagName := "userns"
+	flags.StringVar(&userns, usernsFlagName, os.Getenv("PODMAN_USERNS"), "User namespace to use")
+	_ = createCommand.RegisterFlagCompletionFunc(usernsFlagName, common.AutocompleteUserNamespace)
 
 	flags.BoolVar(&createOptions.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
 
@@ -153,6 +158,11 @@ func create(cmd *cobra.Command, args []string) error {
 				return err
 			}
 		}
+	}
+
+	createOptions.Userns, err = specgen.ParseUserNamespace(userns)
+	if err != nil {
+		return err
 	}
 
 	if cmd.Flag("pod-id-file").Changed {
