@@ -3,6 +3,7 @@ package entities
 import (
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v2/pkg/ps/define"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -14,7 +15,7 @@ type ListContainer struct {
 	// Container command
 	Command []string
 	// Container creation time
-	Created int64
+	Created time.Time
 	// Human readable container creation time.
 	CreatedAt string
 	// If container has exited/stopped
@@ -137,7 +138,7 @@ func (a psSortedSize) Less(i, j int) bool {
 type PsSortedCreateTime struct{ SortListContainers }
 
 func (a PsSortedCreateTime) Less(i, j int) bool {
-	return a.SortListContainers[i].Created < a.SortListContainers[j].Created
+	return a.SortListContainers[i].Created.Before(a.SortListContainers[j].Created)
 }
 
 func SortPsOutput(sortBy string, psOutput SortListContainers) (SortListContainers, error) {
