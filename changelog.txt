@@ -1,4 +1,25 @@
-- Changelog for HEAD (2020-11-24):
+- Changelog for v2.2.0 (2020-11-30):
+  * Update release notes for v2.2.0
+  * Fix extra quotation mark in manpages.
+  * Fix option names --subuidname and --subgidname
+  * Revert "Allow multiple --network flags for podman run/create"
+  * Add APIv2 tests for kube generate
+  * Document docker transport is the only supported remote transport
+  * runtime: set XDG_* env variables if missing
+  * Add support for persistent volume claims in kube files
+  * Prepare support in kube play for other volume types than hostPath
+  * Fix problems with network remove
+  * Do not validate the volume source path in specgen
+  * REST API v2 - ping - fix typo in header
+  * REST API v2 - ping - remove newline from response to improve Docker compatibility
+  * squash
+  * Not use local image create/add manifest
+  * [CI:DOCS] fix misleading save/load usage
+  * [tutorials:mac-win-client] Fix command ensuring sshd is enabled
+  * Fix custom mac address with a custom cni network
+  * Ensure that --net=host/pod/container/none warn with -p
+
+- Changelog for v2.2.0-rc2 (2020-11-24):
   * Set PATH env in systemd timer.
   * Docker compat API fixes
   * shell completions: remove usage of ShellCompDirectiveError
