@@ -226,7 +226,7 @@ bin/podman.cross.%: .gopathok
 # Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
 nixpkgs:
-	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
+	@nix run -f channel:nixos-20.09 nix-prefetch-git -c nix-prefetch-git \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
 
 # Build statically linked binary
