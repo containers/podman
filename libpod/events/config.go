@@ -95,10 +95,6 @@ type Type string
 type Status string
 
 const (
-	// If you add or subtract any values to the following lists, make sure you also update
-	// the switch statements below and the enums for EventType or EventStatus in the
-	// varlink description file.
-
 	// Container - event is related to containers
 	Container Type = "container"
 	// Image - event is related to images

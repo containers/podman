@@ -49,7 +49,6 @@ if [[ $pkg_manager == *dnf ]]; then
     fi
 
     PKGS+=(python3-devel \
-        python3-varlink \
         )
 fi
 

@@ -36,19 +36,12 @@ BuildArch: noarch
 BuildRequires: git
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
-BuildRequires: python3-varlink
 
 Requires: python3-humanize
 Requires: python3-pytoml
 Requires: python3-setuptools
-Requires: python3-varlink
 Requires: python3-psutil
 Requires: podman
-
-%if 0%{?fedora}
-# 2018-07-20 RHEL8 doesn't have varlink RPM yet
-Requires: python3-varlink
-%endif
 
 Provides: %{name} = %{version}-%{release}
 

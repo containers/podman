@@ -661,7 +661,7 @@ func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd
 	return &PodmanSessionIntegration{podmanSession}
 }
 
-// We don't support running Varlink when local
+// RestartRemoteService stop and start API Server, usually to change config
 func (p *PodmanTestIntegration) RestartRemoteService() {
 	p.StopRemoteService()
 	p.StartRemoteService()

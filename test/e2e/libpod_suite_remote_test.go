@@ -107,7 +107,6 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 		}
 
 	} else {
-		//p.ResetVarlinkAddress()
 		parentPid := fmt.Sprintf("%d", p.RemoteSession.Pid)
 		pgrep := exec.Command("pgrep", "-P", parentPid)
 		fmt.Printf("running: pgrep %s\n", parentPid)

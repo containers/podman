@@ -59,13 +59,12 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {}
-func (p *PodmanTestIntegration) DelayForVarlink()   {}
 
 // SeedImages is a no-op for localized testing
 func (p *PodmanTestIntegration) SeedImages() error {
 	return nil
 }
 
-// We don't support running Varlink when local
+// We don't support running API service when local
 func (p *PodmanTestIntegration) StartRemoteService() {
 }

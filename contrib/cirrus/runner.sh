@@ -176,14 +176,6 @@ function _run_altbuild() {
         *Without*)
             make build-no-cgo
             ;;
-        *varlink-API)
-            export SUGGESTION='remove API.md, then "make varlink_api_generate" and commit changes.'
-            make varlink_api_generate BUILDTAGS="varlink"
-            ./hack/tree_status.sh
-            ;;
-        *varlink-binaries)
-            make clean BUILDTAGS="varlink" binaries
-            ;;
         *RPM*)
             make -f ./.copr/Makefile
             rpmbuild --rebuild ./podman-*.src.rpm

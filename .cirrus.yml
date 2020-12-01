@@ -270,24 +270,6 @@ swagger_task:
     always: *binary_artifacts
 
 
-endpoint_task:
-    name: "Test Endpoint"
-    alias: endpoint
-    only_if: *not_docs
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: endpoint
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *full_clone  # build-cache not available to container tasks
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
-
-
 # Check that all included go modules from other sources match
 # what is expected in `vendor/modules.txt` vs `go.mod`.
 vendor_task:
@@ -328,11 +310,7 @@ alt_build_task:
       - env:
             ALT_NAME: 'Build Without CGO'
       - env:
-            ALT_NAME: 'Build varlink-API'
-      - env:
             ALT_NAME: 'Test build RPM'
-      - env:
-            ALT_NAME: 'Build varlink-binaries'
     setup_script: *setup
     main_script: *main
     always: *binary_artifacts
@@ -633,7 +611,6 @@ success_task:
         - build
         - validate
         - bindings
-        - endpoint
         - swagger
         - vendor
         - alt_build

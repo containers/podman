@@ -38,7 +38,6 @@ Enable a listening service for API access to Podman commands.
 
 	srvArgs = struct {
 		Timeout int64
-		Varlink bool
 	}{}
 )
 
@@ -55,9 +54,6 @@ func init() {
 	flags.Int64VarP(&srvArgs.Timeout, timeFlagName, "t", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
 	_ = srvCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 
-	flags.BoolVar(&srvArgs.Varlink, "varlink", false, "Use legacy varlink service instead of REST. Unit of --time changes from seconds to milliseconds.")
-
-	_ = flags.MarkDeprecated("varlink", "valink API is deprecated.")
 	flags.SetNormalizeFunc(aliasTimeoutFlag)
 }
 
@@ -97,11 +93,6 @@ func service(cmd *cobra.Command, args []string) error {
 		Command: cmd,
 	}
 
-	if srvArgs.Varlink {
-		opts.Timeout = time.Duration(srvArgs.Timeout) * time.Millisecond
-		return registry.ContainerEngine().VarlinkService(registry.GetContext(), opts)
-	}
-
 	opts.Timeout = time.Duration(srvArgs.Timeout) * time.Second
 	return restService(opts, cmd.Flags(), registry.PodmanConfig())
 }
@@ -111,8 +102,7 @@ func resolveAPIURI(_url []string) (string, error) {
 	// 1) User input wins always
 	// 2) systemd socket activation
 	// 3) rootless honors XDG_RUNTIME_DIR
-	// 4) if varlink -- adapter.DefaultVarlinkAddress
-	// 5) lastly adapter.DefaultAPIAddress
+	// 4) lastly adapter.DefaultAPIAddress
 
 	if len(_url) == 0 {
 		if v, found := os.LookupEnv("PODMAN_SOCKET"); found {
@@ -134,16 +124,11 @@ func resolveAPIURI(_url []string) (string, error) {
 		}
 
 		socketName := "podman.sock"
-		if srvArgs.Varlink {
-			socketName = "io.podman"
-		}
 		socketPath := filepath.Join(xdg, "podman", socketName)
 		if err := os.MkdirAll(filepath.Dir(socketPath), 0700); err != nil {
 			return "", err
 		}
 		return "unix:" + socketPath, nil
-	case srvArgs.Varlink:
-		return registry.DefaultVarlinkAddress, nil
 	default:
 		if err := os.MkdirAll(filepath.Dir(registry.DefaultRootAPIPath), 0700); err != nil {
 			return "", err

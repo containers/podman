@@ -18,9 +18,6 @@ const DefaultRootAPIPath = "/run/podman/podman.sock"
 // DefaultRootAPIAddress is the default address of the REST socket with unix: prefix
 const DefaultRootAPIAddress = "unix:" + DefaultRootAPIPath
 
-// DefaultVarlinkAddress is the default address of the varlink socket
-const DefaultVarlinkAddress = "unix:/run/podman/io.podman"
-
 type CliCommand struct {
 	Mode    []entities.EngineMode
 	Command *cobra.Command
