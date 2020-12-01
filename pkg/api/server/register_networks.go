@@ -68,6 +68,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    description: |
 	//      JSON encoded value of the filters (a map[string][]string) to process on the network list. Currently available filters:
 	//        - name=[name] Matches network name (accepts regex).
+	//        - id=[id] Matches for full or partial ID.
 	//        - driver=[driver] Only bridge is supported.
 	//        - label=[key] or label=[key=value] Matches networks based on the presence of a label alone or a label and a value.
 	// produces:
@@ -225,6 +226,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    description: |
 	//      JSON encoded value of the filters (a map[string][]string) to process on the network list. Available filters:
 	//        - name=[name] Matches network name (accepts regex).
+	//        - id=[id] Matches for full or partial ID.
 	//        - driver=[driver] Only bridge is supported.
 	//        - label=[key] or label=[key=value] Matches networks based on the presence of a label alone or a label and a value.
 	//        - plugin=[plugin] Matches CNI plugins included in a network (e.g `bridge`,`portmap`,`firewall`,`tuning`,`dnsname`,`macvlan`)

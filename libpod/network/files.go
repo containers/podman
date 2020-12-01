@@ -50,13 +50,15 @@ func LoadCNIConfsFromDir(dir string) ([]*libcni.NetworkConfigList, error) {
 	return configs, nil
 }
 
-// GetCNIConfigPathByName finds a CNI network by name and
+// GetCNIConfigPathByNameOrID finds a CNI network by name and
 // returns its configuration file path
-func GetCNIConfigPathByName(config *config.Config, name string) (string, error) {
+func GetCNIConfigPathByNameOrID(config *config.Config, name string) (string, error) {
 	files, err := libcni.ConfFiles(GetCNIConfDir(config), []string{".conflist"})
 	if err != nil {
 		return "", err
 	}
+	idMatch := 0
+	file := ""
 	for _, confFile := range files {
 		conf, err := libcni.ConfListFromFile(confFile)
 		if err != nil {
@@ -65,6 +67,16 @@ func GetCNIConfigPathByName(config *config.Config, name string) (string, error) 
 		if conf.Name == name {
 			return confFile, nil
 		}
+		if strings.HasPrefix(GetNetworkID(conf.Name), name) {
+			idMatch++
+			file = confFile
+		}
+	}
+	if idMatch == 1 {
+		return file, nil
+	}
+	if idMatch > 1 {
+		return "", errors.Errorf("more than one result for network ID %s", name)
 	}
 	return "", errors.Wrap(define.ErrNoSuchNetwork, fmt.Sprintf("unable to find network configuration for %s", name))
 }
@@ -72,7 +84,7 @@ func GetCNIConfigPathByName(config *config.Config, name string) (string, error) 
 // ReadRawCNIConfByName reads the raw CNI configuration for a CNI
 // network by name
 func ReadRawCNIConfByName(config *config.Config, name string) ([]byte, error) {
-	confFile, err := GetCNIConfigPathByName(config, name)
+	confFile, err := GetCNIConfigPathByNameOrID(config, name)
 	if err != nil {
 		return nil, err
 	}

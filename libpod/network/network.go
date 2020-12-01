@@ -1,6 +1,8 @@
 package network
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net"
 	"os"
@@ -175,7 +177,7 @@ func RemoveNetwork(config *config.Config, name string) error {
 		return err
 	}
 	defer l.releaseCNILock()
-	cniPath, err := GetCNIConfigPathByName(config, name)
+	cniPath, err := GetCNIConfigPathByNameOrID(config, name)
 	if err != nil {
 		return err
 	}
@@ -228,4 +230,11 @@ func Exists(config *config.Config, name string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// GetNetworkID return the network ID for a given name.
+// It is just the sha256 hash but this should be good enough.
+func GetNetworkID(name string) string {
+	hash := sha256.Sum256([]byte(name))
+	return hex.EncodeToString(hash[:])
 }

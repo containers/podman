@@ -230,8 +230,16 @@ func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]stri
 				}
 			}
 
+		case "id":
+			// matches part of one id
+			for _, filterValue := range filterValues {
+				if strings.Contains(GetNetworkID(netconf.Name), filterValue) {
+					result = true
+					break
+				}
+			}
+
 		// TODO: add dangling filter
-		// TODO TODO: add id filter if we support ids
 
 		default:
 			return false, errors.Errorf("invalid filter %q", key)

@@ -50,7 +50,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.NetworkNotFound(w, name, err)
 		return
 	}
-	report, err := getNetworkResourceByName(name, runtime, nil)
+	report, err := getNetworkResourceByNameOrID(name, runtime, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -58,7 +58,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func getNetworkResourceByName(name string, runtime *libpod.Runtime, filters map[string][]string) (*types.NetworkResource, error) {
+func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filters map[string][]string) (*types.NetworkResource, error) {
 	var (
 		ipamConfigs []dockerNetwork.IPAMConfig
 	)
@@ -68,7 +68,7 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime, filters map[
 	}
 	containerEndpoints := map[string]types.EndpointResource{}
 	// Get the network path so we can get created time
-	networkConfigPath, err := network.GetCNIConfigPathByName(config, name)
+	networkConfigPath, err := network.GetCNIConfigPathByNameOrID(config, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime, filters map[
 		if err != nil {
 			return nil, err
 		}
-		if netData, ok := data.NetworkSettings.Networks[name]; ok {
+		if netData, ok := data.NetworkSettings.Networks[conf.Name]; ok {
 			containerEndpoint := types.EndpointResource{
 				Name:        netData.NetworkID,
 				EndpointID:  netData.EndpointID,
@@ -128,8 +128,8 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime, filters map[
 		}
 	}
 	report := types.NetworkResource{
-		Name:       name,
-		ID:         name,
+		Name:       conf.Name,
+		ID:         network.GetNetworkID(conf.Name),
 		Created:    time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)), // nolint: unconvert
 		Scope:      "",
 		Driver:     network.DefaultNetworkDriver,
@@ -199,7 +199,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	var reports []*types.NetworkResource
 	logrus.Errorf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
-		report, err := getNetworkResourceByName(name, runtime, query.Filters)
+		report, err := getNetworkResourceByNameOrID(name, runtime, query.Filters)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return

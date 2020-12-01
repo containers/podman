@@ -37,6 +37,7 @@ var (
 var (
 	networkListOptions entities.NetworkListOptions
 	filters            []string
+	noTrunc            bool
 )
 
 func networkListFlags(flags *pflag.FlagSet) {
@@ -45,6 +46,7 @@ func networkListFlags(flags *pflag.FlagSet) {
 	_ = networklistCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 
 	flags.BoolVarP(&networkListOptions.Quiet, "quiet", "q", false, "display only names")
+	flags.BoolVar(&noTrunc, "no-trunc", false, "Do not truncate the network ID")
 
 	filterFlagName := "filter"
 	flags.StringArrayVarP(&filters, filterFlagName, "f", nil, "Provide filter values (e.g. 'name=podman')")
@@ -96,6 +98,7 @@ func networkList(cmd *cobra.Command, args []string) error {
 		"Version":    "version",
 		"Plugins":    "plugins",
 		"Labels":     "labels",
+		"ID":         "network id",
 	})
 	renderHeaders := true
 	row := "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
@@ -154,4 +157,12 @@ func (n ListPrintReports) Labels() string {
 		list = append(list, k+"="+v)
 	}
 	return strings.Join(list, ",")
+}
+
+func (n ListPrintReports) ID() string {
+	length := 12
+	if noTrunc {
+		length = 64
+	}
+	return network.GetNetworkID(n.Name)[:length]
 }
