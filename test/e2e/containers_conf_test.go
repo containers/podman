@@ -203,35 +203,35 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session.LineInOuputStartsWith("search foobar.com")
+		session.LineInOutputStartsWith("search foobar.com")
 	})
 
 	It("podman run add dns server", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session.LineInOuputStartsWith("server 1.2.3.4")
+		session.LineInOutputStartsWith("server 1.2.3.4")
 	})
 
 	It("podman run add dns option", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session.LineInOuputStartsWith("options debug")
+		session.LineInOutputStartsWith("options debug")
 	})
 
 	It("podman run containers.conf remove all search domain", func() {
 		session := podmanTest.Podman([]string{"run", "--dns-search=.", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOuputStartsWith("search")).To(BeFalse())
+		Expect(session.LineInOutputStartsWith("search")).To(BeFalse())
 	})
 
 	It("podman run use containers.conf search domain", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOuputStartsWith("search")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("search")).To(BeTrue())
 		Expect(session.OutputToString()).To(ContainSubstring("foobar.com"))
 
 		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
@@ -275,7 +275,7 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOuputStartsWith("search")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("search")).To(BeTrue())
 		Expect(session.OutputToString()).To(ContainSubstring("foobar.com"))
 		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
 		Expect(session.OutputToString()).To(ContainSubstring("debug"))
