@@ -460,15 +460,6 @@ changelog: ## Generate changelog
 	$(shell cat $(TMPFILE) >> changelog.txt)
 	$(shell rm $(TMPFILE))
 
-completions: binaries
-	install ${SELINUXOPT} -d -m 755 completions/{bash,zsh,fish}
-	./bin/podman completion bash --no-desc -f completions/bash/podman
-	./bin/podman-remote completion bash --no-desc -f completions/bash/podman-remote
-	./bin/podman completion zsh -f completions/zsh/_podman
-	./bin/podman-remote completion zsh -f completions/zsh/_podman-remote
-	./bin/podman completion fish -f completions/fish/podman.fish
-	./bin/podman-remote completion fish -f completions/fish/podman-remote.fish
-
 .PHONY: install
 install: .gopathok install.bin install.remote install.man install.cni install.systemd  ## Install binaries to system locations
 
@@ -620,14 +611,6 @@ install.libseccomp.sudo:
 .PHONY: validate.completions
 validate.completions: SHELL:=/usr/bin/env bash # Set shell to bash for this target
 validate.completions:
-	# Check that nobody has manually edited the completion scripts
-	# If this check fails run make completions to restore the correct scripts
-	diff completions/bash/podman <(./bin/podman completion --no-desc bash)
-	diff completions/zsh/_podman <(./bin/podman completion zsh)
-	diff completions/fish/podman.fish <(./bin/podman completion fish)
-	diff completions/bash/podman-remote <(./bin/podman-remote completion --no-desc bash)
-	diff completions/zsh/_podman-remote <(./bin/podman-remote completion zsh)
-	diff completions/fish/podman-remote.fish <(./bin/podman-remote completion fish)
 	# Check if the files can be loaded by the shell
 	. completions/bash/podman
 	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
