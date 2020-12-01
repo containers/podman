@@ -50,7 +50,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.NetworkNotFound(w, name, err)
 		return
 	}
-	report, err := getNetworkResourceByName(name, runtime)
+	report, err := getNetworkResourceByName(name, runtime, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -58,7 +58,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.NetworkResource, error) {
+func getNetworkResourceByName(name string, runtime *libpod.Runtime, filters map[string][]string) (*types.NetworkResource, error) {
 	var (
 		ipamConfigs []dockerNetwork.IPAMConfig
 	)
@@ -84,6 +84,16 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 	conf, err := libcni.ConfListFromFile(networkConfigPath)
 	if err != nil {
 		return nil, err
+	}
+	if len(filters) > 0 {
+		ok, err := network.IfPassesFilter(conf, filters)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			// do not return the config if we did not match the filter
+			return nil, nil
+		}
 	}
 
 	// No Bridge plugin means we bail
@@ -129,14 +139,14 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 			Options: nil,
 			Config:  ipamConfigs,
 		},
-		Internal:   false,
+		Internal:   !bridge.IsGW,
 		Attachable: false,
 		Ingress:    false,
 		ConfigFrom: dockerNetwork.ConfigReference{},
 		ConfigOnly: false,
 		Containers: containerEndpoints,
 		Options:    nil,
-		Labels:     nil,
+		Labels:     network.GetNetworkLabels(conf),
 		Peers:      nil,
 		Services:   nil,
 	}
@@ -180,41 +190,23 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filterNames, nameFilterExists := query.Filters["name"]
-	// TODO remove when filters are implemented
-	if (!nameFilterExists && len(query.Filters) > 0) || len(query.Filters) > 1 {
-		utils.InternalServerError(w, errors.New("only the name filter for listing networks is implemented"))
-		return
-	}
 	netNames, err := network.GetNetworkNamesFromFileSystem(config)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 
-	// filter by name
-	if nameFilterExists {
-		names := []string{}
-		for _, name := range netNames {
-			for _, filter := range filterNames {
-				if strings.Contains(name, filter) {
-					names = append(names, name)
-					break
-				}
-			}
-		}
-		netNames = names
-	}
-
-	reports := make([]*types.NetworkResource, 0, len(netNames))
+	var reports []*types.NetworkResource
 	logrus.Errorf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
-		report, err := getNetworkResourceByName(name, runtime)
+		report, err := getNetworkResourceByName(name, runtime, query.Filters)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
-		reports = append(reports, report)
+		if report != nil {
+			reports = append(reports, report)
+		}
 	}
 	utils.WriteResponse(w, http.StatusOK, reports)
 }
@@ -245,6 +237,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	ncOptions := entities.NetworkCreateOptions{
 		Driver:   network.DefaultNetworkDriver,
 		Internal: networkCreate.Internal,
+		Labels:   networkCreate.Labels,
 	}
 	if networkCreate.IPAM != nil && networkCreate.IPAM.Config != nil {
 		if len(networkCreate.IPAM.Config) > 1 {

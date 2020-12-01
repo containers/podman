@@ -2,10 +2,7 @@ package abi
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
-	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -26,18 +23,16 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.Net
 		return nil, err
 	}
 
-	var tokens []string
-	// tokenize the networkListOptions.Filter in key=value.
-	if len(options.Filter) > 0 {
-		tokens = strings.Split(options.Filter, "=")
-		if len(tokens) != 2 {
-			return nil, fmt.Errorf("invalid filter syntax : %s", options.Filter)
-		}
-	}
-
 	for _, n := range networks {
-		if ifPassesFilterTest(n, tokens) {
-			reports = append(reports, &entities.NetworkListReport{NetworkConfigList: n})
+		ok, err := network.IfPassesFilter(n, options.Filters)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			reports = append(reports, &entities.NetworkListReport{
+				NetworkConfigList: n,
+				Labels:            network.GetNetworkLabels(n),
+			})
 		}
 	}
 	return reports, nil
@@ -115,28 +110,6 @@ func (ic *ContainerEngine) NetworkCreate(ctx context.Context, name string, optio
 		return nil, err
 	}
 	return network.Create(name, options, runtimeConfig)
-}
-
-func ifPassesFilterTest(netconf *libcni.NetworkConfigList, filter []string) bool {
-	result := false
-	if len(filter) == 0 {
-		// No filter, so pass
-		return true
-	}
-	switch strings.ToLower(filter[0]) {
-	case "name":
-		if filter[1] == netconf.Name {
-			result = true
-		}
-	case "plugin":
-		plugins := network.GetCNIPlugins(netconf)
-		if strings.Contains(plugins, filter[1]) {
-			result = true
-		}
-	default:
-		result = false
-	}
-	return result
 }
 
 // NetworkDisconnect removes a container from a given network

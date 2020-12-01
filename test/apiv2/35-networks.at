@@ -9,8 +9,8 @@ t GET networks/non-existing-network 404 \
 t POST libpod/networks/create?name=network1 '' 200 \
 .Filename~.*/network1\\.conflist
 
-# --data '{"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]}}'
-t POST libpod/networks/create?name=network2 '"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]}' 200 \
+# --data '{"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]},"Labels":{"abc":"val"}}'
+t POST libpod/networks/create?name=network2 '"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]},"Labels":{"abc":"val"}' 200 \
 .Filename~.*/network2\\.conflist
 
 # test for empty mask
@@ -22,7 +22,8 @@ t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[0,255,255,0]}'
 
 # network list
 t GET libpod/networks/json 200
-t GET libpod/networks/json?filter=name=network1 200 \
+# filters={"name":["network1"]}
+t GET libpod/networks/json?filters=%7B%22name%22%3A%5B%22network1%22%5D%7D 200 \
 length=1 \
 .[0].Name=network1
 t GET networks 200
@@ -34,12 +35,12 @@ length=2
 #filters={"name":["network"]}
 t GET networks?filters=%7B%22name%22%3A%5B%22network%22%5D%7D 200 \
 length=2
-# invalid filter filters={"label":"abc"}
-t GET networks?filters=%7B%22label%22%3A%5B%22abc%22%5D%7D 500 \
-.cause="only the name filter for listing networks is implemented"
-# invalid filter filters={"label":"abc","name":["network"]}
-t GET networks?filters=%7B%22label%22%3A%22abc%22%2C%22name%22%3A%5B%22network%22%5D%7D 500 \
-.cause="only the name filter for listing networks is implemented"
+# filters={"label":["abc"]}
+t GET networks?filters=%7B%22label%22%3A%5B%22abc%22%5D%7D 200 \
+length=1
+# invalid filter filters={"id":["abc"]}
+t GET networks?filters=%7B%22id%22%3A%5B%22abc%22%5D%7D 500 \
+.cause='invalid filter "id"'
 
 # clean the network
 t DELETE libpod/networks/network1 200 \

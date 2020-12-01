@@ -6,9 +6,11 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
+	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +29,7 @@ var (
 
 var (
 	networkCreateOptions entities.NetworkCreateOptions
+	labels               []string
 )
 
 func networkCreateFlags(cmd *cobra.Command) {
@@ -49,6 +52,10 @@ func networkCreateFlags(cmd *cobra.Command) {
 	macvlanFlagName := "macvlan"
 	flags.StringVar(&networkCreateOptions.MacVLAN, macvlanFlagName, "", "create a Macvlan connection based on this device")
 	_ = cmd.RegisterFlagCompletionFunc(macvlanFlagName, completion.AutocompleteNone)
+
+	labelFlagName := "label"
+	flags.StringArrayVar(&labels, labelFlagName, nil, "set metadata on a network")
+	_ = cmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
 
 	// TODO not supported yet
 	// flags.StringVar(&networkCreateOptions.IPamDriver, "ipam-driver", "",  "IP Address Management Driver")
@@ -80,6 +87,11 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 			return define.RegexError
 		}
 		name = args[0]
+	}
+	var err error
+	networkCreateOptions.Labels, err = parse.GetAllLabels([]string{}, labels)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse labels")
 	}
 	response, err := registry.ContainerEngine().NetworkCreate(registry.Context(), name, networkCreateOptions)
 	if err != nil {

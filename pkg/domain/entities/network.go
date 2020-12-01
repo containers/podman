@@ -8,14 +8,15 @@ import (
 
 // NetworkListOptions describes options for listing networks in cli
 type NetworkListOptions struct {
-	Format string
-	Quiet  bool
-	Filter string
+	Format  string
+	Quiet   bool
+	Filters map[string][]string
 }
 
 // NetworkListReport describes the results from listing networks
 type NetworkListReport struct {
 	*libcni.NetworkConfigList
+	Labels map[string]string
 }
 
 // NetworkInspectReport describes the results from inspect networks
@@ -39,6 +40,7 @@ type NetworkCreateOptions struct {
 	Driver     string
 	Gateway    net.IP
 	Internal   bool
+	Labels     map[string]string
 	MacVLAN    string
 	Range      net.IPNet
 	Subnet     net.IPNet

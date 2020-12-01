@@ -48,7 +48,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Filter string `schema:"filter"`
+		Filters map[string][]string `schema:"filters"`
 	}{
 		// override any golang type defaults
 	}
@@ -59,7 +59,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	options := entities.NetworkListOptions{
-		Filter: query.Filter,
+		Filters: query.Filters,
 	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	reports, err := ic.NetworkList(r.Context(), options)
