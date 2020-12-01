@@ -449,7 +449,9 @@ json-file | f
     msg=$(random_string 20)
     pidfile="${PODMAN_TMPDIR}/$(random_string 20)"
 
-    run_podman run --name myctr --log-driver journald --conmon-pidfile $pidfile $IMAGE echo $msg
+    # Multiple --log-driver options to confirm that last one wins
+    run_podman run --name myctr --log-driver=none --log-driver journald \
+               --conmon-pidfile $pidfile $IMAGE echo $msg
 
     journalctl --output cat  _PID=$(cat $pidfile)
     is "$output" "$msg" "check that journalctl output equals the container output"
@@ -464,7 +466,9 @@ json-file | f
     run_podman run --rm $IMAGE date -r $testfile
     is "$output" "Sun Sep 13 12:26:40 UTC 2020" "podman run with no TZ"
 
-    run_podman run --rm --tz=MST7MDT $IMAGE date -r $testfile
+    # Multiple --tz options; confirm that the last one wins
+    run_podman run --rm --tz=US/Eastern --tz=Iceland --tz=MST7MDT \
+               $IMAGE date -r $testfile
     is "$output" "Sun Sep 13 06:26:40 MDT 2020" "podman run with --tz=MST7MDT"
 
     # --tz=local pays attention to /etc/localtime, not $TZ. We set TZ anyway,
@@ -533,8 +537,15 @@ json-file | f
 }
 
 @test "podman run with --net=host and --port prints warning" {
-    run_podman run -d --rm -p 8080 --net=host $IMAGE ls > /dev/null
-    is "$output" ".*Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use"
+    rand=$(random_string 10)
+
+    # Please keep the duplicate "--net" options; this tests against #8507,
+    # a regression in which subsequent --net options did not override earlier.
+    run_podman run --rm -p 8080 --net=none --net=host $IMAGE echo $rand
+    is "${lines[0]}" \
+       "Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use" \
+       "Warning is emitted before container output"
+    is "${lines[1]}" "$rand" "Container runs successfully despite warning"
 }
 
 # vim: filetype=sh

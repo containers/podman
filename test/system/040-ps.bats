@@ -35,4 +35,51 @@ load helpers
     run_podman rm $cid
 }
 
+@test "podman ps --filter" {
+    run_podman run -d --name runner $IMAGE top
+    cid_runner=$output
+
+    run_podman run -d --name stopped $IMAGE true
+    cid_stopped=$output
+    run_podman wait stopped
+
+    run_podman run -d --name failed $IMAGE false
+    cid_failed=$output
+    run_podman wait failed
+
+    run_podman create --name created $IMAGE echo hi
+    cid_created=$output
+
+    run_podman ps --filter name=runner --format '{{.ID}}'
+    is "$output" "${cid_runner:0:12}" "filter: name=runner"
+
+    # Stopped container should not appear (because we're not using -a)
+    run_podman ps --filter name=stopped --format '{{.ID}}'
+    is "$output" "" "filter: name=stopped (without -a)"
+
+    # Again, but with -a
+    run_podman ps -a --filter name=stopped --format '{{.ID}}'
+    is "$output" "${cid_stopped:0:12}" "filter: name=stopped (with -a)"
+
+    run_podman ps --filter status=stopped --format '{{.Names}}' --sort names
+    is "${lines[0]}" "failed"  "status=stopped: 1 of 2"
+    is "${lines[1]}" "stopped" "status=stopped: 2 of 2"
+
+    run_podman ps --filter status=exited --filter exited=0 --format '{{.Names}}'
+    is "$output" "stopped" "exited=0"
+
+    run_podman ps --filter status=exited --filter exited=1 --format '{{.Names}}'
+    is "$output" "failed" "exited=1"
+
+    # Multiple statuses allowed; and test sort=created
+    run_podman ps -a --filter status=exited --filter status=running \
+               --format '{{.Names}}' --sort created
+    is "${lines[0]}" "runner"  "status=stopped: 1 of 3"
+    is "${lines[1]}" "stopped" "status=stopped: 2 of 3"
+    is "${lines[2]}" "failed"  "status=stopped: 3 of 3"
+
+    run_podman stop -t 1 runner
+    run_podman rm -a
+}
+
 # vim: filetype=sh

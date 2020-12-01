@@ -59,7 +59,8 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 @test "podman images - history output" {
     # podman history is persistent: it permanently alters our base image.
     # Create a dummy image here so we leave our setup as we found it.
-    run_podman run --name my-container $IMAGE true
+    # Multiple --name options confirm command-line override (last one wins)
+    run_podman run --name ignore-me --name my-container $IMAGE true
     run_podman commit my-container my-test-image
 
     run_podman images my-test-image --format '{{ .History }}'
@@ -87,7 +88,8 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 }
 
 @test "podman images - filter" {
-    run_podman inspect --format '{{.ID}}' $IMAGE
+    # Multiple --format options confirm command-line override (last one wins)
+    run_podman inspect --format '{{.XYZ}}' --format '{{.ID}}' $IMAGE
     iid=$output
 
     run_podman images --noheading --filter=after=$iid

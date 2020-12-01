@@ -286,6 +286,10 @@ EOF
     is "$output" "nc: bind: Address in use" \
        "two containers cannot bind to same port"
 
+    # make sure we can ping; failure here might mean that capabilities are wrong
+    run_podman run --rm --pod mypod $IMAGE ping -c1 127.0.0.1
+    run_podman run --rm --pod mypod $IMAGE ping -c1 $hostname
+
     # While the container is still running, run 'podman ps' (no --format)
     # and confirm that the output includes the published port
     run_podman ps --filter id=$cid
