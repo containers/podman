@@ -185,6 +185,8 @@ type BuildOptions struct {
 	Jobs *int
 	// LogRusage logs resource usage for each step.
 	LogRusage bool
+	// Excludes is a list of excludes to be used instead of the .dockerignore file.
+	Excludes []string
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be

@@ -130,9 +130,12 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		return nil, errors.Wrapf(err, "failed to get container config")
 	}
 
-	excludes, err := imagebuilder.ParseDockerignore(options.ContextDirectory)
-	if err != nil {
-		return nil, err
+	excludes := options.Excludes
+	if len(excludes) == 0 {
+		excludes, err = imagebuilder.ParseDockerignore(options.ContextDirectory)
+		if err != nil {
+			return nil, err
+		}
 	}
 	capabilities, err := defaultContainerConfig.Capabilities("", options.AddCapabilities, options.DropCapabilities)
 	if err != nil {

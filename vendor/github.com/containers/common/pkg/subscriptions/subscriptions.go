@@ -1,4 +1,4 @@
-package secrets
+package subscriptions
 
 import (
 	"bufio"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/buildah/pkg/umask"
+	"github.com/containers/common/pkg/umask"
 	"github.com/containers/storage/pkg/idtools"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -27,16 +27,16 @@ var (
 	UserOverrideMountsFile = filepath.Join(os.Getenv("HOME"), ".config/containers/mounts.conf")
 )
 
-// secretData stores the name of the file and the content read from it
-type secretData struct {
+// subscriptionData stores the name of the file and the content read from it
+type subscriptionData struct {
 	name    string
 	data    []byte
 	mode    os.FileMode
 	dirMode os.FileMode
 }
 
-// saveTo saves secret data to given directory
-func (s secretData) saveTo(dir string) error {
+// saveTo saves subscription data to given directory
+func (s subscriptionData) saveTo(dir string) error {
 	path := filepath.Join(dir, s.name)
 	if err := os.MkdirAll(filepath.Dir(path), s.dirMode); err != nil {
 		return err
@@ -44,10 +44,10 @@ func (s secretData) saveTo(dir string) error {
 	return ioutil.WriteFile(path, s.data, s.mode)
 }
 
-func readAll(root, prefix string, parentMode os.FileMode) ([]secretData, error) {
+func readAll(root, prefix string, parentMode os.FileMode) ([]subscriptionData, error) {
 	path := filepath.Join(root, prefix)
 
-	data := []secretData{}
+	data := []subscriptionData{}
 
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -74,7 +74,7 @@ func readAll(root, prefix string, parentMode os.FileMode) ([]secretData, error) 
 	return data, nil
 }
 
-func readFileOrDir(root, name string, parentMode os.FileMode) ([]secretData, error) {
+func readFileOrDir(root, name string, parentMode os.FileMode) ([]subscriptionData, error) {
 	path := filepath.Join(root, name)
 
 	s, err := os.Stat(path)
@@ -93,7 +93,7 @@ func readFileOrDir(root, name string, parentMode os.FileMode) ([]secretData, err
 	if err != nil {
 		return nil, err
 	}
-	return []secretData{{
+	return []subscriptionData{{
 		name:    name,
 		data:    bytes,
 		mode:    s.Mode(),
@@ -101,13 +101,13 @@ func readFileOrDir(root, name string, parentMode os.FileMode) ([]secretData, err
 	}}, nil
 }
 
-func getHostSecretData(hostDir string, mode os.FileMode) ([]secretData, error) {
-	var allSecrets []secretData
-	hostSecrets, err := readAll(hostDir, "", mode)
+func getHostSubscriptionData(hostDir string, mode os.FileMode) ([]subscriptionData, error) {
+	var allSubscriptions []subscriptionData
+	hostSubscriptions, err := readAll(hostDir, "", mode)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read secrets from %q", hostDir)
+		return nil, errors.Wrapf(err, "failed to read subscriptions from %q", hostDir)
 	}
-	return append(allSecrets, hostSecrets...), nil
+	return append(allSubscriptions, hostSubscriptions...), nil
 }
 
 func getMounts(filePath string) []string {
@@ -136,7 +136,7 @@ func getMounts(filePath string) []string {
 }
 
 // getHostAndCtrDir separates the host:container paths
-func getMountsMap(path string) (string, string, error) {
+func getMountsMap(path string) (string, string, error) { //nolint
 	arr := strings.SplitN(path, ":", 2)
 	switch len(arr) {
 	case 1:
@@ -147,27 +147,21 @@ func getMountsMap(path string) (string, string, error) {
 	return "", "", errors.Errorf("unable to get host and container dir from path: %s", path)
 }
 
-// SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-// Deprecated, Please use SecretMountWithUIDGID
-func SecretMounts(mountLabel, containerWorkingDir, mountFile string, rootless, disableFips bool) []rspec.Mount {
-	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0, rootless, disableFips)
-}
-
-// SecretMountsWithUIDGID copies, adds, and mounts the secrets to the container root filesystem
+// MountsWithUIDGID copies, adds, and mounts the subscriptions to the container root filesystem
 // mountLabel: MAC/SELinux label for container content
-// containerWorkingDir: Private data for storing secrets on the host mounted in container.
+// containerWorkingDir: Private data for storing subscriptions on the host mounted in container.
 // mountFile: Additional mount points required for the container.
 // mountPoint: Container image mountpoint
-// uid: to assign to content created for secrets
-// gid: to assign to content created for secrets
+// uid: to assign to content created for subscriptions
+// gid: to assign to content created for subscriptions
 // rootless: indicates whether container is running in rootless mode
 // disableFips: indicates whether system should ignore fips mode
-func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoint string, uid, gid int, rootless, disableFips bool) []rspec.Mount {
+func MountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoint string, uid, gid int, rootless, disableFips bool) []rspec.Mount {
 	var (
-		secretMounts []rspec.Mount
-		mountFiles   []string
+		subscriptionMounts []rspec.Mount
+		mountFiles         []string
 	)
-	// Add secrets from paths given in the mounts.conf files
+	// Add subscriptions from paths given in the mounts.conf files
 	// mountFile will have a value if the hidden --default-mounts-file flag is set
 	// Note for testing purposes only
 	if mountFile == "" {
@@ -180,31 +174,32 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoi
 	}
 	for _, file := range mountFiles {
 		if _, err := os.Stat(file); err == nil {
-			mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, uid, gid)
+			mounts, err := addSubscriptionsFromMountsFile(file, mountLabel, containerWorkingDir, uid, gid)
 			if err != nil {
-				logrus.Warnf("error mounting secrets, skipping entry in %s: %v", file, err)
+				logrus.Warnf("error mounting subscriptions, skipping entry in %s: %v", file, err)
 			}
-			secretMounts = mounts
+			subscriptionMounts = mounts
 			break
 		}
 	}
 
-	// Only add FIPS secret mount if disableFips=false
+	// Only add FIPS subscription mount if disableFips=false
 	if disableFips {
-		return secretMounts
+		return subscriptionMounts
 	}
-	// Add FIPS mode secret if /etc/system-fips exists on the host
+	// Add FIPS mode subscription if /etc/system-fips exists on the host
 	_, err := os.Stat("/etc/system-fips")
-	if err == nil {
-		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir, mountPoint, mountLabel, uid, gid); err != nil {
-			logrus.Errorf("error adding FIPS mode secret to container: %v", err)
+	switch {
+	case err == nil:
+		if err := addFIPSModeSubscription(&subscriptionMounts, containerWorkingDir, mountPoint, mountLabel, uid, gid); err != nil {
+			logrus.Errorf("error adding FIPS mode subscription to container: %v", err)
 		}
-	} else if os.IsNotExist(err) {
-		logrus.Debug("/etc/system-fips does not exist on host, not mounting FIPS mode secret")
-	} else {
-		logrus.Errorf("stat /etc/system-fips failed for FIPS mode secret: %v", err)
+	case os.IsNotExist(err):
+		logrus.Debug("/etc/system-fips does not exist on host, not mounting FIPS mode subscription")
+	default:
+		logrus.Errorf("stat /etc/system-fips failed for FIPS mode subscription: %v", err)
 	}
-	return secretMounts
+	return subscriptionMounts
 }
 
 func rchown(chowndir string, uid, gid int) error {
@@ -213,9 +208,9 @@ func rchown(chowndir string, uid, gid int) error {
 	})
 }
 
-// addSecretsFromMountsFile copies the contents of host directory to container directory
+// addSubscriptionsFromMountsFile copies the contents of host directory to container directory
 // and returns a list of mounts
-func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string, uid, gid int) ([]rspec.Mount, error) {
+func addSubscriptionsFromMountsFile(filePath, mountLabel, containerWorkingDir string, uid, gid int) ([]rspec.Mount, error) {
 	var mounts []rspec.Mount
 	defaultMountsPaths := getMounts(filePath)
 	for _, path := range defaultMountsPaths {
@@ -235,7 +230,7 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string, 
 
 		ctrDirOrFileOnHost := filepath.Join(containerWorkingDir, ctrDirOrFile)
 
-		// In the event of a restart, don't want to copy secrets over again as they already would exist in ctrDirOrFileOnHost
+		// In the event of a restart, don't want to copy subscriptions over again as they already would exist in ctrDirOrFileOnHost
 		_, err = os.Stat(ctrDirOrFileOnHost)
 		if os.IsNotExist(err) {
 
@@ -245,17 +240,17 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string, 
 			}
 
 			// Don't let the umask have any influence on the file and directory creation
-			oldUmask := umask.SetUmask(0)
-			defer umask.SetUmask(oldUmask)
+			oldUmask := umask.Set(0)
+			defer umask.Set(oldUmask)
 
 			switch mode := fileInfo.Mode(); {
 			case mode.IsDir():
 				if err = os.MkdirAll(ctrDirOrFileOnHost, mode.Perm()); err != nil {
 					return nil, errors.Wrapf(err, "making container directory %q failed", ctrDirOrFileOnHost)
 				}
-				data, err := getHostSecretData(hostDirOrFile, mode.Perm())
+				data, err := getHostSubscriptionData(hostDirOrFile, mode.Perm())
 				if err != nil {
-					return nil, errors.Wrapf(err, "getting host secret data failed")
+					return nil, errors.Wrapf(err, "getting host subscription data failed")
 				}
 				for _, s := range data {
 					if err := s.saveTo(ctrDirOrFileOnHost); err != nil {
@@ -305,15 +300,15 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string, 
 	return mounts, nil
 }
 
-// addFIPSModeSecret creates /run/secrets/system-fips in the container
+// addFIPSModeSubscription creates /run/secrets/system-fips in the container
 // root filesystem if /etc/system-fips exists on hosts.
 // This enables the container to be FIPS compliant and run openssl in
 // FIPS mode as the host is also in FIPS mode.
-func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPoint, mountLabel string, uid, gid int) error {
-	secretsDir := "/run/secrets"
-	ctrDirOnHost := filepath.Join(containerWorkingDir, secretsDir)
+func addFIPSModeSubscription(mounts *[]rspec.Mount, containerWorkingDir, mountPoint, mountLabel string, uid, gid int) error {
+	subscriptionsDir := "/run/secrets"
+	ctrDirOnHost := filepath.Join(containerWorkingDir, subscriptionsDir)
 	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
-		if err = idtools.MkdirAllAs(ctrDirOnHost, 0755, uid, gid); err != nil {
+		if err = idtools.MkdirAllAs(ctrDirOnHost, 0755, uid, gid); err != nil { //nolint
 			return errors.Wrapf(err, "making container directory %q on host failed", ctrDirOnHost)
 		}
 		if err = label.Relabel(ctrDirOnHost, mountLabel, false); err != nil {
@@ -330,10 +325,10 @@ func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPoint, m
 		defer file.Close()
 	}
 
-	if !mountExists(*mounts, secretsDir) {
+	if !mountExists(*mounts, subscriptionsDir) {
 		m := rspec.Mount{
 			Source:      ctrDirOnHost,
-			Destination: secretsDir,
+			Destination: subscriptionsDir,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},
 		}
