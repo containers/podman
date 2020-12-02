@@ -104,9 +104,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if len(query.Tag) > 0 {
 		output = query.Tag[0]
 	}
-	if _, found := r.URL.Query()["target"]; found {
-		output = query.Target
-	}
 
 	var additionalNames []string
 	if len(query.Tag) > 1 {
@@ -162,7 +159,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	reporter := channel.NewWriter(make(chan []byte, 1))
 	defer reporter.Close()
-
 	buildOptions := imagebuildah.BuildOptions{
 		ContextDirectory:               contextDirectory,
 		PullPolicy:                     pullPolicy,
