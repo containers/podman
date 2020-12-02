@@ -17,16 +17,16 @@ import (
 var (
 	kubeOptions     = entities.GenerateKubeOptions{}
 	kubeFile        = ""
-	kubeDescription = `Command generates Kubernetes pod and service YAML (v1 specification) from a Podman container or pod.
+	kubeDescription = `Command generates Kubernetes pod and service YAML (v1 specification) from Podman containers or a pod.
 
 Whether the input is for a container or pod, Podman will always generate the specification as a pod.`
 
 	kubeCmd = &cobra.Command{
-		Use:               "kube [options] CONTAINER | POD",
+		Use:               "kube [options] CONTAINER... | POD",
 		Short:             "Generate Kubernetes YAML from a container or pod.",
 		Long:              kubeDescription,
 		RunE:              kube,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteContainersAndPods,
 		Example: `podman generate kube ctrID
   podman generate kube podID
@@ -51,7 +51,7 @@ func init() {
 }
 
 func kube(cmd *cobra.Command, args []string) error {
-	report, err := registry.ContainerEngine().GenerateKube(registry.GetContext(), args[0], kubeOptions)
+	report, err := registry.ContainerEngine().GenerateKube(registry.GetContext(), args, kubeOptions)
 	if err != nil {
 		return err
 	}

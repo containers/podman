@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -37,15 +38,21 @@ func Systemd(ctx context.Context, nameOrID string, options entities.GenerateSyst
 	return report, response.Process(&report.Units)
 }
 
-func Kube(ctx context.Context, nameOrID string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
+func Kube(ctx context.Context, nameOrIDs []string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if len(nameOrIDs) < 1 {
+		return nil, errors.New("must provide the name or ID of one container or pod")
+	}
 	params := url.Values{}
+	for _, name := range nameOrIDs {
+		params.Add("names", name)
+	}
 	params.Set("service", strconv.FormatBool(options.Service))
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/%s/kube", params, nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/kube", params, nil)
 	if err != nil {
 		return nil, err
 	}
