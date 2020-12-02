@@ -861,10 +861,10 @@ func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string)
 		"status=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return containerStatuses, cobra.ShellCompDirectiveNoFileComp
 		},
-		"ancestor": func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) },
-		"before=":  func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
-		"since=":   func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
-		"volume=":  func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+		"ancestor=": func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) },
+		"before=":   func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
+		"since=":    func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
+		"volume=":   func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
 		"health=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return []string{define.HealthCheckHealthy,
 				define.HealthCheckUnhealthy}, cobra.ShellCompDirectiveNoFileComp
