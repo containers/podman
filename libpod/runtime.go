@@ -472,7 +472,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// we will need to access the storage.
 		if os.Geteuid() != 0 {
 			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
-			pausePid, err := util.GetRootlessPauseProcessPidPath()
+			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
 				return errors.Wrapf(err, "could not get pause process pid file path")
 			}
@@ -536,6 +536,15 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 
 	return nil
+}
+
+// TmpDir gets the current Libpod temporary files directory.
+func (r *Runtime) TmpDir() (string, error) {
+	if !r.valid {
+		return "", define.ErrRuntimeStopped
+	}
+
+	return r.config.Engine.TmpDir, nil
 }
 
 // GetConfig returns a copy of the configuration used by the runtime

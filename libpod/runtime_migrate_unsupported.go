@@ -10,6 +10,6 @@ func (r *Runtime) migrate(ctx context.Context) error {
 	return nil
 }
 
-func stopPauseProcess() error {
+func (r *Runtime) stopPauseProcess() error {
 	return nil
 }

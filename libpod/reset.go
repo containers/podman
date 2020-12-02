@@ -46,7 +46,7 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		}
 	}
 
-	if err := stopPauseProcess(); err != nil {
+	if err := r.stopPauseProcess(); err != nil {
 		logrus.Errorf("Error stopping pause process: %v", err)
 	}
 
