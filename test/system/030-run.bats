@@ -536,6 +536,30 @@ json-file | f
     run_podman untag $IMAGE $newtag $newtag2
 }
 
+@test "Verify /run/.containerenv exist" {
+	run_podman run --rm $IMAGE ls -1 /run/.containerenv
+	is "$output" "/run/.containerenv"
+
+	run_podman run --privileged --rm $IMAGE sh -c '. /run/.containerenv; echo $engine'
+	is "$output" ".*podman.*" "failed to identify engine"
+
+	run_podman run --privileged  --name "testcontainerenv" --rm $IMAGE sh -c '. /run/.containerenv; echo $name'
+	is "$output" ".*testcontainerenv.*"
+
+	run_podman run --privileged  --rm $IMAGE sh -c '. /run/.containerenv; echo $image'
+	is "$output" ".*$IMAGE.*" "failed to idenitfy image"
+
+	run_podman run --privileged --rm $IMAGE sh -c '. /run/.containerenv; echo $rootless'
+	# FIXME: on some CI systems, 'run --privileged' emits a spurious
+	# warning line about dup devices. Ignore it.
+	remove_same_dev_warning
+	if is_rootless; then
+		is "$output" "1"
+	else
+		is "$output" "0"
+	fi
+}
+
 @test "podman run with --net=host and --port prints warning" {
     rand=$(random_string 10)
 

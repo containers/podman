@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
+	"github.com/containers/podman/v2/version"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -1423,11 +1424,26 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	// Make .containerenv
-	// Empty file, so no need to recreate if it exists
+	// Make .containerenv if it does not exist
 	if _, ok := c.state.BindMounts["/run/.containerenv"]; !ok {
-		// Empty string for now, but we may consider populating this later
-		containerenvPath, err := c.writeStringToRundir(".containerenv", "")
+		var containerenv string
+		isRootless := 0
+		if rootless.IsRootless() {
+			isRootless = 1
+		}
+		imageID, imageName := c.Image()
+
+		if c.Privileged() {
+			// Populate the .containerenv with container information
+			containerenv = fmt.Sprintf(`engine="podman-%s"
+name=%q
+id=%q
+image=%q
+imageid=%q
+rootless=%d
+`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless)
+		}
+		containerenvPath, err := c.writeStringToRundir(".containerenv", containerenv)
 		if err != nil {
 			return errors.Wrapf(err, "error creating containerenv file for container %s", c.ID())
 		}
