@@ -1,0 +1,441 @@
+#!/usr/bin/env bash
+#
+# Usage: test-docker-compose [testname]
+#
+# DEVELOPER NOTE: you almost certainly don't need to play in here. See README.
+#
+ME=$(basename $0)
+
+###############################################################################
+# BEGIN stuff you can but probably shouldn't customize
+
+# Directory where this script (and extra test configs) live
+TEST_ROOTDIR=$(realpath $(dirname $0))
+
+# Podman executable
+PODMAN_BIN=$(realpath bin)/podman
+
+# Github repo containing sample docker-compose setups
+# FIXME: we should probably version this
+AWESOME_COMPOSE=https://github.com/docker/awesome-compose
+
+# Local path to docker socket
+DOCKER_SOCK=/var/run/docker.sock
+
+# END   stuff you can but probably shouldn't customize
+###############################################################################
+# BEGIN setup
+
+TMPDIR=${TMPDIR:-/var/tmp}
+WORKDIR=$(mktemp --tmpdir -d $ME.tmp.XXXXXX)
+
+# Log of all HTTP requests and responses; always make '.log' point to latest
+LOGBASE=${TMPDIR}/$ME.log
+LOG=${LOGBASE}.$(date +'%Y%m%dT%H%M%S')
+ln -sf $LOG $LOGBASE
+
+# Keep track of test count and failures in files, not variables, because
+# variables don't carry back up from subshells.
+testcounter_file=$WORKDIR/.testcounter
+failures_file=$WORKDIR/.failures
+
+echo 0 >$testcounter_file
+echo 0 >$failures_file
+
+# END   setup
+###############################################################################
+# BEGIN infrastructure code - the helper functions used in tests themselves
+
+#########
+#  die  #  Exit error with a message to stderr
+#########
+function die() {
+    echo "$ME: $*" >&2
+    exit 1
+}
+
+########
+#  is  #  Simple comparison
+########
+function is() {
+    local actual=$1
+    local expect=$2
+    local testname=$3
+
+    if [[ $actual = $expect ]]; then
+        # On success, include expected value; this helps readers understand
+        _show_ok 1 "$testname=$expect"
+        return
+    fi
+    _show_ok 0 "$testname" "$expect" "$actual"
+}
+
+##########
+#  like  #  Compare, but allowing patterns
+##########
+function like() {
+    local actual=$1
+    local expect=$2
+    local testname=$3
+
+    # "is" (equality) is a subset of "like", but one that expr fails on if
+    # the expected result has shell-special characters like '['. Treat it
+    # as a special case.
+    if [[ $actual = $expect ]]; then
+        _show_ok 1 "$testname=$expect"
+        return
+    fi
+
+    if expr "$actual" : "$expect" &>/dev/null; then
+        # On success, include expected value; this helps readers understand
+        _show_ok 1 "$testname ('$actual') ~ $expect"
+        return
+    fi
+    _show_ok 0 "$testname" "~ $expect" "$actual"
+}
+
+##############
+#  _show_ok  #  Helper for is() and like(): displays 'ok' or 'not ok'
+##############
+function _show_ok() {
+    local ok=$1
+    local testname=$2
+
+    # If output is a tty, colorize pass/fail
+    local red=
+    local green=
+    local reset=
+    local bold=
+    if [ -t 1 ]; then
+        red='\e[31m'
+        green='\e[32m'
+        reset='\e[0m'
+        bold='\e[1m'
+    fi
+
+    _bump $testcounter_file
+    count=$(<$testcounter_file)
+
+    # "skip" is a special case of "ok". Assume that our caller has included
+    # the magical '# skip - reason" comment string.
+    if [[ $ok == "skip" ]]; then
+        # colon-plus: replace green with yellow, but only if green is non-null
+        green="${green:+\e[33m}"
+        ok=1
+    fi
+    if [ $ok -eq 1 ]; then
+        echo -e "${green}ok $count $testname${reset}"
+        echo    "ok $count $testname" >>$LOG
+        return
+    fi
+
+    # Failed
+    local expect=$3
+    local actual=$4
+    echo -e "${red}not ok $count $testname${reset}"
+    echo -e "${red}#  expected: $expect${reset}"
+    echo -e "${red}#    actual: ${bold}$actual${reset}"
+
+    echo    "not ok $count $testname" >>$LOG
+    echo    "  expected: $expect"                     >>$LOG
+
+    _bump $failures_file
+}
+
+###########
+#  _bump  #  Increment a counter in a file
+###########
+function _bump() {
+    local file=$1
+
+    count=$(<$file)
+    echo $(( $count + 1 )) >| $file
+}
+
+#############
+#  jsonify  #  convert 'foo=bar,x=y' to json {"foo":"bar","x":"y"}
+#############
+function jsonify() {
+    # split by comma
+    local -a settings_in
+    read -ra settings_in <<<"$1"
+
+    # convert each to double-quoted form
+    local -a settings_out
+    for i in ${settings_in[*]}; do
+        settings_out+=$(sed -e 's/\(.*\)=\(.*\)/"\1":"\2"/' <<<$i)
+    done
+
+    # ...and wrap inside braces.
+    # FIXME: handle commas
+    echo "{${settings_out[*]}}"
+}
+
+#######
+#  t  #  Main test helper
+#######
+function t() {
+    local method=$1; shift
+    local path=$1; shift
+    local curl_args
+
+    local testname="$method $path"
+    # POST requests require an extra params arg
+    if [[ $method = "POST" ]]; then
+        curl_args="-d $(jsonify $1)"
+        testname="$testname [$curl_args]"
+        shift
+    fi
+
+    # entrypoint path can include a descriptive comment; strip it off
+    path=${path%% *}
+
+    # curl -X HEAD but without --head seems to wait for output anyway
+    if [[ $method == "HEAD" ]]; then
+        curl_args="--head"
+    fi
+    local expected_code=$1; shift
+
+    # If given path begins with /, use it as-is; otherwise prepend /version/
+    local url=http://$HOST:$PORT
+    if expr "$path" : "/" >/dev/null; then
+        url="$url$path"
+    else
+        url="$url/v1.40/$path"
+    fi
+
+    # Log every action we do
+    echo "-------------------------------------------------------------" >>$LOG
+    echo "\$ $testname"                                                  >>$LOG
+    rm -f $WORKDIR/curl.*
+    # -s = silent, but --write-out 'format' gives us important response data
+    response=$(curl -s -X $method ${curl_args}                   \
+                    -H 'Content-type: application/json'          \
+                    --dump-header $WORKDIR/curl.headers.out       \
+                    --write-out '%{http_code}^%{content_type}^%{time_total}' \
+                    -o $WORKDIR/curl.result.out "$url")
+
+    # Any error from curl is instant bad news, from which we can't recover
+    rc=$?
+    if [[ $rc -ne 0 ]]; then
+        echo "FATAL: curl failure ($rc) on $url - cannot continue" >&2
+        exit 1
+    fi
+
+    # Show returned headers (without trailing ^M or empty lines) in log file.
+    # Sometimes -- I can't remember why! -- we don't get headers.
+    if [[ -e $WORKDIR/curl.headers.out ]]; then
+        tr -d '\015' < $WORKDIR/curl.headers.out | egrep '.' >>$LOG
+    fi
+
+    IFS='^' read actual_code content_type time_total <<<"$response"
+    printf "X-Response-Time: ${time_total}s\n\n" >>$LOG
+
+    # Log results, if text. If JSON, filter through jq for readability.
+    if [[ $content_type =~ /octet ]]; then
+        output="[$(file --brief $WORKDIR/curl.result.out)]"
+        echo "$output" >>$LOG
+    else
+        output=$(< $WORKDIR/curl.result.out)
+
+        if [[ $content_type =~ application/json ]]; then
+            jq . <<<"$output" >>$LOG
+        else
+            echo "$output" >>$LOG
+        fi
+    fi
+
+    # Test return code
+    is "$actual_code" "$expected_code" "$testname : status"
+
+    # Special case: 204/304, by definition, MUST NOT return content (rfc2616)
+    if [[ $expected_code = 204 || $expected_code = 304 ]]; then
+        if [ -n "$*" ]; then
+            die "Internal error: ${expected_code} status returns no output; fix your test."
+        fi
+        if [ -n "$output" ]; then
+            _show_ok 0 "$testname: ${expected_code} status returns no output" "''" "$output"
+        fi
+        return
+    fi
+
+    local i
+
+    # Special case: if response code does not match, dump the response body
+    # and skip all further subtests.
+    if [[ $actual_code != $expected_code ]]; then
+        echo -e "#  response: $output"
+        for i; do
+            _show_ok skip "$testname: $i # skip - wrong return code"
+        done
+        return
+    fi
+
+    for i; do
+        if expr "$i" : "[^=~]\+=.*" >/dev/null; then
+            # Exact match on json field
+            json_field=$(expr "$i" : "\([^=]*\)=")
+            expect=$(expr "$i" : '[^=]*=\(.*\)')
+            actual=$(jq -r "$json_field" <<<"$output")
+            is "$actual" "$expect" "$testname : $json_field"
+        elif expr "$i" : "[^=~]\+~.*" >/dev/null; then
+            # regex match on json field
+            json_field=$(expr "$i" : "\([^~]*\)~")
+            expect=$(expr "$i" : '[^~]*~\(.*\)')
+            actual=$(jq -r "$json_field" <<<"$output")
+            like "$actual" "$expect" "$testname : $json_field"
+        else
+            # Direct string comparison
+            is "$output" "$i" "$testname : output"
+        fi
+    done
+}
+
+###################
+#  start_service  #  Run the socket listener
+###################
+service_pid=
+function start_service() {
+    test -x $PODMAN_BIN || die "Not found: $PODMAN_BIN"
+
+    rm -rf $WORKDIR/{root,runroot,cni}
+    mkdir $WORKDIR/cni
+    cp /etc/cni/net.d/*podman*conflist $WORKDIR/cni/
+
+    $PODMAN_BIN \
+        --root $WORKDIR/root \
+        --runroot $WORKDIR/runroot \
+        --cgroup-manager=systemd \
+        --cni-config-dir $WORKDIR/cni \
+        system service \
+        --time 0 unix:/$DOCKER_SOCK \
+        &> $WORKDIR/server.log &
+    service_pid=$!
+
+    # Wait (FIXME: how do we test the socket?)
+    local _timeout=5
+    while [ $_timeout -gt 0 ]; do
+        # FIXME: should we actually try a read or write?
+        test -S $DOCKER_SOCK && return
+        sleep 1
+        _timeout=$(( $_timeout - 1 ))
+    done
+    cat $WORKDIR/server.log
+    die "Timed out waiting for service"
+}
+
+############
+#  podman  #  Needed by some test scripts to invoke the actual podman binary
+############
+function podman() {
+    echo "\$ $PODMAN_BIN $*"           >>$WORKDIR/output.log
+    $PODMAN_BIN --root $WORKDIR "$@"   >>$WORKDIR/output.log 2>&1
+}
+
+# END   infrastructure code
+###############################################################################
+# BEGIN sanity checks
+
+for tool in curl docker-compose; do
+    type $tool &>/dev/null || die "$ME: Required tool '$tool' not found"
+done
+
+# END   sanity checks
+###############################################################################
+# BEGIN entry handler (subtest invoker)
+
+TESTS_DIR=$WORKDIR/awesome-compose
+
+git clone $AWESOME_COMPOSE $TESTS_DIR
+
+# Identify the tests to run. If called with args, use those as globs.
+tests_to_run=()
+if [ -n "$*" ]; then
+    shopt -s nullglob
+    for i; do
+        match=(${TEST_ROOTDIR}/*${i}*.curl)
+        if [ ${#match} -eq 0 ]; then
+            die "No match for $TEST_ROOTDIR/*$i*.curl"
+        fi
+        tests_to_run+=("${match[@]}")
+    done
+    shopt -u nullglob
+else
+    tests_to_run=(${TEST_ROOTDIR}/*.curl)
+fi
+
+# Test count: each of those tests might have a local set of subtests
+n_tests=$((2 * ${#tests_to_run[*]}))
+for t in ${tests_to_run[@]}; do
+    n_curls=$(wc -l $t | awk '{print $1}')
+    n_tests=$(( n_tests + n_curls ))
+done
+
+
+echo "1..$n_tests"
+
+for t in ${tests_to_run[@]}; do
+    testname="$(basename $t .curl)"
+
+    start_service
+
+    logfile=$WORKDIR/$testname.log
+    (
+        cd $TESTS_DIR/$testname || die "Cannot cd $TESTS_DIR/$testname"
+        docker-compose up -d     &> $logfile
+        if [[ $? -ne 0 ]]; then
+            _show_ok 0 "$testname - up" "[ok]" "$(< $logfile)"
+            # FIXME: cat log
+            docker-compose down >>$logfile 2>&1      # No status check here
+            exit 1
+        fi
+        _show_ok 1 "$testname - up"
+
+        # FIXME: run tests, e.g. curl
+        curls=$TEST_ROOTDIR/$testname.curl
+        if [[ -e $curls ]]; then
+            while read port expect; do
+                actual=$(curl --retry 5 --retry-connrefused -s http://127.0.0.1:$port/)
+                curl_rc=$?
+                if [ $curl_rc -ne 0 ]; then
+                    _show_ok 0 "$testname - curl failed with status $curl_rc"
+                    docker-compose down >>$logfile 2>&1
+                    exit 1
+                fi
+                echo "got here: $actual"
+                like "$actual" "$expect" "$testname : port $port"
+            done < $curls
+        fi
+
+        echo "OK, press ENTER to stop"
+        read x
+
+        docker-compose down     &> $logfile
+        if [[ $? -eq 0 ]]; then
+            _show_ok 1 "$testname - down"
+        else
+            _show_ok 0 "$testname - down" "[ok]" "$(< $logfile)"
+            # FIXME: show error
+        fi
+    )
+
+    kill $service_pid
+    wait $service_pid
+
+    # FIXME: otherwise we get EBUSY
+    umount $WORKDIR/root/overlay  &>/dev/null
+done
+
+# END   entry handler
+###############################################################################
+
+# Clean up
+
+test_count=$(<$testcounter_file)
+failure_count=$(<$failures_file)
+
+#if [ -z "$PODMAN_TESTS_KEEP_WORKDIR" ]; then
+#    rm -rf $WORKDIR
+#fi
+
+exit $failure_count
