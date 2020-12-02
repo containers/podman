@@ -38,7 +38,7 @@ var _ = Describe("Podman run memory", func() {
 		var session *PodmanSessionIntegration
 
 		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--memory=40m", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/memory.max"})
+			session = podmanTest.Podman([]string{"run", "--memory=40m", "--net=none", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/memory.max"})
 		} else {
 			session = podmanTest.Podman([]string{"run", "--memory=40m", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.limit_in_bytes"})
 		}
@@ -55,7 +55,7 @@ var _ = Describe("Podman run memory", func() {
 		var session *PodmanSessionIntegration
 
 		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--memory-reservation=40m", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/memory.low"})
+			session = podmanTest.Podman([]string{"run", "--memory-reservation=40m", "--net=none", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/memory.low"})
 		} else {
 			session = podmanTest.Podman([]string{"run", "--memory-reservation=40m", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.soft_limit_in_bytes"})
 		}
@@ -81,7 +81,7 @@ var _ = Describe("Podman run memory", func() {
 		var session *PodmanSessionIntegration
 
 		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--memory-reservation=40m", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/memory.low"})
+			session = podmanTest.Podman([]string{"run", "--net=none", "--memory-reservation=40m", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/memory.low"})
 		} else {
 			session = podmanTest.Podman([]string{"run", "--memory-reservation=40m", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.soft_limit_in_bytes"})
 		}
