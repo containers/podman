@@ -30,7 +30,7 @@ env:
     PRIOR_UBUNTU_NAME: "ubuntu-19"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c5402398833246208"
+    IMAGE_SUFFIX: "c4704091098054656"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -434,6 +434,21 @@ apiv2_test_task:
         podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
         time_script: '$SCRIPT_BASE/logcollector.sh time'
 
+compose_test_task:
+    name: "compose test on $DISTRO_NV"
+    alias: compose_test
+    depends_on:
+        - validate
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: compose
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
+
 
 # Execute the podman integration tests on all primary platforms and release
 # versions, as root, without involving the podman-remote client.
@@ -619,6 +634,7 @@ success_task:
         - docker-py_test
         - unit_test
         - apiv2_test
+        - compose_test
         - local_integration_test
         - remote_integration_test
         - rootless_integration_test

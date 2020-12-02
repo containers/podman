@@ -81,12 +81,13 @@ function like() {
     # "is" (equality) is a subset of "like", but one that expr fails on if
     # the expected result has shell-special characters like '['. Treat it
     # as a special case.
-    if [[ $actual = $expect ]]; then
+
+    if [[ "$actual" = "$expect" ]]; then
         _show_ok 1 "$testname=$expect"
         return
     fi
 
-    if expr "$actual" : "$expect" &>/dev/null; then
+    if expr "$actual" : ".*$expect" &>/dev/null; then
         # On success, include expected value; this helps readers understand
         _show_ok 1 "$testname ('$actual') ~ $expect"
         return
@@ -132,9 +133,9 @@ function _show_ok() {
     # Failed
     local expect=$3
     local actual=$4
-    echo -e "${red}not ok $count $testname${reset}"
-    echo -e "${red}#  expected: $expect${reset}"
-    echo -e "${red}#    actual: ${bold}$actual${reset}"
+    printf "${red}not ok $count $testname${reset}\n"
+    printf "${red}#  expected: %s${reset}\n" "$expect"
+    printf "${red}#    actual: ${bold}%s${reset}\n" "$actual"
 
     echo    "not ok $count $testname" >>$LOG
     echo    "  expected: $expect"                     >>$LOG
@@ -347,6 +348,7 @@ done
 TESTS_DIR=$WORKDIR/awesome-compose
 
 git clone $AWESOME_COMPOSE $TESTS_DIR
+git -C $TESTS_DIR checkout -q a3c38822277bcca04abbadf34120dcff808db3ec
 
 # Identify the tests to run. If called with args, use those as globs.
 tests_to_run=()
@@ -402,13 +404,9 @@ for t in ${tests_to_run[@]}; do
                     docker-compose down >>$logfile 2>&1
                     exit 1
                 fi
-                echo "got here: $actual"
                 like "$actual" "$expect" "$testname : port $port"
             done < $curls
         fi
-
-        echo "OK, press ENTER to stop"
-        read x
 
         docker-compose down     &> $logfile
         if [[ $? -eq 0 ]]; then
@@ -434,8 +432,8 @@ done
 test_count=$(<$testcounter_file)
 failure_count=$(<$failures_file)
 
-#if [ -z "$PODMAN_TESTS_KEEP_WORKDIR" ]; then
-#    rm -rf $WORKDIR
-#fi
+if [ -z "$PODMAN_TESTS_KEEP_WORKDIR" ]; then
+    rm -rf $WORKDIR
+fi
 
 exit $failure_count
