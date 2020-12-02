@@ -135,6 +135,40 @@ var _ = Describe("Podman network", func() {
 		Expect(session.LineInOutputContains(name)).To(BeFalse())
 	})
 
+	It("podman network ID test", func() {
+		net := "networkIDTest"
+		// the network id should be the sha256 hash of the network name
+		netID := "6073aefe03cdf8f29be5b23ea9795c431868a3a22066a6290b187691614fee84"
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(session.OutputToString()).To(ContainSubstring(net + " " + netID[:12]))
+
+		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID[10:50], "--no-trunc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(session.OutputToString()).To(ContainSubstring(net + " " + netID))
+
+		session = podmanTest.Podman([]string{"network", "inspect", netID[:40]})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(session.OutputToString()).To(ContainSubstring(net))
+
+		session = podmanTest.Podman([]string{"network", "inspect", netID[1:]})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).ToNot(BeZero())
+		Expect(session.ErrorToString()).To(ContainSubstring("no such network"))
+
+		session = podmanTest.Podman([]string{"network", "rm", netID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+	})
+
 	rm_func := func(rm string) {
 		It(fmt.Sprintf("podman network %s no args", rm), func() {
 			session := podmanTest.Podman([]string{"network", rm})
