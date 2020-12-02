@@ -43,6 +43,15 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	ch := make(chan string)
 	_, err = conn.StartTransientUnit(unitName, "replace", properties, ch)
 	if err != nil {
+		// On errors check if the cgroup already exists, if it does move the process there
+		if props, err := conn.GetUnitTypeProperties(unitName, "Scope"); err == nil {
+			if cgroup, ok := props["ControlGroup"].(string); ok && cgroup != "" {
+				if err := moveUnderCgroup(cgroup, "", []uint32{uint32(pid)}); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
 		return err
 	}
 	defer conn.Close()
@@ -101,6 +110,13 @@ func GetCgroupProcess(pid int) (string, error) {
 
 // MoveUnderCgroupSubtree moves the PID under a cgroup subtree.
 func MoveUnderCgroupSubtree(subtree string) error {
+	return moveUnderCgroup("", subtree, nil)
+}
+
+// moveUnderCgroup moves a group of processes to a new cgroup.
+// If cgroup is the empty string, then the current calling process cgroup is used.
+// If processes is empty, then the processes from the current cgroup are moved.
+func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 	procFile := "/proc/self/cgroup"
 	f, err := os.Open(procFile)
 	if err != nil {
@@ -140,13 +156,12 @@ func MoveUnderCgroupSubtree(subtree string) error {
 			cgroupRoot = filepath.Join(cgroupRoot, controller)
 		}
 
-		processes, err := ioutil.ReadFile(filepath.Join(cgroupRoot, parts[2], "cgroup.procs"))
-		if err != nil {
-			return err
+		parentCgroup := cgroup
+		if parentCgroup == "" {
+			parentCgroup = parts[2]
 		}
-
-		newCgroup := filepath.Join(cgroupRoot, parts[2], subtree)
-		if err := os.Mkdir(newCgroup, 0755); err != nil {
+		newCgroup := filepath.Join(cgroupRoot, parentCgroup, subtree)
+		if err := os.Mkdir(newCgroup, 0755); err != nil && !os.IsExist(err) {
 			return err
 		}
 
@@ -156,9 +171,21 @@ func MoveUnderCgroupSubtree(subtree string) error {
 		}
 		defer f.Close()
 
-		for _, pid := range bytes.Split(processes, []byte("\n")) {
-			if _, err := f.Write(pid); err != nil {
-				logrus.Warnf("Cannot move process %s to cgroup %q", pid, newCgroup)
+		if len(processes) > 0 {
+			for _, pid := range processes {
+				if _, err := f.Write([]byte(fmt.Sprintf("%d\n", pid))); err != nil {
+					logrus.Warnf("Cannot move process %d to cgroup %q", pid, newCgroup)
+				}
+			}
+		} else {
+			processesData, err := ioutil.ReadFile(filepath.Join(cgroupRoot, parts[2], "cgroup.procs"))
+			if err != nil {
+				return err
+			}
+			for _, pid := range bytes.Split(processesData, []byte("\n")) {
+				if _, err := f.Write(pid); err != nil {
+					logrus.Warnf("Cannot move process %d to cgroup %q", pid, newCgroup)
+				}
 			}
 		}
 	}
