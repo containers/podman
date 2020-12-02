@@ -152,7 +152,7 @@ func pingNewConnection(ctx context.Context) error {
 		return err
 	}
 	// the ping endpoint sits at / in this case
-	response, err := client.DoRequest(nil, http.MethodGet, "../../../_ping", nil, nil)
+	response, err := client.DoRequest(nil, http.MethodGet, "/_ping", nil, nil)
 	if err != nil {
 		return err
 	}
