@@ -388,7 +388,7 @@ func CreateExitCommandArgs(storageConfig storage.StoreOptions, config *config.Co
 	}
 
 	if syslog {
-		command = append(command, "--syslog", "true")
+		command = append(command, "--syslog")
 	}
 	command = append(command, []string{"container", "cleanup"}...)
 
