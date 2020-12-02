@@ -49,9 +49,28 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run network connection with default", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "default", ALPINE, "wget", "www.podman.io"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run network connection with none", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "none", ALPINE, "wget", "www.podman.io"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+		Expect(session.ErrorToString()).To(ContainSubstring("wget: bad address 'www.podman.io'"))
+	})
+
+	It("podman run network connection with private", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "private", ALPINE, "wget", "www.podman.io"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run network connection with loopback", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--network", "host", ALPINE, "wget", "www.podman.io"})
-		session.Wait(90)
+		session := podmanTest.Podman([]string{"run", "--network", "host", ALPINE, "wget", "www.podman.io"})
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
