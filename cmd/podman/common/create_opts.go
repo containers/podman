@@ -204,10 +204,10 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	for _, m := range cc.HostConfig.Mounts {
 		mount := fmt.Sprintf("type=%s", m.Type)
 		if len(m.Source) > 0 {
-			mount += fmt.Sprintf("source=%s", m.Source)
+			mount += fmt.Sprintf(",source=%s", m.Source)
 		}
 		if len(m.Target) > 0 {
-			mount += fmt.Sprintf("dest=%s", m.Target)
+			mount += fmt.Sprintf(",dst=%s", m.Target)
 		}
 		mounts = append(mounts, mount)
 	}
