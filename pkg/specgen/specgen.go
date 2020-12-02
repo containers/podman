@@ -307,6 +307,13 @@ type ContainerSecurityConfig struct {
 	Umask string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.
 	ProcOpts []string `json:"procfs_opts,omitempty"`
+	// Mask is the path we want to mask in the container. This masks the paths
+	// given in addition to the default list.
+	// Optional
+	Mask []string `json:"mask,omitempty"`
+	// Unmask is the path we want to unmask in the container. To override
+	// all the default paths that are masked, set unmask=ALL.
+	Unmask []string `json:"unmask,omitempty"`
 }
 
 // ContainerCgroupConfig contains configuration information about a container's

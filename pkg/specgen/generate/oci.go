@@ -298,7 +298,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 	}
 
-	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), &g)
+	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), s.Mask, s.Unmask, &g)
 
 	for name, val := range s.Env {
 		g.AddProcessEnv(name, val)

@@ -885,11 +885,16 @@ Security Options
 - **label=level:**_LEVEL_: Set the label level for the container processes
 - **label=filetype:**TYPE_: Set the label file type for the container files
 - **label=disable**: Turn off label separation for the container
+- **mask**=_/path/1:/path/2_: The paths to mask separated by a colon. A masked path
+  cannot be accessed inside the container.
 - **no-new-privileges**: Disable container processes from gaining additional privileges
 - **seccomp=unconfined**: Turn off seccomp confinement for the container
 - **seccomp**=_profile.json_: Allowed syscall list seccomp JSON file to be used as a seccomp filter
 - **proc-opts**=_OPTIONS_ : Comma separated list of options to use for the /proc mount. More details
   for the possible mount options are specified at **proc(5)** man page.
+- **unmask**=_ALL_ or _/path/1:/path/2_: Paths to unmask separated by a colon. If set to **ALL**, it will
+  unmask all the paths that are masked by default.
+  The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**
 
 Note: Labeling can be disabled for all containers by setting **label=false** in the **containers.conf**(5) file.
 
@@ -1478,6 +1483,26 @@ $ podman run --security-opt label=type:svirt_apache_t -i -t centos bash
 ```
 
 Note you would have to write policy defining a **svirt_apache_t** type.
+
+To mask additional specific paths in the container, specify the paths
+separated by a colon using the **mask** option with the **--security-opt**
+flag.
+
+```
+$ podman run --security-opt mask=/foo/bar:/second/path fedora bash
+```
+
+To unmask all the paths that are masked by default, set the **unmask** option to
+**ALL**. Or to only unmask specific paths, specify the paths as shown above with
+the **mask** option.
+
+```
+$ podman run --security-opt unmask=ALL fedora bash
+```
+
+```
+$ podman run --security-opt unmask=/foo/bar:/sys/firmware fedora bash
+```
 
 ### Setting device weight
 

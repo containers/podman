@@ -233,6 +233,39 @@ var _ = Describe("Podman run", func() {
 		return jsonFile
 	}
 
+	It("podman run mask and unmask path test", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name=maskCtr1", "--security-opt", "unmask=ALL", "--security-opt", "mask=/proc/acpi", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr1", "ls", "/sys/firmware"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr1", "ls", "/proc/acpi"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(BeEmpty())
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr2", "--security-opt", "unmask=/proc/acpi:/sys/firmware", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/sys/firmware"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/proc/acpi"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr3", "--security-opt", "mask=/sys/power/disk", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr3", "cat", "/sys/power/disk"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(BeEmpty())
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run seccomp test", func() {
 		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", strings.Join([]string{"seccomp=", forbidGetCWDSeccompProfile()}, ""), ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
