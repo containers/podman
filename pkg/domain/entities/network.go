@@ -45,6 +45,8 @@ type NetworkCreateOptions struct {
 	Range      net.IPNet
 	Subnet     net.IPNet
 	IPv6       bool
+	// Mapping of driver options and values.
+	Options map[string]string
 }
 
 // NetworkCreateReport describes a created network for the cli

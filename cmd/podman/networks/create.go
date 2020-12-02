@@ -30,6 +30,7 @@ var (
 var (
 	networkCreateOptions entities.NetworkCreateOptions
 	labels               []string
+	opts                 []string
 )
 
 func networkCreateFlags(cmd *cobra.Command) {
@@ -38,6 +39,10 @@ func networkCreateFlags(cmd *cobra.Command) {
 	driverFlagName := "driver"
 	flags.StringVarP(&networkCreateOptions.Driver, driverFlagName, "d", "bridge", "driver to manage the network")
 	_ = cmd.RegisterFlagCompletionFunc(driverFlagName, common.AutocompleteNetworkDriver)
+
+	optFlagName := "opt"
+	flags.StringArrayVarP(&opts, optFlagName, "o", []string{}, "Set driver specific options (default [])")
+	_ = cmd.RegisterFlagCompletionFunc(optFlagName, completion.AutocompleteNone)
 
 	gatewayFlagName := "gateway"
 	flags.IPVar(&networkCreateOptions.Gateway, gatewayFlagName, nil, "IPv4 or IPv6 gateway for the subnet")
@@ -92,6 +97,10 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 	networkCreateOptions.Labels, err = parse.GetAllLabels([]string{}, labels)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse labels")
+	}
+	networkCreateOptions.Options, err = parse.GetAllLabels([]string{}, opts)
+	if err != nil {
+		return errors.Wrapf(err, "unable to process options")
 	}
 	response, err := registry.ContainerEngine().NetworkCreate(registry.Context(), name, networkCreateOptions)
 	if err != nil {
