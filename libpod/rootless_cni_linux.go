@@ -25,7 +25,7 @@ import (
 
 // Built from ../contrib/rootless-cni-infra.
 var rootlessCNIInfraImage = map[string]string{
-	"amd64": "quay.io/luap99/rootless-cni-infra@sha256:4e9f1e223463a46d9f9b019c0fa8c902494ed34872f75104d985b23812f19683", // 4-amd64
+	"amd64": "quay.io/libpod/rootless-cni-infra@sha256:adf352454666f7ce9ca3e1098448b5ee18f89c4516471ec99447ec9ece917f36", // 5-amd64
 }
 
 const (
@@ -66,10 +66,25 @@ func AllocRootlessCNI(ctx context.Context, c *Container) (ns.NetNS, []*cnitypes.
 	if c.config.StaticMAC != nil {
 		mac = c.config.StaticMAC.String()
 	}
+	aliases, err := c.runtime.state.GetAllNetworkAliases(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	capArgs := ""
+	// add network aliases json encoded as capabilityArgs for cni
+	if len(aliases) > 0 {
+		capabilityArgs := make(map[string]interface{})
+		capabilityArgs["aliases"] = aliases
+		b, err := json.Marshal(capabilityArgs)
+		if err != nil {
+			return nil, nil, err
+		}
+		capArgs = string(b)
+	}
 
 	cniResults := make([]*cnitypes.Result, len(networks))
 	for i, nw := range networks {
-		cniRes, err := rootlessCNIInfraCallAlloc(infra, c.ID(), nw, k8sPodName, ip, mac)
+		cniRes, err := rootlessCNIInfraCallAlloc(infra, c.ID(), nw, k8sPodName, ip, mac, capArgs)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -146,11 +161,11 @@ func getCNIPodName(c *Container) string {
 	return c.Name()
 }
 
-func rootlessCNIInfraCallAlloc(infra *Container, id, nw, k8sPodName, ip, mac string) (*cnitypes.Result, error) {
-	logrus.Debugf("rootless CNI: alloc %q, %q, %q, %q, %q", id, nw, k8sPodName, ip, mac)
+func rootlessCNIInfraCallAlloc(infra *Container, id, nw, k8sPodName, ip, mac, capArgs string) (*cnitypes.Result, error) {
+	logrus.Debugf("rootless CNI: alloc %q, %q, %q, %q, %q, %q", id, nw, k8sPodName, ip, mac, capArgs)
 	var err error
 
-	_, err = rootlessCNIInfraExec(infra, "alloc", id, nw, k8sPodName, ip, mac)
+	_, err = rootlessCNIInfraExec(infra, "alloc", id, nw, k8sPodName, ip, mac, capArgs)
 	if err != nil {
 		return nil, err
 	}
