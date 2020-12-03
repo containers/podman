@@ -7,7 +7,7 @@ podman\-network - Manage Podman CNI networks
 **podman network** *subcommand*
 
 ## DESCRIPTION
-The network command manages CNI networks for Podman. It is not supported for rootless users.
+The network command manages CNI networks for Podman.
 
 ## COMMANDS
 
