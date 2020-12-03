@@ -17,6 +17,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -73,7 +74,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, nil)
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
@@ -207,7 +208,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// Success
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, nil)
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
@@ -215,8 +216,10 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 	// /{version}/containers/(name)/wait
 	exitCode, err := utils.WaitContainer(w, r)
 	if err != nil {
+		logrus.Warnf("failed to wait on container %q: %v", mux.Vars(r)["name"], err)
 		return
 	}
+
 	utils.WriteResponse(w, http.StatusOK, handlers.ContainerWaitOKBody{
 		StatusCode: int(exitCode),
 		Error: struct {
