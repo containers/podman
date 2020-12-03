@@ -412,7 +412,9 @@ Valid _mode_ values are:
 container full access to local system services such as D-bus and is therefore
 considered insecure.
 - **ns:**_path_: path to a network namespace to join.
-- **private**: create a new namespace for the container (default).
+- **private**: create a new namespace for the container (default). The
+**container** network mode is an alias for **private**, but has been deprecated
+and will be removed in a future release of Podman.
 
 #### **--no-cache**
 
