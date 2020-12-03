@@ -81,5 +81,4 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, "")
-
 }

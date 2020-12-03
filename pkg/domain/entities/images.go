@@ -51,22 +51,22 @@ func (i *Image) Id() string { // nolint
 }
 
 type ImageSummary struct {
-	ID          string   `json:"Id"`
-	ParentId    string   // nolint
-	RepoTags    []string `json:",omitempty"`
+	ID          string `json:"Id"`
+	ParentId    string // nolint
+	RepoTags    []string
+	RepoDigests []string
 	Created     int64
-	Size        int64             `json:",omitempty"`
-	SharedSize  int               `json:",omitempty"`
-	VirtualSize int64             `json:",omitempty"`
-	Labels      map[string]string `json:",omitempty"`
-	Containers  int               `json:",omitempty"`
-	ReadOnly    bool              `json:",omitempty"`
-	Dangling    bool              `json:",omitempty"`
+	Size        int64
+	SharedSize  int
+	VirtualSize int64
+	Labels      map[string]string
+	Containers  int
+	ReadOnly    bool `json:",omitempty"`
+	Dangling    bool `json:",omitempty"`
 
 	// Podman extensions
 	Names        []string `json:",omitempty"`
 	Digest       string   `json:",omitempty"`
-	Digests      []string `json:",omitempty"`
 	ConfigDigest string   `json:",omitempty"`
 	History      []string `json:",omitempty"`
 }

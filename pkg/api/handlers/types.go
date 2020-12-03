@@ -145,13 +145,14 @@ type PodCreateConfig struct {
 	Share        string   `json:"share"`
 }
 
+// HistoryResponse provides details on image layers
 type HistoryResponse struct {
-	ID        string   `json:"Id"`
-	Created   int64    `json:"Created"`
-	CreatedBy string   `json:"CreatedBy"`
-	Tags      []string `json:"Tags"`
-	Size      int64    `json:"Size"`
-	Comment   string   `json:"Comment"`
+	ID        string `json:"Id"`
+	Created   int64
+	CreatedBy string
+	Tags      []string
+	Size      int64
+	Comment   string
 }
 
 type ImageLayer struct{}
@@ -213,6 +214,7 @@ func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 		ID:           l.ID(),
 		ParentId:     l.Parent,
 		RepoTags:     repoTags,
+		RepoDigests:  digests,
 		Created:      l.Created().Unix(),
 		Size:         int64(*size),
 		SharedSize:   0,
@@ -223,7 +225,6 @@ func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 		Dangling:     l.Dangling(),
 		Names:        l.Names(),
 		Digest:       string(l.Digest()),
-		Digests:      digests,
 		ConfigDigest: string(l.ConfigDigest),
 		History:      l.NamesHistory(),
 	}
@@ -329,7 +330,6 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		dockerImageInspect.Parent = d.Parent.String()
 	}
 	return &ImageInspect{dockerImageInspect}, nil
-
 }
 
 // portsToPortSet converts libpods exposed ports to dockers structs
