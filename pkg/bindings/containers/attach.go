@@ -332,7 +332,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 		case <-winChange:
 			h, w, err := terminal.GetSize(int(file.Fd()))
 			if err != nil {
-				logrus.Warnf("failed to obtain TTY size: " + err.Error())
+				logrus.Warnf("failed to obtain TTY size: %v", err)
 			}
 
 			var resizeErr error
@@ -342,7 +342,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 				resizeErr = ResizeContainerTTY(ctx, id, &h, &w)
 			}
 			if resizeErr != nil {
-				logrus.Warnf("failed to resize TTY: " + resizeErr.Error())
+				logrus.Warnf("failed to resize TTY: %v", err)
 			}
 		}
 	}

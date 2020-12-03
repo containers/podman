@@ -231,7 +231,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 
 		// Wait for the PID to stop
 		if err := waitPidStop(pid, time.Duration(timeout)*time.Second); err != nil {
-			logrus.Warnf("Timed out waiting for container %s exec session %s to stop, resorting to SIGKILL", ctr.ID(), sessionID)
+			logrus.Infof("Timed out waiting for container %s exec session %s to stop, resorting to SIGKILL: %v", ctr.ID(), sessionID, err)
 		} else {
 			// No error, container is dead
 			return nil

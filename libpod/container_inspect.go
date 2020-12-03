@@ -488,7 +488,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 					// Weight? For now, ignore anything
 					// without Weight set.
 					if dev.Weight == nil {
-						logrus.Warnf("Ignoring weight device %s as it lacks a weight", key)
+						logrus.Infof("Ignoring weight device %s as it lacks a weight", key)
 						continue
 					}
 					if deviceNodes == nil {
@@ -500,7 +500,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 					}
 					path, ok := deviceNodes[key]
 					if !ok {
-						logrus.Warnf("Could not locate weight device %s in system devices", key)
+						logrus.Infof("Could not locate weight device %s in system devices", key)
 						continue
 					}
 					weightDev := define.InspectBlkioWeightDevice{}
@@ -522,7 +522,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 						}
 						path, ok := deviceNodes[key]
 						if !ok {
-							logrus.Warnf("Could not locate throttle device %s in system devices", key)
+							logrus.Infof("Could not locate throttle device %s in system devices", key)
 							continue
 						}
 						throttleDev := define.InspectBlkioThrottleDevice{}

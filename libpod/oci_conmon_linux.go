@@ -442,7 +442,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		}
 
 		if err := waitContainerStop(ctr, time.Duration(timeout)*time.Second); err != nil {
-			logrus.Warnf("Timed out stopping container %s, resorting to SIGKILL", ctr.ID())
+			logrus.Infof("Timed out stopping container %s, resorting to SIGKILL: %v", ctr.ID(), err)
 		} else {
 			// No error, the container is dead
 			return nil
@@ -1009,7 +1009,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	if ctr.config.SdNotifyMode == define.SdNotifyModeIgnore {
 		if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
-			logrus.Warnf("Error unsetting NOTIFY_SOCKET %s", err.Error())
+			logrus.Warnf("Error unsetting NOTIFY_SOCKET %v", err)
 		}
 	}
 
@@ -1155,14 +1155,14 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	conmonPID, err := readConmonPidFile(ctr.config.ConmonPidFile)
 	if err != nil {
-		logrus.Warnf("error reading conmon pid file for container %s: %s", ctr.ID(), err.Error())
+		logrus.Warnf("error reading conmon pid file for container %s: %v", ctr.ID(), err)
 	} else if conmonPID > 0 {
 		// conmon not having a pid file is a valid state, so don't set it if we don't have it
 		logrus.Infof("Got Conmon PID as %d", conmonPID)
 		ctr.state.ConmonPID = conmonPID
 		if ctr.config.SdNotifyMode != define.SdNotifyModeIgnore {
 			if sent, err := daemon.SdNotify(false, fmt.Sprintf("MAINPID=%d", conmonPID)); err != nil {
-				logrus.Errorf("Error notifying systemd of Conmon PID: %s", err.Error())
+				logrus.Errorf("Error notifying systemd of Conmon PID: %v", err)
 			} else if sent {
 				logrus.Debugf("Notify MAINPID sent successfully")
 			}

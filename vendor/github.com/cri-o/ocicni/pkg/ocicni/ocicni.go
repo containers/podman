@@ -149,7 +149,7 @@ func (plugin *cniNetworkPlugin) monitorConfDir(start *sync.WaitGroup) {
 	for {
 		select {
 		case event := <-plugin.watcher.Events:
-			logrus.Warningf("CNI monitoring event %v", event)
+			logrus.Infof("CNI monitoring event %v", event)
 
 			var defaultDeleted bool
 			createWrite := (event.Op&fsnotify.Create == fsnotify.Create ||
@@ -295,7 +295,7 @@ func loadNetworks(confDir string, cni *libcni.CNIConfig) (map[string]*cniNetwork
 			}
 		}
 		if len(confList.Plugins) == 0 {
-			logrus.Warningf("CNI config list %s has no networks, skipping", confFile)
+			logrus.Infof("CNI config list %s has no networks, skipping", confFile)
 			continue
 		}
 
@@ -350,7 +350,7 @@ func (plugin *cniNetworkPlugin) syncNetworkConfig() error {
 		plugin.defaultNetName.name = defaultNetName
 		logrus.Infof("Update default CNI network name to %s", defaultNetName)
 	} else {
-		logrus.Warnf("Default CNI network name %s is unchangeable", plugin.defaultNetName.name)
+		logrus.Debugf("Default CNI network name %s is unchangeable", plugin.defaultNetName.name)
 	}
 
 	plugin.networks = networks
