@@ -271,11 +271,16 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	net, err := getNetworkResourceByNameOrID(name, runtime, nil)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
 	body := struct {
 		Id      string
 		Warning []string
 	}{
-		Id: name,
+		Id: net.ID,
 	}
 	utils.WriteResponse(w, http.StatusCreated, body)
 }
@@ -320,7 +325,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, nil)
 }
 
 // Connect adds a container to a network

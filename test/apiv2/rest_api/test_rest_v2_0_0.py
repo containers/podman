@@ -1,11 +1,13 @@
 import json
+import random
+import string
 import subprocess
-import sys
-import time
 import unittest
 from multiprocessing import Process
 
 import requests
+import sys
+import time
 from dateutil.parser import parse
 
 from test.apiv2.rest_api import Podman
@@ -383,6 +385,43 @@ class TestApi(unittest.TestCase):
             self.assertIsInstance(o, dict)
             for k in required_keys:
                 self.assertIn(k, o)
+
+    def test_network_compat(self):
+        name = "Network_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+
+        # Cannot test for 0 existing networks because default "podman" network always exists
+
+        create = requests.post(PODMAN_URL + "/v1.40/networks/create", json={"Name": name})
+        self.assertEqual(create.status_code, 201, create.content)
+        obj = json.loads(create.content)
+        self.assertIn(type(obj), (dict,))
+        self.assertIn("Id", obj)
+        ident = obj["Id"]
+        self.assertNotEqual(name, ident)
+
+        ls = requests.get(PODMAN_URL + "/v1.40/networks")
+        self.assertEqual(ls.status_code, 200, ls.content)
+        objs = json.loads(ls.content)
+        self.assertIn(type(objs), (list,))
+
+        found = False
+        for network in objs:
+            if network["Name"] == name:
+                found = True
+        self.assertTrue(found, f"Network {name} not found")
+
+        inspect = requests.get(PODMAN_URL + f"/v1.40/networks/{ident}")
+        self.assertEqual(inspect.status_code, 200, inspect.content)
+        obj = json.loads(create.content)
+        self.assertIn(type(obj), (dict,))
+
+        inspect = requests.delete(PODMAN_URL + f"/v1.40/networks/{ident}")
+        self.assertEqual(inspect.status_code, 204, inspect.content)
+        inspect = requests.get(PODMAN_URL + f"/v1.40/networks/{ident}")
+        self.assertEqual(inspect.status_code, 404, inspect.content)
+
+        prune = requests.post(PODMAN_URL + "/v1.40/networks/prune")
+        self.assertEqual(prune.status_code, 405, prune.content)
 
 
 if __name__ == "__main__":
