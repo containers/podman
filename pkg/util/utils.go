@@ -530,6 +530,11 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 		}
 	}
 
+	unix_timestamp, err := strconv.ParseInt(inputTime, 10, 64)
+	if err == nil {
+		return time.Unix(unix_timestamp, 0), nil
+	}
+
 	// input might be a duration
 	duration, err := time.ParseDuration(inputTime)
 	if err != nil {
