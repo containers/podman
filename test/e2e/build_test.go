@@ -239,7 +239,7 @@ RUN printenv http_proxy`
 		Expect(session.ExitCode()).To(Equal(0))
 
 		// Verify that OS and Arch are being set
-		inspect := podmanTest.PodmanNoCache([]string{"image", "inspect", "--format", "{{ index .Config.Labels }}", "test"})
+		inspect := podmanTest.Podman([]string{"image", "inspect", "--format", "{{ index .Config.Labels }}", "test"})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.OutputToString()
 		Expect(data).To(ContainSubstring(buildah.Version))
