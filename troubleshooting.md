@@ -248,7 +248,10 @@ This means johndoe is allocated UIDS 100000-165535 as well as his standard UID i
 /etc/passwd file.
 
 You should ensure that each user has a unique range of uids, because overlapping UIDs,
-would potentially allow one user to attack another user.
+would potentially allow one user to attack another user. In addition, make sure
+that the range of uids you allocate can cover all uids that the container
+requires. For example, if the container has a user with uid 10000, ensure you
+have at least 10001 subuids.
 
 You could also use the usermod program to assign UIDs to a user.
 
