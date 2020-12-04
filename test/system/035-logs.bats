@@ -21,6 +21,9 @@ load helpers
     run_podman logs $cid
     is "$output" "$rand_string" "output from podman-logs after container is run"
 
+    # test --since with Unix timestamps
+    run_podman logs --since 1000 $cid
+
     run_podman rm $cid
 }
 
