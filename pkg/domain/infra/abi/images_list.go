@@ -35,7 +35,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 			Created:      img.Created().Unix(),
 			Dangling:     img.Dangling(),
 			Digest:       string(img.Digest()),
-			Digests:      digests,
+			RepoDigests:  digests,
 			History:      img.NamesHistory(),
 			Names:        img.Names(),
 			ParentId:     img.Parent,

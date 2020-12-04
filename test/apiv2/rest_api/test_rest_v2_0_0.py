@@ -179,15 +179,19 @@ class TestApi(unittest.TestCase):
                 "NetworkDisabled": False,
                 # FIXME adding these 2 lines cause: (This is sampled from docker-py)
                 #   "network already exists","message":"container
-                #  01306e499df5441560d70071a54342611e422a94de20865add50a9565fd79fb9 is already connected to CNI network \"TestDefaultNetwork\": network already exists"
+                #  01306e499df5441560d70071a54342611e422a94de20865add50a9565fd79fb9 is already connected to CNI
+                #  network \"TestDefaultNetwork\": network already exists"
                 # "HostConfig": {"NetworkMode": "TestDefaultNetwork"},
                 # "NetworkingConfig": {"EndpointsConfig": {"TestDefaultNetwork": None}},
                 # FIXME These two lines cause:
-                # CNI network \"TestNetwork\" not found","message":"error configuring network namespace for container 369ddfa7d3211ebf1fbd5ddbff91bd33fa948858cea2985c133d6b6507546dff: CNI network \"TestNetwork\" not found"
+                # CNI network \"TestNetwork\" not found","message":"error configuring network namespace for container
+                # 369ddfa7d3211ebf1fbd5ddbff91bd33fa948858cea2985c133d6b6507546dff: CNI network \"TestNetwork\" not
+                # found"
                 # "HostConfig": {"NetworkMode": "TestNetwork"},
                 # "NetworkingConfig": {"EndpointsConfig": {"TestNetwork": None}},
                 # FIXME no networking defined cause: (note this error is from the container inspect below)
-                # "internal libpod error","message":"network inspection mismatch: asked to join 2 CNI network(s) [TestDefaultNetwork podman], but have information on 1 network(s): internal libpod error"
+                # "internal libpod error","message":"network inspection mismatch: asked to join 2 CNI network(s) [
+                # TestDefaultNetwork podman], but have information on 1 network(s): internal libpod error"
             },
         )
         self.assertEqual(create.status_code, 201, create.text)
@@ -255,23 +259,68 @@ class TestApi(unittest.TestCase):
     def test_commit(self):
         r = requests.post(_url(ctnr("/commit?container={}")))
         self.assertEqual(r.status_code, 200, r.text)
-        validateObjectFields(r.text)
 
-    def test_images(self):
-        r = requests.get(_url("/images/json"))
-        self.assertEqual(r.status_code, 200, r.text)
-        validateObjectFields(r.content)
+        obj = json.loads(r.content)
+        self.assertIsInstance(obj, dict)
+        self.assertIn("Id", obj)
 
-    def test_inspect_image(self):
-        r = requests.get(_url("/images/alpine/json"))
+    def test_images_compat(self):
+        r = requests.get(PODMAN_URL + "/v1.40/images/json")
         self.assertEqual(r.status_code, 200, r.text)
-        obj = validateObjectFields(r.content)
+
+        # See https://docs.docker.com/engine/api/v1.40/#operation/ImageList
+        required_keys = (
+            "Id",
+            "ParentId",
+            "RepoTags",
+            "RepoDigests",
+            "Created",
+            "Size",
+            "SharedSize",
+            "VirtualSize",
+            "Labels",
+            "Containers",
+        )
+        objs = json.loads(r.content)
+        self.assertIn(type(objs), (list,))
+        for o in objs:
+            self.assertIsInstance(o, dict)
+            for k in required_keys:
+                self.assertIn(k, o)
+
+    def test_inspect_image_compat(self):
+        r = requests.get(PODMAN_URL + "/v1.40/images/alpine/json")
+        self.assertEqual(r.status_code, 200, r.text)
+
+        # See https://docs.docker.com/engine/api/v1.40/#operation/ImageInspect
+        required_keys = (
+            "Id",
+            "Parent",
+            "Comment",
+            "Created",
+            "Container",
+            "DockerVersion",
+            "Author",
+            "Architecture",
+            "Os",
+            "Size",
+            "VirtualSize",
+            "GraphDriver",
+            "RootFS",
+            "Metadata",
+        )
+
+        obj = json.loads(r.content)
+        self.assertIn(type(obj), (dict,))
+        for k in required_keys:
+            self.assertIn(k, obj)
         _ = parse(obj["Created"])
 
-    def test_delete_image(self):
-        r = requests.delete(_url("/images/alpine?force=true"))
+    def test_delete_image_compat(self):
+        r = requests.delete(PODMAN_URL + "/v1.40/images/alpine?force=true")
         self.assertEqual(r.status_code, 200, r.text)
-        json.loads(r.text)
+        obj = json.loads(r.content)
+        self.assertIn(type(obj), (list,))
 
     def test_pull(self):
         r = requests.post(_url("/images/pull?reference=alpine"), timeout=15)
@@ -295,12 +344,13 @@ class TestApi(unittest.TestCase):
         self.assertTrue(keys["images"], "Expected to find images stanza")
         self.assertTrue(keys["stream"], "Expected to find stream progress stanza's")
 
-    def test_search(self):
+    def test_search_compat(self):
         # Had issues with this test hanging when repositories not happy
         def do_search():
-            r = requests.get(_url("/images/search?term=alpine"), timeout=5)
+            r = requests.get(PODMAN_URL + "/v1.40/images/search?term=alpine", timeout=5)
             self.assertEqual(r.status_code, 200, r.text)
-            json.loads(r.text)
+            objs = json.loads(r.text)
+            self.assertIn(type(objs), (list,))
 
         search = Process(target=do_search)
         search.start()
@@ -319,6 +369,20 @@ class TestApi(unittest.TestCase):
 
         r = requests.get(_url("/_ping"))
         self.assertEqual(r.status_code, 200, r.text)
+
+    def test_history_compat(self):
+        r = requests.get(PODMAN_URL + "/v1.40/images/alpine/history")
+        self.assertEqual(r.status_code, 200, r.text)
+
+        # See https://docs.docker.com/engine/api/v1.40/#operation/ImageHistory
+        required_keys = ("Id", "Created", "CreatedBy", "Tags", "Size", "Comment")
+
+        objs = json.loads(r.content)
+        self.assertIn(type(objs), (list,))
+        for o in objs:
+            self.assertIsInstance(o, dict)
+            for k in required_keys:
+                self.assertIn(k, o)
 
 
 if __name__ == "__main__":
