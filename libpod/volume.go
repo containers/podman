@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/lock"
+	"github.com/containers/podman/v2/libpod/plugin"
 )
 
 // Volume is a libpod named volume.
@@ -18,6 +19,7 @@ type Volume struct {
 	state  *VolumeState
 
 	valid   bool
+	plugin  *plugin.VolumePlugin
 	runtime *Runtime
 	lock    lock.Locker
 }
@@ -31,7 +33,7 @@ type VolumeConfig struct {
 	// Labels for the volume.
 	Labels map[string]string `json:"labels"`
 	// The volume driver. Empty string or local does not activate a volume
-	// driver, all other volumes will.
+	// driver, all other values will.
 	Driver string `json:"volumeDriver"`
 	// The location the volume is mounted at.
 	MountPoint string `json:"mountPoint"`
@@ -53,6 +55,10 @@ type VolumeConfig struct {
 // Volumes are not guaranteed to have a state. Only volumes using the Local
 // driver that have mount options set will create a state.
 type VolumeState struct {
+	// Mountpoint is the location where the volume was mounted.
+	// This is only used for volumes using a volume plugin, which will mount
+	// at non-standard locations.
+	MountPoint string `json:"mountPoint,omitempty"`
 	// MountCount is the number of times this volume has been requested to
 	// be mounted.
 	// It is incremented on mount() and decremented on unmount().
@@ -115,8 +121,20 @@ func (v *Volume) Labels() map[string]string {
 }
 
 // MountPoint returns the volume's mountpoint on the host
-func (v *Volume) MountPoint() string {
-	return v.config.MountPoint
+func (v *Volume) MountPoint() (string, error) {
+	// For the sake of performance, avoid locking unless we have to.
+	if v.UsesVolumeDriver() {
+		v.lock.Lock()
+		defer v.lock.Unlock()
+
+		if err := v.update(); err != nil {
+			return "", err
+		}
+
+		return v.state.MountPoint, nil
+	}
+
+	return v.config.MountPoint, nil
 }
 
 // Options return the volume's options
@@ -139,14 +157,19 @@ func (v *Volume) UID() (int, error) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
-	if !v.valid {
-		return -1, define.ErrVolumeRemoved
+	if err := v.update(); err != nil {
+		return -1, err
 	}
 
+	return v.uid(), nil
+}
+
+// Internal, unlocked accessor for UID.
+func (v *Volume) uid() int {
 	if v.state.UIDChowned > 0 {
-		return v.state.UIDChowned, nil
+		return v.state.UIDChowned
 	}
-	return v.config.UID, nil
+	return v.config.UID
 }
 
 // GID returns the GID the volume will be created as.
@@ -154,14 +177,19 @@ func (v *Volume) GID() (int, error) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
-	if !v.valid {
-		return -1, define.ErrVolumeRemoved
+	if err := v.update(); err != nil {
+		return -1, err
 	}
 
+	return v.gid(), nil
+}
+
+// Internal, unlocked accessor for GID.
+func (v *Volume) gid() int {
 	if v.state.GIDChowned > 0 {
-		return v.state.GIDChowned, nil
+		return v.state.GIDChowned
 	}
-	return v.config.GID, nil
+	return v.config.GID
 }
 
 // CreatedTime returns the time the volume was created at. It was not tracked
@@ -197,4 +225,11 @@ func (v *Volume) IsDangling() (bool, error) {
 		return false, err
 	}
 	return len(ctrs) == 0, nil
+}
+
+// UsesVolumeDriver determines whether the volume uses a volume driver. Volume
+// drivers are pluggable backends for volumes that will manage the storage and
+// mounting.
+func (v *Volume) UsesVolumeDriver() bool {
+	return !(v.config.Driver == define.VolumeDriverLocal || v.config.Driver == "")
 }

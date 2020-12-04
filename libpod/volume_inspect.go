@@ -1,60 +1,52 @@
 package libpod
 
 import (
-	"time"
-
 	"github.com/containers/podman/v2/libpod/define"
+	pluginapi "github.com/docker/go-plugins-helpers/volume"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
-
-// InspectVolumeData is the output of Inspect() on a volume. It is matched to
-// the format of 'docker volume inspect'.
-type InspectVolumeData struct {
-	// Name is the name of the volume.
-	Name string `json:"Name"`
-	// Driver is the driver used to create the volume.
-	// This will be properly implemented in a future version.
-	Driver string `json:"Driver"`
-	// Mountpoint is the path on the host where the volume is mounted.
-	Mountpoint string `json:"Mountpoint"`
-	// CreatedAt is the date and time the volume was created at. This is not
-	// stored for older Libpod volumes; if so, it will be omitted.
-	CreatedAt time.Time `json:"CreatedAt,omitempty"`
-	// Status is presently unused and provided only for Docker compatibility.
-	// In the future it will be used to return information on the volume's
-	// current state.
-	Status map[string]string `json:"Status,omitempty"`
-	// Labels includes the volume's configured labels, key:value pairs that
-	// can be passed during volume creation to provide information for third
-	// party tools.
-	Labels map[string]string `json:"Labels"`
-	// Scope is unused and provided solely for Docker compatibility. It is
-	// unconditionally set to "local".
-	Scope string `json:"Scope"`
-	// Options is a set of options that were used when creating the volume.
-	// It is presently not used.
-	Options map[string]string `json:"Options"`
-	// UID is the UID that the volume was created with.
-	UID int `json:"UID,omitempty"`
-	// GID is the GID that the volume was created with.
-	GID int `json:"GID,omitempty"`
-	// Anonymous indicates that the volume was created as an anonymous
-	// volume for a specific container, and will be be removed when any
-	// container using it is removed.
-	Anonymous bool `json:"Anonymous,omitempty"`
-}
 
 // Inspect provides detailed information about the configuration of the given
 // volume.
-func (v *Volume) Inspect() (*InspectVolumeData, error) {
+func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 	if !v.valid {
 		return nil, define.ErrVolumeRemoved
 	}
 
-	data := new(InspectVolumeData)
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if err := v.update(); err != nil {
+		return nil, err
+	}
+
+	data := new(define.InspectVolumeData)
+
+	data.Mountpoint = v.config.MountPoint
+	if v.UsesVolumeDriver() {
+		logrus.Debugf("Querying volume plugin %s for status", v.config.Driver)
+		data.Mountpoint = v.state.MountPoint
+
+		if v.plugin == nil {
+			return nil, errors.Wrapf(define.ErrMissingPlugin, "volume %s uses volume plugin %s but it is not available, cannot inspect", v.Name(), v.config.Driver)
+		}
+
+		// Retrieve status for the volume.
+		// Need to query the volume driver.
+		req := new(pluginapi.GetRequest)
+		req.Name = v.Name()
+		resp, err := v.plugin.GetVolume(req)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving volume %s information from plugin %s", v.Name(), v.Driver())
+		}
+		if resp != nil {
+			data.Status = resp.Status
+		}
+	}
 
 	data.Name = v.config.Name
 	data.Driver = v.config.Driver
-	data.Mountpoint = v.config.MountPoint
 	data.CreatedAt = v.config.CreatedTime
 	data.Labels = make(map[string]string)
 	for k, v := range v.config.Labels {
@@ -65,15 +57,8 @@ func (v *Volume) Inspect() (*InspectVolumeData, error) {
 	for k, v := range v.config.Options {
 		data.Options[k] = v
 	}
-	var err error
-	data.UID, err = v.UID()
-	if err != nil {
-		return nil, err
-	}
-	data.GID, err = v.GID()
-	if err != nil {
-		return nil, err
-	}
+	data.UID = v.uid()
+	data.GID = v.gid()
 	data.Anonymous = v.config.IsAnon
 
 	return data, nil

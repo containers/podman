@@ -58,10 +58,15 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 	volumeConfigs := make([]*docker_api_types.Volume, 0, len(vols))
 	for _, v := range vols {
+		mp, err := v.MountPoint()
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
 		config := docker_api_types.Volume{
 			Name:       v.Name(),
 			Driver:     v.Driver(),
-			Mountpoint: v.MountPoint(),
+			Mountpoint: mp,
 			CreatedAt:  v.CreatedTime().Format(time.RFC3339),
 			Labels:     v.Labels(),
 			Scope:      v.Scope(),
@@ -106,11 +111,16 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	// if using the compat layer and the volume already exists, we
 	// must return a 201 with the same information as create
 	if existingVolume != nil && !utils.IsLibpodRequest(r) {
+		mp, err := existingVolume.MountPoint()
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
 		response := docker_api_types.Volume{
 			CreatedAt:  existingVolume.CreatedTime().Format(time.RFC3339),
 			Driver:     existingVolume.Driver(),
 			Labels:     existingVolume.Labels(),
-			Mountpoint: existingVolume.MountPoint(),
+			Mountpoint: mp,
 			Name:       existingVolume.Name(),
 			Options:    existingVolume.Options(),
 			Scope:      existingVolume.Scope(),
@@ -146,10 +156,15 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+	mp, err := vol.MountPoint()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
 	volResponse := docker_api_types.Volume{
 		Name:       config.Name,
 		Driver:     config.Driver,
-		Mountpoint: config.MountPoint,
+		Mountpoint: mp,
 		CreatedAt:  config.CreatedTime.Format(time.RFC3339),
 		Labels:     config.Labels,
 		Options:    config.Options,
@@ -173,10 +188,15 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 		utils.VolumeNotFound(w, name, err)
 		return
 	}
+	mp, err := vol.MountPoint()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
 	volResponse := docker_api_types.Volume{
 		Name:       vol.Name(),
 		Driver:     vol.Driver(),
-		Mountpoint: vol.MountPoint(),
+		Mountpoint: mp,
 		CreatedAt:  vol.CreatedTime().Format(time.RFC3339),
 		Labels:     vol.Labels(),
 		Options:    vol.Options(),

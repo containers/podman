@@ -623,7 +623,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result := podmanTest.Podman([]string{"container", "checkpoint", "-l"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
-		Expect(result.ErrorToString()).To(ContainSubstring("Cannot checkpoint containers that have been started with '--rm'"))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot checkpoint containers that have been started with '--rm'"))
 
 		// Checkpointing with --export should still work
 		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"

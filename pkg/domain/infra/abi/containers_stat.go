@@ -144,16 +144,29 @@ func resolveContainerPaths(container *libpod.Container, mountPoint string, conta
 		}
 		if volume != nil {
 			logrus.Debugf("Container path %q resolved to volume %q on path %q", containerPath, volume.Name(), searchPath)
+
+			// TODO: We really need to force the volume to mount
+			// before doing this, but that API is not exposed
+			// externally right now and doing so is beyond the scope
+			// of this commit.
+			mountPoint, err := volume.MountPoint()
+			if err != nil {
+				return "", "", err
+			}
+			if mountPoint == "" {
+				return "", "", errors.Errorf("volume %s is not mounted, cannot copy into it", volume.Name())
+			}
+
 			// We found a matching volume for searchPath.  We now
 			// need to first find the relative path of our input
 			// path to the searchPath, and then join it with the
 			// volume's mount point.
 			pathRelativeToVolume := strings.TrimPrefix(pathRelativeToContainerMountPoint, searchPath)
-			absolutePathOnTheVolumeMount, err := securejoin.SecureJoin(volume.MountPoint(), pathRelativeToVolume)
+			absolutePathOnTheVolumeMount, err := securejoin.SecureJoin(mountPoint, pathRelativeToVolume)
 			if err != nil {
 				return "", "", err
 			}
-			return volume.MountPoint(), absolutePathOnTheVolumeMount, nil
+			return mountPoint, absolutePathOnTheVolumeMount, nil
 		}
 
 		if mount := findBindMount(container, searchPath); mount != nil {

@@ -2,8 +2,9 @@ package plugin
 
 import (
 	"bytes"
-	"fmt"
+	"context"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,7 +44,6 @@ var (
 
 const (
 	defaultTimeout   = 5 * time.Second
-	defaultPath      = "/run/docker/plugins"
 	volumePluginType = "VolumeDriver"
 )
 
@@ -64,6 +64,8 @@ type VolumePlugin struct {
 	Name string
 	// SocketPath is the unix socket at which the plugin is accessed.
 	SocketPath string
+	// Client is the HTTP client we use to connect to the plugin.
+	Client *http.Client
 }
 
 // This is the response from the activate endpoint of the API.
@@ -76,7 +78,7 @@ type activateResponse struct {
 func validatePlugin(newPlugin *VolumePlugin) error {
 	// It's a socket. Is it a plugin?
 	// Hit the Activate endpoint to find out if it is, and if so what kind
-	req, err := http.NewRequest("POST", activatePath, nil)
+	req, err := http.NewRequest("POST", "http://plugin"+activatePath, nil)
 	if err != nil {
 		return errors.Wrapf(err, "error making request to volume plugin %s activation endpoint", newPlugin.Name)
 	}
@@ -84,9 +86,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 	req.Header.Set("Host", newPlugin.getURI())
 	req.Header.Set("Content-Type", sdk.DefaultContentTypeV1_1)
 
-	client := new(http.Client)
-	client.Timeout = defaultTimeout
-	resp, err := client.Do(req)
+	resp, err := newPlugin.Client.Do(req)
 	if err != nil {
 		return errors.Wrapf(err, "error sending request to plugin %s activation endpoint", newPlugin.Name)
 	}
@@ -121,22 +121,28 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 		return errors.Wrapf(ErrNotVolumePlugin, "plugin %s does not implement volume plugin, instead provides %s", newPlugin.Name, strings.Join(respStruct.Implements, ", "))
 	}
 
+	if plugins == nil {
+		plugins = make(map[string]*VolumePlugin)
+	}
+
 	plugins[newPlugin.Name] = newPlugin
 
 	return nil
 }
 
-// GetVolumePlugin gets a single volume plugin by path.
-// TODO: We should not be auto-completing based on a default path; we should
-// require volumes to have been pre-specified in containers.conf (will need a
-// function to pre-populate the plugins list, and we should probably do a lazy
-// initialization there to not slow things down too much).
-func GetVolumePlugin(name string) (*VolumePlugin, error) {
+// GetVolumePlugin gets a single volume plugin, with the given name, at the
+// given path.
+func GetVolumePlugin(name string, path string) (*VolumePlugin, error) {
 	pluginsLock.Lock()
 	defer pluginsLock.Unlock()
 
 	plugin, exists := plugins[name]
 	if exists {
+		// This shouldn't be possible, but just in case...
+		if plugin.SocketPath != filepath.Clean(path) {
+			return nil, errors.Wrapf(define.ErrInvalidArg, "requested path %q for volume plugin %s does not match pre-existing path for plugin, %q", path, name, plugin.SocketPath)
+		}
+
 		return plugin, nil
 	}
 
@@ -144,7 +150,20 @@ func GetVolumePlugin(name string) (*VolumePlugin, error) {
 
 	newPlugin := new(VolumePlugin)
 	newPlugin.Name = name
-	newPlugin.SocketPath = filepath.Join(defaultPath, fmt.Sprintf("%s.sock", name))
+	newPlugin.SocketPath = filepath.Clean(path)
+
+	// Need an HTTP client to force a Unix connection.
+	// And since we can reuse it, might as well cache it.
+	client := new(http.Client)
+	client.Timeout = defaultTimeout
+	// This bit borrowed from pkg/bindings/connection.go
+	client.Transport = &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "unix", newPlugin.SocketPath)
+		},
+		DisableCompression: true,
+	}
+	newPlugin.Client = client
 
 	stat, err := os.Stat(newPlugin.SocketPath)
 	if err != nil {
@@ -183,6 +202,7 @@ func (p *VolumePlugin) verifyReachable() error {
 }
 
 // Send a request to the volume plugin for handling.
+// Callers *MUST* close the response when they are done.
 func (p *VolumePlugin) sendRequest(toJSON interface{}, hasBody bool, endpoint string) (*http.Response, error) {
 	var (
 		reqJSON []byte
@@ -196,7 +216,7 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, hasBody bool, endpoint st
 		}
 	}
 
-	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(reqJSON))
+	req, err := http.NewRequest("POST", "http://plugin"+endpoint, bytes.NewReader(reqJSON))
 	if err != nil {
 		return nil, errors.Wrapf(err, "error making request to volume plugin %s endpoint %s", p.Name, endpoint)
 	}
@@ -204,13 +224,12 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, hasBody bool, endpoint st
 	req.Header.Set("Host", p.getURI())
 	req.Header.Set("Content-Type", sdk.DefaultContentTypeV1_1)
 
-	client := new(http.Client)
-	client.Timeout = defaultTimeout
-	resp, err := client.Do(req)
+	resp, err := p.Client.Do(req)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error sending request to volume plugin %s endpoint %s", p.Name, endpoint)
 	}
-	defer resp.Body.Close()
+	// We are *deliberately not closing* response here. It is the
+	// responsibility of the caller to do so after reading the response.
 
 	return resp, nil
 }

@@ -341,7 +341,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving volume %s to add to container %s", namedVol.Name, c.ID())
 		}
-		mountPoint := volume.MountPoint()
+		mountPoint, err := volume.MountPoint()
+		if err != nil {
+			return nil, err
+		}
 		volMount := spec.Mount{
 			Type:        "bind",
 			Source:      mountPoint,
@@ -903,7 +906,15 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 				return err
 			}
 
-			input, err := archive.TarWithOptions(volume.MountPoint(), &archive.TarOptions{
+			mp, err := volume.MountPoint()
+			if err != nil {
+				return err
+			}
+			if mp == "" {
+				return errors.Wrapf(define.ErrInternal, "volume %s is not mounted, cannot export", volume.Name())
+			}
+
+			input, err := archive.TarWithOptions(mp, &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 			})
@@ -958,10 +969,10 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 
 func (c *Container) checkpointRestoreSupported() error {
 	if !criu.CheckForCriu() {
-		return errors.Errorf("Checkpoint/Restore requires at least CRIU %d", criu.MinCriuVersion)
+		return errors.Errorf("checkpoint/restore requires at least CRIU %d", criu.MinCriuVersion)
 	}
 	if !c.ociRuntime.SupportsCheckpoint() {
-		return errors.Errorf("Configured runtime does not support checkpoint/restore")
+		return errors.Errorf("configured runtime does not support checkpoint/restore")
 	}
 	return nil
 }
@@ -993,7 +1004,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	if c.AutoRemove() && options.TargetFile == "" {
-		return errors.Errorf("Cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
+		return errors.Errorf("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
 	}
 
 	if err := c.checkpointRestoreLabelLog("dump.log"); err != nil {
@@ -1079,13 +1090,13 @@ func (c *Container) importCheckpoint(input string) error {
 	}
 	err = archive.Untar(archiveFile, c.bundlePath(), options)
 	if err != nil {
-		return errors.Wrapf(err, "Unpacking of checkpoint archive %s failed", input)
+		return errors.Wrapf(err, "unpacking of checkpoint archive %s failed", input)
 	}
 
 	// Make sure the newly created config.json exists on disk
 	g := generate.Generator{Config: c.config.Spec}
 	if err = c.saveSpec(g.Config); err != nil {
-		return errors.Wrap(err, "Saving imported container specification for restore failed")
+		return errors.Wrap(err, "saving imported container specification for restore failed")
 	}
 
 	return nil
@@ -1130,7 +1141,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
 	// no sense to try a restore. This is a minimal check if a checkpoint exist.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
-		return errors.Wrapf(err, "A complete checkpoint for this container cannot be found, cannot restore")
+		return errors.Wrapf(err, "a complete checkpoint for this container cannot be found, cannot restore")
 	}
 
 	if err := c.checkpointRestoreLabelLog("restore.log"); err != nil {
@@ -1286,16 +1297,22 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 			volumeFile, err := os.Open(volumeFilePath)
 			if err != nil {
-				return errors.Wrapf(err, "Failed to open volume file %s", volumeFilePath)
+				return errors.Wrapf(err, "failed to open volume file %s", volumeFilePath)
 			}
 			defer volumeFile.Close()
 
 			volume, err := c.runtime.GetVolume(v.Name)
 			if err != nil {
-				return errors.Wrapf(err, "Failed to retrieve volume %s", v.Name)
+				return errors.Wrapf(err, "failed to retrieve volume %s", v.Name)
 			}
 
-			mountPoint := volume.MountPoint()
+			mountPoint, err := volume.MountPoint()
+			if err != nil {
+				return err
+			}
+			if mountPoint == "" {
+				return errors.Wrapf(err, "unable to import volume %s as it is not mounted", volume.Name())
+			}
 			if err := archive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
 				return errors.Wrapf(err, "Failed to extract volume %s to %s", volumeFilePath, mountPoint)
 			}

@@ -60,20 +60,13 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	config, err := vol.Config()
+	inspectOut, err := vol.Inspect()
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 	volResponse := entities.VolumeConfigResponse{
-		Name:       config.Name,
-		Driver:     config.Driver,
-		Mountpoint: config.MountPoint,
-		CreatedAt:  config.CreatedTime,
-		Labels:     config.Labels,
-		Options:    config.Options,
-		UID:        config.UID,
-		GID:        config.GID,
+		InspectVolumeData: *inspectOut,
 	}
 	utils.WriteResponse(w, http.StatusCreated, volResponse)
 }
@@ -88,27 +81,13 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 		utils.VolumeNotFound(w, name, err)
 		return
 	}
-	var uid, gid int
-	uid, err = vol.UID()
+	inspectOut, err := vol.Inspect()
 	if err != nil {
-		utils.Error(w, "Error fetching volume UID", http.StatusInternalServerError, err)
-		return
-	}
-	gid, err = vol.GID()
-	if err != nil {
-		utils.Error(w, "Error fetching volume GID", http.StatusInternalServerError, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 	volResponse := entities.VolumeConfigResponse{
-		Name:       vol.Name(),
-		Driver:     vol.Driver(),
-		Mountpoint: vol.MountPoint(),
-		CreatedAt:  vol.CreatedTime(),
-		Labels:     vol.Labels(),
-		Scope:      vol.Scope(),
-		Options:    vol.Options(),
-		UID:        uid,
-		GID:        gid,
+		InspectVolumeData: *inspectOut,
 	}
 	utils.WriteResponse(w, http.StatusOK, volResponse)
 }
@@ -143,27 +122,13 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 	volumeConfigs := make([]*entities.VolumeListReport, 0, len(vols))
 	for _, v := range vols {
-		var uid, gid int
-		uid, err = v.UID()
+		inspectOut, err := v.Inspect()
 		if err != nil {
-			utils.Error(w, "Error fetching volume UID", http.StatusInternalServerError, err)
-			return
-		}
-		gid, err = v.GID()
-		if err != nil {
-			utils.Error(w, "Error fetching volume GID", http.StatusInternalServerError, err)
+			utils.InternalServerError(w, err)
 			return
 		}
 		config := entities.VolumeConfigResponse{
-			Name:       v.Name(),
-			Driver:     v.Driver(),
-			Mountpoint: v.MountPoint(),
-			CreatedAt:  v.CreatedTime(),
-			Labels:     v.Labels(),
-			Scope:      v.Scope(),
-			Options:    v.Options(),
-			UID:        uid,
-			GID:        gid,
+			InspectVolumeData: *inspectOut,
 		}
 		volumeConfigs = append(volumeConfigs, &entities.VolumeListReport{VolumeConfigResponse: config})
 	}

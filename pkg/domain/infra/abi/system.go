@@ -312,7 +312,17 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	var reclaimableSize int64
 	for _, v := range vols {
 		var consInUse int
-		volSize, err := sizeOfPath(v.MountPoint())
+		mountPoint, err := v.MountPoint()
+		if err != nil {
+			return nil, err
+		}
+		if mountPoint == "" {
+			// We can't get any info on this volume, as it's not
+			// mounted.
+			// TODO: fix this.
+			continue
+		}
+		volSize, err := sizeOfPath(mountPoint)
 		if err != nil {
 			return nil, err
 		}

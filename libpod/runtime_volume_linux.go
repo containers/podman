@@ -11,7 +11,9 @@ import (
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
+	volplugin "github.com/containers/podman/v2/libpod/plugin"
 	"github.com/containers/storage/pkg/stringid"
+	pluginapi "github.com/docker/go-plugins-helpers/volume"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -53,6 +55,14 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 		return nil, errors.Wrapf(define.ErrVolumeExists, "volume with name %s already exists", volume.config.Name)
 	}
 
+	// Plugin can be nil if driver is local, but that's OK - superfluous
+	// assignment doesn't hurt much.
+	plugin, err := r.getVolumePlugin(volume.config.Driver)
+	if err != nil {
+		return nil, errors.Wrapf(err, "volume %s uses volume plugin %s but it could not be retrieved", volume.config.Name, volume.config.Driver)
+	}
+	volume.plugin = plugin
+
 	if volume.config.Driver == define.VolumeDriverLocal {
 		logrus.Debugf("Validating options for local driver")
 		// Validate options
@@ -66,25 +76,38 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 		}
 	}
 
-	// Create the mountpoint of this volume
-	volPathRoot := filepath.Join(r.config.Engine.VolumePath, volume.config.Name)
-	if err := os.MkdirAll(volPathRoot, 0700); err != nil {
-		return nil, errors.Wrapf(err, "error creating volume directory %q", volPathRoot)
+	// Now we get conditional: we either need to make the volume in the
+	// volume plugin, or on disk if not using a plugin.
+	if volume.plugin != nil {
+		// We can't chown, or relabel, or similar the path the volume is
+		// using, because it's not managed by us.
+		// TODO: reevaluate this once we actually have volume plugins in
+		// use in production - it may be safe, but I can't tell without
+		// knowing what the actual plugin does...
+		if err := makeVolumeInPluginIfNotExist(volume.config.Name, volume.config.Options, volume.plugin); err != nil {
+			return nil, err
+		}
+	} else {
+		// Create the mountpoint of this volume
+		volPathRoot := filepath.Join(r.config.Engine.VolumePath, volume.config.Name)
+		if err := os.MkdirAll(volPathRoot, 0700); err != nil {
+			return nil, errors.Wrapf(err, "error creating volume directory %q", volPathRoot)
+		}
+		if err := os.Chown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
+			return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", volPathRoot, volume.config.UID, volume.config.GID)
+		}
+		fullVolPath := filepath.Join(volPathRoot, "_data")
+		if err := os.MkdirAll(fullVolPath, 0755); err != nil {
+			return nil, errors.Wrapf(err, "error creating volume directory %q", fullVolPath)
+		}
+		if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
+			return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
+		}
+		if err := LabelVolumePath(fullVolPath); err != nil {
+			return nil, err
+		}
+		volume.config.MountPoint = fullVolPath
 	}
-	if err := os.Chown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
-		return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", volPathRoot, volume.config.UID, volume.config.GID)
-	}
-	fullVolPath := filepath.Join(volPathRoot, "_data")
-	if err := os.MkdirAll(fullVolPath, 0755); err != nil {
-		return nil, errors.Wrapf(err, "error creating volume directory %q", fullVolPath)
-	}
-	if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
-		return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
-	}
-	if err := LabelVolumePath(fullVolPath); err != nil {
-		return nil, err
-	}
-	volume.config.MountPoint = fullVolPath
 
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
@@ -109,6 +132,39 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 	defer volume.newVolumeEvent(events.Create)
 	return volume, nil
+}
+
+// makeVolumeInPluginIfNotExist makes a volume in the given volume plugin if it
+// does not already exist.
+func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin *volplugin.VolumePlugin) error {
+	// Ping the volume plugin to see if it exists first.
+	// If it does, use the existing volume in the plugin.
+	// Options may not match exactly, but not much we can do about
+	// that. Not complaining avoids a lot of the sync issues we see
+	// with c/storage and libpod DB.
+	needsCreate := true
+	getReq := new(pluginapi.GetRequest)
+	getReq.Name = name
+	if resp, err := plugin.GetVolume(getReq); err == nil {
+		// TODO: What do we do if we get a 200 response, but the
+		// Volume is nil? The docs on the Plugin API are very
+		// nonspecific, so I don't know if this is valid or
+		// not...
+		if resp != nil {
+			needsCreate = false
+			logrus.Infof("Volume %q already exists in plugin %q, using existing volume", name, plugin.Name)
+		}
+	}
+	if needsCreate {
+		createReq := new(pluginapi.CreateRequest)
+		createReq.Name = name
+		createReq.Options = options
+		if err := plugin.CreateVolume(createReq); err != nil {
+			return errors.Wrapf(err, "error creating volume %q in plugin %s", name, plugin.Name)
+		}
+	}
+
+	return nil
 }
 
 // removeVolume removes the specified volume from state as well tears down its mountpoint and storage
@@ -185,9 +241,43 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 
 	var removalErr error
 
+	// If we use a volume plugin, we need to remove from the plugin.
+	if v.UsesVolumeDriver() {
+		canRemove := true
+
+		// Do we have a volume driver?
+		if v.plugin == nil {
+			canRemove = false
+			removalErr = errors.Wrapf(define.ErrMissingPlugin, "cannot remove volume %s from plugin %s, but it has been removed from Podman", v.Name(), v.Driver())
+		} else {
+			// Ping the plugin first to verify the volume still
+			// exists.
+			// We're trying to be very tolerant of missing volumes
+			// in the backend, to avoid the problems we see with
+			// sync between c/storage and the Libpod DB.
+			getReq := new(pluginapi.GetRequest)
+			getReq.Name = v.Name()
+			if _, err := v.plugin.GetVolume(getReq); err != nil {
+				canRemove = false
+				removalErr = errors.Wrapf(err, "volume %s could not be retrieved from plugin %s, but it has been removed from Podman", v.Name(), v.Driver())
+			}
+		}
+		if canRemove {
+			req := new(pluginapi.RemoveRequest)
+			req.Name = v.Name()
+			if err := v.plugin.RemoveVolume(req); err != nil {
+				removalErr = errors.Wrapf(err, "volume %s could not be removed from plugin %s, but it has been removed from Podman", v.Name(), v.Driver())
+			}
+		}
+	}
+
 	// Free the volume's lock
 	if err := v.lock.Free(); err != nil {
-		removalErr = errors.Wrapf(err, "error freeing lock for volume %s", v.Name())
+		if removalErr == nil {
+			removalErr = errors.Wrapf(err, "error freeing lock for volume %s", v.Name())
+		} else {
+			logrus.Errorf("Error freeing lock for volume %q: %v", v.Name(), err)
+		}
 	}
 
 	// Delete the mountpoint path of the volume, that is delete the volume
@@ -196,7 +286,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		if removalErr == nil {
 			removalErr = errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
 		} else {
-			logrus.Errorf("error cleaning up volume storage for volume %q: %v", v.Name(), err)
+			logrus.Errorf("Error cleaning up volume storage for volume %q: %v", v.Name(), err)
 		}
 	}
 

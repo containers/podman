@@ -212,7 +212,12 @@ func (c *Container) getInspectMounts(namedVolumes []*ContainerNamedVolume, image
 			return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
 		}
 		mountStruct.Driver = volFromDB.Driver()
-		mountStruct.Source = volFromDB.MountPoint()
+
+		mountPoint, err := volFromDB.MountPoint()
+		if err != nil {
+			return nil, err
+		}
+		mountStruct.Source = mountPoint
 
 		parseMountOptionsForInspect(volume.Options, &mountStruct)
 

@@ -35,6 +35,10 @@ var (
 	// aliases.
 	ErrNoAliases = errors.New("no aliases for container")
 
+	// ErrMissingPlugin indicates that the requested operation requires a
+	// plugin that is not present on the system or in the configuration.
+	ErrMissingPlugin = errors.New("required plugin missing")
+
 	// ErrCtrExists indicates a container with the same name or ID already
 	// exists
 	ErrCtrExists = errors.New("container already exists")
