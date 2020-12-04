@@ -714,83 +714,90 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	}
 
 	for _, signimage := range names {
-		srcRef, err := alltransports.ParseImageName(signimage)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing image name")
-		}
-		rawSource, err := srcRef.NewImageSource(ctx, sc)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting image source")
-		}
-		err = rawSource.Close()
-		if err != nil {
-			logrus.Errorf("unable to close new image source %q", err)
-		}
-		getManifest, _, err := rawSource.GetManifest(ctx, nil)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting getManifest")
-		}
-		dockerReference := rawSource.Reference().DockerReference()
-		if dockerReference == nil {
-			return nil, errors.Errorf("cannot determine canonical Docker reference for destination %s", transports.ImageName(rawSource.Reference()))
-		}
-		var sigStoreDir string
-		if options.Directory != "" {
-			sigStoreDir = options.Directory
-		}
-		if sigStoreDir == "" {
-			if rootless.IsRootless() {
-				sigStoreDir = filepath.Join(filepath.Dir(ir.Libpod.StorageConfig().GraphRoot), "sigstore")
-			} else {
-				var sigStoreURI string
-				registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)
-				if registryInfo != nil {
-					if sigStoreURI = registryInfo.SigStoreStaging; sigStoreURI == "" {
-						sigStoreURI = registryInfo.SigStore
+		err = func() error {
+			srcRef, err := alltransports.ParseImageName(signimage)
+			if err != nil {
+				return errors.Wrapf(err, "error parsing image name")
+			}
+			rawSource, err := srcRef.NewImageSource(ctx, sc)
+			if err != nil {
+				return errors.Wrapf(err, "error getting image source")
+			}
+			defer func() {
+				if err = rawSource.Close(); err != nil {
+					logrus.Errorf("unable to close %s image source %q", srcRef.DockerReference().Name(), err)
+				}
+			}()
+			getManifest, _, err := rawSource.GetManifest(ctx, nil)
+			if err != nil {
+				return errors.Wrapf(err, "error getting getManifest")
+			}
+			dockerReference := rawSource.Reference().DockerReference()
+			if dockerReference == nil {
+				return errors.Errorf("cannot determine canonical Docker reference for destination %s", transports.ImageName(rawSource.Reference()))
+			}
+			var sigStoreDir string
+			if options.Directory != "" {
+				sigStoreDir = options.Directory
+			}
+			if sigStoreDir == "" {
+				if rootless.IsRootless() {
+					sigStoreDir = filepath.Join(filepath.Dir(ir.Libpod.StorageConfig().GraphRoot), "sigstore")
+				} else {
+					var sigStoreURI string
+					registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)
+					if registryInfo != nil {
+						if sigStoreURI = registryInfo.SigStoreStaging; sigStoreURI == "" {
+							sigStoreURI = registryInfo.SigStore
+						}
+					}
+					if sigStoreURI == "" {
+						return errors.Errorf("no signature storage configuration found for %s", rawSource.Reference().DockerReference().String())
+
+					}
+					sigStoreDir, err = localPathFromURI(sigStoreURI)
+					if err != nil {
+						return errors.Wrapf(err, "invalid signature storage %s", sigStoreURI)
 					}
 				}
-				if sigStoreURI == "" {
-					return nil, errors.Errorf("no signature storage configuration found for %s", rawSource.Reference().DockerReference().String())
+			}
+			manifestDigest, err := manifest.Digest(getManifest)
+			if err != nil {
+				return err
+			}
+			repo := reference.Path(dockerReference)
+			if path.Clean(repo) != repo { // Coverage: This should not be reachable because /./ and /../ components are not valid in docker references
+				return errors.Errorf("Unexpected path elements in Docker reference %s for signature storage", dockerReference.String())
+			}
 
-				}
-				sigStoreDir, err = localPathFromURI(sigStoreURI)
-				if err != nil {
-					return nil, errors.Wrapf(err, "invalid signature storage %s", sigStoreURI)
+			// create signature
+			newSig, err := signature.SignDockerManifest(getManifest, dockerReference.String(), mech, options.SignBy)
+			if err != nil {
+				return errors.Wrapf(err, "error creating new signature")
+			}
+			// create the signstore file
+			signatureDir := fmt.Sprintf("%s@%s=%s", filepath.Join(sigStoreDir, repo), manifestDigest.Algorithm(), manifestDigest.Hex())
+			if err := os.MkdirAll(signatureDir, 0751); err != nil {
+				// The directory is allowed to exist
+				if !os.IsExist(err) {
+					logrus.Error(err)
+					return nil
 				}
 			}
-		}
-		manifestDigest, err := manifest.Digest(getManifest)
+			sigFilename, err := getSigFilename(signatureDir)
+			if err != nil {
+				logrus.Errorf("error creating sigstore file: %v", err)
+				return nil
+			}
+			err = ioutil.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644)
+			if err != nil {
+				logrus.Errorf("error storing signature for %s", rawSource.Reference().DockerReference().String())
+				return nil
+			}
+			return nil
+		}()
 		if err != nil {
 			return nil, err
-		}
-		repo := reference.Path(dockerReference)
-		if path.Clean(repo) != repo { // Coverage: This should not be reachable because /./ and /../ components are not valid in docker references
-			return nil, errors.Errorf("Unexpected path elements in Docker reference %s for signature storage", dockerReference.String())
-		}
-
-		// create signature
-		newSig, err := signature.SignDockerManifest(getManifest, dockerReference.String(), mech, options.SignBy)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error creating new signature")
-		}
-		// create the signstore file
-		signatureDir := fmt.Sprintf("%s@%s=%s", filepath.Join(sigStoreDir, repo), manifestDigest.Algorithm(), manifestDigest.Hex())
-		if err := os.MkdirAll(signatureDir, 0751); err != nil {
-			// The directory is allowed to exist
-			if !os.IsExist(err) {
-				logrus.Error(err)
-				continue
-			}
-		}
-		sigFilename, err := getSigFilename(signatureDir)
-		if err != nil {
-			logrus.Errorf("error creating sigstore file: %v", err)
-			continue
-		}
-		err = ioutil.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644)
-		if err != nil {
-			logrus.Errorf("error storing signature for %s", rawSource.Reference().DockerReference().String())
-			continue
 		}
 	}
 	return nil, nil
