@@ -8,6 +8,7 @@ approvers:
   - TomSweeneyRedHat
   - vrothberg
   - umohnani8
+  - Luap99
 reviewers:
   - baude
   - edsantiago
@@ -20,3 +21,4 @@ reviewers:
   - ashley-cui
   - QiWang19
   - umohnani8
+  - Luap99
