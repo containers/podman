@@ -3,10 +3,7 @@ package containers
 import (
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/rootless"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +40,7 @@ var (
 func cpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&cpOpts.Extract, "extract", false, "Extract the tar file into the destination directory.")
-	flags.BoolVar(&cpOpts.Pause, "pause", copyPause(), "Pause the container while copying")
+	flags.BoolVar(&cpOpts.Pause, "pause", true, "Pause the container while copying")
 }
 
 func init() {
@@ -62,17 +59,5 @@ func init() {
 }
 
 func cp(cmd *cobra.Command, args []string) error {
-	_, err := registry.ContainerEngine().ContainerCp(registry.GetContext(), args[0], args[1], cpOpts)
-	return err
-}
-
-func copyPause() bool {
-	if rootless.IsRootless() {
-		cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
-		if !cgroupv2 {
-			logrus.Debugf("defaulting to pause==false on rootless cp in cgroupv1 systems")
-			return false
-		}
-	}
-	return true
+	return registry.ContainerEngine().ContainerCp(registry.GetContext(), args[0], args[1], cpOpts)
 }

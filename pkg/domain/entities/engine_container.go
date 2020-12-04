@@ -16,7 +16,7 @@ type ContainerEngine interface {
 	ContainerCheckpoint(ctx context.Context, namesOrIds []string, options CheckpointOptions) ([]*CheckpointReport, error)
 	ContainerCleanup(ctx context.Context, namesOrIds []string, options ContainerCleanupOptions) ([]*ContainerCleanupReport, error)
 	ContainerCommit(ctx context.Context, nameOrID string, options CommitOptions) (*CommitReport, error)
-	ContainerCp(ctx context.Context, source, dest string, options ContainerCpOptions) (*ContainerCpReport, error)
+	ContainerCp(ctx context.Context, source, dest string, options ContainerCpOptions) error
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
 	ContainerDiff(ctx context.Context, nameOrID string, options DiffOptions) (*DiffReport, error)
 	ContainerExec(ctx context.Context, nameOrID string, options ExecOptions, streams define.AttachStreams) (int, error)
