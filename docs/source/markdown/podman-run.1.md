@@ -26,9 +26,12 @@ Several files will be automatically created within the container. These include
 _/etc/hosts_, _/etc/hostname_, and _/etc/resolv.conf_ to manage networking.
 These will be based on the host's version of the files, though they can be
 customized with options (for example, **--dns** will override the host's DNS
-servers in the created _resolv.conf_). Additionally, an empty file is created in
-each container to indicate to programs they are running in a container. This file
-is located at _/run/.containerenv_.
+servers in the created _resolv.conf_). Additionally, a container environment
+file is created in each container to indicate to programs they are running in a
+container. This file is located at _/run/.containerenv_. When using the
+--privileged flag the .containerenv contains name/value pairs indicating the
+container engine version, whether the engine is running in rootless mode, the
+container name and id, as well as the image name and id that the container is based on.
 
 When running from a user defined network namespace, the _/etc/netns/NSNAME/resolv.conf_
 will be used if it exists, otherwise _/etc/resolv.conf_ will be used.
