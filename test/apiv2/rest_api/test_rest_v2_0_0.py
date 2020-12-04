@@ -423,6 +423,57 @@ class TestApi(unittest.TestCase):
         prune = requests.post(PODMAN_URL + "/v1.40/networks/prune")
         self.assertEqual(prune.status_code, 405, prune.content)
 
+    def test_volumes_compat(self):
+        name = "Volume_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+
+        ls = requests.get(PODMAN_URL + "/v1.40/volumes")
+        self.assertEqual(ls.status_code, 200, ls.content)
+
+        # See https://docs.docker.com/engine/api/v1.40/#operation/VolumeList
+        required_keys = (
+            "Volumes",
+            "Warnings",
+        )
+
+        obj = json.loads(ls.content)
+        self.assertIn(type(obj), (dict,))
+        for k in required_keys:
+            self.assertIn(k, obj)
+
+        create = requests.post(PODMAN_URL + "/v1.40/volumes/create", json={"Name": name})
+        self.assertEqual(create.status_code, 201, create.content)
+
+        # See https://docs.docker.com/engine/api/v1.40/#operation/VolumeCreate
+        # and https://docs.docker.com/engine/api/v1.40/#operation/VolumeInspect
+        required_keys = (
+            "Name",
+            "Driver",
+            "Mountpoint",
+            "Labels",
+            "Scope",
+            "Options",
+        )
+
+        obj = json.loads(create.content)
+        self.assertIn(type(obj), (dict,))
+        for k in required_keys:
+            self.assertIn(k, obj)
+        self.assertEqual(obj["Name"], name)
+
+        inspect = requests.get(PODMAN_URL + f"/v1.40/volumes/{name}")
+        self.assertEqual(inspect.status_code, 200, inspect.content)
+
+        obj = json.loads(create.content)
+        self.assertIn(type(obj), (dict,))
+        for k in required_keys:
+            self.assertIn(k, obj)
+
+        rm = requests.delete(PODMAN_URL + f"/v1.40/volumes/{name}")
+        self.assertEqual(rm.status_code, 204, rm.content)
+
+        prune = requests.post(PODMAN_URL + "/v1.40/volumes/prune")
+        self.assertEqual(prune.status_code, 200, prune.content)
+
 
 if __name__ == "__main__":
     unittest.main()
