@@ -169,7 +169,7 @@ t GET containers/$cid/json 200 \
   .Args[1]="param2"
 t DELETE containers/$cid 204
 
-# test only set the entrpoint, Cmd should be []
+# test only set the entrypoint, Cmd should be []
 t POST containers/create '"Image":"'$IMAGE'","Entrypoint":["echo","param1"]' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
