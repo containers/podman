@@ -24,5 +24,5 @@ func PauseContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Success
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, nil)
 }

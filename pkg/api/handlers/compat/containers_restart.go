@@ -41,5 +41,5 @@ func RestartContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Success
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, nil)
 }

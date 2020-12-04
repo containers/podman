@@ -40,7 +40,7 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	// If the Container is stopped already, send a 304
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
-		utils.WriteResponse(w, http.StatusNotModified, "")
+		utils.WriteResponse(w, http.StatusNotModified, nil)
 		return
 	}
 
@@ -56,5 +56,5 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Success
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, nil)
 }
