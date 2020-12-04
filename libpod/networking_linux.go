@@ -245,7 +245,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 // setupSlirp4netns can be called in rootful as well as in rootless
 func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	path := r.config.Engine.NetworkCmdPath
-
+	slirpOptions := r.config.Engine.NetworkCmdOptions
 	if path == "" {
 		var err error
 		path, err = exec.LookPath("slirp4netns")
@@ -273,68 +273,69 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	outboundAddr6 := ""
 
 	if ctr.config.NetworkOptions != nil {
-		slirpOptions := ctr.config.NetworkOptions["slirp4netns"]
-		for _, o := range slirpOptions {
-			parts := strings.SplitN(o, "=", 2)
-			if len(parts) < 2 {
-				return errors.Errorf("unknown option for slirp4netns: %q", o)
+		slirpOptions = append(slirpOptions, ctr.config.NetworkOptions["slirp4netns"]...)
+	}
+
+	for _, o := range slirpOptions {
+		parts := strings.SplitN(o, "=", 2)
+		if len(parts) < 2 {
+			return errors.Errorf("unknown option for slirp4netns: %q", o)
+		}
+		option, value := parts[0], parts[1]
+		switch option {
+		case "cidr":
+			ipv4, _, err := net.ParseCIDR(value)
+			if err != nil || ipv4.To4() == nil {
+				return errors.Errorf("invalid cidr %q", value)
 			}
-			option, value := parts[0], parts[1]
-			switch option {
-			case "cidr":
-				ipv4, _, err := net.ParseCIDR(value)
-				if err != nil || ipv4.To4() == nil {
-					return errors.Errorf("invalid cidr %q", value)
-				}
-				cidr = value
-			case "port_handler":
-				switch value {
-				case "slirp4netns":
-					isSlirpHostForward = true
-				case "rootlesskit":
-					isSlirpHostForward = false
-				default:
-					return errors.Errorf("unknown port_handler for slirp4netns: %q", value)
-				}
-			case "allow_host_loopback":
-				switch value {
-				case "true":
-					disableHostLoopback = false
-				case "false":
-					disableHostLoopback = true
-				default:
-					return errors.Errorf("invalid value of allow_host_loopback for slirp4netns: %q", value)
-				}
-			case "enable_ipv6":
-				switch value {
-				case "true":
-					enableIPv6 = true
-				case "false":
-					enableIPv6 = false
-				default:
-					return errors.Errorf("invalid value of enable_ipv6 for slirp4netns: %q", value)
-				}
-			case "outbound_addr":
-				ipv4 := net.ParseIP(value)
-				if ipv4 == nil || ipv4.To4() == nil {
-					_, err := net.InterfaceByName(value)
-					if err != nil {
-						return errors.Errorf("invalid outbound_addr %q", value)
-					}
-				}
-				outboundAddr = value
-			case "outbound_addr6":
-				ipv6 := net.ParseIP(value)
-				if ipv6 == nil || ipv6.To4() != nil {
-					_, err := net.InterfaceByName(value)
-					if err != nil {
-						return errors.Errorf("invalid outbound_addr6: %q", value)
-					}
-				}
-				outboundAddr6 = value
+			cidr = value
+		case "port_handler":
+			switch value {
+			case "slirp4netns":
+				isSlirpHostForward = true
+			case "rootlesskit":
+				isSlirpHostForward = false
 			default:
-				return errors.Errorf("unknown option for slirp4netns: %q", o)
+				return errors.Errorf("unknown port_handler for slirp4netns: %q", value)
 			}
+		case "allow_host_loopback":
+			switch value {
+			case "true":
+				disableHostLoopback = false
+			case "false":
+				disableHostLoopback = true
+			default:
+				return errors.Errorf("invalid value of allow_host_loopback for slirp4netns: %q", value)
+			}
+		case "enable_ipv6":
+			switch value {
+			case "true":
+				enableIPv6 = true
+			case "false":
+				enableIPv6 = false
+			default:
+				return errors.Errorf("invalid value of enable_ipv6 for slirp4netns: %q", value)
+			}
+		case "outbound_addr":
+			ipv4 := net.ParseIP(value)
+			if ipv4 == nil || ipv4.To4() == nil {
+				_, err := net.InterfaceByName(value)
+				if err != nil {
+					return errors.Errorf("invalid outbound_addr %q", value)
+				}
+			}
+			outboundAddr = value
+		case "outbound_addr6":
+			ipv6 := net.ParseIP(value)
+			if ipv6 == nil || ipv6.To4() != nil {
+				_, err := net.InterfaceByName(value)
+				if err != nil {
+					return errors.Errorf("invalid outbound_addr6: %q", value)
+				}
+			}
+			outboundAddr6 = value
+		default:
+			return errors.Errorf("unknown option for slirp4netns: %q", o)
 		}
 	}
 
