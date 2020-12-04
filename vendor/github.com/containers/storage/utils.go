@@ -255,6 +255,7 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 		if err != nil {
 			return storageOpts, err
 		}
+		return storageOpts, nil
 	}
 	_, err = os.Stat(storageConf)
 	if err != nil && !os.IsNotExist(err) {
