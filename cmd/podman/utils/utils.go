@@ -26,8 +26,11 @@ func FileExists(path string) bool {
 	return !file.IsDir()
 }
 
-func PrintPodPruneResults(podPruneReports []*entities.PodPruneReport) error {
+func PrintPodPruneResults(podPruneReports []*entities.PodPruneReport, heading bool) error {
 	var errs OutputErrors
+	if heading && len(podPruneReports) > 0 {
+		fmt.Println("Deleted Pods")
+	}
 	for _, r := range podPruneReports {
 		if r.Err == nil {
 			fmt.Println(r.Id)
@@ -38,8 +41,11 @@ func PrintPodPruneResults(podPruneReports []*entities.PodPruneReport) error {
 	return errs.PrintErrors()
 }
 
-func PrintContainerPruneResults(containerPruneReport *entities.ContainerPruneReport) error {
+func PrintContainerPruneResults(containerPruneReport *entities.ContainerPruneReport, heading bool) error {
 	var errs OutputErrors
+	if heading && (len(containerPruneReport.ID) > 0 || len(containerPruneReport.Err) > 0) {
+		fmt.Println("Deleted Containers")
+	}
 	for k := range containerPruneReport.ID {
 		fmt.Println(k)
 	}
@@ -49,8 +55,11 @@ func PrintContainerPruneResults(containerPruneReport *entities.ContainerPruneRep
 	return errs.PrintErrors()
 }
 
-func PrintVolumePruneResults(volumePruneReport []*entities.VolumePruneReport) error {
+func PrintVolumePruneResults(volumePruneReport []*entities.VolumePruneReport, heading bool) error {
 	var errs OutputErrors
+	if heading && len(volumePruneReport) > 0 {
+		fmt.Println("Deleted Volumes")
+	}
 	for _, r := range volumePruneReport {
 		if r.Err == nil {
 			fmt.Println(r.Id)
@@ -61,7 +70,10 @@ func PrintVolumePruneResults(volumePruneReport []*entities.VolumePruneReport) er
 	return errs.PrintErrors()
 }
 
-func PrintImagePruneResults(imagePruneReport *entities.ImagePruneReport) error {
+func PrintImagePruneResults(imagePruneReport *entities.ImagePruneReport, heading bool) error {
+	if heading && (len(imagePruneReport.Report.Id) > 0 || len(imagePruneReport.Report.Err) > 0) {
+		fmt.Println("Deleted Images")
+	}
 	for _, i := range imagePruneReport.Report.Id {
 		fmt.Println(i)
 	}

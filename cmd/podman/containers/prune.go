@@ -78,5 +78,5 @@ func prune(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return utils.PrintContainerPruneResults(responses)
+	return utils.PrintContainerPruneResults(responses, false)
 }

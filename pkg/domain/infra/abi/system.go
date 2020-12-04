@@ -168,37 +168,61 @@ func checkInput() error { // nolint:deadcode,unused
 // SystemPrune removes unused data from the system. Pruning pods, containers, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)
-	podPruneReport, err := ic.prunePodHelper(ctx)
-	if err != nil {
-		return nil, err
-	}
-	systemPruneReport.PodPruneReport = podPruneReport
-
-	containerPruneReport, err := ic.pruneContainersHelper(nil)
-	if err != nil {
-		return nil, err
-	}
-	systemPruneReport.ContainerPruneReport = containerPruneReport
-
-	results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, nil)
-	if err != nil {
-		return nil, err
-	}
-	report := entities.ImagePruneReport{
-		Report: entities.Report{
-			Id:  results,
-			Err: nil,
-		},
-	}
-
-	systemPruneReport.ImagePruneReport = &report
-
-	if options.Volume {
-		volumePruneReport, err := ic.pruneVolumesHelper(ctx)
+	found := true
+	for found {
+		found = false
+		podPruneReport, err := ic.prunePodHelper(ctx)
 		if err != nil {
 			return nil, err
 		}
-		systemPruneReport.VolumePruneReport = volumePruneReport
+		if len(podPruneReport) > 0 {
+			found = true
+		}
+		systemPruneReport.PodPruneReport = append(systemPruneReport.PodPruneReport, podPruneReport...)
+		containerPruneReport, err := ic.pruneContainersHelper(nil)
+		if err != nil {
+			return nil, err
+		}
+		if len(containerPruneReport.ID) > 0 {
+			found = true
+		}
+		if systemPruneReport.ContainerPruneReport == nil {
+			systemPruneReport.ContainerPruneReport = containerPruneReport
+		} else {
+			for name, val := range containerPruneReport.ID {
+				systemPruneReport.ContainerPruneReport.ID[name] = val
+			}
+		}
+
+		results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, nil)
+
+		if err != nil {
+			return nil, err
+		}
+		if len(results) > 0 {
+			found = true
+		}
+
+		if systemPruneReport.ImagePruneReport == nil {
+			systemPruneReport.ImagePruneReport = &entities.ImagePruneReport{
+				Report: entities.Report{
+					Id:  results,
+					Err: nil,
+				},
+			}
+		} else {
+			systemPruneReport.ImagePruneReport.Report.Id = append(systemPruneReport.ImagePruneReport.Report.Id, results...)
+		}
+		if options.Volume {
+			volumePruneReport, err := ic.pruneVolumesHelper(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if len(volumePruneReport) > 0 {
+				found = true
+			}
+			systemPruneReport.VolumePruneReport = append(systemPruneReport.VolumePruneReport, volumePruneReport...)
+		}
 	}
 	return systemPruneReport, nil
 }

@@ -62,5 +62,5 @@ func prune(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return utils.PrintVolumePruneResults(responses)
+	return utils.PrintVolumePruneResults(responses, false)
 }
