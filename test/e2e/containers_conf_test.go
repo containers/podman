@@ -258,6 +258,12 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(Equal("0002"))
 	})
 
+	It("podman set network cmd options slirp options to allow host loopback", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns", ALPINE, "ping", "-c1", "10.0.2.2"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman-remote test localcontainers.conf versus remote containers.conf", func() {
 		if !IsRemote() {
 			Skip("this test is only for remote")
@@ -311,4 +317,5 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal("0022"))
 	})
+
 })
