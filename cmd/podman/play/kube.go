@@ -2,6 +2,7 @@ package pods
 
 import (
 	"fmt"
+	"net"
 	"os"
 
 	"github.com/containers/common/pkg/auth"
@@ -23,6 +24,7 @@ type playKubeOptionsWrapper struct {
 	TLSVerifyCLI   bool
 	CredentialsCLI string
 	StartCLI       bool
+	StaticIPCLI    string
 }
 
 var (
@@ -75,6 +77,10 @@ func init() {
 	flags.StringVar(&kubeOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	_ = kubeCmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
+	staticIPFlagName := "ip"
+	flags.StringVar(&kubeOptions.StaticIPCLI, staticIPFlagName, "", "Static IP address to assign to this pod")
+	_ = kubeCmd.RegisterFlagCompletionFunc(staticIPFlagName, completion.AutocompleteDefault)
+
 	if !registry.IsRemote() {
 
 		certDirFlagName := "cert-dir"
@@ -117,6 +123,14 @@ func kube(cmd *cobra.Command, args []string) error {
 		}
 		kubeOptions.Username = creds.Username
 		kubeOptions.Password = creds.Password
+	}
+
+	if kubeOptions.StaticIPCLI != "" {
+		ipAddress := net.ParseIP(kubeOptions.StaticIPCLI)
+		if ipAddress == nil {
+			return fmt.Errorf("failed parsing ip address: %s", kubeOptions.StaticIPCLI)
+		}
+		kubeOptions.StaticIP = ipAddress
 	}
 
 	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), args[0], kubeOptions.PlayKubeOptions)

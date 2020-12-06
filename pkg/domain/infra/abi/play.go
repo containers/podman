@@ -132,6 +132,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
+	// Assign a static ip if it was specified
+	if options.StaticIP != nil {
+		p.StaticIP = &options.StaticIP
+	}
+
 	// Create the Pod
 	pod, err := generate.MakePod(p, ic.Libpod)
 	if err != nil {

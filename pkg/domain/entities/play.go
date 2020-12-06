@@ -1,6 +1,10 @@
 package entities
 
-import "github.com/containers/image/v5/types"
+import (
+	"net"
+
+	"github.com/containers/image/v5/types"
+)
 
 // PlayKubeOptions controls playing kube YAML files.
 type PlayKubeOptions struct {
@@ -30,6 +34,8 @@ type PlayKubeOptions struct {
 	LogDriver string
 	// Start - don't start the pod if false
 	Start types.OptionalBool
+	// StaticIP - a static ip address that will be assigned to the pod
+	StaticIP net.IP
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube
