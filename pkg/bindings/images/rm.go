@@ -41,17 +41,19 @@ func BatchRemove(ctx context.Context, images []string, opts entities.ImageRemove
 	return &report.ImageRemoveReport, errorhandling.StringsToErrors(report.Errors)
 }
 
-// Remove removes an image from the local storage.  Use force to remove an
+// Remove removes an image from the local storage.  Use optional force option to remove an
 // image, even if it's used by containers.
-func Remove(ctx context.Context, nameOrID string, force bool) (*entities.ImageRemoveReport, error) {
+func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) (*entities.ImageRemoveReport, error) {
 	var report handlers.LibpodImagesRemoveReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	params := url.Values{}
-	params.Set("force", strconv.FormatBool(force))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/%s", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
