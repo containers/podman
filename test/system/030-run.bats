@@ -541,6 +541,8 @@ json-file | f
     run_podman inspect $IMAGE --format "{{.ID}}"
     imageID="$output"
 
+    # prior to #8623 `podman run` would error out on untagged images with:
+    # Error: both RootfsImageName and RootfsImageID must be set if either is set: invalid argument
     run_podman untag $IMAGE
     run_podman run --rm $imageID ls
 
