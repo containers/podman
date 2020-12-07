@@ -93,14 +93,21 @@ class TestApi(unittest.TestCase):
         self.assertIsNotNone(r.content)
         _ = json.loads(r.text)
 
+        info = requests.get(PODMAN_URL + "/v1.40/info")
+        self.assertEqual(info.status_code, 200, info.content)
+        _ = json.loads(info.text)
+
     def test_events(self):
         r = requests.get(_url("/events?stream=false"))
         self.assertEqual(r.status_code, 200, r.text)
         self.assertIsNotNone(r.content)
-        for line in r.text.splitlines():
+
+        report = r.text.splitlines()
+        self.assertGreater(len(report), 0, "No events found!")
+        for line in report:
             obj = json.loads(line)
             # Actor.ID is uppercase for compatibility
-            _ = obj["Actor"]["ID"]
+            self.assertIn("ID", obj["Actor"])
 
     def test_containers(self):
         r = requests.get(_url("/containers/json"), timeout=5)
@@ -360,17 +367,38 @@ class TestApi(unittest.TestCase):
         self.assertFalse(search.is_alive(), "/images/search took too long")
 
     def test_ping(self):
+        required_headers = (
+            "API-Version",
+            "Builder-Version",
+            "Docker-Experimental",
+            "Cache-Control",
+            "Pragma",
+            "Pragma",
+        )
+
+        def check_headers(req):
+            for k in required_headers:
+                self.assertIn(k, req.headers)
+
         r = requests.get(PODMAN_URL + "/_ping")
         self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.text, "OK")
+        check_headers(r)
 
         r = requests.head(PODMAN_URL + "/_ping")
         self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.text, "")
+        check_headers(r)
 
         r = requests.get(_url("/_ping"))
         self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.text, "OK")
+        check_headers(r)
 
-        r = requests.get(_url("/_ping"))
+        r = requests.head(_url("/_ping"))
         self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.text, "")
+        check_headers(r)
 
     def test_history_compat(self):
         r = requests.get(PODMAN_URL + "/v1.40/images/alpine/history")
@@ -473,6 +501,34 @@ class TestApi(unittest.TestCase):
 
         prune = requests.post(PODMAN_URL + "/v1.40/volumes/prune")
         self.assertEqual(prune.status_code, 200, prune.content)
+
+    def test_auth_compat(self):
+        r = requests.post(
+            PODMAN_URL + "/v1.40/auth",
+            json={
+                "username": "bozo",
+                "password": "wedontneednopasswords",
+                "serveraddress": "https://localhost/v1.40/",
+            },
+        )
+        self.assertEqual(r.status_code, 404, r.content)
+
+    def test_version(self):
+        r = requests.get(PODMAN_URL + "/v1.40/version")
+        self.assertEqual(r.status_code, 200, r.content)
+
+        r = requests.get(_url("/version"))
+        self.assertEqual(r.status_code, 200, r.content)
+
+    def test_df_compat(self):
+        r = requests.get(PODMAN_URL + "/v1.40/system/df")
+        self.assertEqual(r.status_code, 200, r.content)
+
+        obj = json.loads(r.content)
+        self.assertIn("Images", obj)
+        self.assertIn("Containers", obj)
+        self.assertIn("Volumes", obj)
+        self.assertIn("BuildCache", obj)
 
 
 if __name__ == "__main__":
