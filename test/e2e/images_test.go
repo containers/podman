@@ -41,8 +41,8 @@ var _ = Describe("Podman images", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
-		Expect(session.LineInOuputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
-		Expect(session.LineInOuputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
 	})
 
 	It("podman image List", func() {
@@ -50,8 +50,8 @@ var _ = Describe("Podman images", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
-		Expect(session.LineInOuputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
-		Expect(session.LineInOuputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
 	})
 
 	It("podman images with multiple tags", func() {
@@ -86,8 +86,8 @@ var _ = Describe("Podman images", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
-		Expect(session.LineInOuputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
-		Expect(session.LineInOuputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
+		Expect(session.LineInOutputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
 	})
 
 	It("podman empty images list in JSON format", func() {
@@ -278,7 +278,7 @@ WORKDIR /test
 	It("podman images sort by values", func() {
 		sortValueTest := func(value string, result int, format string) []string {
 			f := fmt.Sprintf("{{.%s}}", format)
-			session := podmanTest.Podman([]string{"images", "--sort", value, "--format", f})
+			session := podmanTest.Podman([]string{"images", "--noheading", "--sort", value, "--format", f})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(result))
 

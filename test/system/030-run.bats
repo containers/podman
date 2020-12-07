@@ -532,6 +532,17 @@ json-file | f
     run_podman untag $IMAGE $newtag $newtag2
 }
 
+# Regression test for issue #8558
+@test "podman run on untagged image: make sure that image metadata is set" {
+    run_podman inspect $IMAGE --format "{{.ID}}"
+    imageID="$output"
+
+    run_podman untag $IMAGE
+    run_podman run --rm $imageID ls
+
+    run_podman tag $imageID $IMAGE
+}
+
 @test "podman run with --net=host and --port prints warning" {
     run_podman run -d --rm -p 8080 --net=host $IMAGE ls > /dev/null
     is "$output" ".*Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use"

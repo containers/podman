@@ -916,13 +916,33 @@ func (c *Container) CgroupManager() string {
 	return cgroupManager
 }
 
-// CGroupPath returns a cgroups "path" for a given container.
+// CGroupPath returns a cgroups "path" for the given container.
+// Note that the container must be running.  Otherwise, an error
+// is returned.
 func (c *Container) CGroupPath() (string, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
+	}
+	return c.cGroupPath()
+}
+
+// cGroupPath returns a cgroups "path" for the given container.
+// Note that the container must be running.  Otherwise, an error
+// is returned.
+// NOTE: only call this when owning the container's lock.
+func (c *Container) cGroupPath() (string, error) {
 	if c.config.NoCgroups || c.config.CgroupsMode == "disabled" {
 		return "", errors.Wrapf(define.ErrNoCgroups, "this container is not creating cgroups")
 	}
+	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
+		return "", errors.Wrapf(define.ErrCtrStopped, "cannot get cgroup path unless container %s is running", c.ID())
+	}
 
-	// Read /proc/[PID]/cgroup and find the *longest* cgroup entry.  That's
+	// Read /proc/{PID}/cgroup and find the *longest* cgroup entry.  That's
 	// needed to account for hacks in cgroups v1, where each line in the
 	// file could potentially point to a cgroup.  The longest one, however,
 	// is the libpod-specific one we're looking for.
@@ -947,7 +967,6 @@ func (c *Container) CGroupPath() (string, error) {
 		if len(path) > len(cgroupPath) {
 			cgroupPath = path
 		}
-
 	}
 
 	if len(cgroupPath) == 0 {

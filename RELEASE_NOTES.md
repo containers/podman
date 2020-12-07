@@ -1,5 +1,31 @@
 # Release Notes
 
+## 2.2.1
+### Changes
+- Due to a conflict with a previously-removed field, we were forced to modify the way image volumes (mounting images into containers using `--mount type=image`) were handled in the database. As a result, containers created in Podman 2.2.0 with image volumes will not have them in v2.2.1, and these containers will need to be re-created.
+
+### Bugfixes
+- Fixed a bug where rootless Podman would, on systems without the `XDG_RUNTIME_DIR` environment variable defined, use an incorrect path for the PID file of the Podman pause process, causing Podman to fail to start ([#8539](https://github.com/containers/podman/issues/8539)).
+- Fixed a bug where containers created using Podman v1.7 and earlier were unusable in Podman due to JSON decode errors ([#8613](https://github.com/containers/podman/issues/8613)).
+- Fixed a bug where Podman could retrieve invalid cgroup paths, instead of erroring, for containers that were not running.
+- Fixed a bug where the `podman system reset` command would print a warning about a duplicate shutdown handler being registered.
+- Fixed a bug where rootless Podman would attempt to mount `sysfs` in circumstances where it was not allowed; some OCI runtimes (notably `crun`) would fall back to alternatives and not fail, but others (notably `runc`) would fail to run containers.
+- Fixed a bug where the `podman run` and `podman create` commands would fail to create containers from untagged images ([#8558](https://github.com/containers/podman/issues/8558)).
+- Fixed a bug where remote Podman would prompt for a password even when the server did not support password authentication ([#8498](https://github.com/containers/podman/issues/8498)).
+- Fixed a bug where the `podman exec` command did not move the Conmon process for the exec session into the correct cgroup.
+- Fixed a bug where shell completion for the `ancestor` option to `podman ps --filter` did not work correctly.
+- Fixed a bug where detached containers would not properly clean themselves up (or remove themselves if `--rm` was set) if the Podman command that created them was invoked with `--log-level=debug`.
+
+### API
+- Fixed a bug where the Compat Create endpoint for Containers did not properly handle the `Binds` and `Mounts` parameters in `HostConfig`.
+- Fixed a bug where the Compat Create endpoint for Containers ignored the `Name` query parameter.
+- Fixed a bug where the Compat Create endpoint for Containers did not properly handle the "default" value for `NetworkMode` (this value is used extensively by `docker-compose`) ([#8544](https://github.com/containers/podman/issues/8544)).
+- Fixed a bug where the Compat Build endpoint for Images would sometimes incorrectly use the `target` query parameter as the image's tag.
+
+### Misc
+- Podman v2.2.0 vendored a non-released, custom version of the `github.com/spf13/cobra` package; this has been reverted to the latest upstream release to aid in packaging.
+- Updated the containers/image library to v5.9.0
+
 ## 2.2.0
 ### Features
 - Experimental support for shortname aliasing has been added. This is not enabled by default, but can be turned on by setting the environment variable `CONTAINERS_SHORT_NAME_ALIASING` to `on`. Documentation is [available here](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md#short-name-aliasing).

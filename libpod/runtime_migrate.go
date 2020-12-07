@@ -18,9 +18,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func stopPauseProcess() error {
+func (r *Runtime) stopPauseProcess() error {
 	if rootless.IsRootless() {
-		pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+		pausePidPath, err := util.GetRootlessPauseProcessPidPathGivenDir(r.config.Engine.TmpDir)
 		if err != nil {
 			return errors.Wrapf(err, "could not get pause process pid file path")
 		}
@@ -98,5 +98,5 @@ func (r *Runtime) migrate(ctx context.Context) error {
 		}
 	}
 
-	return stopPauseProcess()
+	return r.stopPauseProcess()
 }

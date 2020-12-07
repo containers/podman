@@ -7,7 +7,7 @@ podman\-network\-ls - Display a summary of CNI networks
 **podman network ls**  [*options*]
 
 ## DESCRIPTION
-Displays a list of existing podman networks. This command is not available for rootless users.
+Displays a list of existing podman networks.
 
 ## OPTIONS
 #### **--quiet**, **-q**

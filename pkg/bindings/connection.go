@@ -152,7 +152,7 @@ func pingNewConnection(ctx context.Context) error {
 		return err
 	}
 	// the ping endpoint sits at / in this case
-	response, err := client.DoRequest(nil, http.MethodGet, "../../../_ping", nil, nil)
+	response, err := client.DoRequest(nil, http.MethodGet, "/_ping", nil, nil)
 	if err != nil {
 		return err
 	}
@@ -207,11 +207,11 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (
 		authMethods = append(authMethods, ssh.Password(pw))
 	}
 	if len(authMethods) == 0 {
-		pass, err := terminal.ReadPassword("Login password:")
-		if err != nil {
-			return Connection{}, err
+		callback := func() (string, error) {
+			pass, err := terminal.ReadPassword("Login password:")
+			return string(pass), err
 		}
-		authMethods = append(authMethods, ssh.Password(string(pass)))
+		authMethods = append(authMethods, ssh.PasswordCallback(callback))
 	}
 
 	port := _url.Port()

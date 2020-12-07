@@ -98,7 +98,6 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		// present.
 		imgName := newImage.InputName
 		if s.Image == newImage.InputName && strings.HasPrefix(newImage.ID(), s.Image) {
-			imgName = ""
 			names := newImage.Names()
 			if len(names) > 0 {
 				imgName = names[0]
@@ -388,7 +387,7 @@ func CreateExitCommandArgs(storageConfig storage.StoreOptions, config *config.Co
 	}
 
 	if syslog {
-		command = append(command, "--syslog", "true")
+		command = append(command, "--syslog")
 	}
 	command = append(command, []string{"container", "cleanup"}...)
 

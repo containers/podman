@@ -203,18 +203,12 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	for _, m := range cc.HostConfig.Mounts {
 		mount := fmt.Sprintf("type=%s", m.Type)
 		if len(m.Source) > 0 {
-			mount += fmt.Sprintf("source=%s", m.Source)
+			mount += fmt.Sprintf(",source=%s", m.Source)
 		}
 		if len(m.Target) > 0 {
-			mount += fmt.Sprintf("dest=%s", m.Target)
+			mount += fmt.Sprintf(",dst=%s", m.Target)
 		}
 		mounts = append(mounts, mount)
-	}
-
-	// volumes
-	volumes := make([]string, 0, len(cc.Config.Volumes))
-	for v := range cc.Config.Volumes {
-		volumes = append(volumes, v)
 	}
 
 	// dns
@@ -373,7 +367,6 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		UserNS:           string(cc.HostConfig.UsernsMode),
 		UTS:              string(cc.HostConfig.UTSMode),
 		Mount:            mounts,
-		Volume:           volumes,
 		VolumesFrom:      cc.HostConfig.VolumesFrom,
 		Workdir:          cc.Config.WorkingDir,
 		Net:              &netInfo,
@@ -388,6 +381,10 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		}
 	}
 
+	// volumes
+	if volumes := cc.HostConfig.Binds; len(volumes) > 0 {
+		cliOpts.Volume = volumes
+	}
 	if len(cc.HostConfig.BlkioWeightDevice) > 0 {
 		devices := make([]string, 0, len(cc.HostConfig.BlkioWeightDevice))
 		for _, d := range cc.HostConfig.BlkioWeightDevice {

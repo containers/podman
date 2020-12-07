@@ -258,24 +258,22 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 	var cniNetworks []string
 	// Net defaults to Slirp on rootless
 	switch {
-	case ns == "slirp4netns", strings.HasPrefix(ns, "slirp4netns:"):
+	case ns == string(Slirp), strings.HasPrefix(ns, string(Slirp)+":"):
 		toReturn.NSMode = Slirp
-	case ns == "pod":
+	case ns == string(FromPod):
 		toReturn.NSMode = FromPod
-	case ns == "":
+	case ns == "" || ns == string(Default) || ns == string(Private):
 		if rootless.IsRootless() {
 			toReturn.NSMode = Slirp
 		} else {
 			toReturn.NSMode = Bridge
 		}
-	case ns == "bridge":
+	case ns == string(Bridge):
 		toReturn.NSMode = Bridge
-	case ns == "none":
+	case ns == string(NoNetwork):
 		toReturn.NSMode = NoNetwork
-	case ns == "host":
+	case ns == string(Host):
 		toReturn.NSMode = Host
-	case ns == "private":
-		toReturn.NSMode = Private
 	case strings.HasPrefix(ns, "ns:"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
@@ -283,7 +281,7 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 		}
 		toReturn.NSMode = Path
 		toReturn.Value = split[1]
-	case strings.HasPrefix(ns, "container:"):
+	case strings.HasPrefix(ns, string(FromContainer)+":"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
 			return toReturn, nil, errors.Errorf("must provide name or ID or a container when specifying container:")

@@ -25,6 +25,12 @@ func GetRootlessPauseProcessPidPath() (string, error) {
 	return "", errors.Wrap(errNotImplemented, "GetRootlessPauseProcessPidPath")
 }
 
+// GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
+// the pause process
+func GetRootlessPauseProcessPidPathGivenDir(unused string) (string, error) {
+	return "", errors.Wrap(errNotImplemented, "GetRootlessPauseProcessPidPath")
+}
+
 // GetRuntimeDir returns the runtime directory
 func GetRuntimeDir() (string, error) {
 	return "", errors.New("this function is not implemented for windows")

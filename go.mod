@@ -13,7 +13,7 @@ require (
 	github.com/containers/buildah v1.18.0
 	github.com/containers/common v0.29.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.8.1
+	github.com/containers/image/v5 v5.9.0
 	github.com/containers/psgo v1.5.1
 	github.com/containers/storage v1.24.1
 	github.com/coreos/go-systemd/v22 v22.1.0
@@ -75,5 +75,3 @@ require (
 )
 
 replace github.com/cri-o/ocicni => github.com/cri-o/ocicni v0.2.1-0.20201109200316-afdc16ba66df
-
-replace github.com/spf13/cobra => github.com/Luap99/cobra v1.0.1-0.20201110155035-83a59186c706
