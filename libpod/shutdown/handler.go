@@ -11,6 +11,10 @@ import (
 )
 
 var (
+	ErrHandlerExists error = errors.New("handler with given name already exists")
+)
+
+var (
 	stopped    bool
 	sigChan    chan os.Signal
 	cancelChan chan bool
@@ -98,7 +102,7 @@ func Register(name string, handler func(os.Signal) error) error {
 	}
 
 	if _, ok := handlers[name]; ok {
-		return errors.Errorf("handler with name %s already exists", name)
+		return ErrHandlerExists
 	}
 
 	handlers[name] = handler
