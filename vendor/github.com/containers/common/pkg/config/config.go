@@ -363,6 +363,12 @@ type EngineConfig struct {
 	// under. This convention is followed by the default volume driver, but
 	// may not be by other drivers.
 	VolumePath string `toml:"volume_path,omitempty"`
+
+	// VolumePlugins is a set of plugins that can be used as the backend for
+	// Podman named volumes. Each volume is specified as a name (what Podman
+	// will refer to the plugin as) mapped to a path, which must point to a
+	// Unix socket that conforms to the Volume Plugin specification.
+	VolumePlugins map[string]string `toml:"volume_plugins,omitempty"`
 }
 
 // SetOptions contains a subset of options in a Config. It's used to indicate if
@@ -443,11 +449,6 @@ func NewConfig(userConfigPath string) (*Config, error) {
 	config, err := DefaultConfig()
 	if err != nil {
 		return nil, err
-	}
-
-	// read libpod.conf and convert the config to *Config
-	if err = newLibpodConfig(config); err != nil && !os.IsNotExist(err) {
-		logrus.Errorf("error reading libpod.conf: %v", err)
 	}
 
 	// Now, gather the system configs and merge them as needed.

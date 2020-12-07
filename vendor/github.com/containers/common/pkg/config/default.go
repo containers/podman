@@ -242,11 +242,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.ImageDefaultTransport = _defaultTransport
 	c.StateType = BoltDBStateStore
 
-	c.OCIRuntime = "runc"
-	// If we're running on cgroupv2 v2, default to using crun.
-	if cgroup2, _ := cgroupv2.Enabled(); cgroup2 {
-		c.OCIRuntime = "crun"
-	}
+	c.OCIRuntime = "crun"
 	c.ImageBuildFormat = "oci"
 
 	c.CgroupManager = defaultCgroupManager()
