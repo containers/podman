@@ -15,6 +15,8 @@ Ideally the input file would be one created by Podman (see podman-generate-kube(
 
 Note: HostPath volume types created by play kube will be given an SELinux private label (Z)
 
+Note: If the `:latest` tag is used, Podman will attempt to pull the image from a registry. If the image was built locally with Podman or Buildah, it will have `localhost` as the domain, in that case, Podman will use the image from the local store even if it has the `:latest` tag.
+
 ## OPTIONS
 
 #### **--authfile**=*path*
