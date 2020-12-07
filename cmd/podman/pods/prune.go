@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v2/cmd/podman/common"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -28,7 +28,7 @@ var (
 		Short:             "Remove all stopped pods and their containers",
 		Long:              pruneDescription,
 		RunE:              prune,
-		ValidArgsFunction: common.AutocompletePods,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example:           `podman pod prune`,
 	}
 )

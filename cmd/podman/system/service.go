@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/rootless"
@@ -32,7 +33,7 @@ Enable a listening service for API access to Podman commands.
 		Short:             "Run API service",
 		Long:              srvDescription,
 		RunE:              service,
-		ValidArgsFunction: completion.AutocompleteDefault,
+		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example:           `podman system service --time=0 unix:///tmp/podman.sock`,
 	}
 

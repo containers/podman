@@ -24,7 +24,7 @@ var (
 		Long:              commitDescription,
 		RunE:              commit,
 		Args:              cobra.RangeArgs(1, 2),
-		ValidArgsFunction: common.AutocompleteContainers,
+		ValidArgsFunction: common.AutocompleteCommitCommand,
 		Example: `podman commit -q --message "committing container to image" reverent_golick image-committed
   podman commit -q --author "firstName lastName" reverent_golick image-committed
   podman commit -q --pause=false containerID image-committed

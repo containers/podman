@@ -30,7 +30,7 @@ var (
 		Long:              runlabelDescription,
 		RunE:              runlabel,
 		Args:              cobra.MinimumNArgs(2),
-		ValidArgsFunction: common.AutocompleteImages,
+		ValidArgsFunction: common.AutocompleteRunlabelCommand,
 		Example: `podman container runlabel run imageID
   podman container runlabel install imageID arg1 arg2
   podman container runlabel --display run myImage`,

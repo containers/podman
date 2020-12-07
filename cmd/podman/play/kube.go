@@ -39,7 +39,7 @@ var (
 		Long:              kubeDescription,
 		RunE:              kube,
 		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: completion.AutocompleteDefault,
+		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman play kube nginx.yml
   podman play kube --creds user:password --seccomp-profile-root /custom/path apache.yml`,
 	}

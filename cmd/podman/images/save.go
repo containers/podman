@@ -43,7 +43,7 @@ var (
 			}
 			return nil
 		},
-		ValidArgsFunction: completion.AutocompleteNone,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman save --quiet -o myimage.tar imageID
   podman save --format docker-dir -o ubuntu-dir ubuntu
   podman save > alpine-all.tar alpine:latest`,

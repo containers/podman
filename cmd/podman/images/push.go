@@ -29,7 +29,7 @@ var (
 
 	// Command: podman push
 	pushCmd = &cobra.Command{
-		Use:               "push [options] SOURCE [DESTINATION]",
+		Use:               "push [options] IMAGE [DESTINATION]",
 		Short:             "Push an image to a specified destination",
 		Long:              pushDescription,
 		RunE:              imagePush,
