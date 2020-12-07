@@ -1,12 +1,6 @@
 package libpod
 
 import (
-	"net"
-	"os"
-	"path/filepath"
-	"strings"
-	"syscall"
-
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -21,6 +15,11 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+	"syscall"
 )
 
 // Runtime Creation Options
