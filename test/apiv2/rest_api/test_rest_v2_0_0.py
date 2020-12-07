@@ -181,7 +181,7 @@ class TestApi(unittest.TestCase):
         self.assertEqual(net_default.status_code, 201, net_default.text)
 
         create = requests.post(
-            PODMAN_URL + "/v1.40/containers/create?name=postCreate",
+            PODMAN_URL + "/v1.40/containers/create?name=postCreateConnect",
             json={
                 "Cmd": ["top"],
                 "Image": "alpine:latest",

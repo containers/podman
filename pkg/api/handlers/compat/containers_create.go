@@ -37,6 +37,9 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Override the container name in the body struct
+	body.Name = query.Name
+
 	if len(body.HostConfig.Links) > 0 {
 		utils.Error(w, utils.ErrLinkNotSupport.Error(), http.StatusBadRequest, errors.Wrapf(utils.ErrLinkNotSupport, "bad parameter"))
 		return
@@ -68,9 +71,6 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "fill out specgen"))
 		return
 	}
-
-	// Override the container name in the body struct
-	body.Name = query.Name
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.ContainerCreate(r.Context(), sg)
