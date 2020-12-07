@@ -198,7 +198,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		expose = append(expose, fmt.Sprintf("%s/%s", p.Port(), p.Proto()))
 	}
 
-	// mounts type=tmpfs/bind,source=,dest=,opt=val
+	// mounts type=tmpfs/bind,source=,target=,opt=val
 	// TODO options
 	mounts := make([]string, 0, len(cc.HostConfig.Mounts))
 	for _, m := range cc.HostConfig.Mounts {
@@ -207,7 +207,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 			mount += fmt.Sprintf(",source=%s", m.Source)
 		}
 		if len(m.Target) > 0 {
-			mount += fmt.Sprintf(",dst=%s", m.Target)
+			mount += fmt.Sprintf(",target=%s", m.Target)
 		}
 		mounts = append(mounts, mount)
 	}
