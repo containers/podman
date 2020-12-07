@@ -531,6 +531,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			case "seccomp":
 				s.SeccompProfilePath = con[1]
 				s.Annotations[define.InspectAnnotationSeccomp] = con[1]
+			// this option is for docker compatibility, it is the same as unmask=ALL
+			case "systempaths":
+				if con[1] == "unconfined" {
+					s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, []string{"ALL"}...)
+				} else {
+					return fmt.Errorf("invalid systempaths option %q, only `unconfined` is supported", con[1])
+				}
 			case "unmask":
 				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, strings.Split(con[1], ":")...)
 			default:

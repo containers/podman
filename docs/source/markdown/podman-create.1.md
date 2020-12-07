@@ -845,10 +845,17 @@ Security Options
 - `label=filetype:TYPE` : Set the label file type for the container files
 - `label=disable`       : Turn off label separation for the container
 
+- `mask=/path/1:/path/2` : The paths to mask separated by a colon. A masked path
+  cannot be accessed inside the container.
+
 - `no-new-privileges` : Disable container processes from gaining additional privileges
 
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
 - `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
+
+- `unmask=ALL or /path/1:/path/2` : Paths to unmask separated by a colon. If set to **ALL**, it will
+  unmask all the paths that are masked by default.
+  The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**
 
 - `proc-opts=OPTIONS` : Comma separated list of options to use for the /proc mount. More details for the
   possible mount options are specified at **proc(5)** man page.
