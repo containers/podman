@@ -119,7 +119,13 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network list --filter invalid value", func() {
-		session := podmanTest.Podman([]string{"network", "ls", "--filter", "namr=ab"})
+		net := "net" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "namr=ab"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring(`invalid filter "namr"`))
