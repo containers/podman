@@ -26,16 +26,12 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	domainUtils "github.com/containers/podman/v2/pkg/domain/utils"
 	"github.com/containers/podman/v2/pkg/rootless"
-	"github.com/containers/podman/v2/pkg/trust"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// SignatureStoreDir defines default directory to store signatures
-const SignatureStoreDir = "/var/lib/containers/sigstore"
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
 	_, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
@@ -707,12 +703,6 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	sc := ir.Libpod.SystemContext()
 	sc.DockerCertPath = options.CertDir
 
-	systemRegistriesDirPath := trust.RegistriesDirPath(sc)
-	registryConfigs, err := trust.LoadAndMergeConfig(systemRegistriesDirPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading registry configuration")
-	}
-
 	for _, signimage := range names {
 		err = func() error {
 			srcRef, err := alltransports.ParseImageName(signimage)
@@ -738,36 +728,24 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 			}
 			var sigStoreDir string
 			if options.Directory != "" {
-				sigStoreDir = options.Directory
-			}
-			if sigStoreDir == "" {
-				if rootless.IsRootless() {
-					sigStoreDir = filepath.Join(filepath.Dir(ir.Libpod.StorageConfig().GraphRoot), "sigstore")
-				} else {
-					var sigStoreURI string
-					registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)
-					if registryInfo != nil {
-						if sigStoreURI = registryInfo.SigStoreStaging; sigStoreURI == "" {
-							sigStoreURI = registryInfo.SigStore
-						}
-					}
-					if sigStoreURI == "" {
-						return errors.Errorf("no signature storage configuration found for %s", rawSource.Reference().DockerReference().String())
-
-					}
-					sigStoreDir, err = localPathFromURI(sigStoreURI)
-					if err != nil {
-						return errors.Wrapf(err, "invalid signature storage %s", sigStoreURI)
-					}
+				repo := reference.Path(dockerReference)
+				if path.Clean(repo) != repo { // Coverage: This should not be reachable because /./ and /../ components are not valid in docker references
+					return errors.Errorf("Unexpected path elements in Docker reference %s for signature storage", dockerReference.String())
+				}
+				sigStoreDir = filepath.Join(options.Directory, repo)
+			} else {
+				signatureURL, err := docker.SignatureStorageBaseURL(sc, rawSource.Reference(), true)
+				if err != nil {
+					return err
+				}
+				sigStoreDir, err = localPathFromURI(signatureURL)
+				if err != nil {
+					return err
 				}
 			}
 			manifestDigest, err := manifest.Digest(getManifest)
 			if err != nil {
 				return err
-			}
-			repo := reference.Path(dockerReference)
-			if path.Clean(repo) != repo { // Coverage: This should not be reachable because /./ and /../ components are not valid in docker references
-				return errors.Errorf("Unexpected path elements in Docker reference %s for signature storage", dockerReference.String())
 			}
 
 			// create signature
@@ -776,7 +754,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 				return errors.Wrapf(err, "error creating new signature")
 			}
 			// create the signstore file
-			signatureDir := fmt.Sprintf("%s@%s=%s", filepath.Join(sigStoreDir, repo), manifestDigest.Algorithm(), manifestDigest.Hex())
+			signatureDir := fmt.Sprintf("%s@%s=%s", sigStoreDir, manifestDigest.Algorithm(), manifestDigest.Hex())
 			if err := os.MkdirAll(signatureDir, 0751); err != nil {
 				// The directory is allowed to exist
 				if !os.IsExist(err) {
@@ -822,14 +800,9 @@ func getSigFilename(sigStoreDirPath string) (string, error) {
 	}
 }
 
-func localPathFromURI(sigStoreDir string) (string, error) {
-	url, err := url.Parse(sigStoreDir)
-	if err != nil {
-		return sigStoreDir, errors.Wrapf(err, "invalid directory %s", sigStoreDir)
-	}
+func localPathFromURI(url *url.URL) (string, error) {
 	if url.Scheme != "file" {
-		return sigStoreDir, errors.Errorf("writing to %s is not supported. Use a supported scheme", sigStoreDir)
+		return "", errors.Errorf("writing to %s is not supported. Use a supported scheme", url.String())
 	}
-	sigStoreDir = url.Path
-	return sigStoreDir, nil
+	return url.Path, nil
 }
