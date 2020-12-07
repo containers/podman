@@ -91,7 +91,8 @@ func CompressStream(dest io.Writer, algo Algorithm, level *int) (io.WriteCloser,
 	return internal.AlgorithmCompressor(algo)(dest, level)
 }
 
-// DetectCompressionFormat returns a DecompressorFunc if the input is recognized as a compressed format, nil otherwise.
+// DetectCompressionFormat returns an Algorithm and DecompressorFunc if the input is recognized as a compressed format, an invalid
+// value and nil otherwise.
 // Because it consumes the start of input, other consumers must use the returned io.Reader instead to also read from the beginning.
 func DetectCompressionFormat(input io.Reader) (Algorithm, DecompressorFunc, io.Reader, error) {
 	buffer := [8]byte{}
