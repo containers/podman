@@ -8,7 +8,7 @@ import (
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-var Version = semver.MustParse("2.2.1-dev")
+var Version = semver.MustParse("2.2.1")
 
 // APIVersion is the version for the remote
 // client API.  It is used to determine compatibility
