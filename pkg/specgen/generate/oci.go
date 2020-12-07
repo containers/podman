@@ -165,7 +165,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 			inUserNS = true
 		}
 	}
-	if inUserNS && s.NetNS.IsHost() {
+	if inUserNS && s.NetNS.NSMode != specgen.NoNetwork {
 		canMountSys = false
 	}
 

@@ -1300,7 +1300,7 @@ USER mail`
 	It("podman run verify pids-limit", func() {
 		SkipIfCgroupV1("pids-limit not supported on cgroup V1")
 		limit := "4321"
-		session := podmanTest.Podman([]string{"run", "--pids-limit", limit, "--rm", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
+		session := podmanTest.Podman([]string{"run", "--pids-limit", limit, "--net=none", "--rm", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(limit))
