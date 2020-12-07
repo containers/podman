@@ -225,9 +225,8 @@ func (c *PullCandidate) Record() error {
 // Note that tags and digests are stripped from the specified name before
 // looking up an alias. Stripped off tags and digests are later on appended to
 // all candidates.  If neither tag nor digest is specified, candidates are
-// normalized with the "latest" tag. PullCandidates in the returned value may
-// be empty if there is no matching alias and no unqualified-search registries
-// are configured.
+// normalized with the "latest" tag.  An error is returned if there is no
+// matching alias and no unqualified-search registries are configured.
 //
 // Note that callers *must* call `(PullCandidate).Record` after a returned
 // item has been pulled successfully; this callback will record a new
@@ -312,6 +311,10 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Error out if there's no matching alias and no search registries.
+	if len(unqualifiedSearchRegistries) == 0 {
+		return nil, errors.Errorf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", name, usrConfig)
+	}
 	resolved.originDescription = usrConfig
 
 	for _, reg := range unqualifiedSearchRegistries {
@@ -331,10 +334,8 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 		return resolved, nil
 	}
 
-	// If we have only one candidate, there's no ambiguity. In case of an
-	// empty candidate slices, callers can implement custom logic or raise
-	// an error.
-	if len(resolved.PullCandidates) <= 1 {
+	// If we have only one candidate, there's no ambiguity.
+	if len(resolved.PullCandidates) == 1 {
 		return resolved, nil
 	}
 
