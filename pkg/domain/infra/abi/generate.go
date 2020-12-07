@@ -41,28 +41,48 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	return &entities.GenerateSystemdReport{Units: units}, nil
 }
 
-func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrID string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
+func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
 	var (
-		pod          *libpod.Pod
+		pods         []*libpod.Pod
 		podYAML      *k8sAPI.Pod
 		err          error
-		ctr          *libpod.Container
+		ctrs         []*libpod.Container
 		servicePorts []k8sAPI.ServicePort
 		serviceYAML  k8sAPI.Service
 	)
-	// Get the container in question.
-	ctr, err = ic.Libpod.LookupContainer(nameOrID)
-	if err != nil {
-		pod, err = ic.Libpod.LookupPod(nameOrID)
+	for _, nameOrID := range nameOrIDs {
+		// Get the container in question
+		ctr, err := ic.Libpod.LookupContainer(nameOrID)
 		if err != nil {
-			return nil, err
+			pod, err := ic.Libpod.LookupPod(nameOrID)
+			if err != nil {
+				return nil, err
+			}
+			pods = append(pods, pod)
+			if len(pods) > 1 {
+				return nil, errors.New("can only generate single pod at a time")
+			}
+		} else {
+			if len(ctr.Dependencies()) > 0 {
+				return nil, errors.Wrapf(define.ErrNotImplemented, "containers with dependencies")
+			}
+			// we cannot deal with ctrs already in a pod
+			if len(ctr.PodID()) > 0 {
+				return nil, errors.Errorf("container %s is associated with pod %s: use generate on the pod itself", ctr.ID(), ctr.PodID())
+			}
+			ctrs = append(ctrs, ctr)
 		}
-		podYAML, servicePorts, err = pod.GenerateForKube()
+	}
+
+	// check our inputs
+	if len(pods) > 0 && len(ctrs) > 0 {
+		return nil, errors.New("cannot generate pods and containers at the same time")
+	}
+
+	if len(pods) == 1 {
+		podYAML, servicePorts, err = pods[0].GenerateForKube()
 	} else {
-		if len(ctr.Dependencies()) > 0 {
-			return nil, errors.Wrapf(define.ErrNotImplemented, "containers with dependencies")
-		}
-		podYAML, err = ctr.GenerateForKube()
+		podYAML, err = libpod.GenerateForKube(ctrs)
 	}
 	if err != nil {
 		return nil, err
@@ -72,7 +92,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrID string, op
 		serviceYAML = libpod.GenerateKubeServiceFromV1Pod(podYAML, servicePorts)
 	}
 
-	content, err := generateKubeOutput(podYAML, &serviceYAML)
+	content, err := generateKubeOutput(podYAML, &serviceYAML, options.Service)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +100,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrID string, op
 	return &entities.GenerateKubeReport{Reader: bytes.NewReader(content)}, nil
 }
 
-func generateKubeOutput(podYAML *k8sAPI.Pod, serviceYAML *k8sAPI.Service) ([]byte, error) {
+func generateKubeOutput(podYAML *k8sAPI.Pod, serviceYAML *k8sAPI.Service, hasService bool) ([]byte, error) {
 	var (
 		output            []byte
 		marshalledPod     []byte
@@ -93,7 +113,7 @@ func generateKubeOutput(podYAML *k8sAPI.Pod, serviceYAML *k8sAPI.Service) ([]byt
 		return nil, err
 	}
 
-	if serviceYAML != nil {
+	if hasService {
 		marshalledService, err = yaml.Marshal(serviceYAML)
 		if err != nil {
 			return nil, err
@@ -114,7 +134,7 @@ func generateKubeOutput(podYAML *k8sAPI.Pod, serviceYAML *k8sAPI.Service) ([]byt
 
 	output = append(output, []byte(fmt.Sprintf(header, podmanVersion.Version))...)
 	output = append(output, marshalledPod...)
-	if serviceYAML != nil {
+	if hasService {
 		output = append(output, []byte("---\n")...)
 		output = append(output, marshalledService...)
 	}
