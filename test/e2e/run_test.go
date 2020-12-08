@@ -264,6 +264,14 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(BeEmpty())
 		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr4", "--security-opt", "systempaths=unconfined", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr4", "ls", "/sys/firmware"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman run seccomp test", func() {
