@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
@@ -426,6 +427,20 @@ var _ = Describe("Podman inspect", func() {
 		inspect := podmanTest.Podman([]string{"inspect", "--type", "volume", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).To(ExitWithError())
+	})
+
+	// Fixes https://github.com/containers/podman/issues/8444
+	It("podman inspect --format json .NetworkSettings.Ports", func() {
+		ctnrName := "Ctnr_" + RandomString(25)
+
+		create := podmanTest.Podman([]string{"create", "--name", ctnrName, "-p", "8080:80", ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", `--format="{{json .NetworkSettings.Ports}}"`, ctnrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal(`"{"80/tcp":[{"HostIp":"","HostPort":"8080"}]}"`))
 	})
 
 })
