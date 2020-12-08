@@ -121,6 +121,7 @@ const (
 	prmTypeMatchRepository        prmTypeIdentifier = "matchRepository"
 	prmTypeExactReference         prmTypeIdentifier = "exactReference"
 	prmTypeExactRepository        prmTypeIdentifier = "exactRepository"
+	prmTypeRemapIdentity          prmTypeIdentifier = "remapIdentity"
 )
 
 // prmMatchExact is a PolicyReferenceMatch with type = prmMatchExact: the two references must match exactly.
@@ -149,4 +150,14 @@ type prmExactReference struct {
 type prmExactRepository struct {
 	prmCommon
 	DockerRepository string `json:"dockerRepository"`
+}
+
+// prmRemapIdentity is a PolicyReferenceMatch with type = prmRemapIdentity: like prmMatchRepoDigestOrExact,
+// except that a namespace (at least a host:port, at most a single repository) is substituted before matching the two references.
+type prmRemapIdentity struct {
+	prmCommon
+	Prefix       string `json:"prefix"`
+	SignedPrefix string `json:"signedPrefix"`
+	// Possibly let the users make a choice for tag/digest matching behavior
+	// similar to prmMatchExact/prmMatchRepository?
 }

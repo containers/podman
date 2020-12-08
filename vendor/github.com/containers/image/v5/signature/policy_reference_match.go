@@ -4,6 +4,7 @@ package signature
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/transports"
@@ -36,12 +37,9 @@ func (prm *prmMatchExact) matchesDockerReference(image types.UnparsedImage, sign
 	return signature.String() == intended.String()
 }
 
-func (prm *prmMatchRepoDigestOrExact) matchesDockerReference(image types.UnparsedImage, signatureDockerReference string) bool {
-	intended, signature, err := parseImageAndDockerReference(image, signatureDockerReference)
-	if err != nil {
-		return false
-	}
-
+// matchRepoDigestOrExactReferenceValues implements prmMatchRepoDigestOrExact.matchesDockerReference
+// using reference.Named values.
+func matchRepoDigestOrExactReferenceValues(intended, signature reference.Named) bool {
 	// Do not add default tags: image.Reference().DockerReference() should contain it already, and signatureDockerReference should be exact; so, verify that now.
 	if reference.IsNameOnly(signature) {
 		return false
@@ -57,6 +55,13 @@ func (prm *prmMatchRepoDigestOrExact) matchesDockerReference(image types.Unparse
 	default: // !reference.IsNameOnly(intended)
 		return false
 	}
+}
+func (prm *prmMatchRepoDigestOrExact) matchesDockerReference(image types.UnparsedImage, signatureDockerReference string) bool {
+	intended, signature, err := parseImageAndDockerReference(image, signatureDockerReference)
+	if err != nil {
+		return false
+	}
+	return matchRepoDigestOrExactReferenceValues(intended, signature)
 }
 
 func (prm *prmMatchRepository) matchesDockerReference(image types.UnparsedImage, signatureDockerReference string) bool {
@@ -98,4 +103,52 @@ func (prm *prmExactRepository) matchesDockerReference(image types.UnparsedImage,
 		return false
 	}
 	return signature.Name() == intended.Name()
+}
+
+// refMatchesPrefix returns true if ref matches prm.Prefix.
+func (prm *prmRemapIdentity) refMatchesPrefix(ref reference.Named) bool {
+	name := ref.Name()
+	switch {
+	case len(name) < len(prm.Prefix):
+		return false
+	case len(name) == len(prm.Prefix):
+		return name == prm.Prefix
+	case len(name) > len(prm.Prefix):
+		// We are matching only ref.Name(), not ref.String(), so the only separator we are
+		// expecting is '/':
+		// - '@' is only valid to separate a digest, i.e. not a part of ref.Name()
+		// - similarly ':' to mark a tag would not be a part of ref.Name(); it can be a part of a
+		//   host:port domain syntax, but we don't treat that specially and require an exact match
+		//   of the domain.
+		return strings.HasPrefix(name, prm.Prefix) && name[len(prm.Prefix)] == '/'
+	default:
+		panic("Internal error: impossible comparison outcome")
+	}
+}
+
+// remapReferencePrefix returns the result of remapping ref, if it matches prm.Prefix
+// or the original ref if it does not.
+func (prm *prmRemapIdentity) remapReferencePrefix(ref reference.Named) (reference.Named, error) {
+	if !prm.refMatchesPrefix(ref) {
+		return ref, nil
+	}
+	refString := ref.String()
+	newNamedRef := strings.Replace(refString, prm.Prefix, prm.SignedPrefix, 1)
+	newParsedRef, err := reference.ParseNamed(newNamedRef)
+	if err != nil {
+		return nil, fmt.Errorf(`error rewriting reference from "%s" to "%s": %v`, refString, newNamedRef, err)
+	}
+	return newParsedRef, nil
+}
+
+func (prm *prmRemapIdentity) matchesDockerReference(image types.UnparsedImage, signatureDockerReference string) bool {
+	intended, signature, err := parseImageAndDockerReference(image, signatureDockerReference)
+	if err != nil {
+		return false
+	}
+	intended, err = prm.remapReferencePrefix(intended)
+	if err != nil {
+		return false
+	}
+	return matchRepoDigestOrExactReferenceValues(intended, signature)
 }
