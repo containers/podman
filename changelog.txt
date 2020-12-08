@@ -1,3 +1,30 @@
+- Changelog for v2.2.1 (2020-12-07):
+  * Updat containers/image to v5.9.0
+  * Update release notes for v2.2.1
+  * Fix some nit
+  * compat create should use bindings
+  * Revert the custom cobra vendor
+  * Fix typo in tests
+  * Do not use "true" after "syslog" in exit commands
+  * Fix shell completion for ps --filter ancestor
+  * target is not tag
+  * add commas between mount options
+  * Fix `podman images...` missing headers in table templates
+  * Use Libpod tmpdir for pause path
+  * Change bindings to stop two API calls for ping
+  * podman, exec: move conmon to the correct cgroup
+  * Support --network=default as if it was private
+  * Correct which network commands can be run as rootless
+  * Use PasswordCallback instead of Password for ssh
+  * Close image rawSource when each loop ends
+  * container create: do not clear image name
+  * Docker compat API - containers create ignores the name
+  * Do not mount sysfs as rootless in more cases
+  * Do not error on installing duplicate shutdown handler
+  * container cgroup path
+  * Change name of imageVolumes in container config JSON
+  * The --net=container flag to Buildah is deprecated
+
 - Changelog for v2.2.0 (2020-11-30):
   * Update release notes for v2.2.0
   * Fix extra quotation mark in manpages.
