@@ -237,7 +237,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	}
 
 	// netMode
-	nsmode, _, err := specgen.ParseNetworkNamespace(cc.HostConfig.NetworkMode.NetworkName())
+	nsmode, _, err := specgen.ParseNetworkNamespace(string(cc.HostConfig.NetworkMode))
 	if err != nil {
 		return nil, nil, err
 	}
