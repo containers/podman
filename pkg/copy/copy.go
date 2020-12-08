@@ -114,7 +114,6 @@ func enforceCopyRules(source, destination *CopyItem) error {
 		return nil
 	}
 
-	// Source is a *stream*.
 	if source.info.IsStream {
 		if !(destination.info.IsDir || destination.info.IsStream) {
 			return errors.New("destination must be a directory or stream when copying from a stream")
