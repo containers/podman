@@ -115,6 +115,7 @@ func buildFlags(cmd *cobra.Command) {
 	// --layers flag
 	flag = layerFlags.Lookup("layers")
 	useLayersVal := useLayers()
+	buildOpts.Layers = useLayersVal == "true"
 	if err := flag.Value.Set(useLayersVal); err != nil {
 		logrus.Errorf("unable to set --layers to %v: %v", useLayersVal, err)
 	}
@@ -274,11 +275,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 			}
 		}
 	}
-	// Check to see if the BUILDAH_LAYERS environment variable is set and
-	// override command-line.
-	if _, ok := os.LookupEnv("BUILDAH_LAYERS"); ok {
-		flags.Layers = true
-	}
+	flags.Layers = buildOpts.Layers
 
 	// `buildah bud --layers=false` acts like `docker build --squash` does.
 	// That is all of the new layers created during the build process are
