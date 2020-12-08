@@ -231,6 +231,19 @@ func (c *Container) cleanupNetwork() error {
 	return nil
 }
 
+// reloadNetwork reloads the network for the given container, recreating
+// firewall rules.
+func (c *Container) reloadNetwork() error {
+	result, err := c.runtime.reloadContainerNetwork(c)
+	if err != nil {
+		return err
+	}
+
+	c.state.NetworkStatus = result
+
+	return c.save()
+}
+
 func (c *Container) getUserOverrides() *lookup.Overrides {
 	var hasPasswdFile, hasGroupFile bool
 	overrides := lookup.Overrides{}

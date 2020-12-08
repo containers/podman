@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"syscall"
@@ -741,8 +742,9 @@ func (r *Runtime) closeNetNS(ctr *Container) error {
 	return nil
 }
 
-// Tear down a network namespace, undoing all state associated with it.
-func (r *Runtime) teardownNetNS(ctr *Container) error {
+// Tear down a container's CNI network configuration, but do not tear down the
+// namespace itself.
+func (r *Runtime) teardownCNI(ctr *Container) error {
 	if ctr.state.NetNS == nil {
 		// The container has no network namespace, we're set
 		return nil
@@ -780,6 +782,19 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
 			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
 		}
+	}
+	return nil
+}
+
+// Tear down a network namespace, undoing all state associated with it.
+func (r *Runtime) teardownNetNS(ctr *Container) error {
+	if err := r.teardownCNI(ctr); err != nil {
+		return err
+	}
+
+	networks, _, err := ctr.networks()
+	if err != nil {
+		return err
 	}
 
 	// CNI-in-slirp4netns
@@ -819,6 +834,68 @@ func getContainerNetNS(ctr *Container) (string, error) {
 		return getContainerNetNS(c)
 	}
 	return "", nil
+}
+
+// Reload only works with containers with a configured network.
+// It will tear down, and then reconfigure, the network of the container.
+// This is mainly used when a reload of firewall rules wipes out existing
+// firewall configuration.
+// Efforts will be made to preserve MAC and IP addresses, but this only works if
+// the container only joined a single CNI network, and was only assigned a
+// single MAC or IP.
+// Only works on root containers at present, though in the future we could
+// extend this to stop + restart slirp4netns
+func (r *Runtime) reloadContainerNetwork(ctr *Container) ([]*cnitypes.Result, error) {
+	if ctr.state.NetNS == nil {
+		return nil, errors.Wrapf(define.ErrCtrStateInvalid, "container %s network is not configured, refusing to reload", ctr.ID())
+	}
+	if rootless.IsRootless() || ctr.config.NetMode.IsSlirp4netns() {
+		return nil, errors.Wrapf(define.ErrRootless, "network reload only supported for root containers")
+	}
+
+	logrus.Infof("Going to reload container %s network", ctr.ID())
+
+	var requestedIP net.IP
+	var requestedMAC net.HardwareAddr
+	// Set requested IP and MAC address, if possible.
+	if len(ctr.state.NetworkStatus) == 1 {
+		result := ctr.state.NetworkStatus[0]
+		if len(result.IPs) == 1 {
+			resIP := result.IPs[0]
+
+			requestedIP = resIP.Address.IP
+			ctr.requestedIP = requestedIP
+			logrus.Debugf("Going to preserve container %s IP address %s", ctr.ID(), ctr.requestedIP.String())
+
+			if resIP.Interface != nil && *resIP.Interface < len(result.Interfaces) && *resIP.Interface >= 0 {
+				var err error
+				requestedMAC, err = net.ParseMAC(result.Interfaces[*resIP.Interface].Mac)
+				if err != nil {
+					return nil, errors.Wrapf(err, "error parsing container %s MAC address %s", ctr.ID(), result.Interfaces[*resIP.Interface].Mac)
+				}
+				ctr.requestedMAC = requestedMAC
+				logrus.Debugf("Going to preserve container %s MAC address %s", ctr.ID(), ctr.requestedMAC.String())
+			}
+		}
+	}
+
+	err := r.teardownCNI(ctr)
+	if err != nil {
+		// teardownCNI will error if the iptables rules do not exists and this is the case after
+		// a firewall reload. The purpose of network reload is to recreate the rules if they do
+		// not exists so we should not log this specific error as error. This would confuse users otherwise.
+		b, rerr := regexp.MatchString("Couldn't load target `CNI-[a-f0-9]{24}':No such file or directory", err.Error())
+		if rerr == nil && !b {
+			logrus.Error(err)
+		} else {
+			logrus.Info(err)
+		}
+	}
+
+	// teardownCNI will clean the requested IP and MAC so we need to set them again
+	ctr.requestedIP = requestedIP
+	ctr.requestedMAC = requestedMAC
+	return r.configureNetNS(ctr, ctr.state.NetNS)
 }
 
 func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
@@ -984,12 +1061,12 @@ func resultToBasicNetworkConfig(result *cnitypes.Result) (define.InspectBasicNet
 			config.IPAddress = ctrIP.Address.IP.String()
 			config.IPPrefixLen = size
 			config.Gateway = ctrIP.Gateway.String()
-			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface > 0 {
+			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface >= 0 {
 				config.MacAddress = result.Interfaces[*ctrIP.Interface].Mac
 			}
 		case ctrIP.Version == "4" && config.IPAddress != "":
 			config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, ctrIP.Address.String())
-			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface > 0 {
+			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface >= 0 {
 				config.AdditionalMacAddresses = append(config.AdditionalMacAddresses, result.Interfaces[*ctrIP.Interface].Mac)
 			}
 		case ctrIP.Version == "6" && config.IPAddress == "":

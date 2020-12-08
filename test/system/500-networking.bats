@@ -116,4 +116,68 @@ load helpers
     fi
 }
 
+@test "podman network reload" {
+    skip_if_remote "podman network reload does not have remote support"
+    skip_if_rootless "podman network reload does not work rootless"
+
+    random_1=$(random_string 30)
+    HOST_PORT=12345
+    SERVER=http://127.0.0.1:$HOST_PORT
+
+    # Create a test file with random content
+    INDEX1=$PODMAN_TMPDIR/hello.txt
+    echo $random_1 > $INDEX1
+
+    # Bind-mount this file with a different name to a container running httpd
+    run_podman run -d --name myweb -p "$HOST_PORT:80" \
+               -v $INDEX1:/var/www/index.txt \
+               -w /var/www \
+               $IMAGE /bin/busybox-extras httpd -f -p 80
+    cid=$output
+
+    run_podman inspect $cid --format "{{.NetworkSettings.IPAddress}}"
+    ip="$output"
+    run_podman inspect $cid --format "{{.NetworkSettings.MacAddress}}"
+    mac="$output"
+
+    # Verify http contents: curl from localhost
+    run curl -s $SERVER/index.txt
+    is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
+
+    # flush the CNI iptables here
+    run iptables -t nat -F CNI-HOSTPORT-DNAT
+
+    # check that we cannot curl (timeout after 5 sec)
+    run timeout 5 curl -s $SERVER/index.txt
+    if [ "$status" -ne 124 ]; then
+        die "curl did not timeout, status code: $status"
+    fi
+
+    # reload the network to recreate the iptables rules
+    run_podman network reload $cid
+    is "$output" "$cid" "Output does not match container ID"
+
+    # check that we still have the same mac and ip
+    run_podman inspect $cid --format "{{.NetworkSettings.IPAddress}}"
+    is "$output" "$ip" "IP address changed after podman network reload"
+    run_podman inspect $cid --format "{{.NetworkSettings.MacAddress}}"
+    is "$output" "$mac" "MAC address changed after podman network reload"
+
+    # check that we can still curl
+    run curl -s $SERVER/index.txt
+    is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
+
+    # make sure --all is working and that this
+    # cmd also works if the iptables still exists
+    run_podman network reload --all
+    is "$output" "$cid" "Output does not match container ID"
+
+    # check that we can still curl
+    run curl -s $SERVER/index.txt
+    is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
+
+    # cleanup the container
+    run_podman rm -f $cid
+}
+
 # vim: filetype=sh

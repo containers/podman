@@ -11,4 +11,6 @@ Network
 
 :doc:`ls <markdown/podman-network-ls.1>` network list
 
+:doc:`reload <markdown/podman-network-reload.1>` network reload
+
 :doc:`rm <markdown/podman-network-rm.1>` network rm

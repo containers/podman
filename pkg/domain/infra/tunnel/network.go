@@ -35,6 +35,10 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 	return reports, errs, nil
 }
 
+func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
+	return nil, errors.New("not implemented")
+}
+
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
 	reports := make([]*entities.NetworkRmReport, 0, len(namesOrIds))
 	for _, name := range namesOrIds {
