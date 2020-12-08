@@ -900,10 +900,9 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) ([]*cnitypes.Result, er
 
 func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	var netStats *netlink.LinkStatistics
-	// rootless v2 cannot seem to resolve its network connection to
-	// collect statistics.  For now, we allow stats to at least run
-	// by returning nil
-	if rootless.IsRootless() {
+	// With slirp4netns, we can't collect statistics at present.
+	// For now, we allow stats to at least run by returning nil
+	if rootless.IsRootless() || ctr.config.NetMode.IsSlirp4netns() {
 		return netStats, nil
 	}
 	netNSPath, netPathErr := getContainerNetNS(ctr)

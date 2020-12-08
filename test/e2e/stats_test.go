@@ -128,6 +128,16 @@ var _ = Describe("Podman stats", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman stats on container with forced slirp4netns", func() {
+		// This will force the slirp4netns net mode to be tested as root
+		session := podmanTest.Podman([]string{"run", "-d", "--net", "slirp4netns", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"stats", "--no-stream", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	// Regression test for #8265
 	It("podman stats with custom memory limits", func() {
 		// Run thre containers. One with a memory limit.  Make sure
