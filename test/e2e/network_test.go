@@ -21,6 +21,8 @@ var _ = Describe("Podman network", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRootless("rootless CNI is tech preview in RHEL 8.3.1")
+
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

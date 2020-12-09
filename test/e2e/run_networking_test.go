@@ -714,6 +714,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run check dnsname plugin", func() {
+		SkipIfRootless("rootless CNI is tech preview in RHEL 8.3.1")
 		pod := "testpod"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", pod})
 		session.WaitWithDefaultTimeout()
