@@ -98,6 +98,7 @@ load helpers
 # "network create" now works rootless, with the help of a special container
 @test "podman network create" {
     skip_if_remote "FIXME: pending #7808"
+    skip_if_rootless "Rootless CNI is tech preview in RHEL 8.2.1"
 
     local mynetname=testnet-$(random_string 10)
     local mysubnet=$(random_rfc1918_subnet)

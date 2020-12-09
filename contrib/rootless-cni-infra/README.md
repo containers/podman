@@ -1,6 +1,11 @@
 # rootless-cni-infra
 
-Infra container for CNI-in-slirp4netns.
+Infra container for CNI-in-slirp4netns. This is required for rootless CNI networking.
+
+To build the rootless CNI infra container image, please download both the Containerfile and `rootless-cni-infra` files to an otherwise empty directory.
+Then, run `podman build -t rootless-cni-infra .` on that directory as the user who will be running rootless Podman.
+
+Once the image has been built, Podman will automatically use it as required to create CNI networks.
 
 ## How it works
 
