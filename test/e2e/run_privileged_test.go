@@ -90,6 +90,18 @@ var _ = Describe("Podman privileged container tests", func() {
 		containerCapMatchesHost(session.OutputToString(), host_cap.OutputToString())
 	})
 
+	It("podman cap-add CapEff with --user", func() {
+		// Get caps of current process
+		host_cap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
+		Expect(host_cap.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"run", "--user=bin", "--cap-add", "all", "busybox", "awk", "/^CapEff/ { print $2 }", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		containerCapMatchesHost(session.OutputToString(), host_cap.OutputToString())
+	})
+
 	It("podman cap-drop CapEff", func() {
 		session := podmanTest.Podman([]string{"run", "--cap-drop", "all", "busybox", "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
