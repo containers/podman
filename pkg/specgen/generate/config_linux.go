@@ -167,21 +167,22 @@ func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, mask, unmask
 					g.AddLinuxMaskedPaths(mp)
 				}
 			}
+			for _, rp := range []string{
+				"/proc/asound",
+				"/proc/bus",
+				"/proc/fs",
+				"/proc/irq",
+				"/proc/sys",
+				"/proc/sysrq-trigger",
+			} {
+				if !util.StringInSlice(rp, unmask) {
+					g.AddLinuxReadonlyPaths(rp)
+				}
+			}
 		}
 
 		if pidModeIsHost && rootless.IsRootless() {
 			return
-		}
-
-		for _, rp := range []string{
-			"/proc/asound",
-			"/proc/bus",
-			"/proc/fs",
-			"/proc/irq",
-			"/proc/sys",
-			"/proc/sysrq-trigger",
-		} {
-			g.AddLinuxReadonlyPaths(rp)
 		}
 	}
 
