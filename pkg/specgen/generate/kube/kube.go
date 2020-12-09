@@ -148,6 +148,11 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 
 	// Environment Variables
 	envs := map[string]string{}
+	for _, env := range imageData.Config.Env {
+		keyval := strings.Split(env, "=")
+		envs[keyval[0]] = keyval[1]
+	}
+
 	for _, env := range containerYAML.Env {
 		value := envVarValue(env, configMaps)
 
