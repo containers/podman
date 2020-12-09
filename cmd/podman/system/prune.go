@@ -73,32 +73,31 @@ Are you sure you want to continue? [y/N] `, volumeString)
 			return nil
 		}
 	}
+
 	// TODO: support for filters in system prune
 	response, err := registry.ContainerEngine().SystemPrune(context.Background(), pruneOptions)
 	if err != nil {
 		return err
 	}
-	// Print pod prune results
-	fmt.Println("Deleted Pods")
-	err = utils.PrintPodPruneResults(response.PodPruneReport)
+	// Print container prune results
+	err = utils.PrintContainerPruneResults(response.ContainerPruneReport, true)
 	if err != nil {
 		return err
 	}
-	// Print container prune results
-	fmt.Println("Deleted Containers")
-	err = utils.PrintContainerPruneResults(response.ContainerPruneReport)
+	// Print pod prune results
+	err = utils.PrintPodPruneResults(response.PodPruneReport, true)
 	if err != nil {
 		return err
 	}
 	// Print Volume prune results
 	if pruneOptions.Volume {
-		fmt.Println("Deleted Volumes")
-		err = utils.PrintVolumePruneResults(response.VolumePruneReport)
+		err = utils.PrintVolumePruneResults(response.VolumePruneReport, true)
 		if err != nil {
 			return err
 		}
 	}
 	// Print Images prune results
-	fmt.Println("Deleted Images")
-	return utils.PrintImagePruneResults(response.ImagePruneReport)
+	utils.PrintImagePruneResults(response.ImagePruneReport, true)
+
+	return nil
 }

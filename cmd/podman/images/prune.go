@@ -71,5 +71,5 @@ Are you sure you want to continue? [y/N] `)
 		return err
 	}
 
-	return utils.PrintImagePruneResults(results)
+	return utils.PrintImagePruneResults(results, false)
 }

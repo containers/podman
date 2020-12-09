@@ -1,7 +1,7 @@
 % podman-system-prune(1)
 
 ## NAME
-podman\-system\-prune - Remove all unused container, image and volume data
+podman\-system\-prune - Remove all unused pod, container, image and volume data
 
 ## SYNOPSIS
 **podman system prune** [*options*]
@@ -16,7 +16,7 @@ By default, volumes are not removed to prevent important data from being deleted
 ## OPTIONS
 #### **--all**, **-a**
 
-Remove all unused images not just dangling ones.
+Recursively remove all unused pod, container, image and volume data (Maximum 50 iterations.)
 
 #### **--force**, **-f**
 
