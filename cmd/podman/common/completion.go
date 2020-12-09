@@ -278,7 +278,6 @@ func validCurrentCmdLine(cmd *cobra.Command, args []string, toComplete string) b
 				return true
 			}
 		}
-		cobra.CompDebugln(err.Error(), true)
 		return false
 	}
 	return true
@@ -445,6 +444,29 @@ func AutocompleteNetworks(cmd *cobra.Command, args []string, toComplete string) 
 	return getNetworks(cmd, toComplete)
 }
 
+// AutocompleteDefaultOneArg - Autocomplete path only for the first argument.
+func AutocompleteDefaultOneArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteCommitCommand - Autocomplete podman commit command args.
+func AutocompleteCommitCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if len(args) == 0 {
+		return getContainers(cmd, toComplete, completeDefault)
+	}
+	if len(args) == 1 {
+		return getImages(cmd, toComplete)
+	}
+	// don't complete more than 2 args
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteCpCommand - Autocomplete podman cp command args.
 func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {
@@ -462,6 +484,43 @@ func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string)
 		return nil, cobra.ShellCompDirectiveDefault
 	}
 	// don't complete more than 2 args
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteExecCommand - Autocomplete podman exec command args.
+func AutocompleteExecCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if len(args) == 0 {
+		return getContainers(cmd, toComplete, completeDefault, "running")
+	}
+	return nil, cobra.ShellCompDirectiveDefault
+}
+
+// AutocompleteRunlabelCommand - Autocomplete podman container runlabel command args.
+func AutocompleteRunlabelCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if len(args) == 0 {
+		// FIXME: What labels can we recommend here?
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if len(args) == 1 {
+		return getImages(cmd, toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveDefault
+}
+
+// AutocompletePortCommand - Autocomplete podman port command args.
+func AutocompletePortCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if len(args) == 0 {
+		return getContainers(cmd, toComplete, completeDefault)
+	}
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -494,6 +553,23 @@ func AutocompleteTopCmd(cmd *cobra.Command, args []string, toComplete string) ([
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return descriptors, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteInspect - Autocomplete podman inspect.
+func AutocompleteInspect(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	containers, _ := getContainers(cmd, toComplete, completeDefault)
+	images, _ := getImages(cmd, toComplete)
+	pods, _ := getPods(cmd, toComplete, completeDefault)
+	networks, _ := getNetworks(cmd, toComplete)
+	volumes, _ := getVolumes(cmd, toComplete)
+	suggestions := append(containers, images...)
+	suggestions = append(suggestions, pods...)
+	suggestions = append(suggestions, networks...)
+	suggestions = append(suggestions, volumes...)
+	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteSystemConnections - Autocomplete system connections.

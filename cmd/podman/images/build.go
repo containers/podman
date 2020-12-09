@@ -11,6 +11,7 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -44,7 +45,7 @@ var (
 		Long:              buildDescription,
 		Args:              cobra.MaximumNArgs(1),
 		RunE:              build,
-		ValidArgsFunction: completion.AutocompleteDefault,
+		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman build .
   podman build --creds=username:password -t imageName -f Containerfile.simple .
   podman build --layers --force-rm --tag imageName .`,

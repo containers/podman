@@ -12,22 +12,11 @@
 #
 load helpers
 
-# run 'podman help', parse the output looking for 'Available Commands';
-# return that list.
-function podman_commands() {
-    dprint "$@"
-    run_podman help "$@" |\
-        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |\
-        grep .
-    "$output"
-}
-
-
 function check_help() {
     local count=0
     local -A found
 
-    for cmd in $(podman_commands "$@"); do
+    for cmd in $(_podman_commands "$@"); do
         # Human-readable podman command string, with multiple spaces collapsed
         command_string="podman $* $cmd"
         command_string=${command_string//  / }  # 'podman  x' -> 'podman x'

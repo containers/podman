@@ -26,7 +26,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
-		ValidArgsFunction: common.AutocompleteContainers,
+		ValidArgsFunction: common.AutocompletePortCommand,
 		Example: `podman port --all
   podman port ctrID 80/tcp
   podman port --latest 80`,

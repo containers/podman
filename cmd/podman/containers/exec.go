@@ -26,7 +26,7 @@ var (
 		Long:                  execDescription,
 		RunE:                  exec,
 		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteContainersRunning,
+		ValidArgsFunction:     common.AutocompleteExecCommand,
 		Example: `podman exec -it ctrID ls
   podman exec -it -w /tmp myCtr pwd
   podman exec --user root ctrID ls`,

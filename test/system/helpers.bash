@@ -521,5 +521,15 @@ function remove_same_dev_warning() {
     output=$(printf '%s\n' "${lines[@]}")
 }
 
+# run 'podman help', parse the output looking for 'Available Commands';
+# return that list.
+function _podman_commands() {
+    dprint "$@"
+    run_podman help "$@" |
+        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |
+        grep .
+    "$output"
+}
+
 # END   miscellaneous tools
 ###############################################################################

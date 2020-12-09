@@ -69,6 +69,12 @@ var (
 )
 
 func init() {
+	// if run remotely we only allow one container arg
+	if registry.IsRemote() {
+		logsCommand.Use = "logs [options] CONTAINER"
+		containerLogsCommand.Use = logsCommand.Use
+	}
+
 	// logs
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},

@@ -26,7 +26,7 @@ var (
   The generated units can later be controlled via systemctl(1).`
 
 	systemdCmd = &cobra.Command{
-		Use:               "systemd [options] CTR|POD",
+		Use:               "systemd [options] {CONTAINER|POD}",
 		Short:             "Generate systemd units.",
 		Long:              systemdDescription,
 		RunE:              systemd,

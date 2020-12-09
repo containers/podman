@@ -9,7 +9,7 @@ import (
 
 var (
 	untagCommand = &cobra.Command{
-		Use:                   "untag IMAGE [NAME...]",
+		Use:                   "untag IMAGE [IMAGE...]",
 		Short:                 "Remove a name from a local image",
 		Long:                  "Removes one or more names from a locally-stored image.",
 		RunE:                  untag,
