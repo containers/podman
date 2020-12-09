@@ -24,7 +24,7 @@ class Podman(object):
             self.cmd.append("--log-level=debug")
             self.cmd.append("--syslog=true")
 
-        self.anchor_directory = tempfile.mkdtemp(prefix="podman_restapi_")
+        self.anchor_directory = tempfile.mkdtemp(prefix="podman_restapi_", dir="/tmp")
         self.cmd.append("--root=" + os.path.join(self.anchor_directory, "crio"))
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
 
@@ -34,7 +34,7 @@ class Podman(object):
         p = configparser.ConfigParser()
         p.read_dict(
             {
-                "registries.search": {"registries": "['docker.io']"},
+                "registries.search": {"registries": "['quay.io', 'docker.io']"},
                 "registries.insecure": {"registries": "[]"},
                 "registries.block": {"registries": "[]"},
             }
