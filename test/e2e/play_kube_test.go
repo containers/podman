@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -490,6 +491,12 @@ func getDeployment(options ...deploymentOption) *Deployment {
 
 type deploymentOption func(*Deployment)
 
+func withDeploymentName(name string) deploymentOption {
+	return func(deployment *Deployment) {
+		deployment.Name = name
+	}
+}
+
 func withDeploymentLabel(k, v string) deploymentOption {
 	return func(deployment *Deployment) {
 		deployment.Labels[k] = v
@@ -752,6 +759,18 @@ type EnvFrom struct {
 	From string
 }
 
+type ContainerConfig struct {
+	Cmd        []string `json:"Cmd,omitempty"`
+	Entrypoint string   `json:"Entrypoint"`
+	// we do not yer care for the rest
+}
+
+type ContainerState struct {
+	Args   []string        `json:"Args,omitempty"`
+	Config ContainerConfig `json:"Config"`
+	// we do not yer care for the rest
+}
+
 func milliCPUToQuota(milliCPU string) int {
 	milli, _ := strconv.Atoi(strings.Trim(milliCPU, "m"))
 	return milli * defaultCPUPeriod
@@ -803,8 +822,15 @@ var _ = Describe("Podman play kube", func() {
 
 	})
 
-	It("podman play kube test correct command", func() {
-		pod := getPod()
+	// NOTICE: what is called k8s spec in the following section is described at the k8s docs at
+	// https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
+
+	It("podman play kube - k8s spec, 1st item, when you _do not_ supply command _or_ args", func() {
+		// given an image with `ENTRYPOINT` and `CMD` defined and a pod-spec _without any_,
+		// when the container is instantiated from the image, it should use `Entrypoint` and `Cmd`
+		// from the image and `Args` should equal `Cmd`
+
+		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(nil), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -812,16 +838,35 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		// Use the defined command to override the image's command
-		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
-		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
+
+		var containerState []ContainerState
+		err = json.Unmarshal([]byte(inspect.OutputToString()), &containerState)
+		Expect(err).To(BeNil())
+
+		// these we know from having had a look at the redis image
+		imgEntrypoint := `docker-entrypoint.sh`
+		imgCmd := []string{`redis-server`}
+		derivedArgs := imgCmd
+
+		containerEntrypoint := containerState[0].Config.Entrypoint
+		containerCmd := containerState[0].Config.Cmd
+		containerArgs := containerState[0].Args
+
+		Expect(containerEntrypoint).To(Equal(imgEntrypoint))
+		Expect(containerCmd).To(Equal(imgCmd))
+		Expect(containerArgs).To(Equal(derivedArgs))
 	})
 
-	It("podman play kube test correct command with only set command in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg(nil))))
+	It("podman play kube - k8s spec, 2nd item, when you supply command _but no_ args", func() {
+		// given an image with `ENTRYPOINT` and `CMD` defined and a pod-spec with the `command`
+		// defined, when the container is instantiated from the image, it should replace any
+		// `Entrypoint` and `Cmd` and start with `command` _without_ further `Args`.
+
+		overrideCmd := []string{"echo", "hello"}
+		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(overrideCmd), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -829,16 +874,37 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		// Use the defined command to override the image's command, and don't set the args
-		// so the full command in result should not contains the image's command
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
+
+		var containerState []ContainerState
+		err = json.Unmarshal([]byte(inspect.OutputToString()), &containerState)
+		Expect(err).To(BeNil())
+
+		// these we know from having had a look at the redis image
+		imgEntrypoint := `docker-entrypoint.sh`
+		imgCmd := []string{`redis-server`}
+
+		containerEntrypoint := containerState[0].Config.Entrypoint
+		containerCmd := containerState[0].Config.Cmd
+		containerArgs := containerState[0].Args
+
+		Expect(containerEntrypoint).NotTo(Equal(imgEntrypoint))
+		Expect(containerCmd).NotTo(Equal(imgCmd))
+
+		Expect(containerEntrypoint).To(Equal(strings.Join(overrideCmd, " ")))
+		Expect(len(containerCmd)).To(Equal(0))
+		Expect(containerArgs).To(Equal(overrideCmd[1:]))
 	})
 
-	It("podman play kube test correct command with only set args in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(nil), withArg([]string{"echo", "hello"}))))
+	It("podman play kube - k8s spec, 3rd item, when you supply _only_ args", func() {
+		// given an image with `ENTRYPOINT` and `CMD` defined and a pod-spec with the `command`
+		// _not_ defined, but `args` given, when the container is instantiated from the image,
+		// the `Entrypoint` should be taken from the image and `Cmd`/`Args` being replaced by `args`.
+
+		args := []string{"echo", "hello"}
+		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(nil), withArg(args))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -846,33 +912,94 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		// this image's ENTRYPOINT is called `docker-entrypoint.sh`
-		// so result should be `docker-entrypoint.sh + withArg(...)`
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[docker-entrypoint.sh echo hello]`))
+
+		var containerState []ContainerState
+		err = json.Unmarshal([]byte(inspect.OutputToString()), &containerState)
+		Expect(err).To(BeNil())
+
+		// these we know from having had a look at the redis image
+		imgEntrypoint := `docker-entrypoint.sh`
+		imgCmd := []string{`redis-server`}
+
+		containerEntrypoint := containerState[0].Config.Entrypoint
+		containerCmd := containerState[0].Config.Cmd
+		containerArgs := containerState[0].Args
+
+		Expect(containerEntrypoint).To(Equal(imgEntrypoint))
+		Expect(containerCmd).NotTo(Equal(imgCmd))
+		Expect(containerCmd).To(Equal(args))
+		Expect(containerArgs).To(Equal(args))
+
 	})
 
-	It("podman play kube test correct output", func() {
-		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
-
-		err := generateKubeYaml("pod", p, kubeYaml)
+	It("podman play kube - k8s spec, 4th item, when you supply command _and_ args", func() {
+		// given any image, irrespective of `ENTRYPOINT` and `CMD` being defined in the image or not,
+		// both `command` and `args` from the pod spec should _replace_ the images' `ENTRYPOINT` and `CMD`
+		// and the container's `Args` should equal `args`.
+		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(defaultCtrCmd), withArg(defaultCtrArg))))
+		//
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(p)})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		var containerState []ContainerState
+		err = json.Unmarshal([]byte(inspect.OutputToString()), &containerState)
+		Expect(err).To(BeNil())
+
+		// these we know from having had a look at the redis image
+		imgEntrypoint := `docker-entrypoint.sh`
+		imgCmd := []string{`redis-server`}
+
+		containerEntrypoint := containerState[0].Config.Entrypoint
+		containerCmd := containerState[0].Config.Cmd
+		containerArgs := containerState[0].Args
+
+		Expect(containerEntrypoint).NotTo(Equal(imgEntrypoint))
+		Expect(containerCmd).NotTo(Equal(imgCmd))
+
+		Expect(containerEntrypoint).To(Equal(strings.Join(defaultCtrCmd, " ")))
+		Expect(containerCmd).To(Equal(defaultCtrArg))
+		Expect(containerArgs).To(Equal(defaultCtrArg))
+	})
+
+	It("podman play kube - test output being logged", func() {
+		pod := getPod(withCtr(getCtr(withCmd([]string{"echo"}), withArg([]string{"hello", "world"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
 		Expect(logs.OutputToString()).To(ContainSubstring("hello world"))
+	})
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(p), "--format", "'{{ .Config.Cmd }}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello world]`))
+	It("podman play kube - test output being logged with strange, but legal `command`/`args` invocation", func() {
+		pod := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs.ExitCode()).To(Equal(0))
+		Expect(logs.OutputToString()).To(ContainSubstring("hello world"))
 	})
 
 	It("podman play kube test restartPolicy", func() {
@@ -1226,43 +1353,33 @@ spec:
 		Expect(ctr[0].Config.StopSignal).To(Equal(uint(51)))
 	})
 
-	// Deployment related tests
-	It("podman play kube deployment 1 replica test correct command", func() {
-		deployment := getDeployment()
-		err := generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+	It("podman play kube deployment - test deployments' replica count", func() {
+		numReplicas := []int{1, 2, 5}
+		ctrOptions := getCtr(withCmd([]string{"echo"}), withArg([]string{"hello", "world"}))
 
-		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube.ExitCode()).To(Equal(0))
+		for _, replicaCount := range numReplicas {
 
-		podNames := getPodNamesInDeployment(deployment)
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[0]), "--format", "'{{ .Config.Cmd }}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
-		// yaml's command shuold override the image's Entrypoint
-		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
-		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
-	})
+			pod := getPod(withCtr(ctrOptions))
+			deployment := getDeployment(withReplicas(int32(replicaCount)), withPod(pod), withDeploymentName(fmt.Sprintf("with-%v-repl", replicaCount)))
+			err := generateKubeYaml("deployment", deployment, kubeYaml)
+			Expect(err).To(BeNil())
 
-	It("podman play kube deployment more than 1 replica test correct command", func() {
-		var i, numReplicas int32
-		numReplicas = 5
-		deployment := getDeployment(withReplicas(numReplicas))
-		err := generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube.ExitCode()).To(Equal(0))
 
-		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube.ExitCode()).To(Equal(0))
+			podNames := getPodNamesInDeployment(deployment)
+			Expect(len(podNames)).To(Equal(replicaCount))
 
-		podNames := getPodNamesInDeployment(deployment)
-		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
-		for i = 0; i < numReplicas; i++ {
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "'{{ .Config.Cmd }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect.ExitCode()).To(Equal(0))
-			Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
+			for idx, podName := range podNames {
+				println(getCtrNameInPod(&podName))
+				inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[idx])})
+				println(inspect)
+				logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(&podNames[idx])})
+				logs.WaitWithDefaultTimeout()
+				Expect(logs.ExitCode()).To(Equal(0))
+				Expect(logs.OutputToString()).To(ContainSubstring("hello world"))
+			}
 		}
 	})
 

@@ -106,17 +106,20 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 
 	// TODO: We dont understand why specgen does not take of this, but
 	// integration tests clearly pointed out that it was required.
-	s.Command = []string{}
+	// s.Command = []string{}
 	imageData, err := newImage.Inspect(ctx)
 	if err != nil {
 		return nil, err
 	}
 	s.WorkDir = "/"
+
+	// TODO: determine if `newImage.Inspect(ctx)` can ever return without `err`
+	// TODO: and have `imageData` or `imageData.Config` equal `nil`
+	// TODO: if it can, determine how to handle that error generally and globally
 	if imageData != nil && imageData.Config != nil {
 		if imageData.Config.WorkingDir != "" {
 			s.WorkDir = imageData.Config.WorkingDir
 		}
-		s.Command = imageData.Config.Entrypoint
 		s.Labels = imageData.Config.Labels
 		if len(imageData.Config.StopSignal) > 0 {
 			stopSignal, err := util.ParseSignal(imageData.Config.StopSignal)
@@ -126,13 +129,29 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 			s.StopSignal = &stopSignal
 		}
 	}
-	if len(containerYAML.Command) != 0 {
-		s.Command = containerYAML.Command
-	}
+
 	// doc https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
-	if len(containerYAML.Args) != 0 {
-		s.Command = append(s.Command, containerYAML.Args...)
+
+	if len(containerYAML.Command) == 0 && len(containerYAML.Args) == 0 {
+		s.Entrypoint = imageData.Config.Entrypoint
+		s.Command = imageData.Config.Cmd
 	}
+
+	if len(containerYAML.Command) != 0 && len(containerYAML.Args) == 0 {
+		s.Entrypoint = containerYAML.Command
+		s.Command = nil
+	}
+
+	if len(containerYAML.Command) == 0 && len(containerYAML.Args) != 0 {
+		s.Entrypoint = imageData.Config.Entrypoint
+		s.Command = containerYAML.Args
+	}
+
+	if len(containerYAML.Command) != 0 && len(containerYAML.Args) != 0 {
+		s.Entrypoint = containerYAML.Command
+		s.Command = containerYAML.Args
+	}
+
 	// FIXME,
 	// we are currently ignoring imageData.Config.ExposedPorts
 	if containerYAML.WorkingDir != "" {
