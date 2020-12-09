@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v2/pkg/copy"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func Archive(w http.ResponseWriter, r *http.Request) {
@@ -86,9 +87,14 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	if err := copy.Copy(&source, &destination, false); err != nil {
+	copier, err := copy.GetCopier(&source, &destination, false)
+	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	if err := copier.Copy(); err != nil {
+		logrus.Errorf("Error during copy: %v", err)
 		return
 	}
 }
@@ -129,9 +135,14 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	if err := copy.Copy(&source, &destination, false); err != nil {
+	copier, err := copy.GetCopier(&source, &destination, false)
+	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	if err := copier.Copy(); err != nil {
+		logrus.Errorf("Error during copy: %v", err)
 		return
 	}
 }

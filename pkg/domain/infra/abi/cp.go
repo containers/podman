@@ -62,5 +62,9 @@ func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string,
 	}
 
 	// Copy from the host to the container.
-	return copy.Copy(&sourceItem, &destinationItem, options.Extract)
+	copier, err := copy.GetCopier(&sourceItem, &destinationItem, options.Extract)
+	if err != nil {
+		return err
+	}
+	return copier.Copy()
 }
