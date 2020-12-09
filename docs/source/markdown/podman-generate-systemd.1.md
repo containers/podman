@@ -155,7 +155,7 @@ Podman-generated unit files include an `[Install]` section, which carries instal
 
 Once you have generated the systemd unit file, you can copy the generated systemd file to ```/etc/systemd/system``` for installing as a root user and to ```$HOME/.config/systemd/user``` for installing it as a non-root user. Enable the copied unit file or files using `systemctl enable`.
 
-Note: Coping unit files to ```/etc/systemd/system``` and enabling it marks the unit file to be automatically started at boot. And smillarly, coping a unit file to ```$HOME/.config/systemd/user``` and enabling it marks the unit file to be automatically started on user login.
+Note: Copying unit files to ```/etc/systemd/system``` and enabling it marks the unit file to be automatically started at boot. And similarly, copying a unit file to ```$HOME/.config/systemd/user``` and enabling it marks the unit file to be automatically started on user login.
 
 
 ```
