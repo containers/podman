@@ -19,6 +19,7 @@ type ServiceOptions struct {
 type SystemPruneOptions struct {
 	All    bool
 	Volume bool
+	Filter []string
 }
 
 // SystemPruneReport provides report after system prune is executed.
