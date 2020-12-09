@@ -381,6 +381,48 @@ a${random3}z"
     run_podman rmi -f build_test
 }
 
+@test "podman build --layers test" {
+    rand_content=$(random_string 50)
+    tmpdir=$PODMAN_TMPDIR/build-test
+    run mkdir -p $tmpdir
+    containerfile=$tmpdir/Containerfile
+    cat >$containerfile <<EOF
+FROM $IMAGE
+RUN echo $rand_content
+EOF
+
+    # Build twice to make sure second time uses cache
+    run_podman build -t build_test $tmpdir
+    if [[ "$output" =~ "Using cache" ]]; then
+        is "$output" "[no instance of 'Using cache']" "no cache used"
+    fi
+
+    run_podman build -t build_test $tmpdir
+    is "$output" ".*cache" "used cache"
+
+    run_podman build -t build_test --layers=true $tmpdir
+    is "$output" ".*cache" "used cache"
+
+    run_podman build -t build_test --layers=false $tmpdir
+    if [[ "$output" =~ "Using cache" ]]; then
+        is "$output" "[no instance of 'Using cache']" "no cache used"
+    fi
+
+    BUILDAH_LAYERS=false run_podman build -t build_test $tmpdir
+    if [[ "$output" =~ "Using cache" ]]; then
+        is "$output" "[no instance of 'Using cache']" "no cache used"
+    fi
+
+    BUILDAH_LAYERS=false run_podman build -t build_test --layers=1 $tmpdir
+    is "$output" ".*cache" "used cache"
+
+    BUILDAH_LAYERS=1 run_podman build -t build_test --layers=false $tmpdir
+    if [[ "$output" =~ "Using cache" ]]; then
+        is "$output" "[no instance of 'Using cache']" "no cache used"
+    fi
+
+    run_podman rmi -a --force
+}
 
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images

@@ -71,6 +71,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ForceRm     bool     `schema:"forcerm"`
 		HTTPProxy   bool     `schema:"httpproxy"`
 		Labels      string   `schema:"labels"`
+		Layers      bool     `schema:"layers"`
 		MemSwap     int64    `schema:"memswap"`
 		Memory      int64    `schema:"memory"`
 		NetworkMode string   `schema:"networkmode"`
@@ -165,6 +166,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Registry:                       query.Registry,
 		IgnoreUnrecognizedInstructions: true,
 		Quiet:                          query.Quiet,
+		Layers:                         query.Layers,
 		Isolation:                      buildah.IsolationChroot,
 		Compression:                    archive.Gzip,
 		Args:                           buildArgs,
