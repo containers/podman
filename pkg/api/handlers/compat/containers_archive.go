@@ -1,13 +1,8 @@
 package compat
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"time"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
@@ -15,6 +10,7 @@ import (
 	"github.com/containers/podman/v2/pkg/copy"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func Archive(w http.ResponseWriter, r *http.Request) {
@@ -71,12 +67,12 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 		utils.Error(w, "Not found.", http.StatusNotFound, errors.Wrapf(err, "error stating container path %q", query.Path))
 		return
 	}
-	statHeader, err := fileInfoToDockerStats(info)
+	statHeader, err := copy.EncodeFileInfo(info)
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.Header().Add("X-Docker-Container-Path-Stat", statHeader)
+	w.Header().Add(copy.XDockerContainerPathStatHeader, statHeader)
 
 	// Our work is done when the user is interested in the header only.
 	if r.Method == http.MethodHead {
@@ -91,47 +87,16 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	if err := copy.Copy(&source, &destination, false); err != nil {
+	copier, err := copy.GetCopier(&source, &destination, false)
+	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-}
-
-func fileInfoToDockerStats(info *copy.FileInfo) (string, error) {
-	dockerStats := struct {
-		Name       string      `json:"name"`
-		Size       int64       `json:"size"`
-		Mode       os.FileMode `json:"mode"`
-		ModTime    time.Time   `json:"mtime"`
-		LinkTarget string      `json:"linkTarget"`
-	}{
-		Name:       info.Name,
-		Size:       info.Size,
-		Mode:       info.Mode,
-		ModTime:    info.ModTime,
-		LinkTarget: info.LinkTarget,
+	w.WriteHeader(http.StatusOK)
+	if err := copier.Copy(); err != nil {
+		logrus.Errorf("Error during copy: %v", err)
+		return
 	}
-
-	jsonBytes, err := json.Marshal(&dockerStats)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to serialize file stats")
-	}
-
-	buff := bytes.NewBuffer(make([]byte, 0, 128))
-	base64encoder := base64.NewEncoder(base64.StdEncoding, buff)
-
-	_, err = base64encoder.Write(jsonBytes)
-	if err != nil {
-		return "", err
-	}
-
-	err = base64encoder.Close()
-	if err != nil {
-		return "", err
-	}
-
-	return buff.String(), nil
 }
 
 func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, runtime *libpod.Runtime) {
@@ -170,9 +135,14 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	if err := copy.Copy(&source, &destination, false); err != nil {
+	copier, err := copy.GetCopier(&source, &destination, false)
+	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	if err := copier.Copy(); err != nil {
+		logrus.Errorf("Error during copy: %v", err)
 		return
 	}
 }

@@ -732,7 +732,8 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 }
 
 func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string, options entities.ContainerCpOptions) error {
-	return errors.New("not implemented")
+	return nil
+	//	return containers.Copy(ic.ClientCxt, source, dest, options)
 }
 
 // Shutdown Libpod engine

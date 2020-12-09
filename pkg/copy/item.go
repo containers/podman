@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	buildahCopiah "github.com/containers/buildah/copier"
 	"github.com/containers/buildah/pkg/chrootuser"
@@ -74,18 +73,6 @@ type CopyItem struct {
 
 // deferFunc allows for returning functions that must be deferred at call sites.
 type deferFunc func()
-
-// FileInfo describes a file or directory and is returned by
-// (*CopyItem).Stat().
-type FileInfo struct {
-	Name       string      `json:"name"`
-	Size       int64       `json:"size"`
-	Mode       os.FileMode `json:"mode"`
-	ModTime    time.Time   `json:"mtime"`
-	IsDir      bool        `json:"isDir"`
-	IsStream   bool        `json:"isStream"`
-	LinkTarget string      `json:"linkTarget"`
-}
 
 // Stat returns the FileInfo.
 func (item *CopyItem) Stat() (*FileInfo, error) {
