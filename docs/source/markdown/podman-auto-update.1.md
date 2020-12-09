@@ -26,6 +26,12 @@ If an image ID was used, Podman would not know which image to check/pull anymore
 Moreover, the systemd units are expected to be generated with `podman-generate-systemd --new`, or similar units that create new containers in order to run the updated images.
 Systemd units that start and stop a container cannot run a new image.
 
+
+### Systemd Unit and Timer
+
+Podman ships with a `podman-auto-update.service` systemd unit.  This unit is triggered daily at midnight by the `podman-auto-update.timer` systemd timer.  The timer can be altered for custom time-based updates if desired.  The unit can further be invoked by other systemd units (e.g., via the dependency tree) or manually via `systemctl start podman-auto-update.service`.
+
+
 ## OPTIONS
 
 #### **--authfile**=*path*
