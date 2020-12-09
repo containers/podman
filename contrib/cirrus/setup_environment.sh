@@ -47,6 +47,11 @@ echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
     done <<<"$(passthrough_envars)"
 ) >> "/etc/ci_environment"
 
+#####
+##### FIXME. /etc/containers/storage.conf should have a driver name set
+##### Remove when VMs updated
+sed 's/^driver.*=.*""/driver = "overlay"/g' -i /etc/containers/storage.conf
+
 # This is a possible manual maintenance gaff, check to be sure everything matches.
 # shellcheck disable=SC2154
 [[ "$DISTRO_NV" == "$OS_REL_VER" ]] || \
