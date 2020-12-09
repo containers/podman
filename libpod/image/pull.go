@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -378,29 +377,12 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	return images, nil
 }
 
-// getShortNameMode looks up the `CONTAINERS_SHORT_NAME_ALIASING` environment
-// variable.  If it's "on", return `nil` to use the defaults from
-// containers/image and the registries.conf files on the system.  If it's
-// "off", empty or unset, return types.ShortNameModeDisabled to turn off
-// short-name aliasing by default.
-//
-// TODO: remove this function once we want to default to short-name aliasing.
-func getShortNameMode() *types.ShortNameMode {
-	env := os.Getenv("CONTAINERS_SHORT_NAME_ALIASING")
-	if strings.ToLower(env) == "on" {
-		return nil // default to whatever registries.conf and c/image decide
-	}
-	mode := types.ShortNameModeDisabled
-	return &mode
-}
-
 // pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
 func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(sys *types.SystemContext, writer io.Writer, inputName string) (*pullGoal, error) {
 	if sys == nil {
 		sys = &types.SystemContext{}
 	}
-	sys.ShortNameMode = getShortNameMode()
 
 	resolved, err := shortnames.Resolve(sys, inputName)
 	if err != nil {
