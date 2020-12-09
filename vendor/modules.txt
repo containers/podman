@@ -86,7 +86,7 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/util
-# github.com/containers/common v0.31.0
+# github.com/containers/common v0.31.0 => github.com/ashley-cui/common v0.14.1-0.20201208151843-c1d35e9ade01
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/apparmor/internal/supported
 github.com/containers/common/pkg/auth
@@ -98,6 +98,8 @@ github.com/containers/common/pkg/report
 github.com/containers/common/pkg/report/camelcase
 github.com/containers/common/pkg/retry
 github.com/containers/common/pkg/seccomp
+github.com/containers/common/pkg/secrets
+github.com/containers/common/pkg/secrets/filedriver
 github.com/containers/common/pkg/subscriptions
 github.com/containers/common/pkg/sysinfo
 github.com/containers/common/pkg/umask

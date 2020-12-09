@@ -71,3 +71,5 @@ require (
 	k8s.io/apimachinery v0.20.0
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace github.com/containers/common => github.com/ashley-cui/common v0.14.1-0.20201208151843-c1d35e9ade01
