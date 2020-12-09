@@ -103,7 +103,7 @@ func VolumeFromSource(volumeSource v1.VolumeSource) (*KubeVolume, error) {
 	} else if volumeSource.PersistentVolumeClaim != nil {
 		return VolumeFromPersistentVolumeClaim(volumeSource.PersistentVolumeClaim)
 	} else {
-		return nil, errors.Errorf("HostPath and PersistentVolumeClaim are currently the conly supported VolumeSource")
+		return nil, errors.Errorf("HostPath and PersistentVolumeClaim are currently the only supported VolumeSource")
 	}
 }
 

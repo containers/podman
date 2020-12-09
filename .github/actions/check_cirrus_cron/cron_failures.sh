@@ -67,7 +67,7 @@ jq --indent 4 --color-output . <./artifacts/reply.json || \
     cat ./artifacts/reply.json
 echo "::endgroup::"
 
-# Desireable to catch non-JSON encoded errors in reply.
+# Desirable to catch non-JSON encoded errors in reply.
 if grep -qi 'error' ./artifacts/reply.json; then
     err "Found the word 'error' in reply"
 fi

@@ -15,7 +15,7 @@ This command is not available for rootless users.
 ## OPTIONS
 #### **--alias**
 Add network-scoped alias for the container.  If the network is using the `dnsname` CNI plugin, these aliases
-can be used for name resolution on the given network.  Multiple *--alias* options may be specificed as input.
+can be used for name resolution on the given network.  Multiple *--alias* options may be specified as input.
 
 ## EXAMPLE
 

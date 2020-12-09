@@ -54,7 +54,7 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 			}
 			return buf, nil
 			// no return if local image is not a list of images type
-			// continue on getting valid manifest through remote serice
+			// continue on getting valid manifest through remote service
 		} else if errors.Cause(err) != buildahManifests.ErrManifestTypeNotSupported {
 			return nil, errors.Wrapf(err, "loading manifest %q", name)
 		}
