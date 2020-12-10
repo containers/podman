@@ -20,6 +20,9 @@ var _ = Describe("Podman pod stats", func() {
 		if os.Geteuid() != 0 {
 			SkipIfCgroupV2("--cgroup-manager=cgroupfs which doesn't work in rootless mode")
 		}
+		if isContainerized() {
+			SkipIfCgroupV1("All tests fail Error: unable to load cgroup at ...: cgroup deleted")
+		}
 
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
