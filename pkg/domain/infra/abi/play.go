@@ -212,8 +212,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, errors.Wrapf(err, "Failed to parse image %q", container.Image)
 		}
 		// In kube, if the image is tagged with latest, it should always pull
+		// but if the domain is localhost, that means the image was built locally
+		// so do not attempt a pull.
 		if tagged, isTagged := named.(reference.NamedTagged); isTagged {
-			if tagged.Tag() == image.LatestTag {
+			if tagged.Tag() == image.LatestTag && reference.Domain(named) != image.DefaultLocalRegistry {
 				pullPolicy = util.PullImageAlways
 			}
 		}
