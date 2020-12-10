@@ -12,6 +12,8 @@ iid=$(jq -r '.[0].Id' <<<"$output")
 
 t GET libpod/images/$iid/exists                     204
 t GET libpod/images/$PODMAN_TEST_IMAGE_NAME/exists  204
+t GET libpod/images/${iid}abcdef/exists  404 \
+  .cause="failed to find image ${iid}abcdef"
 
 # FIXME: compare to actual podman info
 t GET libpod/images/json 200  \

@@ -51,7 +51,7 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !report.Value {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(nil, "failed to find image %s", name))
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Errorf("failed to find image %s", name))
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
