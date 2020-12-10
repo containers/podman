@@ -1072,7 +1072,7 @@ var _ = Describe("Podman play kube", func() {
 		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
-		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
+		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
 	})
 
 	It("podman play kube seccomp pod level", func() {
@@ -1099,7 +1099,7 @@ var _ = Describe("Podman play kube", func() {
 		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
-		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
+		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
 	})
 
 	It("podman play kube with pull policy of never should be 125", func() {

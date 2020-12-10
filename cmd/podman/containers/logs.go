@@ -122,6 +122,7 @@ func logs(_ *cobra.Command, args []string) error {
 		}
 		logsOptions.Since = since
 	}
-	logsOptions.Writer = os.Stdout
+	logsOptions.StdoutWriter = os.Stdout
+	logsOptions.StderrWriter = os.Stderr
 	return registry.ContainerEngine().ContainerLogs(registry.GetContext(), args, logsOptions.ContainerLogsOptions)
 }

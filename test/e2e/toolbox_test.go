@@ -239,7 +239,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		session = podmanTest.Podman([]string{"logs", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring(expectedOutput))
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedOutput))
 	})
 
 	It("podman create --userns=keep-id + podman exec - adding group with groupadd", func() {
