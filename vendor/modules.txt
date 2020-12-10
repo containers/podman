@@ -60,7 +60,7 @@ github.com/containernetworking/cni/pkg/types/020
 github.com/containernetworking/cni/pkg/types/current
 github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v0.8.7
+# github.com/containernetworking/plugins v0.9.0
 github.com/containernetworking/plugins/pkg/ip
 github.com/containernetworking/plugins/pkg/ns
 github.com/containernetworking/plugins/pkg/utils/hwaddr
@@ -563,10 +563,10 @@ github.com/vbauerster/mpb/v5
 github.com/vbauerster/mpb/v5/cwriter
 github.com/vbauerster/mpb/v5/decor
 github.com/vbauerster/mpb/v5/internal
-# github.com/vishvananda/netlink v1.1.0
+# github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
-# github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df
+# github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
 github.com/vishvananda/netns
 # github.com/willf/bitset v1.1.11
 github.com/willf/bitset
@@ -627,7 +627,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
+# golang.org/x/sys v0.0.0-20201117170446-d9b008d0a637
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
