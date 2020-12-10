@@ -178,6 +178,10 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 
 	g.SetRootReadonly(s.ReadOnlyFilesystem)
 
+	noUseIPC := s.IpcNS.NSMode == specgen.FromContainer || s.IpcNS.NSMode == specgen.FromPod || s.IpcNS.NSMode == specgen.Host
+	noUseNet := s.NetNS.NSMode == specgen.FromContainer || s.NetNS.NSMode == specgen.FromPod || s.NetNS.NSMode == specgen.Host
+	noUseUTS := s.UtsNS.NSMode == specgen.FromContainer || s.UtsNS.NSMode == specgen.FromPod || s.UtsNS.NSMode == specgen.Host
+
 	// Add default sysctls
 	defaultSysctls, err := util.ValidateSysctls(rtc.Sysctls())
 	if err != nil {
@@ -186,20 +190,20 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	for sysctlKey, sysctlVal := range defaultSysctls {
 
 		// Ignore mqueue sysctls if --ipc=host
-		if s.IpcNS.IsHost() && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
+		if noUseIPC && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
 			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since IPC Namespace set to host", sysctlKey, sysctlVal)
 
 			continue
 		}
 
 		// Ignore net sysctls if --net=host
-		if s.NetNS.IsHost() && strings.HasPrefix(sysctlKey, "net.") {
+		if noUseNet && strings.HasPrefix(sysctlKey, "net.") {
 			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since Network Namespace set to host", sysctlKey, sysctlVal)
 			continue
 		}
 
 		// Ignore uts sysctls if --uts=host
-		if s.UtsNS.IsHost() && (strings.HasPrefix(sysctlKey, "kernel.domainname") || strings.HasPrefix(sysctlKey, "kernel.hostname")) {
+		if noUseUTS && (strings.HasPrefix(sysctlKey, "kernel.domainname") || strings.HasPrefix(sysctlKey, "kernel.hostname")) {
 			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since UTS Namespace set to host", sysctlKey, sysctlVal)
 			continue
 		}
