@@ -46,6 +46,9 @@ func init() {
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation.  The default is false")
 	flags.BoolVarP(&pruneOptions.All, "all", "a", false, "Remove all unused data")
 	flags.BoolVar(&pruneOptions.Volume, "volumes", false, "Prune volumes")
+	filterFlagName := "filter"
+	flags.StringArrayVar(&pruneOptions.Filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
+	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
 
 }
 

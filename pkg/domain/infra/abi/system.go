@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -179,7 +180,16 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			found = true
 		}
 		systemPruneReport.PodPruneReport = append(systemPruneReport.PodPruneReport, podPruneReport...)
-		containerPruneReport, err := ic.pruneContainersHelper(nil)
+		containerPruneOptions := entities.ContainerPruneOptions{}
+		for _, f := range options.Filter {
+			t := strings.SplitN(f, "=", 2)
+			containerPruneOptions.Filters = make(url.Values)
+			if len(t) < 2 {
+				return nil, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
+			}
+			containerPruneOptions.Filters.Add(t[0], t[1])
+		}
+		containerPruneReport, err := ic.ContainerPrune(ctx, containerPruneOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -194,7 +204,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			}
 		}
 
-		results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, nil)
+		results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, options.Filter)
 
 		if err != nil {
 			return nil, err
