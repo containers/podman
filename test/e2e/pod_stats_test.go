@@ -17,9 +17,7 @@ var _ = Describe("Podman pod stats", func() {
 	)
 
 	BeforeEach(func() {
-		if os.Geteuid() != 0 {
-			SkipIfCgroupV2("--cgroup-manager=cgroupfs which doesn't work in rootless mode")
-		}
+		SkipIfRootless("Tests fail with both CGv1/2 + required --cgroup-manager=cgroupfs")
 		if isContainerized() {
 			SkipIfCgroupV1("All tests fail Error: unable to load cgroup at ...: cgroup deleted")
 		}
