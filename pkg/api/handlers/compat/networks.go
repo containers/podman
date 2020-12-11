@@ -131,7 +131,7 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 		Name:       conf.Name,
 		ID:         network.GetNetworkID(conf.Name),
 		Created:    time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)), // nolint: unconvert
-		Scope:      "",
+		Scope:      "local",
 		Driver:     network.DefaultNetworkDriver,
 		EnableIPv6: false,
 		IPAM: dockerNetwork.IPAM{
@@ -197,7 +197,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var reports []*types.NetworkResource
-	logrus.Errorf("netNames: %q", strings.Join(netNames, ", "))
+	logrus.Debugf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
 		report, err := getNetworkResourceByNameOrID(name, runtime, query.Filters)
 		if err != nil {
@@ -239,7 +239,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		Internal: networkCreate.Internal,
 		Labels:   networkCreate.Labels,
 	}
-	if networkCreate.IPAM != nil && networkCreate.IPAM.Config != nil {
+	if networkCreate.IPAM != nil && len(networkCreate.IPAM.Config) > 0 {
 		if len(networkCreate.IPAM.Config) > 1 {
 			utils.InternalServerError(w, errors.New("compat network create can only support one IPAM config"))
 			return

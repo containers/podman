@@ -50,7 +50,13 @@ t GET networks?filters=%7B%22dangling%22%3A%5B%221%22%5D%7D 500 \
 # network inspect docker
 t GET networks/a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1 200 \
 .Name=network1 \
-.Id=a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1
+.Id=a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1 \
+.Scope=local
+
+# network create docker
+t POST networks/create '"Name":"net3","IPAM":{"Config":[]}' 201
+# network delete docker
+t DELETE networks/net3 204
 
 # clean the network
 t DELETE libpod/networks/network1 200 \
