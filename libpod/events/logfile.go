@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 )
@@ -50,6 +52,16 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 	t, err := e.getTail(options)
 	if err != nil {
 		return err
+	}
+	if len(options.Until) > 0 {
+		untilTime, err := util.ParseInputTime(options.Until)
+		if err != nil {
+			return err
+		}
+		go func() {
+			time.Sleep(time.Until(untilTime))
+			t.Stop()
+		}()
 	}
 	funcDone := make(chan bool)
 	copy := true

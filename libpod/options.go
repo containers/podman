@@ -502,6 +502,7 @@ func WithEventsLogger(logger string) RuntimeOption {
 		}
 
 		rt.config.Engine.EventsLogger = logger
+		rt.config.Engine.EventsLogFilePath = filepath.Join(rt.config.Engine.TmpDir, "events", "events.log")
 
 		return nil
 	}
