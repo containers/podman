@@ -394,6 +394,13 @@ Run the container in a new user namespace using the supplied mapping. This optio
 This option can be passed several times to map different ranges. If calling **podman run** as an unprivileged user, the user needs to have the right to use the mapping. See **subuid**(5).
 The example maps gids **0-1999** in the container to the gids **30000-31999** on the host: **--gidmap=0:30000:2000**.
 
+**Important note:** The new user namespace mapping based on **--gidmap** is based on the initial mapping made in the  _/etc/subgid_  file.
+Assuming there is a  _/etc/subgid_  mapping **groupname:100000:65536**, then **groupname** is initially mapped to a namespace starting with
+gid **100000** for **65536** ids. From here the **--gidmap** mapping to the new namespace starts from **0** again, but is based on the initial mapping.
+Meaning **groupname** is initially mapped to gid **100000** which is referenced as **0** in the following **--gidmap** mapping. In terms of the example
+above: The group **groupname** is mapped to group **100000** of the initial namespace then the
+**30000**st id of this namespace (which is gid 130000 in this namespace) is mapped to container namespace group id **0**. (groupname -> 100000 / 30000 -> 0)
+
 #### **--group-add**=*group*
 
 Add additional groups to run as
@@ -1025,6 +1032,15 @@ This option can be passed several times to map different ranges. If calling **po
 as an unprivileged user, the user needs to have the right to use the mapping. See **subuid**(5).
 
 The following example maps uids 0-1999 in the container to the uids 30000-31999 on the host: **--uidmap=0:30000:2000**.
+
+**Important note:** The new user namespace mapping based on **--uidmap** is based on the initial mapping made in the  _/etc/subuid_  file.
+Assuming there is a  _/etc/subuid_  mapping **username:100000:65536**, then **username** is initially mapped to a namespace starting with
+uid **100000** for **65536** ids. From here the **--uidmap** mapping to the new namespace starts from **0** again, but is based on the initial mapping.
+Meaning **username** is initially mapped to uid **100000** which is referenced as **0** in the following **--uidmap** mapping. In terms of the example
+above: The user **username** is mapped to user **100000** of the initial namespace then the
+**30000**st id of this namespace (which is uid 130000 in this namespace) is mapped to container namespace user id **0**. (username -> 100000 / 30000 -> 0)
+
+_Note_: A minimal mapping has to have at least container uid **0** mapped to the parent user namespace.
 
 #### **--ulimit**=*option*
 
