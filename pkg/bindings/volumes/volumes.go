@@ -75,7 +75,7 @@ func List(ctx context.Context, filters map[string][]string) ([]*entities.VolumeL
 }
 
 // Prune removes unused volumes from the local filesystem.
-func Prune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
+func Prune(ctx context.Context, filters map[string][]string) ([]*entities.VolumePruneReport, error) {
 	var (
 		pruned []*entities.VolumePruneReport
 	)
@@ -83,7 +83,15 @@ func Prune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/prune", nil, nil)
+	params := url.Values{}
+	if len(filters) > 0 {
+		strFilters, err := bindings.FiltersToString(filters)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("filters", strFilters)
+	}
+	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/prune", params, nil)
 	if err != nil {
 		return nil, err
 	}

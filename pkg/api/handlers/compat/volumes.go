@@ -3,6 +3,7 @@ package compat
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/containers/podman/v2/libpod"
@@ -254,14 +255,15 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	// TODO: We have no ability to pass pruning filters to `PruneVolumes()` so
-	// we'll explicitly reject the request if we see any
-	if len(query.Filters) > 0 {
-		utils.InternalServerError(w, errors.New("filters for pruning volumes is not implemented"))
+
+	f := (url.Values)(query.Filters)
+	filterFuncs, err := filters.GenerateVolumeFilters(f)
+	if err != nil {
+		utils.Error(w, "Something when wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse filters for %s", f.Encode()))
 		return
 	}
 
-	pruned, err := runtime.PruneVolumes(r.Context())
+	pruned, err := runtime.PruneVolumes(r.Context(), filterFuncs)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

@@ -20,6 +20,18 @@ t POST libpod/volumes/create \
     .Labels.testlabel=testonly \
     .Options.type=tmpfs \
     .Options.o=nodev,noexec
+t POST libpod/volumes/create \
+    '"Name":"foo3","Label":{"testlabel":""},"Options":{"type":"tmpfs","o":"nodev,noexec"}}' 201 \
+    .Name=foo3 \
+    .Labels.testlabel="" \
+    .Options.type=tmpfs \
+    .Options.o=nodev,noexec
+t POST libpod/volumes/create \
+    '"Name":"foo4","Label":{"testlabel1":"testonly"},"Options":{"type":"tmpfs","o":"nodev,noexec"}}' 201 \
+    .Name=foo4 \
+    .Labels.testlabel1=testonly \
+    .Options.type=tmpfs \
+    .Options.o=nodev,noexec
 
 # Negative test
 # We have created a volume named "foo1"
@@ -39,6 +51,12 @@ t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22foo1%22%5D%7D 200 length
 t GET libpod/volumes/json?filters=%7B%22name%22%3A%20%5B%22foo1%22%2C%20%22foo2%22%5D%7D 200 length=2 .[0].Name=foo1 .[1].Name=foo2
 # -G --data-urlencode 'filters={"name":["notexist"]}'
 t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22notexists%22%5D%7D 200 length=0
+# -G --data-urlencode 'filters={"label":["testlabel"]}'
+t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel%22%5D%7D 200 length=2
+# -G --data-urlencode 'filters={"label":["testlabel=testonly"]}'
+t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel=testonly%22%5D%7D 200 length=1
+# -G --data-urlencode 'filters={"label":["testlabel1=testonly"]}'
+t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel1=testonly%22%5D%7D 200 length=1
 
 ## inspect volume
 t GET libpod/volumes/foo1/json 200 \
@@ -59,6 +77,18 @@ t DELETE libpod/volumes/foo1 404 \
     .cause="no such volume" \
     .message~.* \
     .response=404
+
+## Prune volumes with label matching 'testlabel1=testonly'
+# -G --data-urlencode 'filters={"label":["testlabel1=testonly"]}'
+t POST libpod/volumes/prune?filters=%7B%22label%22:%5B%22testlabel1=testonly%22%5D%7D "" 200
+# -G --data-urlencode 'filters={"label":["testlabel1=testonly"]}'
+t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel1=testonly%22%5D%7D 200 length=0
+
+## Prune volumes with label matching 'testlabel'
+# -G --data-urlencode 'filters={"label":["testlabel"]}'
+t POST libpod/volumes/prune?filters=%7B%22label%22:%5B%22testlabel%22%5D%7D "" 200
+# -G --data-urlencode 'filters={"label":["testlabel"]}'
+t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel%22%5D%7D 200 length=0
 
 ## Prune volumes
 t POST libpod/volumes/prune "" 200

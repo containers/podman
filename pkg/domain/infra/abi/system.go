@@ -214,7 +214,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			systemPruneReport.ImagePruneReport.Report.Id = append(systemPruneReport.ImagePruneReport.Report.Id, results...)
 		}
 		if options.Volume {
-			volumePruneReport, err := ic.pruneVolumesHelper(ctx)
+			volumePruneReport, err := ic.pruneVolumesHelper(ctx, nil)
 			if err != nil {
 				return nil, err
 			}

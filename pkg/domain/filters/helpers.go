@@ -1,0 +1,20 @@
+package filters
+
+import (
+	"net/url"
+	"strings"
+
+	"github.com/pkg/errors"
+)
+
+func ParseFilterArgumentsIntoFilters(filters []string) (url.Values, error) {
+	parsedFilters := make(url.Values)
+	for _, f := range filters {
+		t := strings.SplitN(f, "=", 2)
+		if len(t) < 2 {
+			return parsedFilters, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
+		}
+		parsedFilters.Add(t[0], t[1])
+	}
+	return parsedFilters, nil
+}

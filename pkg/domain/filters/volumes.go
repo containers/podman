@@ -1,13 +1,14 @@
 package filters
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/pkg/errors"
 )
 
-func GenerateVolumeFilters(filters map[string][]string) ([]libpod.VolumeFilter, error) {
+func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 	var vf []libpod.VolumeFilter
 	for filter, v := range filters {
 		for _, val := range v {
