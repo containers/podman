@@ -360,11 +360,12 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, options entities.ContainerLogsOptions) error {
 	since := options.Since.Format(time.RFC3339)
 	tail := strconv.FormatInt(options.Tail, 10)
-	stdout := options.Writer != nil
+	stdout := options.StdoutWriter != nil
+	stderr := options.StderrWriter != nil
 	opts := containers.LogOptions{
 		Follow:     &options.Follow,
 		Since:      &since,
-		Stderr:     &stdout,
+		Stderr:     &stderr,
 		Stdout:     &stdout,
 		Tail:       &tail,
 		Timestamps: &options.Timestamps,
@@ -372,10 +373,11 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, 
 	}
 
 	var err error
-	outCh := make(chan string)
+	stdoutCh := make(chan string)
+	stderrCh := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		err = containers.Logs(ic.ClientCxt, nameOrIDs[0], opts, outCh, outCh)
+		err = containers.Logs(ic.ClientCxt, nameOrIDs[0], opts, stdoutCh, stderrCh)
 		cancel()
 	}()
 
@@ -383,8 +385,14 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, 
 		select {
 		case <-ctx.Done():
 			return err
-		case line := <-outCh:
-			_, _ = io.WriteString(options.Writer, line+"\n")
+		case line := <-stdoutCh:
+			if options.StdoutWriter != nil {
+				_, _ = io.WriteString(options.StdoutWriter, line+"\n")
+			}
+		case line := <-stderrCh:
+			if options.StderrWriter != nil {
+				_, _ = io.WriteString(options.StderrWriter, line+"\n")
+			}
 		}
 	}
 }

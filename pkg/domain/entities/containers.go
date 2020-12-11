@@ -227,8 +227,10 @@ type ContainerLogsOptions struct {
 	Tail int64
 	// Show timestamps in the logs.
 	Timestamps bool
-	// Write the logs to Writer.
-	Writer io.Writer
+	// Write the stdout to this Writer.
+	StdoutWriter io.Writer
+	// Write the stderr to this Writer.
+	StderrWriter io.Writer
 }
 
 // ExecOptions describes the cli values to exec into

@@ -925,7 +925,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 }
 
 func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []string, options entities.ContainerLogsOptions) error {
-	if options.Writer == nil {
+	if options.StdoutWriter == nil && options.StderrWriter == nil {
 		return errors.New("no io.Writer set for container logs")
 	}
 
@@ -963,7 +963,7 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 	}()
 
 	for line := range logChannel {
-		fmt.Fprintln(options.Writer, line.String(logOpts))
+		line.Write(options.StdoutWriter, options.StderrWriter, logOpts)
 	}
 
 	return nil
