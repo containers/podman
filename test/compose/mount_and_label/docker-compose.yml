@@ -5,6 +5,6 @@ services:
     ports:
       - '5000:5000'
     volumes:
-      - /tmp/mount:/data:ro
+      - /tmp/data:/data:ro
     labels:
       - "io.podman=the_best"
