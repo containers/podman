@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/psgo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -52,20 +51,4 @@ func FindDeviceNodes() (map[string]string, error) {
 	}
 
 	return nodes, nil
-}
-
-// CheckRootlessUIDRange checks the uid within the rootless container is in the range from /etc/subuid
-func CheckRootlessUIDRange(uid int) error {
-	uids, _, err := rootless.GetConfiguredMappings()
-	if err != nil {
-		return err
-	}
-	total := 0
-	for _, u := range uids {
-		total += u.Size
-	}
-	if uid > total {
-		return errors.Errorf("requested user's UID %d is too large for the rootless user namespace", uid)
-	}
-	return nil
 }

@@ -3,7 +3,6 @@ package containers
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -15,7 +14,6 @@ import (
 	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/specgen"
-	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -106,15 +104,6 @@ func run(cmd *cobra.Command, args []string) error {
 	cliVals.Net, err = common.NetFlagsToNetOptions(cmd)
 	if err != nil {
 		return err
-	}
-
-	if rootless.IsRootless() && !registry.IsRemote() {
-		userspec := strings.SplitN(cliVals.User, ":", 2)[0]
-		if uid, err := strconv.ParseInt(userspec, 10, 32); err == nil {
-			if err := util.CheckRootlessUIDRange(int(uid)); err != nil {
-				return err
-			}
-		}
 	}
 
 	if af := cliVals.Authfile; len(af) > 0 {
