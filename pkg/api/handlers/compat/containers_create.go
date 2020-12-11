@@ -66,7 +66,20 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "make cli opts()"))
 		return
 	}
-	sg := specgen.NewSpecGenerator(newImage.ID(), cliOpts.RootFS)
+
+	imgNameOrID := newImage.ID()
+	// if the img had multi names with the same sha256 ID, should use the InputName, not the ID
+	if len(newImage.Names()) > 1 {
+		imageRef, err := utils.ParseDockerReference(newImage.InputName)
+		if err != nil {
+			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+			return
+		}
+		// maybe the InputName has no tag, so use full name to display
+		imgNameOrID = imageRef.DockerReference().String()
+	}
+
+	sg := specgen.NewSpecGenerator(imgNameOrID, cliOpts.RootFS)
 	if err := common.FillOutSpecGen(sg, cliOpts, args); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "fill out specgen"))
 		return
