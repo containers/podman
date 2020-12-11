@@ -772,9 +772,16 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerCp(ctx context.Context, source, dest string, options entities.ContainerCpOptions) error {
-	return nil
-	//	return containers.Copy(ic.ClientCxt, source, dest, options)
+func (ic *ContainerEngine) ContainerCopyFromArchive(ctx context.Context, nameOrID string, path string, reader io.Reader) (entities.ContainerCopyFunc, error) {
+	return containers.CopyFromArchive(ic.ClientCxt, nameOrID, path, reader)
+}
+
+func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (entities.ContainerCopyFunc, error) {
+	return containers.CopyToArchive(ic.ClientCxt, nameOrID, path, writer)
+}
+
+func (ic *ContainerEngine) ContainerStat(ctx context.Context, nameOrID string, path string) (*entities.ContainerStatReport, error) {
+	return containers.Stat(ic.ClientCxt, nameOrID, path)
 }
 
 // Shutdown Libpod engine

@@ -39,6 +39,14 @@ SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go copier/*.g
 
 LINTFLAGS ?=
 
+ifeq ($(DEBUG), 1)
+  override GOGCFLAGS += -N -l
+endif
+
+#   make all DEBUG=1
+#     Note: Uses the -N -l go compiler options to disable compiler optimizations
+#           and inlining. Using these build options allows you to subsequently
+#           use source debugging tools like delve.
 all: bin/buildah bin/imgtype docs
 
 # Update nix/nixpkgs.json its latest stable commit
@@ -56,7 +64,7 @@ static:
 
 .PHONY: bin/buildah
 bin/buildah:  $(SOURCES)
-	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./cmd/buildah
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -gcflags "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
 
 .PHONY: buildah
 buildah: bin/buildah

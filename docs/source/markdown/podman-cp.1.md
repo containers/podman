@@ -4,9 +4,9 @@
 podman\-cp - Copy files/folders between a container and the local filesystem
 
 ## SYNOPSIS
-**podman cp** [*options*] [*container*:]*src_path* [*container*:]*dest_path*
+**podman cp** [*container*:]*src_path* [*container*:]*dest_path*
 
-**podman container cp** [*options*] [*container*:]*src_path* [*container*:]*dest_path*
+**podman container cp** [*container*:]*src_path* [*container*:]*dest_path*
 
 ## DESCRIPTION
 Copy the contents of **src_path** to the **dest_path**. You can copy from the container's filesystem to the local machine or the reverse, from the local filesystem to the container.
@@ -59,14 +59,6 @@ Using `-` as the *src_path* streams the contents of STDIN as a tar archive. The 
 
 ## OPTIONS
 
-#### **--extract**
-
-If the source is a tar archive, extract it to the provided destination (must be a directory).  If the source is not a tar archive, follow the above rules.
-
-#### **--pause**
-
-Pause the container while copying into it to avoid potential security issues around symlinks. Defaults to *true*. On rootless containers with cgroups V1, defaults to false.
-
 ## ALTERNATIVES
 
 Podman has much stronger capabilities than just `podman cp` to achieve copy files between host and container.
@@ -111,8 +103,6 @@ podman cp /home/myuser/myfiles.tar containerID:/tmp
 podman cp containerID:/myapp/ /myapp/
 
 podman cp containerID:/home/myuser/. /home/myuser/
-
-podman cp --extract /home/myuser/myfiles.tar.gz containerID:/myfiles
 
 podman cp - containerID:/myfiles.tar.gz < myfiles.tar.gz
 
