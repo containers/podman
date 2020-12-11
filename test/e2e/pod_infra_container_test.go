@@ -225,6 +225,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman pod container can override pod pid NS", func() {
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
 		session := podmanTest.Podman([]string{"pod", "create", "--share", "pid"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
