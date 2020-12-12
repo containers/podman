@@ -195,6 +195,7 @@ case "$TEST_FLAVOR" in
     build) make clean ;;
     unit) ;;
     apiv2) ;&  # use next item
+    compose) ;&
     int) ;&
     sys) ;&
     bindings) ;&
