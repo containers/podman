@@ -61,7 +61,7 @@ func ReadPassword(prompt string) (pw []byte, err error) {
 	}
 }
 
-func PublicKey(path string, passphrase []byte) (ssh.AuthMethod, error) {
+func PublicKey(path string, passphrase []byte) (ssh.Signer, error) {
 	key, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -75,12 +75,9 @@ func PublicKey(path string, passphrase []byte) (ssh.AuthMethod, error) {
 		if len(passphrase) == 0 {
 			passphrase = ReadPassphrase()
 		}
-		signer, err = ssh.ParsePrivateKeyWithPassphrase(key, passphrase)
-		if err != nil {
-			return nil, err
-		}
+		return ssh.ParsePrivateKeyWithPassphrase(key, passphrase)
 	}
-	return ssh.PublicKeys(signer), nil
+	return signer, nil
 }
 
 func ReadPassphrase() []byte {

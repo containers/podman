@@ -168,19 +168,17 @@ func getUserInfo(uri *url.URL) (*url.Userinfo, error) {
 }
 
 func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
-	var authMethods []ssh.AuthMethod
-	passwd, set := uri.User.Password()
-	if set {
-		authMethods = append(authMethods, ssh.Password(passwd))
-	}
+	var signers []ssh.Signer
 
+	passwd, passwdSet := uri.User.Password()
 	if cmd.Flags().Changed("identity") {
 		value := cmd.Flag("identity").Value.String()
-		auth, err := terminal.PublicKey(value, []byte(passwd))
+		s, err := terminal.PublicKey(value, []byte(passwd))
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to read identity %q", value)
 		}
-		authMethods = append(authMethods, auth)
+		signers = append(signers, s)
+		logrus.Debugf("SSH Ident Key %q %s %s", value, ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
 	}
 
 	if sock, found := os.LookupEnv("SSH_AUTH_SOCK"); found {
@@ -190,16 +188,51 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		a := agent.NewClient(c)
-		authMethods = append(authMethods, ssh.PublicKeysCallback(a.Signers))
-	}
-
-	if len(authMethods) == 0 {
-		pass, err := terminal.ReadPassword(fmt.Sprintf("%s's login password:", uri.User.Username()))
+		agentSigners, err := agent.NewClient(c).Signers()
 		if err != nil {
 			return "", err
 		}
-		authMethods = append(authMethods, ssh.Password(string(pass)))
+
+		signers = append(signers, agentSigners...)
+
+		if logrus.IsLevelEnabled(logrus.DebugLevel) {
+			for _, s := range agentSigners {
+				logrus.Debugf("SSH Agent Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
+			}
+		}
+	}
+
+	var authMethods []ssh.AuthMethod
+	if len(signers) > 0 {
+		var dedup = make(map[string]ssh.Signer)
+		// Dedup signers based on fingerprint, ssh-agent keys override CONTAINER_SSHKEY
+		for _, s := range signers {
+			fp := ssh.FingerprintSHA256(s.PublicKey())
+			if _, found := dedup[fp]; found {
+				logrus.Debugf("Dedup SSH Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
+			}
+			dedup[fp] = s
+		}
+
+		var uniq []ssh.Signer
+		for _, s := range dedup {
+			uniq = append(uniq, s)
+		}
+
+		authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
+			return uniq, nil
+		}))
+	}
+
+	if passwdSet {
+		authMethods = append(authMethods, ssh.Password(passwd))
+	}
+
+	if len(authMethods) == 0 {
+		authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
+			pass, err := terminal.ReadPassword(fmt.Sprintf("%s's login password:", uri.User.Username()))
+			return string(pass), err
+		}))
 	}
 
 	cfg := &ssh.ClientConfig{
