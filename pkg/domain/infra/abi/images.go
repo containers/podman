@@ -28,6 +28,8 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
+	dockerRef "github.com/docker/distribution/reference"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -718,9 +720,9 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 					logrus.Errorf("unable to close %s image source %q", srcRef.DockerReference().Name(), err)
 				}
 			}()
-			getManifest, _, err := rawSource.GetManifest(ctx, nil)
+			topManifestBlob, manifestType, err := rawSource.GetManifest(ctx, nil)
 			if err != nil {
-				return errors.Wrapf(err, "error getting getManifest")
+				return errors.Wrapf(err, "error getting manifest blob")
 			}
 			dockerReference := rawSource.Reference().DockerReference()
 			if dockerReference == nil {
@@ -743,34 +745,34 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 					return err
 				}
 			}
-			manifestDigest, err := manifest.Digest(getManifest)
+			manifestDigest, err := manifest.Digest(topManifestBlob)
 			if err != nil {
 				return err
 			}
 
-			// create signature
-			newSig, err := signature.SignDockerManifest(getManifest, dockerReference.String(), mech, options.SignBy)
-			if err != nil {
-				return errors.Wrapf(err, "error creating new signature")
-			}
-			// create the signstore file
-			signatureDir := fmt.Sprintf("%s@%s=%s", sigStoreDir, manifestDigest.Algorithm(), manifestDigest.Hex())
-			if err := os.MkdirAll(signatureDir, 0751); err != nil {
-				// The directory is allowed to exist
-				if !os.IsExist(err) {
-					logrus.Error(err)
-					return nil
+			if options.All {
+				if !manifest.MIMETypeIsMultiImage(manifestType) {
+					return errors.Errorf("%s is not a multi-architecture image (manifest type %s)", signimage, manifestType)
 				}
-			}
-			sigFilename, err := getSigFilename(signatureDir)
-			if err != nil {
-				logrus.Errorf("error creating sigstore file: %v", err)
+				list, err := manifest.ListFromBlob(topManifestBlob, manifestType)
+				if err != nil {
+					return errors.Wrapf(err, "Error parsing manifest list %q", string(topManifestBlob))
+				}
+				instanceDigests := list.Instances()
+				for _, instanceDigest := range instanceDigests {
+					digest := instanceDigest
+					man, _, err := rawSource.GetManifest(ctx, &digest)
+					if err != nil {
+						return err
+					}
+					if err = putSignature(man, mech, sigStoreDir, instanceDigest, dockerReference, options); err != nil {
+						return errors.Wrapf(err, "error storing signature for %s, %v", dockerReference.String(), instanceDigest)
+					}
+				}
 				return nil
 			}
-			err = ioutil.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644)
-			if err != nil {
-				logrus.Errorf("error storing signature for %s", rawSource.Reference().DockerReference().String())
-				return nil
+			if err = putSignature(topManifestBlob, mech, sigStoreDir, manifestDigest, dockerReference, options); err != nil {
+				return errors.Wrapf(err, "error storing signature for %s, %v", dockerReference.String(), manifestDigest)
 			}
 			return nil
 		}()
@@ -805,4 +807,27 @@ func localPathFromURI(url *url.URL) (string, error) {
 		return "", errors.Errorf("writing to %s is not supported. Use a supported scheme", url.String())
 	}
 	return url.Path, nil
+}
+
+// putSignature creates signature and saves it to the signstore file
+func putSignature(manifestBlob []byte, mech signature.SigningMechanism, sigStoreDir string, instanceDigest digest.Digest, dockerReference dockerRef.Reference, options entities.SignOptions) error {
+	newSig, err := signature.SignDockerManifest(manifestBlob, dockerReference.String(), mech, options.SignBy)
+	if err != nil {
+		return err
+	}
+	signatureDir := fmt.Sprintf("%s@%s=%s", sigStoreDir, instanceDigest.Algorithm(), instanceDigest.Hex())
+	if err := os.MkdirAll(signatureDir, 0751); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return err
+		}
+	}
+	sigFilename, err := getSigFilename(signatureDir)
+	if err != nil {
+		return err
+	}
+	if err = ioutil.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644); err != nil {
+		return err
+	}
+	return nil
 }
