@@ -49,6 +49,29 @@ var _ = Describe("Podman start", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman start --rm removed on failure", func() {
+		session := podmanTest.Podman([]string{"create", "--name=test", "--rm", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		session = podmanTest.Podman([]string{"container", "exists", "test"})
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman start --rm --attach removed on failure", func() {
+		session := podmanTest.Podman([]string{"create", "--rm", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		session = podmanTest.Podman([]string{"start", "--attach", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		session = podmanTest.Podman([]string{"container", "exists", cid})
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
 	It("podman container start single container by id", func() {
 		session := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()

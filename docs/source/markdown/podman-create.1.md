@@ -803,10 +803,6 @@ To generate systemd unit files, please see *podman generate systemd*
 
 Automatically remove the container when it exits. The default is *false*.
 
-Note that the container will not be removed when it could not be created or
-started successfully. This allows the user to inspect the container after
-failure.
-
 #### **--rootfs**
 
 If specified, the first argument refers to an exploded container on the file system.

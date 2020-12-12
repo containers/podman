@@ -840,10 +840,6 @@ To generate systemd unit files, please see **podman generate systemd**.
 
 Automatically remove the container when it exits. The default is **false**.
 
-Note that the container will not be removed when it could not be created or
-started successfully. This allows the user to inspect the container after
-failure.
-
 #### **--rmi**=*true|false*
 
 After exit of the container, remove the image unless another

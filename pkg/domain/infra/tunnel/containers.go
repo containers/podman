@@ -523,6 +523,29 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				reports = append(reports, &report)
 				return reports, errors.Wrapf(report.Err, "unable to start container %s", name)
 			}
+			if ctr.AutoRemove {
+				// Defer the removal, so we can return early if needed and
+				// de-spaghetti the code.
+				defer func() {
+					shouldRestart, err := containers.ShouldRestart(ic.ClientCxt, ctr.ID)
+					if err != nil {
+						logrus.Errorf("Failed to check if %s should restart: %v", ctr.ID, err)
+						return
+					}
+
+					if !shouldRestart {
+						if err := containers.Remove(ic.ClientCxt, ctr.ID, bindings.PFalse, bindings.PTrue); err != nil {
+							if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
+								errorhandling.Contains(err, define.ErrCtrRemoved) {
+								logrus.Warnf("Container %s does not exist: %v", ctr.ID, err)
+							} else {
+								logrus.Errorf("Error removing container %s: %v", ctr.ID, err)
+							}
+						}
+					}
+				}()
+			}
+
 			exitCode, err := containers.Wait(ic.ClientCxt, name, nil)
 			if err == define.ErrNoSuchCtr {
 				// Check events
@@ -543,6 +566,16 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		if !ctrRunning {
 			err = containers.Start(ic.ClientCxt, name, &options.DetachKeys)
 			if err != nil {
+				if ctr.AutoRemove {
+					if err := containers.Remove(ic.ClientCxt, ctr.ID, bindings.PFalse, bindings.PTrue); err != nil {
+						if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
+							errorhandling.Contains(err, define.ErrCtrRemoved) {
+							logrus.Warnf("Container %s does not exist: %v", ctr.ID, err)
+						} else {
+							logrus.Errorf("Error removing container %s: %v", ctr.ID, err)
+						}
+					}
+				}
 				report.Err = errors.Wrapf(err, "unable to start container %q", name)
 				report.ExitCode = define.ExitCode(err)
 				reports = append(reports, &report)

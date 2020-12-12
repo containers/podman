@@ -12,6 +12,8 @@ import (
 
 // Listcontainer describes a container suitable for listing
 type ListContainer struct {
+	// AutoRemove
+	AutoRemove bool
 	// Container command
 	Command []string
 	// Container creation time
