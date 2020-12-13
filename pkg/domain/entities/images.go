@@ -374,3 +374,8 @@ type ImageUnmountReport struct {
 	Err error
 	Id  string // nolint
 }
+
+type ImageScanOptions struct {
+	ContainerRunOptions
+	ScannerImage string
+}
