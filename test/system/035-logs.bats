@@ -55,14 +55,7 @@ ${cid[0]} d"   "Sequential output from logs"
 
 @test "podman logs over journald" {
     # We can't use journald on RHEL as rootless: rhbz#1895105
-    if is_rootless; then
-        run journalctl -n 1
-        if [[ $status -ne 0 ]]; then
-            if [[ $output =~ permission ]]; then
-                skip "Cannot use rootless journald on this system"
-            fi
-        fi
-    fi
+    skip_if_journald_unavailable
 
     msg=$(random_string 20)
 
