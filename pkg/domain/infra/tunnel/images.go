@@ -4,8 +4,13 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/containers/podman/v2/libpod/image"
+
+	"github.com/containers/image/v5/types"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
@@ -22,7 +27,8 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.Boo
 }
 
 func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts entities.ImageRemoveOptions) (*entities.ImageRemoveReport, []error) {
-	return images.BatchRemove(ir.ClientCxt, imagesArg, opts)
+	options := new(images.RemoveOptions).WithForce(opts.Force).WithAll(opts.All)
+	return images.Remove(ir.ClientCxt, imagesArg, options)
 }
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
@@ -32,13 +38,14 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		f := strings.Split(filter, "=")
 		filters[f[0]] = f[1:]
 	}
-	images, err := images.List(ir.ClientCxt, &opts.All, filters)
+	options := new(images.ListOptions).WithAll(opts.All).WithFilters(filters)
+	psImages, err := images.List(ir.ClientCxt, options)
 	if err != nil {
 		return nil, err
 	}
 
-	is := make([]*entities.ImageSummary, len(images))
-	for i, img := range images {
+	is := make([]*entities.ImageSummary, len(psImages))
+	for i, img := range psImages {
 		hold := entities.ImageSummary{}
 		if err := utils.DeepCopy(&hold, img); err != nil {
 			return nil, err
@@ -57,7 +64,8 @@ func (ir *ImageEngine) Unmount(ctx context.Context, images []string, options ent
 }
 
 func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
-	results, err := images.History(ir.ClientCxt, nameOrID)
+	options := new(images.HistoryOptions)
+	results, err := images.History(ir.ClientCxt, nameOrID, options)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +96,8 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 		f := strings.Split(filter, "=")
 		filters[f[0]] = f[1:]
 	}
-
-	results, err := images.Prune(ir.ClientCxt, &opts.All, filters)
+	options := new(images.PruneOptions).WithAll(opts.All).WithFilters(filters)
+	results, err := images.Prune(ir.ClientCxt, options)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +112,18 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 	return &report, nil
 }
 
-func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+	options := new(images.PullOptions)
+	options.WithAllTags(opts.AllTags).WithAuthfile(opts.Authfile).WithCertDir(opts.CertDir).WithOverrideArch(opts.OverrideArch).WithOverrideOS(opts.OverrideOS)
+	options.WithOverrideVariant(opts.OverrideVariant).WithPassword(opts.Password).WithPullPolicy(opts.PullPolicy)
+	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
+		if s == types.OptionalBoolTrue {
+			options.WithSkipTLSVerify(true)
+		} else {
+			options.WithSkipTLSVerify(false)
+		}
+	}
+	options.WithQuiet(opts.Quiet).WithSignaturePolicy(opts.SignaturePolicy).WithUsername(opts.Username)
 	pulledImages, err := images.Pull(ir.ClientCxt, rawImage, options)
 	if err != nil {
 		return nil, err
@@ -112,7 +131,8 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	return &entities.ImagePullReport{Images: pulledImages}, nil
 }
 
-func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
+func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, opt entities.ImageTagOptions) error {
+	options := new(images.TagOptions)
 	for _, newTag := range tags {
 		var (
 			tag, repo string
@@ -130,16 +150,17 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 		if len(repo) < 1 {
 			return errors.Errorf("invalid image name %q", nameOrID)
 		}
-		if err := images.Tag(ir.ClientCxt, nameOrID, tag, repo); err != nil {
+		if err := images.Tag(ir.ClientCxt, nameOrID, tag, repo, options); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, options entities.ImageUntagOptions) error {
+func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, opt entities.ImageUntagOptions) error {
+	options := new(images.UntagOptions)
 	if len(tags) == 0 {
-		return images.Untag(ir.ClientCxt, nameOrID, "", "")
+		return images.Untag(ir.ClientCxt, nameOrID, "", "", options)
 	}
 
 	for _, newTag := range tags {
@@ -159,7 +180,7 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 		if len(repo) < 1 {
 			return errors.Errorf("invalid image name %q", nameOrID)
 		}
-		if err := images.Untag(ir.ClientCxt, nameOrID, tag, repo); err != nil {
+		if err := images.Untag(ir.ClientCxt, nameOrID, tag, repo, options); err != nil {
 			return err
 		}
 	}
@@ -167,10 +188,11 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 }
 
 func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
+	options := new(images.GetOptions).WithSize(opts.Size)
 	reports := []*entities.ImageInspectReport{}
 	errs := []error{}
 	for _, i := range namesOrIDs {
-		r, err := images.GetImage(ir.ClientCxt, i, &opts.Size)
+		r, err := images.GetImage(ir.ClientCxt, i, options)
 		if err != nil {
 			errModel, ok := err.(entities.ErrorModel)
 			if !ok {
@@ -204,68 +226,73 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 	if len(opts.Tag) > 0 {
 		ref += ":" + opts.Tag
 	}
-	return images.Load(ir.ClientCxt, f, &ref)
+	options := new(images.LoadOptions).WithReference(ref)
+	return images.Load(ir.ClientCxt, f, options)
 }
 
 func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
 	var (
-		err       error
-		sourceURL *string
-		f         *os.File
+		err error
+		f   *os.File
 	)
+	options := new(images.ImportOptions).WithChanges(opts.Changes).WithMessage(opts.Message).WithReference(opts.Reference)
 	if opts.SourceIsURL {
-		sourceURL = &opts.Source
+		options.WithURL(opts.Source)
 	} else {
 		f, err = os.Open(opts.Source)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return images.Import(ir.ClientCxt, opts.Changes, &opts.Message, &opts.Reference, sourceURL, f)
+	return images.Import(ir.ClientCxt, f, options)
 }
 
-func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
+func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, opts entities.ImagePushOptions) error {
+	options := new(images.PushOptions)
+	options.WithUsername(opts.Username).WithSignaturePolicy(opts.SignaturePolicy).WithQuiet(opts.Quiet)
+	options.WithPassword(opts.Password).WithCertDir(opts.CertDir).WithAuthfile(opts.Authfile)
+	options.WithCompress(opts.Compress).WithDigestFile(opts.DigestFile).WithFormat(opts.Format)
+	options.WithRemoveSignatures(opts.RemoveSignatures).WithSignBy(opts.SignBy)
+
+	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
+		if s == types.OptionalBoolTrue {
+			options.WithSkipTLSVerify(true)
+		} else {
+			options.WithSkipTLSVerify(false)
+		}
+	}
 	return images.Push(ir.ClientCxt, source, destination, options)
 }
 
-func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, options entities.ImageSaveOptions) error {
+func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, opts entities.ImageSaveOptions) error {
 	var (
 		f   *os.File
 		err error
 	)
-	switch options.Format {
+	options := new(images.ExportOptions).WithFormat(opts.Format).WithCompress(opts.Compress)
+
+	switch opts.Format {
 	case "oci-dir", "docker-dir":
 		f, err = ioutil.TempFile("", "podman_save")
 		if err == nil {
 			defer func() { _ = os.Remove(f.Name()) }()
 		}
 	default:
-		f, err = os.Create(options.Output)
+		f, err = os.Create(opts.Output)
 	}
 	if err != nil {
 		return err
 	}
 
-	if options.MultiImageArchive {
-		exErr := images.MultiExport(ir.ClientCxt, append([]string{nameOrID}, tags...), f, &options.Format, &options.Compress)
-		if err := f.Close(); err != nil {
-			return err
-		}
-		if exErr != nil {
-			return exErr
-		}
-	} else {
-		// FIXME: tags are entirely ignored here but shouldn't.
-		exErr := images.Export(ir.ClientCxt, nameOrID, f, &options.Format, &options.Compress)
-		if err := f.Close(); err != nil {
-			return err
-		}
-		if exErr != nil {
-			return exErr
-		}
+	exErr := images.Export(ir.ClientCxt, append([]string{nameOrID}, tags...), f, options)
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if exErr != nil {
+		return exErr
 	}
 
-	if options.Format != "oci-dir" && options.Format != "docker-dir" {
+	if opts.Format != "oci-dir" && opts.Format != "docker-dir" {
 		return nil
 	}
 
@@ -273,25 +300,26 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 	if err != nil {
 		return err
 	}
-	info, err := os.Stat(options.Output)
+	info, err := os.Stat(opts.Output)
 	switch {
 	case err == nil:
 		if info.Mode().IsRegular() {
-			return errors.Errorf("%q already exists as a regular file", options.Output)
+			return errors.Errorf("%q already exists as a regular file", opts.Output)
 		}
 	case os.IsNotExist(err):
-		if err := os.Mkdir(options.Output, 0755); err != nil {
+		if err := os.Mkdir(opts.Output, 0755); err != nil {
 			return err
 		}
 	default:
 		return err
 	}
-	return utils2.UntarToFileSystem(options.Output, f, nil)
+	return utils2.UntarToFileSystem(opts.Output, f, nil)
 }
 
 // Diff reports the changes to the given image
 func (ir *ImageEngine) Diff(ctx context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	changes, err := images.Diff(ir.ClientCxt, nameOrID)
+	options := new(images.DiffOptions)
+	changes, err := images.Diff(ir.ClientCxt, nameOrID, options)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +327,34 @@ func (ir *ImageEngine) Diff(ctx context.Context, nameOrID string, _ entities.Dif
 }
 
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
-	return images.Search(ir.ClientCxt, term, opts)
+	mappedFilters := make(map[string][]string)
+	filters, err := image.ParseSearchFilter(opts.Filters)
+	if err != nil {
+		return nil, err
+	}
+	if stars := filters.Stars; stars > 0 {
+		mappedFilters["stars"] = []string{strconv.Itoa(stars)}
+	}
+
+	if official := filters.IsOfficial; official != types.OptionalBoolUndefined {
+		mappedFilters["is-official"] = []string{strconv.FormatBool(official == types.OptionalBoolTrue)}
+	}
+
+	if automated := filters.IsAutomated; automated != types.OptionalBoolUndefined {
+		mappedFilters["is-automated"] = []string{strconv.FormatBool(automated == types.OptionalBoolTrue)}
+	}
+
+	options := new(images.SearchOptions)
+	options.WithAuthfile(opts.Authfile).WithFilters(mappedFilters).WithLimit(opts.Limit)
+	options.WithListTags(opts.ListTags).WithNoTrunc(opts.NoTrunc)
+	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
+		if s == types.OptionalBoolTrue {
+			options.WithSkipTLSVerify(true)
+		} else {
+			options.WithSkipTLSVerify(false)
+		}
+	}
+	return images.Search(ir.ClientCxt, term, options)
 }
 
 func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
@@ -326,7 +381,8 @@ func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts en
 }
 
 func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
-	return images.Tree(ir.ClientCxt, nameOrID, &opts.WhatRequires)
+	options := new(images.TreeOptions).WithWhatRequires(opts.WhatRequires)
+	return images.Tree(ir.ClientCxt, nameOrID, options)
 }
 
 // Shutdown Libpod engine

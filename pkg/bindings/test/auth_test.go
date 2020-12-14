@@ -9,7 +9,6 @@ import (
 	"github.com/containers/image/v5/types"
 	podmanRegistry "github.com/containers/podman/v2/hack/podman-registry-go"
 	"github.com/containers/podman/v2/pkg/bindings/images"
-	"github.com/containers/podman/v2/pkg/domain/entities"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -52,27 +51,19 @@ var _ = Describe("Podman images", func() {
 		imageRef := imageRep + ":" + imageTag
 
 		// Tag the alpine image and verify it has worked.
-		err = images.Tag(bt.conn, alpine.shortName, imageTag, imageRep)
+		err = images.Tag(bt.conn, alpine.shortName, imageTag, imageRep, nil)
 		Expect(err).To(BeNil())
 		_, err = images.GetImage(bt.conn, imageRef, nil)
 		Expect(err).To(BeNil())
 
 		// Now push the image.
-		pushOpts := entities.ImagePushOptions{
-			Username:      registry.User,
-			Password:      registry.Password,
-			SkipTLSVerify: types.OptionalBoolTrue,
-		}
-		err = images.Push(bt.conn, imageRef, imageRef, pushOpts)
+		pushOpts := new(images.PushOptions)
+		err = images.Push(bt.conn, imageRef, imageRef, pushOpts.WithUsername(registry.User).WithPassword(registry.Password).WithSkipTLSVerify(true))
 		Expect(err).To(BeNil())
 
 		// Now pull the image.
-		pullOpts := entities.ImagePullOptions{
-			Username:      registry.User,
-			Password:      registry.Password,
-			SkipTLSVerify: types.OptionalBoolTrue,
-		}
-		_, err = images.Pull(bt.conn, imageRef, pullOpts)
+		pullOpts := new(images.PullOptions)
+		_, err = images.Pull(bt.conn, imageRef, pullOpts.WithSkipTLSVerify(true).WithPassword(registry.Password).WithUsername(registry.User))
 		Expect(err).To(BeNil())
 	})
 
@@ -110,33 +101,24 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 
 		// Tag the alpine image and verify it has worked.
-		err = images.Tag(bt.conn, alpine.shortName, imageTag, imageRep)
+		err = images.Tag(bt.conn, alpine.shortName, imageTag, imageRep, nil)
 		Expect(err).To(BeNil())
 		_, err = images.GetImage(bt.conn, imageRef, nil)
 		Expect(err).To(BeNil())
 
 		// Now push the image.
-		pushOpts := entities.ImagePushOptions{
-			Authfile:      authFilePath,
-			SkipTLSVerify: types.OptionalBoolTrue,
-		}
-		err = images.Push(bt.conn, imageRef, imageRef, pushOpts)
+		pushOpts := new(images.PushOptions)
+		err = images.Push(bt.conn, imageRef, imageRef, pushOpts.WithAuthfile(authFilePath).WithSkipTLSVerify(true))
 		Expect(err).To(BeNil())
 
 		// Now pull the image.
-		pullOpts := entities.ImagePullOptions{
-			Authfile:      authFilePath,
-			SkipTLSVerify: types.OptionalBoolTrue,
-		}
-		_, err = images.Pull(bt.conn, imageRef, pullOpts)
+		pullOpts := new(images.PullOptions)
+		_, err = images.Pull(bt.conn, imageRef, pullOpts.WithAuthfile(authFilePath).WithSkipTLSVerify(true))
 		Expect(err).To(BeNil())
 
 		// Last, but not least, exercise search.
-		searchOptions := entities.ImageSearchOptions{
-			Authfile:      authFilePath,
-			SkipTLSVerify: types.OptionalBoolTrue,
-		}
-		_, err = images.Search(bt.conn, imageRef, searchOptions)
+		searchOptions := new(images.SearchOptions)
+		_, err = images.Search(bt.conn, imageRef, searchOptions.WithSkipTLSVerify(true).WithAuthfile(authFilePath))
 		Expect(err).To(BeNil())
 	})
 

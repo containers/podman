@@ -47,8 +47,8 @@ var _ = Describe("Podman containers ", func() {
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
-		_, err = images.Remove(bt.conn, id, nil)
-		Expect(err).To(BeNil())
+		_, errs := images.Remove(bt.conn, []string{id}, nil)
+		Expect(len(errs)).To(BeZero())
 
 		// create manifest list with images
 		id, err = manifests.Create(bt.conn, []string{"quay.io/libpod/foobar:latest"}, []string{alpine.name}, nil)

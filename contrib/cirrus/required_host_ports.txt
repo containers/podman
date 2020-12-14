@@ -5,7 +5,6 @@ registry.fedoraproject.org 443
 mirrors.fedoraproject.org 443
 dl.fedoraproject.org 443
 ewr.edge.kernel.org 443
-mirror.chpc.utah.edu 443
 mirror.clarkson.edu 443
 mirror.umd.edu 443
 mirror.vcu.edu 443
