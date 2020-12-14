@@ -415,13 +415,18 @@ json-file | f
         fi
 
         if [[ $driver != 'none' ]]; then
-            run_podman logs myctr
-            is "$output" "$msg" "check that podman logs works as expected"
+            if [[ $driver = 'journald' ]] && journald_unavailable; then
+                # Cannot perform check
+                :
+            else
+                run_podman logs myctr
+                is "$output" "$msg" "podman logs, with driver '$driver'"
+            fi
         else
             run_podman 125 logs myctr
             if ! is_remote; then
                 is "$output" ".*this container is using the 'none' log driver, cannot read logs.*" \
-                   "podman logs does not work with none log driver"
+                   "podman logs, with driver 'none', should fail with error"
             fi
         fi
         run_podman rm myctr
@@ -437,14 +442,7 @@ json-file | f
     skip_if_remote "We cannot read journalctl over remote."
 
     # We can't use journald on RHEL as rootless, either: rhbz#1895105
-    if is_rootless; then
-        run journalctl -n 1
-        if [[ $status -ne 0 ]]; then
-            if [[ $output =~ permission ]]; then
-                skip "Cannot use rootless journald on this system"
-            fi
-        fi
-    fi
+    skip_if_journald_unavailable
 
     msg=$(random_string 20)
     pidfile="${PODMAN_TMPDIR}/$(random_string 20)"
