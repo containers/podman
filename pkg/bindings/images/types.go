@@ -79,7 +79,7 @@ type TagOptions struct {
 }
 
 //go:generate go run ../generator/generator.go UntagOptions
-// UntagOptions are optional options for tagging images
+// UntagOptions are optional options for untagging images
 type UntagOptions struct {
 }
 

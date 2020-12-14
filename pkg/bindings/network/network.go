@@ -2,10 +2,8 @@ package network
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/containers/podman/v2/pkg/bindings"
@@ -14,15 +12,18 @@ import (
 )
 
 // Create makes a new CNI network configuration
-func Create(ctx context.Context, options entities.NetworkCreateOptions, name *string) (*entities.NetworkCreateReport, error) {
+func Create(ctx context.Context, options *CreateOptions) (*entities.NetworkCreateReport, error) {
 	var report entities.NetworkCreateReport
+	if options == nil {
+		options = new(CreateOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 	params := url.Values{}
-	if name != nil {
-		params.Set("name", *name)
+	if options.Name != nil {
+		params.Set("name", options.GetName())
 	}
 	networkConfig, err := jsoniter.MarshalToString(options)
 	if err != nil {
@@ -37,8 +38,12 @@ func Create(ctx context.Context, options entities.NetworkCreateOptions, name *st
 }
 
 // Inspect returns low level information about a CNI network configuration
-func Inspect(ctx context.Context, nameOrID string) ([]entities.NetworkInspectReport, error) {
+func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) ([]entities.NetworkInspectReport, error) {
 	var reports []entities.NetworkInspectReport
+	if options == nil {
+		options = new(InspectOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -53,15 +58,18 @@ func Inspect(ctx context.Context, nameOrID string) ([]entities.NetworkInspectRep
 // Remove deletes a defined CNI network configuration by name.  The optional force boolean
 // will remove all containers associated with the network when set to true.  A slice
 // of NetworkRemoveReports are returned.
-func Remove(ctx context.Context, nameOrID string, force *bool) ([]*entities.NetworkRmReport, error) {
+func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*entities.NetworkRmReport, error) {
 	var reports []*entities.NetworkRmReport
+	if options == nil {
+		options = new(RemoveOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if force != nil {
-		params.Set("force", strconv.FormatBool(*force))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/networks/%s", params, nil, nameOrID)
 	if err != nil {
@@ -71,21 +79,20 @@ func Remove(ctx context.Context, nameOrID string, force *bool) ([]*entities.Netw
 }
 
 // List returns a summary of all CNI network configurations
-func List(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
+func List(ctx context.Context, options *ListOptions) ([]*entities.NetworkListReport, error) {
 	var (
 		netList []*entities.NetworkListReport
 	)
+	if options == nil {
+		options = new(ListOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if options.Filters != nil {
-		b, err := json.Marshal(options.Filters)
-		if err != nil {
-			return nil, err
-		}
-		params.Set("filters", string(b))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/json", params, nil)
 	if err != nil {
@@ -95,13 +102,28 @@ func List(ctx context.Context, options entities.NetworkListOptions) ([]*entities
 }
 
 // Disconnect removes a container from a given network
-func Disconnect(ctx context.Context, networkName string, options entities.NetworkDisconnectOptions) error {
+func Disconnect(ctx context.Context, networkName string, ContainerNameOrId string, options *DisconnectOptions) error {
+	if options == nil {
+		options = new(DisconnectOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
+	// No params are used for disconnect
 	params := url.Values{}
-	body, err := jsoniter.MarshalToString(options)
+	// Disconnect sends everything in body
+	disconnect := struct {
+		Container string
+		Force     bool
+	}{
+		Container: ContainerNameOrId,
+	}
+	if force := options.GetForce(); options.Changed("Force") {
+		disconnect.Force = force
+	}
+
+	body, err := jsoniter.MarshalToString(disconnect)
 	if err != nil {
 		return err
 	}
@@ -114,13 +136,27 @@ func Disconnect(ctx context.Context, networkName string, options entities.Networ
 }
 
 // Connect adds a container to a network
-func Connect(ctx context.Context, networkName string, options entities.NetworkConnectOptions) error {
+func Connect(ctx context.Context, networkName string, ContainerNameOrId string, options *ConnectOptions) error {
+	if options == nil {
+		options = new(ConnectOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
+	// No params are used in connect
 	params := url.Values{}
-	body, err := jsoniter.MarshalToString(options)
+	// Connect sends everything in body
+	connect := struct {
+		Container string
+		Aliases   []string
+	}{
+		Container: ContainerNameOrId,
+	}
+	if aliases := options.GetAliases(); options.Changed("Aliases") {
+		connect.Aliases = aliases
+	}
+	body, err := jsoniter.MarshalToString(connect)
 	if err != nil {
 		return err
 	}

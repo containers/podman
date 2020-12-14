@@ -64,6 +64,9 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 		case reflect.Int, reflect.Int64:
 			// f.Int() is always an int64
 			params.Set(fieldName, strconv.FormatInt(f.Int(), 10))
+		case reflect.Uint, reflect.Uint64:
+			// f.Uint() is always an uint64
+			params.Set(fieldName, strconv.FormatUint(f.Uint(), 10))
 		case reflect.Slice:
 			typ := reflect.TypeOf(f.Interface()).Elem()
 			slice := reflect.MakeSlice(reflect.SliceOf(typ), f.Len(), f.Cap())
@@ -92,8 +95,6 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 			}
 
 			params.Set(fieldName, s)
-		default:
-			return nil, errors.Errorf("unknown type %s", f.Kind().String())
 		}
 	}
 	return params, nil

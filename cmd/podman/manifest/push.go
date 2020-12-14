@@ -107,7 +107,7 @@ func push(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		manifestPushOpts.SkipTLSVerify = types.NewOptionalBool(!manifestPushOpts.TLSVerifyCLI)
 	}
-	if err := registry.ImageEngine().ManifestPush(registry.Context(), args, manifestPushOpts.ManifestPushOptions); err != nil {
+	if err := registry.ImageEngine().ManifestPush(registry.Context(), args[0], args[1], manifestPushOpts.ManifestPushOptions); err != nil {
 		return err
 	}
 	return nil

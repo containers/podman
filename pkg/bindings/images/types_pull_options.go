@@ -13,7 +13,7 @@ import (
 /*
 This file is generated automatically by go generate.  Do not edit.
 
-Created 2020-12-15 15:22:48.373345229 -0600 CST m=+0.000247562
+Created 2020-12-16 11:47:09.104988433 -0600 CST m=+0.000274515
 */
 
 // Changed
@@ -52,6 +52,9 @@ func (o *PullOptions) ToParams() (url.Values, error) {
 		case reflect.Int, reflect.Int64:
 			// f.Int() is always an int64
 			params.Set(fieldName, strconv.FormatInt(f.Int(), 10))
+		case reflect.Uint, reflect.Uint64:
+			// f.Uint() is always an uint64
+			params.Set(fieldName, strconv.FormatUint(f.Uint(), 10))
 		case reflect.Slice:
 			typ := reflect.TypeOf(f.Interface()).Elem()
 			slice := reflect.MakeSlice(reflect.SliceOf(typ), f.Len(), f.Cap())
@@ -80,8 +83,6 @@ func (o *PullOptions) ToParams() (url.Values, error) {
 			}
 
 			params.Set(fieldName, s)
-		default:
-			return nil, errors.Errorf("unknown type %s", f.Kind().String())
 		}
 	}
 	return params, nil

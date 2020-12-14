@@ -34,7 +34,7 @@ var _ = Describe("Podman info", func() {
 	})
 
 	It("podman info", func() {
-		info, err := system.Info(bt.conn)
+		info, err := system.Info(bt.conn, nil)
 		Expect(err).To(BeNil())
 		Expect(info.Host.Arch).To(Equal(runtime.GOARCH))
 		Expect(info.Host.OS).To(Equal(runtime.GOOS))
@@ -62,7 +62,7 @@ var _ = Describe("Podman info", func() {
 		_, err = bt.RunTopContainer(nil, nil, nil)
 		Expect(err).To(BeNil())
 
-		info, err := system.Info(bt.conn)
+		info, err := system.Info(bt.conn, nil)
 		Expect(err).To(BeNil())
 
 		Expect(info.Store.ContainerStore.Number).To(BeNumerically("==", 4))

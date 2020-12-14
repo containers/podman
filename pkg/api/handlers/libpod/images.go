@@ -286,7 +286,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 	case define.OCIManifestDir, define.V2s2ManifestDir:
 		tmpdir, err := ioutil.TempDir("", "save")
 		if err != nil {
-			utils.Error(w, "unable to create tmpdir", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempdir"))
+			utils.Error(w, "unable to create tmpdir", http.StatusInternalServerError, errors.Wrap(err, "unable to create tmpdir"))
 			return
 		}
 		output = tmpdir

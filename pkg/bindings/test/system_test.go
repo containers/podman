@@ -56,8 +56,8 @@ var _ = Describe("Podman system", func() {
 				eventCounter++
 			}
 		}()
-
-		err = system.Events(bt.conn, binChan, nil, nil, nil, filters, bindings.PFalse)
+		options := new(system.EventsOptions).WithFilters(filters).WithStream(false)
+		err = system.Events(bt.conn, binChan, nil, options)
 		Expect(err).To(BeNil())
 		done.Lock()
 		Expect(eventCounter).To(BeNumerically(">", 0))
@@ -76,7 +76,8 @@ var _ = Describe("Podman system", func() {
 		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
-		systemPruneResponse, err := system.Prune(bt.conn, bindings.PTrue, bindings.PFalse)
+		options := new(system.PruneOptions).WithAll(true)
+		systemPruneResponse, err := system.Prune(bt.conn, options)
 		Expect(err).To(BeNil())
 		Expect(len(systemPruneResponse.PodPruneReport)).To(Equal(1))
 		Expect(len(systemPruneResponse.ContainerPruneReport.ID)).To(Equal(1))
@@ -107,10 +108,10 @@ var _ = Describe("Podman system", func() {
 		Expect(err).To(BeNil())
 
 		// Adding an unused volume
-		_, err = volumes.Create(bt.conn, entities.VolumeCreateOptions{})
+		_, err = volumes.Create(bt.conn, entities.VolumeCreateOptions{}, nil)
 		Expect(err).To(BeNil())
-
-		systemPruneResponse, err := system.Prune(bt.conn, bindings.PTrue, bindings.PFalse)
+		options := new(system.PruneOptions).WithAll(true)
+		systemPruneResponse, err := system.Prune(bt.conn, options)
 		Expect(err).To(BeNil())
 		Expect(len(systemPruneResponse.PodPruneReport)).To(Equal(1))
 		Expect(len(systemPruneResponse.ContainerPruneReport.ID)).To(Equal(1))
@@ -141,10 +142,11 @@ var _ = Describe("Podman system", func() {
 		Expect(err).To(BeNil())
 
 		// Adding an unused volume should work
-		_, err = volumes.Create(bt.conn, entities.VolumeCreateOptions{})
+		_, err = volumes.Create(bt.conn, entities.VolumeCreateOptions{}, nil)
 		Expect(err).To(BeNil())
 
-		systemPruneResponse, err := system.Prune(bt.conn, bindings.PTrue, bindings.PTrue)
+		options := new(system.PruneOptions).WithAll(true).WithVolumes(true)
+		systemPruneResponse, err := system.Prune(bt.conn, options)
 		Expect(err).To(BeNil())
 		Expect(len(systemPruneResponse.PodPruneReport)).To(Equal(0))
 		Expect(len(systemPruneResponse.ContainerPruneReport.ID)).To(Equal(1))

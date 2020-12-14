@@ -7,10 +7,16 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 )
 
-func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string, options entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
+func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string, opts entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
+	options := new(generate.SystemdOptions).WithUseName(opts.Name).WithContainerPrefix(opts.ContainerPrefix).WithNew(opts.New)
+	options.WithPodPrefix(opts.PodPrefix).WithRestartPolicy(opts.RestartPolicy).WithSeparator(opts.Separator)
+	if to := opts.StopTimeout; to != nil {
+		options.WithStopTimeout(*opts.StopTimeout)
+	}
 	return generate.Systemd(ic.ClientCxt, nameOrID, options)
 }
 
-func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
+func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, opts entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
+	options := new(generate.KubeOptions).WithService(opts.Service)
 	return generate.Kube(ic.ClientCxt, nameOrIDs, options)
 }
