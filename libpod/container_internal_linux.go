@@ -424,11 +424,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if c.config.User != "" {
-		if rootless.IsRootless() {
-			if err := util.CheckRootlessUIDRange(execUser.Uid); err != nil {
-				return nil, err
-			}
-		}
 		// User and Group must go together
 		g.SetProcessUID(uint32(execUser.Uid))
 		g.SetProcessGID(uint32(execUser.Gid))
