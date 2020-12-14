@@ -216,8 +216,5 @@ func (e EventLogFile) getTail(options ReadOptions) (*tail.Tail, error) {
 		reopen = false
 	}
 	stream := options.Stream
-	if len(options.Until) > 0 {
-		stream = false
-	}
 	return tail.TailFile(e.options.LogFilePath, tail.Config{ReOpen: reopen, Follow: stream, Location: &seek, Logger: tail.DiscardingLogger, Poll: true})
 }
