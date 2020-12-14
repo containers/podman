@@ -63,7 +63,7 @@ func DefineNetFlags(cmd *cobra.Command) {
 		networkFlagName, containerConfig.NetNS(),
 		"Connect a container to a network",
 	)
-	_ = cmd.RegisterFlagCompletionFunc(networkFlagName, AutocompleteNetworks)
+	_ = cmd.RegisterFlagCompletionFunc(networkFlagName, AutocompleteNetworkFlag)
 
 	networkAliasFlagName := "network-alias"
 	netFlags.StringSlice(

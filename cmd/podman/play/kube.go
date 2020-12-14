@@ -61,7 +61,7 @@ func init() {
 
 	networkFlagName := "network"
 	flags.StringVar(&kubeOptions.Network, networkFlagName, "", "Connect pod to CNI network(s)")
-	_ = kubeCmd.RegisterFlagCompletionFunc(networkFlagName, common.AutocompleteNetworks)
+	_ = kubeCmd.RegisterFlagCompletionFunc(networkFlagName, common.AutocompleteNetworkFlag)
 
 	logDriverFlagName := "log-driver"
 	flags.StringVar(&kubeOptions.LogDriver, logDriverFlagName, "", "Logging driver for the container")

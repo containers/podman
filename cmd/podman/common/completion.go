@@ -313,6 +313,10 @@ func completeKeyValues(toComplete string, k keyValueCompletion) ([]string, cobra
 	return suggestions, directive
 }
 
+func getBoolCompletion(_ string) ([]string, cobra.ShellCompDirective) {
+	return []string{"true", "false"}, cobra.ShellCompDirectiveNoFileComp
+}
+
 /* Autocomplete Functions for cobra ValidArgsFunction */
 
 // AutocompleteContainers - Autocomplete all container names.
@@ -797,6 +801,39 @@ func AutocompleteVolumeFlag(cmd *cobra.Command, args []string, toComplete string
 	return volumes, directive
 }
 
+// AutocompleteNetworkFlag - Autocomplete network flag options.
+func AutocompleteNetworkFlag(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	kv := keyValueCompletion{
+		"container:": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
+		"ns:": func(_ string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveDefault
+		},
+		"bridge":  nil,
+		"none":    nil,
+		"host":    nil,
+		"private": nil,
+		"slirp4netns:": func(s string) ([]string, cobra.ShellCompDirective) {
+			skv := keyValueCompletion{
+				"allow_host_loopback=": getBoolCompletion,
+				"cidr=":                nil,
+				"enable_ipv6=":         getBoolCompletion,
+				"outbound_addr=":       nil,
+				"outbound_addr6=":      nil,
+				"port_handler=": func(_ string) ([]string, cobra.ShellCompDirective) {
+					return []string{"rootlesskit", "slirp4netns"}, cobra.ShellCompDirectiveNoFileComp
+				},
+			}
+			return completeKeyValues(s, skv)
+		},
+	}
+
+	networks, _ := getNetworks(cmd, toComplete)
+	suggestions, dir := completeKeyValues(toComplete, kv)
+	// add slirp4netns here it does not work correct if we add it to the kv map
+	suggestions = append(suggestions, "slirp4netns")
+	return append(networks, suggestions...), dir
+}
+
 // AutocompleteJSONFormat - Autocomplete format flag option.
 // -> "json"
 func AutocompleteJSONFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -974,17 +1011,14 @@ func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete stri
 
 // AutocompleteImageFilters - Autocomplete image ls --filter options.
 func AutocompleteImageFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	getBool := func(_ string) ([]string, cobra.ShellCompDirective) {
-		return []string{"true", "false"}, cobra.ShellCompDirectiveNoFileComp
-	}
 	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
 	kv := keyValueCompletion{
 		"before=":    getImg,
 		"since=":     getImg,
 		"label=":     nil,
 		"reference=": nil,
-		"dangling=":  getBool,
-		"readonly=":  getBool,
+		"dangling=":  getBoolCompletion,
+		"readonly=":  getBoolCompletion,
 	}
 	return completeKeyValues(toComplete, kv)
 }
@@ -1004,14 +1038,12 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, args []string, toComplete str
 		return []string{"local"}, cobra.ShellCompDirectiveNoFileComp
 	}
 	kv := keyValueCompletion{
-		"name=":   func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
-		"driver=": local,
-		"scope=":  local,
-		"label=":  nil,
-		"opt=":    nil,
-		"dangling=": func(_ string) ([]string, cobra.ShellCompDirective) {
-			return []string{"true", "false"}, cobra.ShellCompDirectiveNoFileComp
-		},
+		"name=":     func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+		"driver=":   local,
+		"scope=":    local,
+		"label=":    nil,
+		"opt=":      nil,
+		"dangling=": getBoolCompletion,
 	}
 	return completeKeyValues(toComplete, kv)
 }
