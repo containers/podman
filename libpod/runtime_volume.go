@@ -133,9 +133,9 @@ func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
 }
 
 // PruneVolumes removes unused volumes from the system
-func (r *Runtime) PruneVolumes(ctx context.Context) (map[string]error, error) {
+func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) (map[string]error, error) {
 	reports := make(map[string]error)
-	vols, err := r.GetAllVolumes()
+	vols, err := r.Volumes(filterFuncs...)
 	if err != nil {
 		return nil, err
 	}

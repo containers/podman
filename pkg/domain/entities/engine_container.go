@@ -80,6 +80,6 @@ type ContainerEngine interface {
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IDOrNameResponse, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts InspectOptions) ([]*VolumeInspectReport, []error, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)
-	VolumePrune(ctx context.Context) ([]*VolumePruneReport, error)
+	VolumePrune(ctx context.Context, options VolumePruneOptions) ([]*VolumePruneReport, error)
 	VolumeRm(ctx context.Context, namesOrIds []string, opts VolumeRmOptions) ([]*VolumeRmReport, error)
 }

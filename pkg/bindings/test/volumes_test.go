@@ -144,16 +144,15 @@ var _ = Describe("Podman volumes", func() {
 		Expect(vols[0].Name).To(Equal("homer"))
 	})
 
-	// TODO we need to add filtering to tests
 	It("prune unused volume", func() {
 		// Pruning when no volumes present should be ok
-		_, err := volumes.Prune(connText)
+		_, err := volumes.Prune(connText, nil)
 		Expect(err).To(BeNil())
 
 		// Removing an unused volume should work
 		_, err = volumes.Create(connText, entities.VolumeCreateOptions{})
 		Expect(err).To(BeNil())
-		vols, err := volumes.Prune(connText)
+		vols, err := volumes.Prune(connText, nil)
 		Expect(err).To(BeNil())
 		Expect(len(vols)).To(BeNumerically("==", 1))
 
@@ -163,11 +162,45 @@ var _ = Describe("Podman volumes", func() {
 		Expect(err).To(BeNil())
 		session := bt.runPodman([]string{"run", "-dt", "-v", fmt.Sprintf("%s:/homer", "homer"), "--name", "vtest", alpine.name, "top"})
 		session.Wait(45)
-		vols, err = volumes.Prune(connText)
+		vols, err = volumes.Prune(connText, nil)
 		Expect(err).To(BeNil())
 		Expect(len(vols)).To(BeNumerically("==", 1))
 		_, err = volumes.Inspect(connText, "homer")
 		Expect(err).To(BeNil())
+
+		// Removing volume with non matching filter shouldn't prune any volumes
+		filters := make(map[string][]string)
+		filters["label"] = []string{"label1=idontmatch"}
+		_, err = volumes.Create(connText, entities.VolumeCreateOptions{Label: map[string]string{
+			"label1": "value1",
+		}})
+		Expect(err).To(BeNil())
+		vols, err = volumes.Prune(connText, filters)
+		Expect(err).To(BeNil())
+		Expect(len(vols)).To(BeNumerically("==", 0))
+		vol2, err := volumes.Create(connText, entities.VolumeCreateOptions{Label: map[string]string{
+			"label1": "value2",
+		}})
+		Expect(err).To(BeNil())
+		_, err = volumes.Create(connText, entities.VolumeCreateOptions{Label: map[string]string{
+			"label1": "value3",
+		}})
+		Expect(err).To(BeNil())
+
+		// Removing volume with matching filter label and value should remove specific entry
+		filters = make(map[string][]string)
+		filters["label"] = []string{"label1=value2"}
+		vols, err = volumes.Prune(connText, filters)
+		Expect(err).To(BeNil())
+		Expect(len(vols)).To(BeNumerically("==", 1))
+		Expect(vols[0].Id).To(Equal(vol2.Name))
+
+		// Removing volumes with matching filter label should remove all matching volumes
+		filters = make(map[string][]string)
+		filters["label"] = []string{"label1"}
+		vols, err = volumes.Prune(connText, filters)
+		Expect(err).To(BeNil())
+		Expect(len(vols)).To(BeNumerically("==", 2))
 	})
 
 })

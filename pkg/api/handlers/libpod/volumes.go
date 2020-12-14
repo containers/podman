@@ -3,6 +3,7 @@ package libpod
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
@@ -180,8 +181,25 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 func pruneVolumesHelper(r *http.Request) ([]*entities.VolumePruneReport, error) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		decoder = r.Context().Value("decoder").(*schema.Decoder)
 	)
-	pruned, err := runtime.PruneVolumes(r.Context())
+	query := struct {
+		Filters map[string][]string `schema:"filters"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		return nil, err
+	}
+
+	f := (url.Values)(query.Filters)
+	filterFuncs, err := filters.GenerateVolumeFilters(f)
+	if err != nil {
+		return nil, err
+	}
+
+	pruned, err := runtime.PruneVolumes(r.Context(), filterFuncs)
 	if err != nil {
 		return nil, err
 	}

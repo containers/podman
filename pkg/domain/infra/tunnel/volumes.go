@@ -68,8 +68,8 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	return reports, errs, nil
 }
 
-func (ic *ContainerEngine) VolumePrune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
-	return volumes.Prune(ic.ClientCxt)
+func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.VolumePruneOptions) ([]*entities.VolumePruneReport, error) {
+	return volumes.Prune(ic.ClientCxt, (map[string][]string)(opts.Filters))
 }
 
 func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeListOptions) ([]*entities.VolumeListReport, error) {

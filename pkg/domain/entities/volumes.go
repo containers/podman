@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"net/url"
 	"time"
 
 	docker_api_types "github.com/docker/docker/api/types"
@@ -107,6 +108,12 @@ type VolumeRmReport struct {
 
 type VolumeInspectReport struct {
 	*VolumeConfigResponse
+}
+
+// VolumePruneOptions describes the options needed
+// to prune a volume from the CLI
+type VolumePruneOptions struct {
+	Filters url.Values `json:"filters" schema:"filters"`
 }
 
 type VolumePruneReport struct {
