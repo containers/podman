@@ -178,6 +178,10 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+	// Hard code TMPDIR functions to use /var/tmp, if user did not override
+	if _, ok := os.LookupEnv("TMPDIR"); !ok {
+		os.Setenv("TMPDIR", "/var/tmp")
+	}
 
 	if !registry.IsRemote() {
 		if cmd.Flag("cpu-profile").Changed {
