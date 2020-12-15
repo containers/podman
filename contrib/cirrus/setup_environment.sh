@@ -200,6 +200,7 @@ case "$TEST_FLAVOR" in
     compose) ;&
     int) ;&
     sys) ;&
+    upgrade_test) ;&
     bindings) ;&
     endpoint)
         # Use existing host bits when testing is to happen inside a container
