@@ -1433,6 +1433,14 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 	}
 
 	if mustCreateCgroup {
+		// Usually rootless users are not allowed to configure cgroupfs.
+		// There are cases though, where it is allowed, e.g. if the cgroup
+		// is manually configured and chowned).  Avoid detecting all
+		// such cases and simply use a lower log level.
+		logLevel := logrus.WarnLevel
+		if rootless.IsRootless() {
+			logLevel = logrus.InfoLevel
+		}
 		// TODO: This should be a switch - we are not guaranteed that
 		// there are only 2 valid cgroup managers
 		cgroupParent := ctr.CgroupParent()
@@ -1447,17 +1455,17 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 
 			logrus.Infof("Running conmon under slice %s and unitName %s", realCgroupParent, unitName)
 			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, realCgroupParent, unitName); err != nil {
-				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
+				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to systemd sandbox cgroup: %v", err)
 			}
 		} else {
 			cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
 			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
 			if err != nil {
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			} else if err := control.AddPid(cmd.Process.Pid); err != nil {
 				// we need to remove this defer and delete the cgroup once conmon exits
 				// maybe need a conmon monitor?
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 		}
 	}
