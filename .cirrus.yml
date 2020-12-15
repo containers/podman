@@ -549,6 +549,7 @@ local_system_test_task: &local_system_test_task
       - local_integration_test
     matrix: *platform_axis
     gce_instance: *standardvm
+    timeout_in: 30m
     env:
         TEST_FLAVOR: sys
     clone_script: *noop  # Comes from cache
@@ -566,6 +567,18 @@ remote_system_test_task:
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
+
+
+container_system_test_task:
+    <<: *local_system_test_task
+    alias: container_system_test
+    skip: *branch
+    depends_on:
+        - container_integration_test
+    matrix: *fedora_vm_axis
+    env:
+        TEST_FLAVOR: sys
+        TEST_ENVIRON: container
 
 
 rootless_system_test_task:
@@ -641,6 +654,7 @@ success_task:
         - container_integration_test
         - local_system_test
         - remote_system_test
+        - container_system_test
         - rootless_system_test
         - meta
     container: *smallcontainer

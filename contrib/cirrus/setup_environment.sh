@@ -144,15 +144,19 @@ case "$TEST_ENVIRON" in
             # the following two modules loaded on the host.
             modprobe ip6table_nat || :
             modprobe iptable_nat || :
-        else
-            warn "Forcing CGROUP_MANAGER=cgroupfs"
-            echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
-
-            # There's no practical way to detect userns w/in a container
-            # affected/related tests are sensitive to this variable.
-            warn "Disabling usernamespace integration testing"
-            echo "SKIP_USERNS=1" >> /etc/ci_environment
+        else  # inside the container intended for testing
+            if [[ -c /dev/fuse ]]; then
+                warn "Enabling Fuse-Overlay in storage.conf"
+                sed -i -r -e 's|^#(mount_program.+fuse-over.*)|\1|g' \
+                    /etc/containers/storage.conf
+            else
+                warn "Running inside a container w/o /dev/fuse mounted."
+            fi
         fi
+
+        # The e2e tests wrongly guess `--cgroup-manager systemd`
+        warn "Forcing CGROUP_MANAGER=cgroupfs"
+        echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
         ;;
     *) die_unknown TEST_ENVIRON
 esac
