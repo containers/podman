@@ -31,11 +31,6 @@ func main() {
 		return
 	}
 
-	// Hard code TMPDIR functions to use /var/tmp, if user did not override
-	if _, ok := os.LookupEnv("TMPDIR"); !ok {
-		os.Setenv("TMPDIR", "/var/tmp")
-	}
-
 	rootCmd = parseCommands()
 
 	Execute()
