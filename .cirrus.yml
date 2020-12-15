@@ -574,13 +574,7 @@ rootless_system_test_task:
     only_if: *not_docs
     depends_on:
       - rootless_integration_test
-    # disabled: f32 rootless + cgroupsv1 fails 55/127 tests
-    #matrix: *fedora_vm_axis
-    env:
-        DISTRO_NV: ${FEDORA_NAME}
-        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+    matrix: *fedora_vm_axis
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys

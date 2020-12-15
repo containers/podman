@@ -145,11 +145,26 @@ function run_podman() {
         '?')             expected_rc=  ; shift;;  # ignore exit code
     esac
 
+    # FIXME FIXME FIXME: workaround for #8721
+    # When running rootless under cgroups v1, podman emits a useless warning:
+    #    Failed to add conmon to cgroupfs sandbox cgroup: error creating cgroup for memory: mkdir /sys/fs/cgroup/memory/libpod_parent: permission denied
+    # This is an artifact of #8479, in which log-level changed from error
+    # to warn. The warning had been hidden all these years. Podman works
+    # just fine, but we cannot tolerate those warnings in our fine-tuned
+    # output checks. For purposes of #8312 (the PR that adds Ubuntu 20.10
+    # and sets up some cgroups v1 testing), we work around the problem
+    # via the stick-head-in-sand approach.
+    # Please remove this workaround once #8721 is fixed.
+    local LOGLEVEL_OVERRIDE=
+    if is_cgroupsv1; then
+        LOGLEVEL_OVERRIDE="--log-level=error"
+    fi
+
     # stdout is only emitted upon error; this echo is to help a debugger
     echo "$_LOG_PROMPT $PODMAN $*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
-    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@" 3>/dev/null
+    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN $LOGLEVEL_OVERRIDE "$@" 3>/dev/null
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
         echo "$output"
