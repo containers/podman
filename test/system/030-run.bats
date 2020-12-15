@@ -401,7 +401,7 @@ json-file | f
         is "$output" "$driver" "podman inspect: driver"
 
         # If LogPath is non-null, check that it exists and has a valid log
-        run_podman inspect --format '{{.LogPath}}' myctr
+        run_podman inspect --format '{{.HostConfig.LogConfig.Path}}' myctr
         if [[ $do_check != '-' ]]; then
             is "$output" "/.*" "LogPath (driver=$driver)"
             if ! test -e "$output"; then

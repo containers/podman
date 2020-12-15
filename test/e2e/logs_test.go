@@ -332,6 +332,11 @@ var _ = Describe("Podman logs", func() {
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).To(Exit(0))
 
+		inspect := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.HostConfig.LogConfig.Size}}", cid})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("10kB"))
+
 		results := podmanTest.Podman([]string{"logs", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results).To(Exit(0))
