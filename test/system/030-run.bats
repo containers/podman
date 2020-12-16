@@ -548,27 +548,33 @@ json-file | f
 }
 
 @test "Verify /run/.containerenv exist" {
-	run_podman run --rm $IMAGE ls -1 /run/.containerenv
-	is "$output" "/run/.containerenv"
+    # Nonprivileged container: file exists, but must be empty
+    run_podman run --rm $IMAGE stat -c '%s' /run/.containerenv
+    is "$output" "0" "file size of /run/.containerenv, nonprivileged"
 
-	run_podman run --privileged --rm $IMAGE sh -c '. /run/.containerenv; echo $engine'
-	is "$output" ".*podman.*" "failed to identify engine"
+    # Prep work: get ID of image; make a cont. name; determine if we're rootless
+    run_podman inspect --format '{{.ID}}' $IMAGE
+    local iid="$output"
 
-	run_podman run --privileged  --name "testcontainerenv" --rm $IMAGE sh -c '. /run/.containerenv; echo $name'
-	is "$output" ".*testcontainerenv.*"
+    random_cname=c$(random_string 15 | tr A-Z a-z)
+    local rootless=0
+    if is_rootless; then
+        rootless=1
+    fi
 
-	run_podman run --privileged  --rm $IMAGE sh -c '. /run/.containerenv; echo $image'
-	is "$output" ".*$IMAGE.*" "failed to idenitfy image"
+    run_podman run --privileged --rm --name $random_cname $IMAGE \
+               sh -c '. /run/.containerenv; echo $engine; echo $name; echo $image; echo $id; echo $imageid; echo $rootless'
 
-	run_podman run --privileged --rm $IMAGE sh -c '. /run/.containerenv; echo $rootless'
-	# FIXME: on some CI systems, 'run --privileged' emits a spurious
-	# warning line about dup devices. Ignore it.
-	remove_same_dev_warning
-	if is_rootless; then
-		is "$output" "1"
-	else
-		is "$output" "0"
-	fi
+    # FIXME: on some CI systems, 'run --privileged' emits a spurious
+    # warning line about dup devices. Ignore it.
+    remove_same_dev_warning
+
+    is "${lines[0]}" "podman-.*"      'containerenv : $engine'
+    is "${lines[1]}" "$random_cname"  'containerenv : $name'
+    is "${lines[2]}" "$IMAGE"         'containerenv : $image'
+    is "${lines[3]}" "[0-9a-f]\{64\}" 'containerenv : $id'
+    is "${lines[4]}" "$iid"           'containerenv : $imageid'
+    is "${lines[5]}" "$rootless"      'containerenv : $rootless'
 }
 
 @test "podman run with --net=host and --port prints warning" {

@@ -82,4 +82,43 @@ load helpers
     run_podman rm -a
 }
 
+@test "podman ps -a --storage" {
+    skip_if_remote "ps --storage does not work over remote"
+
+    # Setup: ensure that we have no hidden storage containers
+    run_podman ps --storage -a
+    is "${#lines[@]}" "1" "setup check: no storage containers at start of test"
+
+    # Force a buildah timeout; this leaves a buildah container behind
+    PODMAN_TIMEOUT=5 run_podman 124 build -t thiswillneverexist - <<EOF
+FROM $IMAGE
+RUN sleep 30
+EOF
+
+    run_podman ps -a
+    is "${#lines[@]}" "1" "podman ps -a does not see buildah container"
+
+    run_podman ps --storage -a
+    is "${#lines[@]}" "2" "podman ps -a --storage sees buildah container"
+    is "${lines[1]}" \
+       "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds ago .* storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
+       "podman ps --storage"
+
+    cid="${lines[1]:0:12}"
+
+    # 'rm -a' should be a NOP
+    run_podman rm -a
+    run_podman ps --storage -a
+    is "${#lines[@]}" "2" "podman ps -a --storage sees buildah container"
+
+    # This is what deletes the container
+    # FIXME: why doesn't "podman rm --storage $cid" do anything?
+    run_podman rm -f "$cid"
+
+    run_podman ps --storage -a
+    is "${#lines[@]}" "1" "storage container has been removed"
+}
+
+
+
 # vim: filetype=sh

@@ -168,8 +168,11 @@ function run_podman() {
 
     if [ "$status" -eq 124 ]; then
         if expr "$output" : ".*timeout: sending" >/dev/null; then
-            echo "*** TIMED OUT ***"
-            false
+            # It's possible for a subtest to _want_ a timeout
+            if [[ "$expected_rc" != "124" ]]; then
+                echo "*** TIMED OUT ***"
+                false
+            fi
         fi
     fi
 
