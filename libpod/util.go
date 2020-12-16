@@ -142,29 +142,37 @@ func JSONDeepCopy(from, to interface{}) error {
 	return json.Unmarshal(tmp, to)
 }
 
-func dpkgVersion(path string) string {
+func queryPackageVersion(cmdArg ...string) string {
 	output := unknownPackage
-	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
-	if outp, err := cmd.Output(); err == nil {
-		output = string(outp)
+	if 1 < len(cmdArg) {
+		cmd := exec.Command(cmdArg[0], cmdArg[1:]...)
+		if outp, err := cmd.Output(); err == nil {
+			output = string(outp)
+		}
 	}
 	return strings.Trim(output, "\n")
 }
 
+func pacmanVersion(path string) string {
+	return queryPackageVersion("/usr/bin/pacman", "-Qo", path)
+}
+
+func dpkgVersion(path string) string {
+	return queryPackageVersion("/usr/bin/dpkg", "-S", path)
+}
+
 func rpmVersion(path string) string {
-	output := unknownPackage
-	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
-	if outp, err := cmd.Output(); err == nil {
-		output = string(outp)
-	}
-	return strings.Trim(output, "\n")
+	return queryPackageVersion("/usr/bin/rpm", "-q", "-f", path)
 }
 
 func packageVersion(program string) string {
 	if out := rpmVersion(program); out != unknownPackage {
 		return out
 	}
-	return dpkgVersion(program)
+	if out := dpkgVersion(program); out != unknownPackage {
+		return out
+	}
+	return pacmanVersion(program)
 }
 
 func programVersion(mountProgram string) (string, error) {
