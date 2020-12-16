@@ -95,6 +95,10 @@ func NewIPAMLocalHostRange(subnet *net.IPNet, ipRange *net.IPNet, gw net.IP) ([]
 	}
 	if gw != nil {
 		hostRange.Gateway = gw.String()
+	} else {
+		// Add first ip in subnet as gateway. It is not required
+		// by cni but should be included because of network inspect.
+		hostRange.Gateway = CalcGatewayIP(subnet).String()
 	}
 	ranges = append(ranges, hostRange)
 	return ranges, nil

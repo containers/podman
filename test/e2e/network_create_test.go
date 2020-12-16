@@ -106,6 +106,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(bridgePlugin.IPAM.Routes[0].Dest).To(Equal("0.0.0.0/0"))
 		Expect(bridgePlugin.IsGW).To(BeTrue())
 		Expect(bridgePlugin.IPMasq).To(BeTrue())
+		Expect(bridgePlugin.IPAM.Ranges[0][0].Gateway).ToNot(BeEmpty())
 		Expect(portMapPlugin.Capabilities["portMappings"]).To(BeTrue())
 
 	})
@@ -153,6 +154,8 @@ var _ = Describe("Podman network create", func() {
 		// JSON the bridge info
 		bridgePlugin, err := genericPluginsToBridge(result["plugins"], "bridge")
 		Expect(err).To(BeNil())
+		// check that gateway is added to config
+		Expect(bridgePlugin.IPAM.Ranges[0][0].Gateway).To(Equal("10.11.12.1"))
 
 		// Once a container executes a new network, the nic will be created. We should clean those up
 		// best we can
