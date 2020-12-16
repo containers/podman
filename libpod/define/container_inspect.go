@@ -82,10 +82,15 @@ type InspectRestartPolicy struct {
 }
 
 // InspectLogConfig holds information about a container's configured log driver
-// and is presently unused. It is retained for Docker compatibility.
 type InspectLogConfig struct {
 	Type   string            `json:"Type"`
 	Config map[string]string `json:"Config"` //idk type, TODO
+	// Path specifies a path to the log file
+	Path string `json:"Path"`
+	// Tag specifies a custom log tag for the container
+	Tag string `json:"Tag"`
+	// Size specifies a maximum size of the container log
+	Size string `json:"Size"`
 }
 
 // InspectBlkioWeightDevice holds information about the relative weight
@@ -620,8 +625,6 @@ type InspectContainerData struct {
 	StaticDir       string                      `json:"StaticDir"`
 	OCIConfigPath   string                      `json:"OCIConfigPath,omitempty"`
 	OCIRuntime      string                      `json:"OCIRuntime,omitempty"`
-	LogPath         string                      `json:"LogPath"`
-	LogTag          string                      `json:"LogTag"`
 	ConmonPidFile   string                      `json:"ConmonPidFile"`
 	Name            string                      `json:"Name"`
 	RestartCount    int32                       `json:"RestartCount"`
