@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/auth"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -77,5 +78,18 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		utils.BadRequest(w, "term", query.Term, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, results)
+
+	compatResults := make([]registry.SearchResult, 0, len(results))
+	for _, result := range results {
+		compatResult := registry.SearchResult{
+			Name:        result.Name,
+			Description: result.Description,
+			StarCount:   result.Stars,
+			IsAutomated: result.Automated == "[OK]",
+			IsOfficial:  result.Official == "[OK]",
+		}
+		compatResults = append(compatResults, compatResult)
+	}
+
+	utils.WriteResponse(w, http.StatusOK, compatResults)
 }
