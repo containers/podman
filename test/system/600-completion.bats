@@ -72,8 +72,9 @@ function check_shell_completion() {
                     if ! is_remote; then
                         run_completion "$@" $cmd "--"
                         # If this fails there is most likely a problem with the cobra library
-                        is "${lines[0]}" "--.*" "Found flag in suggestions"
-                        [ ${#lines[@]} -gt 2 ] || die "No flag suggestions"
+                        is "${lines[0]}" "--.*" \
+                           "$* $cmd: flag(s) listed in suggestions"
+                        [ ${#lines[@]} -gt 2 ] || die "$* $cmd: No flag suggestions"
                         _check_completion_end NoFileComp
                     fi
                     # continue the outer for args loop
@@ -87,7 +88,8 @@ function check_shell_completion() {
                     fi
 
                     run_completion "$@" $cmd "${extra_args[@]}" ""
-                    is "$output" ".*-$random_container_name${nl}" "Found expected container in suggestions for '$cmd'"
+                    is "$output" ".*-$random_container_name${nl}" \
+                       "$* $cmd: actual container listed in suggestions"
 
                     match=true
                     # resume
@@ -95,7 +97,8 @@ function check_shell_completion() {
 
                 *POD*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
-                    is "$output" ".*-$random_pod_name${nl}" "Found expected pod in suggestions"
+                    is "$output" ".*-$random_pod_name${nl}" \
+                       "$* $cmd: actual pod listed in suggestions"
                     _check_completion_end NoFileComp
 
                     match=true
@@ -104,16 +107,20 @@ function check_shell_completion() {
 
                 *IMAGE*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
-                    is "$output" ".*localhost/$random_image_name:$random_image_tag${nl}" "Found expected image in suggestions"
+                    is "$output" ".*localhost/$random_image_name:$random_image_tag${nl}" \
+                       "$* $cmd: actual image listed in suggestions"
 
                     # check that we complete the image with and without tag after at least one char is typed
                     run_completion "$@" $cmd "${extra_args[@]}" "${random_image_name:0:1}"
-                    is "$output" ".*$random_image_name:$random_image_tag${nl}" "Found expected image with tag in suggestions"
-                    is "$output" ".*$random_image_name${nl}" "Found expected image without tag in suggestions"
+                    is "$output" ".*$random_image_name:$random_image_tag${nl}" \
+                       "$* $cmd: image name:tag included in suggestions"
+                    is "$output" ".*$random_image_name${nl}" \
+                       "$* $cmd: image name(w/o tag) included in suggestions"
 
                     # check that we complete the image id after at least two chars are typed
                     run_completion "$@" $cmd "${extra_args[@]}" "${random_image_id:0:2}"
-                    is "$output" ".*$random_image_id${nl}" "Found expected image id in suggestions"
+                    is "$output" ".*$random_image_id${nl}" \
+                       "$* $cmd: image id included in suggestions when two leading characters present in command line"
 
                     match=true
                     # resume
@@ -121,7 +128,8 @@ function check_shell_completion() {
 
                 *NETWORK*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
-                    is "$output" ".*$random_network_name${nl}" "Found network in suggestions"
+                    is "$output" ".*$random_network_name${nl}" \
+                       "$* $cmd: actual network listed in suggestions"
                     _check_completion_end NoFileComp
 
                     match=true
@@ -130,7 +138,8 @@ function check_shell_completion() {
 
                 *VOLUME*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
-                    is "$output" ".*$random_volume_name${nl}" "Found volume in suggestions"
+                    is "$output" ".*$random_volume_name${nl}" \
+                       "$* $cmd: actual volume listed in suggestions"
                     _check_completion_end NoFileComp
 
                     match=true
@@ -142,7 +151,7 @@ function check_shell_completion() {
                     ### FIXME how can we get the configured registries?
                     _check_completion_end NoFileComp
                     ### FIXME this fails if no registries are configured
-                    [[ ${#lines[@]} -gt 2 ]] || die "No registries found in suggestions"
+                    [[ ${#lines[@]} -gt 2 ]] || die "$* $cmd: No REGISTRIES found in suggestions"
 
                     match=true
                     # resume
@@ -157,7 +166,7 @@ function check_shell_completion() {
                         _check_completion_end NoSpace
                     else
                         _check_completion_end Default
-                        [[ ${#lines[@]} -eq 2 ]] || die "Suggestions are in the output"
+                        [[ ${#lines[@]} -eq 2 ]] || die "$* $cmd: Suggestions are in the output"
                     fi
                     ;;
 
