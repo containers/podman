@@ -12,18 +12,18 @@ import (
 /*
 This file is generated automatically by go generate.  Do not edit.
 
-Created 2020-12-10 12:51:06.090426622 -0600 CST m=+0.000133169
+Created 2020-12-15 15:22:47.943587389 -0600 CST m=+0.000238222
 */
 
 // Changed
-func (o *RemoveOptions) Changed(fieldName string) bool {
+func (o *ImportOptions) Changed(fieldName string) bool {
 	r := reflect.ValueOf(o)
 	value := reflect.Indirect(r).FieldByName(fieldName)
 	return !value.IsNil()
 }
 
 // ToParams
-func (o *RemoveOptions) ToParams() (url.Values, error) {
+func (o *ImportOptions) ToParams() (url.Values, error) {
 	params := url.Values{}
 	if o == nil {
 		return params, nil
@@ -68,10 +68,11 @@ func (o *RemoveOptions) ToParams() (url.Values, error) {
 			}
 		case reflect.Map:
 			lowerCaseKeys := make(map[string][]string)
-			// I dont know if this code is needed anymore, TBD
-			// for k, v := range filters {
-			// 	lowerCaseKeys[strings.ToLower(k)] = v
-			// }
+			iter := f.MapRange()
+			for iter.Next() {
+				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
+
+			}
 			s, err := json.MarshalToString(lowerCaseKeys)
 			if err != nil {
 				return nil, err
@@ -85,9 +86,66 @@ func (o *RemoveOptions) ToParams() (url.Values, error) {
 	return params, nil
 }
 
-// WithForce
-func (o *RemoveOptions) WithForce(value bool) *RemoveOptions {
+// WithChanges
+func (o *ImportOptions) WithChanges(value []string) *ImportOptions {
 	v := &value
-	o.Force = v
+	o.Changes = v
 	return o
+}
+
+// GetChanges
+func (o *ImportOptions) GetChanges() []string {
+	var changes []string
+	if o.Changes == nil {
+		return changes
+	}
+	return *o.Changes
+}
+
+// WithMessage
+func (o *ImportOptions) WithMessage(value string) *ImportOptions {
+	v := &value
+	o.Message = v
+	return o
+}
+
+// GetMessage
+func (o *ImportOptions) GetMessage() string {
+	var message string
+	if o.Message == nil {
+		return message
+	}
+	return *o.Message
+}
+
+// WithReference
+func (o *ImportOptions) WithReference(value string) *ImportOptions {
+	v := &value
+	o.Reference = v
+	return o
+}
+
+// GetReference
+func (o *ImportOptions) GetReference() string {
+	var reference string
+	if o.Reference == nil {
+		return reference
+	}
+	return *o.Reference
+}
+
+// WithURL
+func (o *ImportOptions) WithURL(value string) *ImportOptions {
+	v := &value
+	o.URL = v
+	return o
+}
+
+// GetURL
+func (o *ImportOptions) GetURL() string {
+	var uRL string
+	if o.URL == nil {
+		return uRL
+	}
+	return *o.URL
 }

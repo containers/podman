@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/bindings"
@@ -32,22 +31,18 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 
 // List returns a list of images in local storage.  The all boolean and filters parameters are optional
 // ways to alter the image query.
-func List(ctx context.Context, all *bool, filters map[string][]string) ([]*entities.ImageSummary, error) {
+func List(ctx context.Context, options *ListOptions) ([]*entities.ImageSummary, error) {
+	if options == nil {
+		options = new(ListOptions)
+	}
 	var imageSummary []*entities.ImageSummary
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if all != nil {
-		params.Set("all", strconv.FormatBool(*all))
-	}
-	if filters != nil {
-		strFilters, err := bindings.FiltersToString(filters)
-		if err != nil {
-			return nil, err
-		}
-		params.Set("filters", strFilters)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/json", params, nil)
 	if err != nil {
@@ -58,14 +53,17 @@ func List(ctx context.Context, all *bool, filters map[string][]string) ([]*entit
 
 // Get performs an image inspect.  To have the on-disk size of the image calculated, you can
 // use the optional size parameter.
-func GetImage(ctx context.Context, nameOrID string, size *bool) (*entities.ImageInspectReport, error) {
+func GetImage(ctx context.Context, nameOrID string, options *GetOptions) (*entities.ImageInspectReport, error) {
+	if options == nil {
+		options = new(GetOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if size != nil {
-		params.Set("size", strconv.FormatBool(*size))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	inspectedData := entities.ImageInspectReport{}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/json", params, nil, nameOrID)
@@ -76,15 +74,18 @@ func GetImage(ctx context.Context, nameOrID string, size *bool) (*entities.Image
 }
 
 // Tree retrieves a "tree" based representation of the given image
-func Tree(ctx context.Context, nameOrID string, whatRequires *bool) (*entities.ImageTreeReport, error) {
+func Tree(ctx context.Context, nameOrID string, options *TreeOptions) (*entities.ImageTreeReport, error) {
+	if options == nil {
+		options = new(TreeOptions)
+	}
 	var report entities.ImageTreeReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if whatRequires != nil {
-		params.Set("size", strconv.FormatBool(*whatRequires))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/tree", params, nil, nameOrID)
 	if err != nil {
@@ -94,7 +95,11 @@ func Tree(ctx context.Context, nameOrID string, whatRequires *bool) (*entities.I
 }
 
 // History returns the parent layers of an image.
-func History(ctx context.Context, nameOrID string) ([]*handlers.HistoryResponse, error) {
+func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*handlers.HistoryResponse, error) {
+	if options == nil {
+		options = new(HistoryOptions)
+	}
+	_ = options
 	var history []*handlers.HistoryResponse
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -107,15 +112,18 @@ func History(ctx context.Context, nameOrID string) ([]*handlers.HistoryResponse,
 	return history, response.Process(&history)
 }
 
-func Load(ctx context.Context, r io.Reader, name *string) (*entities.ImageLoadReport, error) {
+func Load(ctx context.Context, r io.Reader, options *LoadOptions) (*entities.ImageLoadReport, error) {
+	if options == nil {
+		options = new(LoadOptions)
+	}
 	var report entities.ImageLoadReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if name != nil {
-		params.Set("reference", *name)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(r, http.MethodPost, "/images/load", params, nil)
 	if err != nil {
@@ -124,49 +132,24 @@ func Load(ctx context.Context, r io.Reader, name *string) (*entities.ImageLoadRe
 	return &report, response.Process(&report)
 }
 
-func MultiExport(ctx context.Context, namesOrIds []string, w io.Writer, format *string, compress *bool) error {
+// Export saves images from local storage as a tarball or image archive.  The optional format
+// parameter is used to change the format of the output.
+func Export(ctx context.Context, nameOrIDs []string, w io.Writer, options *ExportOptions) error {
+	if options == nil {
+		options = new(ExportOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
-	params := url.Values{}
-	if format != nil {
-		params.Set("format", *format)
+	params, err := options.ToParams()
+	if err != nil {
+		return err
 	}
-	if compress != nil {
-		params.Set("compress", strconv.FormatBool(*compress))
-	}
-	for _, ref := range namesOrIds {
+	for _, ref := range nameOrIDs {
 		params.Add("references", ref)
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/export", params, nil)
-	if err != nil {
-		return err
-	}
-
-	if response.StatusCode/100 == 2 || response.StatusCode/100 == 3 {
-		_, err = io.Copy(w, response.Body)
-		return err
-	}
-	return response.Process(nil)
-
-}
-
-// Export saves an image from local storage as a tarball or image archive.  The optional format
-// parameter is used to change the format of the output.
-func Export(ctx context.Context, nameOrID string, w io.Writer, format *string, compress *bool) error {
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return err
-	}
-	params := url.Values{}
-	if format != nil {
-		params.Set("format", *format)
-	}
-	if compress != nil {
-		params.Set("compress", strconv.FormatBool(*compress))
-	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/get", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -180,24 +163,20 @@ func Export(ctx context.Context, nameOrID string, w io.Writer, format *string, c
 
 // Prune removes unused images from local storage.  The optional filters can be used to further
 // define which images should be pruned.
-func Prune(ctx context.Context, all *bool, filters map[string][]string) ([]string, error) {
+func Prune(ctx context.Context, options *PruneOptions) ([]string, error) {
 	var (
 		deleted []string
 	)
+	if options == nil {
+		options = new(PruneOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if all != nil {
-		params.Set("all", strconv.FormatBool(*all))
-	}
-	if filters != nil {
-		stringFilter, err := bindings.FiltersToString(filters)
-		if err != nil {
-			return nil, err
-		}
-		params.Set("filters", stringFilter)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/images/prune", params, nil)
 	if err != nil {
@@ -207,7 +186,11 @@ func Prune(ctx context.Context, all *bool, filters map[string][]string) ([]strin
 }
 
 // Tag adds an additional name to locally-stored image. Both the tag and repo parameters are required.
-func Tag(ctx context.Context, nameOrID, tag, repo string) error {
+func Tag(ctx context.Context, nameOrID, tag, repo string, options *TagOptions) error {
+	if options == nil {
+		options = new(TagOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -223,7 +206,11 @@ func Tag(ctx context.Context, nameOrID, tag, repo string) error {
 }
 
 // Untag removes a name from locally-stored image. Both the tag and repo parameters are required.
-func Untag(ctx context.Context, nameOrID, tag, repo string) error {
+func Untag(ctx context.Context, nameOrID, tag, repo string, options *UntagOptions) error {
+	if options == nil {
+		options = new(UntagOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -241,27 +228,21 @@ func Untag(ctx context.Context, nameOrID, tag, repo string) error {
 // Imports adds the given image to the local image store.  This can be done by file and the given reader
 // or via the url parameter.  Additional metadata can be associated with the image by using the changes and
 // message parameters.  The image can also be tagged given a reference. One of url OR r must be provided.
-func Import(ctx context.Context, changes []string, message, reference, u *string, r io.Reader) (*entities.ImageImportReport, error) {
+func Import(ctx context.Context, r io.Reader, options *ImportOptions) (*entities.ImageImportReport, error) {
+	if options == nil {
+		options = new(ImportOptions)
+	}
 	var report entities.ImageImportReport
-	if r != nil && u != nil {
+	if r != nil && options.URL != nil {
 		return nil, errors.New("url and r parameters cannot be used together")
 	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	for _, change := range changes {
-		params.Add("changes", change)
-	}
-	if message != nil {
-		params.Set("message", *message)
-	}
-	if reference != nil {
-		params.Set("reference", *reference)
-	}
-	if u != nil {
-		params.Set("url", *u)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(r, http.MethodPost, "/images/import", params, nil)
 	if err != nil {
@@ -275,25 +256,31 @@ func Import(ctx context.Context, changes []string, message, reference, u *string
 // The destination must be a reference to a registry (i.e., of docker transport
 // or be normalized to one).  Other transports are rejected as they do not make
 // sense in a remote context.
-func Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
+func Push(ctx context.Context, source string, destination string, options *PushOptions) error {
+	if options == nil {
+		options = new(PushOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
-
 	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.Authfile, options.Username, options.Password)
+	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.GetAuthfile(), options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return err
 	}
 
-	params := url.Values{}
-	params.Set("destination", destination)
-	if options.SkipTLSVerify != types.OptionalBoolUndefined {
-		// Note: we have to verify if skipped is false.
-		verifyTLS := bool(options.SkipTLSVerify == types.OptionalBoolFalse)
-		params.Set("tlsVerify", strconv.FormatBool(verifyTLS))
+	params, err := options.ToParams()
+	if err != nil {
+		return err
 	}
+	//SkipTLSVerify is special.  We need to delete the param added by
+	//toparams and change the key and flip the bool
+	if options.SkipTLSVerify != nil {
+		params.Del("SkipTLSVerify")
+		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
+	}
+	params.Set("destination", destination)
 
 	path := fmt.Sprintf("/images/%s/push", source)
 	response, err := conn.DoRequest(nil, http.MethodPost, path, params, header)
@@ -305,28 +292,28 @@ func Push(ctx context.Context, source string, destination string, options entiti
 }
 
 // Search is the binding for libpod's v2 endpoints for Search images.
-func Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
+func Search(ctx context.Context, term string, options *SearchOptions) ([]entities.ImageSearchReport, error) {
+	if options == nil {
+		options = new(SearchOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	params.Set("term", term)
-	params.Set("limit", strconv.Itoa(opts.Limit))
-	params.Set("noTrunc", strconv.FormatBool(opts.NoTrunc))
-	params.Set("listTags", strconv.FormatBool(opts.ListTags))
-	for _, f := range opts.Filters {
-		params.Set("filters", f)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
+	params.Set("term", term)
 
-	if opts.SkipTLSVerify != types.OptionalBoolUndefined {
-		// Note: we have to verify if skipped is false.
-		verifyTLS := bool(opts.SkipTLSVerify == types.OptionalBoolFalse)
-		params.Set("tlsVerify", strconv.FormatBool(verifyTLS))
+	// Note: we have to verify if skipped is false.
+	if options.SkipTLSVerify != nil {
+		params.Del("SkipTLSVerify")
+		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 
 	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, auth.XRegistryAuthHeader, opts.Authfile, "", "")
+	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.GetAuthfile(), "", "")
 	if err != nil {
 		return nil, err
 	}

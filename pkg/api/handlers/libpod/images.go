@@ -265,8 +265,14 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	// Format is mandatory! Currently, we only support multi-image docker
 	// archives.
+	if len(query.References) > 1 && query.Format != define.V2s2Archive {
+		utils.Error(w, "unsupported format", http.StatusInternalServerError, errors.Errorf("multi-image archives must use format of %s", define.V2s2Archive))
+		return
+
+	}
+
 	switch query.Format {
-	case define.V2s2Archive:
+	case define.V2s2Archive, define.OCIArchive:
 		tmpfile, err := ioutil.TempFile("", "api.tar")
 		if err != nil {
 			utils.Error(w, "unable to create tmpfile", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
@@ -277,6 +283,13 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, "unable to close tmpfile", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 			return
 		}
+	case define.OCIManifestDir, define.V2s2ManifestDir:
+		tmpdir, err := ioutil.TempDir("", "save")
+		if err != nil {
+			utils.Error(w, "unable to create tmpdir", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempdir"))
+			return
+		}
+		output = tmpdir
 	default:
 		utils.Error(w, "unsupported format", http.StatusInternalServerError, errors.Errorf("unsupported format %q", query.Format))
 		return
@@ -287,7 +300,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 	opts := entities.ImageSaveOptions{
 		Compress:          query.Compress,
 		Format:            query.Format,
-		MultiImageArchive: true,
+		MultiImageArchive: len(query.References) > 1,
 		Output:            output,
 		RemoveSignatures:  true,
 	}
@@ -414,7 +427,6 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
-
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
@@ -607,12 +619,12 @@ func UntagImage(w http.ResponseWriter, r *http.Request) {
 func SearchImages(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Term      string   `json:"term"`
-		Limit     int      `json:"limit"`
-		NoTrunc   bool     `json:"noTrunc"`
-		Filters   []string `json:"filters"`
-		TLSVerify bool     `json:"tlsVerify"`
-		ListTags  bool     `json:"listTags"`
+		Term      string              `json:"term"`
+		Limit     int                 `json:"limit"`
+		NoTrunc   bool                `json:"noTrunc"`
+		Filters   map[string][]string `json:"filters"`
+		TLSVerify bool                `json:"tlsVerify"`
+		ListTags  bool                `json:"listTags"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -622,22 +634,42 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filter := image.SearchFilter{}
+	if len(query.Filters) > 0 {
+		if len(query.Filters["stars"]) > 0 {
+			stars, err := strconv.Atoi(query.Filters["stars"][0])
+			if err != nil {
+				utils.InternalServerError(w, err)
+				return
+			}
+			filter.Stars = stars
+		}
+		if len(query.Filters["is-official"]) > 0 {
+			isOfficial, err := strconv.ParseBool(query.Filters["is-official"][0])
+			if err != nil {
+				utils.InternalServerError(w, err)
+				return
+			}
+			filter.IsOfficial = types.NewOptionalBool(isOfficial)
+		}
+		if len(query.Filters["is-automated"]) > 0 {
+			isAutomated, err := strconv.ParseBool(query.Filters["is-automated"][0])
+			if err != nil {
+				utils.InternalServerError(w, err)
+				return
+			}
+			filter.IsAutomated = types.NewOptionalBool(isAutomated)
+		}
+	}
 	options := image.SearchOptions{
 		Limit:    query.Limit,
 		NoTrunc:  query.NoTrunc,
 		ListTags: query.ListTags,
-	}
-	if _, found := r.URL.Query()["tlsVerify"]; found {
-		options.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+		Filter:   filter,
 	}
 
-	if _, found := r.URL.Query()["filters"]; found {
-		filter, err := image.ParseSearchFilter(query.Filters)
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse filters parameter for %s", r.URL.String()))
-			return
-		}
-		options.Filter = *filter
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		options.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
 
 	_, authfile, key, err := auth.GetCredentials(r)
@@ -678,10 +710,7 @@ func ImagesBatchRemove(w http.ResponseWriter, r *http.Request) {
 		All    bool     `schema:"all"`
 		Force  bool     `schema:"force"`
 		Images []string `schema:"images"`
-	}{
-		All:   false,
-		Force: false,
-	}
+	}{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
@@ -690,10 +719,8 @@ func ImagesBatchRemove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts := entities.ImageRemoveOptions{All: query.All, Force: query.Force}
-
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	rmReport, rmErrors := imageEngine.Remove(r.Context(), query.Images, opts)
-
 	strErrs := errorhandling.ErrorsToStrings(rmErrors)
 	report := handlers.LibpodImagesRemoveReport{ImageRemoveReport: *rmReport, Errors: strErrs}
 	utils.WriteResponse(w, http.StatusOK, report)

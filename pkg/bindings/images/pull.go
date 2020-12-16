@@ -8,11 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -23,26 +21,28 @@ import (
 // `rawImage` must be a reference to a registry (i.e., of docker transport or be
 // normalized to one).  Other transports are rejected as they do not make sense
 // in a remote context. Progress reported on stderr
-func Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) ([]string, error) {
+func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string, error) {
+	if options == nil {
+		options = new(PullOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	params.Set("reference", rawImage)
-	params.Set("overrideArch", options.OverrideArch)
-	params.Set("overrideOS", options.OverrideOS)
-	params.Set("overrideVariant", options.OverrideVariant)
-
-	if options.SkipTLSVerify != types.OptionalBoolUndefined {
-		// Note: we have to verify if skipped is false.
-		verifyTLS := bool(options.SkipTLSVerify == types.OptionalBoolFalse)
-		params.Set("tlsVerify", strconv.FormatBool(verifyTLS))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
-	params.Set("allTags", strconv.FormatBool(options.AllTags))
+	params.Set("reference", rawImage)
+
+	if options.SkipTLSVerify != nil {
+		params.Del("SkipTLSVerify")
+		// Note: we have to verify if skipped is false.
+		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
+	}
 
 	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.Authfile, options.Username, options.Password)
+	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.GetAuthfile(), options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func Pull(ctx context.Context, rawImage string, options entities.ImagePullOption
 
 	// Historically pull writes status to stderr
 	stderr := io.Writer(os.Stderr)
-	if options.Quiet {
+	if options.GetQuiet() {
 		stderr = ioutil.Discard
 	}
 

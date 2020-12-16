@@ -81,10 +81,11 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 			}
 		case reflect.Map:
 			lowerCaseKeys := make(map[string][]string)
-			// I dont know if this code is needed anymore, TBD
-			// for k, v := range filters {
-			// 	lowerCaseKeys[strings.ToLower(k)] = v
-			// }
+			iter := f.MapRange()
+			for iter.Next() {
+				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
+
+			}
 			s, err := json.MarshalToString(lowerCaseKeys)
 			if err != nil {
 				return nil, err
@@ -102,9 +103,18 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 var fieldTmpl = `
 // With{{.Name}}
 func(o *{{.StructName}}) With{{.Name}}(value {{.Type}}) *{{.StructName}} {
-	v := &value
+	v := {{.TypedValue}}
 	o.{{.Name}} = v
 	return o
+}
+
+// Get{{.Name}}
+func(o *{{.StructName}}) Get{{.Name}}() {{.Type}} {
+	var {{.ZeroName}} {{.Type}}
+	if o.{{.Name}} == nil {
+		return {{.ZeroName}}
+	}
+	return {{.TypedName}}
 }
 `
 
@@ -112,13 +122,15 @@ type fieldStruct struct {
 	Name       string
 	StructName string
 	Type       string
+	TypedName  string
+	TypedValue string
+	ZeroName   string
 }
 
 func main() {
 	var (
 		closed       bool
 		fieldStructs []fieldStruct
-		structNode   ast.Node
 	)
 	srcFile := os.Getenv("GOFILE")
 	pkg := os.Getenv("GOPACKAGE")
@@ -132,14 +144,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	// always add reflect
 	imports := []string{"\"reflect\""}
 	for _, imp := range f.Imports {
 		imports = append(imports, imp.Path.Value)
 	}
 
-	out, err := os.Create(strings.ToLower(inputStructName) + "_" + srcFile)
+	out, err := os.Create(strings.TrimRight(srcFile, ".go") + "_" + strings.Replace(strings.ToLower(inputStructName), "options", "_options", 1) + ".go")
 	if err != nil {
 		panic(err)
 	}
@@ -166,26 +177,41 @@ func main() {
 		ref, refOK := n.(*ast.TypeSpec)
 		if refOK {
 			if ref.Name.Name == inputStructName {
-				structNode = n
 				x := ref.Type.(*ast.StructType)
 				for _, field := range x.Fields.List {
 					var (
-						name string
+						name, zeroName, typedName, typedValue string
 					)
-					typeExpr := field.Type
-					start := typeExpr.Pos() - 1
-					end := typeExpr.End() - 1
-					fieldType := strings.Replace(string(b[start:end]), "*", "", 1)
 					if len(field.Names) > 0 {
 						name = field.Names[0].Name
 						if len(name) < 1 {
 							panic(errors.New("bad name"))
 						}
 					}
+					for k, v := range name {
+						zeroName = strings.ToLower(string(v)) + name[k+1:]
+						break
+					}
+					//sub := "*"
+					typeExpr := field.Type
+					switch field.Type.(type) {
+					case *ast.MapType, *ast.StructType, *ast.ArrayType:
+						typedName = "o." + name
+						typedValue = "value"
+					default:
+						typedName = "*o." + name
+						typedValue = "&value"
+					}
+					start := typeExpr.Pos() - 1
+					end := typeExpr.End() - 1
+					fieldType := strings.Replace(string(b[start:end]), "*", "", 1)
 					fStruct := fieldStruct{
 						Name:       name,
 						StructName: inputStructName,
 						Type:       fieldType,
+						TypedName:  typedName,
+						TypedValue: typedValue,
+						ZeroName:   zeroName,
 					}
 					fieldStructs = append(fieldStructs, fStruct)
 				} // for

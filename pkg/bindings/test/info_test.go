@@ -17,7 +17,6 @@ var _ = Describe("Podman info", func() {
 	var (
 		bt *bindingTest
 		s  *gexec.Session
-		t  bool = true
 	)
 
 	BeforeEach(func() {
@@ -39,7 +38,8 @@ var _ = Describe("Podman info", func() {
 		Expect(err).To(BeNil())
 		Expect(info.Host.Arch).To(Equal(runtime.GOARCH))
 		Expect(info.Host.OS).To(Equal(runtime.GOOS))
-		i, err := images.List(bt.conn, &t, nil)
+		listOptions := new(images.ListOptions)
+		i, err := images.List(bt.conn, listOptions.WithAll(true))
 		Expect(err).To(BeNil())
 		Expect(info.Store.ImageStore.Number).To(Equal(len(i)))
 	})
