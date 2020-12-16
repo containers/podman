@@ -687,6 +687,28 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 	return nil
 }
 
+// ExecUpdateStatus checks if the given exec session is still running.
+func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (bool, error) {
+	session, ok := ctr.state.ExecSessions[sessionID]
+	if !ok {
+		// TODO This should probably be a separate error
+		return false, errors.Wrapf(define.ErrInvalidArg, "no exec session with ID %s found in container %s", sessionID, ctr.ID())
+	}
+
+	logrus.Debugf("Checking status of container %s exec session %s", ctr.ID(), sessionID)
+
+	// Is the session dead?
+	// Ping the PID with signal 0 to see if it still exists.
+	if err := unix.Kill(session.PID, 0); err != nil {
+		if err == unix.ESRCH {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "error pinging container %s exec session %s PID %d with signal 0", ctr.ID(), sessionID, session.PID)
+	}
+
+	return true, nil
+}
+
 // ExecCleanupContainer cleans up files created when a command is run via
 // ExecContainer. This includes the attach socket for the exec session.
 func (r *ConmonOCIRuntime) ExecContainerCleanup(ctr *Container, sessionID string) error {
