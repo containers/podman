@@ -40,13 +40,13 @@ var _ = Describe("Podman pods", func() {
 
 	It("inspect pod", func() {
 		//Inspect an invalid pod name
-		_, err := pods.Inspect(bt.conn, "dummyname")
+		_, err := pods.Inspect(bt.conn, "dummyname", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		//Inspect an valid pod name
-		response, err := pods.Inspect(bt.conn, newpod)
+		response, err := pods.Inspect(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		Expect(response.Name).To(Equal(newpod))
 	})
@@ -59,7 +59,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(len(podSummary)).To(Equal(1))
 
 		// Start the pod
-		_, err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 
 		// Adding an alpine container to the existing pod
@@ -90,7 +90,7 @@ var _ = Describe("Podman pods", func() {
 		bt.Podcreate(&newpod2)
 
 		// Start the pod
-		_, err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 
 		_, err = bt.RunTopContainer(nil, bindings.PTrue, &newpod)
@@ -99,7 +99,8 @@ var _ = Describe("Podman pods", func() {
 		// Expected err with invalid filter params
 		filters := make(map[string][]string)
 		filters["dummy"] = []string{"dummy"}
-		filteredPods, err := pods.List(bt.conn, filters)
+		options := new(pods.ListOptions).WithFilters(filters)
+		filteredPods, err := pods.List(bt.conn, options)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -107,14 +108,16 @@ var _ = Describe("Podman pods", func() {
 		// Expected empty response with invalid filters
 		filters = make(map[string][]string)
 		filters["name"] = []string{"dummy"}
-		filteredPods, err = pods.List(bt.conn, filters)
+		options = new(pods.ListOptions).WithFilters(filters)
+		filteredPods, err = pods.List(bt.conn, options)
 		Expect(err).To(BeNil())
 		Expect(len(filteredPods)).To(BeNumerically("==", 0))
 
 		// Validate list pod with name filter
 		filters = make(map[string][]string)
 		filters["name"] = []string{newpod2}
-		filteredPods, err = pods.List(bt.conn, filters)
+		options = new(pods.ListOptions).WithFilters(filters)
+		filteredPods, err = pods.List(bt.conn, options)
 		Expect(err).To(BeNil())
 		Expect(len(filteredPods)).To(BeNumerically("==", 1))
 		var names []string
@@ -125,11 +128,12 @@ var _ = Describe("Podman pods", func() {
 
 		// Validate list pod with id filter
 		filters = make(map[string][]string)
-		response, err := pods.Inspect(bt.conn, newpod)
+		response, err := pods.Inspect(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		id := response.ID
 		filters["id"] = []string{id}
-		filteredPods, err = pods.List(bt.conn, filters)
+		options = new(pods.ListOptions).WithFilters(filters)
+		filteredPods, err = pods.List(bt.conn, options)
 		Expect(err).To(BeNil())
 		Expect(len(filteredPods)).To(BeNumerically("==", 1))
 		names = names[:0]
@@ -140,7 +144,8 @@ var _ = Describe("Podman pods", func() {
 
 		// Using multiple filters
 		filters["name"] = []string{newpod}
-		filteredPods, err = pods.List(bt.conn, filters)
+		options = new(pods.ListOptions).WithFilters(filters)
+		filteredPods, err = pods.List(bt.conn, options)
 		Expect(err).To(BeNil())
 		Expect(len(filteredPods)).To(BeNumerically("==", 1))
 		names = names[:0]
@@ -168,7 +173,7 @@ var _ = Describe("Podman pods", func() {
 		// TODO fix this
 		Skip("Pod behavior is jacked right now.")
 		// Pause invalid container
-		_, err := pods.Pause(bt.conn, "dummyName")
+		_, err := pods.Pause(bt.conn, "dummyName", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -180,9 +185,9 @@ var _ = Describe("Podman pods", func() {
 		// Binding needs to be modified to inspect the pod state.
 		// Since we don't have a pod state we inspect the states of the containers within the pod.
 		// Pause a valid container
-		_, err = pods.Pause(bt.conn, newpod)
+		_, err = pods.Pause(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
-		response, err := pods.Inspect(bt.conn, newpod)
+		response, err := pods.Inspect(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		Expect(response.State).To(Equal(define.PodStatePaused))
 		for _, i := range response.Containers {
@@ -191,9 +196,9 @@ var _ = Describe("Podman pods", func() {
 		}
 
 		// Unpause a valid container
-		_, err = pods.Unpause(bt.conn, newpod)
+		_, err = pods.Unpause(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
-		response, err = pods.Inspect(bt.conn, newpod)
+		response, err = pods.Inspect(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		Expect(response.State).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
@@ -204,7 +209,7 @@ var _ = Describe("Podman pods", func() {
 
 	It("start stop restart pod", func() {
 		// Start an invalid pod
-		_, err = pods.Start(bt.conn, "dummyName")
+		_, err = pods.Start(bt.conn, "dummyName", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -216,16 +221,16 @@ var _ = Describe("Podman pods", func() {
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Restart an invalid pod
-		_, err = pods.Restart(bt.conn, "dummyName")
+		_, err = pods.Restart(bt.conn, "dummyName", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Start a valid pod and inspect status of each container
-		_, err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 
-		response, err := pods.Inspect(bt.conn, newpod)
+		response, err := pods.Inspect(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		Expect(response.State).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
@@ -234,13 +239,13 @@ var _ = Describe("Podman pods", func() {
 		}
 
 		// Start an already running  pod
-		_, err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 
 		// Stop the running pods
 		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
-		response, _ = pods.Inspect(bt.conn, newpod)
+		response, _ = pods.Inspect(bt.conn, newpod, nil)
 		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
@@ -251,9 +256,9 @@ var _ = Describe("Podman pods", func() {
 		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 
-		_, err = pods.Restart(bt.conn, newpod)
+		_, err = pods.Restart(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
-		response, _ = pods.Inspect(bt.conn, newpod)
+		response, _ = pods.Inspect(bt.conn, newpod, nil)
 		Expect(response.State).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
@@ -267,7 +272,7 @@ var _ = Describe("Podman pods", func() {
 		var newpod2 string = "newpod2"
 		bt.Podcreate(&newpod2)
 		// No pods pruned since no pod in exited state
-		pruneResponse, err := pods.Prune(bt.conn)
+		pruneResponse, err := pods.Prune(bt.conn, nil)
 		Expect(err).To(BeNil())
 		podSummary, err := pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
@@ -276,14 +281,14 @@ var _ = Describe("Podman pods", func() {
 		// Prune only one pod which is in exited state.
 		// Start then stop a pod.
 		// pod moves to exited state one pod should be pruned now.
-		_, err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
-		response, err := pods.Inspect(bt.conn, newpod)
+		response, err := pods.Inspect(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		Expect(response.State).To(Equal(define.PodStateExited))
-		pruneResponse, err = pods.Prune(bt.conn)
+		pruneResponse, err = pods.Prune(bt.conn, nil)
 		Expect(err).To(BeNil())
 		// Validate status and record pod id of pod to be pruned
 		Expect(response.State).To(Equal(define.PodStateExited))
@@ -298,13 +303,13 @@ var _ = Describe("Podman pods", func() {
 
 		// Test prune multiple pods.
 		bt.Podcreate(&newpod)
-		_, err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
-		_, err = pods.Start(bt.conn, newpod2)
+		_, err = pods.Start(bt.conn, newpod2, nil)
 		Expect(err).To(BeNil())
 		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
-		response, err = pods.Inspect(bt.conn, newpod)
+		response, err = pods.Inspect(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
@@ -313,14 +318,14 @@ var _ = Describe("Podman pods", func() {
 		}
 		_, err = pods.Stop(bt.conn, newpod2, nil)
 		Expect(err).To(BeNil())
-		response, err = pods.Inspect(bt.conn, newpod2)
+		response, err = pods.Inspect(bt.conn, newpod2, nil)
 		Expect(err).To(BeNil())
 		Expect(response.State).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateExited))
 		}
-		_, err = pods.Prune(bt.conn)
+		_, err = pods.Prune(bt.conn, nil)
 		Expect(err).To(BeNil())
 		podSummary, err = pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
@@ -330,7 +335,7 @@ var _ = Describe("Podman pods", func() {
 	It("simple create pod", func() {
 		ps := specgen.PodSpecGenerator{}
 		ps.Name = "foobar"
-		_, err := pods.CreatePodFromSpec(bt.conn, &ps)
+		_, err := pods.CreatePodFromSpec(bt.conn, &ps, nil)
 		Expect(err).To(BeNil())
 
 		exists, err := pods.Exists(bt.conn, "foobar")
@@ -343,7 +348,7 @@ var _ = Describe("Podman pods", func() {
 		var name string = "podA"
 
 		bt.Podcreate(&name)
-		_, err := pods.Start(bt.conn, name)
+		_, err := pods.Start(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
 		// By name
@@ -351,7 +356,8 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 
 		// With descriptors
-		output, err := pods.Top(bt.conn, name, []string{"user,pid,hpid"})
+		options := new(pods.TopOptions).WithDescriptors([]string{"user,pid,hpid"})
+		output, err := pods.Top(bt.conn, name, options)
 		Expect(err).To(BeNil())
 		header := strings.Split(output[0], "\t")
 		for _, d := range []string{"USER", "PID", "HPID"} {
@@ -363,7 +369,8 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).ToNot(BeNil())
 
 		// With bogus descriptors
-		_, err = pods.Top(bt.conn, name, []string{"Me,Neither"})
+		options = new(pods.TopOptions).WithDescriptors([]string{"Me,Neither"})
+		_, err = pods.Top(bt.conn, name, options)
 		Expect(err).ToNot(BeNil())
 	})
 })

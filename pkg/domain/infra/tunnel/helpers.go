@@ -90,7 +90,7 @@ func getPodsByContext(contextWithConnection context.Context, all bool, namesOrID
 		// First determine if the pod exists by doing an inspect.
 		// Inspect takes supports names and IDs and let's us determine
 		// a containers full ID.
-		inspectData, err := pods.Inspect(contextWithConnection, nameOrID)
+		inspectData, err := pods.Inspect(contextWithConnection, nameOrID, nil)
 		if err != nil {
 			if errorhandling.Contains(err, define.ErrNoSuchPod) {
 				return nil, errors.Wrapf(define.ErrNoSuchPod, "unable to find pod %q", nameOrID)
