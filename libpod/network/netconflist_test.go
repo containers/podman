@@ -51,7 +51,8 @@ func TestNewIPAMLocalHostRange(t *testing.T) {
 			subnet: &net.IPNet{IP: net.IPv4(192, 168, 0, 0), Mask: net.IPv4Mask(255, 255, 255, 0)},
 			want: []IPAMLocalHostRangeConf{
 				{
-					Subnet: "192.168.0.0/24",
+					Subnet:  "192.168.0.0/24",
+					Gateway: "192.168.0.1",
 				},
 			},
 		},
@@ -74,7 +75,8 @@ func TestNewIPAMLocalHostRange(t *testing.T) {
 			subnet: &net.IPNet{IP: net.ParseIP("2001:DB8::"), Mask: net.IPMask(net.ParseIP("ffff:ffff:ffff::"))},
 			want: []IPAMLocalHostRangeConf{
 				{
-					Subnet: "2001:db8::/48",
+					Subnet:  "2001:db8::/48",
+					Gateway: "2001:db8::1",
 				},
 			},
 		},
