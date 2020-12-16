@@ -45,7 +45,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc91.0.20200708210054-ce54a9d4d79b
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200817204227-f9c09b4ea1df
 	github.com/opencontainers/runtime-tools v0.9.0
-	github.com/opencontainers/selinux v1.7.0
+	github.com/opencontainers/selinux v1.8.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
