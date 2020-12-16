@@ -236,7 +236,7 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: &not_docs_sys $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' && $CIRRUS_CHANGE_TITLE !=~ '.*CI:SYS.*'
     skip: *branch
     depends_on:
         - build
@@ -256,6 +256,7 @@ bindings_task:
 swagger_task:
     name: "Test Swagger"
     alias: swagger
+    only_if: &not_sys $CIRRUS_CHANGE_TITLE !=~ '.*CI:SYS.*'
     depends_on:
         - build
     container: *smallcontainer
@@ -295,7 +296,7 @@ vendor_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    only_if: *not_docs
+    only_if: *not_docs_sys
     depends_on:
         - build
     env:
@@ -320,7 +321,7 @@ alt_build_task:
 static_alt_build_task:
     name: "Static Build"
     alias: static_alt_build
-    only_if: *not_docs
+    only_if: *not_docs_sys
     depends_on:
         - build
     # Community-maintained task, may fail on occasion.  If so, uncomment
@@ -351,6 +352,7 @@ static_alt_build_task:
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
+    only_if: *not_docs_sys
     depends_on:
         - build
     env:
@@ -373,7 +375,7 @@ osx_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
-    only_if: *not_docs
+    only_if: *not_docs_sys
     depends_on:
         - build
     gce_instance: *standardvm
@@ -393,7 +395,7 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
-    only_if: *not_docs
+    only_if: *not_docs_sys
     depends_on:
         - validate
     matrix: *platform_axis
@@ -410,6 +412,7 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
+    only_if: *not_sys
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -437,6 +440,7 @@ apiv2_test_task:
 compose_test_task:
     name: "compose test on $DISTRO_NV"
     alias: compose_test
+    only_if: *not_docs_sys
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -457,7 +461,7 @@ local_integration_test_task: &local_integration_test_task
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
-    only_if: *not_docs
+    only_if: *not_docs_sys
     skip: *branch
     depends_on:
         - unit_test
@@ -489,7 +493,7 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
-    only_if: *not_docs
+    only_if: *not_docs_sys
     skip: *branch
     depends_on:
         - unit_test
@@ -520,7 +524,7 @@ container_integration_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
-    only_if: *not_docs
+    only_if: *not_docs_sys
     skip: *branch
     depends_on:
         - unit_test
@@ -544,7 +548,7 @@ rootless_integration_test_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    only_if: *not_docs
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     depends_on:
       - local_integration_test
     matrix: *platform_axis
