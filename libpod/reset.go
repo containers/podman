@@ -77,18 +77,35 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		}
 	}
 
+	xdgRuntimeDir := filepath.Clean(os.Getenv("XDG_RUNTIME_DIR"))
 	_, prevError := r.store.Shutdown(true)
-	if err := os.RemoveAll(r.store.GraphRoot()); err != nil {
+	graphRoot := filepath.Clean(r.store.GraphRoot())
+	if graphRoot == xdgRuntimeDir {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}
-		prevError = err
+		prevError = errors.Errorf("failed to remove runtime graph root dir %s, since it is the same as XDG_RUNTIME_DIR", graphRoot)
+	} else {
+		if err := os.RemoveAll(graphRoot); err != nil {
+			if prevError != nil {
+				logrus.Error(prevError)
+			}
+			prevError = err
+		}
 	}
-	if err := os.RemoveAll(r.store.RunRoot()); err != nil {
+	runRoot := filepath.Clean(r.store.RunRoot())
+	if runRoot == xdgRuntimeDir {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}
-		prevError = err
+		prevError = errors.Errorf("failed to remove runtime root dir %s, since it is the same as XDG_RUNTIME_DIR", runRoot)
+	} else {
+		if err := os.RemoveAll(runRoot); err != nil {
+			if prevError != nil {
+				logrus.Error(prevError)
+			}
+			prevError = err
+		}
 	}
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
@@ -98,13 +115,19 @@ func (r *Runtime) Reset(ctx context.Context) error {
 	if tempDir == runtimeDir {
 		tempDir = filepath.Join(tempDir, "containers")
 	}
-	if err := os.RemoveAll(tempDir); err != nil {
+	if filepath.Clean(tempDir) == xdgRuntimeDir {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}
-		prevError = err
+		prevError = errors.Errorf("failed to remove runtime tmpdir %s, since it is the same as XDG_RUNTIME_DIR", tempDir)
+	} else {
+		if err := os.RemoveAll(tempDir); err != nil {
+			if prevError != nil {
+				logrus.Error(prevError)
+			}
+			prevError = err
+		}
 	}
-
 	if storageConfPath, err := storage.DefaultConfigFile(rootless.IsRootless()); err == nil {
 		if _, err = os.Stat(storageConfPath); err == nil {
 			fmt.Printf("A storage.conf file exists at %s\n", storageConfPath)
