@@ -471,6 +471,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate kube multiple pods should fail", func() {
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
 		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", ALPINE, "top"})
 		pod1.WaitWithDefaultTimeout()
 		Expect(pod1.ExitCode()).To(Equal(0))

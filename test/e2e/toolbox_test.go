@@ -121,6 +121,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		if podmanTest.RemoteTest {
 			Skip("Shm size check does not work with a remote client")
 		}
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
 		var session *PodmanSessionIntegration
 		var cmd *exec.Cmd
 		var hostShmSize, containerShmSize int

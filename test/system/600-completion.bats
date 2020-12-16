@@ -8,6 +8,17 @@
 
 load helpers
 
+# Returns true if we are able to podman-pause
+function _can_pause() {
+    # Even though we're just trying completion, not an actual unpause,
+    # podman barfs with:
+    #    Error: unpause is not supported for cgroupv1 rootless containers
+    if is_rootless && is_cgroupsv1; then
+        return 1
+    fi
+    return 0
+}
+
 function check_shell_completion() {
     local count=0
 
@@ -70,8 +81,13 @@ function check_shell_completion() {
                     ;;
 
                 *CONTAINER*)
+                    # podman unpause fails early on rootless cgroupsv1
+                    if [[ $cmd = "unpause" ]] && ! _can_pause; then
+                        continue 2
+                    fi
+
                     run_completion "$@" $cmd "${extra_args[@]}" ""
-                    is "$output" ".*-$random_container_name${nl}" "Found expected container in suggestions"
+                    is "$output" ".*-$random_container_name${nl}" "Found expected container in suggestions for '$cmd'"
 
                     match=true
                     # resume
@@ -212,7 +228,9 @@ function _check_completion_end() {
     run_podman create --name created-$random_container_name $IMAGE
     run_podman run --name running-$random_container_name -d $IMAGE top
     run_podman run --name pause-$random_container_name -d $IMAGE top
-    run_podman pause pause-$random_container_name
+    if _can_pause; then
+        run_podman pause pause-$random_container_name
+    fi
     run_podman run --name exited-$random_container_name -d $IMAGE echo exited
 
     # create pods for each state

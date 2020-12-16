@@ -493,7 +493,9 @@ USER bin`
 				Skip("Kernel does not support blkio.weight")
 			}
 		}
-
+		if podmanTest.Host.Distribution == "ubuntu" {
+			Skip("Ubuntu <= 20.10 lacks BFQ scheduler")
+		}
 		if CGROUPSV2 {
 			// convert linearly from [10-1000] to [1-10000]
 			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.bfq.weight"})
