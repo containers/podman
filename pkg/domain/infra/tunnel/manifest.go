@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/bindings/manifests"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -14,7 +13,8 @@ import (
 
 // ManifestCreate implements manifest create via ImageEngine
 func (ir *ImageEngine) ManifestCreate(ctx context.Context, names, images []string, opts entities.ManifestCreateOptions) (string, error) {
-	imageID, err := manifests.Create(ir.ClientCxt, names, images, &opts.All)
+	options := new(manifests.CreateOptions).WithAll(opts.All)
+	imageID, err := manifests.Create(ir.ClientCxt, names, images, options)
 	if err != nil {
 		return imageID, errors.Wrapf(err, "error creating manifest")
 	}
@@ -23,7 +23,7 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, names, images []strin
 
 // ManifestInspect returns contents of manifest list with given name
 func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte, error) {
-	list, err := manifests.Inspect(ir.ClientCxt, name)
+	list, err := manifests.Inspect(ir.ClientCxt, name, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting content of manifest list or image %s", name)
 	}
@@ -37,15 +37,8 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 
 // ManifestAdd adds images to the manifest list
 func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAddOptions) (string, error) {
-	manifestAddOpts := image.ManifestAddOpts{
-		All:       opts.All,
-		Arch:      opts.Arch,
-		Features:  opts.Features,
-		Images:    opts.Images,
-		OS:        opts.OS,
-		OSVersion: opts.OSVersion,
-		Variant:   opts.Variant,
-	}
+	options := new(manifests.AddOptions).WithAll(opts.All).WithArch(opts.Arch).WithVariant(opts.Variant)
+	options.WithFeatures(opts.Features).WithImages(opts.Images).WithOS(opts.OS).WithOSVersion(opts.OSVersion)
 	if len(opts.Annotation) != 0 {
 		annotations := make(map[string]string)
 		for _, annotationSpec := range opts.Annotation {
@@ -55,9 +48,10 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 			}
 			annotations[spec[0]] = spec[1]
 		}
-		manifestAddOpts.Annotation = annotations
+		options.WithAnnotation(annotations)
 	}
-	listID, err := manifests.Add(ir.ClientCxt, opts.Images[1], manifestAddOpts)
+
+	listID, err := manifests.Add(ir.ClientCxt, opts.Images[1], options)
 	if err != nil {
 		return listID, errors.Wrapf(err, "error adding to manifest list %s", opts.Images[1])
 	}
@@ -71,7 +65,7 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opt
 
 // ManifestRemove removes the digest from manifest list
 func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (string, error) {
-	updatedListID, err := manifests.Remove(ir.ClientCxt, names[0], names[1])
+	updatedListID, err := manifests.Remove(ir.ClientCxt, names[0], names[1], nil)
 	if err != nil {
 		return updatedListID, errors.Wrapf(err, "error removing from manifest %s", names[0])
 	}
@@ -79,7 +73,8 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 }
 
 // ManifestPush pushes a manifest list or image index to the destination
-func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts entities.ManifestPushOptions) error {
-	_, err := manifests.Push(ir.ClientCxt, names[0], &names[1], &opts.All)
+func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ManifestPushOptions) error {
+	options := new(manifests.PushOptions).WithAll(opts.All)
+	_, err := manifests.Push(ir.ClientCxt, name, destination, options)
 	return err
 }

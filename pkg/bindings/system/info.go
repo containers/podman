@@ -9,7 +9,11 @@ import (
 )
 
 // Info returns information about the libpod environment and its stores
-func Info(ctx context.Context) (*define.Info, error) {
+func Info(ctx context.Context, options *InfoOptions) (*define.Info, error) {
+	if options == nil {
+		options = new(InfoOptions)
+	}
+	_ = options
 	info := define.Info{}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {

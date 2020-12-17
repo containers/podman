@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -12,12 +13,13 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 var (
-	pruneOptions = entities.SystemPruneOptions{}
-
+	pruneOptions     = entities.SystemPruneOptions{}
+	filters          []string
 	pruneDescription = fmt.Sprintf(`
 	podman system prune
 
@@ -47,7 +49,7 @@ func init() {
 	flags.BoolVarP(&pruneOptions.All, "all", "a", false, "Remove all unused data")
 	flags.BoolVar(&pruneOptions.Volume, "volumes", false, "Prune volumes")
 	filterFlagName := "filter"
-	flags.StringArrayVar(&pruneOptions.Filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
+	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
 
 }
@@ -77,6 +79,15 @@ Are you sure you want to continue? [y/N] `, volumeString)
 		}
 	}
 
+	pruneOptions.ContainerPruneOptions = entities.ContainerPruneOptions{}
+	for _, f := range filters {
+		t := strings.SplitN(f, "=", 2)
+		pruneOptions.ContainerPruneOptions.Filters = make(url.Values)
+		if len(t) < 2 {
+			return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
+		}
+		pruneOptions.ContainerPruneOptions.Filters.Add(t[0], t[1])
+	}
 	// TODO: support for filters in system prune
 	response, err := registry.ContainerEngine().SystemPrune(context.Background(), pruneOptions)
 	if err != nil {
@@ -100,7 +111,5 @@ Are you sure you want to continue? [y/N] `, volumeString)
 		}
 	}
 	// Print Images prune results
-	utils.PrintImagePruneResults(response.ImagePruneReport, true)
-
-	return nil
+	return utils.PrintImagePruneResults(response.ImagePruneReport, true)
 }

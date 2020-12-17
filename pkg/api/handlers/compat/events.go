@@ -33,6 +33,8 @@ func filtersFromRequest(r *http.Request) ([]string, error) {
 
 	if _, found := r.URL.Query()["filters"]; found {
 		raw = []byte(r.Form.Get("filters"))
+	} else if _, found := r.URL.Query()["Filters"]; found {
+		raw = []byte(r.Form.Get("Filters"))
 	} else {
 		return []string{}, nil
 	}
@@ -95,7 +97,6 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-
 	eventChannel := make(chan *events.Event)
 	errorChannel := make(chan error)
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -169,6 +168,7 @@ func checkInput() error { // nolint:deadcode,unused
 // SystemPrune removes unused data from the system. Pruning pods, containers, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)
+	var filters []string
 	found := true
 	for found {
 		found = false
@@ -180,16 +180,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			found = true
 		}
 		systemPruneReport.PodPruneReport = append(systemPruneReport.PodPruneReport, podPruneReport...)
-		containerPruneOptions := entities.ContainerPruneOptions{}
-		for _, f := range options.Filter {
-			t := strings.SplitN(f, "=", 2)
-			containerPruneOptions.Filters = make(url.Values)
-			if len(t) < 2 {
-				return nil, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
-			}
-			containerPruneOptions.Filters.Add(t[0], t[1])
-		}
-		containerPruneReport, err := ic.ContainerPrune(ctx, containerPruneOptions)
+		containerPruneReport, err := ic.ContainerPrune(ctx, options.ContainerPruneOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -203,8 +194,10 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 				systemPruneReport.ContainerPruneReport.ID[name] = val
 			}
 		}
-
-		results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, options.Filter)
+		for k, v := range options.Filters {
+			filters = append(filters, fmt.Sprintf("%s=%s", k, v[0]))
+		}
+		results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, filters)
 
 		if err != nil {
 			return nil, err
