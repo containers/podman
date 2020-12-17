@@ -5,6 +5,7 @@ package system
 import (
 	"context"
 	"net"
+	"os"
 	"strings"
 
 	api "github.com/containers/podman/v2/pkg/api/server"
@@ -13,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"golang.org/x/sys/unix"
 )
 
 func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entities.PodmanConfig) error {
@@ -34,6 +36,15 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 		listener = &l
 	}
 
+	// Close stdin, so shortnames will not prompt
+	devNullfile, err := os.Open(os.DevNull)
+	if err != nil {
+		return err
+	}
+	defer devNullfile.Close()
+	if err := unix.Dup2(int(devNullfile.Fd()), int(os.Stdin.Fd())); err != nil {
+		return err
+	}
 	rt, err := infra.GetRuntime(context.Background(), flags, cfg)
 	if err != nil {
 		return err
