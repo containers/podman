@@ -67,6 +67,7 @@ gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e4
 ext_svc_check_task:
     alias: 'ext_svc_check'  # int. ref. name - required for depends_on reference
     name: "Ext. services"  # Displayed Title - has no other significance
+    skip: $CI == $CI
     # Default/small container image to execute tasks with
     container: &smallcontainer
         image: ${CTR_FQIN}
@@ -90,7 +91,7 @@ ext_svc_check_task:
 automation_task:
     alias: 'automation'
     name: "Check Automation"
-    skip: &branch "$CIRRUS_PR == '' || $CIRRUS_TAG != ''" # Don't run for branches
+    skip: $CI == $CI
     container: *smallcontainer
     env:
         TEST_FLAVOR: automation
@@ -107,6 +108,7 @@ automation_task:
 smoke_task:
     alias: 'smoke'
     name: "Smoke Test"
+    skip: $CI == $CI
     container: &bigcontainer
         image: ${CTR_FQIN}
         # Leave some resources for smallcontainer
@@ -132,6 +134,8 @@ smoke_task:
         fi
         cd $CIRRUS_WORKING_DIR
         make install.tools
+        make podman
+        make podman-remote
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -209,6 +213,7 @@ build_task:
 validate_task:
     name: "Validate $DISTRO_NV Build"
     alias: validate
+    skip: $CI == $CI
     depends_on:
         - ext_svc_check
         - automation
@@ -237,7 +242,7 @@ bindings_task:
     name: "Test Bindings"
     alias: bindings
     only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-    skip: *branch
+    skip: $CI == $CI
     depends_on:
         - build
     gce_instance: *standardvm
@@ -256,6 +261,7 @@ bindings_task:
 swagger_task:
     name: "Test Swagger"
     alias: swagger
+    skip: $CI == $CI
     depends_on:
         - build
     container: *smallcontainer
@@ -275,6 +281,7 @@ swagger_task:
 vendor_task:
     name: "Test Vendoring"
     alias: vendor
+    skip: $CI == $CI
     depends_on:
         - build
     container: *smallcontainer
@@ -295,6 +302,7 @@ vendor_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
+    skip: $CI == $CI
     only_if: *not_docs
     depends_on:
         - build
@@ -320,6 +328,7 @@ alt_build_task:
 static_alt_build_task:
     name: "Static Build"
     alias: static_alt_build
+    skip: $CI == $CI
     only_if: *not_docs
     depends_on:
         - build
@@ -351,6 +360,7 @@ static_alt_build_task:
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
+    skip: $CI == $CI
     depends_on:
         - build
     env:
@@ -373,6 +383,7 @@ osx_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
+    skip: $CI == $CI
     only_if: *not_docs
     depends_on:
         - build
@@ -393,6 +404,7 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
+    skip: $CI == $CI
     only_if: *not_docs
     depends_on:
         - validate
@@ -410,6 +422,7 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
+    skip: $CI == $CI
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -437,6 +450,7 @@ apiv2_test_task:
 compose_test_task:
     name: "compose test on $DISTRO_NV"
     alias: compose_test
+    skip: $CI == $CI
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -458,7 +472,7 @@ local_integration_test_task: &local_integration_test_task
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
     only_if: *not_docs
-    skip: *branch
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -479,6 +493,7 @@ local_integration_test_task: &local_integration_test_task
 remote_integration_test_task:
     <<: *local_integration_test_task
     alias: remote_integration_test
+    skip: $CI == $CI
     env:
         TEST_FLAVOR: int
         PODBIN_NAME: remote
@@ -490,7 +505,7 @@ container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
     only_if: *not_docs
-    skip: *branch
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: &fedora_vm_axis
@@ -521,7 +536,7 @@ rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
     only_if: *not_docs
-    skip: *branch
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: *fedora_vm_axis
@@ -572,7 +587,6 @@ remote_system_test_task:
 container_system_test_task:
     <<: *local_system_test_task
     alias: container_system_test
-    skip: *branch
     depends_on:
         - container_integration_test
     matrix: *fedora_vm_axis
