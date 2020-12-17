@@ -118,7 +118,7 @@ var _ = Describe("Podman images", func() {
 		Expect(len(errs)).To(BeZero())
 		// To be extra sure, check if the previously created container
 		// is gone as well.
-		_, err = containers.Inspect(bt.conn, "top", bindings.PFalse)
+		_, err = containers.Inspect(bt.conn, "top", nil)
 		code, _ = bindings.CheckResponseCode(err)
 
 		// Now make sure both images are gone.

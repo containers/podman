@@ -12,7 +12,7 @@ import (
 /*
 This file is generated automatically by go generate.  Do not edit.
 
-Created 2020-12-16 11:58:59.192715649 -0600 CST m=+0.000150326
+Created 2020-12-18 15:57:55.92237379 -0600 CST m=+0.000150701
 */
 
 // Changed
@@ -56,10 +56,10 @@ func (o *AddOptions) ToParams() (url.Values, error) {
 			params.Set(fieldName, strconv.FormatUint(f.Uint(), 10))
 		case reflect.Slice:
 			typ := reflect.TypeOf(f.Interface()).Elem()
-			slice := reflect.MakeSlice(reflect.SliceOf(typ), f.Len(), f.Cap())
 			switch typ.Kind() {
 			case reflect.String:
-				s, ok := slice.Interface().([]string)
+				sl := f.Slice(0, f.Len())
+				s, ok := sl.Interface().([]string)
 				if !ok {
 					return nil, errors.New("failed to convert to string slice")
 				}

@@ -46,12 +46,12 @@ var _ = Describe("Podman info", func() {
 
 	It("podman info container counts", func() {
 		s := specgen.NewSpecGenerator(alpine.name, false)
-		_, err := containers.CreateWithSpec(bt.conn, s)
+		_, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).To(BeNil())
 
 		idPause, err := bt.RunTopContainer(nil, nil, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, idPause)
+		err = containers.Pause(bt.conn, idPause, nil)
 		Expect(err).To(BeNil())
 
 		idStop, err := bt.RunTopContainer(nil, nil, nil)

@@ -198,7 +198,7 @@ func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, po
 	if insidePod != nil && podName != nil {
 		s.Pod = *podName
 	}
-	ctr, err := containers.CreateWithSpec(b.conn, s)
+	ctr, err := containers.CreateWithSpec(b.conn, s, nil)
 	if err != nil {
 		return "", nil
 	}
@@ -207,7 +207,7 @@ func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, po
 		return "", err
 	}
 	wait := define.ContainerStateRunning
-	_, err = containers.Wait(b.conn, ctr.ID, &wait)
+	_, err = containers.Wait(b.conn, ctr.ID, new(containers.WaitOptions).WithCondition(wait))
 	return ctr.ID, err
 }
 

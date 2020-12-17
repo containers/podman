@@ -102,8 +102,7 @@ var _ = Describe("Podman volumes", func() {
 		Expect(code).To(BeNumerically("==", http.StatusConflict))
 
 		// Removing with a volume in use with force should work with a stopped container
-		zero := uint(0)
-		err = containers.Stop(connText, "vtest", &zero)
+		err = containers.Stop(connText, "vtest", new(containers.StopOptions).WithTimeout(0))
 		Expect(err).To(BeNil())
 		options := new(volumes.RemoveOptions).WithForce(true)
 		err = volumes.Remove(connText, vol.Name, options)

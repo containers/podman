@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
 	"github.com/containers/podman/v2/pkg/specgen"
 	. "github.com/onsi/ginkgo"
@@ -43,7 +42,7 @@ var _ = Describe("Podman containers attach", func() {
 		go func() {
 			<-tickTock.C
 			timeout := uint(5)
-			err := containers.Stop(bt.conn, id, &timeout)
+			err := containers.Stop(bt.conn, id, new(containers.StopOptions).WithTimeout(timeout))
 			if err != nil {
 				GinkgoWriter.Write([]byte(err.Error()))
 			}
@@ -53,8 +52,8 @@ var _ = Describe("Podman containers attach", func() {
 		stderr := &bytes.Buffer{}
 		go func() {
 			defer GinkgoRecover()
-
-			err := containers.Attach(bt.conn, id, nil, bindings.PTrue, bindings.PTrue, nil, stdout, stderr, nil)
+			options := new(containers.AttachOptions).WithLogs(true).WithStream(true)
+			err := containers.Attach(bt.conn, id, nil, stdout, stderr, nil, options)
 			Expect(err).ShouldNot(HaveOccurred())
 		}()
 
@@ -69,21 +68,21 @@ var _ = Describe("Podman containers attach", func() {
 		s.Name = "CatAttachTest"
 		s.Terminal = true
 		s.Command = []string{"/bin/cat"}
-		ctnr, err := containers.CreateWithSpec(bt.conn, s)
+		ctnr, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		err = containers.Start(bt.conn, ctnr.ID, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		wait := define.ContainerStateRunning
-		_, err = containers.Wait(bt.conn, ctnr.ID, &wait)
+		_, err = containers.Wait(bt.conn, ctnr.ID, new(containers.WaitOptions).WithCondition(wait))
 		Expect(err).ShouldNot(HaveOccurred())
 
 		tickTock := time.NewTimer(2 * time.Second)
 		go func() {
 			<-tickTock.C
 			timeout := uint(5)
-			err := containers.Stop(bt.conn, ctnr.ID, &timeout)
+			err := containers.Stop(bt.conn, ctnr.ID, new(containers.StopOptions).WithTimeout(timeout))
 			if err != nil {
 				GinkgoWriter.Write([]byte(err.Error()))
 			}
@@ -97,8 +96,8 @@ var _ = Describe("Podman containers attach", func() {
 		stderr := &bytes.Buffer{}
 		go func() {
 			defer GinkgoRecover()
-
-			err := containers.Attach(bt.conn, ctnr.ID, nil, bindings.PFalse, bindings.PTrue, stdin, stdout, stderr, nil)
+			options := new(containers.AttachOptions).WithStream(true)
+			err := containers.Attach(bt.conn, ctnr.ID, stdin, stdout, stderr, nil, options)
 			Expect(err).ShouldNot(HaveOccurred())
 		}()
 
