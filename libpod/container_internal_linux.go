@@ -790,11 +790,11 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) error {
+func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	if (len(c.config.NamedVolumes) > 0) || (len(c.Dependencies()) > 0) {
 		return errors.Errorf("Cannot export checkpoints of containers with named volumes or dependencies")
 	}
-	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), dest)
+	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), options.TargetFile)
 
 	includeFiles := []string{
 		"checkpoint",
@@ -807,7 +807,7 @@ func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) error {
 	// Get root file-system changes included in the checkpoint archive
 	rootfsDiffPath := filepath.Join(c.bundlePath(), "rootfs-diff.tar")
 	deleteFilesList := filepath.Join(c.bundlePath(), "deleted.files")
-	if !ignoreRootfs {
+	if !options.IgnoreRootfs {
 		// To correctly track deleted files, let's go through the output of 'podman diff'
 		tarFiles, err := c.runtime.GetDiff("", c.ID())
 		if err != nil {
@@ -880,13 +880,13 @@ func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) error {
 		return errors.Wrapf(err, "error reading checkpoint directory %q", c.ID())
 	}
 
-	outFile, err := os.Create(dest)
+	outFile, err := os.Create(options.TargetFile)
 	if err != nil {
-		return errors.Wrapf(err, "error creating checkpoint export file %q", dest)
+		return errors.Wrapf(err, "error creating checkpoint export file %q", options.TargetFile)
 	}
 	defer outFile.Close()
 
-	if err := os.Chmod(dest, 0600); err != nil {
+	if err := os.Chmod(options.TargetFile, 0600); err != nil {
 		return err
 	}
 
@@ -963,7 +963,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	defer c.newContainerEvent(events.Checkpoint)
 
 	if options.TargetFile != "" {
-		if err = c.exportCheckpoint(options.TargetFile, options.IgnoreRootfs); err != nil {
+		if err = c.exportCheckpoint(options); err != nil {
 			return err
 		}
 	}
