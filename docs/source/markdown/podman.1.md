@@ -44,7 +44,9 @@ Path of the conmon binary (Default path is configured in `containers.conf`)
 
 #### **--events-backend**=*type*
 
-Backend to use for storing events. Allowed values are **file**, **journald**, and **none**.
+Backend to use for storing events. Allowed values are **file**, **journald**, and
+**none**. When *file* is specified, the events are stored under a subdirectory
+of the *tmpdir* location (see **--tmpdir** below).
 
 #### **--help**, **-h**
 
