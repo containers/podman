@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -12,8 +13,6 @@ import (
 
 /*
 This file is generated automatically by go generate.  Do not edit.
-
-Created 2020-12-18 15:58:33.37307678 -0600 CST m=+0.000176739
 */
 
 // Changed
@@ -40,6 +39,7 @@ func (o *CreateOptions) ToParams() (url.Values, error) {
 		if !o.Changed(fieldName) {
 			continue
 		}
+		fieldName = strings.ToLower(fieldName)
 		f := s.Field(i)
 		if reflect.Ptr == f.Kind() {
 			f = f.Elem()
@@ -193,9 +193,9 @@ func (o *CreateOptions) WithIPRange(value net.IPNet) *CreateOptions {
 
 // GetIPRange
 func (o *CreateOptions) GetIPRange() net.IPNet {
-	var ipRange net.IPNet
+	var iPRange net.IPNet
 	if o.IPRange == nil {
-		return ipRange
+		return iPRange
 	}
 	return *o.IPRange
 }

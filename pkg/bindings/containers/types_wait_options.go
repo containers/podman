@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/containers/podman/v2/libpod/define"
 	jsoniter "github.com/json-iterator/go"
@@ -12,8 +13,6 @@ import (
 
 /*
 This file is generated automatically by go generate.  Do not edit.
-
-Created 2020-12-18 13:33:21.809397978 -0600 CST m=+0.000267049
 */
 
 // Changed
@@ -40,6 +39,7 @@ func (o *WaitOptions) ToParams() (url.Values, error) {
 		if !o.Changed(fieldName) {
 			continue
 		}
+		fieldName = strings.ToLower(fieldName)
 		f := s.Field(i)
 		if reflect.Ptr == f.Kind() {
 			f = f.Elem()

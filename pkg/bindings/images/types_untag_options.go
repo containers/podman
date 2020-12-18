@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -11,8 +12,6 @@ import (
 
 /*
 This file is generated automatically by go generate.  Do not edit.
-
-Created 2020-12-18 15:58:27.600379913 -0600 CST m=+0.000251449
 */
 
 // Changed
@@ -39,6 +38,7 @@ func (o *UntagOptions) ToParams() (url.Values, error) {
 		if !o.Changed(fieldName) {
 			continue
 		}
+		fieldName = strings.ToLower(fieldName)
 		f := s.Field(i)
 		if reflect.Ptr == f.Kind() {
 			f = f.Elem()
