@@ -586,6 +586,22 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+func (c *EngineConfig) findRuntime() string {
+	// Search for crun first followed by runc and kata
+	for _, name := range []string{"crun", "runc", "kata"} {
+		for _, v := range c.OCIRuntimes[name] {
+			if _, err := os.Stat(v); err == nil {
+				return name
+			}
+		}
+		if path, err := exec.LookPath(name); err == nil {
+			logrus.Warningf("Found default OCIruntime %s path which is missing from [engine.runtimes] in containers.conf", path)
+			return name
+		}
+	}
+	return ""
+}
+
 // Validate is the main entry point for Engine configuration validation
 // It returns an `error` on validation failure, otherwise
 // `nil`.
