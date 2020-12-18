@@ -14,7 +14,7 @@ PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODM
 IMAGE=$PODMAN_TEST_IMAGE_FQN
 
 # Default timeout for a podman command.
-PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-60}
+PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-120}
 
 # Prompt to display when logging podman commands; distinguish root/rootless
 _LOG_PROMPT='$'
