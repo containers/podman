@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/auth"
 	commonComp "github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -365,6 +366,9 @@ func DefaultIsolation() string {
 	isolation := os.Getenv("BUILDAH_ISOLATION")
 	if isolation != "" {
 		return isolation
+	}
+	if unshare.IsRootless() {
+		return "rootless"
 	}
 	return buildah.OCI
 }

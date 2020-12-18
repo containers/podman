@@ -2,12 +2,15 @@ package entities
 
 import (
 	"context"
+	"io"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/spf13/cobra"
 )
+
+type ContainerCopyFunc func() error
 
 type ContainerEngine interface {
 	AutoUpdate(ctx context.Context, options AutoUpdateOptions) (*AutoUpdateReport, []error)
@@ -16,7 +19,8 @@ type ContainerEngine interface {
 	ContainerCheckpoint(ctx context.Context, namesOrIds []string, options CheckpointOptions) ([]*CheckpointReport, error)
 	ContainerCleanup(ctx context.Context, namesOrIds []string, options ContainerCleanupOptions) ([]*ContainerCleanupReport, error)
 	ContainerCommit(ctx context.Context, nameOrID string, options CommitOptions) (*CommitReport, error)
-	ContainerCp(ctx context.Context, source, dest string, options ContainerCpOptions) error
+	ContainerCopyFromArchive(ctx context.Context, nameOrID string, path string, reader io.Reader) (ContainerCopyFunc, error)
+	ContainerCopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (ContainerCopyFunc, error)
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
 	ContainerDiff(ctx context.Context, nameOrID string, options DiffOptions) (*DiffReport, error)
 	ContainerExec(ctx context.Context, nameOrID string, options ExecOptions, streams define.AttachStreams) (int, error)
@@ -38,6 +42,7 @@ type ContainerEngine interface {
 	ContainerRun(ctx context.Context, opts ContainerRunOptions) (*ContainerRunReport, error)
 	ContainerRunlabel(ctx context.Context, label string, image string, args []string, opts ContainerRunlabelOptions) error
 	ContainerStart(ctx context.Context, namesOrIds []string, options ContainerStartOptions) ([]*ContainerStartReport, error)
+	ContainerStat(ctx context.Context, nameOrDir string, path string) (*ContainerStatReport, error)
 	ContainerStats(ctx context.Context, namesOrIds []string, options ContainerStatsOptions) (chan ContainerStatsReport, error)
 	ContainerStop(ctx context.Context, namesOrIds []string, options StopOptions) ([]*StopReport, error)
 	ContainerTop(ctx context.Context, options TopOptions) (*StringSliceReport, error)

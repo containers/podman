@@ -8,8 +8,6 @@
 load helpers
 
 @test "podman cp file from host to container" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-file-host-to-ctr
     mkdir -p $srcdir
     local -a randomcontent=(
@@ -57,60 +55,16 @@ load helpers
     is "$output" 'Error: ".*/IdoNotExist" could not be found on the host' \
        "copy nonexistent host path"
 
-    # Container path does not exist.  Notice that the error message shows how
-    # the specified container is resolved.
+    # Container (parent) path does not exist.
     run_podman 125 cp $srcdir/hostfile0 cpcontainer:/IdoNotExist/
-    is "$output" 'Error: "/IdoNotExist/" could not be found on container.*(resolved to .*/IdoNotExist.*' \
+    is "$output" 'Error: "/IdoNotExist/" could not be found on container cpcontainer: No such file or directory' \
        "copy into nonexistent path in container"
 
     run_podman rm -f cpcontainer
 }
 
 
-@test "podman cp --extract=true tar archive to container" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
-    # Create tempfile with random name and content
-    dirname=cp-test-extract
-    srcdir=$PODMAN_TMPDIR/$dirname
-    mkdir -p $srcdir
-    rand_filename=$(random_string 20)
-    rand_content=$(random_string 50)
-    echo $rand_content > $srcdir/$rand_filename
-    chmod 644 $srcdir/$rand_filename
-
-    # Now tar it up!
-    tar_file=$PODMAN_TMPDIR/archive.tar.gz
-    tar -C $PODMAN_TMPDIR -zvcf $tar_file $dirname
-
-    run_podman run -d --name cpcontainer $IMAGE sleep infinity
-
-    # First just copy without extracting the archive.
-    run_podman cp $tar_file cpcontainer:/tmp
-    # Now remove the archive which will also test if it exists and is a file.
-    # To save expensive exec'ing, create a file for the next tests.
-    run_podman exec cpcontainer sh -c "rm /tmp/archive.tar.gz; touch /tmp/file.txt"
-
-    # Now copy with extracting the archive. NOTE that Podman should
-    # auto-decompress the file if needed.
-    run_podman cp --extract=true $tar_file cpcontainer:/tmp
-    run_podman exec cpcontainer cat /tmp/$dirname/$rand_filename
-    is "$output" "$rand_content"
-
-    # Test extract on non archive.
-    run_podman cp --extract=true $srcdir/$rand_filename cpcontainer:/foo.txt
-
-    # Cannot extract an archive to a file!
-    run_podman 125 cp --extract=true $tar_file cpcontainer:/tmp/file.txt
-    is "$output" 'Error: cannot extract archive .* to file "/tmp/file.txt"'
-
-    run_podman rm -f cpcontainer
-}
-
-
 @test "podman cp file from container to host" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-file-ctr-to-host
     mkdir -p $srcdir
 
@@ -153,8 +107,6 @@ load helpers
 
 
 @test "podman cp dir from host to container" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     dirname=dir-test
     srcdir=$PODMAN_TMPDIR/$dirname
     mkdir -p $srcdir
@@ -195,8 +147,6 @@ load helpers
 
 
 @test "podman cp dir from container to host" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/dir-test
     mkdir -p $srcdir
 
@@ -230,8 +180,6 @@ load helpers
 
 
 @test "podman cp file from host to container volume" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-volume
     mkdir -p $srcdir
     echo "This file should be in volume2" > $srcdir/hostfile
@@ -268,8 +216,6 @@ load helpers
 
 
 @test "podman cp file from host to container mount" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-mount-src
     mountdir=$PODMAN_TMPDIR/cp-test-mount
     mkdir -p $srcdir $mountdir
@@ -296,8 +242,6 @@ load helpers
 # perform wildcard expansion in the container. We should get both
 # files copied into the host.
 @test "podman cp * - wildcard copy multiple files from container to host" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-in
     dstdir=$PODMAN_TMPDIR/cp-test-out
     mkdir -p $srcdir $dstdir
@@ -321,8 +265,6 @@ load helpers
 # Create a file on the host; make a symlink in the container pointing
 # into host-only space. Try to podman-cp that symlink. It should fail.
 @test "podman cp - will not recognize symlink pointing into host space" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-in
     dstdir=$PODMAN_TMPDIR/cp-test-out
     mkdir -p $srcdir $dstdir
@@ -350,8 +292,6 @@ load helpers
 # in the container pointing to 'file*' (file star). Try to podman-cp
 # this invalid double symlink. It must fail.
 @test "podman cp - will not expand globs in host space (#3829)" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-in
     dstdir=$PODMAN_TMPDIR/cp-test-out
     mkdir -p $srcdir $dstdir
@@ -372,8 +312,6 @@ load helpers
 
 # Another symlink into host space, this one named '*' (star). cp should fail.
 @test "podman cp - will not expand wildcard" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-in
     dstdir=$PODMAN_TMPDIR/cp-test-out
     mkdir -p $srcdir $dstdir
@@ -394,8 +332,6 @@ load helpers
 
 # THIS IS EXTREMELY WEIRD. Podman expands symlinks in weird ways.
 @test "podman cp into container: weird symlink expansion" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-in
     dstdir=$PODMAN_TMPDIR/cp-test-out
     mkdir -p $srcdir $dstdir
@@ -427,7 +363,7 @@ load helpers
     is "$output" "" "output from podman cp 1"
 
     run_podman 125 cp --pause=false $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
-    is "$output" 'Error: "/tmp/d2/x/" could not be found on container.*' "cp will not create nonexistent destination directory"
+    is "$output" 'Error: "/tmp/d2/x/" could not be found on container cpcontainer: No such file or directory' "cp will not create nonexistent destination directory"
 
     run_podman cp --pause=false $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
     is "$output" "" "output from podman cp 3"
@@ -454,8 +390,6 @@ load helpers
 # rhbz1741718 : file copied into container:/var/lib/foo appears as /foo
 # (docker only, never seems to have affected podman. Make sure it never does).
 @test "podman cp into a subdirectory matching GraphRoot" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     # Create tempfile with random name and content
     srcdir=$PODMAN_TMPDIR/cp-test-in
     mkdir -p $srcdir
@@ -491,8 +425,6 @@ load helpers
 
 
 @test "podman cp from stdin to container" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     # Create tempfile with random name and content
     srcdir=$PODMAN_TMPDIR/cp-test-stdin
     mkdir -p $srcdir
@@ -525,24 +457,22 @@ load helpers
 
     # Input stream must be a (compressed) tar archive.
     run_podman 125 cp - cpcontainer:/tmp < $srcdir/$rand_filename
-    is "$output" "Error:.*: error reading tar stream.*" "input stream must be a (compressed) tar archive"
+    is "$output" "Error: source must be a (compressed) tar archive when copying from stdin"
 
     # Destination must be a directory (on an existing file).
     run_podman exec cpcontainer touch /tmp/file.txt
     run_podman 125 cp /dev/stdin cpcontainer:/tmp/file.txt < $tar_file
-    is "$output" 'Error: destination must be a directory or stream when copying from a stream'
+    is "$output" 'Error: destination must be a directory when copying from stdin'
 
     # Destination must be a directory (on an absent path).
     run_podman 125 cp /dev/stdin cpcontainer:/tmp/IdoNotExist < $tar_file
-    is "$output" 'Error: destination must be a directory or stream when copying from a stream'
+    is "$output" 'Error: destination must be a directory when copying from stdin'
 
     run_podman rm -f cpcontainer
 }
 
 
 @test "podman cp from container to stdout" {
-    skip_if_remote "podman-remote does not yet handle cp"
-
     srcdir=$PODMAN_TMPDIR/cp-test-stdout
     mkdir -p $srcdir
     rand_content=$(random_string 50)
@@ -579,9 +509,9 @@ load helpers
     fi
 
     tar xvf $srcdir/stdout.tar -C $srcdir
-    run cat $srcdir/file.txt
+    run cat $srcdir/tmp/file.txt
     is "$output" "$rand_content"
-    run cat $srcdir/empty.txt
+    run cat $srcdir/tmp/empty.txt
     is "$output" ""
 
     run_podman rm -f cpcontainer

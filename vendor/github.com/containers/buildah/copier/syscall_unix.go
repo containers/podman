@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var canChroot = true
+var canChroot = os.Getuid() == 0
 
 func chroot(root string) (bool, error) {
 	if canChroot {

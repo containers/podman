@@ -3,11 +3,13 @@ package compat
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/copy"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -44,35 +46,31 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 	}
 
 	containerName := utils.GetName(r)
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	statReport, err := containerEngine.ContainerStat(r.Context(), containerName, query.Path)
 
-	ctr, err := runtime.LookupContainer(containerName)
-	if errors.Cause(err) == define.ErrNoSuchCtr {
-		utils.Error(w, "Not found.", http.StatusNotFound, errors.Wrap(err, "the container doesn't exists"))
+	// NOTE
+	// The statReport may actually be set even in case of an error.  That's
+	// the case when we're looking at a symlink pointing to nirvana.  In
+	// such cases, we really need the FileInfo but we also need the error.
+	if statReport != nil {
+		statHeader, err := copy.EncodeFileInfo(&statReport.FileInfo)
+		if err != nil {
+			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+			return
+		}
+		w.Header().Add(copy.XDockerContainerPathStatHeader, statHeader)
+	}
+
+	if errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == copy.ENOENT {
+		// 404 is returned for an absent container and path.  The
+		// clients must deal with it accordingly.
+		utils.Error(w, "Not found.", http.StatusNotFound, err)
 		return
 	} else if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-
-	source, err := copy.CopyItemForContainer(ctr, query.Path, true, true)
-	defer source.CleanUp()
-	if err != nil {
-		utils.Error(w, "Not found.", http.StatusNotFound, errors.Wrapf(err, "error stating container path %q", query.Path))
-		return
-	}
-
-	// NOTE: Docker always sets the header.
-	info, err := source.Stat()
-	if err != nil {
-		utils.Error(w, "Not found.", http.StatusNotFound, errors.Wrapf(err, "error stating container path %q", query.Path))
-		return
-	}
-	statHeader, err := copy.EncodeFileInfo(info)
-	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-		return
-	}
-	w.Header().Add(copy.XDockerContainerPathStatHeader, statHeader)
 
 	// Our work is done when the user is interested in the header only.
 	if r.Method == http.MethodHead {
@@ -80,22 +78,15 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 		return
 	}
 
-	// Alright, the users wants data from the container.
-	destination, err := copy.CopyItemForWriter(w)
+	copyFunc, err := containerEngine.ContainerCopyToArchive(r.Context(), containerName, query.Path, w)
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-
-	copier, err := copy.GetCopier(&source, &destination, false)
-	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-		return
-	}
+	w.Header().Set("Content-Type", "application/x-tar")
 	w.WriteHeader(http.StatusOK)
-	if err := copier.Copy(); err != nil {
-		logrus.Errorf("Error during copy: %v", err)
-		return
+	if err := copyFunc(); err != nil {
+		logrus.Error(err.Error())
 	}
 }
 
@@ -113,36 +104,22 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 		return
 	}
 
-	ctrName := utils.GetName(r)
+	containerName := utils.GetName(r)
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
-	ctr, err := runtime.LookupContainer(ctrName)
-	if err != nil {
-		utils.Error(w, "Not found", http.StatusNotFound, errors.Wrapf(err, "the %s container doesn't exists", ctrName))
+	copyFunc, err := containerEngine.ContainerCopyFromArchive(r.Context(), containerName, query.Path, r.Body)
+	if errors.Cause(err) == define.ErrNoSuchCtr || os.IsNotExist(err) {
+		// 404 is returned for an absent container and path.  The
+		// clients must deal with it accordingly.
+		utils.Error(w, "Not found.", http.StatusNotFound, errors.Wrap(err, "the container doesn't exists"))
+		return
+	} else if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
-	destination, err := copy.CopyItemForContainer(ctr, query.Path, true, false)
-	defer destination.CleanUp()
-	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-		return
-	}
-
-	source, err := copy.CopyItemForReader(r.Body)
-	defer source.CleanUp()
-	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-		return
-	}
-
-	copier, err := copy.GetCopier(&source, &destination, false)
-	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-		return
-	}
 	w.WriteHeader(http.StatusOK)
-	if err := copier.Copy(); err != nil {
-		logrus.Errorf("Error during copy: %v", err)
-		return
+	if err := copyFunc(); err != nil {
+		logrus.Error(err.Error())
 	}
 }

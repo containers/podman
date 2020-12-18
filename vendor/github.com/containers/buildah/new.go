@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"os"
 	"strings"
 
 	"github.com/containers/buildah/util"
@@ -127,27 +126,10 @@ func resolveLocalImage(systemContext *types.SystemContext, store storage.Store, 
 	return nil, "", nil, nil
 }
 
-// getShortNameMode looks up the `CONTAINERS_SHORT_NAME_ALIASING` environment
-// variable.  If it's "on", return `nil` to use the defaults from
-// containers/image and the registries.conf files on the system.  If it's
-// "off", empty or unset, return types.ShortNameModeDisabled to turn off
-// short-name aliasing by default.
-//
-// TODO: remove this function once we want to default to short-name aliasing.
-func getShortNameMode() *types.ShortNameMode {
-	env := os.Getenv("CONTAINERS_SHORT_NAME_ALIASING")
-	if strings.ToLower(env) == "on" {
-		return nil // default to whatever registries.conf and c/image decide
-	}
-	mode := types.ShortNameModeDisabled
-	return &mode
-}
-
 func resolveImage(ctx context.Context, systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, *storage.Image, error) {
 	if systemContext == nil {
 		systemContext = &types.SystemContext{}
 	}
-	systemContext.ShortNameMode = getShortNameMode()
 
 	fromImage := options.FromImage
 	// If the image name includes a transport we can use it as it.  Special
