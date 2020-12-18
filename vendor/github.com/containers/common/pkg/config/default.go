@@ -242,7 +242,6 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.ImageDefaultTransport = _defaultTransport
 	c.StateType = BoltDBStateStore
 
-	c.OCIRuntime = "crun"
 	c.ImageBuildFormat = "oci"
 
 	c.CgroupManager = defaultCgroupManager()
@@ -250,6 +249,15 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 	c.Remote = isRemote()
 	c.OCIRuntimes = map[string][]string{
+		"crun": {
+			"/usr/bin/crun",
+			"/usr/sbin/crun",
+			"/usr/local/bin/crun",
+			"/usr/local/sbin/crun",
+			"/sbin/crun",
+			"/bin/crun",
+			"/run/current-system/sw/bin/crun",
+		},
 		"runc": {
 			"/usr/bin/runc",
 			"/usr/sbin/runc",
@@ -259,15 +267,6 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/bin/runc",
 			"/usr/lib/cri-o-runc/sbin/runc",
 			"/run/current-system/sw/bin/runc",
-		},
-		"crun": {
-			"/usr/bin/crun",
-			"/usr/sbin/crun",
-			"/usr/local/bin/crun",
-			"/usr/local/sbin/crun",
-			"/sbin/crun",
-			"/bin/crun",
-			"/run/current-system/sw/bin/crun",
 		},
 		"kata": {
 			"/usr/bin/kata-runtime",
@@ -280,6 +279,9 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/usr/bin/kata-fc",
 		},
 	}
+	// Needs to be called after populating c.OCIRuntimes
+	c.OCIRuntime = c.findRuntime()
+
 	c.ConmonEnvVars = []string{
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 	}
