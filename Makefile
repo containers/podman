@@ -445,6 +445,10 @@ podman-remote-%-release:
 	rm -f release.txt
 	$(MAKE) podman-remote-release-$*.zip
 
+BINDINGS_SOURCE = $(wildcard pkg/bindings/**/types.go)
+.generate-bindings: $(BINDINGS_SOURCE)
+	touch .generate-bindings
+
 .PHONY: docker-docs
 docker-docs: docs
 	(cd docs; ./dckrman.sh ./build/man/*.1)

@@ -12,6 +12,7 @@ coverprofile
 /docs/build/
 /docs/remote
 .gopathok
+.generate-bindings
 .idea*
 .nfs*
 *.o
