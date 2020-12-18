@@ -69,15 +69,35 @@ sudo apt-get update
 sudo apt-get -y install buildah
 ```
 
-The [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
-provides packages for Debian 10. The Kubic packages for Debian Testing/Bullseye and Debian Unstable/Sid
-have been discontinued to avoid
-[conflicts](https://github.com/containers/buildah/issues/2797) with the official packages.
+If you would prefer newer (though not as well-tested) packages,
+the [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah)
+provides packages for Debian 10 and newer. The packages in Kubic project repos are more frequently
+updated than the one in Debian's official repositories, due to how Debian works.
+The build sources for the Kubic packages can be found [here](https://gitlab.com/rhcontainerbot/buildah/-/tree/debian/debian).
 
-Caution: If you upgrade from Debian 10 to Testing/Bullseye or
-Unstable/Sid you would likely end up downgrading Buildah because the version in
-OBS is more frequently updated than the one in Debian's official repositories,
-due to how Debian works.
+CAUTION: On Debian 11 and newer, including Testing and Sid/Unstable, we highly recommend you use Buildah, Podman and Skopeo ONLY from EITHER the Kubic repo
+OR the official Debian repos. Mixing and matching may lead to unpredictable situations including installation conflicts.
+
+```bash
+# Debian 10
+echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/Release.key | sudo apt-key add -
+sudo apt-get update
+sudo apt-get -y install buildah
+
+# Debian Testing
+echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/Release.key | sudo apt-key add -
+sudo apt-get update
+sudo apt-get -y install buildah
+
+# Debian Sid/Unstable
+echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/Release.key | sudo apt-key add -
+sudo apt-get update
+sudo apt-get -y install buildah
+```
+
 
 
 ### [Fedora](https://www.fedoraproject.org)
@@ -125,7 +145,8 @@ sudo yum -y install buildah
 
 #### [Raspberry Pi OS armhf (ex Raspbian)](https://www.raspberrypi.org/downloads/raspberry-pi-os/)
 
-The Kubic project provides packages for Raspbian 10.
+The [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah) provides
+packages for Raspbian 10.
 
 ```bash
 # Raspbian 10
@@ -134,6 +155,8 @@ curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/
 sudo apt-get update -qq
 sudo apt-get -qq -y install buildah
 ```
+
+The build sources for the Kubic packages can be found [here](https://gitlab.com/rhcontainerbot/buildah/-/tree/debian/debian).
 
 #### [Raspberry Pi OS arm64 (beta)](https://downloads.raspberrypi.org/raspios_arm64/images/)
 
@@ -160,7 +183,16 @@ sudo apt-get -y update
 sudo apt-get -y install buildah
 ```
 
-The [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah) provides packages for some older but supported Ubuntu versions (it should also work with direct derivatives like Pop!\_OS).
+If you would prefer newer (though not as well-tested) packages,
+the [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah)
+provides packages for active Ubuntu releases 18.04 and newer (it should also work with direct derivatives like Pop!\_OS).
+The packages in Kubic project repos are more frequently updated than the one in Ubuntu's official repositories, due to how Debian/Ubuntu works.
+Checkout the Kubic project page for a list of supported Ubuntu version and architecture combinations.
+The build sources for the Kubic packages can be found [here](https://gitlab.com/rhcontainerbot/buildah/-/tree/debian/debian).
+
+CAUTION: On Ubuntu 20.10 and newer, we highly recommend you use Buildah, Podman and Skopeo ONLY from EITHER the Kubic repo
+OR the official Ubuntu repos. Mixing and matching may lead to unpredictable situations including installation conflicts.
+
 
 ```bash
 . /etc/os-release
@@ -471,6 +503,13 @@ cat /etc/containers/policy.json
 		}
 	}
 }
+```
+
+## Debug with Delve and the like
+
+To make a source debug build without optimizations use `DEBUG=1`, like:
+```
+make all DEBUG=1
 ```
 
 ## Vendoring
