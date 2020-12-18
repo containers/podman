@@ -65,7 +65,7 @@ var _ = Describe("Podman system", func() {
 
 	It("podman system prune - pod,container stopped", func() {
 		// Start and stop a pod to enter in exited state.
-		_, err := pods.Start(bt.conn, newpod)
+		_, err := pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
@@ -90,7 +90,7 @@ var _ = Describe("Podman system", func() {
 
 	It("podman system prune running alpine container", func() {
 		// Start and stop a pod to enter in exited state.
-		_, err := pods.Start(bt.conn, newpod)
+		_, err := pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
@@ -126,7 +126,7 @@ var _ = Describe("Podman system", func() {
 
 	It("podman system prune running alpine container volume prune", func() {
 		// Start a pod and leave it running
-		_, err := pods.Start(bt.conn, newpod)
+		_, err := pods.Start(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 
 		// Start and stop a container to enter in exited state.
