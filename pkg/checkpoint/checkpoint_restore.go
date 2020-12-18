@@ -54,6 +54,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 			"rootfs-diff.tar",
 			"network.status",
 			"deleted.files",
+			"volumes",
 		},
 	}
 	dir, err := ioutil.TempDir("", "checkpoint")
@@ -83,8 +84,21 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	}
 
 	// This should not happen as checkpoints with these options are not exported.
-	if (len(config.Dependencies) > 0) || (len(config.NamedVolumes) > 0) {
-		return nil, errors.Errorf("Cannot import checkpoints of containers with named volumes or dependencies")
+	if len(config.Dependencies) > 0 {
+		return nil, errors.Errorf("Cannot import checkpoints of containers with dependencies")
+	}
+
+	// Volumes included in the checkpoint should not exist
+	if !restoreOptions.IgnoreVolumes {
+		for _, vol := range config.NamedVolumes {
+			exists, err := runtime.HasVolume(vol.Name)
+			if err != nil {
+				return nil, err
+			}
+			if exists {
+				return nil, errors.Errorf("volume with name %s already exists. Use --ignore-volumes to not restore content of volumes", vol.Name)
+			}
+		}
 	}
 
 	ctrID := config.ID

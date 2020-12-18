@@ -487,6 +487,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		TCPEstablished: options.TCPEstablished,
 		TargetFile:     options.Export,
 		IgnoreRootfs:   options.IgnoreRootFS,
+		IgnoreVolumes:  options.IgnoreVolumes,
 		KeepRunning:    options.LeaveRunning,
 	}
 
@@ -525,6 +526,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		TargetFile:      options.Import,
 		Name:            options.Name,
 		IgnoreRootfs:    options.IgnoreRootFS,
+		IgnoreVolumes:   options.IgnoreVolumes,
 		IgnoreStaticIP:  options.IgnoreStaticIP,
 		IgnoreStaticMAC: options.IgnoreStaticMAC,
 	}

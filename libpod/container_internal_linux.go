@@ -791,8 +791,8 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 }
 
 func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
-	if (len(c.config.NamedVolumes) > 0) || (len(c.Dependencies()) > 0) {
-		return errors.Errorf("Cannot export checkpoints of containers with named volumes or dependencies")
+	if len(c.Dependencies()) > 0 {
+		return errors.Errorf("Cannot export checkpoints of containers with dependencies")
 	}
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), options.TargetFile)
 
@@ -870,6 +870,47 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		}
 	}
 
+	// Folder containing archived volumes that will be included in the export
+	expVolDir := filepath.Join(c.bundlePath(), "volumes")
+
+	// Create an archive for each volume associated with the container
+	if !options.IgnoreVolumes {
+		if err := os.MkdirAll(expVolDir, 0700); err != nil {
+			return errors.Wrapf(err, "error creating volumes export directory %q", expVolDir)
+		}
+
+		for _, v := range c.config.NamedVolumes {
+			volumeTarFilePath := filepath.Join("volumes", v.Name+".tar")
+			volumeTarFileFullPath := filepath.Join(c.bundlePath(), volumeTarFilePath)
+
+			volumeTarFile, err := os.Create(volumeTarFileFullPath)
+			if err != nil {
+				return errors.Wrapf(err, "error creating %q", volumeTarFileFullPath)
+			}
+
+			volume, err := c.runtime.GetVolume(v.Name)
+			if err != nil {
+				return err
+			}
+
+			input, err := archive.TarWithOptions(volume.MountPoint(), &archive.TarOptions{
+				Compression:      archive.Uncompressed,
+				IncludeSourceDir: true,
+			})
+			if err != nil {
+				return errors.Wrapf(err, "error reading volume directory %q", v.Dest)
+			}
+
+			_, err = io.Copy(volumeTarFile, input)
+			if err != nil {
+				return err
+			}
+			volumeTarFile.Close()
+
+			includeFiles = append(includeFiles, volumeTarFilePath)
+		}
+	}
+
 	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
 		Compression:      archive.Gzip,
 		IncludeSourceDir: true,
@@ -897,6 +938,10 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 
 	os.Remove(rootfsDiffPath)
 	os.Remove(deleteFilesList)
+
+	if !options.IgnoreVolumes {
+		os.RemoveAll(expVolDir)
+	}
 
 	return nil
 }
@@ -1191,6 +1236,30 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// Save the OCI spec to disk
 	if err := c.saveSpec(g.Config); err != nil {
 		return err
+	}
+
+	// When restoring from an imported archive, allow restoring the content of volumes.
+	// Volumes are created in setupContainer()
+	if options.TargetFile != "" && !options.IgnoreVolumes {
+		for _, v := range c.config.NamedVolumes {
+			volumeFilePath := filepath.Join(c.bundlePath(), "volumes", v.Name+".tar")
+
+			volumeFile, err := os.Open(volumeFilePath)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to open volume file %s", volumeFilePath)
+			}
+			defer volumeFile.Close()
+
+			volume, err := c.runtime.GetVolume(v.Name)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to retrieve volume %s", v.Name)
+			}
+
+			mountPoint := volume.MountPoint()
+			if err := archive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
+				return errors.Wrapf(err, "Failed to extract volume %s to %s", volumeFilePath, mountPoint)
+			}
+		}
 	}
 
 	// Before actually restarting the container, apply the root file-system changes
