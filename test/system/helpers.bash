@@ -22,6 +22,10 @@ if [ $(id -u) -eq 0 ]; then
     _LOG_PROMPT='#'
 fi
 
+if [ -n "$container" ]; then
+    PODMAN="$PODMAN --events-backend=file"
+fi
+
 ###############################################################################
 # BEGIN setup/teardown tools
 
