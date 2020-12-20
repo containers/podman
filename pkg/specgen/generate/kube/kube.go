@@ -116,7 +116,12 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 		if imageData.Config.WorkingDir != "" {
 			s.WorkDir = imageData.Config.WorkingDir
 		}
-		s.Command = imageData.Config.Entrypoint
+		if len(imageData.Config.Entrypoint) != 0 {
+			s.Entrypoint = imageData.Config.Entrypoint
+		}
+		if len(imageData.Config.Cmd) != 0 {
+			s.Command = imageData.Config.Cmd
+		}
 		s.Labels = imageData.Config.Labels
 		if len(imageData.Config.StopSignal) > 0 {
 			stopSignal, err := util.ParseSignal(imageData.Config.StopSignal)
@@ -127,11 +132,11 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 		}
 	}
 	if len(containerYAML.Command) != 0 {
-		s.Command = containerYAML.Command
+		s.Entrypoint = containerYAML.Command
 	}
 	// doc https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
 	if len(containerYAML.Args) != 0 {
-		s.Command = append(s.Command, containerYAML.Args...)
+		s.Command = containerYAML.Args
 	}
 	// FIXME,
 	// we are currently ignoring imageData.Config.ExposedPorts
