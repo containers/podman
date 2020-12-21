@@ -29,7 +29,7 @@ func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptio
 		close(opts.EventChan)
 	}()
 	options := new(system.EventsOptions).WithFilters(filters).WithSince(opts.Since).WithStream(opts.Stream).WithUntil(opts.Until)
-	return system.Events(ic.ClientCxt, binChan, nil, options)
+	return system.Events(ic.ClientCtx, binChan, nil, options)
 }
 
 // GetLastContainerEvent takes a container name or ID and an event status and returns

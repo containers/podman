@@ -56,7 +56,7 @@ type OCIRuntime interface {
 	// a header prepended as follows: 1-byte STREAM (0, 1, 2 for STDIN,
 	// STDOUT, STDERR), 3 null (0x00) bytes, 4-byte big endian length.
 	// If a cancel channel is provided, it can be used to asynchronously
-	// termninate the attach session. Detach keys, if given, will also cause
+	// terminate the attach session. Detach keys, if given, will also cause
 	// the attach session to be terminated if provided via the STDIN
 	// channel. If they are not provided, the default detach keys will be
 	// used instead. Detach keys of "" will disable detaching via keyboard.

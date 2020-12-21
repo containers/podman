@@ -191,7 +191,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			return "", errors.Errorf("container's create command is too short or invalid: %v", info.CreateCommand)
 		}
 		// We're hard-coding the first five arguments and append the
-		// CreateCommand with a stripped command and subcomand.
+		// CreateCommand with a stripped command and subcommand.
 		startCommand := []string{
 			info.Executable,
 			"run",
@@ -241,7 +241,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 		if hasNameParam && !hasReplaceParam {
 			// Enforce --replace for named containers.  This will
-			// make systemd units more robuts as it allows them to
+			// make systemd units more robust as it allows them to
 			// start after system crashes (see
 			// github.com/containers/podman/issues/5485).
 			startCommand = append(startCommand, "--replace")

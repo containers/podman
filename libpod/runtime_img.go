@@ -230,7 +230,7 @@ func (r *Runtime) Import(ctx context.Context, source, reference, signaturePolicy
 	return newImage.ID(), nil
 }
 
-// donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
+// downloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
 // and temporarily saves in it $TMPDIR/importxyz, which is deleted after the image is imported
 func downloadFromURL(source string) (string, error) {
 	fmt.Printf("Downloading from %q\n", source)

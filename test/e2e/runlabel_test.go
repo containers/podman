@@ -114,12 +114,12 @@ var _ = Describe("podman container runlabel", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
-	It("runlabel should fail with nonexist authfile", func() {
+	It("runlabel should fail with nonexistent authfile", func() {
 		image := "podman-runlabel-test:podman"
 		podmanTest.BuildImage(PodmanDockerfile, image, "false")
 
-		// runlabel should fail with nonexist authfile
-		result := podmanTest.Podman([]string{"container", "runlabel", "--authfile", "/tmp/nonexist", "RUN", image})
+		// runlabel should fail with nonexistent authfile
+		result := podmanTest.Podman([]string{"container", "runlabel", "--authfile", "/tmp/nonexistent", "RUN", image})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Not(Equal(0)))
 

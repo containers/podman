@@ -50,7 +50,7 @@ func decompose(input string) (imageParts, error) {
 
 // suspiciousRefNameTagValuesForSearch returns a "tag" value used in a previous implementation.
 // This exists only to preserve existing behavior in heuristic code; it’s dubious that that behavior is correct,
-// gespecially for the tag value.
+// especially for the tag value.
 func (ip *imageParts) suspiciousRefNameTagValuesForSearch() (string, string, string) {
 	registry := reference.Domain(ip.unnormalizedRef)
 	imageName := reference.Path(ip.unnormalizedRef)

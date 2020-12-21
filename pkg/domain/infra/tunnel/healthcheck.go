@@ -9,5 +9,5 @@ import (
 )
 
 func (ic *ContainerEngine) HealthCheckRun(ctx context.Context, nameOrID string, options entities.HealthCheckOptions) (*define.HealthCheckResults, error) {
-	return containers.RunHealthCheck(ic.ClientCxt, nameOrID, nil)
+	return containers.RunHealthCheck(ic.ClientCtx, nameOrID, nil)
 }

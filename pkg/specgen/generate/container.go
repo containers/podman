@@ -163,7 +163,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			return nil, err
 		}
 
-		// labels from the image that dont exist already
+		// labels from the image that don't exist already
 		if len(labels) > 0 && s.Labels == nil {
 			s.Labels = make(map[string]string)
 		}

@@ -666,7 +666,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: destination
 	//    type: string
-	//    description: Allows for pushing the image to a different destintation than the image refers to.
+	//    description: Allows for pushing the image to a different destination than the image refers to.
 	//  - in: query
 	//    name: tlsVerify
 	//    description: Require TLS verification.

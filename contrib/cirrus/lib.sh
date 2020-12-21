@@ -42,7 +42,7 @@ fi
 OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 # GCE image-name compatible string representation of distribution _major_ version
 OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | tr -d '.')"
-# Combined to ease soe usage
+# Combined to ease some usage
 OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 # This is normally set from .cirrus.yml but default is necessary when
 # running under hack/get_ci_vm.sh since it cannot infer the value.
@@ -87,7 +87,7 @@ CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and uniq
 # The starting place for linting and code validation
 EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 
-# Regex defining all CI-releated env. vars. necessary for all possible
+# Regex defining all CI-related env. vars. necessary for all possible
 # testing operations on all platforms and versions.  This is necessary
 # to avoid needlessly passing through global/system values across
 # contexts, such as host->container or root->rootless user

@@ -157,7 +157,7 @@ type InspectMount struct {
 	// "volume" and "bind".
 	Type string `json:"Type"`
 	// The name of the volume. Empty for bind mounts.
-	Name string `json:"Name,omptempty"`
+	Name string `json:"Name,omitempty"`
 	// The source directory for the volume.
 	Source string `json:"Source"`
 	// The destination directory for the volume. Specified as a path within
@@ -552,7 +552,7 @@ type InspectBasicNetworkConfig struct {
 	// GlobalIPv6PrefixLen is the length of the subnet mask of this network.
 	GlobalIPv6PrefixLen int `json:"GlobalIPv6PrefixLen"`
 	// SecondaryIPv6Addresses is a list of extra IPv6 Addresses that the
-	// container has been assigned in this networ.
+	// container has been assigned in this network.
 	SecondaryIPv6Addresses []string `json:"SecondaryIPv6Addresses,omitempty"`
 	// MacAddress is the MAC address for the interface in this network.
 	MacAddress string `json:"MacAddress"`

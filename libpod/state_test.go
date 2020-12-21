@@ -882,7 +882,7 @@ func TestRemoveContainer(t *testing.T) {
 	})
 }
 
-func TestRemoveNonexistantContainerFails(t *testing.T) {
+func TestRemoveNonexistentContainerFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
@@ -1513,7 +1513,7 @@ func TestGetNotExistPodWithPods(t *testing.T) {
 		err = state.AddPod(testPod2)
 		assert.NoError(t, err)
 
-		_, err = state.Pod("notexist")
+		_, err = state.Pod("nonexistent")
 		assert.Error(t, err)
 	})
 }
@@ -1748,7 +1748,7 @@ func TestHasPodEmptyIDErrors(t *testing.T) {
 
 func TestHasPodNoSuchPod(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
-		exist, err := state.HasPod("notexist")
+		exist, err := state.HasPod("nonexistent")
 		assert.NoError(t, err)
 		assert.False(t, exist)
 	})

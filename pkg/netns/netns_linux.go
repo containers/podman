@@ -162,7 +162,7 @@ func NewNS() (ns.NetNS, error) {
 		// bind mount the netns from the current thread (from /proc) onto the
 		// mount point. This causes the namespace to persist, even when there
 		// are no threads in the ns. Make this a shared mount; it needs to be
-		// back-propogated to the host
+		// back-propagated to the host
 		err = unix.Mount(threadNsPath, nsPath, "none", unix.MS_BIND|unix.MS_SHARED|unix.MS_REC, "")
 		if err != nil {
 			err = fmt.Errorf("failed to bind mount ns at %s: %v", nsPath, err)

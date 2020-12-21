@@ -19,7 +19,7 @@ type LogConfig struct {
 	// Only available if LogDriver is set to "json-file" or "k8s-file".
 	// Optional.
 	Path string `json:"path,omitempty"`
-	// Size is the maximimup size of the log file
+	// Size is the maximum size of the log file
 	// Optional.
 	Size int64 `json:"size,omitempty"`
 	// A set of options to accompany the log driver.
@@ -302,7 +302,7 @@ type ContainerSecurityConfig struct {
 	IDMappings *storage.IDMappingOptions `json:"idmappings,omitempty"`
 	// ReadOnlyFilesystem indicates that everything will be mounted
 	// as read-only
-	ReadOnlyFilesystem bool `json:"read_only_filesystem,omittempty"`
+	ReadOnlyFilesystem bool `json:"read_only_filesystem,omitempty"`
 	// Umask is the umask the init process of the container will be run with.
 	Umask string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.

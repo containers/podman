@@ -113,7 +113,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi image that is a parent of another image", func() {
-		Skip("I need help with this one. i dont understand what is going on")
+		Skip("I need help with this one. i don't understand what is going on")
 		podmanTest.AddImageToRWStore(cirros)
 		session := podmanTest.Podman([]string{"run", "--name", "c_test", cirros, "true"})
 		session.WaitWithDefaultTimeout()

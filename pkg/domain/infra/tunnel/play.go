@@ -19,5 +19,5 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, opts entit
 	if start := opts.Start; start != types.OptionalBoolUndefined {
 		options.WithStart(start == types.OptionalBoolTrue)
 	}
-	return play.Kube(ic.ClientCxt, path, options)
+	return play.Kube(ic.ClientCtx, path, options)
 }

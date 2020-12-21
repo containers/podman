@@ -266,7 +266,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 			podCreateArgs = filterPodFlags(info.CreateCommand[podCreateIndex+1:])
 		}
 		// We're hard-coding the first five arguments and append the
-		// CreateCommand with a stripped command and subcomand.
+		// CreateCommand with a stripped command and subcommand.
 		startCommand := []string{info.Executable}
 		startCommand = append(startCommand, podRootArgs...)
 		startCommand = append(startCommand,

@@ -66,7 +66,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		registriesConfWithSearch = []byte(fmt.Sprintf("[registries.search]\nregistries = ['%s']", server))
 
-		testImg = strings.Join([]string{server, "test-apline"}, "/")
+		testImg = strings.Join([]string{server, "test-alpine"}, "/")
 
 		certDirPath = filepath.Join(os.Getenv("HOME"), ".config/containers/certs.d", server)
 		os.MkdirAll(certDirPath, os.ModePerm)
@@ -155,8 +155,8 @@ var _ = Describe("Podman login and logout", func() {
 		json.Unmarshal(authInfo, &info)
 		fmt.Println(info)
 
-		// push should fail with nonexist authfile
-		session = podmanTest.Podman([]string{"push", "--authfile", "/tmp/nonexist", ALPINE, testImg})
+		// push should fail with nonexistent authfile
+		session = podmanTest.Podman([]string{"push", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 
@@ -168,8 +168,8 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		// logout should fail with nonexist authfile
-		session = podmanTest.Podman([]string{"logout", "--authfile", "/tmp/nonexist", server})
+		// logout should fail with nonexistent authfile
+		session = podmanTest.Podman([]string{"logout", "--authfile", "/tmp/nonexistent", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 

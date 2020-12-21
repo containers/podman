@@ -1,4 +1,4 @@
-// Package exec provides utilities for executing Open Container Initative runtime hooks.
+// Package exec provides utilities for executing Open Container Initiative runtime hooks.
 package exec
 
 import (

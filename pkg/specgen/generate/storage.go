@@ -366,7 +366,7 @@ func addContainerInitBinary(s *specgen.SpecGenerator, path string) (spec.Mount, 
 // TODO: Should we unmount subtree mounts? E.g., if /tmp/ is mounted by
 // one mount, and we already have /tmp/a and /tmp/b, should we remove
 // the /tmp/a and /tmp/b mounts in favor of the more general /tmp?
-func SupercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
+func SupersedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
 	if len(mounts) > 0 {
 		// If we have overlappings mounts, remove them from the spec in favor of
 		// the user-added volume mounts

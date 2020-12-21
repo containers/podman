@@ -158,7 +158,7 @@ function check_shell_completion() {
                     ;;&
 
                 *PATH* | *CONTEXT* | *KUBEFILE* | *COMMAND* | *ARG...* | *URI*)
-                    # default shell completion should be done for everthing which accepts a path
+                    # default shell completion should be done for everything which accepts a path
                     run_completion "$@" $cmd "${extra_args[@]}" ""
 
                     # cp is a special case it returns ShellCompDirectiveNoSpace
@@ -197,7 +197,7 @@ function check_shell_completion() {
             run_completion "$@" $cmd "${extra_args[@]}" ""
             _check_completion_end NoFileComp
             if [ ${#lines[@]} -gt 2 ]; then
-                # checking for line count is not enough since we may inlcude additional debug output
+                # checking for line count is not enough since we may include additional debug output
                 # lines starting with [Debug] are allowed
                 i=0
                 length=$(( ${#lines[@]} - 2 ))

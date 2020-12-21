@@ -9,7 +9,7 @@
 # the RPM name would need to be adjusted before a run as
 # appropriate.
 #
-# To use, first copy an rpm file from bohdi to `/root/tmp`
+# To use, first copy an rpm file from bodhi to `/root/tmp`
 # and then run:
 #   'podman build -f ./Containerfile -t quay.io/podman/stable:v1.7.0 .'
 #

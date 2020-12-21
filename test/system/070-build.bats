@@ -345,7 +345,7 @@ EOF
     # all commands after 'podman build' would silently be ignored.
     # In the test below, prior to #8092, the 'sed' would not get
     # any input, and we would never see $random3 in the output.
-    # And, we use 'sed' to massage $random3 juuuuust on the remote
+    # And, we use 'sed' to massage $random3 just on the remote
     # chance that podman itself could pass stdin through.
     results=$(echo $random3 | (
                   echo $random1

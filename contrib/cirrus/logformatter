@@ -506,7 +506,7 @@ END_SYNOPSIS
 
     # PR 1234 - title of the pr
     my $pr_title = escapeHTML(_env_replace("{CIRRUS_CHANGE_TITLE}"));
-    $s .= _tr("Github PR", sprintf("%s - %s",
+    $s .= _tr("GitHub PR", sprintf("%s - %s",
                                    _a("{CIRRUS_PR}", "https://{CIRRUS_REPO_CLONE_HOST}/{CIRRUS_REPO_FULL_NAME}/pull/{CIRRUS_PR}"),
                                    $pr_title));
 

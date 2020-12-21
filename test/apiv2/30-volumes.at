@@ -49,8 +49,8 @@ t GET libpod/volumes/json 200 \
 t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22foo1%22%5D%7D 200 length=1 .[0].Name=foo1
 # -G --data-urlencode 'filters={"name":["foo1","foo2"]}'
 t GET libpod/volumes/json?filters=%7B%22name%22%3A%20%5B%22foo1%22%2C%20%22foo2%22%5D%7D 200 length=2 .[0].Name=foo1 .[1].Name=foo2
-# -G --data-urlencode 'filters={"name":["notexist"]}'
-t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22notexists%22%5D%7D 200 length=0
+# -G --data-urlencode 'filters={"name":["nonexistent"]}'
+t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22nonexistent%22%5D%7D 200 length=0
 # -G --data-urlencode 'filters={"label":["testlabel"]}'
 t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel%22%5D%7D 200 length=2
 # -G --data-urlencode 'filters={"label":["testlabel=testonly"]}'
@@ -63,7 +63,7 @@ t GET libpod/volumes/foo1/json 200 \
     .Name=foo1 \
     .Mountpoint=$volumepath/foo1/_data \
     .CreatedAt~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.*
-t GET libpod/volumes/notexist/json 404 \
+t GET libpod/volumes/nonexistent/json 404 \
     .cause="no such volume" \
     .message~.* \
     .response=404

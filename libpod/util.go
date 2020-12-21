@@ -280,7 +280,7 @@ func writeHijackHeader(r *http.Request, conn io.Writer) {
 		fmt.Fprintf(conn,
 			"HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n")
 	} else {
-		// Upraded
+		// Upgraded
 		fmt.Fprintf(conn,
 			"HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: %s\r\n\r\n",
 			proto)

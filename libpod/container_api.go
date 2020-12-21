@@ -571,7 +571,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 
 // Batch starts a batch operation on the given container
 // All commands in the passed function will execute under the same lock and
-// without syncronyzing state after each operation
+// without synchronizing state after each operation
 // This will result in substantial performance benefits when running numerous
 // commands on the same container
 // Note that the container passed into the Batch function cannot be removed

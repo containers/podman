@@ -61,7 +61,7 @@ func Test_validateBridgeOptions(t *testing.T) {
 			isIPv6:  true,
 		},
 		{
-			name:    "IPv6 subnet, range and gateway without IPv6 option (PODMAN SUPPORTS IT UNLIKE DOCKEr)",
+			name:    "IPv6 subnet, range and gateway without IPv6 option (PODMAN SUPPORTS IT UNLIKE DOCKER)",
 			subnet:  net.IPNet{IP: net.ParseIP("2001:DB8::"), Mask: net.IPMask(net.ParseIP("ffff:ffff:ffff::"))},
 			ipRange: net.IPNet{IP: net.ParseIP("2001:DB8:0:0:1::"), Mask: net.IPMask(net.ParseIP("ffff:ffff:ffff:ffff::"))},
 			gateway: net.ParseIP("2001:DB8::2"),

@@ -100,7 +100,7 @@ func DeallocRootlessCNI(ctx context.Context, c *Container) error {
 	}
 	var errs *multierror.Error
 	for _, nw := range networks {
-		err := rootlessCNIInfraCallDelloc(infra, c.ID(), nw)
+		err := rootlessCNIInfraCallDealloc(infra, c.ID(), nw)
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
@@ -154,7 +154,7 @@ func rootlessCNIInfraCallAlloc(infra *Container, id, nw, k8sPodName string) (*cn
 	return &cniRes, nil
 }
 
-func rootlessCNIInfraCallDelloc(infra *Container, id, nw string) error {
+func rootlessCNIInfraCallDealloc(infra *Container, id, nw string) error {
 	logrus.Debugf("rootless CNI: dealloc %q, %q", id, nw)
 	_, err := rootlessCNIInfraExec(infra, "dealloc", id, nw)
 	return err

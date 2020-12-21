@@ -208,7 +208,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	 * using the volume at the same time".
 	 *
 	 * With this in mind, we only consider the `force` query parameter when we
-	 * hunt for specified volume by name, using it to seletively return a 204
+	 * hunt for specified volume by name, using it to selectively return a 204
 	 * or blow up depending on `force` being truthy or falsey/unset
 	 * respectively.
 	 */
@@ -231,7 +231,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 			utils.VolumeNotFound(w, name, err)
 		} else {
 			// Volume does not exist and `force` is truthy - this emulates what
-			// Docker would do when told to `force` removal of a nonextant
+			// Docker would do when told to `force` removal of a nonexistent
 			// volume
 			utils.WriteResponse(w, http.StatusNoContent, nil)
 		}

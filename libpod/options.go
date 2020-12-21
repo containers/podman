@@ -751,7 +751,7 @@ func WithStopTimeout(timeout uint) CtrCreateOption {
 	}
 }
 
-// WithIDMappings sets the idmappsings for the container
+// WithIDMappings sets the idmappings for the container
 func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {

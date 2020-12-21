@@ -403,7 +403,7 @@ func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 
 // libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
 func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
-	// TjDO when named volumes are supported in play kube, also parse named volumes here
+	// TODO when named volumes are supported in play kube, also parse named volumes here
 	_, mounts := c.sortUserVolumes(c.config.Spec)
 	vms := make([]v1.VolumeMount, 0, len(mounts))
 	vos := make([]v1.Volume, 0, len(mounts))
@@ -524,7 +524,7 @@ func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
 	defaultCaps = append(defaultCaps, g.Config.Process.Capabilities.Inheritable...)
 	defaultCaps = append(defaultCaps, g.Config.Process.Capabilities.Permitted...)
 
-	// Combine all the container's capabilities into a slic
+	// Combine all the container's capabilities into a slice
 	containerCaps := append(caps.Ambient, caps.Bounding...)
 	containerCaps = append(containerCaps, caps.Effective...)
 	containerCaps = append(containerCaps, caps.Inheritable...)

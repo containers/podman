@@ -51,7 +51,7 @@ func (ir *Runtime) DiskUsage(ctx context.Context, images []*Image) ([]DiskUsageS
 	return stats, nil
 }
 
-// diskUsageForImage returns the disk-usage statistics for the spcified image.
+// diskUsageForImage returns the disk-usage statistics for the specified image.
 func diskUsageForImage(ctx context.Context, image *Image, tree *layerTree) (*DiskUsageStat, error) {
 	stat := DiskUsageStat{
 		ID:      image.ID(),

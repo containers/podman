@@ -75,7 +75,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	)
 
 	// NOTE: the "filters" parameter is extracted separately for backwards
-	// compat via `fitlerFromRequest()`.
+	// compat via `filterFromRequest()`.
 	query := struct {
 		Since  string `schema:"since"`
 		Until  string `schema:"until"`

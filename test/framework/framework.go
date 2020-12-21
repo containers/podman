@@ -7,7 +7,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// TestFramework is used to support commonnly used test features
+// TestFramework is used to support commonly used test features
 type TestFramework struct {
 	setup     func(*TestFramework) error
 	teardown  func(*TestFramework) error

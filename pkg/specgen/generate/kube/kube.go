@@ -104,7 +104,7 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 		s.ResourceLimits.Memory.Reservation = &memoryRes
 	}
 
-	// TODO: We dont understand why specgen does not take of this, but
+	// TODO: We don't understand why specgen does not take of this, but
 	// integration tests clearly pointed out that it was required.
 	s.Command = []string{}
 	imageData, err := newImage.Inspect(ctx)

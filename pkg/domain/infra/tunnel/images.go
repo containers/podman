@@ -22,13 +22,13 @@ import (
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
-	found, err := images.Exists(ir.ClientCxt, nameOrID)
+	found, err := images.Exists(ir.ClientCtx, nameOrID)
 	return &entities.BoolReport{Value: found}, err
 }
 
 func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts entities.ImageRemoveOptions) (*entities.ImageRemoveReport, []error) {
 	options := new(images.RemoveOptions).WithForce(opts.Force).WithAll(opts.All)
-	return images.Remove(ir.ClientCxt, imagesArg, options)
+	return images.Remove(ir.ClientCtx, imagesArg, options)
 }
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
@@ -39,7 +39,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		filters[f[0]] = f[1:]
 	}
 	options := new(images.ListOptions).WithAll(opts.All).WithFilters(filters)
-	psImages, err := images.List(ir.ClientCxt, options)
+	psImages, err := images.List(ir.ClientCtx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (ir *ImageEngine) Unmount(ctx context.Context, images []string, options ent
 
 func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
 	options := new(images.HistoryOptions)
-	results, err := images.History(ir.ClientCxt, nameOrID, options)
+	results, err := images.History(ir.ClientCtx, nameOrID, options)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 		filters[f[0]] = f[1:]
 	}
 	options := new(images.PruneOptions).WithAll(opts.All).WithFilters(filters)
-	results, err := images.Prune(ir.ClientCxt, options)
+	results, err := images.Prune(ir.ClientCtx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.
 		}
 	}
 	options.WithQuiet(opts.Quiet).WithSignaturePolicy(opts.SignaturePolicy).WithUsername(opts.Username)
-	pulledImages, err := images.Pull(ir.ClientCxt, rawImage, options)
+	pulledImages, err := images.Pull(ir.ClientCtx, rawImage, options)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 		if len(repo) < 1 {
 			return errors.Errorf("invalid image name %q", nameOrID)
 		}
-		if err := images.Tag(ir.ClientCxt, nameOrID, tag, repo, options); err != nil {
+		if err := images.Tag(ir.ClientCtx, nameOrID, tag, repo, options); err != nil {
 			return err
 		}
 	}
@@ -160,7 +160,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, opt entities.ImageUntagOptions) error {
 	options := new(images.UntagOptions)
 	if len(tags) == 0 {
-		return images.Untag(ir.ClientCxt, nameOrID, "", "", options)
+		return images.Untag(ir.ClientCtx, nameOrID, "", "", options)
 	}
 
 	for _, newTag := range tags {
@@ -180,7 +180,7 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 		if len(repo) < 1 {
 			return errors.Errorf("invalid image name %q", nameOrID)
 		}
-		if err := images.Untag(ir.ClientCxt, nameOrID, tag, repo, options); err != nil {
+		if err := images.Untag(ir.ClientCtx, nameOrID, tag, repo, options); err != nil {
 			return err
 		}
 	}
@@ -192,7 +192,7 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 	reports := []*entities.ImageInspectReport{}
 	errs := []error{}
 	for _, i := range namesOrIDs {
-		r, err := images.GetImage(ir.ClientCxt, i, options)
+		r, err := images.GetImage(ir.ClientCtx, i, options)
 		if err != nil {
 			errModel, ok := err.(entities.ErrorModel)
 			if !ok {
@@ -227,7 +227,7 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 		ref += ":" + opts.Tag
 	}
 	options := new(images.LoadOptions).WithReference(ref)
-	return images.Load(ir.ClientCxt, f, options)
+	return images.Load(ir.ClientCtx, f, options)
 }
 
 func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
@@ -244,7 +244,7 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 			return nil, err
 		}
 	}
-	return images.Import(ir.ClientCxt, f, options)
+	return images.Import(ir.ClientCtx, f, options)
 }
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, opts entities.ImagePushOptions) error {
@@ -261,7 +261,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 			options.WithSkipTLSVerify(false)
 		}
 	}
-	return images.Push(ir.ClientCxt, source, destination, options)
+	return images.Push(ir.ClientCtx, source, destination, options)
 }
 
 func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, opts entities.ImageSaveOptions) error {
@@ -284,7 +284,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 		return err
 	}
 
-	exErr := images.Export(ir.ClientCxt, append([]string{nameOrID}, tags...), f, options)
+	exErr := images.Export(ir.ClientCtx, append([]string{nameOrID}, tags...), f, options)
 	if err := f.Close(); err != nil {
 		return err
 	}
@@ -319,7 +319,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 // Diff reports the changes to the given image
 func (ir *ImageEngine) Diff(ctx context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
 	options := new(images.DiffOptions)
-	changes, err := images.Diff(ir.ClientCxt, nameOrID, options)
+	changes, err := images.Diff(ir.ClientCtx, nameOrID, options)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 			options.WithSkipTLSVerify(false)
 		}
 	}
-	return images.Search(ir.ClientCxt, term, options)
+	return images.Search(ir.ClientCtx, term, options)
 }
 
 func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
@@ -362,7 +362,7 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
-	report, err := images.Build(ir.ClientCxt, containerFiles, opts)
+	report, err := images.Build(ir.ClientCtx, containerFiles, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +382,7 @@ func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts en
 
 func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
 	options := new(images.TreeOptions).WithWhatRequires(opts.WhatRequires)
-	return images.Tree(ir.ClientCxt, nameOrID, options)
+	return images.Tree(ir.ClientCtx, nameOrID, options)
 }
 
 // Shutdown Libpod engine

@@ -169,7 +169,7 @@ var _ = Describe("Podman pods", func() {
 
 	// This test validates if All running containers within
 	// each specified pod are paused and unpaused
-	It("pause upause pod", func() {
+	It("pause unpause pod", func() {
 		// TODO fix this
 		Skip("Pod behavior is jacked right now.")
 		// Pause invalid container

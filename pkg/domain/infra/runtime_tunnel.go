@@ -37,7 +37,7 @@ func NewContainerEngine(facts *entities.PodmanConfig) (entities.ContainerEngine,
 		return nil, fmt.Errorf("direct runtime not supported")
 	case entities.TunnelMode:
 		ctx, err := newConnection(facts.URI, facts.Identity)
-		return &tunnel.ContainerEngine{ClientCxt: ctx}, err
+		return &tunnel.ContainerEngine{ClientCtx: ctx}, err
 	}
 	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
 }
@@ -49,7 +49,7 @@ func NewImageEngine(facts *entities.PodmanConfig) (entities.ImageEngine, error) 
 		return nil, fmt.Errorf("direct image runtime not supported")
 	case entities.TunnelMode:
 		ctx, err := newConnection(facts.URI, facts.Identity)
-		return &tunnel.ImageEngine{ClientCxt: ctx}, err
+		return &tunnel.ImageEngine{ClientCtx: ctx}, err
 	}
 	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
 }

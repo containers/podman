@@ -136,7 +136,7 @@ type PushOptions struct {
 }
 
 //go:generate go run ../generator/generator.go SearchOptions
-// SearchOptions are optional options for seaching images on registies
+// SearchOptions are optional options for searching images on registries
 type SearchOptions struct {
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.

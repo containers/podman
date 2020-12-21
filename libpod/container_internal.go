@@ -884,9 +884,9 @@ func (c *Container) startDependencies(ctx context.Context) error {
 // getAllDependencies is a precursor to starting dependencies.
 // To start a container with all of its dependencies, we need to recursively find all dependencies
 // a container has, as well as each of those containers' dependencies, and so on
-// To do so, keep track of containers already visisted (so there aren't redundant state lookups),
+// To do so, keep track of containers already visited (so there aren't redundant state lookups),
 // and recursively search until we have reached the leafs of every dependency node.
-// Since we need to start all dependencies for our original container to successfully start, we propegate any errors
+// Since we need to start all dependencies for our original container to successfully start, we propagate any errors
 // in looking up dependencies.
 // Note: this function is currently meant as a robust solution to a narrow problem: start an infra-container when
 // a container in the pod is run. It has not been tested for performance past one level, so expansion of recursive start

@@ -83,7 +83,7 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 // Attach to the given container's exec session
 // attachFd and startFd must be open file descriptors
 // attachFd must be the output side of the fd. attachFd is used for two things:
-//  conmon will first send a nonse value across the pipe indicating it has set up its side of the console socket
+//  conmon will first send a nonce value across the pipe indicating it has set up its side of the console socket
 //    this ensures attachToExec gets all of the output of the called process
 //  conmon will then send the exit code of the exec process, or an error in the exec session
 // startFd must be the input side of the fd.

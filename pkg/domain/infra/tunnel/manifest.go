@@ -14,7 +14,7 @@ import (
 // ManifestCreate implements manifest create via ImageEngine
 func (ir *ImageEngine) ManifestCreate(ctx context.Context, names, images []string, opts entities.ManifestCreateOptions) (string, error) {
 	options := new(manifests.CreateOptions).WithAll(opts.All)
-	imageID, err := manifests.Create(ir.ClientCxt, names, images, options)
+	imageID, err := manifests.Create(ir.ClientCtx, names, images, options)
 	if err != nil {
 		return imageID, errors.Wrapf(err, "error creating manifest")
 	}
@@ -23,7 +23,7 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, names, images []strin
 
 // ManifestInspect returns contents of manifest list with given name
 func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte, error) {
-	list, err := manifests.Inspect(ir.ClientCxt, name, nil)
+	list, err := manifests.Inspect(ir.ClientCtx, name, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting content of manifest list or image %s", name)
 	}
@@ -51,7 +51,7 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 		options.WithAnnotation(annotations)
 	}
 
-	listID, err := manifests.Add(ir.ClientCxt, opts.Images[1], options)
+	listID, err := manifests.Add(ir.ClientCtx, opts.Images[1], options)
 	if err != nil {
 		return listID, errors.Wrapf(err, "error adding to manifest list %s", opts.Images[1])
 	}
@@ -65,7 +65,7 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opt
 
 // ManifestRemove removes the digest from manifest list
 func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (string, error) {
-	updatedListID, err := manifests.Remove(ir.ClientCxt, names[0], names[1], nil)
+	updatedListID, err := manifests.Remove(ir.ClientCtx, names[0], names[1], nil)
 	if err != nil {
 		return updatedListID, errors.Wrapf(err, "error removing from manifest %s", names[0])
 	}
@@ -75,6 +75,6 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 // ManifestPush pushes a manifest list or image index to the destination
 func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ManifestPushOptions) error {
 	options := new(manifests.PushOptions).WithAll(opts.All)
-	_, err := manifests.Push(ir.ClientCxt, name, destination, options)
+	_, err := manifests.Push(ir.ClientCtx, name, destination, options)
 	return err
 }

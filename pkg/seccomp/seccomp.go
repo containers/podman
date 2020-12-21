@@ -30,7 +30,7 @@ var supportedPolicies = map[string]Policy{
 	"image":   PolicyImage,
 }
 
-// LookupPolicy looksup the corresponding Policy for the specified
+// LookupPolicy looks up the corresponding Policy for the specified
 // string. If none is found, an errors is returned including the list of
 // supported policies.
 //

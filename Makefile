@@ -176,7 +176,7 @@ gofmt: ## Verify the source code gofmt
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
-.PHONY: test/goecho/goechoe
+.PHONY: test/goecho/goecho
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
 

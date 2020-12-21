@@ -48,7 +48,7 @@
 | [podman-network(1)](https://podman.readthedocs.io/en/latest/network.html)                                             | Manage Podman CNI networks                                                 |
 | [podman-network-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-create.1.html)             | Create a CNI network                                                       |
 | [podman-network-connect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-connect.1.html)           | Connect a container to a CNI network                                       |
-| [podman-network-disconnect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-dosconnect.1.html)             | Disconnect a container from a CNI network                                  |
+| [podman-network-disconnect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-disconnect.1.html)             | Disconnect a container from a CNI network                                  |
 | [podman-network-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-inspect.1.html)           | Displays the raw CNI network configuration for one or more networks        |
 | [podman-network-ls(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-ls.1.html)                     | Display a summary of CNI networks                                          |
 | [podman-network-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-rm.1.html)                     | Remove one or more CNI networks                                            |

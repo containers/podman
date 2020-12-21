@@ -291,7 +291,7 @@ When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.con
 
     Non root users of Podman can create the `$HOME/.config/containers/registries.conf` file to be used instead of the system defaults.
 
-**storage.conf** (`/etc/containers/storage.conf`, `$HOME/.config/contaners/storage.conf`)
+**storage.conf** (`/etc/containers/storage.conf`, `$HOME/.config/containers/storage.conf`)
 
     storage.conf is the storage configuration file for all tools using containers/storage
 

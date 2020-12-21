@@ -18,7 +18,7 @@ can easily fail
 * Some system unit configuration options do not work in the rootless container
   * systemd fails to apply several options and failures are silently ignored (e.g. CPUShares, MemoryLimit). Should work on cgroup V2.
   * Use of certain options will cause service startup failures (e.g. PrivateNetwork).  The systemd services requiring `PrivateNetwork` can be made to work by passing `--cap-add SYS_ADMIN`, but the security implications should be carefully evaluated.  In most cases, it's better to create an override.conf drop-in that sets `PrivateNetwork=no`.  This also applies to containers run by root.
-* Can not share container images with CRI-O or other rootfull users
+* Can not share container images with CRI-O or other rootful users
 * Difficult to use additional stores for sharing content
 * Does not work on NFS or parallel filesystem homedirs (e.g. [GPFS](https://www.ibm.com/support/knowledgecenter/en/SSFKCN/gpfs_welcome.html))
   * NFS and parallel filesystems enforce file creation on different UIDs on the server side and does not understand User Namespace.

@@ -137,7 +137,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 				nllCounter++
 			}
 		}
-		// if we have enough loglines, we can hangup
+		// if we have enough log lines, we can hangup
 		if nllCounter >= tail {
 			break
 		}
@@ -161,7 +161,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 	return tailLog, nil
 }
 
-// String converts a logline to a string for output given whether a detail
+// String converts a log line to a string for output given whether a detail
 // bool is specified.
 func (l *LogLine) String(options *LogOptions) string {
 	var out string

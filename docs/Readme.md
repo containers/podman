@@ -45,7 +45,7 @@ because the client (i.e. your web browser) is fetching content from multiple loc
 do not share a common domain, accessing the API section may show a stack-trace similar to
 the following:
 
-![Javascript Stack Trace Image](../contrib/cirrus/swagger_stack_trace.png)
+![JavaScript Stack Trace Image](../contrib/cirrus/swagger_stack_trace.png)
 
 If reloading the page, or clearing your local cache does not fix the problem, it is
 likely caused by broken metadata needed to protect clients from cross-site-scripting
