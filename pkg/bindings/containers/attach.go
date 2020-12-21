@@ -26,7 +26,10 @@ import (
 )
 
 // Attach attaches to a running container
-func Attach(ctx context.Context, nameOrID string, detachKeys *string, logs, stream *bool, stdin io.Reader, stdout io.Writer, stderr io.Writer, attachReady chan bool) error {
+func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Writer, stderr io.Writer, attachReady chan bool, options *AttachOptions) error {
+	if options == nil {
+		options = new(AttachOptions)
+	}
 	isSet := struct {
 		stdin  bool
 		stdout bool
@@ -55,26 +58,23 @@ func Attach(ctx context.Context, nameOrID string, detachKeys *string, logs, stre
 	}
 
 	// Do we need to wire in stdin?
-	ctnr, err := Inspect(ctx, nameOrID, bindings.PFalse)
+	ctnr, err := Inspect(ctx, nameOrID, new(InspectOptions).WithSize(false))
 	if err != nil {
 		return err
 	}
 
-	params := url.Values{}
+	params, err := options.ToParams()
+	if err != nil {
+		return err
+	}
 	detachKeysInBytes := []byte{}
-	if detachKeys != nil {
-		params.Add("detachKeys", *detachKeys)
+	if options.Changed("DetachKeys") {
+		params.Add("detachKeys", options.GetDetachKeys())
 
-		detachKeysInBytes, err = term.ToBytes(*detachKeys)
+		detachKeysInBytes, err = term.ToBytes(options.GetDetachKeys())
 		if err != nil {
 			return errors.Wrapf(err, "invalid detach keys")
 		}
-	}
-	if logs != nil {
-		params.Add("logs", fmt.Sprintf("%t", *logs))
-	}
-	if stream != nil {
-		params.Add("stream", fmt.Sprintf("%t", *stream))
 	}
 	if isSet.stdin {
 		params.Add("stdin", "true")
@@ -278,13 +278,19 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 }
 
 // ResizeContainerTTY sets container's TTY height and width in characters
-func ResizeContainerTTY(ctx context.Context, nameOrID string, height *int, width *int) error {
-	return resizeTTY(ctx, bindings.JoinURL("containers", nameOrID, "resize"), height, width)
+func ResizeContainerTTY(ctx context.Context, nameOrID string, options *ResizeTTYOptions) error {
+	if options == nil {
+		options = new(ResizeTTYOptions)
+	}
+	return resizeTTY(ctx, bindings.JoinURL("containers", nameOrID, "resize"), options.Height, options.Width)
 }
 
 // ResizeExecTTY sets session's TTY height and width in characters
-func ResizeExecTTY(ctx context.Context, nameOrID string, height *int, width *int) error {
-	return resizeTTY(ctx, bindings.JoinURL("exec", nameOrID, "resize"), height, width)
+func ResizeExecTTY(ctx context.Context, nameOrID string, options *ResizeExecTTYOptions) error {
+	if options == nil {
+		options = new(ResizeExecTTYOptions)
+	}
+	return resizeTTY(ctx, bindings.JoinURL("exec", nameOrID, "resize"), options.Height, options.Width)
 }
 
 // resizeTTY set size of TTY of container
@@ -337,9 +343,9 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 
 			var resizeErr error
 			if isExec {
-				resizeErr = ResizeExecTTY(ctx, id, &h, &w)
+				resizeErr = ResizeExecTTY(ctx, id, new(ResizeExecTTYOptions).WithHeight(h).WithWidth(w))
 			} else {
-				resizeErr = ResizeContainerTTY(ctx, id, &h, &w)
+				resizeErr = ResizeContainerTTY(ctx, id, new(ResizeTTYOptions).WithHeight(h).WithWidth(w))
 			}
 			if resizeErr != nil {
 				logrus.Warnf("failed to resize TTY: %v", err)
@@ -361,7 +367,10 @@ func setRawTerminal(file *os.File) (*terminal.State, error) {
 }
 
 // ExecStartAndAttach starts and attaches to a given exec session.
-func ExecStartAndAttach(ctx context.Context, sessionID string, streams *define.AttachStreams) error {
+func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStartAndAttachOptions) error {
+	if options == nil {
+		options = new(ExecStartAndAttachOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -450,10 +459,10 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, streams *define.A
 		go attachHandleResize(ctx, winCtx, winChange, true, sessionID, terminalFile)
 	}
 
-	if streams.AttachInput {
+	if options.GetAttachInput() {
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
-			_, err := utils.CopyDetachable(socket, streams.InputStream, []byte{})
+			_, err := utils.CopyDetachable(socket, options.InputStream, []byte{})
 			if err != nil {
 				logrus.Error("failed to write input to service: " + err.Error())
 			}
@@ -463,11 +472,11 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, streams *define.A
 	buffer := make([]byte, 1024)
 	if isTerm {
 		logrus.Debugf("Handling terminal attach to exec")
-		if !streams.AttachOutput {
+		if !options.GetAttachOutput() {
 			return fmt.Errorf("exec session %s has a terminal and must have STDOUT enabled", sessionID)
 		}
 		// If not multiplex'ed, read from server and write to stdout
-		_, err := utils.CopyDetachable(streams.OutputStream, socket, []byte{})
+		_, err := utils.CopyDetachable(options.GetOutputStream(), socket, []byte{})
 		if err != nil {
 			return err
 		}
@@ -489,22 +498,22 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, streams *define.A
 
 			switch {
 			case fd == 0:
-				if streams.AttachInput {
+				if options.GetAttachInput() {
 					// Write STDIN to STDOUT (echoing characters
 					// typed by another attach session)
-					if _, err := streams.OutputStream.Write(frame[0:l]); err != nil {
+					if _, err := options.GetOutputStream().Write(frame[0:l]); err != nil {
 						return err
 					}
 				}
 			case fd == 1:
-				if streams.AttachOutput {
-					if _, err := streams.OutputStream.Write(frame[0:l]); err != nil {
+				if options.GetAttachOutput() {
+					if _, err := options.GetOutputStream().Write(frame[0:l]); err != nil {
 						return err
 					}
 				}
 			case fd == 2:
-				if streams.AttachError {
-					if _, err := streams.ErrorStream.Write(frame[0:l]); err != nil {
+				if options.GetAttachError() {
+					if _, err := options.GetErrorStream().Write(frame[0:l]); err != nil {
 						return err
 					}
 				}

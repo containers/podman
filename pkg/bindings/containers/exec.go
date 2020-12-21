@@ -50,7 +50,11 @@ func ExecCreate(ctx context.Context, nameOrID string, config *handlers.ExecCreat
 
 // ExecInspect inspects an existing exec session, returning detailed information
 // about it.
-func ExecInspect(ctx context.Context, sessionID string) (*define.InspectExecSession, error) {
+func ExecInspect(ctx context.Context, sessionID string, options *ExecInspectOptions) (*define.InspectExecSession, error) {
+	if options == nil {
+		options = new(ExecInspectOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -72,7 +76,11 @@ func ExecInspect(ctx context.Context, sessionID string) (*define.InspectExecSess
 }
 
 // ExecStart starts (but does not attach to) a given exec session.
-func ExecStart(ctx context.Context, sessionID string) error {
+func ExecStart(ctx context.Context, sessionID string, options *ExecStartOptions) error {
+	if options == nil {
+		options = new(ExecStartOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
 	"github.com/containers/podman/v2/pkg/bindings/pods"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -18,8 +17,8 @@ func getContainersByContext(contextWithConnection context.Context, all, ignore b
 	if all && len(namesOrIDs) > 0 {
 		return nil, errors.New("cannot lookup containers and all")
 	}
-
-	allContainers, err := containers.List(contextWithConnection, nil, bindings.PTrue, nil, nil, nil, bindings.PTrue)
+	options := new(containers.ListOptions).WithAll(true).WithSync(true)
+	allContainers, err := containers.List(contextWithConnection, options)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +37,7 @@ func getContainersByContext(contextWithConnection context.Context, all, ignore b
 		// First determine if the container exists by doing an inspect.
 		// Inspect takes supports names and IDs and let's us determine
 		// a containers full ID.
-		inspectData, err := containers.Inspect(contextWithConnection, nameOrID, bindings.PFalse)
+		inspectData, err := containers.Inspect(contextWithConnection, nameOrID, new(containers.InspectOptions).WithSize(false))
 		if err != nil {
 			if ignore && errorhandling.Contains(err, define.ErrNoSuchCtr) {
 				continue

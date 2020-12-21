@@ -35,7 +35,7 @@ var _ = Describe("Create containers ", func() {
 		s.Command = []string{"top"}
 		s.Terminal = true
 		s.Name = "top"
-		ctr, err := containers.CreateWithSpec(bt.conn, s)
+		ctr, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).To(BeNil())
 		data, err := containers.Inspect(bt.conn, ctr.ID, nil)
 		Expect(err).To(BeNil())

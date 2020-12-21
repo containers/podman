@@ -9,7 +9,11 @@ import (
 
 // Mount mounts an existing container to the filesystem. It returns the path
 // of the mounted container in string format.
-func Mount(ctx context.Context, nameOrID string) (string, error) {
+func Mount(ctx context.Context, nameOrID string, options *MountOptions) (string, error) {
+	if options == nil {
+		options = new(MountOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
@@ -26,7 +30,11 @@ func Mount(ctx context.Context, nameOrID string) (string, error) {
 
 // Unmount unmounts a container from the filesystem.  The container must not be running
 // or the unmount will fail.
-func Unmount(ctx context.Context, nameOrID string) error {
+func Unmount(ctx context.Context, nameOrID string, options *UnmountOptions) error {
+	if options == nil {
+		options = new(UnmountOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -39,7 +47,11 @@ func Unmount(ctx context.Context, nameOrID string) error {
 }
 
 // GetMountedContainerPaths returns a map of mounted containers and their mount locations.
-func GetMountedContainerPaths(ctx context.Context) (map[string]string, error) {
+func GetMountedContainerPaths(ctx context.Context, options *MountedContainerPathsOptions) (map[string]string, error) {
+	if options == nil {
+		options = new(MountedContainerPathsOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
