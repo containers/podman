@@ -320,7 +320,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 func defaultTmpDir() (string, error) {
 	if !unshare.IsRootless() {
-		return "/var/run/libpod", nil
+		return "/run/libpod", nil
 	}
 
 	runtimeDir, err := getRuntimeDir()
