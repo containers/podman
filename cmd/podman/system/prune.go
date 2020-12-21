@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
@@ -12,8 +11,8 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
+	lpfilters "github.com/containers/podman/v2/libpod/filters"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -55,6 +54,8 @@ func init() {
 }
 
 func prune(cmd *cobra.Command, args []string) error {
+	var err error
+
 	// Prompt for confirmation if --force is not set
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
@@ -79,16 +80,11 @@ Are you sure you want to continue? [y/N] `, volumeString)
 		}
 	}
 
-	pruneOptions.ContainerPruneOptions = entities.ContainerPruneOptions{}
-	for _, f := range filters {
-		t := strings.SplitN(f, "=", 2)
-		pruneOptions.ContainerPruneOptions.Filters = make(url.Values)
-		if len(t) < 2 {
-			return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
-		}
-		pruneOptions.ContainerPruneOptions.Filters.Add(t[0], t[1])
+	pruneOptions.Filters, err = lpfilters.ParseFilterArgumentsIntoFilters(filters)
+	if err != nil {
+		return err
 	}
-	// TODO: support for filters in system prune
+
 	response, err := registry.ContainerEngine().SystemPrune(context.Background(), pruneOptions)
 	if err != nil {
 		return err
