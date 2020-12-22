@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/pkg/apparmor"
+	"github.com/containers/common/pkg/seccomp"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/linkmode"
 	"github.com/containers/podman/v2/pkg/cgroups"
@@ -20,6 +22,7 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -98,10 +101,16 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		MemFree:        mi.MemFree,
 		MemTotal:       mi.MemTotal,
 		OS:             runtime.GOOS,
-		Rootless:       rootless.IsRootless(),
-		Slirp4NetNS:    define.SlirpInfo{},
-		SwapFree:       mi.SwapFree,
-		SwapTotal:      mi.SwapTotal,
+		Security: define.SecurityInfo{
+			AppArmorEnabled:     apparmor.IsEnabled(),
+			DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities, ","),
+			Rootless:            rootless.IsRootless(),
+			SECCOMPEnabled:      seccomp.IsEnabled(),
+			SELinuxEnabled:      selinux.GetEnabled(),
+		},
+		Slirp4NetNS: define.SlirpInfo{},
+		SwapFree:    mi.SwapFree,
+		SwapTotal:   mi.SwapTotal,
 	}
 
 	// CGroups version

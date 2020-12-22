@@ -12,6 +12,15 @@ type Info struct {
 }
 
 //HostInfo describes the libpod host
+type SecurityInfo struct {
+	AppArmorEnabled     bool   `json:"apparmorEnabled"`
+	DefaultCapabilities string `json:"capabilities"`
+	Rootless            bool   `json:"rootless"`
+	SECCOMPEnabled      bool   `json:"seccompEnabled"`
+	SELinuxEnabled      bool   `json:"selinuxEnabled"`
+}
+
+//HostInfo describes the libpod host
 type HostInfo struct {
 	Arch           string                 `json:"arch"`
 	BuildahVersion string                 `json:"buildahVersion"`
@@ -29,8 +38,8 @@ type HostInfo struct {
 	OCIRuntime     *OCIRuntimeInfo        `json:"ociRuntime"`
 	OS             string                 `json:"os"`
 	RemoteSocket   *RemoteSocket          `json:"remoteSocket,omitempty"`
-	Rootless       bool                   `json:"rootless"`
 	RuntimeInfo    map[string]interface{} `json:"runtimeInfo,omitempty"`
+	Security       SecurityInfo           `json:"security"`
 	Slirp4NetNS    SlirpInfo              `json:"slirp4netns,omitempty"`
 	SwapFree       int64                  `json:"swapFree"`
 	SwapTotal      int64                  `json:"swapTotal"`
