@@ -69,6 +69,7 @@ type ConmonOCIRuntime struct {
 	supportsKVM       bool
 	supportsNoCgroups bool
 	sdNotify          bool
+	enableKeyring     bool
 }
 
 // Make a new Conmon-based OCI runtime with the given options.
@@ -107,6 +108,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.noPivot = runtimeCfg.Engine.NoPivotRoot
 	runtime.reservePorts = runtimeCfg.Engine.EnablePortReservation
 	runtime.sdNotify = runtimeCfg.Engine.SDNotify
+	runtime.enableKeyring = runtimeCfg.Containers.EnableKeyring
 
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.
@@ -1021,6 +1023,9 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, "-i")
 	}
 
+	if !r.enableKeyring {
+		args = append(args, "--no-new-keyring")
+	}
 	if ctr.config.ConmonPidFile != "" {
 		args = append(args, "--conmon-pidfile", ctr.config.ConmonPidFile)
 	}
