@@ -1,7 +1,7 @@
 // +build linux
-// +build !mips,!mipsle,!mips64,!mips64le
+// +build mips mipsle mips64 mips64le
 
-// Signal handling for Linux only.
+// Special signal handling for mips architecture
 package signal
 
 // Copyright 2013-2018 Docker, Inc.
@@ -18,9 +18,7 @@ import (
 
 const (
 	sigrtmin = 34
-	sigrtmax = 64
-
-	SIGWINCH = syscall.SIGWINCH // For cross-compilation with Windows
+	sigrtmax = 127
 )
 
 // signalMap is a map of Linux signals.
@@ -44,7 +42,7 @@ var signalMap = map[string]syscall.Signal{
 	"PWR":      unix.SIGPWR,
 	"QUIT":     unix.SIGQUIT,
 	"SEGV":     unix.SIGSEGV,
-	"STKFLT":   unix.SIGSTKFLT,
+	"EMT":      unix.SIGEMT,
 	"STOP":     unix.SIGSTOP,
 	"SYS":      unix.SIGSYS,
 	"TERM":     unix.SIGTERM,
