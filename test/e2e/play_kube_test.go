@@ -815,9 +815,16 @@ var _ = Describe("Podman play kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
+		cmd := inspect.OutputToString()
+
+		inspect = podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Entrypoint }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		ep := inspect.OutputToString()
+
 		// Use the defined command to override the image's command
-		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
-		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
+		Expect(ep).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
+		Expect(cmd).To(ContainSubstring(strings.Join(defaultCtrArg, " ")))
 	})
 
 	// If you do not supply command or args for a Container, the defaults defined in the Docker image are used.
@@ -830,12 +837,17 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		// this image's ENTRYPOINT is `/entrypoint.sh`
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Entrypoint }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`/entrypoint.sh`))
 
-		// this image's ENTRYPOINT is `/entrypoint.sh` and it's COMMAND is `/etc/docker/registry/config.yml`
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[/entrypoint.sh /etc/docker/registry/config.yml]`))
+		// and its COMMAND is `/etc/docker/registry/config.yml`
+		inspect = podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[/etc/docker/registry/config.yml]`))
 	})
 
 	// If you supply a command but no args for a Container, only the supplied command is used.
@@ -849,12 +861,18 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
 		// Use the defined command to override the image's command, and don't set the args
 		// so the full command in result should not contains the image's command
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Entrypoint }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`echo hello`))
+
+		inspect = podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		// an empty command is reported as '[]'
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[]`))
 	})
 
 	// If you supply only args for a Container, the default Entrypoint defined in the Docker image is run with the args that you supplied.
@@ -867,12 +885,16 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		// this image's ENTRYPOINT is `/entrypoint.sh`
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Entrypoint }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		// this image's ENTRYPOINT is `/entrypoint.sh`
-		// so result should be `/entrypoint.sh + withArg(...)`
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[/entrypoint.sh echo hello]`))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`/entrypoint.sh`))
+
+		inspect = podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
 	})
 
 	// If you supply a command and args,
@@ -887,10 +909,15 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Entrypoint }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`echo`))
+
+		inspect = podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[hello]`))
 	})
 
 	It("podman play kube test correct output", func() {
@@ -907,11 +934,6 @@ var _ = Describe("Podman play kube", func() {
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
 		Expect(logs.OutputToString()).To(ContainSubstring("hello world"))
-
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(p), "--format", "'{{ .Config.Cmd }}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello world]`))
 	})
 
 	It("podman play kube test restartPolicy", func() {
@@ -1276,12 +1298,11 @@ spec:
 		Expect(kube.ExitCode()).To(Equal(0))
 
 		podNames := getPodNamesInDeployment(deployment)
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[0]), "--format", "'{{ .Config.Cmd }}'"})
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[0]), "--format", "'{{ .Config.Entrypoint }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		// yaml's command should override the image's Entrypoint
-		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
-		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
+		Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
 	})
 
 	It("podman play kube deployment more than 1 replica test correct command", func() {
@@ -1296,12 +1317,11 @@ spec:
 		Expect(kube.ExitCode()).To(Equal(0))
 
 		podNames := getPodNamesInDeployment(deployment)
-		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
 		for i = 0; i < numReplicas; i++ {
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "'{{ .Config.Cmd }}'"})
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "'{{ .Config.Entrypoint }}'"})
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect.ExitCode()).To(Equal(0))
-			Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
+			Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
 		}
 	})
 
