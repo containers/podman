@@ -203,6 +203,37 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			}
 			return false
 		}, nil
+	case "pod":
+		var pods []*libpod.Pod
+		for _, podNameOrID := range filterValues {
+			p, err := r.LookupPod(podNameOrID)
+			if err != nil {
+				if errors.Cause(err) == define.ErrNoSuchPod {
+					continue
+				}
+				return nil, err
+			}
+			pods = append(pods, p)
+		}
+		return func(c *libpod.Container) bool {
+			// if no pods match, quick out
+			if len(pods) < 1 {
+				return false
+			}
+			// if the container has no pod id, quick out
+			if len(c.PodID()) < 1 {
+				return false
+			}
+			for _, p := range pods {
+				// we already looked up by name or id, so id match
+				// here is ok
+				if p.ID() == c.PodID() {
+					return true
+				}
+			}
+			return false
+		}, nil
+
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)
 }

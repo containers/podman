@@ -673,4 +673,55 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.LineInOutputContains("test3")).To(BeTrue())
 		Expect(session.LineInOutputContains("test4")).To(BeTrue())
 	})
+	It("podman ps filter pod", func() {
+		pod1 := podmanTest.Podman([]string{"pod", "create", "--name", "pod1"})
+		pod1.WaitWithDefaultTimeout()
+		Expect(pod1.ExitCode()).To(BeZero())
+		con1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "pod1", ALPINE, "top"})
+		con1.WaitWithDefaultTimeout()
+		Expect(con1.ExitCode()).To(BeZero())
+
+		pod2 := podmanTest.Podman([]string{"pod", "create", "--name", "pod2"})
+		pod2.WaitWithDefaultTimeout()
+		Expect(pod2.ExitCode()).To(BeZero())
+		con2 := podmanTest.Podman([]string{"run", "-dt", "--pod", "pod2", ALPINE, "top"})
+		con2.WaitWithDefaultTimeout()
+		Expect(con2.ExitCode()).To(BeZero())
+
+		// bogus pod name or id should not result in error
+		session := podmanTest.Podman([]string{"ps", "--filter", "pod=1234"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		// filter by pod name
+		session = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "--filter", "pod=pod1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
+
+		// filter by full pod id
+		session = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "--filter", "pod=" + pod1.OutputToString()})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
+
+		// filter by partial pod id
+		session = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "--filter", "pod=" + pod1.OutputToString()[0:12]})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
+
+		// filter by multiple pods is inclusive
+		session = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "--filter", "pod=pod1", "--filter", "pod=pod2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(len(session.OutputToStringArray())).To(Equal(4))
+		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
+		Expect(StringInSlice(pod2.OutputToString(), session.OutputToStringArray()))
+
+	})
+
 })
