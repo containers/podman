@@ -349,4 +349,64 @@ var _ = Describe("Podman prune", func() {
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(len(CACHE_IMAGES)))
 	})
+
+	It("podman system prune --volumes --filter", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "label1=value1", "myvol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1=slv1", "myvol2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1=slv2", "myvol3"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1", "myvol4"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"create", "-v", "myvol5:/myvol5", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"create", "-v", "myvol6:/myvol6", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(7))
+
+		session = podmanTest.Podman([]string{"system", "prune", "--force", "--volumes", "--filter", "label=label1=value1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(6))
+
+		session = podmanTest.Podman([]string{"system", "prune", "--force", "--volumes", "--filter", "label=sharedlabel1=slv1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(5))
+
+		session = podmanTest.Podman([]string{"system", "prune", "--force", "--volumes", "--filter", "label=sharedlabel1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(3))
+
+		podmanTest.Cleanup()
+	})
 })

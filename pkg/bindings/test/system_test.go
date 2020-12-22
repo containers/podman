@@ -158,4 +158,61 @@ var _ = Describe("Podman system", func() {
 		// Volume should be pruned now as flag set true
 		Expect(len(systemPruneResponse.VolumePruneReport)).To(Equal(1))
 	})
+
+	It("podman system prune running alpine container volume prune --filter", func() {
+		// Start a pod and leave it running
+		_, err := pods.Start(bt.conn, newpod, nil)
+		Expect(err).To(BeNil())
+
+		// Start and stop a container to enter in exited state.
+		var name = "top"
+		_, err = bt.RunTopContainer(&name, bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+		err = containers.Stop(bt.conn, name, nil)
+		Expect(err).To(BeNil())
+
+		// Start second container and leave in running
+		var name2 = "top2"
+		_, err = bt.RunTopContainer(&name2, bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+
+		// Adding an unused volume should work
+		_, err = volumes.Create(bt.conn, entities.VolumeCreateOptions{}, nil)
+		Expect(err).To(BeNil())
+
+		// Adding an unused volume with label should work
+		_, err = volumes.Create(bt.conn, entities.VolumeCreateOptions{Label: map[string]string{
+			"label1": "value1",
+		}}, nil)
+		Expect(err).To(BeNil())
+
+		f := make(map[string][]string)
+		f["label"] = []string{"label1=idontmatch"}
+
+		options := new(system.PruneOptions).WithAll(true).WithVolumes(true).WithFilters(f)
+		systemPruneResponse, err := system.Prune(bt.conn, options)
+		Expect(err).To(BeNil())
+		Expect(len(systemPruneResponse.PodPruneReport)).To(Equal(0))
+		// TODO fix system filter handling so all components can handle filters
+		//      This check **should** be "Equal(0)" since we are passing label
+		//      filters however the Prune function doesn't seem to pass filters
+		//      to each component.
+		Expect(len(systemPruneResponse.ContainerPruneReport.ID)).To(Equal(1))
+		Expect(len(systemPruneResponse.ImagePruneReport.Report.Id)).
+			To(BeNumerically(">", 0))
+		// Alpine image should not be pruned as used by running container
+		Expect(systemPruneResponse.ImagePruneReport.Report.Id).
+			ToNot(ContainElement("docker.io/library/alpine:latest"))
+		// Volume shouldn't be pruned because the PruneOptions filters doesn't match
+		Expect(len(systemPruneResponse.VolumePruneReport)).To(Equal(0))
+
+		// Fix filter and re prune
+		f["label"] = []string{"label1=value1"}
+		options = new(system.PruneOptions).WithAll(true).WithVolumes(true).WithFilters(f)
+		systemPruneResponse, err = system.Prune(bt.conn, options)
+		Expect(err).To(BeNil())
+
+		// Volume should be pruned because the PruneOptions filters now match
+		Expect(len(systemPruneResponse.VolumePruneReport)).To(Equal(1))
+	})
 })

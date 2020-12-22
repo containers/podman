@@ -20,7 +20,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 
 // SystemPrune prunes unused data from the system.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, opts entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
-	options := new(system.PruneOptions).WithAll(opts.All).WithVolumes(opts.Volume).WithFilters(opts.ContainerPruneOptions.Filters)
+	options := new(system.PruneOptions).WithAll(opts.All).WithVolumes(opts.Volume).WithFilters(opts.Filters)
 	return system.Prune(ic.ClientCxt, options)
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -180,7 +181,12 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			found = true
 		}
 		systemPruneReport.PodPruneReport = append(systemPruneReport.PodPruneReport, podPruneReport...)
-		containerPruneReport, err := ic.ContainerPrune(ctx, options.ContainerPruneOptions)
+
+		// TODO: Figure out cleaner way to handle all of the different PruneOptions
+		containerPruneOptions := entities.ContainerPruneOptions{}
+		containerPruneOptions.Filters = (url.Values)(options.Filters)
+
+		containerPruneReport, err := ic.ContainerPrune(ctx, containerPruneOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +223,9 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			systemPruneReport.ImagePruneReport.Report.Id = append(systemPruneReport.ImagePruneReport.Report.Id, results...)
 		}
 		if options.Volume {
-			volumePruneReport, err := ic.pruneVolumesHelper(ctx, nil)
+			volumePruneOptions := entities.VolumePruneOptions{}
+			volumePruneOptions.Filters = (url.Values)(options.Filters)
+			volumePruneReport, err := ic.VolumePrune(ctx, volumePruneOptions)
 			if err != nil {
 				return nil, err
 			}
