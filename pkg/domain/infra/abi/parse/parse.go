@@ -38,6 +38,9 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 					}
 					logrus.Debugf("Removing uid= from options and adding WithVolumeUID for UID %d", intUID)
 					libpodOptions = append(libpodOptions, libpod.WithVolumeUID(intUID))
+					finalVal = append(finalVal, o)
+					// set option "UID": "$uid"
+					volumeOptions["UID"] = splitO[1]
 				case "gid":
 					if len(splitO) != 2 {
 						return nil, errors.Wrapf(define.ErrInvalidArg, "gid option must provide a GID")
@@ -48,6 +51,9 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 					}
 					logrus.Debugf("Removing gid= from options and adding WithVolumeGID for GID %d", intGID)
 					libpodOptions = append(libpodOptions, libpod.WithVolumeGID(intGID))
+					finalVal = append(finalVal, o)
+					// set option "GID": "$gid"
+					volumeOptions["GID"] = splitO[1]
 				default:
 					finalVal = append(finalVal, o)
 				}

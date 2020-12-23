@@ -58,7 +58,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 		// Validate options
 		for key := range volume.config.Options {
 			switch key {
-			case "device", "o", "type":
+			case "device", "o", "type", "UID", "GID":
 				// Do nothing, valid keys
 			default:
 				return nil, errors.Wrapf(define.ErrInvalidArg, "invalid mount option %s for driver 'local'", key)

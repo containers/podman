@@ -1593,7 +1593,7 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 		volume.config.Options = make(map[string]string)
 		for key, value := range options {
 			switch key {
-			case "type", "device", "o":
+			case "type", "device", "o", "UID", "GID":
 				volume.config.Options[key] = value
 			default:
 				return errors.Wrapf(define.ErrInvalidArg, "unrecognized volume option %q is not supported with local driver", key)
