@@ -71,7 +71,7 @@ func restore(_ *cobra.Command, args []string) error {
 	if rootless.IsRootless() {
 		return errors.New("restoring a container requires root")
 	}
-	if restoreOptions.Import == "" && restoreOptions.ImportPrevious != ""  {
+	if restoreOptions.Import == "" && restoreOptions.ImportPrevious != "" {
 		return errors.Errorf("--import-previous can only be used with --import")
 	}
 	if restoreOptions.Import == "" && restoreOptions.IgnoreRootFS {
