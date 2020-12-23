@@ -820,8 +820,28 @@ var _ = Describe("Podman play kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
 	})
 
+	// If you do not supply command or args for a Container, the defaults defined in the Docker image are used.
+	It("podman play kube test correct args and cmd when not specified", func() {
+		pod := getPod(withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		// this image's ENTRYPOINT is `/entrypoint.sh` and it's COMMAND is `/etc/docker/registry/config.yml`
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[/entrypoint.sh /etc/docker/registry/config.yml]`))
+	})
+
+	// If you supply a command but no args for a Container, only the supplied command is used.
+	// The default EntryPoint and the default Cmd defined in the Docker image are ignored.
 	It("podman play kube test correct command with only set command in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg(nil))))
+		pod := getPod(withCtr(getCtr(withImage(registry), withCmd([]string{"echo", "hello"}), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -837,8 +857,9 @@ var _ = Describe("Podman play kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
 	})
 
+	// If you supply only args for a Container, the default Entrypoint defined in the Docker image is run with the args that you supplied.
 	It("podman play kube test correct command with only set args in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(nil), withArg([]string{"echo", "hello"}))))
+		pod := getPod(withCtr(getCtr(withImage(registry), withCmd(nil), withArg([]string{"echo", "hello"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -849,9 +870,27 @@ var _ = Describe("Podman play kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		// this image's ENTRYPOINT is called `docker-entrypoint.sh`
-		// so result should be `docker-entrypoint.sh + withArg(...)`
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[docker-entrypoint.sh echo hello]`))
+		// this image's ENTRYPOINT is `/entrypoint.sh`
+		// so result should be `/entrypoint.sh + withArg(...)`
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[/entrypoint.sh echo hello]`))
+	})
+
+	// If you supply a command and args,
+	// the default Entrypoint and the default Cmd defined in the Docker image are ignored.
+	// Your command is run with your args.
+	It("podman play kube test correct command with both set args and cmd in yaml file", func() {
+		pod := getPod(withCtr(getCtr(withImage(registry), withCmd([]string{"echo"}), withArg([]string{"hello"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
 	})
 
 	It("podman play kube test correct output", func() {

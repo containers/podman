@@ -112,11 +112,18 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 		return nil, err
 	}
 	s.WorkDir = "/"
+	// We will use "Docker field name" internally here to avoid confusion
+	// and reference the "Kubernetes field name" when referencing the YAML
+	// ref: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
+	entrypoint := []string{}
+	cmd := []string{}
 	if imageData != nil && imageData.Config != nil {
 		if imageData.Config.WorkingDir != "" {
 			s.WorkDir = imageData.Config.WorkingDir
 		}
-		s.Command = imageData.Config.Entrypoint
+		// Pull entrypoint and cmd from image
+		entrypoint = imageData.Config.Entrypoint
+		cmd = imageData.Config.Cmd
 		s.Labels = imageData.Config.Labels
 		if len(imageData.Config.StopSignal) > 0 {
 			stopSignal, err := util.ParseSignal(imageData.Config.StopSignal)
@@ -126,13 +133,18 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 			s.StopSignal = &stopSignal
 		}
 	}
+	// If only the yaml.Command is specified, set it as the entrypoint and drop the image Cmd
 	if len(containerYAML.Command) != 0 {
-		s.Command = containerYAML.Command
+		entrypoint = containerYAML.Command
+		cmd = []string{}
 	}
-	// doc https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
+	// Only override the cmd field if yaml.Args is specified
+	// Keep the image entrypoint, or the yaml.command if specified
 	if len(containerYAML.Args) != 0 {
-		s.Command = append(s.Command, containerYAML.Args...)
+		cmd = containerYAML.Args
 	}
+
+	s.Command = append(entrypoint, cmd...)
 	// FIXME,
 	// we are currently ignoring imageData.Config.ExposedPorts
 	if containerYAML.WorkingDir != "" {
