@@ -50,24 +50,36 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 }
 
 var (
-	availableGids     int64
-	availableGidsErr  error
-	availableGidsOnce sync.Once
+	gidMap      []user.IDMap
+	gidMapError error
+	gidMapOnce  sync.Once
 )
+
+// GetAvailableGidMap returns the GID mappings in the
+// current user namespace.
+func GetAvailableGidMap() ([]user.IDMap, error) {
+	gidMapOnce.Do(func() {
+		var err error
+		gidMap, err = user.ParseIDMapFile("/proc/self/gid_map")
+		if err != nil {
+			gidMapError = err
+			return
+		}
+	})
+	return gidMap, gidMapError
+}
 
 // GetAvailableGids returns how many GIDs are available in the
 // current user namespace.
 func GetAvailableGids() (int64, error) {
-	availableGidsOnce.Do(func() {
-		idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
-		if err != nil {
-			availableGidsErr = err
-			return
-		}
-		availableGids = int64(0)
-		for _, r := range idMap {
-			availableGids += r.Count
-		}
-	})
-	return availableGids, availableGidsErr
+	gids, err := GetAvailableGidMap()
+	if err != nil {
+		return -1, err
+	}
+
+	availableGids := int64(0)
+	for _, r := range gids {
+		availableGids += r.Count
+	}
+	return availableGids, nil
 }
