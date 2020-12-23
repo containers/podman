@@ -1193,6 +1193,13 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 	pspec := c.config.Spec.Process
 	pspec.SelinuxLabel = c.config.ProcessLabel
 	pspec.Args = options.Cmd
+	for _, cap := range options.CapAdd {
+		pspec.Capabilities.Bounding = append(pspec.Capabilities.Bounding, cap)
+		pspec.Capabilities.Effective = append(pspec.Capabilities.Effective, cap)
+		pspec.Capabilities.Inheritable = append(pspec.Capabilities.Inheritable, cap)
+		pspec.Capabilities.Permitted = append(pspec.Capabilities.Permitted, cap)
+		pspec.Capabilities.Ambient = append(pspec.Capabilities.Ambient, cap)
+	}
 	// We need to default this to false else it will inherit terminal as true
 	// from the container.
 	pspec.Terminal = false
