@@ -15,7 +15,7 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.9.0
 	github.com/containers/psgo v1.5.1
-	github.com/containers/storage v1.24.3
+	github.com/containers/storage v1.24.4
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cri-o/ocicni v0.2.1-0.20201125151022-df072ea5421c
 	github.com/cyphar/filepath-securejoin v0.2.2
@@ -63,7 +63,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20201117170446-d9b008d0a637
+	golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
