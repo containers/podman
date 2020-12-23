@@ -26,6 +26,9 @@ type ociImageDestination struct {
 
 // newImageDestination returns an ImageDestination for writing to an existing directory.
 func newImageDestination(sys *types.SystemContext, ref ociReference) (types.ImageDestination, error) {
+	if ref.sourceIndex != -1 {
+		return nil, errors.Errorf("Destination reference must not contain a manifest index @%d", ref.sourceIndex)
+	}
 	var index *imgspecv1.Index
 	if indexExists(ref) {
 		var err error

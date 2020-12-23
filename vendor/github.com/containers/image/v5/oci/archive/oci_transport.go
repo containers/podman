@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/containers/image/v5/directory/explicitfilepath"
@@ -33,10 +32,12 @@ type ociArchiveTransport struct{}
 
 // ociArchiveReference is an ImageReference for OCI Archive paths
 type ociArchiveReference struct {
-	file         string
-	resolvedFile string
-	image        string
-	sourceIndex	int
+	file             string
+	resolvedFile     string
+	image            string
+	sourceIndex      int
+	archiveReaderRef *tempDirOCIRef
+	archiveWriterRef *tempDirOCIRef
 }
 
 func (t ociArchiveTransport) Name() string {
@@ -56,12 +57,24 @@ func (t ociArchiveTransport) ValidatePolicyConfigurationScope(scope string) erro
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an OCI ImageReference.
 func ParseReference(reference string) (types.ImageReference, error) {
-	file, image := internal.SplitPathAndImage(reference)
-	return NewReference(file, image)
+	file, image, index, err := internal.ParseReferenceIntoElements(reference)
+	if err != nil {
+		return nil, err
+	}
+	return newReference(file, image, index, nil, nil)
 }
 
-// NewReference returns an OCI reference for a file and a image.
+// NewReference returns an OCI reference for a file and an image.
 func NewReference(file, image string) (types.ImageReference, error) {
+	return newReference(file, image, -1, nil, nil)
+}
+
+// NewIndexReference returns an OCI reference for a file and sourecIndex points to the image.
+func NewIndexReference(file string, sourceIndex int) (types.ImageReference, error) {
+	return newReference(file, "", sourceIndex, nil, nil)
+}
+
+func newReference(file, image string, sourceIndex int, archiveReaderRef, archiveWriterRef *tempDirOCIRef) (types.ImageReference, error) {
 	resolved, err := explicitfilepath.ResolvePathToFullyExplicit(file)
 	if err != nil {
 		return nil, err
@@ -71,27 +84,17 @@ func NewReference(file, image string) (types.ImageReference, error) {
 		return nil, err
 	}
 
-	var img string
-	index := -1
-	if strings.HasPrefix(image, "@") {
-		idx, err := strconv.Atoi(image[1:])
-		if err != nil {
-			return nil, errors.Wrapf(err, "Invalid source index %s", image)
-		}
-		if idx < 0 {
-			return nil, errors.Errorf("Invalid source index @%d: must not be negative", idx)
-		}
-		index = idx
-	} else {
-		err := internal.ValidateImageName(image);
-		if err == nil {
-			img = image
-		} else {
-			return nil, err
-		}
+	if err := internal.ValidateImageName(image); err != nil {
+		return nil, err
 	}
 
-	return ociArchiveReference{file: file, resolvedFile: resolved, image: img, sourceIndex: index}, nil
+	if sourceIndex != -1 && sourceIndex < 0 {
+		return nil, errors.Errorf("Invalid oci archive: reference: index @%d must not be negative", sourceIndex)
+	}
+	if sourceIndex != -1 && image != "" {
+		return nil, errors.Errorf("Can not set image %s and index @%d at same time", image, sourceIndex)
+	}
+	return ociArchiveReference{file: file, resolvedFile: resolved, image: image, sourceIndex: sourceIndex, archiveReaderRef: archiveReaderRef, archiveWriterRef: archiveWriterRef}, nil
 }
 
 func (ref ociArchiveReference) Transport() types.ImageTransport {
@@ -101,7 +104,10 @@ func (ref ociArchiveReference) Transport() types.ImageTransport {
 // StringWithinTransport returns a string representation of the reference, which MUST be such that
 // reference.Transport().ParseReference(reference.StringWithinTransport()) returns an equivalent reference.
 func (ref ociArchiveReference) StringWithinTransport() string {
-	return fmt.Sprintf("%s:%s", ref.file, ref.image)
+	if ref.sourceIndex == -1 {
+		return fmt.Sprintf("%s:%s", ref.file, ref.image)
+	}
+	return fmt.Sprintf("%s:@%d", ref.file, ref.sourceIndex)
 }
 
 // DockerReference returns a Docker reference associated with this reference
@@ -141,7 +147,7 @@ func (ref ociArchiveReference) PolicyConfigurationNamespaces() []string {
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
 func (ref ociArchiveReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
-	src, err := newImageSource(ctx, sys, ref)
+	src, err := newImageSource(ctx, sys, ref, ref.archiveReaderRef)
 	if err != nil {
 		return nil, err
 	}
@@ -151,13 +157,13 @@ func (ref ociArchiveReference) NewImage(ctx context.Context, sys *types.SystemCo
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
 func (ref ociArchiveReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(ctx, sys, ref)
+	return newImageSource(ctx, sys, ref, ref.archiveReaderRef)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
 func (ref ociArchiveReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
-	return newImageDestination(ctx, sys, ref)
+	return newImageDestination(ctx, sys, ref, ref.archiveWriterRef)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
@@ -183,9 +189,15 @@ func createOCIRef(sys *types.SystemContext, image string, sourceIndex int) (temp
 	if err != nil {
 		return tempDirOCIRef{}, errors.Wrapf(err, "error creating temp directory")
 	}
-	ociRef, err := ocilayout.NewReferenceWithIndex(dir, image, sourceIndex)
-	if err != nil {
-		return tempDirOCIRef{}, err
+	var ociRef types.ImageReference
+	if sourceIndex > -1 {
+		if ociRef, err = ocilayout.NewIndexReference(dir, sourceIndex); err != nil {
+			return tempDirOCIRef{}, err
+		}
+	} else {
+		if ociRef, err = ocilayout.NewReference(dir, image); err != nil {
+			return tempDirOCIRef{}, err
+		}
 	}
 
 	tempDirRef := tempDirOCIRef{tempDirectory: dir, ociRefExtracted: ociRef}

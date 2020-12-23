@@ -13,16 +13,30 @@ import (
 )
 
 type ociArchiveImageDestination struct {
-	ref          ociArchiveReference
-	unpackedDest types.ImageDestination
-	tempDirRef   tempDirOCIRef
+	ref              ociArchiveReference
+	unpackedDest     types.ImageDestination
+	tempDirRef       tempDirOCIRef
+	archiveWriterRef *tempDirOCIRef
 }
 
 // newImageDestination returns an ImageDestination for writing to an existing directory.
-func newImageDestination(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference) (types.ImageDestination, error) {
-	tempDirRef, err := createOCIRef(sys, ref.image, -1)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating oci reference")
+func newImageDestination(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference, archiveWriterRef *tempDirOCIRef) (types.ImageDestination, error) {
+	var (
+		tempDirRef tempDirOCIRef
+		err        error
+	)
+
+	if ref.sourceIndex != -1 {
+		return nil, errors.Errorf("Destination reference must not contain a manifest index @%d", ref.sourceIndex)
+	}
+
+	if archiveWriterRef != nil {
+		tempDirRef = *archiveWriterRef
+	} else {
+		tempDirRef, err = createOCIRef(sys, ref.image, -1)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error creating oci reference")
+		}
 	}
 	unpackedDest, err := tempDirRef.ociRefExtracted.NewImageDestination(ctx, sys)
 	if err != nil {
@@ -32,8 +46,9 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref ociA
 		return nil, err
 	}
 	return &ociArchiveImageDestination{ref: ref,
-		unpackedDest: unpackedDest,
-		tempDirRef:   tempDirRef}, nil
+		unpackedDest:     unpackedDest,
+		archiveWriterRef: archiveWriterRef,
+		tempDirRef:       tempDirRef}, nil
 }
 
 // Reference returns the reference used to set up this destination.
@@ -44,6 +59,9 @@ func (d *ociArchiveImageDestination) Reference() types.ImageReference {
 // Close removes resources associated with an initialized ImageDestination, if any
 // Close deletes the temp directory of the oci-archive image
 func (d *ociArchiveImageDestination) Close() error {
+	if d.archiveWriterRef != nil {
+		return nil
+	}
 	defer func() {
 		err := d.tempDirRef.deleteTempDir()
 		logrus.Debugf("Error deleting temporary directory: %v", err)
@@ -131,6 +149,10 @@ func (d *ociArchiveImageDestination) PutSignatures(ctx context.Context, signatur
 func (d *ociArchiveImageDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
 	if err := d.unpackedDest.Commit(ctx, unparsedToplevel); err != nil {
 		return errors.Wrapf(err, "error storing image %q", d.ref.image)
+	}
+
+	if d.archiveWriterRef != nil {
+		return nil
 	}
 
 	// path of directory to tar up

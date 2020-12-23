@@ -13,19 +13,27 @@ import (
 )
 
 type ociArchiveImageSource struct {
-	ref         ociArchiveReference
-	unpackedSrc types.ImageSource
-	tempDirRef  tempDirOCIRef
+	ref              ociArchiveReference
+	unpackedSrc      types.ImageSource
+	tempDirRef       tempDirOCIRef
+	archiveReaderRef *tempDirOCIRef
 }
 
 // newImageSource returns an ImageSource for reading from an existing directory.
 // newImageSource untars the file and saves it in a temp directory
-func newImageSource(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference) (types.ImageSource, error) {
-	tempDirRef, err := createUntarTempDir(sys, ref)
-	if err != nil {
-		return nil, errors.Wrap(err, "error creating temp directory")
+func newImageSource(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference, archiveReaderRef *tempDirOCIRef) (types.ImageSource, error) {
+	var (
+		tempDirRef tempDirOCIRef
+		err        error
+	)
+	if archiveReaderRef != nil {
+		tempDirRef = *archiveReaderRef
+	} else {
+		tempDirRef, err = createUntarTempDir(sys, ref)
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating temp directory")
+		}
 	}
-
 	unpackedSrc, err := tempDirRef.ociRefExtracted.NewImageSource(ctx, sys)
 	if err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
@@ -34,8 +42,9 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref ociArchiv
 		return nil, err
 	}
 	return &ociArchiveImageSource{ref: ref,
-		unpackedSrc: unpackedSrc,
-		tempDirRef:  tempDirRef}, nil
+		unpackedSrc:      unpackedSrc,
+		archiveReaderRef: archiveReaderRef,
+		tempDirRef:       tempDirRef}, nil
 }
 
 // LoadManifestDescriptor loads the manifest
@@ -74,6 +83,9 @@ func (s *ociArchiveImageSource) Reference() types.ImageReference {
 // Close removes resources associated with an initialized ImageSource, if any.
 // Close deletes the temporary directory at dst
 func (s *ociArchiveImageSource) Close() error {
+	if s.archiveReaderRef != nil {
+		return nil
+	}
 	defer func() {
 		err := s.tempDirRef.deleteTempDir()
 		logrus.Debugf("error deleting tmp dir: %v", err)

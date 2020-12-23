@@ -32,6 +32,8 @@ github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46/go.mod h1:3wb0
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
+github.com/QiWang19/image/v5 v5.0.0-20201223172551-bdf582feeb23 h1:GGl+1BVPhp37d7Oh1loJfKqyrALe88yvlh03ivKUlIw=
+github.com/QiWang19/image/v5 v5.0.0-20201223172551-bdf582feeb23/go.mod h1:blOEFd/iFdeyh891ByhCVUc+xAcaI3gBegXECwz9UbQ=
 github.com/VividCortex/ewma v1.1.1 h1:MnEK4VOv6n0RSY4vtRe3h11qjxL3+t0B8yOL8iMXdcM=
 github.com/VividCortex/ewma v1.1.1/go.mod h1:2Tkkvm3sRDVXaiyucHiACn4cqf7DpdyLvmxzcbUokwA=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpHMqeKTCYkitsPqHNxTmd4SNR5r94FGM8=
@@ -100,9 +102,6 @@ github.com/containers/common v0.31.2 h1:sNYwvLA4B7SpEiAWTUvkItPlCrUa2vcxh0FTKXKo
 github.com/containers/common v0.31.2/go.mod h1:Fehe82hQfJQvDspnRrV9rcdAWG3IalNHEt0F6QWNBHQ=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.8.1/go.mod h1:blOEFd/iFdeyh891ByhCVUc+xAcaI3gBegXECwz9UbQ=
-github.com/containers/image/v5 v5.9.0 h1:dRmUtcluQcmasNo3DpnRoZjfU0rOu1qZeL6wlDJr10Q=
-github.com/containers/image/v5 v5.9.0/go.mod h1:blOEFd/iFdeyh891ByhCVUc+xAcaI3gBegXECwz9UbQ=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.3 h1:vYgl+RZ9Q3DPMuTfxmN+qp0X2Bj52uuY2vnt6GzVe1c=
