@@ -20,7 +20,11 @@ import (
 // a match on name:tag
 func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, error) {
 	_, searchName, searchSuspiciousTagValueForSearch := search.suspiciousRefNameTagValuesForSearch()
-	var results []*storage.Image
+	type Candidate struct {
+		name  string
+		image *Image
+	}
+	var candidates []Candidate
 	for _, image := range images {
 		for _, name := range image.Names() {
 			d, err := decompose(name)
@@ -29,23 +33,52 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 				continue
 			}
 			_, dName, dSuspiciousTagValueForSearch := d.suspiciousRefNameTagValuesForSearch()
-			if dName == searchName && dSuspiciousTagValueForSearch == searchSuspiciousTagValueForSearch {
-				results = append(results, image.image)
+			if dSuspiciousTagValueForSearch != searchSuspiciousTagValueForSearch {
 				continue
 			}
-			// account for registry:/somedir/image
-			if strings.HasSuffix(dName, "/"+searchName) && dSuspiciousTagValueForSearch == searchSuspiciousTagValueForSearch {
-				results = append(results, image.image)
-				continue
+			if dName == searchName || strings.HasSuffix(dName, "/"+searchName) {
+				candidates = append(candidates, Candidate{
+					name:  name,
+					image: image,
+				})
 			}
 		}
 	}
-	if len(results) == 0 {
-		return &storage.Image{}, errors.Errorf("unable to find a name and tag match for %s in repotags", searchName)
-	} else if len(results) > 1 {
-		return &storage.Image{}, errors.Wrapf(define.ErrMultipleImages, searchName)
+	if len(candidates) == 0 {
+		return nil, errors.Errorf("unable to find a name and tag match for %s in repotags", searchName)
 	}
-	return results[0], nil
+
+	// If more then one candidate and the candidates all have same name
+	// and only one is read/write return it.
+	// Othewise return error with the list of candidates
+	if len(candidates) > 1 {
+		var (
+			rwImage    *Image
+			rwImageCnt int
+		)
+		names := make(map[string]bool)
+		for _, c := range candidates {
+			names[c.name] = true
+			if !c.image.IsReadOnly() {
+				rwImageCnt++
+				rwImage = c.image
+			}
+		}
+		// If only one name used and have read/write image return it
+		if len(names) == 1 && rwImageCnt == 1 {
+			return rwImage.image, nil
+		}
+		keys := []string{}
+		for k := range names {
+			keys = append(keys, k)
+		}
+		if rwImageCnt > 1 {
+			return nil, errors.Wrapf(define.ErrMultipleImages, "found multiple read/write images %s", strings.Join(keys, ","))
+		} else {
+			return nil, errors.Wrapf(define.ErrMultipleImages, "found multiple read/only images %s", strings.Join(keys, ","))
+		}
+	}
+	return candidates[0].image.image, nil
 }
 
 // getCopyOptions constructs a new containers/image/copy.Options{} struct from the given parameters, inheriting some from sc.
