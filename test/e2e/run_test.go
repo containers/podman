@@ -342,12 +342,22 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
 
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "bin", ALPINE, "grep", "CapInh", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
+
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "root", ALPINE, "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "root", ALPINE, "grep", "CapEff", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "root", ALPINE, "grep", "CapInh", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
@@ -367,10 +377,10 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("0000000000000002"))
 
-		session = podmanTest.Podman([]string{"run", "--user=1000:1000", "--rm", ALPINE, "grep", "CapAmb", "/proc/self/status"})
+		session = podmanTest.Podman([]string{"run", "--user=1000:1000", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapInh", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
+		Expect(session.OutputToString()).To(ContainSubstring("0000000000000002"))
 
 		session = podmanTest.Podman([]string{"run", "--user=0", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapAmb", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
@@ -382,6 +392,11 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
 
+		session = podmanTest.Podman([]string{"run", "--user=0:0", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapInh", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+
 		if os.Geteuid() > 0 {
 			if os.Getenv("SKIP_USERNS") != "" {
 				Skip("Skip userns tests.")
@@ -390,6 +405,16 @@ var _ = Describe("Podman run", func() {
 				Skip("User namespaces not supported.")
 			}
 			session = podmanTest.Podman([]string{"run", "--userns=keep-id", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapAmb", "/proc/self/status"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session.OutputToString()).To(ContainSubstring("0000000000000002"))
+
+			session = podmanTest.Podman([]string{"run", "--userns=keep-id", "--privileged", "--rm", ALPINE, "grep", "CapInh", "/proc/self/status"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
+
+			session = podmanTest.Podman([]string{"run", "--userns=keep-id", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapInh", "/proc/self/status"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 			Expect(session.OutputToString()).To(ContainSubstring("0000000000000002"))
