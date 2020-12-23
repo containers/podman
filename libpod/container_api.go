@@ -672,8 +672,8 @@ func (c *Container) Refresh(ctx context.Context) error {
 	return define.ErrNotImplemented
 }
 
-// ContainerCheckpointOptions is a struct used to pass the parameters
-// for checkpointing (and restoring) to the corresponding functions
+// ContainerCriu is a struct including parameters that ContainerCheckpointOptions
+// and ContainerRestoreOptions both used
 type ContainerCriu struct {
 	// Keep tells the API to not delete checkpoint artifacts
 	Keep bool
@@ -688,6 +688,8 @@ type ContainerCriu struct {
 	IgnoreRootfs bool
 }
 
+// ContainerCheckpointOptions is a struct used to pass the parameters
+// for checkpointing to the corresponding functions
 type ContainerCheckpointOptions struct {
 	// The common params for checkpoint
 	ContainerCriu
@@ -704,6 +706,8 @@ type ContainerCheckpointOptions struct {
 	WithPrevious bool
 }
 
+// ContainerRestoreOptions is a struct used to pass the parameters
+// for restoring to the corresponding functions
 type ContainerRestoreOptions struct {
 	// The common params for restore
 	ContainerCriu

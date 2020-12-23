@@ -238,10 +238,12 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		targetFile = tmpFile.Name()
 	}
 	options := libpod.ContainerCheckpointOptions{
-		Keep:           query.Keep,
-		KeepRunning:    query.LeaveRunning,
-		TCPEstablished: query.TCPEstablished,
-		IgnoreRootfs:   query.IgnoreRootFS,
+		ContainerCriu: libpod.ContainerCriu{
+			Keep:           query.Keep,
+			TCPEstablished: query.TCPEstablished,
+			IgnoreRootfs:   query.IgnoreRootFS,
+		},
+		KeepRunning: query.LeaveRunning,
 	}
 	if query.Export {
 		options.TargetFile = targetFile
@@ -306,10 +308,12 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		targetFile = t.Name()
 	}
 
-	options := libpod.ContainerCheckpointOptions{
-		Keep:            query.Keep,
-		TCPEstablished:  query.TCPEstablished,
-		IgnoreRootfs:    query.IgnoreRootFS,
+	options := libpod.ContainerRestoreOptions{
+		ContainerCriu: libpod.ContainerCriu{
+			Keep:           query.Keep,
+			TCPEstablished: query.TCPEstablished,
+			IgnoreRootfs:   query.IgnoreRootFS,
+		},
 		IgnoreStaticIP:  query.IgnoreStaticIP,
 		IgnoreStaticMAC: query.IgnoreStaticMAC,
 	}
