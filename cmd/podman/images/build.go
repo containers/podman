@@ -221,7 +221,8 @@ func build(cmd *cobra.Command, args []string) error {
 
 	var logfile *os.File
 	if cmd.Flag("logfile").Changed {
-		logfile, err := os.OpenFile(buildOpts.Logfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+		var err error
+		logfile, err = os.OpenFile(buildOpts.Logfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 		if err != nil {
 			return err
 		}

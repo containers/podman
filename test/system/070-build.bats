@@ -424,6 +424,23 @@ EOF
     run_podman rmi -a --force
 }
 
+@test "podman build --logfile test" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    tmpbuilddir=$tmpdir/build
+    mkdir -p $tmpbuilddir
+    dockerfile=$tmpbuilddir/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+EOF
+
+    run_podman build -t build_test --format=docker --logfile=$tmpdir/logfile $tmpbuilddir
+    run cat $tmpdir/logfile
+    is "$output" ".*STEP 2: COMMIT" "COMMIT seen in log"
+
+    run_podman rmi -f build_test
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent
