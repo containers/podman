@@ -57,6 +57,8 @@ Valid filters are listed below:
 | since           | [ID] or [Name] Containers created since this container                           |
 | volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
 | health          | [Status] healthy or unhealthy                                                    |
+| pod             | [Pod] name or full or partial ID of pod                                          |
+
 
 #### **--format**=*format*
 
