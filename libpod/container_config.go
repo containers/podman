@@ -151,7 +151,7 @@ type ContainerRootFSConfig struct {
 // ContainerSecurityConfig is an embedded sub-config providing security configuration
 // to the container.
 type ContainerSecurityConfig struct {
-	// Pirivileged is whether the container is privileged. Privileged
+	// Privileged is whether the container is privileged. Privileged
 	// containers have lessened security and increased access to the system.
 	// Note that this does NOT directly correspond to Podman's --privileged
 	// flag - most of the work of that flag is done in creating the OCI spec

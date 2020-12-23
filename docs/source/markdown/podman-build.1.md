@@ -40,7 +40,7 @@ container images.  This `buildah` code creates `buildah` containers for the
 `RUN` options in container storage. In certain situations, when the
 `podman build` crashes or users kill the `podman build` process, these external
 containers can be left in container storage. Use the `podman ps --all --storage`
-command to see these contaienrs. External containers can be removed with the
+command to see these containers. External containers can be removed with the
 `podman rm --storage` command.
 
 ## OPTIONS

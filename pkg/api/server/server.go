@@ -108,7 +108,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 
 	for _, fn := range []func(*mux.Router) error{
 		server.registerAuthHandlers,
-		server.registerAchiveHandlers,
+		server.registerArchiveHandlers,
 		server.registerContainersHandlers,
 		server.registerDistributionHandlers,
 		server.registerEventsHandlers,

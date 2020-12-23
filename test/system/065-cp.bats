@@ -499,7 +499,7 @@ load helpers
     tar xvf $srcdir/stdout.tar -C $srcdir
     run cat $srcdir/file.txt
     is "$output" "$rand_content"
-    run 1 ls $srcfir/empty.txt
+    run 1 ls $srcdir/empty.txt
     rm -f $srcdir/*
 
     # Copy directory.

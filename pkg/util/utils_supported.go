@@ -114,7 +114,7 @@ func GetRootlessPauseProcessPidPath() (string, error) {
 // files.
 func GetRootlessPauseProcessPidPathGivenDir(libpodTmpDir string) (string, error) {
 	if libpodTmpDir == "" {
-		return "", errors.Errorf("must provide non-empty tmporary directory")
+		return "", errors.Errorf("must provide non-empty temporary directory")
 	}
 	return filepath.Join(libpodTmpDir, "pause.pid"), nil
 }

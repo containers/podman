@@ -8,7 +8,7 @@ type KubeOptions struct {
 }
 
 //go:generate go run ../generator/generator.go SystemdOptions
-// SystemdOptions are optional options for generating ssytemd files
+// SystemdOptions are optional options for generating systemd files
 type SystemdOptions struct {
 	// Name - use container/pod name instead of its ID.
 	UseName *bool

@@ -46,7 +46,7 @@ type namedHook struct {
 //
 // extensionStages allows callers to add additional stages beyond
 // those specified in the OCI Runtime Specification and to control
-// OCI-defined stages instead of delagating to the OCI runtime.  See
+// OCI-defined stages instead of delegating to the OCI runtime.  See
 // Hooks() for more information.
 func New(ctx context.Context, directories []string, extensionStages []string) (manager *Manager, err error) {
 	manager = &Manager{

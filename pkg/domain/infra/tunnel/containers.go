@@ -30,12 +30,12 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 }
 
 func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string, options entities.ContainerExistsOptions) (*entities.BoolReport, error) {
-	exists, err := containers.Exists(ic.ClientCxt, nameOrID, options.External)
+	exists, err := containers.Exists(ic.ClientCtx, nameOrID, options.External)
 	return &entities.BoolReport{Value: exists}, err
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, opts entities.WaitOptions) ([]entities.WaitReport, error) {
-	cons, err := getContainersByContext(ic.ClientCxt, false, false, namesOrIds)
+	cons, err := getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	options := new(containers.WaitOptions).WithCondition(opts.Condition)
 	for _, c := range cons {
 		response := entities.WaitReport{Id: c.ID}
-		exitCode, err := containers.Wait(ic.ClientCxt, c.ID, options)
+		exitCode, err := containers.Wait(ic.ClientCtx, c.ID, options)
 		if err != nil {
 			response.Error = err
 		} else {
@@ -55,26 +55,26 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
-		err := containers.Pause(ic.ClientCxt, c.ID, nil)
+		err := containers.Pause(ic.ClientCtx, c.ID, nil)
 		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
 	}
 	return reports, nil
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
-		err := containers.Unpause(ic.ClientCxt, c.ID, nil)
+		err := containers.Unpause(ic.ClientCtx, c.ID, nil)
 		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
 	}
 	return reports, nil
@@ -90,7 +90,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		id := strings.Split(string(content), "\n")[0]
 		namesOrIds = append(namesOrIds, id)
 	}
-	ctrs, err := getContainersByContext(ic.ClientCxt, opts.All, opts.Ignore, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	}
 	for _, c := range ctrs {
 		report := entities.StopReport{Id: c.ID}
-		if err = containers.Stop(ic.ClientCxt, c.ID, options); err != nil {
+		if err = containers.Stop(ic.ClientCtx, c.ID, options); err != nil {
 			// These first two are considered non-fatal under the right conditions
 			if errors.Cause(err).Error() == define.ErrCtrStopped.Error() {
 				logrus.Debugf("Container %s is already stopped", c.ID)
@@ -125,7 +125,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, opts entities.KillOptions) ([]*entities.KillReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, opts.All, false, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	for _, c := range ctrs {
 		reports = append(reports, &entities.KillReport{
 			Id:  c.ID,
-			Err: containers.Kill(ic.ClientCxt, c.ID, opts.Signal, nil),
+			Err: containers.Kill(ic.ClientCtx, c.ID, opts.Signal, nil),
 		})
 	}
 	return reports, nil
@@ -147,7 +147,7 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 	if to := opts.Timeout; to != nil {
 		options.WithTimeout(int(*to))
 	}
-	ctrs, err := getContainersByContext(ic.ClientCxt, opts.All, false, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 		}
 		reports = append(reports, &entities.RestartReport{
 			Id:  c.ID,
-			Err: containers.Restart(ic.ClientCxt, c.ID, options),
+			Err: containers.Restart(ic.ClientCtx, c.ID, options),
 		})
 	}
 	return reports, nil
@@ -172,7 +172,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		id := strings.Split(string(content), "\n")[0]
 		namesOrIds = append(namesOrIds, id)
 	}
-	ctrs, err := getContainersByContext(ic.ClientCxt, opts.All, opts.Ignore, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	for _, c := range ctrs {
 		reports = append(reports, &entities.RmReport{
 			Id:  c.ID,
-			Err: containers.Remove(ic.ClientCxt, c.ID, options),
+			Err: containers.Remove(ic.ClientCtx, c.ID, options),
 		})
 	}
 	return reports, nil
@@ -190,7 +190,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 
 func (ic *ContainerEngine) ContainerPrune(ctx context.Context, opts entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
 	options := new(containers.PruneOptions).WithFilters(opts.Filters)
-	return containers.Prune(ic.ClientCxt, options)
+	return containers.Prune(ic.ClientCtx, options)
 }
 
 func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, opts entities.InspectOptions) ([]*entities.ContainerInspectReport, []error, error) {
@@ -200,7 +200,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 	)
 	options := new(containers.InspectOptions).WithSize(opts.Size)
 	for _, name := range namesOrIds {
-		inspect, err := containers.Inspect(ic.ClientCxt, name, options)
+		inspect, err := containers.Inspect(ic.ClientCtx, name, options)
 		if err != nil {
 			errModel, ok := err.(entities.ErrorModel)
 			if !ok {
@@ -225,7 +225,7 @@ func (ic *ContainerEngine) ContainerTop(ctx context.Context, opts entities.TopOp
 		return nil, errors.New("NameOrID must be specified")
 	}
 	options := new(containers.TopOptions).WithDescriptors(opts.Descriptors)
-	topOutput, err := containers.Top(ic.ClientCxt, opts.NameOrID, options)
+	topOutput, err := containers.Top(ic.ClientCtx, opts.NameOrID, options)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	}
 	options := new(containers.CommitOptions).WithAuthor(opts.Author).WithChanges(opts.Changes).WithComment(opts.Message)
 	options.WithFormat(opts.Format).WithPause(opts.Pause).WithRepo(repo).WithTag(tag)
-	response, err := containers.Commit(ic.ClientCxt, nameOrID, options)
+	response, err := containers.Commit(ic.ClientCtx, nameOrID, options)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string,
 			return err
 		}
 	}
-	return containers.Export(ic.ClientCxt, nameOrID, w, nil)
+	return containers.Export(ic.ClientCtx, nameOrID, w, nil)
 }
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, opts entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
@@ -282,7 +282,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	)
 
 	if opts.All {
-		allCtrs, err := getContainersByContext(ic.ClientCxt, true, false, []string{})
+		allCtrs, err := getContainersByContext(ic.ClientCtx, true, false, []string{})
 		if err != nil {
 			return nil, err
 		}
@@ -294,7 +294,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		}
 
 	} else {
-		ctrs, err = getContainersByContext(ic.ClientCxt, false, false, namesOrIds)
+		ctrs, err = getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
 		if err != nil {
 			return nil, err
 		}
@@ -303,7 +303,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	options := new(containers.CheckpointOptions).WithExport(opts.Export).WithIgnoreRootfs(opts.IgnoreRootFS).WithKeep(opts.Keep)
 	options.WithLeaveRunning(opts.LeaveRunning).WithTCPEstablished(opts.TCPEstablished)
 	for _, c := range ctrs {
-		report, err := containers.Checkpoint(ic.ClientCxt, c.ID, options)
+		report, err := containers.Checkpoint(ic.ClientCtx, c.ID, options)
 		if err != nil {
 			reports = append(reports, &entities.CheckpointReport{Id: c.ID, Err: err})
 		}
@@ -318,7 +318,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		ctrs = []entities.ListContainer{}
 	)
 	if opts.All {
-		allCtrs, err := getContainersByContext(ic.ClientCxt, true, false, []string{})
+		allCtrs, err := getContainersByContext(ic.ClientCtx, true, false, []string{})
 		if err != nil {
 			return nil, err
 		}
@@ -330,7 +330,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		}
 
 	} else {
-		ctrs, err = getContainersByContext(ic.ClientCxt, false, false, namesOrIds)
+		ctrs, err = getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
 		if err != nil {
 			return nil, err
 		}
@@ -338,7 +338,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	reports := make([]*entities.RestoreReport, 0, len(ctrs))
 	options := new(containers.RestoreOptions)
 	for _, c := range ctrs {
-		report, err := containers.Restore(ic.ClientCxt, c.ID, options)
+		report, err := containers.Restore(ic.ClientCtx, c.ID, options)
 		if err != nil {
 			reports = append(reports, &entities.RestoreReport{Id: c.ID, Err: err})
 		}
@@ -348,7 +348,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*entities.ContainerCreateReport, error) {
-	response, err := containers.CreateWithSpec(ic.ClientCxt, s, nil)
+	response, err := containers.CreateWithSpec(ic.ClientCtx, s, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +371,7 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, 
 	stderrCh := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		err = containers.Logs(ic.ClientCxt, nameOrIDs[0], options, stdoutCh, stderrCh)
+		err = containers.Logs(ic.ClientCtx, nameOrIDs[0], options, stdoutCh, stderrCh)
 		cancel()
 	}()
 
@@ -392,7 +392,7 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, 
 }
 
 func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string, opts entities.AttachOptions) error {
-	ctrs, err := getContainersByContext(ic.ClientCxt, false, false, []string{nameOrID})
+	ctrs, err := getContainersByContext(ic.ClientCtx, false, false, []string{nameOrID})
 	if err != nil {
 		return err
 	}
@@ -401,7 +401,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 		return errors.Errorf("you can only attach to running containers")
 	}
 	options := new(containers.AttachOptions).WithStream(true).WithDetachKeys(opts.DetachKeys)
-	return containers.Attach(ic.ClientCxt, nameOrID, opts.Stdin, opts.Stdout, opts.Stderr, nil, options)
+	return containers.Attach(ic.ClientCtx, nameOrID, opts.Stdin, opts.Stdout, opts.Stderr, nil, options)
 }
 
 func makeExecConfig(options entities.ExecOptions) *handlers.ExecCreateConfig {
@@ -429,7 +429,7 @@ func makeExecConfig(options entities.ExecOptions) *handlers.ExecCreateConfig {
 func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
 	createConfig := makeExecConfig(options)
 
-	sessionID, err := containers.ExecCreate(ic.ClientCxt, nameOrID, createConfig)
+	sessionID, err := containers.ExecCreate(ic.ClientCtx, nameOrID, createConfig)
 	if err != nil {
 		return 125, err
 	}
@@ -439,11 +439,11 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 		startAndAttachOptions.WithInputStream(*streams.InputStream)
 	}
 	startAndAttachOptions.WithAttachError(streams.AttachError).WithAttachOutput(streams.AttachOutput).WithAttachInput(streams.AttachInput)
-	if err := containers.ExecStartAndAttach(ic.ClientCxt, sessionID, startAndAttachOptions); err != nil {
+	if err := containers.ExecStartAndAttach(ic.ClientCtx, sessionID, startAndAttachOptions); err != nil {
 		return 125, err
 	}
 
-	inspectOut, err := containers.ExecInspect(ic.ClientCxt, sessionID, nil)
+	inspectOut, err := containers.ExecInspect(ic.ClientCtx, sessionID, nil)
 	if err != nil {
 		return 125, err
 	}
@@ -454,12 +454,12 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID string, options entities.ExecOptions) (string, error) {
 	createConfig := makeExecConfig(options)
 
-	sessionID, err := containers.ExecCreate(ic.ClientCxt, nameOrID, createConfig)
+	sessionID, err := containers.ExecCreate(ic.ClientCtx, nameOrID, createConfig)
 	if err != nil {
 		return "", err
 	}
 
-	if err := containers.ExecStart(ic.ClientCxt, sessionID, nil); err != nil {
+	if err := containers.ExecStart(ic.ClientCtx, sessionID, nil); err != nil {
 		return "", err
 	}
 
@@ -474,7 +474,7 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 		options.WithDetachKeys(*dk)
 	}
 	go func() {
-		err := containers.Attach(ic.ClientCxt, name, input, output, errput, attachReady, options)
+		err := containers.Attach(ic.ClientCtx, name, input, output, errput, attachReady, options)
 		attachErr <- err
 	}()
 	// Wait for the attach to actually happen before starting
@@ -485,7 +485,7 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 		if dk := detachKeys; dk != nil {
 			startOptions.WithDetachKeys(*dk)
 		}
-		if err := containers.Start(ic.ClientCxt, name, startOptions); err != nil {
+		if err := containers.Start(ic.ClientCtx, name, startOptions); err != nil {
 			return err
 		}
 	case err := <-attachErr:
@@ -498,7 +498,7 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, err := getContainersByContext(ic.ClientCxt, false, false, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -535,14 +535,14 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				// Defer the removal, so we can return early if needed and
 				// de-spaghetti the code.
 				defer func() {
-					shouldRestart, err := containers.ShouldRestart(ic.ClientCxt, ctr.ID, nil)
+					shouldRestart, err := containers.ShouldRestart(ic.ClientCtx, ctr.ID, nil)
 					if err != nil {
 						logrus.Errorf("Failed to check if %s should restart: %v", ctr.ID, err)
 						return
 					}
 
 					if !shouldRestart {
-						if err := containers.Remove(ic.ClientCxt, ctr.ID, removeOptions); err != nil {
+						if err := containers.Remove(ic.ClientCtx, ctr.ID, removeOptions); err != nil {
 							if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
 								errorhandling.Contains(err, define.ErrCtrRemoved) {
 								logrus.Warnf("Container %s does not exist: %v", ctr.ID, err)
@@ -554,7 +554,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				}()
 			}
 
-			exitCode, err := containers.Wait(ic.ClientCxt, name, nil)
+			exitCode, err := containers.Wait(ic.ClientCtx, name, nil)
 			if err == define.ErrNoSuchCtr {
 				// Check events
 				event, err := ic.GetLastContainerEvent(ctx, name, events.Exited)
@@ -573,11 +573,11 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		// Start the container if it's not running already.
 		if !ctrRunning {
 
-			err = containers.Start(ic.ClientCxt, name, new(containers.StartOptions).WithDetachKeys(options.DetachKeys))
+			err = containers.Start(ic.ClientCtx, name, new(containers.StartOptions).WithDetachKeys(options.DetachKeys))
 			if err != nil {
 				if ctr.AutoRemove {
 					rmOptions := new(containers.RemoveOptions).WithForce(false).WithVolumes(true)
-					if err := containers.Remove(ic.ClientCxt, ctr.ID, rmOptions); err != nil {
+					if err := containers.Remove(ic.ClientCtx, ctr.ID, rmOptions); err != nil {
 						if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
 							errorhandling.Contains(err, define.ErrCtrRemoved) {
 							logrus.Warnf("Container %s does not exist: %v", ctr.ID, err)
@@ -601,11 +601,11 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 func (ic *ContainerEngine) ContainerList(ctx context.Context, opts entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	options := new(containers.ListOptions).WithFilters(opts.Filters).WithAll(opts.All).WithLast(opts.Last)
 	options.WithNamespace(opts.Namespace).WithSize(opts.Size).WithSync(opts.Sync)
-	return containers.List(ic.ClientCxt, options)
+	return containers.List(ic.ClientCtx, options)
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
-	con, err := containers.CreateWithSpec(ic.ClientCxt, opts.Spec, nil)
+	con, err := containers.CreateWithSpec(ic.ClientCtx, opts.Spec, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -622,7 +622,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 	if opts.Detach {
 		// Detach and return early
-		err := containers.Start(ic.ClientCxt, con.ID, nil)
+		err := containers.Start(ic.ClientCtx, con.ID, nil)
 		if err != nil {
 			report.ExitCode = define.ExitCode(err)
 		}
@@ -637,7 +637,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 		report.ExitCode = define.ExitCode(err)
 		if opts.Rm {
-			if rmErr := containers.Remove(ic.ClientCxt, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true)); rmErr != nil {
+			if rmErr := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true)); rmErr != nil {
 				logrus.Debugf("unable to remove container %s after failing to start and attach to it", con.ID)
 			}
 		}
@@ -648,14 +648,14 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		// Defer the removal, so we can return early if needed and
 		// de-spaghetti the code.
 		defer func() {
-			shouldRestart, err := containers.ShouldRestart(ic.ClientCxt, con.ID, nil)
+			shouldRestart, err := containers.ShouldRestart(ic.ClientCtx, con.ID, nil)
 			if err != nil {
 				logrus.Errorf("Failed to check if %s should restart: %v", con.ID, err)
 				return
 			}
 
 			if !shouldRestart {
-				if err := containers.Remove(ic.ClientCxt, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true)); err != nil {
+				if err := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true)); err != nil {
 					if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
 						errorhandling.Contains(err, define.ErrCtrRemoved) {
 						logrus.Warnf("Container %s does not exist: %v", con.ID, err)
@@ -668,7 +668,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 
 	// Wait
-	exitCode, waitErr := containers.Wait(ic.ClientCxt, con.ID, nil)
+	exitCode, waitErr := containers.Wait(ic.ClientCtx, con.ID, nil)
 	if waitErr == nil {
 		report.ExitCode = int(exitCode)
 		return &report, nil
@@ -717,7 +717,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 }
 
 func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	changes, err := containers.Diff(ic.ClientCxt, nameOrID, nil)
+	changes, err := containers.Diff(ic.ClientCtx, nameOrID, nil)
 	return &entities.DiffReport{Changes: changes}, err
 }
 
@@ -726,13 +726,13 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
 	reports := make([]*entities.ContainerInitReport, 0, len(ctrs))
 	for _, ctr := range ctrs {
-		err := containers.ContainerInit(ic.ClientCxt, ctr.ID, nil)
+		err := containers.ContainerInit(ic.ClientCtx, ctr.ID, nil)
 		// When using all, it is NOT considered an error if a container
 		// has already been init'd.
 		if err != nil && options.All && strings.Contains(errors.Cause(err).Error(), define.ErrCtrStateInvalid.Error()) {
@@ -766,7 +766,7 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 	if len(nameOrID) > 0 {
 		namesOrIds = append(namesOrIds, nameOrID)
 	}
-	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, false, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -785,15 +785,15 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 }
 
 func (ic *ContainerEngine) ContainerCopyFromArchive(ctx context.Context, nameOrID string, path string, reader io.Reader) (entities.ContainerCopyFunc, error) {
-	return containers.CopyFromArchive(ic.ClientCxt, nameOrID, path, reader)
+	return containers.CopyFromArchive(ic.ClientCtx, nameOrID, path, reader)
 }
 
 func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (entities.ContainerCopyFunc, error) {
-	return containers.CopyToArchive(ic.ClientCxt, nameOrID, path, writer)
+	return containers.CopyToArchive(ic.ClientCtx, nameOrID, path, writer)
 }
 
 func (ic *ContainerEngine) ContainerStat(ctx context.Context, nameOrID string, path string) (*entities.ContainerStatReport, error) {
-	return containers.Stat(ic.ClientCxt, nameOrID, path)
+	return containers.Stat(ic.ClientCtx, nameOrID, path)
 }
 
 // Shutdown Libpod engine
@@ -804,10 +804,10 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 	if options.Latest {
 		return nil, errors.New("latest is not supported for the remote client")
 	}
-	return containers.Stats(ic.ClientCxt, namesOrIds, new(containers.StatsOptions).WithStream(options.Stream))
+	return containers.Stats(ic.ClientCtx, namesOrIds, new(containers.StatsOptions).WithStream(options.Stream))
 }
 
-// ShouldRestart reports back whether the containre will restart
+// ShouldRestart reports back whether the container will restart
 func (ic *ContainerEngine) ShouldRestart(_ context.Context, id string) (bool, error) {
-	return containers.ShouldRestart(ic.ClientCxt, id, nil)
+	return containers.ShouldRestart(ic.ClientCtx, id, nil)
 }

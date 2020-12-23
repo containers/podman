@@ -16,7 +16,7 @@ import (
 // base64 encoded JSON payload of stating a path in a container.
 const XDockerContainerPathStatHeader = "X-Docker-Container-Path-Stat"
 
-// ENOENT mimics the stdlib's ENONENT and can be used to implement custom logic
+// ENOENT mimics the stdlib's ENOENT and can be used to implement custom logic
 // while preserving the user-visible error message.
 var ENOENT = errors.New("No such file or directory")
 

@@ -115,7 +115,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			if err != nil {
 				return errors.Wrapf(err, "capabilities requested by user or image are not valid: %q", strings.Join(capsRequired, ","))
 			} else {
-				// Verify all capRequiered are in the capList
+				// Verify all capRequired are in the capList
 				for _, cap := range capsRequired {
 					if !util.StringInSlice(cap, caplist) {
 						privCapsRequired = append(privCapsRequired, cap)

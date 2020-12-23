@@ -60,7 +60,7 @@ func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, mtu in
 	return &hostLocalBridge
 }
 
-// NewIPAMHostLocalConf creates a new IPAMHostLocal configfuration
+// NewIPAMHostLocalConf creates a new IPAMHostLocal configuration
 func NewIPAMHostLocalConf(routes []IPAMRoute, ipamRanges [][]IPAMLocalHostRangeConf) (IPAMHostLocalConf, error) {
 	ipamConf := IPAMHostLocalConf{
 		PluginType: "host-local",

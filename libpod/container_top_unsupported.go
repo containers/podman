@@ -14,7 +14,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 // the container.  The output data can be controlled via the `descriptors`
 // argument which expects format descriptors and supports all AIXformat
 // descriptors of ps (1) plus some additional ones to for instance inspect the
-// set of effective capabilities.  Eeach element in the returned string slice
+// set of effective capabilities.  Each element in the returned string slice
 // is a tab-separated string.
 //
 // For more details, please refer to github.com/containers/psgo.

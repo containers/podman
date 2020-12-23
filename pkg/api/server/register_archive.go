@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) registerAchiveHandlers(r *mux.Router) error {
+func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	// swagger:operation PUT /containers/{name}/archive compat putArchive
 	// ---
 	//  summary: Put files into a container

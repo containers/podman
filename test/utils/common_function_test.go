@@ -64,7 +64,7 @@ var _ = Describe("Common functions test", func() {
 				Expect(host.Version).To(Equal(strings.Trim(ver, "\"")))
 			}
 		},
-		Entry("Configure file is not exist.", "/tmp/notexist", "", "", true),
+		Entry("Configure file is not exist.", "/tmp/nonexistent", "", "", true),
 		Entry("Item value with and without \"", "/tmp/os-release.test", "fedora", "\"28\"", false),
 		Entry("Item empty with and without \"", "/tmp/os-release.test", "", "\"\"", false),
 	)
@@ -142,7 +142,7 @@ var _ = Describe("Common functions test", func() {
 			Expect(Containerized()).To(Equal(expect))
 		},
 		Entry("Set container in env", "", true, false, true),
-		Entry("Can not read from file", "/tmp/notexist", false, false, false),
+		Entry("Can not read from file", "/tmp/nonexistent", false, false, false),
 		Entry("Docker in cgroup file", "/tmp/cgroup.test", false, true, true),
 		Entry("Docker not in cgroup file", "/tmp/cgroup.test", false, true, false),
 	)

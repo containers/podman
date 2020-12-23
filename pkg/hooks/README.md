@@ -9,7 +9,7 @@ This can cause some performance issues.
 Also a lot of hooks just check if certain configuration is set and then exit early, without doing anything.
 For example the [oci-systemd-hook][] only executes if the command is `init` or `systemd`, otherwise it just exits.
 This means if we automatically enabled all hooks, every container would have to execute `oci-systemd-hook`, even if they don't run systemd inside of the container.
-Performance would also suffer if we exectuted each hook at each stage ([pre-start][], [post-start][], and [post-stop][]).
+Performance would also suffer if we executed each hook at each stage ([pre-start][], [post-start][], and [post-stop][]).
 
 The hooks configuration is documented in [`oci-hooks.5`](docs/oci-hooks.5.md).
 

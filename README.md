@@ -38,7 +38,7 @@ Podman presently only supports running containers on Linux. However, we are buil
 
 ## Communications
 
-If you think you've identified a security issue in the project, please *DO NOT* report the issue publicly via the Github issue tracker, mailing list, or IRC.
+If you think you've identified a security issue in the project, please *DO NOT* report the issue publicly via the GitHub issue tracker, mailing list, or IRC.
 Instead, send an email with as many details as possible to `security@lists.podman.io`. This is a private mailing list for the core maintainers.
 
 For general questions and discussion, please use the

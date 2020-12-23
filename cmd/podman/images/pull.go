@@ -139,7 +139,7 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	}
 	if platform != "" {
 		if pullOptions.OverrideArch != "" || pullOptions.OverrideOS != "" {
-			return errors.Errorf("--platform option can not be specified with --overide-arch or --override-os")
+			return errors.Errorf("--platform option can not be specified with --override-arch or --override-os")
 		}
 		split := strings.SplitN(platform, "/", 2)
 		pullOptions.OverrideOS = split[0]

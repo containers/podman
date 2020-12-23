@@ -16,7 +16,7 @@ import (
 )
 
 var unknownKindYaml = `
-apiVerson: v1
+apiVersion: v1
 kind: UnknownKind
 metadata:
   labels:
@@ -793,11 +793,11 @@ var _ = Describe("Podman play kube", func() {
 
 	})
 
-	It("podman play kube fail with nonexist authfile", func() {
+	It("podman play kube fail with nonexistent authfile", func() {
 		err := generateKubeYaml("pod", getPod(), kubeYaml)
 		Expect(err).To(BeNil())
 
-		kube := podmanTest.Podman([]string{"play", "kube", "--authfile", "/tmp/nonexist", kubeYaml})
+		kube := podmanTest.Podman([]string{"play", "kube", "--authfile", "/tmp/nonexistent", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Not(Equal(0)))
 
@@ -1279,7 +1279,7 @@ spec:
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[0]), "--format", "'{{ .Config.Cmd }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		// yaml's command shuold override the image's Entrypoint
+		// yaml's command should override the image's Entrypoint
 		correctCmd := "[" + strings.Join(defaultCtrCmd, " ") + " " + strings.Join(defaultCtrArg, " ")
 		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
 	})
@@ -1324,7 +1324,7 @@ spec:
 		Expect(inspect.OutputToString()).To(Equal("5000/tcp -> 127.0.0.100:5000"))
 	})
 
-	It("podman play kube test with non-existent empty HostPath type volume", func() {
+	It("podman play kube test with nonexistent empty HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
 		pod := getPod(withVolume(getHostPathVolume(`""`, hostPathLocation)))
@@ -1351,7 +1351,7 @@ spec:
 		Expect(kube.ExitCode()).To(Equal(0))
 	})
 
-	It("podman play kube test with non-existent File HostPath type volume", func() {
+	It("podman play kube test with nonexistent File HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
 		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)))

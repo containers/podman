@@ -140,7 +140,7 @@ var _ = Describe("Podman stats", func() {
 
 	// Regression test for #8265
 	It("podman stats with custom memory limits", func() {
-		// Run thre containers. One with a memory limit.  Make sure
+		// Run three containers. One with a memory limit.  Make sure
 		// that the limits are different and the limited one has a
 		// lower limit.
 		ctrNoLimit0 := "no-limit-0"

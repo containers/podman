@@ -28,7 +28,7 @@ random port is assigned by Podman in the specification.
 Create Kubernetes Pod YAML for a container called `some-mariadb` .
 ```
 $ sudo podman generate kube some-mariadb
-# Generation of Kubenetes YAML is still under development!
+# Generation of Kubernetes YAML is still under development!
 #
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.

@@ -642,7 +642,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 
 	storageOptFlagName := "storage-opt"
 	createFlags.StringSliceVar(
-		&cf.StoreageOpt,
+		&cf.StorageOpt,
 		storageOptFlagName, []string{},
 		"Storage driver options per container",
 	)
@@ -671,7 +671,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 		sysctlFlagName, []string{},
 		"Sysctl options",
 	)
-	//TODO: Add function for systctl completion.
+	//TODO: Add function for sysctl completion.
 	_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, completion.AutocompleteNone)
 
 	systemdFlagName := "systemd"
@@ -696,13 +696,13 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 		"Allocate a pseudo-TTY for container",
 	)
 
-	timezonezFlagName := "tz"
+	timezoneFlagName := "tz"
 	createFlags.StringVar(
 		&cf.Timezone,
-		timezonezFlagName, containerConfig.TZ(),
+		timezoneFlagName, containerConfig.TZ(),
 		"Set timezone in container",
 	)
-	_ = cmd.RegisterFlagCompletionFunc(timezonezFlagName, completion.AutocompleteNone) //TODO: add timezone completion
+	_ = cmd.RegisterFlagCompletionFunc(timezoneFlagName, completion.AutocompleteNone) //TODO: add timezone completion
 
 	umaskFlagName := "umask"
 	createFlags.StringVar(

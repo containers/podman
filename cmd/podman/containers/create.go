@@ -171,7 +171,7 @@ func createInit(c *cobra.Command) error {
 	}
 	cliVals.UserNS = c.Flag("userns").Value.String()
 	// if user did not modify --userns flag and did turn on
-	// uid/gid mappsings, set userns flag to "private"
+	// uid/gid mappings, set userns flag to "private"
 	if !c.Flag("userns").Changed && cliVals.UserNS == "host" {
 		if len(cliVals.UIDMap) > 0 ||
 			len(cliVals.GIDMap) > 0 ||
@@ -239,7 +239,7 @@ func pullImage(imageName string) (string, error) {
 
 	if cliVals.Platform != "" {
 		if cliVals.OverrideArch != "" || cliVals.OverrideOS != "" {
-			return "", errors.Errorf("--platform option can not be specified with --overide-arch or --override-os")
+			return "", errors.Errorf("--platform option can not be specified with --override-arch or --override-os")
 		}
 		split := strings.SplitN(cliVals.Platform, "/", 2)
 		cliVals.OverrideOS = split[0]

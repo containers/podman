@@ -60,7 +60,7 @@ var _ = Describe("Podman cp", func() {
 
 		// Copy TO the container.
 
-		// Cannot copy to a non-existent path (note the trailing "/").
+		// Cannot copy to a nonexistent path (note the trailing "/").
 		session = podmanTest.Podman([]string{"cp", srcFile.Name(), name + ":foo/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())

@@ -55,7 +55,7 @@ var (
 func cpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&cpOpts.Extract, "extract", false, "Deprecated...")
-	flags.BoolVar(&cpOpts.Pause, "pause", true, "Deorecated")
+	flags.BoolVar(&cpOpts.Pause, "pause", true, "Deprecated")
 	_ = flags.MarkHidden("extract")
 	_ = flags.MarkHidden("pause")
 }

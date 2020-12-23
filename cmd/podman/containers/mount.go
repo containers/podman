@@ -39,7 +39,7 @@ var (
 		ValidArgsFunction: common.AutocompleteContainers,
 	}
 
-	containerMountCommmand = &cobra.Command{
+	containerMountCommand = &cobra.Command{
 		Use:               mountCommand.Use,
 		Short:             mountCommand.Short,
 		Long:              mountCommand.Long,
@@ -76,11 +76,11 @@ func init() {
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode},
-		Command: containerMountCommmand,
+		Command: containerMountCommand,
 		Parent:  containerCmd,
 	})
-	mountFlags(containerMountCommmand)
-	validate.AddLatestFlag(containerMountCommmand, &mountOpts.Latest)
+	mountFlags(containerMountCommand)
+	validate.AddLatestFlag(containerMountCommand, &mountOpts.Latest)
 }
 
 func mount(_ *cobra.Command, args []string) error {

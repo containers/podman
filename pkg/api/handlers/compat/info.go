@@ -48,7 +48,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 	stateInfo := getContainersState(runtime)
 	sysInfo := sysinfo.New(true)
 
-	// FIXME: Need to expose if runtime supports Checkpoint'ing
+	// FIXME: Need to expose if runtime supports Checkpointing
 	// liveRestoreEnabled := criu.CheckForCriu() && configInfo.RuntimeSupportsCheckpoint()
 
 	info := &handlers.Info{Info: docker.Info{

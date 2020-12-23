@@ -70,7 +70,7 @@ var _ = Describe("Podman images", func() {
 		// Inspect by long name
 		_, err = images.GetImage(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
-		// TODO it looks like the images API alwaays returns size regardless
+		// TODO it looks like the images API always returns size regardless
 		// of bool or not. What should we do ?
 		// Expect(data.Size).To(BeZero())
 

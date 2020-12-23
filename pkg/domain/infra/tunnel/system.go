@@ -11,7 +11,7 @@ import (
 )
 
 func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
-	return system.Info(ic.ClientCxt, nil)
+	return system.Info(ic.ClientCtx, nil)
 }
 
 func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {
@@ -21,11 +21,11 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 // SystemPrune prunes unused data from the system.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, opts entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	options := new(system.PruneOptions).WithAll(opts.All).WithVolumes(opts.Volume).WithFilters(opts.Filters)
-	return system.Prune(ic.ClientCxt, options)
+	return system.Prune(ic.ClientCtx, options)
 }
 
 func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
-	return system.DiskUsage(ic.ClientCxt, nil)
+	return system.DiskUsage(ic.ClientCtx, nil)
 }
 
 func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
@@ -33,5 +33,5 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
 }
 
 func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
-	return system.Version(ic.ClientCxt, nil)
+	return system.Version(ic.ClientCtx, nil)
 }

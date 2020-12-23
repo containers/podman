@@ -319,7 +319,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 
 	// BIND MOUNTS
-	configSpec.Mounts = SupercedeUserMounts(mounts, configSpec.Mounts)
+	configSpec.Mounts = SupersedeUserMounts(mounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
 	if err := InitFSMounts(configSpec.Mounts); err != nil {
 		return nil, err

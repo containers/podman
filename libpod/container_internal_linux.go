@@ -1659,7 +1659,7 @@ func (c *Container) getHosts() string {
 
 // generateGroupEntry generates an entry or entries into /etc/group as
 // required by container configuration.
-// Generatlly speaking, we will make an entry under two circumstances:
+// Generally speaking, we will make an entry under two circumstances:
 // 1. The container is started as a specific user:group, and that group is both
 //    numeric, and does not already exist in /etc/group.
 // 2. It is requested that Libpod add the group that launched Podman to
@@ -1937,7 +1937,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 		needGroup = false
 	}
 
-	// Next, check if we already made the files. If we didn, don't need to
+	// Next, check if we already made the files. If we didn't, don't need to
 	// do anything more.
 	if needPasswd {
 		passwdPath := filepath.Join(c.config.StaticDir, "passwd")

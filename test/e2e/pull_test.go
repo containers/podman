@@ -393,8 +393,8 @@ var _ = Describe("Podman pull", func() {
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 4))
 	})
 
-	It("podman pull from docker with nonexist --authfile", func() {
-		session := podmanTest.Podman([]string{"pull", "--authfile", "/tmp/nonexist", ALPINE})
+	It("podman pull from docker with nonexistent --authfile", func() {
+		session := podmanTest.Podman([]string{"pull", "--authfile", "/tmp/nonexistent", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
@@ -506,7 +506,7 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.Podman([]string{"pull", "--platform=linux/arm64", "--override-os", "windows", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
-		expectedError = "--platform option can not be specified with --overide-arch or --override-os"
+		expectedError = "--platform option can not be specified with --override-arch or --override-os"
 		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 
 		session = podmanTest.Podman([]string{"pull", "-q", "--platform=linux/arm64", ALPINE})

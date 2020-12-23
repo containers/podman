@@ -432,7 +432,7 @@ func IsKernelNewerThan(version string) (bool, error) {
 
 }
 
-// IsCommandAvaible check if command exist
+// IsCommandAvailable check if command exist
 func IsCommandAvailable(command string) bool {
 	check := exec.Command("bash", "-c", strings.Join([]string{"command -v", command}, " "))
 	err := check.Run()

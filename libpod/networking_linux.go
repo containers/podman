@@ -1155,7 +1155,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	return c.save()
 }
 
-// ConnnectNetwork connects a container to a given network
+// ConnectNetwork connects a container to a given network
 func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) error {
 	networks, err := c.networksByNameIndex()
 	if err != nil {

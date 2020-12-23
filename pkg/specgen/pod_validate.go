@@ -48,7 +48,7 @@ func (p *PodSpecGenerator) Validate() error {
 	}
 	if p.NoInfra {
 		if p.NetNS.NSMode != Default && p.NetNS.NSMode != "" {
-			return errors.New("NoInfra and network modes cannot be used toegther")
+			return errors.New("NoInfra and network modes cannot be used together")
 		}
 		if p.StaticIP != nil {
 			return exclusivePodOptions("NoInfra", "StaticIP")

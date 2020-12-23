@@ -51,7 +51,7 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
 
 	typeFlagName := "type"
-	flags.StringVarP(&opts.Type, typeFlagName, "t", AllType, fmt.Sprintf("Specify inspect-oject type (%q, %q or %q)", ImageType, ContainerType, AllType))
+	flags.StringVarP(&opts.Type, typeFlagName, "t", AllType, fmt.Sprintf("Specify inspect-object type (%q, %q or %q)", ImageType, ContainerType, AllType))
 	_ = cmd.RegisterFlagCompletionFunc(typeFlagName, common.AutocompleteInspectType)
 
 	validate.AddLatestFlag(cmd, &opts.Latest)

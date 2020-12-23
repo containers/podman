@@ -88,7 +88,7 @@ func (c *Container) validate() error {
 		return errors.Wrapf(define.ErrInvalidArg, "cannot add to /etc/hosts if using image's /etc/hosts")
 	}
 
-	// Check named volume, overlay volume and image volume destination conflits
+	// Check named volume, overlay volume and image volume destination conflist
 	destinations := make(map[string]bool)
 	for _, vol := range c.config.NamedVolumes {
 		// Don't check if they already exist.

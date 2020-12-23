@@ -143,7 +143,7 @@ class TestContainers(unittest.TestCase):
         top = self.client.containers.get(TestContainers.topContainerId)
         top.stop()
 
-        # Pause exited container should trow error
+        # Pause exited container should throw error
         with self.assertRaises(errors.APIError) as error:
             top.pause()
         self.assertEqual(error.exception.response.status_code, 500)

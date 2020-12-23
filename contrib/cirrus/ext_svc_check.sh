@@ -6,7 +6,7 @@ set -eo pipefail
 # by connecting to a set of essential external servers and failing
 # if any cannot be reached.  It's intended for use early on in the
 # podman CI system, to help prevent wasting time on tests that can't
-# succeede due to some outage or another.
+# succeed due to some outage or another.
 
 # shellcheck source=./contrib/cirrus/lib.sh
 source $(dirname $0)/lib.sh

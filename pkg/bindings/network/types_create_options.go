@@ -193,9 +193,9 @@ func (o *CreateOptions) WithIPRange(value net.IPNet) *CreateOptions {
 
 // GetIPRange
 func (o *CreateOptions) GetIPRange() net.IPNet {
-	var iPRange net.IPNet
+	var ipRange net.IPNet
 	if o.IPRange == nil {
-		return iPRange
+		return ipRange
 	}
 	return *o.IPRange
 }

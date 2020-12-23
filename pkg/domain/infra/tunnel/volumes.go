@@ -9,7 +9,7 @@ import (
 )
 
 func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IDOrNameResponse, error) {
-	response, err := volumes.Create(ic.ClientCxt, opts, nil)
+	response, err := volumes.Create(ic.ClientCtx, opts, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 
 func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, opts entities.VolumeRmOptions) ([]*entities.VolumeRmReport, error) {
 	if opts.All {
-		vols, err := volumes.List(ic.ClientCxt, nil)
+		vols, err := volumes.List(ic.ClientCtx, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -30,7 +30,7 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 	for _, id := range namesOrIds {
 		options := new(volumes.RemoveOptions).WithForce(opts.Force)
 		reports = append(reports, &entities.VolumeRmReport{
-			Err: volumes.Remove(ic.ClientCxt, id, options),
+			Err: volumes.Remove(ic.ClientCtx, id, options),
 			Id:  id,
 		})
 	}
@@ -43,7 +43,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 		errs    = []error{}
 	)
 	if opts.All {
-		vols, err := volumes.List(ic.ClientCxt, nil)
+		vols, err := volumes.List(ic.ClientCtx, nil)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -52,7 +52,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 		}
 	}
 	for _, id := range namesOrIds {
-		data, err := volumes.Inspect(ic.ClientCxt, id, nil)
+		data, err := volumes.Inspect(ic.ClientCtx, id, nil)
 		if err != nil {
 			errModel, ok := err.(entities.ErrorModel)
 			if !ok {
@@ -71,10 +71,10 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 
 func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.VolumePruneOptions) ([]*entities.VolumePruneReport, error) {
 	options := new(volumes.PruneOptions).WithFilters(opts.Filters)
-	return volumes.Prune(ic.ClientCxt, options)
+	return volumes.Prune(ic.ClientCtx, options)
 }
 
 func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeListOptions) ([]*entities.VolumeListReport, error) {
 	options := new(volumes.ListOptions).WithFilters(opts.Filter)
-	return volumes.List(ic.ClientCxt, options)
+	return volumes.List(ic.ClientCtx, options)
 }

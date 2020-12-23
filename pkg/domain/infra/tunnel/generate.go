@@ -13,10 +13,10 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	if to := opts.StopTimeout; to != nil {
 		options.WithStopTimeout(*opts.StopTimeout)
 	}
-	return generate.Systemd(ic.ClientCxt, nameOrID, options)
+	return generate.Systemd(ic.ClientCtx, nameOrID, options)
 }
 
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, opts entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
 	options := new(generate.KubeOptions).WithService(opts.Service)
-	return generate.Kube(ic.ClientCxt, nameOrIDs, options)
+	return generate.Kube(ic.ClientCtx, nameOrIDs, options)
 }

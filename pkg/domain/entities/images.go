@@ -222,7 +222,7 @@ type ImageSearchOptions struct {
 type ImageSearchReport struct {
 	// Index is the image index (e.g., "docker.io" or "quay.io")
 	Index string
-	// Name is the canoncical name of the image (e.g., "docker.io/library/alpine").
+	// Name is the canonical name of the image (e.g., "docker.io/library/alpine").
 	Name string
 	// Description of the image.
 	Description string
