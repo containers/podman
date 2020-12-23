@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/cgroups"
@@ -17,20 +18,22 @@ import (
 var (
 	unpauseDescription = `Unpauses one or more previously paused containers.  The container name or ID can be used.`
 	unpauseCommand     = &cobra.Command{
-		Use:   "unpause [options] CONTAINER [CONTAINER...]",
-		Short: "Unpause the processes in one or more containers",
-		Long:  unpauseDescription,
-		RunE:  unpause,
+		Use:               "unpause [options] CONTAINER [CONTAINER...]",
+		Short:             "Unpause the processes in one or more containers",
+		Long:              unpauseDescription,
+		RunE:              unpause,
+		ValidArgsFunction: common.AutocompleteContainersPaused,
 		Example: `podman unpause ctrID
   podman unpause --all`,
 	}
 	unPauseOptions = entities.PauseUnPauseOptions{}
 
 	containerUnpauseCommand = &cobra.Command{
-		Use:   unpauseCommand.Use,
-		Short: unpauseCommand.Short,
-		Long:  unpauseCommand.Long,
-		RunE:  unpauseCommand.RunE,
+		Use:               unpauseCommand.Use,
+		Short:             unpauseCommand.Short,
+		Long:              unpauseCommand.Long,
+		RunE:              unpauseCommand.RunE,
+		ValidArgsFunction: unpauseCommand.ValidArgsFunction,
 		Example: `podman container unpause ctrID
   podman container unpause --all`,
 	}

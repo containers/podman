@@ -135,10 +135,13 @@ echo "\$1"
 printenv | grep MYENV | sort | sed -e 's/^MYENV.=//'
 EOF
 
-    # For overriding with --env-file
-    cat >$PODMAN_TMPDIR/env-file <<EOF
+    # For overriding with --env-file; using multiple files confirms that
+    # the --env-file option is cumulative, not last-one-wins.
+    cat >$PODMAN_TMPDIR/env-file1 <<EOF
 MYENV3=$s_env3
 http_proxy=http-proxy-in-env-file
+EOF
+    cat >$PODMAN_TMPDIR/env-file2 <<EOF
 https_proxy=https-proxy-in-env-file
 EOF
 
@@ -185,7 +188,8 @@ EOF
     export MYENV2="$s_env2"
     export MYENV3="env-file-should-override-env-host!"
     run_podman run --rm \
-               --env-file=$PODMAN_TMPDIR/env-file \
+               --env-file=$PODMAN_TMPDIR/env-file1 \
+               --env-file=$PODMAN_TMPDIR/env-file2 \
                ${ENVHOST} \
                -e MYENV4="$s_env4" \
                build_test
@@ -205,7 +209,9 @@ EOF
 
     # Proxies - environment should override container, but not env-file
     http_proxy=http-proxy-from-env  ftp_proxy=ftp-proxy-from-env \
-              run_podman run --rm --env-file=$PODMAN_TMPDIR/env-file \
+              run_podman run --rm \
+              --env-file=$PODMAN_TMPDIR/env-file1 \
+              --env-file=$PODMAN_TMPDIR/env-file2 \
               build_test \
               printenv http_proxy https_proxy ftp_proxy
     is "${lines[0]}" "http-proxy-in-env-file"  "env-file overrides env"
@@ -220,6 +226,12 @@ EOF
     # test that workdir is set for command-line commands also
     run_podman run --rm build_test pwd
     is "$output" "$workdir" "pwd command in container"
+
+    # Determine buildah version, so we can confirm it gets into Labels
+    # Multiple --format options confirm command-line override (last one wins)
+    run_podman info --format '{{.Ignore}}' --format '{{ .Host.BuildahVersion }}'
+    is "$output" "[1-9][0-9.-]\+" ".Host.BuildahVersion is reasonable"
+    buildah_version=$output
 
     # Confirm that 'podman inspect' shows the expected values
     # FIXME: can we rely on .Env[0] being PATH, and the rest being in order??
@@ -239,6 +251,7 @@ Cmd[0]             | /bin/mydefaultcmd
 Cmd[1]             | $s_echo
 WorkingDir         | $workdir
 Labels.$label_name | $label_value
+Labels.\"io.buildah.version\" | $buildah_version
 "
 
     parse_table "$tests" | while read field expect; do
@@ -308,6 +321,122 @@ EOF
 
     run_podman run --rm build_test pwd
     is "$output" "$workdir" "pwd command in container"
+
+    run_podman rmi -f build_test
+}
+
+# #8092 - podman build should not gobble stdin (Fixes: #8066)
+@test "podman build - does not gobble stdin that does not belong to it" {
+    random1=random1-$(random_string 12)
+    random2=random2-$(random_string 15)
+    random3=random3-$(random_string 12)
+
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    cat >$tmpdir/Containerfile <<EOF
+FROM $IMAGE
+RUN echo x${random2}y
+EOF
+
+    # This is a little rococo, bear with me please. #8092 fixed a bug
+    # in which 'podman build' would slurp up any input in the pipeline.
+    # Not a problem in a contrived example such as the one below, but
+    # definitely a problem when running commands in a pipeline to bash:
+    # all commands after 'podman build' would silently be ignored.
+    # In the test below, prior to #8092, the 'sed' would not get
+    # any input, and we would never see $random3 in the output.
+    # And, we use 'sed' to massage $random3 juuuuust on the remote
+    # chance that podman itself could pass stdin through.
+    results=$(echo $random3 | (
+                  echo $random1
+                  run_podman build -t build_test $tmpdir
+                  sed -e 's/^/a/' -e 's/$/z/'
+              ))
+
+    # First simple test: confirm that we see the piped-in string, as
+    # massaged by sed. This fails in 287edd4e2, the commit before #8092.
+    # We do this before the thorough test (below) because, should it
+    # fail, the diagnostic is much clearer and easier to understand.
+    is "$results" ".*a${random3}z" "stdin remains after podman-build"
+
+    # More thorough test: verify all the required strings in order.
+    # This is unlikely to fail, but it costs us nothing and could
+    # catch a regression somewhere else.
+    # FIXME: podman-remote output differs from local: #8342 (spurious ^M)
+    # FIXME: podman-remote output differs from local: #8343 (extra SHA output)
+    remote_extra=""
+    if is_remote; then remote_extra=".*";fi
+    expect="${random1}
+.*
+STEP 1: FROM $IMAGE
+STEP 2: RUN echo x${random2}y
+x${random2}y${remote_extra}
+STEP 3: COMMIT build_test${remote_extra}
+--> [0-9a-f]\{11\}
+[0-9a-f]\{64\}
+a${random3}z"
+
+    is "$results" "$expect" "Full output from 'podman build' pipeline"
+
+    run_podman rmi -f build_test
+}
+
+@test "podman build --layers test" {
+    rand_content=$(random_string 50)
+    tmpdir=$PODMAN_TMPDIR/build-test
+    run mkdir -p $tmpdir
+    containerfile=$tmpdir/Containerfile
+    cat >$containerfile <<EOF
+FROM $IMAGE
+RUN echo $rand_content
+EOF
+
+    # Build twice to make sure second time uses cache
+    run_podman build -t build_test $tmpdir
+    if [[ "$output" =~ "Using cache" ]]; then
+        is "$output" "[no instance of 'Using cache']" "no cache used"
+    fi
+
+    run_podman build -t build_test $tmpdir
+    is "$output" ".*cache" "used cache"
+
+    run_podman build -t build_test --layers=true $tmpdir
+    is "$output" ".*cache" "used cache"
+
+    run_podman build -t build_test --layers=false $tmpdir
+    if [[ "$output" =~ "Using cache" ]]; then
+        is "$output" "[no instance of 'Using cache']" "no cache used"
+    fi
+
+    BUILDAH_LAYERS=false run_podman build -t build_test $tmpdir
+    if [[ "$output" =~ "Using cache" ]]; then
+        is "$output" "[no instance of 'Using cache']" "no cache used"
+    fi
+
+    BUILDAH_LAYERS=false run_podman build -t build_test --layers=1 $tmpdir
+    is "$output" ".*cache" "used cache"
+
+    BUILDAH_LAYERS=1 run_podman build -t build_test --layers=false $tmpdir
+    if [[ "$output" =~ "Using cache" ]]; then
+        is "$output" "[no instance of 'Using cache']" "no cache used"
+    fi
+
+    run_podman rmi -a --force
+}
+
+@test "podman build --logfile test" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    tmpbuilddir=$tmpdir/build
+    mkdir -p $tmpbuilddir
+    dockerfile=$tmpbuilddir/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+EOF
+
+    run_podman build -t build_test --format=docker --logfile=$tmpdir/logfile $tmpbuilddir
+    run cat $tmpdir/logfile
+    is "$output" ".*STEP 2: COMMIT" "COMMIT seen in log"
 
     run_podman rmi -f build_test
 }

@@ -5,7 +5,9 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/registries"
@@ -20,11 +22,12 @@ type loginOptionsWrapper struct {
 var (
 	loginOptions = loginOptionsWrapper{}
 	loginCommand = &cobra.Command{
-		Use:   "login [options] [REGISTRY]",
-		Short: "Login to a container registry",
-		Long:  "Login to a container registry on a specified server.",
-		RunE:  login,
-		Args:  cobra.MaximumNArgs(1),
+		Use:               "login [options] [REGISTRY]",
+		Short:             "Login to a container registry",
+		Long:              "Login to a container registry on a specified server.",
+		RunE:              login,
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: common.AutocompleteRegistries,
 		Example: `podman login quay.io
   podman login --username ... --password ... quay.io
   podman login --authfile dir/auth.json quay.io`,
@@ -43,6 +46,9 @@ func init() {
 
 	// Flags from the auth package.
 	flags.AddFlagSet(auth.GetLoginFlags(&loginOptions.LoginOptions))
+
+	// Add flag completion
+	completion.CompleteCommandFlags(loginCommand, auth.GetLoginFlagsCompletions())
 
 	// Podman flags.
 	flags.BoolVarP(&loginOptions.tlsVerify, "tls-verify", "", false, "Require HTTPS and verify certificates when contacting registries")

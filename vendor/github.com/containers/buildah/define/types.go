@@ -1,6 +1,8 @@
 package define
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // PullPolicy takes the value PullIfMissing, PullAlways, PullIfNewer, or PullNever.
 type PullPolicy int
@@ -38,4 +40,11 @@ func (p PullPolicy) String() string {
 		return "PullNever"
 	}
 	return fmt.Sprintf("unrecognized policy %d", p)
+}
+
+var PolicyMap = map[string]PullPolicy{
+	"missing": PullIfMissing,
+	"always":  PullAlways,
+	"never":   PullNever,
+	"ifnewer": PullIfNewer,
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -11,26 +12,29 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	startDescription = `Starts one or more containers.  The container name or ID can be used.`
 	startCommand     = &cobra.Command{
-		Use:   "start [options] CONTAINER [CONTAINER...]",
-		Short: "Start one or more containers",
-		Long:  startDescription,
-		RunE:  start,
+		Use:               "start [options] CONTAINER [CONTAINER...]",
+		Short:             "Start one or more containers",
+		Long:              startDescription,
+		RunE:              start,
+		Args:              validateStart,
+		ValidArgsFunction: common.AutocompleteContainersStartable,
 		Example: `podman start --latest
   podman start 860a4b231279 5421ab43b45
   podman start --interactive --attach imageID`,
 	}
 
 	containerStartCommand = &cobra.Command{
-		Use:   startCommand.Use,
-		Short: startCommand.Short,
-		Long:  startCommand.Long,
-		RunE:  startCommand.RunE,
+		Use:               startCommand.Use,
+		Short:             startCommand.Short,
+		Long:              startCommand.Long,
+		RunE:              startCommand.RunE,
+		Args:              startCommand.Args,
+		ValidArgsFunction: startCommand.ValidArgsFunction,
 		Example: `podman container start --latest
   podman container start 860a4b231279 5421ab43b45
   podman container start --interactive --attach imageID`,
@@ -41,9 +45,15 @@ var (
 	startOptions entities.ContainerStartOptions
 )
 
-func startFlags(flags *pflag.FlagSet) {
+func startFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&startOptions.Attach, "attach", "a", false, "Attach container's STDOUT and STDERR")
-	flags.StringVar(&startOptions.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+
+	detachKeysFlagName := "detach-keys"
+	flags.StringVar(&startOptions.DetachKeys, detachKeysFlagName, containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+	_ = cmd.RegisterFlagCompletionFunc(detachKeysFlagName, common.AutocompleteDetachKeys)
+
 	flags.BoolVarP(&startOptions.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVar(&startOptions.SigProxy, "sig-proxy", false, "Proxy received signals to the process (default true if attaching, false otherwise)")
 
@@ -56,7 +66,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: startCommand,
 	})
-	startFlags(startCommand.Flags())
+	startFlags(startCommand)
 	validate.AddLatestFlag(startCommand, &startOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -64,13 +74,11 @@ func init() {
 		Command: containerStartCommand,
 		Parent:  containerCmd,
 	})
-	startFlags(containerStartCommand.Flags())
+	startFlags(containerStartCommand)
 	validate.AddLatestFlag(containerStartCommand, &startOptions.Latest)
-
 }
 
-func start(cmd *cobra.Command, args []string) error {
-	var errs utils.OutputErrors
+func validateStart(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 && !startOptions.Latest {
 		return errors.New("start requires at least one argument")
 	}
@@ -80,7 +88,11 @@ func start(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 && startOptions.Attach {
 		return errors.Errorf("you cannot start and attach multiple containers at once")
 	}
+	return nil
+}
 
+func start(cmd *cobra.Command, args []string) error {
+	var errs utils.OutputErrors
 	sigProxy := startOptions.SigProxy || startOptions.Attach
 	if cmd.Flag("sig-proxy").Changed {
 		sigProxy = startOptions.SigProxy

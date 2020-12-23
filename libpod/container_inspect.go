@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/driver"
 	"github.com/containers/podman/v2/pkg/util"
+	units "github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/runtime-tools/validate"
@@ -124,8 +125,6 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		HostnamePath:    hostnamePath,
 		HostsPath:       hostsPath,
 		StaticDir:       config.StaticDir,
-		LogPath:         config.LogPath,
-		LogTag:          config.LogTag,
 		OCIRuntime:      config.OCIRuntime,
 		ConmonPidFile:   config.ConmonPidFile,
 		Name:            config.Name,
@@ -354,6 +353,10 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 
 	logConfig := new(define.InspectLogConfig)
 	logConfig.Type = c.config.LogDriver
+	logConfig.Path = c.config.LogPath
+	logConfig.Size = units.HumanSize(float64(c.config.LogSize))
+	logConfig.Tag = c.config.LogTag
+
 	hostConfig.LogConfig = logConfig
 
 	restartPolicy := new(define.InspectRestartPolicy)
@@ -488,7 +491,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 					// Weight? For now, ignore anything
 					// without Weight set.
 					if dev.Weight == nil {
-						logrus.Warnf("Ignoring weight device %s as it lacks a weight", key)
+						logrus.Infof("Ignoring weight device %s as it lacks a weight", key)
 						continue
 					}
 					if deviceNodes == nil {
@@ -500,7 +503,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 					}
 					path, ok := deviceNodes[key]
 					if !ok {
-						logrus.Warnf("Could not locate weight device %s in system devices", key)
+						logrus.Infof("Could not locate weight device %s in system devices", key)
 						continue
 					}
 					weightDev := define.InspectBlkioWeightDevice{}
@@ -522,7 +525,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 						}
 						path, ok := deviceNodes[key]
 						if !ok {
-							logrus.Warnf("Could not locate throttle device %s in system devices", key)
+							logrus.Infof("Could not locate throttle device %s in system devices", key)
 							continue
 						}
 						throttleDev := define.InspectBlkioThrottleDevice{}

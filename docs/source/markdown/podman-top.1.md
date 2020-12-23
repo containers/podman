@@ -9,15 +9,15 @@ podman\-top - Display the running processes of a container
 **podman container top** [*options*] *container* [*format-descriptors*]
 
 ## DESCRIPTION
-Display the running processes of the container. The *format-descriptors* are ps (1) compatible AIX format descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities of a given process. The descriptors can either be passed as separated arguments or as a single comma-separated argument. Note that you can also specify options and or flags of ps(1); in this case, Podman will fallback to executing ps with the specified arguments and flags in the container.
+Display the running processes of the container. The *format-descriptors* are ps (1) compatible AIX format descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities of a given process. The descriptors can either be passed as separated arguments or as a single comma-separated argument. Note that you can also specify options and or flags of ps(1); in this case, Podman will fallback to executing ps with the specified arguments and flags in the container.  Please use the "h*" descriptors if you want to extract host-related information.  For instance, `podman top $name hpid huser` to display the PID and user of the processes in the host context.
 
 ## OPTIONS
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 
-**--latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.

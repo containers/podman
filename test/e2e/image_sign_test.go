@@ -1,8 +1,7 @@
-// +build !remote
-
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +20,7 @@ var _ = Describe("Podman image sign", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRemote("podman-remote image sign is not supported")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -58,5 +58,20 @@ var _ = Describe("Podman image sign", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		_, err = os.Stat(filepath.Join(sigDir, "library"))
 		Expect(err).To(BeNil())
+	})
+
+	It("podman sign --all multi-arch image", func() {
+		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
+		err := cmd.Run()
+		Expect(err).To(BeNil())
+		sigDir := filepath.Join(podmanTest.TempDir, "test-sign-multi")
+		err = os.MkdirAll(sigDir, os.ModePerm)
+		Expect(err).To(BeNil())
+		session := podmanTest.Podman([]string{"image", "sign", "--all", "--directory", sigDir, "--sign-by", "foo@bar.com", "docker://library/alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		fInfos, err := ioutil.ReadDir(filepath.Join(sigDir, "library"))
+		Expect(err).To(BeNil())
+		Expect(len(fInfos) > 1).To(BeTrue())
 	})
 })

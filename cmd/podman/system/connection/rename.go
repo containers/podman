@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/system"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -19,6 +20,7 @@ var (
 		Short:                 "Rename \"old\" to \"new\"",
 		Long:                  `Rename destination for the Podman service from "old" to "new"`,
 		DisableFlagsInUseLine: true,
+		ValidArgsFunction:     common.AutocompleteSystemConnections,
 		RunE:                  rename,
 		Example: `podman system connection rename laptop devl,
   podman system connection mv laptop devl`,

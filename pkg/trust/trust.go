@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/types"
+	"github.com/docker/docker/pkg/homedir"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -60,6 +61,12 @@ type ShowOutput struct {
 	Sigstore  string
 }
 
+// systemRegistriesDirPath is the path to registries.d.
+const systemRegistriesDirPath = "/etc/containers/registries.d"
+
+// userRegistriesDir is the path to the per user registries.d.
+var userRegistriesDir = filepath.FromSlash(".config/containers/registries.d")
+
 // DefaultPolicyPath returns a path to the default policy of the system.
 func DefaultPolicyPath(sys *types.SystemContext) string {
 	systemDefaultPolicyPath := "/etc/containers/policy.json"
@@ -76,15 +83,17 @@ func DefaultPolicyPath(sys *types.SystemContext) string {
 
 // RegistriesDirPath returns a path to registries.d
 func RegistriesDirPath(sys *types.SystemContext) string {
-	systemRegistriesDirPath := "/etc/containers/registries.d"
-	if sys != nil {
-		if sys.RegistriesDirPath != "" {
-			return sys.RegistriesDirPath
-		}
-		if sys.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
-		}
+	if sys != nil && sys.RegistriesDirPath != "" {
+		return sys.RegistriesDirPath
 	}
+	userRegistriesDirPath := filepath.Join(homedir.Get(), userRegistriesDir)
+	if _, err := os.Stat(userRegistriesDirPath); err == nil {
+		return userRegistriesDirPath
+	}
+	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
+		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
+	}
+
 	return systemRegistriesDirPath
 }
 

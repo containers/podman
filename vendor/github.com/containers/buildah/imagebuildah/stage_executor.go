@@ -368,6 +368,7 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		Stderr:           s.executor.err,
 		Quiet:            s.executor.quiet,
 		NamespaceOptions: s.executor.namespaceOptions,
+		Terminal:         buildah.WithoutTerminal,
 	}
 	if config.NetworkDisabled {
 		options.ConfigureNetwork = buildah.NetworkDisabled
@@ -1110,7 +1111,7 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 	var baseHistory []v1.History
 	var baseDiffIDs []digest.Digest
 	if s.builder.FromImageID != "" {
-		baseHistory, baseDiffIDs, err = s.executor.getImageHistoryAndDiffIDs(ctx, s.builder.FromImageID)
+		_, baseHistory, baseDiffIDs, err = s.executor.getImageTypeAndHistoryAndDiffIDs(ctx, s.builder.FromImageID)
 		if err != nil {
 			return "", errors.Wrapf(err, "error getting history of base image %q", s.builder.FromImageID)
 		}
@@ -1142,9 +1143,18 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 		}
 		// Next we double check that the history of this image is equivalent to the previous
 		// lines in the Dockerfile up till the point we are at in the build.
-		history, diffIDs, err := s.executor.getImageHistoryAndDiffIDs(ctx, image.ID)
+		manifestType, history, diffIDs, err := s.executor.getImageTypeAndHistoryAndDiffIDs(ctx, image.ID)
 		if err != nil {
-			return "", errors.Wrapf(err, "error getting history of %q", image.ID)
+			// It's possible that this image is for another architecture, which results
+			// in a custom-crafted error message that we'd have to use substring matching
+			// to recognize.  Instead, ignore the image.
+			logrus.Debugf("error getting history of %q (%v), ignoring it", image.ID, err)
+			continue
+		}
+		// If this candidate isn't of the type that we're building, then it may have lost
+		// some format-specific information that a building-without-cache run wouldn't lose.
+		if manifestType != s.executor.outputFormat {
+			continue
 		}
 		// children + currNode is the point of the Dockerfile we are currently at.
 		if s.historyAndDiffIDsMatch(baseHistory, baseDiffIDs, currNode, history, diffIDs, addedContentDigest, buildAddsLayer) {
@@ -1276,5 +1286,5 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 }
 
 func (s *StageExecutor) EnsureContainerPath(path string) error {
-	return copier.Mkdir(s.mountPoint, path, copier.MkdirOptions{})
+	return copier.Mkdir(s.mountPoint, filepath.Join(s.mountPoint, path), copier.MkdirOptions{})
 }

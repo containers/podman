@@ -8,9 +8,6 @@ run:
     - dependencies
     - test
     - pkg/spec
-    - pkg/varlink
-    - pkg/varlinkapi
-    - docs/varlink
     - vendor
   skip-files:
     - iopodman.go

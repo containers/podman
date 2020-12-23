@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/auth"
 	commonComp "github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -59,7 +60,7 @@ type BudResults struct {
 	Creds               string
 	DisableCompression  bool
 	DisableContentTrust bool
-	DecryptionKeys      []string
+	IgnoreFile          string
 	File                []string
 	Format              string
 	Iidfile             string
@@ -90,38 +91,39 @@ type BudResults struct {
 // FromAndBugResults represents the results for common flags
 // in bud and from
 type FromAndBudResults struct {
-	AddHost      []string
-	BlobCache    string
-	CapAdd       []string
-	CapDrop      []string
-	CgroupParent string
-	CPUPeriod    uint64
-	CPUQuota     int64
-	CPUSetCPUs   string
-	CPUSetMems   string
-	CPUShares    uint64
-	Devices      []string
-	DNSSearch    []string
-	DNSServers   []string
-	DNSOptions   []string
-	HTTPProxy    bool
-	Isolation    string
-	Memory       string
-	MemorySwap   string
-	OverrideArch string
-	OverrideOS   string
-	SecurityOpt  []string
-	ShmSize      string
-	Ulimit       []string
-	Volumes      []string
+	AddHost        []string
+	BlobCache      string
+	CapAdd         []string
+	CapDrop        []string
+	CgroupParent   string
+	CPUPeriod      uint64
+	CPUQuota       int64
+	CPUSetCPUs     string
+	CPUSetMems     string
+	CPUShares      uint64
+	DecryptionKeys []string
+	Devices        []string
+	DNSSearch      []string
+	DNSServers     []string
+	DNSOptions     []string
+	HTTPProxy      bool
+	Isolation      string
+	Memory         string
+	MemorySwap     string
+	OverrideArch   string
+	OverrideOS     string
+	SecurityOpt    []string
+	ShmSize        string
+	Ulimit         []string
+	Volumes        []string
 }
 
 // GetUserNSFlags returns the common flags for usernamespace
 func GetUserNSFlags(flags *UserNSResults) pflag.FlagSet {
 	usernsFlags := pflag.FlagSet{}
 	usernsFlags.StringVar(&flags.UserNS, "userns", "", "'container', `path` of user namespace to join, or 'host'")
-	usernsFlags.StringSliceVar(&flags.UserNSUIDMap, "userns-uid-map", []string{}, "`containerID:hostID:length` UID mapping to use in user namespace")
-	usernsFlags.StringSliceVar(&flags.UserNSGIDMap, "userns-gid-map", []string{}, "`containerID:hostID:length` GID mapping to use in user namespace")
+	usernsFlags.StringSliceVar(&flags.UserNSUIDMap, "userns-uid-map", []string{}, "`containerUID:hostUID:length` UID mapping to use in user namespace")
+	usernsFlags.StringSliceVar(&flags.UserNSGIDMap, "userns-gid-map", []string{}, "`containerGID:hostGID:length` GID mapping to use in user namespace")
 	usernsFlags.StringVar(&flags.UserNSUIDMapUser, "userns-uid-map-user", "", "`name` of entries from /etc/subuid to use to set user namespace UID mapping")
 	usernsFlags.StringVar(&flags.UserNSGIDMapGroup, "userns-gid-map-group", "", "`name` of entries from /etc/subgid to use to set user namespace GID mapping")
 	return usernsFlags
@@ -185,6 +187,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringVar(&flags.Creds, "creds", "", "use `[username[:password]]` for accessing the registry")
 	fs.BoolVarP(&flags.DisableCompression, "disable-compression", "D", true, "don't compress layers by default")
 	fs.BoolVar(&flags.DisableContentTrust, "disable-content-trust", false, "This is a Docker specific option and is a NOOP")
+	fs.StringVar(&flags.IgnoreFile, "ignorefile", "", "path to an alternate .dockerignore file")
 	fs.StringSliceVarP(&flags.File, "file", "f", []string{}, "`pathname or URL` of a Dockerfile")
 	fs.StringVar(&flags.Format, "format", DefaultFormat(), "`format` of the built image's manifest and metadata. Use BUILDAH_FORMAT environment variable to override.")
 	fs.StringVar(&flags.Iidfile, "iidfile", "", "`file` to write the image ID to")
@@ -208,6 +211,9 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
 	fs.StringVar(&flags.SignBy, "sign-by", "", "sign the image using a GPG key with the specified `FINGERPRINT`")
 	fs.StringVar(&flags.SignaturePolicy, "signature-policy", "", "`pathname` of signature policy file (not usually used)")
+	if err := fs.MarkHidden("signature-policy"); err != nil {
+		panic(fmt.Sprintf("error marking the signature-policy flag as hidden: %v", err))
+	}
 	fs.BoolVar(&flags.Squash, "squash", false, "squash newly built layers into a single new layer")
 	fs.StringArrayVarP(&flags.Tag, "tag", "t", []string{}, "tagged `name` to apply to the built image")
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
@@ -228,6 +234,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["creds"] = commonComp.AutocompleteNone
 	flagCompletion["file"] = commonComp.AutocompleteDefault
 	flagCompletion["format"] = commonComp.AutocompleteNone
+	flagCompletion["ignorefile"] = commonComp.AutocompleteDefault
 	flagCompletion["iidfile"] = commonComp.AutocompleteDefault
 	flagCompletion["jobs"] = commonComp.AutocompleteNone
 	flagCompletion["label"] = commonComp.AutocompleteNone
@@ -265,6 +272,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.Uint64VarP(&flags.CPUShares, "cpu-shares", "c", 0, "CPU shares (relative weight)")
 	fs.StringVar(&flags.CPUSetCPUs, "cpuset-cpus", "", "CPUs in which to allow execution (0-3, 0,1)")
 	fs.StringVar(&flags.CPUSetMems, "cpuset-mems", "", "memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.")
+	fs.StringSliceVar(&flags.DecryptionKeys, "decryption-key", nil, "key needed to decrypt the image")
 	fs.StringArrayVar(&flags.Devices, "device", defaultContainerConfig.Containers.Devices, "Additional devices to be used within containers (default [])")
 	fs.StringSliceVar(&flags.DNSSearch, "dns-search", defaultContainerConfig.Containers.DNSSearches, "Set custom DNS search domains")
 	fs.StringSliceVar(&flags.DNSServers, "dns", defaultContainerConfig.Containers.DNSServers, "Set custom DNS servers or disable it completely by setting it to 'none', which prevents the automatic creation of `/etc/resolv.conf`.")
@@ -308,6 +316,7 @@ func GetFromAndBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["cpu-shares"] = commonComp.AutocompleteNone
 	flagCompletion["cpuset-cpus"] = commonComp.AutocompleteNone
 	flagCompletion["cpuset-mems"] = commonComp.AutocompleteNone
+	flagCompletion["decryption-key"] = commonComp.AutocompleteNone
 	flagCompletion["device"] = commonComp.AutocompleteDefault
 	flagCompletion["dns-search"] = commonComp.AutocompleteNone
 	flagCompletion["dns"] = commonComp.AutocompleteNone
@@ -357,6 +366,9 @@ func DefaultIsolation() string {
 	isolation := os.Getenv("BUILDAH_ISOLATION")
 	if isolation != "" {
 		return isolation
+	}
+	if unshare.IsRootless() {
+		return "rootless"
 	}
 	return buildah.OCI
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi"
@@ -31,6 +32,9 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+	if len(options.Driver) < 1 {
+		options.Driver = network.DefaultNetworkDriver
+	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.NetworkCreate(r.Context(), query.Name, options)
 	if err != nil {
@@ -44,7 +48,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Filter string `schema:"filter"`
+		Filters map[string][]string `schema:"filters"`
 	}{
 		// override any golang type defaults
 	}
@@ -55,7 +59,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	options := entities.NetworkListOptions{
-		Filter: query.Filter,
+		Filters: query.Filters,
 	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	reports, err := ic.NetworkList(r.Context(), options)
@@ -126,4 +130,30 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, reports)
+}
+
+// Connect adds a container to a network
+func Connect(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	var netConnect entities.NetworkConnectOptions
+	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	name := utils.GetName(r)
+	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netConnect.Aliases)
+	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			utils.ContainerNotFound(w, netConnect.Container, err)
+			return
+		}
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "network not found", http.StatusNotFound, err)
+			return
+		}
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, "OK")
 }

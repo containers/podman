@@ -639,6 +639,32 @@ func (c *Container) Sync() error {
 	return nil
 }
 
+// ReloadNetwork reconfigures the container's network.
+// Technically speaking, it will tear down and then reconfigure the container's
+// network namespace, which will result in all firewall rules being recreated.
+// It is mostly intended to be used in cases where the system firewall has been
+// reloaded, and existing rules have been wiped out. It is expected that some
+// downtime will result, as the rules are destroyed as part of this process.
+// At present, this only works on root containers; it may be expanded to restart
+// slirp4netns in the future to work with rootless containers as well.
+// Requires that the container must be running or created.
+func (c *Container) ReloadNetwork() error {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot reload network unless container network has been configured")
+	}
+
+	return c.reloadNetwork()
+}
+
 // Refresh is DEPRECATED and REMOVED.
 func (c *Container) Refresh(ctx context.Context) error {
 	// This has been deprecated for a long while, and is in the process of
@@ -740,4 +766,18 @@ func (c *Container) Restore(ctx context.Context, options ContainerRestoreOptions
 	}
 	defer c.newContainerEvent(events.Restore)
 	return c.restore(ctx, options)
+}
+
+// Indicate whether or not the container should restart
+func (c *Container) ShouldRestart(ctx context.Context) bool {
+	logrus.Debugf("Checking if container %s should restart", c.ID())
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return false
+		}
+	}
+	return c.shouldRestart()
 }

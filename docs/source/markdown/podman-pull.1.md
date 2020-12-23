@@ -27,34 +27,51 @@ Images are stored in local image storage.
 ## SOURCE
 
  The SOURCE is the location from which the container images are pulled.
- The Image "SOURCE" uses a "transport":"details" format.
+ The Image "SOURCE" uses a "transport":"details" format.  Only the `docker` (container registry)
+ transport is allowed for remote access.
 
  Multiple transports are supported:
 
   **dir:**_path_
-  An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
+  An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This
+  is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
 
-  **docker://**_docker-reference_
-  An image in a registry implementing the "Docker Registry HTTP API V2". By default, uses the authorization state in `$XDG_RUNTIME_DIR/containers/auth.json`, which is set using `(podman login)`. If the authorization state is not found there, `$HOME/.docker/config.json` is checked, which is set using `(docker login)`.
+    $ podman pull dir:/tmp/myimage
+
+  **docker://**_docker-reference_ (Default)
+  An image reference stored in a remote container image registry. The reference can include a path to a
+  specific registry; if it does not, the registries listed in registries.conf will be queried to find a matching
+  image. By default, credentials from podman login (stored at $XDG_RUNTIME_DIR/containers/auth.json by default)
+  will  be used to authenticate; if these cannot be found, we will fall back to using credentials in
+  $HOME/.docker/config.json.
+
+    $ podman pull quay.io/username/myimage
 
   **docker-archive:**_path_[**:**_docker-reference_]
-  An image is stored in the `docker save` formatted file.  _docker-reference_ is only used when creating such a file, and it must not contain a digest.
+  An image is stored in the `docker save` formatted file.  _docker-reference_ is only used when creating such a
+  file, and it must not contain a digest.
+
+    $ podman pull docker-archive:/tmp/myimage
 
   **docker-daemon:**_docker-reference_
-  An image _docker-reference_ stored in the docker daemon internal storage.  _docker-reference_ must contain either a tag or a digest.  Alternatively, when reading images, the format can also be docker-daemon:algo:digest (an image ID).
+  An image in _docker-reference_ format stored in the docker daemon internal storage. The _docker-reference_ can also be an image ID (docker-daemon:algo:digest).
+
+    $ sudo podman pull docker-daemon:docker.io/library/myimage:33
 
   **oci-archive:**_path_**:**_tag_
   An image _tag_ in a directory compliant with "Open Container Image Layout Specification" at _path_.
 
+    $ podman pull oci-archive:/tmp/myimage
+
 ## OPTIONS
 
-**--all-tags**, **a**
+#### **--all-tags**, **a**
 
 All tagged images in the repository will be pulled.
 
 Note: When using the all-tags flag, Podman will not iterate over the search registries in the containers-registries.conf(5) but will always use docker.io for unqualified image names.
 
-**--authfile**=*path*
+#### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
@@ -62,44 +79,49 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-**--cert-dir**=*path*
+#### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--creds**=*[username[:password]]*
+#### **--creds**=*[username[:password]]*
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**--disable-content-trust**
+#### **--disable-content-trust**
 
 This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
 solely for scripting compatibility.
 
-**--override-arch**=*ARCH*
+#### **--override-arch**=*ARCH*
 Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
 
-**--override-os**=*OS*
+#### **--override-os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 
-**--override-variant**=*VARIANT*
+#### **--override-variant**=*VARIANT*
 
 Use _VARIANT_ instead of the default architecture variant of the container image.  Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
-**--quiet**, **-q**
+#### **--platform**=*OS/ARCH*
+
+Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)
+The `--platform` option can be used to override the current architecture and operating system.
+
+#### **--quiet**, **-q**
 
 Suppress output information when pulling images
 
-**--tls-verify**=*true|false*
+#### **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 
@@ -117,6 +139,17 @@ Copying config sha256:76da55c8019d7a47c347c0dceb7a6591144d232a7dd616242a367b8bed
 Writing manifest to image destination
 Storing signatures
 04660052281190168dbb2362eb15bf7067a8dc642d2498055e0e72efa961a4b6
+```
+
+```
+$ podman pull alpine@sha256:d7342993700f8cd7aba8496c2d0e57be0666e80b4c441925fc6f9361fa81d10e
+Trying to pull docker.io/library/alpine@sha256:d7342993700f8cd7aba8496c2d0e57be0666e80b4c441925fc6f9361fa81d10e...
+Getting image source signatures
+Copying blob 188c0c94c7c5 done
+Copying config d6e46aa247 done
+Writing manifest to image destination
+Storing signatures
+d6e46aa2470df1d32034c6707c8041158b652f38d2a9ae3d7ad7e7532d22ebe0
 ```
 
 ```

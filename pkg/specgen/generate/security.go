@@ -141,7 +141,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		configSpec.Process.Capabilities.Effective = caplist
 		configSpec.Process.Capabilities.Permitted = caplist
 	} else {
-		userCaps, err := capabilities.NormalizeCapabilities(s.CapAdd)
+		userCaps, err := capabilities.MergeCapabilities(nil, s.CapAdd, nil)
 		if err != nil {
 			return errors.Wrapf(err, "capabilities requested by user are not valid: %q", strings.Join(s.CapAdd, ","))
 		}

@@ -135,7 +135,13 @@ type ContainerRootFSConfig struct {
 	// OverlayVolumes lists the overlay volumes to mount into the container.
 	OverlayVolumes []*ContainerOverlayVolume `json:"overlayVolumes,omitempty"`
 	// ImageVolumes lists the image volumes to mount into the container.
-	ImageVolumes []*ContainerImageVolume `json:"imageVolumes,omitempty"`
+	// Please note that this is named ctrImageVolumes in JSON to
+	// distinguish between these and the old `imageVolumes` field in Podman
+	// pre-1.8, which was used in very old Podman versions to determine how
+	// image volumes were handled in Libpod (support for these eventually
+	// moved out of Libpod into pkg/specgen).
+	// Please DO NOT re-use the `imageVolumes` name in container JSON again.
+	ImageVolumes []*ContainerImageVolume `json:"ctrImageVolumes,omitempty"`
 	// CreateWorkingDir indicates that Libpod should create the container's
 	// working directory if it does not exist. Some OCI runtimes do this by
 	// default, but others do not.
@@ -236,6 +242,9 @@ type ContainerNetworkConfig struct {
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`
 	// Network names (CNI) to add container to. Empty to use default network.
+	// Please note that these can be altered at runtime. The actual list is
+	// stored in the DB and should be retrieved from there; this is only the
+	// set of networks the container was *created* with.
 	Networks []string `json:"networks,omitempty"`
 	// Network mode specified for the default network.
 	NetMode namespaces.NetworkMode `json:"networkMode,omitempty"`

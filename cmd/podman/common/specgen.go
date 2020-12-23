@@ -396,6 +396,17 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		s.ShmSize = &shmSize
 	}
 	s.CNINetworks = c.Net.CNINetworks
+
+	// Network aliases
+	if len(c.Net.Aliases) > 0 {
+		// build a map of aliases where key=cniName
+		aliases := make(map[string][]string, len(s.CNINetworks))
+		for _, cniNetwork := range s.CNINetworks {
+			aliases[cniNetwork] = c.Net.Aliases
+		}
+		s.Aliases = aliases
+	}
+
 	s.HostAdd = c.Net.AddHosts
 	s.UseImageResolvConf = c.Net.UseImageResolvConf
 	s.DNSServers = c.Net.DNSServers
@@ -506,18 +517,29 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			}
 
 			switch con[0] {
-			case "proc-opts":
-				s.ProcOpts = strings.Split(con[1], ",")
+			case "apparmor":
+				s.ContainerSecurityConfig.ApparmorProfile = con[1]
+				s.Annotations[define.InspectAnnotationApparmor] = con[1]
 			case "label":
 				// TODO selinux opts and label opts are the same thing
 				s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])
 				s.Annotations[define.InspectAnnotationLabel] = strings.Join(s.ContainerSecurityConfig.SelinuxOpts, ",label=")
-			case "apparmor":
-				s.ContainerSecurityConfig.ApparmorProfile = con[1]
-				s.Annotations[define.InspectAnnotationApparmor] = con[1]
+			case "mask":
+				s.ContainerSecurityConfig.Mask = append(s.ContainerSecurityConfig.Mask, strings.Split(con[1], ":")...)
+			case "proc-opts":
+				s.ProcOpts = strings.Split(con[1], ",")
 			case "seccomp":
 				s.SeccompProfilePath = con[1]
 				s.Annotations[define.InspectAnnotationSeccomp] = con[1]
+			// this option is for docker compatibility, it is the same as unmask=ALL
+			case "systempaths":
+				if con[1] == "unconfined" {
+					s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, []string{"ALL"}...)
+				} else {
+					return fmt.Errorf("invalid systempaths option %q, only `unconfined` is supported", con[1])
+				}
+			case "unmask":
+				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, strings.Split(con[1], ":")...)
 			default:
 				return fmt.Errorf("invalid --security-opt 2: %q", opt)
 			}
@@ -581,7 +603,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		case "max-size":
 			logSize, err := units.FromHumanSize(split[1])
 			if err != nil {
-				return errors.Wrapf(err, "%s is not a valid option", o)
+				return err
 			}
 			s.LogConfiguration.Size = logSize
 		default:
@@ -651,7 +673,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	}
 	intervalDuration, err := time.ParseDuration(interval)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid healthcheck-interval %s ", interval)
+		return nil, errors.Wrapf(err, "invalid healthcheck-interval")
 	}
 
 	hc.Interval = intervalDuration
@@ -662,7 +684,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	hc.Retries = int(retries)
 	timeoutDuration, err := time.ParseDuration(timeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid healthcheck-timeout %s", timeout)
+		return nil, errors.Wrapf(err, "invalid healthcheck-timeout")
 	}
 	if timeoutDuration < time.Duration(1) {
 		return nil, errors.New("healthcheck-timeout must be at least 1 second")
@@ -671,7 +693,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 
 	startPeriodDuration, err := time.ParseDuration(startPeriod)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid healthcheck-start-period %s", startPeriod)
+		return nil, errors.Wrapf(err, "invalid healthcheck-start-period")
 	}
 	if startPeriodDuration < time.Duration(0) {
 		return nil, errors.New("healthcheck-start-period must be 0 seconds or greater")

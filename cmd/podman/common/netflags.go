@@ -4,54 +4,85 @@ import (
 	"net"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
-func GetNetFlags() *pflag.FlagSet {
-	netFlags := pflag.FlagSet{}
+func DefineNetFlags(cmd *cobra.Command) {
+	netFlags := cmd.Flags()
+
+	addHostFlagName := "add-host"
 	netFlags.StringSlice(
-		"add-host", []string{},
+		addHostFlagName, []string{},
 		"Add a custom host-to-IP mapping (host:ip) (default [])",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(addHostFlagName, completion.AutocompleteNone)
+
+	dnsFlagName := "dns"
 	netFlags.StringSlice(
-		"dns", containerConfig.DNSServers(),
+		dnsFlagName, containerConfig.DNSServers(),
 		"Set custom DNS servers",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(dnsFlagName, completion.AutocompleteNone)
+
+	dnsOptFlagName := "dns-opt"
 	netFlags.StringSlice(
-		"dns-opt", containerConfig.DNSOptions(),
+		dnsOptFlagName, containerConfig.DNSOptions(),
 		"Set custom DNS options",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(dnsOptFlagName, completion.AutocompleteNone)
+
+	dnsSearchFlagName := "dns-search"
 	netFlags.StringSlice(
-		"dns-search", containerConfig.DNSSearches(),
+		dnsSearchFlagName, containerConfig.DNSSearches(),
 		"Set custom DNS search domains",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(dnsSearchFlagName, completion.AutocompleteNone)
+
+	ipFlagName := "ip"
 	netFlags.String(
-		"ip", "",
+		ipFlagName, "",
 		"Specify a static IPv4 address for the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(ipFlagName, completion.AutocompleteNone)
+
+	macAddressFlagName := "mac-address"
 	netFlags.String(
-		"mac-address", "",
+		macAddressFlagName, "",
 		"Container MAC address (e.g. 92:d0:c6:0a:29:33)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(macAddressFlagName, completion.AutocompleteNone)
+
+	networkFlagName := "network"
 	netFlags.String(
-		"network", containerConfig.NetNS(),
+		networkFlagName, containerConfig.NetNS(),
 		"Connect a container to a network",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(networkFlagName, AutocompleteNetworkFlag)
+
+	networkAliasFlagName := "network-alias"
+	netFlags.StringSlice(
+		networkAliasFlagName, []string{},
+		"Add network-scoped alias for the container",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(networkAliasFlagName, completion.AutocompleteNone)
+
+	publishFlagName := "publish"
 	netFlags.StringSliceP(
-		"publish", "p", []string{},
+		publishFlagName, "p", []string{},
 		"Publish a container's port, or a range of ports, to the host (default [])",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(publishFlagName, completion.AutocompleteNone)
+
 	netFlags.Bool(
 		"no-hosts", false,
 		"Do not create /etc/hosts within the container, instead use the version from the image",
 	)
-	return &netFlags
 }
 
 func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
@@ -158,6 +189,9 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 	}
 
 	opts.NoHosts, err = cmd.Flags().GetBool("no-hosts")
+	if err != nil {
+		return nil, err
+	}
 
 	if cmd.Flags().Changed("network") {
 		network, err := cmd.Flags().GetString("network")
@@ -181,5 +215,12 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 		opts.CNINetworks = cniNets
 	}
 
+	aliases, err := cmd.Flags().GetStringSlice("network-alias")
+	if err != nil {
+		return nil, err
+	}
+	if len(aliases) > 0 {
+		opts.Aliases = aliases
+	}
 	return &opts, err
 }

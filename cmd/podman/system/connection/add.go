@@ -10,6 +10,7 @@ import (
 	"os/user"
 	"regexp"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/system"
@@ -34,7 +35,8 @@ var (
   "destination" is of the form [user@]hostname or
   an URI of the form ssh://[user@]hostname[:port]
 `,
-		RunE: add,
+		RunE:              add,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman system connection add laptop server.fubar.com
   podman system connection add --identity ~/.ssh/dev_rsa testing ssh://root@server.fubar.com:2222
   podman system connection add --identity ~/.ssh/dev_rsa --port 22 production root@server.fubar.com
@@ -57,9 +59,19 @@ func init() {
 	})
 
 	flags := addCmd.Flags()
-	flags.IntVarP(&cOpts.Port, "port", "p", 22, "SSH port number for destination")
-	flags.StringVar(&cOpts.Identity, "identity", "", "path to SSH identity file")
-	flags.StringVar(&cOpts.UDSPath, "socket-path", "", "path to podman socket on remote host. (default '/run/podman/podman.sock' or '/run/user/{uid}/podman/podman.sock)")
+
+	portFlagName := "port"
+	flags.IntVarP(&cOpts.Port, portFlagName, "p", 22, "SSH port number for destination")
+	_ = addCmd.RegisterFlagCompletionFunc(portFlagName, completion.AutocompleteNone)
+
+	identityFlagName := "identity"
+	flags.StringVar(&cOpts.Identity, identityFlagName, "", "path to SSH identity file")
+	_ = addCmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
+
+	socketPathFlagName := "socket-path"
+	flags.StringVar(&cOpts.UDSPath, socketPathFlagName, "", "path to podman socket on remote host. (default '/run/podman/podman.sock' or '/run/user/{uid}/podman/podman.sock)")
+	_ = addCmd.RegisterFlagCompletionFunc(socketPathFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVarP(&cOpts.Default, "default", "d", false, "Set connection to be default")
 }
 
@@ -67,14 +79,14 @@ func add(cmd *cobra.Command, args []string) error {
 	// Default to ssh: schema if none given
 	dest := args[1]
 	if match, err := regexp.Match(schemaPattern, []byte(dest)); err != nil {
-		return errors.Wrapf(err, "internal regex error %q", schemaPattern)
+		return errors.Wrapf(err, "invalid destination")
 	} else if !match {
 		dest = "ssh://" + dest
 	}
 
 	uri, err := url.Parse(dest)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse %q", dest)
+		return err
 	}
 
 	if uri.User.Username() == "" {
@@ -97,7 +109,7 @@ func add(cmd *cobra.Command, args []string) error {
 
 	if uri.Path == "" || uri.Path == "/" {
 		if uri.Path, err = getUDS(cmd, uri); err != nil {
-			return errors.Wrapf(err, "failed to connect to  %q", uri.String())
+			return err
 		}
 	}
 
@@ -139,7 +151,7 @@ func getUserInfo(uri *url.URL) (*url.Userinfo, error) {
 	if u, found := os.LookupEnv("_CONTAINERS_ROOTLESS_UID"); found {
 		usr, err = user.LookupId(u)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to find user %q", u)
+			return nil, errors.Wrapf(err, "failed to lookup rootless user")
 		}
 	} else {
 		usr, err = user.Current()
@@ -156,19 +168,17 @@ func getUserInfo(uri *url.URL) (*url.Userinfo, error) {
 }
 
 func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
-	var authMethods []ssh.AuthMethod
-	passwd, set := uri.User.Password()
-	if set {
-		authMethods = append(authMethods, ssh.Password(passwd))
-	}
+	var signers []ssh.Signer
 
+	passwd, passwdSet := uri.User.Password()
 	if cmd.Flags().Changed("identity") {
 		value := cmd.Flag("identity").Value.String()
-		auth, err := terminal.PublicKey(value, []byte(passwd))
+		s, err := terminal.PublicKey(value, []byte(passwd))
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to read identity %q", value)
 		}
-		authMethods = append(authMethods, auth)
+		signers = append(signers, s)
+		logrus.Debugf("SSH Ident Key %q %s %s", value, ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
 	}
 
 	if sock, found := os.LookupEnv("SSH_AUTH_SOCK"); found {
@@ -178,16 +188,51 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		a := agent.NewClient(c)
-		authMethods = append(authMethods, ssh.PublicKeysCallback(a.Signers))
-	}
-
-	if len(authMethods) == 0 {
-		pass, err := terminal.ReadPassword(fmt.Sprintf("%s's login password:", uri.User.Username()))
+		agentSigners, err := agent.NewClient(c).Signers()
 		if err != nil {
 			return "", err
 		}
-		authMethods = append(authMethods, ssh.Password(string(pass)))
+
+		signers = append(signers, agentSigners...)
+
+		if logrus.IsLevelEnabled(logrus.DebugLevel) {
+			for _, s := range agentSigners {
+				logrus.Debugf("SSH Agent Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
+			}
+		}
+	}
+
+	var authMethods []ssh.AuthMethod
+	if len(signers) > 0 {
+		var dedup = make(map[string]ssh.Signer)
+		// Dedup signers based on fingerprint, ssh-agent keys override CONTAINER_SSHKEY
+		for _, s := range signers {
+			fp := ssh.FingerprintSHA256(s.PublicKey())
+			if _, found := dedup[fp]; found {
+				logrus.Debugf("Dedup SSH Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
+			}
+			dedup[fp] = s
+		}
+
+		var uniq []ssh.Signer
+		for _, s := range dedup {
+			uniq = append(uniq, s)
+		}
+
+		authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
+			return uniq, nil
+		}))
+	}
+
+	if passwdSet {
+		authMethods = append(authMethods, ssh.Password(passwd))
+	}
+
+	if len(authMethods) == 0 {
+		authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
+			pass, err := terminal.ReadPassword(fmt.Sprintf("%s's login password:", uri.User.Username()))
+			return string(pass), err
+		}))
 	}
 
 	cfg := &ssh.ClientConfig{
@@ -197,7 +242,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 	}
 	dial, err := ssh.Dial("tcp", uri.Host, cfg)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to connect to %q", uri.Host)
+		return "", errors.Wrapf(err, "failed to connect")
 	}
 	defer dial.Close()
 
@@ -217,7 +262,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 	var buffer bytes.Buffer
 	session.Stdout = &buffer
 	if err := session.Run(run); err != nil {
-		return "", errors.Wrapf(err, "failed to run %q", run)
+		return "", err
 	}
 
 	var info define.Info
@@ -226,7 +271,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL) (string, error) {
 	}
 
 	if info.Host.RemoteSocket == nil || len(info.Host.RemoteSocket.Path) == 0 {
-		return "", fmt.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
+		return "", errors.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
 	}
 	return info.Host.RemoteSocket.Path, nil
 }

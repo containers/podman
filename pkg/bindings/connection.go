@@ -152,7 +152,7 @@ func pingNewConnection(ctx context.Context) error {
 		return err
 	}
 	// the ping endpoint sits at / in this case
-	response, err := client.DoRequest(nil, http.MethodGet, "../../../_ping", nil, nil)
+	response, err := client.DoRequest(nil, http.MethodGet, "/_ping", nil, nil)
 	if err != nil {
 		return err
 	}
@@ -182,36 +182,71 @@ func pingNewConnection(ctx context.Context) error {
 func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (Connection, error) {
 	// if you modify the authmethods or their conditionals, you will also need to make similar
 	// changes in the client (currently cmd/podman/system/connection/add getUDS).
-	authMethods := []ssh.AuthMethod{}
+
+	var signers []ssh.Signer // order Signers are appended to this list determines which key is presented to server
+
 	if len(identity) > 0 {
-		auth, err := terminal.PublicKey(identity, []byte(passPhrase))
+		s, err := terminal.PublicKey(identity, []byte(passPhrase))
 		if err != nil {
 			return Connection{}, errors.Wrapf(err, "failed to parse identity %q", identity)
 		}
-		logrus.Debugf("public key signer enabled for identity %q", identity)
-		authMethods = append(authMethods, auth)
+
+		signers = append(signers, s)
+		logrus.Debugf("SSH Ident Key %q %s %s", identity, ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
 	}
 
 	if sock, found := os.LookupEnv("SSH_AUTH_SOCK"); found {
-		logrus.Debugf("Found SSH_AUTH_SOCK %q, ssh-agent signer enabled", sock)
+		logrus.Debugf("Found SSH_AUTH_SOCK %q, ssh-agent signer(s) enabled", sock)
 
 		c, err := net.Dial("unix", sock)
 		if err != nil {
 			return Connection{}, err
 		}
-		a := agent.NewClient(c)
-		authMethods = append(authMethods, ssh.PublicKeysCallback(a.Signers))
+
+		agentSigners, err := agent.NewClient(c).Signers()
+		if err != nil {
+			return Connection{}, err
+		}
+		signers = append(signers, agentSigners...)
+
+		if logrus.IsLevelEnabled(logrus.DebugLevel) {
+			for _, s := range agentSigners {
+				logrus.Debugf("SSH Agent Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
+			}
+		}
+	}
+
+	var authMethods []ssh.AuthMethod
+	if len(signers) > 0 {
+		var dedup = make(map[string]ssh.Signer)
+		// Dedup signers based on fingerprint, ssh-agent keys override CONTAINER_SSHKEY
+		for _, s := range signers {
+			fp := ssh.FingerprintSHA256(s.PublicKey())
+			if _, found := dedup[fp]; found {
+				logrus.Debugf("Dedup SSH Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
+			}
+			dedup[fp] = s
+		}
+
+		var uniq []ssh.Signer
+		for _, s := range dedup {
+			uniq = append(uniq, s)
+		}
+		authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
+			return uniq, nil
+		}))
 	}
 
 	if pw, found := _url.User.Password(); found {
 		authMethods = append(authMethods, ssh.Password(pw))
 	}
+
 	if len(authMethods) == 0 {
-		pass, err := terminal.ReadPassword("Login password:")
-		if err != nil {
-			return Connection{}, err
+		callback := func() (string, error) {
+			pass, err := terminal.ReadPassword("Login password:")
+			return string(pass), err
 		}
-		authMethods = append(authMethods, ssh.Password(string(pass)))
+		authMethods = append(authMethods, ssh.PasswordCallback(callback))
 	}
 
 	port := _url.Port()

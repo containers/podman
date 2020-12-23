@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -46,6 +44,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	})
 
 	Specify("signals are forwarded to container using sig-proxy", func() {
+		SkipIfRemote("FIXME: This looks like it is supposed to work in remote")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("Doesn't work on ppc64le")
 		}
@@ -111,6 +110,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	})
 
 	Specify("signals are not forwarded to container with sig-proxy false", func() {
+		SkipIfRemote("FIXME: This looks like it is supposed to work in remote")
 		signal := syscall.SIGFPE
 		if rootless.IsRootless() {
 			podmanTest.RestoreArtifact(fedoraMinimal)

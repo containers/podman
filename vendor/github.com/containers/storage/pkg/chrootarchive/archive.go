@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
+	"os/user"
 	"path/filepath"
 	"sync"
 
@@ -14,6 +16,13 @@ import (
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/pkg/errors"
 )
+
+func init() {
+	// initialize nss libraries in Glibc so that the dynamic libraries are loaded in the host
+	// environment not in the chroot from untrusted files.
+	_, _ = user.Lookup("storage")
+	_, _ = net.LookupHost("localhost")
+}
 
 // NewArchiver returns a new Archiver which uses chrootarchive.Untar
 func NewArchiver(idMappings *idtools.IDMappings) *archive.Archiver {

@@ -8,7 +8,9 @@ import (
 	"runtime/pprof"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
@@ -21,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // HelpTemplate is the help template for podman commands
@@ -67,9 +70,10 @@ var (
 		Version:               version.Version.String(),
 		DisableFlagsInUseLine: true,
 	}
-	logLevels = []string{"debug", "info", "warn", "error", "fatal", "panic"}
-	logLevel  = "error"
-	useSyslog bool
+
+	logLevel       = "warn"
+	useSyslog      bool
+	requireCleanup = true
 )
 
 func init() {
@@ -102,15 +106,16 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPreRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
-	// Help and commands with subcommands are special cases, no need for more setup
-	if cmd.Name() == "help" || cmd.HasSubCommands() {
+	// Help, completion and commands with subcommands are special cases, no need for more setup
+	// Completion cmd is used to generate the shell scripts
+	if cmd.Name() == "help" || cmd.Name() == "completion" || cmd.HasSubCommands() {
+		requireCleanup = false
 		return nil
 	}
 
 	cfg := registry.PodmanConfig()
 
 	// --connection is not as "special" as --remote so we can wait and process it here
-	var connErr error
 	conn := cmd.Root().LocalFlags().Lookup("connection")
 	if conn != nil && conn.Changed {
 		cfg.Engine.ActiveService = conn.Value.String()
@@ -118,19 +123,37 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		var err error
 		cfg.URI, cfg.Identity, err = cfg.ActiveDestination()
 		if err != nil {
-			connErr = errors.Wrap(err, "failed to resolve active destination")
+			return errors.Wrap(err, "failed to resolve active destination")
 		}
 
 		if err := cmd.Root().LocalFlags().Set("url", cfg.URI); err != nil {
-			connErr = errors.Wrap(err, "failed to override --url flag")
+			return errors.Wrap(err, "failed to override --url flag")
 		}
 
 		if err := cmd.Root().LocalFlags().Set("identity", cfg.Identity); err != nil {
-			connErr = errors.Wrap(err, "failed to override --identity flag")
+			return errors.Wrap(err, "failed to override --identity flag")
 		}
 	}
-	if connErr != nil {
-		return connErr
+
+	// Special case if command is hidden completion command ("__complete","__completeNoDesc")
+	// Since __completeNoDesc is an alias the cm.Name is always __complete
+	if cmd.Name() == cobra.ShellCompRequestCmd {
+		// Parse the cli arguments after the the completion cmd (always called as second argument)
+		// This ensures that the --url, --identity and --connection flags are properly set
+		compCmd, _, err := cmd.Root().Traverse(os.Args[2:])
+		if err != nil {
+			return err
+		}
+		// If we don't complete the root cmd hide all root flags
+		// so they won't show up in the completions on subcommands.
+		if compCmd != compCmd.Root() {
+			compCmd.Root().Flags().VisitAll(func(flag *pflag.Flag) {
+				flag.Hidden = true
+			})
+		}
+		// No need for further setup the completion logic setups the engines as needed.
+		requireCleanup = false
+		return nil
 	}
 
 	// Prep the engines
@@ -155,13 +178,16 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+	// Hard code TMPDIR functions to use /var/tmp, if user did not override
+	if _, ok := os.LookupEnv("TMPDIR"); !ok {
+		os.Setenv("TMPDIR", "/var/tmp")
+	}
 
 	if !registry.IsRemote() {
 		if cmd.Flag("cpu-profile").Changed {
 			f, err := os.Create(cfg.CPUProfile)
 			if err != nil {
-				return errors.Wrapf(err, "unable to create cpu profiling file %s",
-					cfg.CPUProfile)
+				return err
 			}
 			if err := pprof.StartCPUProfile(f); err != nil {
 				return err
@@ -203,8 +229,7 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPostRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
-	// Help and commands with subcommands are special cases, no need for more cleanup
-	if cmd.Name() == "help" || cmd.HasSubCommands() {
+	if !requireCleanup {
 		return nil
 	}
 
@@ -226,14 +251,14 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 
 func loggingHook() {
 	var found bool
-	for _, l := range logLevels {
+	for _, l := range common.LogLevels {
 		if l == strings.ToLower(logLevel) {
 			found = true
 			break
 		}
 	}
 	if !found {
-		fmt.Fprintf(os.Stderr, "Log Level %q is not supported, choose from: %s\n", logLevel, strings.Join(logLevels, ", "))
+		fmt.Fprintf(os.Stderr, "Log Level %q is not supported, choose from: %s\n", logLevel, strings.Join(common.LogLevels, ", "))
 		os.Exit(1)
 	}
 
@@ -254,9 +279,18 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	srv, uri, ident := resolveDestination()
 
 	lFlags := cmd.Flags()
-	lFlags.StringVarP(&opts.Engine.ActiveService, "connection", "c", srv, "Connection to use for remote Podman service")
-	lFlags.StringVar(&opts.URI, "url", uri, "URL to access Podman service (CONTAINER_HOST)")
-	lFlags.StringVar(&opts.Identity, "identity", ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
+
+	connectionFlagName := "connection"
+	lFlags.StringVarP(&opts.Engine.ActiveService, connectionFlagName, "c", srv, "Connection to use for remote Podman service")
+	_ = cmd.RegisterFlagCompletionFunc(connectionFlagName, common.AutocompleteSystemConnections)
+
+	urlFlagName := "url"
+	lFlags.StringVar(&opts.URI, urlFlagName, uri, "URL to access Podman service (CONTAINER_HOST)")
+	_ = cmd.RegisterFlagCompletionFunc(urlFlagName, completion.AutocompleteDefault)
+
+	identityFlagName := "identity"
+	lFlags.StringVar(&opts.Identity, identityFlagName, ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
+	_ = cmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
 
 	lFlags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
 	pFlags := cmd.PersistentFlags()
@@ -266,25 +300,67 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		}
 		opts.Remote = true
 	} else {
-		pFlags.StringVar(&cfg.Engine.CgroupManager, "cgroup-manager", cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
-		pFlags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu profiling results")
-		pFlags.StringVar(&opts.ConmonPath, "conmon", "", "Path of the conmon binary")
-		pFlags.StringVar(&cfg.Engine.NetworkCmdPath, "network-cmd-path", cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")
-		pFlags.StringVar(&cfg.Network.NetworkConfigDir, "cni-config-dir", cfg.Network.NetworkConfigDir, "Path of the configuration directory for CNI networks")
-		pFlags.StringVar(&cfg.Containers.DefaultMountsFile, "default-mounts-file", cfg.Containers.DefaultMountsFile, "Path to default mounts file")
-		pFlags.StringVar(&cfg.Engine.EventsLogger, "events-backend", cfg.Engine.EventsLogger, `Events backend to use ("file"|"journald"|"none")`)
-		pFlags.StringSliceVar(&cfg.Engine.HooksDir, "hooks-dir", cfg.Engine.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
-		pFlags.IntVar(&opts.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")
-		pFlags.StringVar(&cfg.Engine.Namespace, "namespace", cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
-		pFlags.StringVar(&cfg.Engine.StaticDir, "root", "", "Path to the root directory in which data, including images, is stored")
-		pFlags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
-		pFlags.StringVar(&opts.Runroot, "runroot", "", "Path to the 'run directory' where all state information is stored")
-		pFlags.StringVar(&opts.RuntimePath, "runtime", "", "Path to the OCI-compatible binary used to run containers, default is /usr/bin/runc")
-		// -s is deprecated due to conflict with -s on subcommands
-		pFlags.StringVar(&opts.StorageDriver, "storage-driver", "", "Select which storage driver is used to manage storage of images and containers (default is overlay)")
-		pFlags.StringArrayVar(&opts.StorageOpts, "storage-opt", []string{}, "Used to pass an option to the storage driver")
+		cgroupManagerFlagName := "cgroup-manager"
+		pFlags.StringVar(&cfg.Engine.CgroupManager, cgroupManagerFlagName, cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
+		_ = cmd.RegisterFlagCompletionFunc(cgroupManagerFlagName, common.AutocompleteCgroupManager)
 
-		pFlags.StringVar(&opts.Engine.TmpDir, "tmpdir", "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
+		pFlags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu profiling results")
+
+		conmonFlagName := "conmon"
+		pFlags.StringVar(&opts.ConmonPath, conmonFlagName, "", "Path of the conmon binary")
+		_ = cmd.RegisterFlagCompletionFunc(conmonFlagName, completion.AutocompleteDefault)
+
+		networkCmdPathFlagName := "network-cmd-path"
+		pFlags.StringVar(&cfg.Engine.NetworkCmdPath, networkCmdPathFlagName, cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")
+		_ = cmd.RegisterFlagCompletionFunc(networkCmdPathFlagName, completion.AutocompleteDefault)
+
+		cniConfigDirFlagName := "cni-config-dir"
+		pFlags.StringVar(&cfg.Network.NetworkConfigDir, cniConfigDirFlagName, cfg.Network.NetworkConfigDir, "Path of the configuration directory for CNI networks")
+		_ = cmd.RegisterFlagCompletionFunc(cniConfigDirFlagName, completion.AutocompleteDefault)
+
+		pFlags.StringVar(&cfg.Containers.DefaultMountsFile, "default-mounts-file", cfg.Containers.DefaultMountsFile, "Path to default mounts file")
+
+		eventsBackendFlagName := "events-backend"
+		pFlags.StringVar(&cfg.Engine.EventsLogger, eventsBackendFlagName, cfg.Engine.EventsLogger, `Events backend to use ("file"|"journald"|"none")`)
+		_ = cmd.RegisterFlagCompletionFunc(eventsBackendFlagName, common.AutocompleteEventBackend)
+
+		hooksDirFlagName := "hooks-dir"
+		pFlags.StringSliceVar(&cfg.Engine.HooksDir, hooksDirFlagName, cfg.Engine.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
+		_ = cmd.RegisterFlagCompletionFunc(hooksDirFlagName, completion.AutocompleteDefault)
+
+		pFlags.IntVar(&opts.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")
+
+		namespaceFlagName := "namespace"
+		pFlags.StringVar(&cfg.Engine.Namespace, namespaceFlagName, cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
+		_ = cmd.RegisterFlagCompletionFunc(namespaceFlagName, completion.AutocompleteNone)
+
+		rootFlagName := "root"
+		pFlags.StringVar(&cfg.Engine.StaticDir, rootFlagName, "", "Path to the root directory in which data, including images, is stored")
+		_ = cmd.RegisterFlagCompletionFunc(rootFlagName, completion.AutocompleteDefault)
+
+		pFlags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
+
+		runrootFlagName := "runroot"
+		pFlags.StringVar(&opts.Runroot, runrootFlagName, "", "Path to the 'run directory' where all state information is stored")
+		_ = cmd.RegisterFlagCompletionFunc(runrootFlagName, completion.AutocompleteDefault)
+
+		runtimeFlagName := "runtime"
+		pFlags.StringVar(&opts.RuntimePath, runtimeFlagName, "", "Path to the OCI-compatible binary used to run containers, default is /usr/bin/runc")
+		_ = cmd.RegisterFlagCompletionFunc(runtimeFlagName, completion.AutocompleteDefault)
+
+		// -s is deprecated due to conflict with -s on subcommands
+		storageDriverFlagName := "storage-driver"
+		pFlags.StringVar(&opts.StorageDriver, storageDriverFlagName, "", "Select which storage driver is used to manage storage of images and containers (default is overlay)")
+		_ = cmd.RegisterFlagCompletionFunc(storageDriverFlagName, completion.AutocompleteNone) //TODO: what can we recommend here?
+
+		storageOptFlagName := "storage-opt"
+		pFlags.StringArrayVar(&opts.StorageOpts, storageOptFlagName, []string{}, "Used to pass an option to the storage driver")
+		_ = cmd.RegisterFlagCompletionFunc(storageOptFlagName, completion.AutocompleteNone)
+
+		tmpdirFlagName := "tmpdir"
+		pFlags.StringVar(&opts.Engine.TmpDir, tmpdirFlagName, "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
+		_ = cmd.RegisterFlagCompletionFunc(tmpdirFlagName, completion.AutocompleteDefault)
+
 		pFlags.BoolVar(&opts.Trace, "trace", false, "Enable opentracing output (default false)")
 
 		// Hide these flags for both ABI and Tunneling
@@ -303,11 +379,17 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
 	pFlags.BoolVar(&dummyHelp, "help", false, "Help for podman")
-	pFlags.StringVar(&logLevel, "log-level", logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(logLevels, ", ")))
+
+	logLevelFlagName := "log-level"
+	pFlags.StringVar(&logLevel, logLevelFlagName, logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(common.LogLevels, ", ")))
+	_ = rootCmd.RegisterFlagCompletionFunc(logLevelFlagName, common.AutocompleteLogLevel)
 
 	// Only create these flags for ABI connections
 	if !registry.IsRemote() {
-		pFlags.StringArrayVar(&opts.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
+		runtimeflagFlagName := "runtime-flag"
+		pFlags.StringArrayVar(&opts.RuntimeFlags, runtimeflagFlagName, []string{}, "add global flags for the container runtime")
+		_ = rootCmd.RegisterFlagCompletionFunc(runtimeflagFlagName, completion.AutocompleteNone)
+
 		pFlags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
 	}
 }

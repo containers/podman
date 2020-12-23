@@ -7,20 +7,47 @@ podman\-network\-ls - Display a summary of CNI networks
 **podman network ls**  [*options*]
 
 ## DESCRIPTION
-Displays a list of existing podman networks. This command is not available for rootless users.
+Displays a list of existing podman networks.
 
 ## OPTIONS
-**--quiet**, **-q**
+#### **--filter**, **-f**
+
+Filter output based on conditions given.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
+
+Valid filters are listed below:
+
+| **Filter** | **Description**                                                                       |
+| ---------- | ------------------------------------------------------------------------------------- |
+| name       | [Name] Network name (accepts regex)                                                   |
+| id         | [ID] Full or partial network ID                                                       |
+| label      | [Key] or [Key=Value] Label assigned to a network                                      |
+| plugin     | [Plugin] CNI plugins included in a network (e.g `bridge`,`portmap`,`firewall`,`tuning`,`dnsname`,`macvlan`) |
+| driver     | [Driver] Only `bridge` is supported                                                   |
+
+#### **--format**
+
+Change the default output format.  This can be of a supported type like 'json'
+or a Go template.
+Valid placeholders for the Go template are listed below:
+
+| **Placeholder** | **Description**                 |
+| --------------- | --------------------------------|
+| .ID             | Network ID                      |
+| .Name           | Network name                    |
+| .Plugins        | Network Plugins                 |
+| .Labels         | Network labels                  |
+| .Version        | CNI Version of the config file	|
+
+#### **--no-trunc**
+
+Do not truncate the network ID. The network ID is not displayed by default and must be specified with **--format**.
+
+#### **--quiet**, **-q**
 
 The `quiet` option will restrict the output to only the network names.
-
-**--format**, **-f**
-
-Pretty-print networks to JSON or using a Go template.
-
-**--filter**
-
-Provide filter values (e.g. 'name=podman').
 
 ## EXAMPLE
 

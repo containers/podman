@@ -1,12 +1,10 @@
 package containers
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"github.com/containers/podman/v2/pkg/bindings"
@@ -15,35 +13,20 @@ import (
 
 // Logs obtains a container's logs given the options provided.  The logs are then sent to the
 // stdout|stderr channels as strings.
-func Logs(ctx context.Context, nameOrID string, opts LogOptions, stdoutChan, stderrChan chan string) error {
+func Logs(ctx context.Context, nameOrID string, options *LogOptions, stdoutChan, stderrChan chan string) error {
+	if options == nil {
+		options = new(LogOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
-	params := url.Values{}
-	if opts.Follow != nil {
-		params.Set("follow", strconv.FormatBool(*opts.Follow))
-	}
-	if opts.Since != nil {
-		params.Set("since", *opts.Since)
-	}
-	if opts.Stderr != nil {
-		params.Set("stderr", strconv.FormatBool(*opts.Stderr))
-	}
-	if opts.Stdout != nil {
-		params.Set("stdout", strconv.FormatBool(*opts.Stdout))
-	}
-	if opts.Tail != nil {
-		params.Set("tail", *opts.Tail)
-	}
-	if opts.Timestamps != nil {
-		params.Set("timestamps", strconv.FormatBool(*opts.Timestamps))
-	}
-	if opts.Until != nil {
-		params.Set("until", *opts.Until)
+	params, err := options.ToParams()
+	if err != nil {
+		return err
 	}
 	// The API requires either stdout|stderr be used. If neither are specified, we specify stdout
-	if opts.Stdout == nil && opts.Stderr == nil {
+	if options.Stdout == nil && options.Stderr == nil {
 		params.Set("stdout", strconv.FormatBool(true))
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/logs", params, nil, nameOrID)
@@ -64,7 +47,6 @@ func Logs(ctx context.Context, nameOrID string, opts LogOptions, stdoutChan, std
 		if err != nil {
 			return err
 		}
-		frame = bytes.Replace(frame[0:l], []byte{13}, []byte{10}, -1)
 
 		switch fd {
 		case 0:

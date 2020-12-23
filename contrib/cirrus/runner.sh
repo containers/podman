@@ -41,7 +41,7 @@ function _run_automation() {
     req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
                  PODBIN_NAME PRIV_NAME DISTRO_NV CONTAINER USER HOME \
                  UID AUTOMATION_LIB_PATH SCRIPT_BASE OS_RELEASE_ID \
-                 OS_RELEASE_VER CG_FS_TYPE
+                 CG_FS_TYPE
     bigto ooe.sh dnf install -y ShellCheck  # small/quick addition
     $SCRIPT_BASE/shellcheck.sh
 }
@@ -50,6 +50,7 @@ function _run_validate() {
     # Confirm compile via prior task + cache
     bin/podman --version
     bin/podman-remote --version
+
     make validate  # Some items require a build
 }
 
@@ -64,6 +65,10 @@ function _run_unit() {
 
 function _run_apiv2() {
     make localapiv2 |& logformatter
+}
+
+function _run_compose() {
+    ./test/compose/test-compose |& logformatter
 }
 
 function _run_int() {
@@ -169,14 +174,6 @@ function _run_altbuild() {
         *Without*)
             make build-no-cgo
             ;;
-        *varlink-API)
-            export SUGGESTION='remove API.md, then "make varlink_api_generate" and commit changes.'
-            make varlink_api_generate BUILDTAGS="varlink"
-            ./hack/tree_status.sh
-            ;;
-        *varlink-binaries)
-            make clean BUILDTAGS="varlink" binaries
-            ;;
         *RPM*)
             make -f ./.copr/Makefile
             rpmbuild --rebuild ./podman-*.src.rpm
@@ -252,6 +249,16 @@ dotest() {
     make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
         |& logformatter
 }
+
+# Nearly every task in .cirrus.yml makes use of this shell script
+# wrapped by /usr/bin/time to collect runtime statistics.  Because the
+# --output option is used to log stats to a file, every child-process
+# inherits an open FD3 pointing at the log.  However, some testing
+# operations depend on making use of FD3, and so it must be explicitly
+# closed here (and for all further child-processes).
+# STATS_LOGFILE assumed empty/undefined outside of Cirrus-CI (.cirrus.yml)
+# shellcheck disable=SC2154
+exec 3<&-
 
 msg "************************************************************"
 # Required to be defined by caller

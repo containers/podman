@@ -15,9 +15,11 @@ Ideally the input file would be one created by Podman (see podman-generate-kube(
 
 Note: HostPath volume types created by play kube will be given an SELinux private label (Z)
 
+Note: If the `:latest` tag is used, Podman will attempt to pull the image from a registry. If the image was built locally with Podman or Buildah, it will have `localhost` as the domain, in that case, Podman will use the image from the local store even if it has the `:latest` tag.
+
 ## OPTIONS
 
-**--authfile**=*path*
+#### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
@@ -25,42 +27,50 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-**--cert-dir**=*path*
+#### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--configmap**=*path*
+#### **--configmap**=*path*
 
 Use Kubernetes configmap YAML at path to provide a source for environment variable values within the containers of the pod.
 
 Note: The *--configmap* option can be used multiple times or a comma-separated list of paths can be used to pass multiple Kubernetes configmap YAMLs.
 
-**--creds**
+#### **--creds**
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**--network**=*cni networks*
+#### **--log-driver**=driver
+
+Set logging driver for all created containers.
+
+#### **--network**=*networks*, **--net**
 
 A comma-separated list of the names of CNI networks the pod should join.
 
-**--quiet**, **-q**
+#### **--quiet**, **-q**
 
 Suppress output information when pulling images
 
-**--seccomp-profile-root**=*path*
+#### **--seccomp-profile-root**=*path*
 
 Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (Not available for remote commands)
 
-**--tls-verify**=*true|false*
+#### **--start**=*true|false*
+
+Start the pod after creating it, set to false to only create it.
+
+#### **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

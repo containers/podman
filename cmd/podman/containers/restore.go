@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -27,6 +29,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container restore ctrID
   podman container restore --latest
   podman container restore --all`,
@@ -47,8 +50,15 @@ func init() {
 	flags.BoolVarP(&restoreOptions.All, "all", "a", false, "Restore all checkpointed containers")
 	flags.BoolVarP(&restoreOptions.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
 	flags.BoolVar(&restoreOptions.TCPEstablished, "tcp-established", false, "Restore a container with established TCP connections")
-	flags.StringVarP(&restoreOptions.Import, "import", "i", "", "Restore from exported checkpoint archive (tar.gz)")
-	flags.StringVarP(&restoreOptions.Name, "name", "n", "", "Specify new name for container restored from exported checkpoint (only works with --import)")
+
+	importFlagName := "import"
+	flags.StringVarP(&restoreOptions.Import, importFlagName, "i", "", "Restore from exported checkpoint archive (tar.gz)")
+	_ = restoreCommand.RegisterFlagCompletionFunc(importFlagName, completion.AutocompleteDefault)
+
+	nameFlagName := "name"
+	flags.StringVarP(&restoreOptions.Name, nameFlagName, "n", "", "Specify new name for container restored from exported checkpoint (only works with --import)")
+	_ = restoreCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&restoreOptions.IgnoreRootFS, "ignore-rootfs", false, "Do not apply root file-system changes when importing from exported checkpoint")
 	flags.BoolVar(&restoreOptions.IgnoreStaticIP, "ignore-static-ip", false, "Ignore IP address set via --static-ip")
 	flags.BoolVar(&restoreOptions.IgnoreStaticMAC, "ignore-static-mac", false, "Ignore MAC address set via --mac-address")

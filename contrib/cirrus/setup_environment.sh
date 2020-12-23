@@ -47,6 +47,11 @@ echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
     done <<<"$(passthrough_envars)"
 ) >> "/etc/ci_environment"
 
+#####
+##### FIXME. /etc/containers/storage.conf should have a driver name set
+##### Remove when VMs updated
+sed 's/^driver.*=.*""/driver = "overlay"/g' -i /etc/containers/storage.conf
+
 # This is a possible manual maintenance gaff, check to be sure everything matches.
 # shellcheck disable=SC2154
 [[ "$DISTRO_NV" == "$OS_REL_VER" ]] || \
@@ -68,7 +73,9 @@ case "$CG_FS_TYPE" in
         if ((CONTAINER==0)); then
             warn "Forcing testing with runc instead of crun"
             if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
-                echo "OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" >> /etc/ci_environment
+                # Need b/c using cri-o-runc package from OBS
+                echo "OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" \
+                    >> /etc/ci_environment
             else
                 echo "OCI_RUNTIME=runc" >> /etc/ci_environment
             fi
@@ -97,8 +104,8 @@ fi
 
 # Which distribution are we testing on.
 case "$OS_RELEASE_ID" in
-    ubuntu*) ;;
-    fedora*)
+    ubuntu) ;;
+    fedora)
         if ((CONTAINER==0)); then
             msg "Configuring / Expanding host storage."
             # VM is setup to allow flexibility in testing alternate storage.
@@ -118,10 +125,15 @@ esac
 # shellcheck disable=SC2154
 case "$TEST_ENVIRON" in
     host)
-        if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
-            # The e2e tests wrongly guess `--cgroup-manager cgroupfs`
+        # The e2e tests wrongly guess `--cgroup-manager` option
+        # shellcheck disable=SC2154
+        if [[ "$CG_FS_TYPE" == "cgroup2fs" ]] || [[ "$PRIV_NAME" == "root" ]]
+        then
             warn "Forcing CGROUP_MANAGER=systemd"
             echo "CGROUP_MANAGER=systemd" >> /etc/ci_environment
+        else
+            warn "Forcing CGROUP_MANAGER=cgroupfs"
+            echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
         fi
         ;;
     container)
@@ -133,25 +145,21 @@ case "$TEST_ENVIRON" in
             modprobe ip6table_nat || :
             modprobe iptable_nat || :
         else
-            # The e2e tests wrongly guess `--cgroup-manager systemd`
             warn "Forcing CGROUP_MANAGER=cgroupfs"
             echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
-        fi
-        ;;
-    *) die_unknown TEST_ENVIRON
-esac
 
-# Required to be defined by caller: Are we testing as root or a regular user
-# shellcheck disable=SC2154
-case "$PRIV_NAME" in
-    root)
-        if [[ "$TEST_ENVIRON" == "container" ]] && ((container)); then
             # There's no practical way to detect userns w/in a container
             # affected/related tests are sensitive to this variable.
             warn "Disabling usernamespace integration testing"
             echo "SKIP_USERNS=1" >> /etc/ci_environment
         fi
         ;;
+    *) die_unknown TEST_ENVIRON
+esac
+
+# Required to be defined by caller: Are we testing as root or a regular user
+case "$PRIV_NAME" in
+    root) ;;
     rootless)
         # Needs to exist for setup_rootless()
         ROOTLESS_USER="${ROOTLESS_USER:-some${RANDOM}dude}"
@@ -190,6 +198,7 @@ case "$TEST_FLAVOR" in
     build) make clean ;;
     unit) ;;
     apiv2) ;&  # use next item
+    compose) ;&
     int) ;&
     sys) ;&
     bindings) ;&

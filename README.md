@@ -5,7 +5,7 @@
 Podman (the POD MANager) is a tool for managing containers and images, volumes mounted into those containers, and pods made from groups of containers.
 Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
 
-* [Latest Version: 2.1.1](https://github.com/containers/podman/releases/latest)
+* [Latest Version: 2.2.1](https://github.com/containers/podman/releases/latest)
   * Latest Remote client for Windows
   * Latest Remote client for MacOs
   * Latest Static Remote client for Linux
@@ -176,10 +176,10 @@ you to manage and maintain those images and containers in a production environme
 familiar container cli commands.  For more details, see the
 [Container Tools Guide](https://github.com/containers/buildah/tree/master/docs/containertools).
 
-## Podman Legacy API (Varlink)
-Podman offers a [Varlink-based API](https://github.com/containers/podman/blob/master/docs/tutorials/varlink_remote_client.md)
-for remote management of containers. However, this API has been deprecated by the REST API.
-Varlink support is in maintenance mode, and will be removed in a future release.
+## Podman Former API (Varlink)
+Podman formerly offered a [Varlink-based API](https://github.com/containers/podman/blob/master/docs/tutorials/varlink_remote_client.md)
+for remote management of containers. However, this API was replaced by the REST API.
+Varlink support has been removed as of the 3.0 release.
 For more details, you can see [this blog](https://podman.io/blogs/2020/01/17/podman-new-api.html).
 
 ## Static Binary Builds

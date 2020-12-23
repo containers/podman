@@ -3,10 +3,18 @@
 load helpers
 
 @test "podman images - basic output" {
-    run_podman images -a
+    headings="REPOSITORY *TAG *IMAGE ID *CREATED *SIZE"
 
-    is "${lines[0]}" "REPOSITORY *TAG *IMAGE ID *CREATED *SIZE" "header line"
+    run_podman images -a
+    is "${lines[0]}" "$headings" "header line"
     is "${lines[1]}" "$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME *$PODMAN_TEST_IMAGE_TAG *[0-9a-f]\+" "podman images output"
+
+    # 'podman images' should emit headings even if there are no images
+    # (but --root only works locally)
+    if ! is_remote; then
+        run_podman --root ${PODMAN_TMPDIR}/nothing-here-move-along images
+        is "$output" "$headings" "'podman images' emits headings even w/o images"
+    fi
 }
 
 @test "podman images - custom formats" {
@@ -51,7 +59,8 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 @test "podman images - history output" {
     # podman history is persistent: it permanently alters our base image.
     # Create a dummy image here so we leave our setup as we found it.
-    run_podman run --name my-container $IMAGE true
+    # Multiple --name options confirm command-line override (last one wins)
+    run_podman run --name ignore-me --name my-container $IMAGE true
     run_podman commit my-container my-test-image
 
     run_podman images my-test-image --format '{{ .History }}'
@@ -79,7 +88,8 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 }
 
 @test "podman images - filter" {
-    run_podman inspect --format '{{.ID}}' $IMAGE
+    # Multiple --format options confirm command-line override (last one wins)
+    run_podman inspect --format '{{.XYZ}}' --format '{{.ID}}' $IMAGE
     iid=$output
 
     run_podman images --noheading --filter=after=$iid
@@ -189,9 +199,16 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
         local format=$2
 
         run_podman images --sort repository --format "$format"
-        _check_line 0 ${aaa_name} ${aaa_tag}
-        _check_line 1 "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}" "${PODMAN_TEST_IMAGE_TAG}"
-        _check_line 2 ${zzz_name} ${zzz_tag}
+
+        line_no=0
+        if [[ $format == table* ]]; then
+            # skip headers from table command
+            line_no=1
+        fi
+
+        _check_line $line_no ${aaa_name} ${aaa_tag}
+        _check_line $((line_no+1)) "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}" "${PODMAN_TEST_IMAGE_TAG}"
+        _check_line $((line_no+2)) ${zzz_name} ${zzz_tag}
     }
 
     # Begin the test: tag $IMAGE with both the given names

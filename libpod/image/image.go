@@ -24,6 +24,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	ociarchive "github.com/containers/image/v5/oci/archive"
 	"github.com/containers/image/v5/oci/layout"
+	"github.com/containers/image/v5/pkg/shortnames"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/tarball"
 	"github.com/containers/image/v5/transports"
@@ -164,7 +165,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	}
 	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, &retry.RetryOptions{MaxRetry: maxRetry}, label)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to pull %s", name)
+		return nil, err
 	}
 
 	newImage, err := ir.NewFromLocal(imageName[0])
@@ -318,10 +319,8 @@ func (ir *Runtime) LoadAllImagesFromDockerArchive(ctx context.Context, fileName 
 	}
 
 	goal := pullGoal{
-		pullAllPairs:         true,
-		usedSearchRegistries: false,
-		refPairs:             refPairs,
-		searchedRegistries:   nil,
+		pullAllPairs: true,
+		refPairs:     refPairs,
 	}
 
 	defer goal.cleanUp()
@@ -456,22 +455,19 @@ func (ir *Runtime) getLocalImage(inputName string) (string, *storage.Image, erro
 		return "", nil, errors.Wrapf(ErrNoSuchImage, imageError)
 	}
 
-	// "Short-name image", so let's try out certain prefixes:
-	// 1) DefaultLocalRegistry (i.e., "localhost/)
-	// 2) Unqualified-search registries from registries.conf
-	unqualifiedSearchRegistries, err := registries.GetRegistries()
+	sys := &types.SystemContext{
+		SystemRegistriesConfPath: registries.SystemRegistriesConfPath(),
+	}
+
+	candidates, err := shortnames.ResolveLocally(sys, inputName)
 	if err != nil {
 		return "", nil, err
 	}
 
-	for _, candidate := range append([]string{DefaultLocalRegistry}, unqualifiedSearchRegistries...) {
-		ref, err := decomposedImage.referenceWithRegistry(candidate)
-		if err != nil {
-			return "", nil, err
-		}
-		img, err := ir.store.Image(reference.TagNameOnly(ref).String())
+	for _, candidate := range candidates {
+		img, err := ir.store.Image(candidate.String())
 		if err == nil {
-			return ref.String(), img, nil
+			return candidate.String(), img, nil
 		}
 	}
 
@@ -1226,6 +1222,11 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 		}
 	}
 
+	parent, err := i.ParentID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	repoTags, err := i.RepoTags()
 	if err != nil {
 		return nil, err
@@ -1252,6 +1253,7 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 
 	data := &inspect.ImageData{
 		ID:           i.ID(),
+		Parent:       parent,
 		RepoTags:     repoTags,
 		RepoDigests:  repoDigests,
 		Comment:      comment,
@@ -1262,10 +1264,12 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 		Config:       &ociv1Img.Config,
 		Version:      info.DockerVersion,
 		Size:         size,
-		VirtualSize:  size,
-		Annotations:  annotations,
-		Digest:       i.Digest(),
-		Labels:       info.Labels,
+		// This is good enough for now, but has to be
+		// replaced later with correct calculation logic
+		VirtualSize: size,
+		Annotations: annotations,
+		Digest:      i.Digest(),
+		Labels:      info.Labels,
 		RootFS: &inspect.RootFS{
 			Type:   ociv1Img.RootFS.Type,
 			Layers: ociv1Img.RootFS.DiffIDs,
@@ -1507,6 +1511,15 @@ func (i *Image) GetParent(ctx context.Context) (*Image, error) {
 		return nil, err
 	}
 	return tree.parent(ctx, i)
+}
+
+// ParentID returns the image ID of the parent. Return empty string if a parent is not found.
+func (i *Image) ParentID(ctx context.Context) (string, error) {
+	parent, err := i.GetParent(ctx)
+	if err == nil && parent != nil {
+		return parent.ID(), nil
+	}
+	return "", err
 }
 
 // GetChildren returns a list of the imageIDs that depend on the image

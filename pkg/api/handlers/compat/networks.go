@@ -28,17 +28,17 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 
 	// FYI scope and version are currently unused but are described by the API
 	// Leaving this for if/when we have to enable these
-	//query := struct {
+	// query := struct {
 	//	scope   string
 	//	verbose bool
-	//}{
+	// }{
 	//	// override any golang type defaults
-	//}
-	//decoder := r.Context().Value("decoder").(*schema.Decoder)
-	//if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+	// }
+	// decoder := r.Context().Value("decoder").(*schema.Decoder)
+	// if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 	//	utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 	//	return
-	//}
+	// }
 	config, err := runtime.GetConfig()
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -50,7 +50,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.NetworkNotFound(w, name, err)
 		return
 	}
-	report, err := getNetworkResourceByName(name, runtime)
+	report, err := getNetworkResourceByNameOrID(name, runtime, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -58,7 +58,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.NetworkResource, error) {
+func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filters map[string][]string) (*types.NetworkResource, error) {
 	var (
 		ipamConfigs []dockerNetwork.IPAMConfig
 	)
@@ -68,7 +68,7 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 	}
 	containerEndpoints := map[string]types.EndpointResource{}
 	// Get the network path so we can get created time
-	networkConfigPath, err := network.GetCNIConfigPathByName(config, name)
+	networkConfigPath, err := network.GetCNIConfigPathByNameOrID(config, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +84,16 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 	conf, err := libcni.ConfListFromFile(networkConfigPath)
 	if err != nil {
 		return nil, err
+	}
+	if len(filters) > 0 {
+		ok, err := network.IfPassesFilter(conf, filters)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			// do not return the config if we did not match the filter
+			return nil, nil
+		}
 	}
 
 	// No Bridge plugin means we bail
@@ -106,7 +116,7 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 		if err != nil {
 			return nil, err
 		}
-		if netData, ok := data.NetworkSettings.Networks[name]; ok {
+		if netData, ok := data.NetworkSettings.Networks[conf.Name]; ok {
 			containerEndpoint := types.EndpointResource{
 				Name:        netData.NetworkID,
 				EndpointID:  netData.EndpointID,
@@ -118,10 +128,10 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 		}
 	}
 	report := types.NetworkResource{
-		Name:       name,
-		ID:         "",
+		Name:       conf.Name,
+		ID:         network.GetNetworkID(conf.Name),
 		Created:    time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)), // nolint: unconvert
-		Scope:      "",
+		Scope:      "local",
 		Driver:     network.DefaultNetworkDriver,
 		EnableIPv6: false,
 		IPAM: dockerNetwork.IPAM{
@@ -129,14 +139,14 @@ func getNetworkResourceByName(name string, runtime *libpod.Runtime) (*types.Netw
 			Options: nil,
 			Config:  ipamConfigs,
 		},
-		Internal:   false,
+		Internal:   !bridge.IsGW,
 		Attachable: false,
 		Ingress:    false,
 		ConfigFrom: dockerNetwork.ConfigReference{},
 		ConfigOnly: false,
 		Containers: containerEndpoints,
 		Options:    nil,
-		Labels:     nil,
+		Labels:     network.GetNetworkLabels(conf),
 		Peers:      nil,
 		Services:   nil,
 	}
@@ -180,40 +190,23 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filterNames, nameFilterExists := query.Filters["name"]
-	// TODO remove when filters are implemented
-	if (!nameFilterExists && len(query.Filters) > 0) || len(query.Filters) > 1 {
-		utils.InternalServerError(w, errors.New("only the name filter for listing networks is implemented"))
-		return
-	}
 	netNames, err := network.GetNetworkNamesFromFileSystem(config)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 
-	// filter by name
-	if nameFilterExists {
-		names := []string{}
-		for _, name := range netNames {
-			for _, filter := range filterNames {
-				if strings.Contains(name, filter) {
-					names = append(names, name)
-					break
-				}
-			}
-		}
-		netNames = names
-	}
-
-	reports := make([]*types.NetworkResource, 0, len(netNames))
+	var reports []*types.NetworkResource
+	logrus.Debugf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
-		report, err := getNetworkResourceByName(name, runtime)
+		report, err := getNetworkResourceByNameOrID(name, runtime, query.Filters)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
-		reports = append(reports, report)
+		if report != nil {
+			reports = append(reports, report)
+		}
 	}
 	utils.WriteResponse(w, http.StatusOK, reports)
 }
@@ -244,8 +237,9 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	ncOptions := entities.NetworkCreateOptions{
 		Driver:   network.DefaultNetworkDriver,
 		Internal: networkCreate.Internal,
+		Labels:   networkCreate.Labels,
 	}
-	if networkCreate.IPAM != nil && networkCreate.IPAM.Config != nil {
+	if networkCreate.IPAM != nil && len(networkCreate.IPAM.Config) > 0 {
 		if len(networkCreate.IPAM.Config) > 1 {
 			utils.InternalServerError(w, errors.New("compat network create can only support one IPAM config"))
 			return
@@ -276,90 +270,99 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	report := types.NetworkCreate{
-		CheckDuplicate: networkCreate.CheckDuplicate,
-		Driver:         networkCreate.Driver,
-		Scope:          networkCreate.Scope,
-		EnableIPv6:     networkCreate.EnableIPv6,
-		IPAM:           networkCreate.IPAM,
-		Internal:       networkCreate.Internal,
-		Attachable:     networkCreate.Attachable,
-		Ingress:        networkCreate.Ingress,
-		ConfigOnly:     networkCreate.ConfigOnly,
-		ConfigFrom:     networkCreate.ConfigFrom,
-		Options:        networkCreate.Options,
-		Labels:         networkCreate.Labels,
+
+	net, err := getNetworkResourceByNameOrID(name, runtime, nil)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	body := struct {
+		Id      string
+		Warning []string
+	}{
+		Id: net.ID,
+	}
+	utils.WriteResponse(w, http.StatusCreated, body)
 }
 
 func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	config, err := runtime.GetConfig()
-	if err != nil {
-		utils.InternalServerError(w, err)
+	ic := abi.ContainerEngine{Libpod: runtime}
+
+	query := struct {
+		Force bool `schema:"force"`
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
+	options := entities.NetworkRmOptions{
+		Force: query.Force,
+	}
+
 	name := utils.GetName(r)
-	exists, err := network.Exists(config, name)
+	reports, err := ic.NetworkRm(r.Context(), []string{name}, options)
 	if err != nil {
-		utils.InternalServerError(w, err)
+		utils.Error(w, "remove Network failed", http.StatusInternalServerError, err)
 		return
 	}
-	if !exists {
-		utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
+	if len(reports) == 0 {
+		utils.Error(w, "remove Network failed", http.StatusInternalServerError, errors.Errorf("internal error"))
 		return
 	}
-	if err := network.RemoveNetwork(config, name); err != nil {
-		utils.InternalServerError(w, err)
+	report := reports[0]
+	if report.Err != nil {
+		if errors.Cause(report.Err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
+			return
+		}
+		utils.InternalServerError(w, report.Err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusNoContent, "")
+
+	utils.WriteResponse(w, http.StatusNoContent, nil)
 }
 
 // Connect adds a container to a network
-// TODO: For now this func is a no-op that checks the container name, network name, and
-// responds with a 200.  This allows the call to remain intact.  We need to decide how
-// we make this work with CNI networking and setup/teardown.
 func Connect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
-	var netConnect types.NetworkConnect
+	var (
+		aliases    []string
+		netConnect types.NetworkConnect
+	)
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	config, err := runtime.GetConfig()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
 	name := utils.GetName(r)
-	exists, err := network.Exists(config, name)
+	if netConnect.EndpointConfig != nil {
+		if netConnect.EndpointConfig.Aliases != nil {
+			aliases = netConnect.EndpointConfig.Aliases
+		}
+	}
+	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, aliases)
 	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	if !exists {
-		utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
-		return
-	}
-	if _, err = runtime.LookupContainer(netConnect.Container); err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, netConnect.Container, err)
 			return
 		}
-		utils.Error(w, "unable to lookup container", http.StatusInternalServerError, err)
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "network not found", http.StatusNotFound, err)
+			return
+		}
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	logrus.Warnf("network connect endpoint is not fully implemented - tried to connect container %s to network %s", netConnect.Container, name)
 	utils.WriteResponse(w, http.StatusOK, "OK")
 }
 
 // Disconnect removes a container from a network
-// TODO: For now this func is a no-op that checks the container name, network name, and
-// responds with a 200.  This allows the call to remain intact.  We need to decide how
-// we make this work with CNI networking and setup/teardown.
 func Disconnect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
@@ -368,29 +371,20 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	config, err := runtime.GetConfig()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
+
 	name := utils.GetName(r)
-	exists, err := network.Exists(config, name)
+	err := runtime.DisconnectContainerFromNetwork(netDisconnect.Container, name, netDisconnect.Force)
 	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	if !exists {
-		utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
-		return
-	}
-	if _, err = runtime.LookupContainer(netDisconnect.Container); err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
-			utils.ContainerNotFound(w, netDisconnect.Container, err)
+			utils.Error(w, "container not found", http.StatusNotFound, err)
 			return
 		}
-		utils.Error(w, "unable to lookup container", http.StatusInternalServerError, err)
+		if errors.Cause(err) == define.ErrNoSuchNetwork {
+			utils.Error(w, "network not found", http.StatusNotFound, err)
+			return
+		}
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	logrus.Warnf("network disconnect endpoint is not fully implemented - tried to connect container %s to network %s", netDisconnect.Container, name)
 	utils.WriteResponse(w, http.StatusOK, "OK")
 }

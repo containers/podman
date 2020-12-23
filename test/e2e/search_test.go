@@ -93,10 +93,10 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search single registry flag", func() {
-		search := podmanTest.Podman([]string{"search", "quay.io/libpod/gate:latest"})
+		search := podmanTest.Podman([]string{"search", "quay.io/skopeo/stable:latest"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
-		Expect(search.LineInOutputContains("quay.io/libpod/gate")).To(BeTrue())
+		Expect(search.LineInOutputContains("quay.io/skopeo/stable")).To(BeTrue())
 	})
 
 	It("podman search image with description", func() {
@@ -114,6 +114,14 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
 		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
+	})
+
+	It("podman search format json", func() {
+		search := podmanTest.Podman([]string{"search", "--format", "json", "alpine"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(search.IsJSONOutputValid()).To(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 	})
 
 	It("podman search no-trunc flag", func() {
@@ -218,17 +226,17 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		podmanTest.RestoreArtifact(ALPINE)
 		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[3].Address())
-		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
-		search := podmanTest.PodmanNoCache([]string{"search", image, "--tls-verify=false"})
+		search := podmanTest.Podman([]string{"search", image, "--tls-verify=false"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(search.OutputToString()).ShouldNot(BeEmpty())
 
 		// podman search v2 registry with empty query
-		searchEmpty := podmanTest.PodmanNoCache([]string{"search", fmt.Sprintf("%s/", registryEndpoints[3].Address()), "--tls-verify=false"})
+		searchEmpty := podmanTest.Podman([]string{"search", fmt.Sprintf("%s/", registryEndpoints[3].Address()), "--tls-verify=false"})
 		searchEmpty.WaitWithDefaultTimeout()
 		Expect(searchEmpty.ExitCode()).To(BeZero())
 		Expect(len(searchEmpty.OutputToStringArray())).To(BeNumerically(">=", 1))
@@ -254,7 +262,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		podmanTest.RestoreArtifact(ALPINE)
 		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[4].Address())
-		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -268,7 +276,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 			defer podmanTest.RestartRemoteService()
 		}
 
-		search := podmanTest.PodmanNoCache([]string{"search", image})
+		search := podmanTest.Podman([]string{"search", image})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -298,7 +306,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		podmanTest.RestoreArtifact(ALPINE)
 		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[5].Address())
-		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -311,7 +319,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 			defer podmanTest.RestartRemoteService()
 		}
 
-		search := podmanTest.PodmanNoCache([]string{"search", image, "--tls-verify=true"})
+		search := podmanTest.Podman([]string{"search", image, "--tls-verify=true"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -341,7 +349,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		podmanTest.RestoreArtifact(ALPINE)
 		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[6].Address())
-		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -355,7 +363,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 			defer podmanTest.RestartRemoteService()
 		}
 
-		search := podmanTest.PodmanNoCache([]string{"search", image})
+		search := podmanTest.Podman([]string{"search", image})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -395,7 +403,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
-		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:6000/my-alpine"})
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:6000/my-alpine"})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -410,7 +418,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 			defer podmanTest.RestartRemoteService()
 		}
 
-		search := podmanTest.PodmanNoCache([]string{"search", "my-alpine"})
+		search := podmanTest.Podman([]string{"search", "my-alpine"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))

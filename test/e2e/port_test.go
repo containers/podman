@@ -61,7 +61,7 @@ var _ = Describe("Podman port", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
-		Expect(result.LineInOuputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
+		Expect(result.LineInOutputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
 	})
 
 	It("podman container port  -l nginx", func() {
@@ -79,7 +79,7 @@ var _ = Describe("Podman port", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
-		Expect(result.LineInOuputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
+		Expect(result.LineInOutputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
 	})
 
 	It("podman port -l port nginx", func() {
@@ -97,7 +97,7 @@ var _ = Describe("Podman port", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
-		Expect(result.LineInOuputStartsWith(fmt.Sprintf("0.0.0.0:%s", port))).To(BeTrue())
+		Expect(result.LineInOutputStartsWith(fmt.Sprintf("0.0.0.0:%s", port))).To(BeTrue())
 	})
 
 	It("podman port -a nginx", func() {
@@ -124,7 +124,7 @@ var _ = Describe("Podman port", func() {
 		result := podmanTest.Podman([]string{"port", "portcheck"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		result.LineInOuputStartsWith("80/tcp -> 0.0.0.0:")
+		result.LineInOutputStartsWith("80/tcp -> 0.0.0.0:")
 	})
 
 	It("podman port multiple ports", func() {
@@ -142,12 +142,12 @@ var _ = Describe("Podman port", func() {
 		result1 := podmanTest.Podman([]string{"port", "test", "5000"})
 		result1.WaitWithDefaultTimeout()
 		Expect(result1.ExitCode()).To(BeZero())
-		Expect(result1.LineInOuputStartsWith("0.0.0.0:5000")).To(BeTrue())
+		Expect(result1.LineInOutputStartsWith("0.0.0.0:5000")).To(BeTrue())
 
 		// Check that the second port was honored
 		result2 := podmanTest.Podman([]string{"port", "test", "5001"})
 		result2.WaitWithDefaultTimeout()
 		Expect(result2.ExitCode()).To(BeZero())
-		Expect(result2.LineInOuputStartsWith("0.0.0.0:5001")).To(BeTrue())
+		Expect(result2.LineInOutputStartsWith("0.0.0.0:5001")).To(BeTrue())
 	})
 })

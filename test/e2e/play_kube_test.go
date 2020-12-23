@@ -164,9 +164,15 @@ spec:
   volumes:
   {{ range . }}
   - name: {{ .Name }}
+    {{- if (eq .VolumeType "HostPath") }}
     hostPath:
-      path: {{ .Path }}
-      type: {{ .Type }}
+      path: {{ .HostPath.Path }}
+      type: {{ .HostPath.Type }}
+    {{- end }}
+    {{- if (eq .VolumeType "PersistentVolumeClaim") }}
+    persistentVolumeClaim:
+      claimName: {{ .PersistentVolumeClaim.ClaimName }}
+    {{- end }}
   {{ end }}
 {{ end }}
 status: {}
@@ -692,19 +698,44 @@ func getCtrNameInPod(pod *Pod) string {
 	return fmt.Sprintf("%s-%s", pod.Name, defaultCtrName)
 }
 
-type Volume struct {
-	Name string
+type HostPath struct {
 	Path string
 	Type string
 }
 
-// getVolume takes a type and a location for a volume
-// giving it a default name of volName
-func getVolume(vType, vPath string) *Volume {
+type PersistentVolumeClaim struct {
+	ClaimName string
+}
+
+type Volume struct {
+	VolumeType string
+	Name       string
+	HostPath
+	PersistentVolumeClaim
+}
+
+// getHostPathVolume takes a type and a location for a HostPath
+// volume giving it a default name of volName
+func getHostPathVolume(vType, vPath string) *Volume {
 	return &Volume{
-		Name: defaultVolName,
-		Path: vPath,
-		Type: vType,
+		VolumeType: "HostPath",
+		Name:       defaultVolName,
+		HostPath: HostPath{
+			Path: vPath,
+			Type: vType,
+		},
+	}
+}
+
+// getHostPathVolume takes a name for a Persistentvolumeclaim
+// volume giving it a default name of volName
+func getPersistentVolumeClaimVolume(vName string) *Volume {
+	return &Volume{
+		VolumeType: "PersistentVolumeClaim",
+		Name:       defaultVolName,
+		PersistentVolumeClaim: PersistentVolumeClaim{
+			ClaimName: vName,
+		},
 	}
 }
 
@@ -789,8 +820,28 @@ var _ = Describe("Podman play kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(correctCmd))
 	})
 
+	// If you do not supply command or args for a Container, the defaults defined in the Docker image are used.
+	It("podman play kube test correct args and cmd when not specified", func() {
+		pod := getPod(withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		// this image's ENTRYPOINT is `/entrypoint.sh` and it's COMMAND is `/etc/docker/registry/config.yml`
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[/entrypoint.sh /etc/docker/registry/config.yml]`))
+	})
+
+	// If you supply a command but no args for a Container, only the supplied command is used.
+	// The default EntryPoint and the default Cmd defined in the Docker image are ignored.
 	It("podman play kube test correct command with only set command in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg(nil))))
+		pod := getPod(withCtr(getCtr(withImage(registry), withCmd([]string{"echo", "hello"}), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -806,8 +857,9 @@ var _ = Describe("Podman play kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
 	})
 
+	// If you supply only args for a Container, the default Entrypoint defined in the Docker image is run with the args that you supplied.
 	It("podman play kube test correct command with only set args in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withImage(redis), withCmd(nil), withArg([]string{"echo", "hello"}))))
+		pod := getPod(withCtr(getCtr(withImage(registry), withCmd(nil), withArg([]string{"echo", "hello"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -818,9 +870,27 @@ var _ = Describe("Podman play kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		// this image's ENTRYPOINT is called `docker-entrypoint.sh`
-		// so result should be `docker-entrypoint.sh + withArg(...)`
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[docker-entrypoint.sh echo hello]`))
+		// this image's ENTRYPOINT is `/entrypoint.sh`
+		// so result should be `/entrypoint.sh + withArg(...)`
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[/entrypoint.sh echo hello]`))
+	})
+
+	// If you supply a command and args,
+	// the default Entrypoint and the default Cmd defined in the Docker image are ignored.
+	// Your command is run with your args.
+	It("podman play kube test correct command with both set args and cmd in yaml file", func() {
+		pod := getPod(withCtr(getCtr(withImage(registry), withCmd([]string{"echo"}), withArg([]string{"hello"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[echo hello]`))
 	})
 
 	It("podman play kube test correct output", func() {
@@ -959,7 +1029,7 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ .HostConfig.ExtraHosts }}"})
+		inspect := podmanTest.Podman([]string{"inspect", pod.Name, "--format", "{{ .InfraConfig.HostAdd}}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).
@@ -1041,7 +1111,7 @@ var _ = Describe("Podman play kube", func() {
 		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
-		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
+		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
 	})
 
 	It("podman play kube seccomp pod level", func() {
@@ -1068,7 +1138,7 @@ var _ = Describe("Podman play kube", func() {
 		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
-		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
+		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
 	})
 
 	It("podman play kube with pull policy of never should be 125", func() {
@@ -1257,7 +1327,7 @@ spec:
 	It("podman play kube test with non-existent empty HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
-		pod := getPod(withVolume(getVolume(`""`, hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume(`""`, hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1272,7 +1342,7 @@ spec:
 		Expect(err).To(BeNil())
 		f.Close()
 
-		pod := getPod(withVolume(getVolume(`""`, hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume(`""`, hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1284,7 +1354,7 @@ spec:
 	It("podman play kube test with non-existent File HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
-		pod := getPod(withVolume(getVolume("File", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1299,7 +1369,7 @@ spec:
 		Expect(err).To(BeNil())
 		f.Close()
 
-		pod := getPod(withVolume(getVolume("File", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1311,7 +1381,7 @@ spec:
 	It("podman play kube test with FileOrCreate HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
-		pod := getPod(withVolume(getVolume("FileOrCreate", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("FileOrCreate", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1327,7 +1397,7 @@ spec:
 	It("podman play kube test with DirectoryOrCreate HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 
-		pod := getPod(withVolume(getVolume("DirectoryOrCreate", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1347,7 +1417,7 @@ spec:
 		Expect(err).To(BeNil())
 		f.Close()
 
-		pod := getPod(withVolume(getVolume("Socket", hostPathLocation)))
+		pod := getPod(withVolume(getHostPathVolume("Socket", hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1356,14 +1426,14 @@ spec:
 		Expect(kube.ExitCode()).NotTo(Equal(0))
 	})
 
-	It("podman play kube test with read only volume", func() {
+	It("podman play kube test with read only HostPath volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 		f, err := os.Create(hostPathLocation)
 		Expect(err).To(BeNil())
 		f.Close()
 
 		ctr := getCtr(withVolumeMount(hostPathLocation, true), withImage(BB))
-		pod := getPod(withVolume(getVolume("File", hostPathLocation)), withCtr(ctr))
+		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1377,6 +1447,26 @@ spec:
 
 		correct := fmt.Sprintf("%s:%s:%s", hostPathLocation, hostPathLocation, "ro")
 		Expect(inspect.OutputToString()).To(ContainSubstring(correct))
+	})
+
+	It("podman play kube test with PersistentVolumeClaim volume", func() {
+		volumeName := "namedVolume"
+
+		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		pod := getPod(withVolume(getPersistentVolumeClaimVolume(volumeName)), withCtr(ctr))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ (index .Mounts 0).Type }}:{{ (index .Mounts 0).Name }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		correct := fmt.Sprintf("volume:%s", volumeName)
+		Expect(inspect.OutputToString()).To(Equal(correct))
 	})
 
 	It("podman play kube applies labels to pods", func() {
@@ -1465,5 +1555,36 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(125))
 		Expect(kube.ErrorToString()).To(ContainSubstring(invalidImageName))
+	})
+
+	It("podman play kube applies log driver to containers", func() {
+		Skip("need to verify images have correct packages for journald")
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--log-driver", "journald", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .HostConfig.LogConfig.Type }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("journald"))
+	})
+
+	It("podman play kube test only creating the containers", func() {
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--start=false", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ .State.Running }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(Equal("false"))
 	})
 })

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/containers/podman/v2/libpod/define"
@@ -20,27 +18,14 @@ import (
 // Events allows you to monitor libdpod related events like container creation and
 // removal.  The events are then passed to the eventChan provided. The optional cancelChan
 // can be used to cancel the read of events and close down the HTTP connection.
-func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan bool, since, until *string, filters map[string][]string, stream *bool) error {
+func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan bool, options *EventsOptions) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
-	params := url.Values{}
-	if since != nil {
-		params.Set("since", *since)
-	}
-	if until != nil {
-		params.Set("until", *until)
-	}
-	if stream != nil {
-		params.Set("stream", strconv.FormatBool(*stream))
-	}
-	if filters != nil {
-		filterString, err := bindings.FiltersToString(filters)
-		if err != nil {
-			return errors.Wrap(err, "invalid filters")
-		}
-		params.Set("filters", filterString)
+	params, err := options.ToParams()
+	if err != nil {
+		return err
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/events", params, nil)
 	if err != nil {
@@ -74,7 +59,7 @@ func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan 
 }
 
 // Prune removes all unused system data.
-func Prune(ctx context.Context, all, volumes *bool) (*entities.SystemPruneReport, error) {
+func Prune(ctx context.Context, options *PruneOptions) (*entities.SystemPruneReport, error) {
 	var (
 		report entities.SystemPruneReport
 	)
@@ -82,12 +67,9 @@ func Prune(ctx context.Context, all, volumes *bool) (*entities.SystemPruneReport
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if all != nil {
-		params.Set("All", strconv.FormatBool(*all))
-	}
-	if volumes != nil {
-		params.Set("Volumes", strconv.FormatBool(*volumes))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/system/prune", params, nil)
 	if err != nil {
@@ -96,10 +78,15 @@ func Prune(ctx context.Context, all, volumes *bool) (*entities.SystemPruneReport
 	return &report, response.Process(&report)
 }
 
-func Version(ctx context.Context) (*entities.SystemVersionReport, error) {
-	var report entities.SystemVersionReport
-	var component entities.ComponentVersion
-
+func Version(ctx context.Context, options *VersionOptions) (*entities.SystemVersionReport, error) {
+	var (
+		component entities.ComponentVersion
+		report    entities.SystemVersionReport
+	)
+	if options == nil {
+		options = new(VersionOptions)
+	}
+	_ = options
 	version, err := define.GetVersion()
 	if err != nil {
 		return nil, err
@@ -140,8 +127,12 @@ func Version(ctx context.Context) (*entities.SystemVersionReport, error) {
 
 // DiskUsage returns information about image, container, and volume disk
 // consumption
-func DiskUsage(ctx context.Context) (*entities.SystemDfReport, error) {
+func DiskUsage(ctx context.Context, options *DiskOptions) (*entities.SystemDfReport, error) {
 	var report entities.SystemDfReport
+	if options == nil {
+		options = new(DiskOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

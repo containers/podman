@@ -42,7 +42,7 @@ Epoch: 99
 %else
 Epoch: 0
 %endif
-Version: 2.2.0
+Version: 3.0.0
 Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
 Summary: Manage Pods, Containers and Container Images
 License: ASL 2.0
@@ -90,8 +90,8 @@ Recommends: crun
 Recommends: container-selinux
 Recommends: slirp4netns
 Recommends: fuse-overlayfs
-%endif
 Recommends: xz
+%endif
 
 # vendored libraries
 # awk '{print "Provides: bundled(golang("$1")) = "$2}' vendor.conf | sort
@@ -166,7 +166,6 @@ Provides: bundled(golang(github.com/tchap/go-patricia)) = v2.2.6
 Provides: bundled(golang(github.com/ulikunitz/xz)) = v0.5.4
 # "-" are not accepted in version strings, so comment out below line
 #Provides: bundled(golang(github.com/urfave/cli)) = fix-short-opts-parsing
-Provides: bundled(golang(github.com/varlink/go)) = master
 Provides: bundled(golang(github.com/vbatts/tar-split)) = v0.10.2
 Provides: bundled(golang(github.com/vishvananda/netlink)) = master
 Provides: bundled(golang(github.com/vishvananda/netns)) = master
@@ -499,6 +498,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_bindir}/%{name}
 %{_datadir}/bash-completion/completions/*
 %{_datadir}/zsh/site-functions/*
+%{_datadir}/fish/vendor_completions.d/*
 %{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_unitdir}/podman-auto-update.service

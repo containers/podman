@@ -3,18 +3,19 @@ package play
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 )
 
-func Kube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.PlayKubeReport, error) {
 	var report entities.PlayKubeReport
+	if options == nil {
+		options = new(KubeOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -26,14 +27,19 @@ func Kube(ctx context.Context, path string, options entities.PlayKubeOptions) (*
 	}
 	defer f.Close()
 
-	params := url.Values{}
-	params.Set("network", options.Network)
-	if options.SkipTLSVerify != types.OptionalBoolUndefined {
-		params.Set("tlsVerify", strconv.FormatBool(options.SkipTLSVerify == types.OptionalBoolTrue))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	if options.SkipTLSVerify != nil {
+		params.Set("tlsVerify", strconv.FormatBool(options.GetSkipTLSVerify()))
+	}
+	if options.Start != nil {
+		params.Set("start", strconv.FormatBool(options.GetStart()))
 	}
 
 	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.Authfile, options.Username, options.Password)
+	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.GetAuthfile(), options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,5 @@
 // +build linux
+// +build !mips,!mipsle,!mips64,!mips64le
 
 // Signal handling for Linux only.
 package signal

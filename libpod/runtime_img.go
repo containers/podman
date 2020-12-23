@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/v5/directory"
@@ -276,56 +275,47 @@ func DownloadFromFile(reader *os.File) (string, error) {
 }
 
 // LoadImage loads a container image into local storage
-func (r *Runtime) LoadImage(ctx context.Context, name, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
-	var (
-		newImages []*image.Image
-		err       error
-		src       types.ImageReference
-	)
-
-	if name == "" {
-		newImages, err = r.ImageRuntime().LoadAllImagesFromDockerArchive(ctx, inputFile, signaturePolicy, writer)
-		if err == nil {
-			return getImageNames(newImages), nil
-		}
+func (r *Runtime) LoadImage(ctx context.Context, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
+	if newImages, err := r.LoadAllImageFromArchive(ctx, writer, inputFile, signaturePolicy); err == nil {
+		return newImages, nil
 	}
+	return r.LoadImageFromSingleImageArchive(ctx, writer, inputFile, signaturePolicy)
+}
 
+// LoadAllImageFromArchive loads all images from the archive of multi-image that inputFile points to.
+func (r *Runtime) LoadAllImageFromArchive(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
+	newImages, err := r.ImageRuntime().LoadAllImagesFromDockerArchive(ctx, inputFile, signaturePolicy, writer)
+	if err == nil {
+		return getImageNames(newImages), nil
+	}
+	return "", err
+}
+
+// LoadImageFromSingleImageArchive load image from the archive of single image that inputFile points to.
+func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
+	var err error
 	for _, referenceFn := range []func() (types.ImageReference, error){
 		func() (types.ImageReference, error) {
 			return dockerarchive.ParseReference(inputFile)
 		},
 		func() (types.ImageReference, error) {
-			return ociarchive.NewReference(inputFile, name) // name may be ""
-		},
-		func() (types.ImageReference, error) {
-			// prepend "localhost/" to support local image saved with this semantics
-			if !strings.Contains(name, "/") {
-				return ociarchive.NewReference(inputFile, fmt.Sprintf("%s/%s", image.DefaultLocalRegistry, name))
-			}
-			return nil, nil
+			return ociarchive.NewReference(inputFile, "")
 		},
 		func() (types.ImageReference, error) {
 			return directory.NewReference(inputFile)
 		},
 		func() (types.ImageReference, error) {
-			return layout.NewReference(inputFile, name)
-		},
-		func() (types.ImageReference, error) {
-			// prepend "localhost/" to support local image saved with this semantics
-			if !strings.Contains(name, "/") {
-				return layout.NewReference(inputFile, fmt.Sprintf("%s/%s", image.DefaultLocalRegistry, name))
-			}
-			return nil, nil
+			return layout.NewReference(inputFile, "")
 		},
 	} {
-		src, err = referenceFn()
+		src, err := referenceFn()
 		if err == nil && src != nil {
-			if newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
+			if newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
 				return getImageNames(newImages), nil
 			}
 		}
 	}
-	return "", errors.Wrapf(err, "error pulling %q", name)
+	return "", errors.Wrapf(err, "error pulling image")
 }
 
 func getImageNames(images []*image.Image) string {

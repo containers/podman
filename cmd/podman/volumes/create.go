@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -15,10 +16,11 @@ var (
 	createDescription = `If using the default driver, "local", the volume will be created on the host in the volumes directory under container storage.`
 
 	createCommand = &cobra.Command{
-		Use:   "create [options] [NAME]",
-		Short: "Create a new volume",
-		Long:  createDescription,
-		RunE:  create,
+		Use:               "create [options] [NAME]",
+		Short:             "Create a new volume",
+		Long:              createDescription,
+		RunE:              create,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman volume create myvol
   podman volume create
   podman volume create --label foo=bar myvol`,
@@ -40,9 +42,18 @@ func init() {
 		Parent:  volumeCmd,
 	})
 	flags := createCommand.Flags()
-	flags.StringVar(&createOpts.Driver, "driver", "local", "Specify volume driver name")
-	flags.StringSliceVarP(&opts.Label, "label", "l", []string{}, "Set metadata for a volume (default [])")
-	flags.StringArrayVarP(&opts.Opts, "opt", "o", []string{}, "Set driver specific options (default [])")
+
+	driverFlagName := "driver"
+	flags.StringVar(&createOpts.Driver, driverFlagName, "local", "Specify volume driver name")
+	_ = createCommand.RegisterFlagCompletionFunc(driverFlagName, completion.AutocompleteNone)
+
+	labelFlagName := "label"
+	flags.StringSliceVarP(&opts.Label, labelFlagName, "l", []string{}, "Set metadata for a volume (default [])")
+	_ = createCommand.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
+
+	optFlagName := "opt"
+	flags.StringArrayVarP(&opts.Opts, optFlagName, "o", []string{}, "Set driver specific options (default [])")
+	_ = createCommand.RegisterFlagCompletionFunc(optFlagName, completion.AutocompleteNone)
 }
 
 func create(cmd *cobra.Command, args []string) error {

@@ -21,6 +21,9 @@ load helpers
     run_podman logs $cid
     is "$output" "$rand_string" "output from podman-logs after container is run"
 
+    # test --since with Unix timestamps
+    run_podman logs --since 1000 $cid
+
     run_podman rm $cid
 }
 
@@ -51,6 +54,9 @@ ${cid[0]} d"   "Sequential output from logs"
 }
 
 @test "podman logs over journald" {
+    # We can't use journald on RHEL as rootless: rhbz#1895105
+    skip_if_journald_unavailable
+
     msg=$(random_string 20)
 
     run_podman run --name myctr --log-driver journald $IMAGE echo $msg

@@ -3,8 +3,6 @@ package containers
 import (
 	"context"
 	"net/http"
-	"net/url"
-	"strconv"
 
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -12,33 +10,18 @@ import (
 
 // Checkpoint checkpoints the given container (identified by nameOrID).  All additional
 // options are options and allow for more fine grained control of the checkpoint process.
-func Checkpoint(ctx context.Context, nameOrID string, keep, leaveRunning, tcpEstablished, ignoreRootFS, preCheckPoint, withPrevious *bool, export *string) (*entities.CheckpointReport, error) {
+func Checkpoint(ctx context.Context, nameOrID string, options *CheckpointOptions) (*entities.CheckpointReport, error) {
 	var report entities.CheckpointReport
+	if options == nil {
+		options = new(CheckpointOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if keep != nil {
-		params.Set("keep", strconv.FormatBool(*keep))
-	}
-	if leaveRunning != nil {
-		params.Set("leaveRunning", strconv.FormatBool(*leaveRunning))
-	}
-	if tcpEstablished != nil {
-		params.Set("TCPestablished", strconv.FormatBool(*tcpEstablished))
-	}
-	if ignoreRootFS != nil {
-		params.Set("ignoreRootFS", strconv.FormatBool(*ignoreRootFS))
-	}
-	if preCheckPoint != nil {
-		params.Set("preCheckPoint", strconv.FormatBool(*preCheckPoint))
-	}
-	if withPrevious != nil {
-		params.Set("withPrevious", strconv.FormatBool(*withPrevious))
-	}
-	if export != nil {
-		params.Set("export", *export)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/checkpoint", params, nil, nameOrID)
 	if err != nil {
@@ -49,33 +32,23 @@ func Checkpoint(ctx context.Context, nameOrID string, keep, leaveRunning, tcpEst
 
 // Restore restores a checkpointed container to running. The container is identified by the nameOrID option. All
 // additional options are optional and allow finer control of the restore process.
-func Restore(ctx context.Context, nameOrID string, keep, tcpEstablished, ignoreRootFS, ignoreStaticIP, ignoreStaticMAC *bool, name, importArchive *string) (*entities.RestoreReport, error) {
+func Restore(ctx context.Context, nameOrID string, options *RestoreOptions) (*entities.RestoreReport, error) {
 	var report entities.RestoreReport
+	if options == nil {
+		options = new(RestoreOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if keep != nil {
-		params.Set("keep", strconv.FormatBool(*keep))
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
-	if tcpEstablished != nil {
-		params.Set("TCPestablished", strconv.FormatBool(*tcpEstablished))
-	}
-	if ignoreRootFS != nil {
-		params.Set("ignoreRootFS", strconv.FormatBool(*ignoreRootFS))
-	}
-	if ignoreStaticIP != nil {
-		params.Set("ignoreStaticIP", strconv.FormatBool(*ignoreStaticIP))
-	}
-	if ignoreStaticMAC != nil {
-		params.Set("ignoreStaticMAC", strconv.FormatBool(*ignoreStaticMAC))
-	}
-	if name != nil {
-		params.Set("name", *name)
-	}
-	if importArchive != nil {
-		params.Set("import", *importArchive)
+	// The import key is a reserved golang term
+	params.Del("ImportArchive")
+	if i := options.GetImportAchive(); options.Changed("ImportArchive") {
+		params.Set("import", i)
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restore", params, nil, nameOrID)
 	if err != nil {

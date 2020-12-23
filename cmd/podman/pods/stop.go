@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -36,6 +37,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndPodIDFile(cmd, args, false, true)
 		},
+		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod stop mywebserverpod
   podman pod stop --latest
   podman pod stop --time 0 490eb 3557fb`,
@@ -51,8 +53,15 @@ func init() {
 	flags := stopCommand.Flags()
 	flags.BoolVarP(&stopOptions.All, "all", "a", false, "Stop all running pods")
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
-	flags.UintVarP(&stopOptions.TimeoutCLI, "time", "t", containerConfig.Engine.StopTimeout, "Seconds to wait for pod stop before killing the container")
-	flags.StringArrayVarP(&stopOptions.PodIDFiles, "pod-id-file", "", nil, "Read the pod ID from the file")
+
+	timeFlagName := "time"
+	flags.UintVarP(&stopOptions.TimeoutCLI, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for pod stop before killing the container")
+	_ = stopCommand.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
+
+	podIDFileFlagName := "pod-id-file"
+	flags.StringArrayVarP(&stopOptions.PodIDFiles, podIDFileFlagName, "", nil, "Write the pod ID to the file")
+	_ = stopCommand.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
+
 	validate.AddLatestFlag(stopCommand, &stopOptions.Latest)
 
 	if registry.IsRemote() {

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/images"
 	"github.com/containers/podman/v2/pkg/bindings/manifests"
@@ -37,7 +36,7 @@ var _ = Describe("Podman containers ", func() {
 		// create manifest list without images
 		id, err := manifests.Create(bt.conn, []string{"quay.io/libpod/foobar:latest"}, []string{}, nil)
 		Expect(err).To(BeNil())
-		list, err := manifests.Inspect(bt.conn, id)
+		list, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).To(BeNil())
 		Expect(len(list.Manifests)).To(BeZero())
 
@@ -47,19 +46,19 @@ var _ = Describe("Podman containers ", func() {
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
-		_, err = images.Remove(bt.conn, id, false)
-		Expect(err).To(BeNil())
+		_, errs := images.Remove(bt.conn, []string{id}, nil)
+		Expect(len(errs)).To(BeZero())
 
 		// create manifest list with images
 		id, err = manifests.Create(bt.conn, []string{"quay.io/libpod/foobar:latest"}, []string{alpine.name}, nil)
 		Expect(err).To(BeNil())
-		list, err = manifests.Inspect(bt.conn, id)
+		list, err = manifests.Inspect(bt.conn, id, nil)
 		Expect(err).To(BeNil())
 		Expect(len(list.Manifests)).To(BeNumerically("==", 1))
 	})
 
 	It("inspect bogus manifest", func() {
-		_, err := manifests.Inspect(bt.conn, "larry")
+		_, err := manifests.Inspect(bt.conn, "larry", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -67,23 +66,23 @@ var _ = Describe("Podman containers ", func() {
 
 	It("add manifest", func() {
 		// add to bogus should 404
-		_, err := manifests.Add(bt.conn, "foobar", image.ManifestAddOpts{})
+		_, err := manifests.Add(bt.conn, "foobar", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		id, err := manifests.Create(bt.conn, []string{"quay.io/libpod/foobar:latest"}, []string{}, nil)
 		Expect(err).To(BeNil())
-		opts := image.ManifestAddOpts{Images: []string{alpine.name}}
-		_, err = manifests.Add(bt.conn, id, opts)
+		options := new(manifests.AddOptions).WithImages([]string{alpine.name})
+		_, err = manifests.Add(bt.conn, id, options)
 		Expect(err).To(BeNil())
-		list, err := manifests.Inspect(bt.conn, id)
+		list, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).To(BeNil())
 		Expect(len(list.Manifests)).To(BeNumerically("==", 1))
 
 		// add bogus name to existing list should fail
-		opts.Images = []string{"larry"}
-		_, err = manifests.Add(bt.conn, id, opts)
+		options.WithImages([]string{"larry"})
+		_, err = manifests.Add(bt.conn, id, options)
 		Expect(err).ToNot(BeNil())
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -91,29 +90,29 @@ var _ = Describe("Podman containers ", func() {
 
 	It("remove manifest", func() {
 		// removal on bogus manifest list should be 404
-		_, err := manifests.Remove(bt.conn, "larry", "1234")
+		_, err := manifests.Remove(bt.conn, "larry", "1234", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		id, err := manifests.Create(bt.conn, []string{"quay.io/libpod/foobar:latest"}, []string{alpine.name}, nil)
 		Expect(err).To(BeNil())
-		data, err := manifests.Inspect(bt.conn, id)
+		data, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).To(BeNil())
 		Expect(len(data.Manifests)).To(BeNumerically("==", 1))
 
 		// removal on a good manifest list with a bad digest should be 400
-		_, err = manifests.Remove(bt.conn, id, "!234")
+		_, err = manifests.Remove(bt.conn, id, "!234", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusBadRequest))
 
 		digest := data.Manifests[0].Digest.String()
-		_, err = manifests.Remove(bt.conn, id, digest)
+		_, err = manifests.Remove(bt.conn, id, digest, nil)
 		Expect(err).To(BeNil())
 
 		// removal on good manifest with good digest should work
-		data, err = manifests.Inspect(bt.conn, id)
+		data, err = manifests.Inspect(bt.conn, id, nil)
 		Expect(err).To(BeNil())
 		Expect(len(data.Manifests)).To(BeZero())
 	})

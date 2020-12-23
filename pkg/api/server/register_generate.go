@@ -70,7 +70,7 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/generate/{name:.*}/systemd"), s.APIHandler(libpod.GenerateSystemd)).Methods(http.MethodGet)
 
-	// swagger:operation GET /libpod/generate/{name:.*}/kube libpod libpodGenerateKube
+	// swagger:operation GET /libpod/generate/kube libpod libpodGenerateKube
 	// ---
 	// tags:
 	//  - containers
@@ -78,9 +78,11 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	// summary: Generate a Kubernetes YAML file.
 	// description: Generate Kubernetes YAML based on a pod or container.
 	// parameters:
-	//  - in: path
-	//    name: name:.*
-	//    type: string
+	//  - in: query
+	//    name: names
+	//    type: array
+	//    items:
+	//       type: string
 	//    required: true
 	//    description: Name or ID of the container or pod.
 	//  - in: query
@@ -98,6 +100,6 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//      format: binary
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/generate/{name:.*}/kube"), s.APIHandler(libpod.GenerateKube)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/generate/kube"), s.APIHandler(libpod.GenerateKube)).Methods(http.MethodGet)
 	return nil
 }

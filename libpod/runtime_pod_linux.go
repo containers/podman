@@ -117,7 +117,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 		return nil, errors.Errorf("Pods must have an infra container to share namespaces")
 	}
 	if pod.HasInfraContainer() && !pod.SharesNamespaces() {
-		logrus.Warnf("Pod has an infra container, but shares no namespaces")
+		logrus.Infof("Pod has an infra container, but shares no namespaces")
 	}
 
 	if err := r.state.AddPod(pod); err != nil {
@@ -212,7 +212,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		// Don't try if we failed to retrieve the cgroup
 		if err == nil {
 			if err := conmonCgroup.Update(resLimits); err != nil {
-				logrus.Warnf("Error updating pod %s conmon cgroup %s PID limit: %v", p.ID(), conmonCgroupPath, err)
+				logrus.Warnf("Error updating pod %s conmon cgroup PID limit: %v", p.ID(), err)
 			}
 		}
 	}

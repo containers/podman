@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -20,6 +21,7 @@ var (
 		RunE:                  exists,
 		Args:                  cobra.ExactArgs(1),
 		DisableFlagsInUseLine: true,
+		ValidArgsFunction:     common.AutocompleteContainers,
 	}
 )
 

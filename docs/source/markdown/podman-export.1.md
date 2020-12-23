@@ -12,6 +12,8 @@ podman\-export - Export a container's filesystem contents as a tar archive
 **podman export** exports the filesystem of a container and saves it as a tarball
 on the local machine. **podman export** writes to STDOUT by default and can be
 redirected to a file using the `--output` flag.
+The image of the container exported by **podman export** can be imported by **podman import**.
+To export image(s) with parent layers, use **podman save**.
 Note: `:` is a restricted character and cannot be part of the file name.
 
 **podman [GLOBAL OPTIONS]**
@@ -22,11 +24,11 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
-**--output**, **-o**
+#### **--output**, **-o**
 
 Write to a file, default is STDOUT
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

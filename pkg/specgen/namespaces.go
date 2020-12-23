@@ -27,19 +27,25 @@ const (
 	// Private indicates the namespace is private
 	Private NamespaceMode = "private"
 	// NoNetwork indicates no network namespace should
-	// be joined.  loopback should still exists
+	// be joined.  loopback should still exists.
+	// Only used with the network namespace, invalid otherwise.
 	NoNetwork NamespaceMode = "none"
 	// Bridge indicates that a CNI network stack
-	// should be used
+	// should be used.
+	// Only used with the network namespace, invalid otherwise.
 	Bridge NamespaceMode = "bridge"
 	// Slirp indicates that a slirp4netns network stack should
-	// be used
+	// be used.
+	// Only used with the network namespace, invalid otherwise.
 	Slirp NamespaceMode = "slirp4netns"
 	// KeepId indicates a user namespace to keep the owner uid inside
-	// of the namespace itself
+	// of the namespace itself.
+	// Only used with the user namespace, invalid otherwise.
 	KeepID NamespaceMode = "keep-id"
-	// KeepId indicates to automatically create a user namespace
+	// Auto indicates to automatically create a user namespace.
+	// Only used with the user namespace, invalid otherwise.
 	Auto NamespaceMode = "auto"
+
 	// DefaultKernelNamespaces is a comma-separated list of default kernel
 	// namespaces.
 	DefaultKernelNamespaces = "cgroup,ipc,net,uts"
@@ -252,24 +258,22 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 	var cniNetworks []string
 	// Net defaults to Slirp on rootless
 	switch {
-	case ns == "slirp4netns", strings.HasPrefix(ns, "slirp4netns:"):
+	case ns == string(Slirp), strings.HasPrefix(ns, string(Slirp)+":"):
 		toReturn.NSMode = Slirp
-	case ns == "pod":
+	case ns == string(FromPod):
 		toReturn.NSMode = FromPod
-	case ns == "":
+	case ns == "" || ns == string(Default) || ns == string(Private):
 		if rootless.IsRootless() {
 			toReturn.NSMode = Slirp
 		} else {
 			toReturn.NSMode = Bridge
 		}
-	case ns == "bridge":
+	case ns == string(Bridge):
 		toReturn.NSMode = Bridge
-	case ns == "none":
+	case ns == string(NoNetwork):
 		toReturn.NSMode = NoNetwork
-	case ns == "host":
+	case ns == string(Host):
 		toReturn.NSMode = Host
-	case ns == "private":
-		toReturn.NSMode = Private
 	case strings.HasPrefix(ns, "ns:"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
@@ -277,7 +281,7 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 		}
 		toReturn.NSMode = Path
 		toReturn.Value = split[1]
-	case strings.HasPrefix(ns, "container:"):
+	case strings.HasPrefix(ns, string(FromContainer)+":"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
 			return toReturn, nil, errors.Errorf("must provide name or ID or a container when specifying container:")

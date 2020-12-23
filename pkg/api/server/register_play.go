@@ -25,6 +25,15 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: true
 	//    description: Require HTTPS and verify signatures when contacting registries.
+	//  - in: query
+	//    name: logDriver
+	//    type: string
+	//    description: Logging driver for the containers in the pod.
+	//  - in: query
+	//    name: start
+	//    type: boolean
+	//    default: true
+	//    description: Start the pod after creating it.
 	//  - in: body
 	//    name: request
 	//    description: Kubernetes YAML file.

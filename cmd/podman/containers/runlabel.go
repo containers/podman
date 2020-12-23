@@ -5,7 +5,9 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
@@ -23,11 +25,12 @@ var (
 	runlabelOptions     = runlabelOptionsWrapper{}
 	runlabelDescription = "Executes a command as described by a container image label."
 	runlabelCommand     = &cobra.Command{
-		Use:   "runlabel [options] LABEL IMAGE [ARG...]",
-		Short: "Execute the command described by an image label",
-		Long:  runlabelDescription,
-		RunE:  runlabel,
-		Args:  cobra.MinimumNArgs(2),
+		Use:               "runlabel [options] LABEL IMAGE [ARG...]",
+		Short:             "Execute the command described by an image label",
+		Long:              runlabelDescription,
+		RunE:              runlabel,
+		Args:              cobra.MinimumNArgs(2),
+		ValidArgsFunction: common.AutocompleteRunlabelCommand,
 		Example: `podman container runlabel run imageID
   podman container runlabel install imageID arg1 arg2
   podman container runlabel --display run myImage`,
@@ -42,11 +45,25 @@ func init() {
 	})
 
 	flags := runlabelCommand.Flags()
-	flags.StringVar(&runlabelOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
-	flags.StringVar(&runlabelOptions.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
-	flags.StringVar(&runlabelOptions.Credentials, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+
+	authfileflagName := "authfile"
+	flags.StringVar(&runlabelOptions.Authfile, authfileflagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	_ = runlabelCommand.RegisterFlagCompletionFunc(authfileflagName, completion.AutocompleteDefault)
+
+	certDirFlagName := "cert-dir"
+	flags.StringVar(&runlabelOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
+	_ = runlabelCommand.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
+
+	credsFlagName := "creds"
+	flags.StringVar(&runlabelOptions.Credentials, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	_ = runlabelCommand.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&runlabelOptions.Display, "display", false, "Preview the command that the label would run")
-	flags.StringVarP(&runlabelOptions.Name, "name", "n", "", "Assign a name to the container")
+
+	nameFlagName := "name"
+	flags.StringVarP(&runlabelOptions.Name, nameFlagName, "n", "", "Assign a name to the container")
+	_ = runlabelCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
+
 	flags.StringVar(&runlabelOptions.Optional1, "opt1", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelOptions.Optional2, "opt2", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelOptions.Optional3, "opt3", "", "Optional parameter to pass for install")

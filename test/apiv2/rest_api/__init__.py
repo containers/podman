@@ -3,7 +3,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 
 
@@ -17,19 +16,18 @@ class Podman(object):
         binary = os.getenv("PODMAN", "bin/podman")
         self.cmd = [binary, "--storage-driver=vfs"]
 
-        cgroupfs = os.getenv("CGROUP_MANAGER", "cgroupfs")
+        cgroupfs = os.getenv("CGROUP_MANAGER", "systemd")
         self.cmd.append(f"--cgroup-manager={cgroupfs}")
 
         if os.getenv("DEBUG"):
             self.cmd.append("--log-level=debug")
+            self.cmd.append("--syslog=true")
 
         self.anchor_directory = tempfile.mkdtemp(prefix="podman_restapi_")
         self.cmd.append("--root=" + os.path.join(self.anchor_directory, "crio"))
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
 
-        os.environ["REGISTRIES_CONFIG_PATH"] = os.path.join(
-            self.anchor_directory, "registry.conf"
-        )
+        os.environ["REGISTRIES_CONFIG_PATH"] = os.path.join(self.anchor_directory, "registry.conf")
         p = configparser.ConfigParser()
         p.read_dict(
             {
@@ -41,14 +39,10 @@ class Podman(object):
         with open(os.environ["REGISTRIES_CONFIG_PATH"], "w") as w:
             p.write(w)
 
-        os.environ["CNI_CONFIG_PATH"] = os.path.join(
-            self.anchor_directory, "cni", "net.d"
-        )
+        os.environ["CNI_CONFIG_PATH"] = os.path.join(self.anchor_directory, "cni", "net.d")
         os.makedirs(os.environ["CNI_CONFIG_PATH"], exist_ok=True)
         self.cmd.append("--cni-config-dir=" + os.environ["CNI_CONFIG_PATH"])
-        cni_cfg = os.path.join(
-            os.environ["CNI_CONFIG_PATH"], "87-podman-bridge.conflist"
-        )
+        cni_cfg = os.path.join(os.environ["CNI_CONFIG_PATH"], "87-podman-bridge.conflist")
         # json decoded and encoded to ensure legal json
         buf = json.loads(
             """

@@ -13,11 +13,12 @@ import (
 var (
 	// podman container _diff_
 	diffCmd = &cobra.Command{
-		Use:   "diff [options] CONTAINER",
-		Args:  validate.IDOrLatestArgs,
-		Short: "Inspect changes to the container's file systems",
-		Long:  `Displays changes to the container filesystem's'.  The container will be compared to its parent layer.`,
-		RunE:  diff,
+		Use:               "diff [options] CONTAINER",
+		Args:              validate.IDOrLatestArgs,
+		Short:             "Inspect changes to the container's file systems",
+		Long:              `Displays changes to the container filesystem's'.  The container will be compared to its parent layer.`,
+		RunE:              diff,
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container diff myCtr
   podman container diff -l --format json myCtr`,
 	}
@@ -35,7 +36,11 @@ func init() {
 	flags := diffCmd.Flags()
 	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
 	_ = flags.MarkHidden("archive")
-	flags.StringVar(&diffOpts.Format, "format", "", "Change the output format")
+
+	formatFlagName := "format"
+	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format")
+	_ = diffCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	validate.AddLatestFlag(diffCmd, &diffOpts.Latest)
 }
 

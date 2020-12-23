@@ -19,7 +19,6 @@ import (
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	input := handlers.CreateContainerConfig{}
 	query := struct {
 		Name string `schema:"name"`
 	}{
@@ -30,15 +29,27 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+
+	// compatible configuration
+	body := handlers.CreateContainerConfig{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	if len(input.HostConfig.Links) > 0 {
+
+	// Override the container name in the body struct
+	body.Name = query.Name
+
+	if len(body.HostConfig.Links) > 0 {
 		utils.Error(w, utils.ErrLinkNotSupport.Error(), http.StatusBadRequest, errors.Wrapf(utils.ErrLinkNotSupport, "bad parameter"))
 		return
 	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		utils.Error(w, "unable to obtain runtime config", http.StatusInternalServerError, errors.Wrap(err, "unable to get runtime config"))
+	}
+
+	newImage, err := runtime.ImageRuntime().NewFromLocal(body.Config.Image)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchImage {
 			utils.Error(w, "No such image", http.StatusNotFound, err)
@@ -49,17 +60,31 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Take input structure and convert to cliopts
-	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(input)
+	// Take body structure and convert to cliopts
+	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(body, rtc.Engine.CgroupManager)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "make cli opts()"))
 		return
 	}
-	sg := specgen.NewSpecGenerator(newImage.ID(), cliOpts.RootFS)
+
+	imgNameOrID := newImage.ID()
+	// if the img had multi names with the same sha256 ID, should use the InputName, not the ID
+	if len(newImage.Names()) > 1 {
+		imageRef, err := utils.ParseDockerReference(newImage.InputName)
+		if err != nil {
+			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+			return
+		}
+		// maybe the InputName has no tag, so use full name to display
+		imgNameOrID = imageRef.DockerReference().String()
+	}
+
+	sg := specgen.NewSpecGenerator(imgNameOrID, cliOpts.RootFS)
 	if err := common.FillOutSpecGen(sg, cliOpts, args); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "fill out specgen"))
 		return
 	}
+
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.ContainerCreate(r.Context(), sg)
 	if err != nil {

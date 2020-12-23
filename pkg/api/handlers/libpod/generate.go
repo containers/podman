@@ -60,7 +60,8 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Service bool `schema:"service"`
+		Names   []string `schema:"names"`
+		Service bool     `schema:"service"`
 	}{
 		// Defaults would go here.
 	}
@@ -73,7 +74,7 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := entities.GenerateKubeOptions{Service: query.Service}
-	report, err := containerEngine.GenerateKube(r.Context(), utils.GetName(r), options)
+	report, err := containerEngine.GenerateKube(r.Context(), query.Names, options)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error generating YAML"))
 		return

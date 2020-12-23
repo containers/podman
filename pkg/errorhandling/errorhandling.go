@@ -19,7 +19,12 @@ func JoinErrors(errs []error) error {
 	// blank lines when printing the error.
 	var multiE *multierror.Error
 	multiE = multierror.Append(multiE, errs...)
-	return errors.New(strings.TrimSpace(multiE.ErrorOrNil().Error()))
+
+	finalErr := multiE.ErrorOrNil()
+	if finalErr == nil {
+		return finalErr
+	}
+	return errors.New(strings.TrimSpace(finalErr.Error()))
 }
 
 // ErrorsToString converts the slice of errors into a slice of corresponding

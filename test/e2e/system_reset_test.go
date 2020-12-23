@@ -46,10 +46,7 @@ var _ = Describe("podman system reset", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		l := len(session.OutputToStringArray())
 
-		session = podmanTest.Podman([]string{"pull", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
+		podmanTest.AddImageToRWStore(ALPINE)
 		session = podmanTest.Podman([]string{"volume", "create", "data"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -62,7 +59,7 @@ var _ = Describe("podman system reset", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		// If remote then the varlink service should have exited
+		// If remote then the API service should have exited
 		// On local tests this is a noop
 		podmanTest.StartRemoteService()
 

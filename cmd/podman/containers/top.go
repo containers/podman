@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -17,20 +18,19 @@ import (
 )
 
 var (
-	topDescription = `Similar to system "top" command.
+	topDescription = `Display the running processes of a container.
 
-  Specify format descriptors to alter the output.
-
-  Running "podman top -l pid pcpu seccomp" will print the process ID, the CPU percentage and the seccomp mode of each process of the latest container.`
-
+  The top command extends the ps(1) compatible AIX descriptors with container-specific ones as shown below.  In the presence of ps(1) specific flags (e.g, -eo), Podman will execute ps(1) inside the container.
+`
 	topOptions = entities.TopOptions{}
 
 	topCommand = &cobra.Command{
-		Use:   "top [options] CONTAINER [FORMAT-DESCRIPTORS|ARGS...]",
-		Short: "Display the running processes of a container",
-		Long:  topDescription,
-		RunE:  top,
-		Args:  cobra.ArbitraryArgs,
+		Use:               "top [options] CONTAINER [FORMAT-DESCRIPTORS|ARGS...]",
+		Short:             "Display the running processes of a container",
+		Long:              topDescription,
+		RunE:              top,
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: common.AutocompleteTopCmd,
 		Example: `podman top ctrID
 podman top --latest
 podman top ctrID pid seccomp args %C
@@ -38,10 +38,11 @@ podman top ctrID -eo user,pid,comm`,
 	}
 
 	containerTopCommand = &cobra.Command{
-		Use:   topCommand.Use,
-		Short: topCommand.Short,
-		Long:  topCommand.Long,
-		RunE:  topCommand.RunE,
+		Use:               topCommand.Use,
+		Short:             topCommand.Short,
+		Long:              topCommand.Long,
+		RunE:              topCommand.RunE,
+		ValidArgsFunction: topCommand.ValidArgsFunction,
 		Example: `podman container top ctrID
 podman container top --latest
 podman container top ctrID pid seccomp args %C

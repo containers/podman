@@ -54,14 +54,10 @@ func LastIPInSubnet(addr *net.IPNet) (net.IP, error) { //nolint:interfacer
 
 	ones, bits := cidr.Mask.Size()
 	if ones == bits {
-		return FirstIPInSubnet(cidr)
+		return cidr.IP, nil
 	}
-	hostStart := ones / 8
-	// Handle the first host byte
-	cidr.IP[hostStart] |= 0xff & cidr.Mask[hostStart]
-	// Fill the rest with ones
-	for i := hostStart; i < len(cidr.IP); i++ {
-		cidr.IP[i] = 0xff
+	for i := range cidr.IP {
+		cidr.IP[i] = cidr.IP[i] | ^cidr.Mask[i]
 	}
 	return cidr.IP, nil
 }
@@ -72,6 +68,10 @@ func FirstIPInSubnet(addr *net.IPNet) (net.IP, error) { //nolint:interfacer
 	_, cidr, err := net.ParseCIDR(addr.String())
 	if err != nil {
 		return nil, err
+	}
+	ones, bits := cidr.Mask.Size()
+	if ones == bits {
+		return cidr.IP, nil
 	}
 	cidr.IP[len(cidr.IP)-1]++
 	return cidr.IP, nil

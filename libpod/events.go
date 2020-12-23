@@ -50,6 +50,18 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	}
 }
 
+// netNetworkEvent creates a new event based on a network connect/disconnect
+func (c *Container) newNetworkEvent(status events.Status, netName string) {
+	e := events.NewEvent(status)
+	e.ID = c.ID()
+	e.Name = c.Name()
+	e.Type = events.Network
+	e.Network = netName
+	if err := c.runtime.eventer.Write(e); err != nil {
+		logrus.Errorf("unable to write pod event: %q", err)
+	}
+}
+
 // newPodEvent creates a new event for a libpod pod
 func (p *Pod) newPodEvent(status events.Status) {
 	e := events.NewEvent(status)

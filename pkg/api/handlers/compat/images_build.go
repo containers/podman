@@ -71,6 +71,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ForceRm     bool     `schema:"forcerm"`
 		HTTPProxy   bool     `schema:"httpproxy"`
 		Labels      string   `schema:"labels"`
+		Layers      bool     `schema:"layers"`
 		MemSwap     int64    `schema:"memswap"`
 		Memory      int64    `schema:"memory"`
 		NetworkMode string   `schema:"networkmode"`
@@ -103,9 +104,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	var output string
 	if len(query.Tag) > 0 {
 		output = query.Tag[0]
-	}
-	if _, found := r.URL.Query()["target"]; found {
-		output = query.Target
 	}
 
 	var additionalNames []string
@@ -162,13 +160,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	reporter := channel.NewWriter(make(chan []byte, 1))
 	defer reporter.Close()
-
 	buildOptions := imagebuildah.BuildOptions{
 		ContextDirectory:               contextDirectory,
 		PullPolicy:                     pullPolicy,
 		Registry:                       query.Registry,
 		IgnoreUnrecognizedInstructions: true,
 		Quiet:                          query.Quiet,
+		Layers:                         query.Layers,
 		Isolation:                      buildah.IsolationChroot,
 		Compression:                    archive.Gzip,
 		Args:                           buildArgs,
@@ -267,20 +265,18 @@ loop:
 			failed = true
 			m.Error = string(e)
 			if err := enc.Encode(m); err != nil {
-				logrus.Warnf("Failed to json encode error %q", err.Error())
+				logrus.Warnf("Failed to json encode error %v", err)
 			}
 			flush()
 		case <-runCtx.Done():
 			if !failed {
-				if utils.IsLibpodRequest(r) {
-					m.Stream = imageID
-				} else {
+				if !utils.IsLibpodRequest(r) {
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
+					if err := enc.Encode(m); err != nil {
+						logrus.Warnf("Failed to json encode error %v", err)
+					}
+					flush()
 				}
-				if err := enc.Encode(m); err != nil {
-					logrus.Warnf("Failed to json encode error %q", err.Error())
-				}
-				flush()
 			}
 			break loop
 		}

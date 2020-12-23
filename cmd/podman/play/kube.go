@@ -5,7 +5,9 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -20,6 +22,7 @@ type playKubeOptionsWrapper struct {
 
 	TLSVerifyCLI   bool
 	CredentialsCLI string
+	StartCLI       bool
 }
 
 var (
@@ -31,11 +34,12 @@ var (
   It creates the pod and containers described in the YAML.  The containers within the pod are then started and the ID of the new Pod is output.`
 
 	kubeCmd = &cobra.Command{
-		Use:   "kube [options] KUBEFILE",
-		Short: "Play a pod based on Kubernetes YAML.",
-		Long:  kubeDescription,
-		RunE:  kube,
-		Args:  cobra.ExactArgs(1),
+		Use:               "kube [options] KUBEFILE",
+		Short:             "Play a pod based on Kubernetes YAML.",
+		Long:              kubeDescription,
+		RunE:              kube,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman play kube nginx.yml
   podman play kube --creds user:password --seccomp-profile-root /custom/path apache.yml`,
 	}
@@ -50,16 +54,42 @@ func init() {
 
 	flags := kubeCmd.Flags()
 	flags.SetNormalizeFunc(utils.AliasFlags)
-	flags.StringVar(&kubeOptions.CredentialsCLI, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
-	flags.StringVar(&kubeOptions.Network, "network", "", "Connect pod to CNI network(s)")
+
+	credsFlagName := "creds"
+	flags.StringVar(&kubeOptions.CredentialsCLI, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	_ = kubeCmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
+
+	networkFlagName := "network"
+	flags.StringVar(&kubeOptions.Network, networkFlagName, "", "Connect pod to CNI network(s)")
+	_ = kubeCmd.RegisterFlagCompletionFunc(networkFlagName, common.AutocompleteNetworkFlag)
+
+	logDriverFlagName := "log-driver"
+	flags.StringVar(&kubeOptions.LogDriver, logDriverFlagName, "", "Logging driver for the container")
+	_ = kubeCmd.RegisterFlagCompletionFunc(logDriverFlagName, common.AutocompleteLogDriver)
+
 	flags.BoolVarP(&kubeOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.BoolVar(&kubeOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
-	flags.StringVar(&kubeOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.BoolVar(&kubeOptions.StartCLI, "start", true, "Start the pod after creating it")
+
+	authfileFlagName := "authfile"
+	flags.StringVar(&kubeOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	_ = kubeCmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
+
 	if !registry.IsRemote() {
-		flags.StringVar(&kubeOptions.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
+
+		certDirFlagName := "cert-dir"
+		flags.StringVar(&kubeOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
+		_ = kubeCmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
+
 		flags.StringVar(&kubeOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
-		flags.StringVar(&kubeOptions.SeccompProfileRoot, "seccomp-profile-root", defaultSeccompRoot, "Directory path for seccomp profiles")
-		flags.StringSliceVar(&kubeOptions.ConfigMaps, "configmap", []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
+
+		seccompProfileRootFlagName := "seccomp-profile-root"
+		flags.StringVar(&kubeOptions.SeccompProfileRoot, seccompProfileRootFlagName, defaultSeccompRoot, "Directory path for seccomp profiles")
+		_ = kubeCmd.RegisterFlagCompletionFunc(seccompProfileRootFlagName, completion.AutocompleteDefault)
+
+		configmapFlagName := "configmap"
+		flags.StringSliceVar(&kubeOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
+		_ = kubeCmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
 	}
 	_ = flags.MarkHidden("signature-policy")
 }
@@ -71,6 +101,9 @@ func kube(cmd *cobra.Command, args []string) error {
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
 		kubeOptions.SkipTLSVerify = types.NewOptionalBool(!kubeOptions.TLSVerifyCLI)
+	}
+	if cmd.Flags().Changed("start") {
+		kubeOptions.Start = types.NewOptionalBool(kubeOptions.StartCLI)
 	}
 	if kubeOptions.Authfile != "" {
 		if _, err := os.Stat(kubeOptions.Authfile); err != nil {

@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -23,12 +23,13 @@ var (
 	pruneDescription = fmt.Sprintf(`podman pod prune Removes all exited pods`)
 
 	pruneCommand = &cobra.Command{
-		Use:     "prune [options]",
-		Args:    validate.NoArgs,
-		Short:   "Remove all stopped pods and their containers",
-		Long:    pruneDescription,
-		RunE:    prune,
-		Example: `podman pod prune`,
+		Use:               "prune [options]",
+		Args:              validate.NoArgs,
+		Short:             "Remove all stopped pods and their containers",
+		Long:              pruneDescription,
+		RunE:              prune,
+		ValidArgsFunction: completion.AutocompleteNone,
+		Example:           `podman pod prune`,
 	}
 )
 
@@ -49,7 +50,7 @@ func prune(cmd *cobra.Command, args []string) error {
 		fmt.Print("Are you sure you want to continue? [y/N] ")
 		answer, err := reader.ReadString('\n')
 		if err != nil {
-			return errors.Wrapf(err, "error reading input")
+			return err
 		}
 		if strings.ToLower(answer)[0] != 'y' {
 			return nil
@@ -59,5 +60,5 @@ func prune(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return utils.PrintPodPruneResults(responses)
+	return utils.PrintPodPruneResults(responses, false)
 }

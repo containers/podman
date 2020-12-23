@@ -157,6 +157,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman pod ps --ctr-names", func() {
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
@@ -194,7 +195,19 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(podid1))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid2)))
 
+		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-names=test", "--filter", "ctr-status=running"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(podid1))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(podid2)))
+
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", fmt.Sprintf("ctr-ids=%s", cid)})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(podid2))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(podid1)))
+
+		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-ids=" + cid[:40], "--filter", "ctr-ids=" + cid + "$"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
@@ -210,6 +223,13 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
 
+		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-number=1", "--filter", "ctr-number=0"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(podid1))
+		Expect(session.OutputToString()).To(ContainSubstring(podid2))
+		Expect(session.OutputToString()).To(ContainSubstring(podid3))
+
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-status=running"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -222,6 +242,13 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid1)))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
+
+		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-status=exited", "--filter", "ctr-status=running"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(podid1))
+		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-status=created"})

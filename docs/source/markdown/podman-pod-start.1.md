@@ -12,17 +12,17 @@ to be started.
 
 ## OPTIONS
 
-**--all**, **-a**
+#### **--all**, **-a**
 
 Starts all pods
 
-**--latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the pod name or ID, start the last created pod.
 
 The latest option is not supported on the remote client.
 
-**--pod-id-file**
+#### **--pod-id-file**
 
 Read pod ID from the specified file and start the pod.  Can be specified multiple times.
 

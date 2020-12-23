@@ -53,6 +53,14 @@ var (
 // compressionBufferSize is the buffer size used to compress a blob
 var compressionBufferSize = 1048576
 
+// expectedCompressionFormats is used to check if a blob with a specified media type is compressed
+// using the algorithm that the media type says it should be compressed with
+var expectedCompressionFormats = map[string]*compression.Algorithm{
+	imgspecv1.MediaTypeImageLayerGzip:      &compression.Gzip,
+	imgspecv1.MediaTypeImageLayerZstd:      &compression.Zstd,
+	manifest.DockerV2Schema2LayerMediaType: &compression.Gzip,
+}
+
 // newDigestingReader returns an io.Reader implementation with contents of source, which will eventually return a non-EOF error
 // or set validationSucceeded/validationFailed to true if the source stream does/does not match expectedDigest.
 // (neither is set if EOF is never reached).
@@ -1166,6 +1174,21 @@ func computeDiffID(stream io.Reader, decompressor compression.DecompressorFunc) 
 	return digest.Canonical.FromReader(stream)
 }
 
+// errorAnnotationReader wraps the io.Reader passed to PutBlob for annotating the error happened during read.
+// These errors are reported as PutBlob errors, so we would otherwise misleadingly attribute them to the copy destination.
+type errorAnnotationReader struct {
+	reader io.Reader
+}
+
+// Read annotates the error happened during read
+func (r errorAnnotationReader) Read(b []byte) (n int, err error) {
+	n, err = r.reader.Read(b)
+	if err != io.EOF {
+		return n, errors.Wrapf(err, "error happened during read")
+	}
+	return n, err
+}
+
 // copyBlobFromStream copies a blob with srcInfo (with known Digest and Annotations and possibly known Size) from srcStream to dest,
 // perhaps sending a copy to an io.Writer if getOriginalLayerCopyWriter != nil,
 // perhaps compressing it if canCompress,
@@ -1218,6 +1241,10 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 	}
 	isCompressed := decompressor != nil
 	destStream = bar.ProxyReader(destStream)
+
+	if expectedCompressionFormat, known := expectedCompressionFormats[srcInfo.MediaType]; known && isCompressed && compressionFormat.Name() != expectedCompressionFormat.Name() {
+		logrus.Debugf("blob %s with type %s should be compressed with %s, but compressor appears to be %s", srcInfo.Digest.String(), srcInfo.MediaType, expectedCompressionFormat.Name(), compressionFormat.Name())
+	}
 
 	// === Send a copy of the original, uncompressed, stream, to a separate path if necessary.
 	var originalLayerReader io.Reader // DO NOT USE this other than to drain the input if no other consumer in the pipeline has done so.
@@ -1335,7 +1362,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 	}
 
 	// === Finally, send the layer stream to dest.
-	uploadedInfo, err := c.dest.PutBlob(ctx, destStream, inputInfo, c.blobInfoCache, isConfig)
+	uploadedInfo, err := c.dest.PutBlob(ctx, &errorAnnotationReader{destStream}, inputInfo, c.blobInfoCache, isConfig)
 	if err != nil {
 		return types.BlobInfo{}, errors.Wrap(err, "Error writing blob")
 	}

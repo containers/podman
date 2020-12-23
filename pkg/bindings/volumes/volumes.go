@@ -3,8 +3,6 @@ package volumes
 import (
 	"context"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/containers/podman/v2/pkg/bindings"
@@ -13,10 +11,14 @@ import (
 )
 
 // Create creates a volume given its configuration.
-func Create(ctx context.Context, config entities.VolumeCreateOptions) (*entities.VolumeConfigResponse, error) {
+func Create(ctx context.Context, config entities.VolumeCreateOptions, options *CreateOptions) (*entities.VolumeConfigResponse, error) {
 	var (
 		v entities.VolumeConfigResponse
 	)
+	if options == nil {
+		options = new(CreateOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -34,10 +36,14 @@ func Create(ctx context.Context, config entities.VolumeCreateOptions) (*entities
 }
 
 // Inspect returns low-level information about a volume.
-func Inspect(ctx context.Context, nameOrID string) (*entities.VolumeConfigResponse, error) {
+func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entities.VolumeConfigResponse, error) {
 	var (
 		inspect entities.VolumeConfigResponse
 	)
+	if options == nil {
+		options = new(InspectOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -51,7 +57,7 @@ func Inspect(ctx context.Context, nameOrID string) (*entities.VolumeConfigRespon
 
 // List returns the configurations for existing volumes in the form of a slice.  Optionally, filters
 // can be used to refine the list of volumes.
-func List(ctx context.Context, filters map[string][]string) ([]*entities.VolumeListReport, error) {
+func List(ctx context.Context, options *ListOptions) ([]*entities.VolumeListReport, error) {
 	var (
 		vols []*entities.VolumeListReport
 	)
@@ -59,13 +65,9 @@ func List(ctx context.Context, filters map[string][]string) ([]*entities.VolumeL
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	if len(filters) > 0 {
-		strFilters, err := bindings.FiltersToString(filters)
-		if err != nil {
-			return nil, err
-		}
-		params.Set("filters", strFilters)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/volumes/json", params, nil)
 	if err != nil {
@@ -75,7 +77,7 @@ func List(ctx context.Context, filters map[string][]string) ([]*entities.VolumeL
 }
 
 // Prune removes unused volumes from the local filesystem.
-func Prune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
+func Prune(ctx context.Context, options *PruneOptions) ([]*entities.VolumePruneReport, error) {
 	var (
 		pruned []*entities.VolumePruneReport
 	)
@@ -83,7 +85,11 @@ func Prune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/prune", nil, nil)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/prune", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -92,14 +98,14 @@ func Prune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
 
 // Remove deletes the given volume from storage. The optional force parameter
 // is used to remove a volume even if it is being used by a container.
-func Remove(ctx context.Context, nameOrID string, force *bool) error {
+func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
-	params := url.Values{}
-	if force != nil {
-		params.Set("force", strconv.FormatBool(*force))
+	params, err := options.ToParams()
+	if err != nil {
+		return err
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/volumes/%s", params, nil, nameOrID)
 	if err != nil {

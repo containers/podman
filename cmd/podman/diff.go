@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/containers"
 	"github.com/containers/podman/v2/cmd/podman/images"
 	"github.com/containers/podman/v2/cmd/podman/registry"
@@ -17,11 +18,12 @@ var (
 	// Command: podman _diff_ Object_ID
 	diffDescription = `Displays changes on a container or image's filesystem.  The container or image will be compared to its parent layer.`
 	diffCmd         = &cobra.Command{
-		Use:   "diff [options] {CONTAINER_ID | IMAGE_ID}",
-		Args:  validate.IDOrLatestArgs,
-		Short: "Display the changes to the object's file system",
-		Long:  diffDescription,
-		RunE:  diff,
+		Use:               "diff [options] {CONTAINER|IMAGE}",
+		Args:              validate.IDOrLatestArgs,
+		Short:             "Display the changes to the object's file system",
+		Long:              diffDescription,
+		RunE:              diff,
+		ValidArgsFunction: common.AutocompleteContainersAndImages,
 		Example: `podman diff imageID
   podman diff ctrID
   podman diff --format json redis:alpine`,
@@ -38,7 +40,11 @@ func init() {
 	flags := diffCmd.Flags()
 	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
 	_ = flags.MarkHidden("archive")
-	flags.StringVar(&diffOpts.Format, "format", "", "Change the output format")
+
+	formatFlagName := "format"
+	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format")
+	_ = diffCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	validate.AddLatestFlag(diffCmd, &diffOpts.Latest)
 }
 

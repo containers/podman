@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 )
@@ -51,6 +53,16 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 	if err != nil {
 		return err
 	}
+	if len(options.Until) > 0 {
+		untilTime, err := util.ParseInputTime(options.Until)
+		if err != nil {
+			return err
+		}
+		go func() {
+			time.Sleep(time.Until(untilTime))
+			t.Stop()
+		}()
+	}
 	funcDone := make(chan bool)
 	copy := true
 	go func() {
@@ -76,7 +88,7 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 			return err
 		}
 		switch event.Type {
-		case Image, Volume, Pod, System, Container:
+		case Image, Volume, Pod, System, Container, Network:
 		//	no-op
 		default:
 			return errors.Errorf("event type %s is not valid in %s", event.Type.String(), e.options.LogFilePath)

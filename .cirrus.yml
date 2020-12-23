@@ -17,17 +17,20 @@ env:
     CIRRUS_SHELL: "/bin/bash"
     # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
     SCRIPT_BASE: "./contrib/cirrus"
+    # Runner statistics log file path/name
+    STATS_LOGFILE_SFX: 'runner_stats.log'
+    STATS_LOGFILE: '$GOSRC/${CIRRUS_TASK_NAME}-${STATS_LOGFILE_SFX}'
 
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
     FEDORA_NAME: "fedora-33"
     PRIOR_FEDORA_NAME: "fedora-32"
-    UBUNTU_NAME: "ubuntu-20"
-    PRIOR_UBUNTU_NAME: "ubuntu-19"
+    UBUNTU_NAME: "ubuntu-2010"
+    PRIOR_UBUNTU_NAME: "ubuntu-2004"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c6323493627232256"
+    IMAGE_SUFFIX: "c6233039174893568"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -75,7 +78,11 @@ ext_svc_check_task:
         TEST_FLAVOR: ext_svc
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
-    main_script: &main '$GOSRC/$SCRIPT_BASE/runner.sh'
+    main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
+    always: &runner_stats
+        runner_stats_artifacts:
+            path: ./*-${STATS_LOGFILE_SFX}
+            type: text/plain
 
 
 # Execute some quick checks to confirm this YAML file and all
@@ -91,6 +98,7 @@ automation_task:
         TEST_ENVIRON: container
     setup_script: *setup
     main_script: *main
+    always: *runner_stats
 
 
 # This task use to be called 'gating', however that name is being
@@ -126,6 +134,7 @@ smoke_task:
         make install.tools
     setup_script: *setup
     main_script: *main
+    always: *runner_stats
 
 
 # N/B: This task is critical.  It builds all binaries and release archives
@@ -139,7 +148,6 @@ smoke_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
@@ -186,6 +194,7 @@ build_task:
     setup_script: *setup
     main_script: *main
     always: &binary_artifacts
+        <<: *runner_stats
         gosrc_artifacts:
             path: ./*  # Grab everything in top-level $GOSRC
             type: application/octet-stream
@@ -200,7 +209,6 @@ build_task:
 validate_task:
     name: "Validate $DISTRO_NV Build"
     alias: validate
-    only_if: *not_docs
     depends_on:
         - ext_svc_check
         - automation
@@ -220,6 +228,7 @@ validate_task:
     clone_script: *noop
     setup_script: *setup
     main_script: *main
+    always: *runner_stats
 
 
 # Exercise the "libpod" API with a small set of common
@@ -227,7 +236,7 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    only_if: *not_docs
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     skip: *branch
     depends_on:
         - build
@@ -239,6 +248,7 @@ bindings_task:
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
+    always: *runner_stats
 
 
 # Build the "libpod" API documentation `swagger.yaml` for eventual
@@ -260,23 +270,6 @@ swagger_task:
     always: *binary_artifacts
 
 
-endpoint_task:
-    name: "Test Endpoint"
-    alias: endpoint
-    only_if: *not_docs
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: endpoint
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *full_clone  # build-cache not available to container tasks
-    setup_script: *setup
-    main_script: *main
-
-
 # Check that all included go modules from other sources match
 # what is expected in `vendor/modules.txt` vs `go.mod`.
 vendor_task:
@@ -293,6 +286,7 @@ vendor_task:
     clone_script: *full_clone  # build-cache not available to container tasks
     setup_script: *setup
     main_script: *main
+    always: *runner_stats
 
 
 # There are several other important variations of podman which
@@ -316,11 +310,7 @@ alt_build_task:
       - env:
             ALT_NAME: 'Build Without CGO'
       - env:
-            ALT_NAME: 'Build varlink-API'
-      - env:
             ALT_NAME: 'Test build RPM'
-      - env:
-            ALT_NAME: 'Build varlink-binaries'
     setup_script: *setup
     main_script: *main
     always: *binary_artifacts
@@ -350,7 +340,8 @@ static_alt_build_task:
     # this cache ensures only the static podman binary is built.
     nix_cache:
         folder: '/var/cache/nix'
-        fingerprint_script: cat nix/*
+        # Cirrus will calculate/use sha of this output as the cache key
+        fingerprint_script: echo "${IMAGE_SUFFIX}" && cat nix/*
     setup_script: *setup
     main_script: *main
     always: *binary_artifacts
@@ -394,6 +385,7 @@ docker-py_test_task:
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
+    always: *runner_stats
 
 
 # Does exactly what it says, execute the podman unit-tests on all primary
@@ -412,6 +404,7 @@ unit_test_task:
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
+    always: *runner_stats
 
 
 apiv2_test_task:
@@ -428,6 +421,7 @@ apiv2_test_task:
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
+        <<: *runner_stats
         # Required for `contrib/cirrus/logformatter` to work properly
         html_artifacts:
             path: ./*.html
@@ -438,6 +432,22 @@ apiv2_test_task:
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
         podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+        time_script: '$SCRIPT_BASE/logcollector.sh time'
+
+compose_test_task:
+    name: "compose test on $DISTRO_NV"
+    alias: compose_test
+    depends_on:
+        - validate
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: compose
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
 
 
 # Execute the podman integration tests on all primary platforms and release
@@ -616,7 +626,6 @@ success_task:
         - build
         - validate
         - bindings
-        - endpoint
         - swagger
         - vendor
         - alt_build
@@ -625,6 +634,7 @@ success_task:
         - docker-py_test
         - unit_test
         - apiv2_test
+        - compose_test
         - local_integration_test
         - remote_integration_test
         - rootless_integration_test

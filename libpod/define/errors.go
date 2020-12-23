@@ -33,9 +33,6 @@ var (
 	// ErrNoAliases indicates that the container does not have any network
 	// aliases.
 	ErrNoAliases = errors.New("no aliases for container")
-	// ErrNoAliasesForNetwork indicates that the container has no aliases
-	// for a specific network.
-	ErrNoAliasesForNetwork = errors.New("no aliases for network")
 
 	// ErrCtrExists indicates a container with the same name or ID already
 	// exists
@@ -49,9 +46,9 @@ var (
 	// ErrExecSessionExists indicates an exec session with the same ID
 	// already exists.
 	ErrExecSessionExists = errors.New("exec session already exists")
-	// ErrAliasExists indicates that a network alias with the same name
-	// already exists in the network.
-	ErrAliasExists = errors.New("alias already exists")
+	// ErrNetworkExists indicates that a network with the given name already
+	// exists.
+	ErrNetworkExists = errors.New("network already exists")
 
 	// ErrCtrStateInvalid indicates a container is in an improper state for
 	// the requested operation
@@ -181,4 +178,7 @@ var (
 	// ErrStoreNotInitialized indicates that the container storage was never
 	// initialized.
 	ErrStoreNotInitialized = errors.New("the container storage was never initialized")
+
+	// ErrNoNetwork indicates that a container has no net namespace, like network=none
+	ErrNoNetwork = errors.New("container has no network namespace")
 )

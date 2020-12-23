@@ -7,13 +7,13 @@ import (
 	"text/template"
 
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -36,15 +36,17 @@ var (
 			registry.UnshareNSRequired: "",
 			registry.ParentNSRequired:  "",
 		},
+		ValidArgsFunction: common.AutocompleteContainers,
 	}
 
 	containerMountCommmand = &cobra.Command{
-		Use:         mountCommand.Use,
-		Short:       mountCommand.Short,
-		Long:        mountCommand.Long,
-		RunE:        mountCommand.RunE,
-		Args:        mountCommand.Args,
-		Annotations: mountCommand.Annotations,
+		Use:               mountCommand.Use,
+		Short:             mountCommand.Short,
+		Long:              mountCommand.Long,
+		RunE:              mountCommand.RunE,
+		Args:              mountCommand.Args,
+		Annotations:       mountCommand.Annotations,
+		ValidArgsFunction: mountCommand.ValidArgsFunction,
 	}
 )
 
@@ -52,9 +54,15 @@ var (
 	mountOpts entities.ContainerMountOptions
 )
 
-func mountFlags(flags *pflag.FlagSet) {
+func mountFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&mountOpts.All, "all", "a", false, "Mount all containers")
-	flags.StringVar(&mountOpts.Format, "format", "", "Print the mounted containers in specified format (json)")
+
+	formatFlagName := "format"
+	flags.StringVar(&mountOpts.Format, formatFlagName, "", "Print the mounted containers in specified format (json)")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVar(&mountOpts.NoTruncate, "notruncate", false, "Do not truncate output")
 }
 
@@ -63,7 +71,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: mountCommand,
 	})
-	mountFlags(mountCommand.Flags())
+	mountFlags(mountCommand)
 	validate.AddLatestFlag(mountCommand, &mountOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -71,7 +79,7 @@ func init() {
 		Command: containerMountCommmand,
 		Parent:  containerCmd,
 	})
-	mountFlags(containerMountCommmand.Flags())
+	mountFlags(containerMountCommmand)
 	validate.AddLatestFlag(containerMountCommmand, &mountOpts.Latest)
 }
 

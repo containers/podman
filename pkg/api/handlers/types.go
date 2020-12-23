@@ -110,11 +110,12 @@ type ContainerWaitOKBody struct {
 	}
 }
 
+// CreateContainerConfig used when compatible endpoint creates a container
 type CreateContainerConfig struct {
-	Name string
-	dockerContainer.Config
-	HostConfig       dockerContainer.HostConfig
-	NetworkingConfig dockerNetwork.NetworkingConfig
+	Name                   string                         // container name
+	dockerContainer.Config                                // desired container configuration
+	HostConfig             dockerContainer.HostConfig     // host dependent configuration for container
+	NetworkingConfig       dockerNetwork.NetworkingConfig // network configuration for container
 }
 
 // swagger:model IDResponse
@@ -144,13 +145,14 @@ type PodCreateConfig struct {
 	Share        string   `json:"share"`
 }
 
+// HistoryResponse provides details on image layers
 type HistoryResponse struct {
-	ID        string   `json:"Id"`
-	Created   int64    `json:"Created"`
-	CreatedBy string   `json:"CreatedBy"`
-	Tags      []string `json:"Tags"`
-	Size      int64    `json:"Size"`
-	Comment   string   `json:"Comment"`
+	ID        string `json:"Id"`
+	Created   int64
+	CreatedBy string
+	Tags      []string
+	Size      int64
+	Comment   string
 }
 
 type ImageLayer struct{}
@@ -176,55 +178,34 @@ type ExecStartConfig struct {
 }
 
 func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
+	imageData, err := l.Inspect(context.TODO())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to obtain summary for image %s", l.ID())
+	}
+
 	containers, err := l.Containers()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to obtain Containers for image %s", l.ID())
 	}
 	containerCount := len(containers)
 
-	// FIXME: GetParent() panics
-	// parent, err := l.GetParent(context.TODO())
-	// if err != nil {
-	// 	return nil, errors.Wrapf(err, "failed to obtain ParentID for image %s", l.ID())
-	// }
-
-	labels, err := l.Labels(context.TODO())
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to obtain Labels for image %s", l.ID())
-	}
-
-	size, err := l.Size(context.TODO())
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to obtain Size for image %s", l.ID())
-	}
-
-	repoTags, err := l.RepoTags()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to obtain RepoTags for image %s", l.ID())
-	}
-
-	digests := make([]string, len(l.Digests()))
-	for i, d := range l.Digests() {
-		digests[i] = string(d)
-	}
-
 	is := entities.ImageSummary{
 		ID:           l.ID(),
-		ParentId:     l.Parent,
-		RepoTags:     repoTags,
+		ParentId:     imageData.Parent,
+		RepoTags:     imageData.RepoTags,
+		RepoDigests:  imageData.RepoDigests,
 		Created:      l.Created().Unix(),
-		Size:         int64(*size),
+		Size:         imageData.Size,
 		SharedSize:   0,
-		VirtualSize:  l.VirtualSize,
-		Labels:       labels,
+		VirtualSize:  imageData.VirtualSize,
+		Labels:       imageData.Labels,
 		Containers:   containerCount,
 		ReadOnly:     l.IsReadOnly(),
 		Dangling:     l.Dangling(),
 		Names:        l.Names(),
-		Digest:       string(l.Digest()),
-		Digests:      digests,
+		Digest:       string(imageData.Digest),
 		ConfigDigest: string(l.ConfigDigest),
-		History:      l.NamesHistory(),
+		History:      imageData.NamesHistory,
 	}
 	return &is, nil
 }
@@ -253,7 +234,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		//	StdinOnce:       false,
 		Env: info.Config.Env,
 		Cmd: info.Config.Cmd,
-		//Healthcheck: l.ImageData.HealthCheck,
+		// Healthcheck: l.ImageData.HealthCheck,
 		//	ArgsEscaped:     false,
 		//	Image:           "",
 		Volumes:    info.Config.Volumes,
@@ -261,7 +242,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		Entrypoint: info.Config.Entrypoint,
 		//	NetworkDisabled: false,
 		//	MacAddress:      "",
-		//OnBuild:    info.Config.OnBuild,
+		// OnBuild:    info.Config.OnBuild,
 		Labels:     info.Labels,
 		StopSignal: info.Config.StopSignal,
 		//	StopTimeout:     nil,
@@ -281,8 +262,8 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		}
 	}
 	dockerImageInspect := docker.ImageInspect{
-		Architecture:  l.Architecture,
-		Author:        l.Author,
+		Architecture:  info.Architecture,
+		Author:        info.Author,
 		Comment:       info.Comment,
 		Config:        &config,
 		Created:       l.Created().Format(time.RFC3339Nano),
@@ -290,9 +271,9 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		GraphDriver:   docker.GraphDriverData{},
 		ID:            fmt.Sprintf("sha256:%s", l.ID()),
 		Metadata:      docker.ImageMetadata{},
-		Os:            l.Os,
-		OsVersion:     l.Version,
-		Parent:        l.Parent,
+		Os:            info.Os,
+		OsVersion:     info.Version,
+		Parent:        info.Parent,
 		RepoDigests:   info.RepoDigests,
 		RepoTags:      info.RepoTags,
 		RootFS:        rootfs,
@@ -328,7 +309,6 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		dockerImageInspect.Parent = d.Parent.String()
 	}
 	return &ImageInspect{dockerImageInspect}, nil
-
 }
 
 // portsToPortSet converts libpods exposed ports to dockers structs

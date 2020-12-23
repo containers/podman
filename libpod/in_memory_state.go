@@ -31,8 +31,7 @@ type InMemoryState struct {
 	ctrExecSessions map[string][]string
 	// Maps pod ID to a map of container ID to container struct.
 	podContainers map[string]map[string]*Container
-	// Maps network name to alias to container ID
-	networkAliases map[string]map[string]string
+	ctrNetworks   map[string][]string
 	// Maps container ID to network name to list of aliases.
 	ctrNetworkAliases map[string]map[string][]string
 	// Global name registry - ensures name uniqueness and performs lookups.
@@ -69,7 +68,7 @@ func NewInMemoryState() (State, error) {
 
 	state.podContainers = make(map[string]map[string]*Container)
 
-	state.networkAliases = make(map[string]map[string]string)
+	state.ctrNetworks = make(map[string][]string)
 	state.ctrNetworkAliases = make(map[string]map[string][]string)
 
 	state.nameIndex = registrar.NewRegistrar()
@@ -293,7 +292,7 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	}
 
 	// Check network aliases
-	for network, aliases := range ctr.config.NetworkAliases {
+	for network := range ctr.config.NetworkAliases {
 		inNet := false
 		for _, net := range ctr.config.Networks {
 			if net == network {
@@ -303,19 +302,6 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		}
 		if !inNet {
 			return errors.Wrapf(define.ErrInvalidArg, "container %s has network aliases for network %q but is not joined to network", ctr.ID(), network)
-		}
-
-		allNetAliases, ok := s.networkAliases[network]
-		if ok {
-			for _, alias := range aliases {
-				// Check if alias is a name
-				if _, err := s.nameIndex.Get(alias); err == nil {
-					return define.ErrInvalidArg
-				}
-				if _, ok := allNetAliases[alias]; ok {
-					return define.ErrAliasExists
-				}
-			}
 		}
 	}
 
@@ -375,46 +361,17 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		s.addCtrToVolDependsMap(ctr.ID(), vol.Name)
 	}
 
-	for _, network := range ctr.config.Networks {
-		allNetAliases, ok := s.networkAliases[network]
-		if !ok {
-			continue
+	// Add networks
+	newNets := make([]string, 0, len(ctr.config.Networks))
+	for _, net := range ctr.config.Networks {
+		if net == "" {
+			return define.ErrInvalidArg
 		}
-		otherCtrID, ok := allNetAliases[ctr.Name()]
-		if !ok {
-			continue
-		}
-		delete(allNetAliases, ctr.Name())
-
-		otherCtrAliases, ok := s.ctrNetworkAliases[otherCtrID]
-		if !ok {
-			continue
-		}
-		otherCtrNetAliases, ok := otherCtrAliases[network]
-		if !ok {
-			continue
-		}
-		newAliases := []string{}
-		for _, alias := range otherCtrNetAliases {
-			if alias != ctr.Name() {
-				newAliases = append(newAliases, alias)
-			}
-		}
-		otherCtrAliases[network] = newAliases
+		newNets = append(newNets, net)
 	}
+	s.ctrNetworks[ctr.ID()] = newNets
 
 	// Add network aliases
-	for network, aliases := range ctr.config.NetworkAliases {
-		allNetAliases, ok := s.networkAliases[network]
-		if !ok {
-			allNetAliases = make(map[string]string)
-			s.networkAliases[network] = allNetAliases
-		}
-
-		for _, alias := range aliases {
-			allNetAliases[alias] = ctr.ID()
-		}
-	}
 	s.ctrNetworkAliases[ctr.ID()] = ctr.config.NetworkAliases
 
 	return nil
@@ -480,17 +437,11 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	}
 
 	// Remove our network aliases
-	ctrAliases, ok := s.ctrNetworkAliases[ctr.ID()]
-	if ok {
-		for network, aliases := range ctrAliases {
-			netAliases, ok := s.networkAliases[network]
-			if ok {
-				for _, alias := range aliases {
-					delete(netAliases, alias)
-				}
-			}
-		}
+	if _, ok := s.ctrNetworkAliases[ctr.ID()]; ok {
 		delete(s.ctrNetworkAliases, ctr.ID())
+	}
+	if _, ok := s.ctrNetworks[ctr.ID()]; ok {
+		delete(s.ctrNetworks, ctr.ID())
 	}
 
 	return nil
@@ -569,6 +520,26 @@ func (s *InMemoryState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
+// Get all networks this container is present in.
+func (s *InMemoryState) GetNetworks(ctr *Container) ([]string, error) {
+	if !ctr.valid {
+		return nil, define.ErrCtrRemoved
+	}
+
+	ctr, ok := s.containers[ctr.ID()]
+	if !ok {
+		ctr.valid = false
+		return nil, define.ErrNoSuchCtr
+	}
+
+	ctrNetworks, ok := s.ctrNetworks[ctr.ID()]
+	if !ok {
+		return nil, define.ErrNoSuchNetwork
+	}
+
+	return ctrNetworks, nil
+}
+
 // GetNetworkAliases returns network aliases for the given container in the
 // given network.
 func (s *InMemoryState) GetNetworkAliases(ctr *Container, network string) ([]string, error) {
@@ -582,6 +553,7 @@ func (s *InMemoryState) GetNetworkAliases(ctr *Container, network string) ([]str
 
 	ctr, ok := s.containers[ctr.ID()]
 	if !ok {
+		ctr.valid = false
 		return nil, define.ErrNoSuchCtr
 	}
 
@@ -615,6 +587,7 @@ func (s *InMemoryState) GetAllNetworkAliases(ctr *Container) (map[string][]strin
 
 	ctr, ok := s.containers[ctr.ID()]
 	if !ok {
+		ctr.valid = false
 		return nil, define.ErrNoSuchCtr
 	}
 
@@ -626,9 +599,8 @@ func (s *InMemoryState) GetAllNetworkAliases(ctr *Container) (map[string][]strin
 	return ctrAliases, nil
 }
 
-// SetNetworkAliases sets network aliases for the given container in the given
-// network.
-func (s *InMemoryState) SetNetworkAliases(ctr *Container, network string, aliases []string) error {
+// NetworkConnect connects to the given network
+func (s *InMemoryState) NetworkConnect(ctr *Container, network string, aliases []string) error {
 	if !ctr.valid {
 		return define.ErrCtrRemoved
 	}
@@ -639,55 +611,37 @@ func (s *InMemoryState) SetNetworkAliases(ctr *Container, network string, aliase
 
 	ctr, ok := s.containers[ctr.ID()]
 	if !ok {
+		ctr.valid = false
 		return define.ErrNoSuchCtr
 	}
 
 	inNet := false
-	for _, net := range ctr.config.Networks {
+	ctrNetworks, ok := s.ctrNetworks[ctr.ID()]
+	if !ok {
+		return define.ErrNoSuchNetwork
+	}
+	for _, net := range ctrNetworks {
 		if net == network {
 			inNet = true
 		}
 	}
-	if !inNet {
-		return define.ErrInvalidArg
+	if inNet {
+		return define.ErrNoSuchNetwork
 	}
+	s.ctrNetworks[ctr.ID()] = append(ctrNetworks, network)
 
 	ctrAliases, ok := s.ctrNetworkAliases[ctr.ID()]
 	if !ok {
 		ctrAliases = make(map[string][]string)
 		s.ctrNetworkAliases[ctr.ID()] = ctrAliases
 	}
-	netAliases, ok := ctrAliases[network]
-	if !ok {
-		netAliases = []string{}
-		ctrAliases[network] = netAliases
-	}
-
-	allAliases, ok := s.networkAliases[network]
-	if !ok {
-		allAliases = make(map[string]string)
-		s.networkAliases[network] = allAliases
-	}
-
-	for _, alias := range netAliases {
-		delete(allAliases, alias)
-	}
-
-	for _, newAlias := range aliases {
-		if _, ok := allAliases[newAlias]; ok {
-			return define.ErrAliasExists
-		}
-		allAliases[newAlias] = ctr.ID()
-	}
-
 	ctrAliases[network] = aliases
 
 	return nil
 }
 
-// RemoveNetworkAliases removes network aliases from the given container in the
-// given network.
-func (s *InMemoryState) RemoveNetworkAliases(ctr *Container, network string) error {
+// Disconnect from the given network and remove all aliases in it.
+func (s *InMemoryState) NetworkDisconnect(ctr *Container, network string) error {
 	if !ctr.valid {
 		return define.ErrCtrRemoved
 	}
@@ -698,73 +652,36 @@ func (s *InMemoryState) RemoveNetworkAliases(ctr *Container, network string) err
 
 	ctr, ok := s.containers[ctr.ID()]
 	if !ok {
+		ctr.valid = false
 		return define.ErrNoSuchCtr
 	}
 
+	ctrNetworks, ok := s.ctrNetworks[ctr.ID()]
+	if !ok {
+		return define.ErrNoSuchNetwork
+	}
 	inNet := false
-	for _, net := range ctr.config.Networks {
+	remainingNets := make([]string, 0, len(ctrNetworks))
+	for _, net := range ctrNetworks {
 		if net == network {
 			inNet = true
+			break
+		} else {
+			remainingNets = append(remainingNets, net)
 		}
 	}
 	if !inNet {
-		return define.ErrInvalidArg
+		return define.ErrNoSuchNetwork
 	}
+	s.ctrNetworks[ctr.ID()] = remainingNets
 
 	ctrAliases, ok := s.ctrNetworkAliases[ctr.ID()]
 	if !ok {
 		ctrAliases = make(map[string][]string)
 		s.ctrNetworkAliases[ctr.ID()] = ctrAliases
 	}
-	netAliases, ok := ctrAliases[network]
-	if !ok {
-		netAliases = []string{}
-		ctrAliases[network] = netAliases
-	}
-
-	allAliases, ok := s.networkAliases[network]
-	if !ok {
-		allAliases = make(map[string]string)
-		s.networkAliases[network] = allAliases
-	}
-
-	for _, alias := range netAliases {
-		delete(allAliases, alias)
-	}
-
-	return nil
-}
-
-// GetAllAliasesForNetwork gets all the aliases for a single network.
-func (s *InMemoryState) GetAllAliasesForNetwork(network string) (map[string]string, error) {
-	if network == "" {
-		return nil, errors.Wrapf(define.ErrInvalidArg, "network names must not be empty")
-	}
-
-	allAliases, ok := s.networkAliases[network]
-	if !ok {
-		// Can't tell if the network exists.
-		// Assume it does.
-		return map[string]string{}, nil
-	}
-
-	return allAliases, nil
-}
-
-// RemoveAllAliasesForNetwork removes all the aliases for a given network.
-func (s *InMemoryState) RemoveAllAliasesForNetwork(network string) error {
-	if network == "" {
-		return errors.Wrapf(define.ErrInvalidArg, "network names must not be empty")
-	}
-
-	if _, ok := s.networkAliases[network]; ok {
-		delete(s.networkAliases, network)
-	}
-
-	for _, ctrAliases := range s.ctrNetworkAliases {
-		if _, ok := ctrAliases[network]; ok {
-			delete(ctrAliases, network)
-		}
+	if _, ok := ctrAliases[network]; ok {
+		delete(ctrAliases, network)
 	}
 
 	return nil
@@ -1422,7 +1339,7 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	}
 
 	// Check network aliases
-	for network, aliases := range ctr.config.NetworkAliases {
+	for network := range ctr.config.NetworkAliases {
 		inNet := false
 		for _, net := range ctr.config.Networks {
 			if net == network {
@@ -1432,19 +1349,6 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		}
 		if !inNet {
 			return errors.Wrapf(define.ErrInvalidArg, "container %s has network aliases for network %q but is not joined to network", ctr.ID(), network)
-		}
-
-		allNetAliases, ok := s.networkAliases[network]
-		if ok {
-			for _, alias := range aliases {
-				// Check if alias is a name
-				if _, err := s.nameIndex.Get(alias); err == nil {
-					return define.ErrInvalidArg
-				}
-				if _, ok := allNetAliases[alias]; ok {
-					return define.ErrAliasExists
-				}
-			}
 		}
 	}
 
@@ -1525,46 +1429,17 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		s.addCtrToVolDependsMap(ctr.ID(), vol.Name)
 	}
 
-	for _, network := range ctr.config.Networks {
-		allNetAliases, ok := s.networkAliases[network]
-		if !ok {
-			continue
+	// Add networks
+	newNets := make([]string, 0, len(ctr.config.Networks))
+	for _, net := range ctr.config.Networks {
+		if net == "" {
+			return define.ErrInvalidArg
 		}
-		otherCtrID, ok := allNetAliases[ctr.Name()]
-		if !ok {
-			continue
-		}
-		delete(allNetAliases, ctr.Name())
-
-		otherCtrAliases, ok := s.ctrNetworkAliases[otherCtrID]
-		if !ok {
-			continue
-		}
-		otherCtrNetAliases, ok := otherCtrAliases[network]
-		if !ok {
-			continue
-		}
-		newAliases := []string{}
-		for _, alias := range otherCtrNetAliases {
-			if alias != ctr.Name() {
-				newAliases = append(newAliases, alias)
-			}
-		}
-		otherCtrAliases[network] = newAliases
+		newNets = append(newNets, net)
 	}
+	s.ctrNetworks[ctr.ID()] = newNets
 
 	// Add network aliases
-	for network, aliases := range ctr.config.NetworkAliases {
-		allNetAliases, ok := s.networkAliases[network]
-		if !ok {
-			allNetAliases = make(map[string]string)
-			s.networkAliases[network] = allNetAliases
-		}
-
-		for _, alias := range aliases {
-			allNetAliases[alias] = ctr.ID()
-		}
-	}
 	s.ctrNetworkAliases[ctr.ID()] = ctr.config.NetworkAliases
 
 	return nil
@@ -1648,17 +1523,11 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	}
 
 	// Remove our network aliases
-	ctrAliases, ok := s.ctrNetworkAliases[ctr.ID()]
-	if ok {
-		for network, aliases := range ctrAliases {
-			netAliases, ok := s.networkAliases[network]
-			if ok {
-				for _, alias := range aliases {
-					delete(netAliases, alias)
-				}
-			}
-		}
+	if _, ok := s.ctrNetworkAliases[ctr.ID()]; ok {
 		delete(s.ctrNetworkAliases, ctr.ID())
+	}
+	if _, ok := s.ctrNetworks[ctr.ID()]; ok {
+		delete(s.ctrNetworks, ctr.ID())
 	}
 
 	return nil

@@ -6,8 +6,8 @@ set -e
 declare -A BUILD_TAGS
 # TODO: add systemd tag
 BUILD_TAGS[default]="apparmor,seccomp,selinux"
-BUILD_TAGS[abi]="${BUILD_TAGS[default]},varlink,!remoteclient"
-BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote,varlink,remoteclient"
+BUILD_TAGS[abi]="${BUILD_TAGS[default]},!remoteclient"
+BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote,remoteclient"
 
 declare -A SKIP_DIRS
 SKIP_DIRS[abi]=""

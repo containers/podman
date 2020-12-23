@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"context"
-	//	"fmt"
 	"strings"
 
 	"github.com/containers/podman/v2/libpod/events"
@@ -29,7 +28,8 @@ func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptio
 		}
 		close(opts.EventChan)
 	}()
-	return system.Events(ic.ClientCxt, binChan, nil, &opts.Since, &opts.Until, filters, &opts.Stream)
+	options := new(system.EventsOptions).WithFilters(filters).WithSince(opts.Since).WithStream(opts.Stream).WithUntil(opts.Until)
+	return system.Events(ic.ClientCxt, binChan, nil, options)
 }
 
 // GetLastContainerEvent takes a container name or ID and an event status and returns

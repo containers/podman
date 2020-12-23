@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -18,6 +16,7 @@ var _ = Describe("Podman mount", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRemote("Podman mount not supported for remote connections")
 		SkipIfRootless("Podman mount requires podman unshare first to work")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
@@ -25,7 +24,7 @@ var _ = Describe("Podman mount", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
+		podmanTest.AddImageToRWStore(ALPINE)
 	})
 
 	AfterEach(func() {
@@ -281,79 +280,65 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman image mount", func() {
-		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		images := podmanTest.PodmanNoCache([]string{"images"})
+		images := podmanTest.Podman([]string{"images"})
 		images.WaitWithDefaultTimeout()
 		Expect(images.ExitCode()).To(Equal(0))
 
-		mount := podmanTest.PodmanNoCache([]string{"image", "mount", ALPINE})
+		mount := podmanTest.Podman([]string{"image", "mount", ALPINE})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 
-		umount := podmanTest.PodmanNoCache([]string{"image", "umount", ALPINE})
+		umount := podmanTest.Podman([]string{"image", "umount", ALPINE})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount"})
+		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(Equal(""))
 
 		// Mount multiple times
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount", ALPINE})
+		mount = podmanTest.Podman([]string{"image", "mount", ALPINE})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount", ALPINE})
+		mount = podmanTest.Podman([]string{"image", "mount", ALPINE})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 
 		// Unmount once
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount", ALPINE})
+		mount = podmanTest.Podman([]string{"image", "mount", ALPINE})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount"})
+		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(ContainSubstring(ALPINE))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "umount", "--all"})
+		mount = podmanTest.Podman([]string{"image", "umount", "--all"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 	})
 
 	It("podman mount with json format", func() {
-		setup := podmanTest.PodmanNoCache([]string{"pull", fedoraMinimal})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		mount := podmanTest.PodmanNoCache([]string{"image", "mount", fedoraMinimal})
+		podmanTest.AddImageToRWStore(fedoraMinimal)
+		mount := podmanTest.Podman([]string{"image", "mount", fedoraMinimal})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 
-		j := podmanTest.PodmanNoCache([]string{"image", "mount", "--format=json"})
+		j := podmanTest.Podman([]string{"image", "mount", "--format=json"})
 		j.WaitWithDefaultTimeout()
 		Expect(j.ExitCode()).To(Equal(0))
 		Expect(j.IsJSONOutputValid()).To(BeTrue())
 
-		umount := podmanTest.PodmanNoCache([]string{"image", "umount", fedoraMinimal})
+		umount := podmanTest.Podman([]string{"image", "umount", fedoraMinimal})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 	})
 
 	It("podman umount --all", func() {
-		setup := podmanTest.PodmanNoCache([]string{"pull", fedoraMinimal})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		setup = podmanTest.PodmanNoCache([]string{"pull", ALPINE})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
-
+		podmanTest.AddImageToRWStore(fedoraMinimal)
 		mount := podmanTest.Podman([]string{"image", "mount", fedoraMinimal})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
@@ -365,78 +350,70 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman mount many", func() {
-		setup := podmanTest.PodmanNoCache([]string{"pull", fedoraMinimal})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Skip("Issue where using short name when we have a lookaside store")
+		podmanTest.AddImageToRWStore(fedoraMinimal)
+		podmanTest.AddImageToRWStore(BB)
 
-		setup = podmanTest.PodmanNoCache([]string{"pull", ALPINE})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		setup = podmanTest.PodmanNoCache([]string{"pull", "busybox"})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		mount1 := podmanTest.PodmanNoCache([]string{"image", "mount", fedoraMinimal, ALPINE, "busybox"})
+		mount1 := podmanTest.Podman([]string{"image", "mount", fedoraMinimal, ALPINE, "busybox"})
 		mount1.WaitWithDefaultTimeout()
 		Expect(mount1.ExitCode()).To(Equal(0))
 
-		umount := podmanTest.PodmanNoCache([]string{"image", "umount", fedoraMinimal, ALPINE})
+		umount := podmanTest.Podman([]string{"image", "umount", fedoraMinimal, ALPINE})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 
-		mount := podmanTest.PodmanNoCache([]string{"image", "mount"})
+		mount := podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(ContainSubstring("busybox"))
 
-		mount1 = podmanTest.PodmanNoCache([]string{"image", "unmount", "busybox"})
+		mount1 = podmanTest.Podman([]string{"image", "unmount", "busybox"})
 		mount1.WaitWithDefaultTimeout()
 		Expect(mount1.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount"})
+		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(Equal(""))
 
-		mount1 = podmanTest.PodmanNoCache([]string{"image", "mount", fedoraMinimal, ALPINE, "busybox"})
+		mount1 = podmanTest.Podman([]string{"image", "mount", fedoraMinimal, ALPINE, "busybox"})
 		mount1.WaitWithDefaultTimeout()
 		Expect(mount1.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount"})
+		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(ContainSubstring(fedoraMinimal))
 		Expect(mount.OutputToString()).To(ContainSubstring(ALPINE))
 
-		umount = podmanTest.PodmanNoCache([]string{"image", "umount", "--all"})
+		umount = podmanTest.Podman([]string{"image", "umount", "--all"})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount"})
+		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(Equal(""))
 
-		umount = podmanTest.PodmanNoCache([]string{"image", "umount", fedoraMinimal, ALPINE})
+		umount = podmanTest.Podman([]string{"image", "umount", fedoraMinimal, ALPINE})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 
-		mount1 = podmanTest.PodmanNoCache([]string{"image", "mount", "--all"})
+		mount1 = podmanTest.Podman([]string{"image", "mount", "--all"})
 		mount1.WaitWithDefaultTimeout()
 		Expect(mount1.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount"})
+		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(ContainSubstring(fedoraMinimal))
 		Expect(mount.OutputToString()).To(ContainSubstring(ALPINE))
 
-		umount = podmanTest.PodmanNoCache([]string{"image", "umount", "--all"})
+		umount = podmanTest.Podman([]string{"image", "umount", "--all"})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.PodmanNoCache([]string{"image", "mount"})
+		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		Expect(mount.OutputToString()).To(Equal(""))

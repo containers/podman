@@ -21,9 +21,9 @@ import (
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description that includes just a single container.
-func (c *Container) GenerateForKube() (*v1.Pod, error) {
+func GenerateForKube(ctrs []*Container) (*v1.Pod, error) {
 	// Generate the v1.Pod yaml description
-	return simplePodWithV1Container(c)
+	return simplePodWithV1Containers(ctrs)
 }
 
 // GenerateForKube takes a slice of libpod containers and generates
@@ -236,14 +236,20 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 	return &p
 }
 
-// simplePodWithV1Container is a function used by inspect when kube yaml needs to be generated
+// simplePodWithV1Containers is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
-func simplePodWithV1Container(ctr *Container) (*v1.Pod, error) {
-	kubeCtr, kubeVols, err := containerToV1Container(ctr)
-	if err != nil {
-		return nil, err
+func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
+	kubeCtrs := make([]v1.Container, 0, len(ctrs))
+	kubeVolumes := make([]v1.Volume, 0)
+	for _, ctr := range ctrs {
+		kubeCtr, kubeVols, err := containerToV1Container(ctr)
+		if err != nil {
+			return nil, err
+		}
+		kubeCtrs = append(kubeCtrs, kubeCtr)
+		kubeVolumes = append(kubeVolumes, kubeVols...)
 	}
-	return addContainersAndVolumesToPodObject([]v1.Container{kubeCtr}, kubeVols, ctr.Name()), nil
+	return addContainersAndVolumesToPodObject(kubeCtrs, kubeVolumes, strings.ReplaceAll(ctrs[0].Name(), "_", "")), nil
 
 }
 
@@ -294,6 +300,12 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 	_, image := c.Image()
 	kubeContainer.Image = image
 	kubeContainer.Stdin = c.Stdin()
+
+	// prepend the entrypoint of the container to command
+	if ep := c.Entrypoint(); len(c.Entrypoint()) > 0 {
+		ep = append(ep, containerCommands...)
+		containerCommands = ep
+	}
 	kubeContainer.Command = containerCommands
 	// TODO need to figure out how we handle command vs entry point.  Kube appears to prefer entrypoint.
 	// right now we just take the container's command

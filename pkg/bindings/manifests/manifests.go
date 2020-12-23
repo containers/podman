@@ -5,11 +5,9 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/bindings"
 	jsoniter "github.com/json-iterator/go"
@@ -19,8 +17,11 @@ import (
 // the new manifest can also be specified.  The all boolean specifies to add all entries
 // of a list if the name provided is a manifest list.  The ID of the new manifest list
 // is returned as a string.
-func Create(ctx context.Context, names, images []string, all *bool) (string, error) {
+func Create(ctx context.Context, names, images []string, options *CreateOptions) (string, error) {
 	var idr handlers.IDResponse
+	if options == nil {
+		options = new(CreateOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
@@ -28,9 +29,9 @@ func Create(ctx context.Context, names, images []string, all *bool) (string, err
 	if len(names) < 1 {
 		return "", errors.New("creating a manifest requires at least one name argument")
 	}
-	params := url.Values{}
-	if all != nil {
-		params.Set("all", strconv.FormatBool(*all))
+	params, err := options.ToParams()
+	if err != nil {
+		return "", err
 	}
 	for _, name := range names {
 		params.Add("name", name)
@@ -47,8 +48,12 @@ func Create(ctx context.Context, names, images []string, all *bool) (string, err
 }
 
 // Inspect returns a manifest list for a given name.
-func Inspect(ctx context.Context, name string) (*manifest.Schema2List, error) {
+func Inspect(ctx context.Context, name string, options *InspectOptions) (*manifest.Schema2List, error) {
 	var list manifest.Schema2List
+	if options == nil {
+		options = new(InspectOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -62,8 +67,11 @@ func Inspect(ctx context.Context, name string) (*manifest.Schema2List, error) {
 
 // Add adds a manifest to a given manifest list.  Additional options for the manifest
 // can also be specified.  The ID of the new manifest list is returned as a string
-func Add(ctx context.Context, name string, options image.ManifestAddOpts) (string, error) {
+func Add(ctx context.Context, name string, options *AddOptions) (string, error) {
 	var idr handlers.IDResponse
+	if options == nil {
+		options = new(AddOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
@@ -82,8 +90,12 @@ func Add(ctx context.Context, name string, options image.ManifestAddOpts) (strin
 
 // Remove deletes a manifest entry from a manifest list.  Both name and the digest to be
 // removed are mandatory inputs.  The ID of the new manifest list is returned as a string.
-func Remove(ctx context.Context, name, digest string) (string, error) {
+func Remove(ctx context.Context, name, digest string, options *RemoveOptions) (string, error) {
 	var idr handlers.IDResponse
+	if options == nil {
+		options = new(RemoveOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
@@ -100,24 +112,26 @@ func Remove(ctx context.Context, name, digest string) (string, error) {
 // Push takes a manifest list and pushes to a destination.  If the destination is not specified,
 // the name will be used instead.  If the optional all boolean is specified, all images specified
 // in the list will be pushed as well.
-func Push(ctx context.Context, name string, destination *string, all *bool) (string, error) {
+func Push(ctx context.Context, name, destination string, options *PushOptions) (string, error) {
 	var (
 		idr handlers.IDResponse
 	)
-	dest := name
+	if options == nil {
+		options = new(PushOptions)
+	}
+	if len(destination) < 1 {
+		destination = name
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
 	}
-	params := url.Values{}
+	params, err := options.ToParams()
+	if err != nil {
+		return "", err
+	}
 	params.Set("image", name)
-	if destination != nil {
-		dest = *destination
-	}
-	params.Set("destination", dest)
-	if all != nil {
-		params.Set("all", strconv.FormatBool(*all))
-	}
+	params.Set("destination", destination)
 	_, err = conn.DoRequest(nil, http.MethodPost, "/manifests/%s/push", params, nil, name)
 	if err != nil {
 		return "", err

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -21,11 +22,12 @@ var (
 `
 
 	migrateCommand = &cobra.Command{
-		Use:   "migrate [options]",
-		Args:  validate.NoArgs,
-		Short: "Migrate containers",
-		Long:  migrateDescription,
-		Run:   migrate,
+		Use:               "migrate [options]",
+		Args:              validate.NoArgs,
+		Short:             "Migrate containers",
+		Long:              migrateDescription,
+		Run:               migrate,
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
 
@@ -41,7 +43,10 @@ func init() {
 	})
 
 	flags := migrateCommand.Flags()
-	flags.StringVar(&migrateOptions.NewRuntime, "new-runtime", "", "Specify a new runtime for all containers")
+
+	newRuntimeFlagName := "new-runtime"
+	flags.StringVar(&migrateOptions.NewRuntime, newRuntimeFlagName, "", "Specify a new runtime for all containers")
+	_ = migrateCommand.RegisterFlagCompletionFunc(newRuntimeFlagName, completion.AutocompleteNone)
 }
 
 func migrate(cmd *cobra.Command, args []string) {

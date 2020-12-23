@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -24,11 +26,12 @@ var (
   The generated units can later be controlled via systemctl(1).`
 
 	systemdCmd = &cobra.Command{
-		Use:   "systemd [options] CTR|POD",
-		Short: "Generate systemd units.",
-		Long:  systemdDescription,
-		RunE:  systemd,
-		Args:  cobra.ExactArgs(1),
+		Use:               "systemd [options] {CONTAINER|POD}",
+		Short:             "Generate systemd units.",
+		Long:              systemdDescription,
+		RunE:              systemd,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: common.AutocompleteContainersAndPods,
 		Example: `podman generate systemd CTR
   podman generate systemd --new --time 10 CTR
   podman generate systemd --files --name POD`,
@@ -44,13 +47,32 @@ func init() {
 	flags := systemdCmd.Flags()
 	flags.BoolVarP(&systemdOptions.Name, "name", "n", false, "Use container/pod names instead of IDs")
 	flags.BoolVarP(&files, "files", "f", false, "Generate .service files instead of printing to stdout")
-	flags.UintVarP(&systemdTimeout, "time", "t", containerConfig.Engine.StopTimeout, "Stop timeout override")
-	flags.StringVar(&systemdOptions.RestartPolicy, "restart-policy", "on-failure", "Systemd restart-policy")
+
+	timeFlagName := "time"
+	flags.UintVarP(&systemdTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Stop timeout override")
+	_ = systemdCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 	flags.BoolVarP(&systemdOptions.New, "new", "", false, "Create a new container instead of starting an existing one")
-	flags.StringVar(&systemdOptions.ContainerPrefix, "container-prefix", "container", "Systemd unit name prefix for containers")
-	flags.StringVar(&systemdOptions.PodPrefix, "pod-prefix", "pod", "Systemd unit name prefix for pods")
-	flags.StringVar(&systemdOptions.Separator, "separator", "-", "Systemd unit name separator between name/id and prefix")
-	flags.StringVar(&format, "format", "", "Print the created units in specified format (json)")
+
+	containerPrefixFlagName := "container-prefix"
+	flags.StringVar(&systemdOptions.ContainerPrefix, containerPrefixFlagName, "container", "Systemd unit name prefix for containers")
+	_ = systemdCmd.RegisterFlagCompletionFunc(containerPrefixFlagName, completion.AutocompleteNone)
+
+	podPrefixFlagName := "pod-prefix"
+	flags.StringVar(&systemdOptions.PodPrefix, podPrefixFlagName, "pod", "Systemd unit name prefix for pods")
+	_ = systemdCmd.RegisterFlagCompletionFunc(podPrefixFlagName, completion.AutocompleteNone)
+
+	separatorFlagName := "separator"
+	flags.StringVar(&systemdOptions.Separator, separatorFlagName, "-", "Systemd unit name separator between name/id and prefix")
+	_ = systemdCmd.RegisterFlagCompletionFunc(separatorFlagName, completion.AutocompleteNone)
+
+	restartPolicyFlagName := "restart-policy"
+	flags.StringVar(&systemdOptions.RestartPolicy, restartPolicyFlagName, "on-failure", "Systemd restart-policy")
+	_ = systemdCmd.RegisterFlagCompletionFunc(restartPolicyFlagName, common.AutocompleteSystemdRestartOptions)
+
+	formatFlagName := "format"
+	flags.StringVar(&format, formatFlagName, "", "Print the created units in specified format (json)")
+	_ = systemdCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 

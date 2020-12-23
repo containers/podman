@@ -486,6 +486,36 @@ func NewOptionalBool(b bool) OptionalBool {
 	return o
 }
 
+// ShortNameMode defines the mode of short-name resolution.
+//
+// The use of unqualified-search registries entails an ambiguity as it's
+// unclear from which registry a given image, referenced by a short name, may
+// be pulled from.
+//
+// The ShortNameMode type defines how short names should resolve.
+type ShortNameMode int
+
+const (
+	ShortNameModeInvalid ShortNameMode = iota
+	// Use all configured unqualified-search registries without prompting
+	// the user.
+	ShortNameModeDisabled
+	// If stdout and stdin are a TTY, prompt the user to select a configured
+	// unqualified-search registry. Otherwise, use all configured
+	// unqualified-search registries.
+	//
+	// Note that if only one unqualified-search registry is set, it will be
+	// used without prompting.
+	ShortNameModePermissive
+	// Always prompt the user to select a configured unqualified-search
+	// registry.  Throw an error if stdout or stdin is not a TTY as
+	// prompting isn't possible.
+	//
+	// Note that if only one unqualified-search registry is set, it will be
+	// used without prompting.
+	ShortNameModeEnforcing
+)
+
 // SystemContext allows parameterizing access to implicitly-accessed resources,
 // like configuration files in /etc and users' login state in their home directory.
 // Various components can share the same field only if their semantics is exactly
@@ -509,6 +539,10 @@ type SystemContext struct {
 	SystemRegistriesConfPath string
 	// Path to the system-wide registries configuration directory
 	SystemRegistriesConfDirPath string
+	// Path to the user-specific short-names configuration file
+	UserShortNameAliasConfPath string
+	// If set, short-name resolution in pkg/shortnames must follow the specified mode
+	ShortNameMode *ShortNameMode
 	// If not "", overrides the default path for the authentication file, but only new format files
 	AuthFilePath string
 	// if not "", overrides the default path for the authentication file, but with the legacy format;

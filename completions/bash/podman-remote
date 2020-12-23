@@ -1,0 +1,271 @@
+# bash completion for podman-remote                        -*- shell-script -*-
+
+__podman-remote_debug()
+{
+    if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
+        echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
+    fi
+}
+
+__podman-remote_perform_completion()
+{
+    __podman-remote_debug
+    __podman-remote_debug "========= starting completion logic =========="
+    __podman-remote_debug "cur is ${cur}, words[*] is ${words[*]}, #words[@] is ${#words[@]}, cword is $cword"
+
+    # The user could have moved the cursor backwards on the command-line.
+    # We need to trigger completion from the $cword location, so we need
+    # to truncate the command-line ($words) up to the $cword location.
+    words=("${words[@]:0:$cword+1}")
+    __podman-remote_debug "Truncated words[*]: ${words[*]},"
+
+    local shellCompDirectiveError=1
+    local shellCompDirectiveNoSpace=2
+    local shellCompDirectiveNoFileComp=4
+    local shellCompDirectiveFilterFileExt=8
+    local shellCompDirectiveFilterDirs=16
+    local shellCompDirectiveLegacyCustomComp=32
+    local shellCompDirectiveLegacyCustomArgsComp=64
+
+    local out requestComp lastParam lastChar comp directive args flagPrefix
+
+    # Prepare the command to request completions for the program.
+    # Calling ${words[0]} instead of directly podman-remote allows to handle aliases
+    args=("${words[@]:1}")
+    requestComp="${words[0]} __completeNoDesc ${args[*]}"
+
+    lastParam=${words[$((${#words[@]}-1))]}
+    lastChar=${lastParam:$((${#lastParam}-1)):1}
+    __podman-remote_debug "lastParam ${lastParam}, lastChar ${lastChar}"
+
+    if [ -z "${cur}" ] && [ "${lastChar}" != "=" ]; then
+        # If the last parameter is complete (there is a space following it)
+        # We add an extra empty parameter so we can indicate this to the go method.
+        __podman-remote_debug "Adding extra empty parameter"
+        requestComp="${requestComp} \"\""
+    fi
+
+    # When completing a flag with an = (e.g., podman-remote -n=<TAB>)
+    # bash focuses on the part after the =, so we need to remove
+    # the flag part from $cur
+    if [[ "${cur}" == -*=* ]]; then
+        flagPrefix="${cur%%=*}="
+        cur="${cur#*=}"
+    fi
+
+    __podman-remote_debug "Calling ${requestComp}"
+    # Use eval to handle any environment variables and such
+    out=$(eval "${requestComp}" 2>/dev/null)
+
+    # Extract the directive integer at the very end of the output following a colon (:)
+    directive=${out##*:}
+    # Remove the directive
+    out=${out%:*}
+    if [ "${directive}" = "${out}" ]; then
+        # There is not directive specified
+        directive=0
+    fi
+    __podman-remote_debug "The completion directive is: ${directive}"
+    __podman-remote_debug "The completions are: ${out[*]}"
+
+    if [ $((directive & shellCompDirectiveError)) -ne 0 ]; then
+        # Error code.  No completion.
+        __podman-remote_debug "Received error from custom completion go code"
+        return
+    else
+        if [ $((directive & shellCompDirectiveNoSpace)) -ne 0 ]; then
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                __podman-remote_debug "Activating no space"
+                compopt -o nospace
+            fi
+        fi
+        if [ $((directive & shellCompDirectiveNoFileComp)) -ne 0 ]; then
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                __podman-remote_debug "Activating no file completion"
+                compopt +o default
+            fi
+        fi
+    fi
+
+    if [ $((directive & shellCompDirectiveFilterFileExt)) -ne 0 ]; then
+        # File extension filtering
+        local fullFilter filter filteringCmd
+
+        # Do not use quotes around the $out variable or else newline
+        # characters will be kept.
+        for filter in ${out[*]}; do
+            fullFilter+="$filter|"
+        done
+
+        filteringCmd="_filedir $fullFilter"
+        __podman-remote_debug "File filtering command: $filteringCmd"
+        $filteringCmd
+    elif [ $((directive & shellCompDirectiveFilterDirs)) -ne 0 ]; then
+        # File completion for directories only
+
+        # Use printf to strip any trailing newline
+        local subdir
+        subdir=$(printf "%s" "${out[0]}")
+        if [ -n "$subdir" ]; then
+            __podman-remote_debug "Listing directories in $subdir"
+            pushd "$subdir" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1 || return
+        else
+            __podman-remote_debug "Listing directories in ."
+            _filedir -d
+        fi
+    elif [ $((directive & shellCompDirectiveLegacyCustomComp)) -ne 0 ]; then
+        local cmd
+        __podman-remote_debug "Legacy custom completion. Directive: $directive, cmds: ${out[*]}"
+
+        # The following variables should get their value through the commands
+        # we have received as completions and are parsing below.
+        local last_command
+        local nouns
+
+        # Execute every command received
+        while IFS='' read -r cmd; do
+            __podman-remote_debug "About to execute: $cmd"
+            eval "$cmd"
+        done < <(printf "%s\n" "${out[@]}")
+
+        __podman-remote_debug "last_command: $last_command"
+        __podman-remote_debug "nouns[0]: ${nouns[0]}, nouns[1]: ${nouns[1]}"
+
+        if [ $((directive & shellCompDirectiveLegacyCustomArgsComp)) -ne 0 ]; then
+            # We should call the global legacy custom completion function, if it is defined
+            if declare -F __podman-remote_custom_func >/dev/null; then
+                # Use command name qualified legacy custom func
+                __podman-remote_debug "About to call: __podman-remote_custom_func"
+                __podman-remote_custom_func
+            elif declare -F __custom_func >/dev/null; then
+                # Otherwise fall back to unqualified legacy custom func for compatibility
+                __podman-remote_debug "About to call: __custom_func"
+                 __custom_func
+            fi
+        fi
+    else
+        local tab
+        tab=$(printf '\t')
+        local longest=0
+        # Look for the longest completion so that we can format things nicely
+        while IFS='' read -r comp; do
+            comp=${comp%%$tab*}
+            if ((${#comp}>longest)); then
+                longest=${#comp}
+            fi
+        done < <(printf "%s\n" "${out[@]}")
+
+        local completions=()
+        while IFS='' read -r comp; do
+            if [ -z "$comp" ]; then
+                continue
+            fi
+
+            __podman-remote_debug "Original comp: $comp"
+            comp="$(__podman-remote_format_comp_descriptions "$comp" "$longest")"
+            __podman-remote_debug "Final comp: $comp"
+            completions+=("$comp")
+        done < <(printf "%s\n" "${out[@]}")
+
+        while IFS='' read -r comp; do
+            # Although this script should only be used for bash
+            # there may be programs that still convert the bash
+            # script into a zsh one.  To continue supporting those
+            # programs, we do this single adaptation for zsh
+            if [ -n "${ZSH_VERSION}" ]; then
+                # zsh completion needs --flag= prefix
+                COMPREPLY+=("$flagPrefix$comp")
+            else
+                COMPREPLY+=("$comp")
+            fi
+        done < <(compgen -W "${completions[*]}" -- "$cur")
+
+        # If there is a single completion left, remove the description text
+        if [ ${#COMPREPLY[*]} -eq 1 ]; then
+            __podman-remote_debug "COMPREPLY[0]: ${COMPREPLY[0]}"
+            comp="${COMPREPLY[0]%% *}"
+            __podman-remote_debug "Removed description from single completion, which is now: ${comp}"
+            COMPREPLY=()
+            COMPREPLY+=("$comp")
+        fi
+    fi
+
+    __podman-remote_handle_special_char "$cur" :
+    __podman-remote_handle_special_char "$cur" =
+}
+
+__podman-remote_handle_special_char()
+{
+    local comp="$1"
+    local char=$2
+    if [[ "$comp" == *${char}* && "$COMP_WORDBREAKS" == *${char}* ]]; then
+        local word=${comp%"${comp##*${char}}"}
+        local idx=${#COMPREPLY[*]}
+        while [[ $((--idx)) -ge 0 ]]; do
+            COMPREPLY[$idx]=${COMPREPLY[$idx]#"$word"}
+        done
+    fi
+}
+
+__podman-remote_format_comp_descriptions()
+{
+    local tab
+    tab=$(printf '\t')
+    local comp="$1"
+    local longest=$2
+
+    # Properly format the description string which follows a tab character if there is one
+    if [[ "$comp" == *$tab* ]]; then
+        desc=${comp#*$tab}
+        comp=${comp%%$tab*}
+
+        # $COLUMNS stores the current shell width.
+        # Remove an extra 4 because we add 2 spaces and 2 parentheses.
+        maxdesclength=$(( COLUMNS - longest - 4 ))
+
+        # Make sure we can fit a description of at least 8 characters
+        # if we are to align the descriptions.
+        if [[ $maxdesclength -gt 8 ]]; then
+            # Add the proper number of spaces to align the descriptions
+            for ((i = ${#comp} ; i < longest ; i++)); do
+                comp+=" "
+            done
+        else
+            # Don't pad the descriptions so we can fit more text after the completion
+            maxdesclength=$(( COLUMNS - ${#comp} - 4 ))
+        fi
+
+        # If there is enough space for any description text,
+        # truncate the descriptions that are too long for the shell width
+        if [ $maxdesclength -gt 0 ]; then
+            if [ ${#desc} -gt $maxdesclength ]; then
+                desc=${desc:0:$(( maxdesclength - 1 ))}
+                desc+="…"
+            fi
+            comp+="  ($desc)"
+        fi
+    fi
+
+    # Must use printf to escape all special characters
+    printf "%q" "${comp}"
+}
+
+__start_podman-remote()
+{
+    local cur prev words cword
+
+    COMPREPLY=()
+    _get_comp_words_by_ref -n "=:" cur prev words cword
+
+    __podman-remote_perform_completion
+}
+
+if [[ $(type -t compopt) = "builtin" ]]; then
+    complete -o default -F __start_podman-remote podman-remote
+else
+    complete -o default -o nospace -F __start_podman-remote podman-remote
+fi
+
+# ex: ts=4 sw=4 et filetype=sh
+
+# This file is generated with "podman-remote completion"; see: podman-completion(1)

@@ -56,6 +56,7 @@ a.codelink:hover   { background: #000; color: #999; }
 
 /* The timing tests at bottom: remove underline, it's too cluttery. */
 a.timing           { text-decoration: none; }
+.timing:hover      { background: #FF9; }  /* highlight row for easy reading */
 
 /* BATS styles */
 .bats-passed    { color: #393; }
@@ -292,7 +293,7 @@ END_HTML
                 $spaces = 1 if $spaces < 1;
                 $spaces++ if $time < 10;
                 my $spacing = ' ' x $spaces;
-                $line = qq{<a class="timing" href="#t--$id">$name</a>$spacing$time};
+                $line = qq{<span class="timing"><a href="#t--$id">$name</a>$spacing$time</span>};
             }
             else {
                 $in_timing = 0;

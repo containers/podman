@@ -37,15 +37,15 @@ Require signature (“signedBy”).
 Trust may be updated using the command **podman image trust set** for an existing trust scope.
 
 ## OPTIONS
-**-h**, **--help**
+#### **--help**, **-h**
   Print usage statement.
 
-**-f**, **--pubkeysfile**=*KEY1*
+#### **--pubkeysfile**=*KEY1*, **-f**
   A path to an exported public key on the local system. Key paths
   will be referenced in policy.json. Any path to a file may be used but locating the file in **/etc/pki/containers** is recommended. Options may be used multiple times to
   require an image be signed by multiple keys.  The **--pubkeysfile** option is required for the **signedBy** type.
 
-**-t**, **--type**=*value*
+#### **--type**=*value*, **-t**
   The trust type for this policy entry.
   Accepted values:
     **signedBy** (default): Require signatures with corresponding list of
@@ -56,10 +56,10 @@ Trust may be updated using the command **podman image trust set** for an existin
 
 ## show OPTIONS
 
-**--raw**
+#### **--raw**
   Output trust policy file as raw JSON
 
-**-j**, **--json**
+#### **--json**, **-j**
   Output trust as JSON for machine parsing
 
 ## EXAMPLES

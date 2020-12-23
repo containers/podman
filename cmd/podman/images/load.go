@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
@@ -15,26 +16,27 @@ import (
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
 	loadDescription = "Loads an image from a locally stored archive (tar file) into container storage."
 	loadCommand     = &cobra.Command{
-		Use:   "load [options] [NAME[:TAG]]",
-		Short: "Load an image from container archive",
-		Long:  loadDescription,
-		RunE:  load,
-		Args:  cobra.MaximumNArgs(1),
+		Use:               "load [options] [NAME[:TAG]]",
+		Short:             "Load image(s) from a tar archive",
+		Long:              loadDescription,
+		RunE:              load,
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
 	imageLoadCommand = &cobra.Command{
-		Args:  loadCommand.Args,
-		Use:   loadCommand.Use,
-		Short: loadCommand.Short,
-		Long:  loadCommand.Long,
-		RunE:  loadCommand.RunE,
+		Args:              loadCommand.Args,
+		Use:               loadCommand.Use,
+		Short:             loadCommand.Short,
+		Long:              loadCommand.Long,
+		ValidArgsFunction: loadCommand.ValidArgsFunction,
+		RunE:              loadCommand.RunE,
 	}
 )
 
@@ -47,17 +49,22 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: loadCommand,
 	})
-	loadFlags(loadCommand.Flags())
+	loadFlags(loadCommand)
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageLoadCommand,
 		Parent:  imageCmd,
 	})
-	loadFlags(imageLoadCommand.Flags())
+	loadFlags(imageLoadCommand)
 }
 
-func loadFlags(flags *pflag.FlagSet) {
-	flags.StringVarP(&loadOpts.Input, "input", "i", "", "Read from specified archive file (default: stdin)")
+func loadFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	inputFlagName := "input"
+	flags.StringVarP(&loadOpts.Input, inputFlagName, "i", "", "Read from specified archive file (default: stdin)")
+	_ = cmd.RegisterFlagCompletionFunc(inputFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.StringVar(&loadOpts.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file")
 	_ = flags.MarkHidden("signature-policy")

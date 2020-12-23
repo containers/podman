@@ -11,13 +11,13 @@ import (
 	"unicode"
 
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -27,21 +27,23 @@ var (
 
 	// podman _history_
 	historyCmd = &cobra.Command{
-		Use:     "history [options] IMAGE",
-		Short:   "Show history of a specified image",
-		Long:    long,
-		Args:    cobra.ExactArgs(1),
-		RunE:    history,
-		Example: "podman history quay.io/fedora/fedora",
+		Use:               "history [options] IMAGE",
+		Short:             "Show history of a specified image",
+		Long:              long,
+		Args:              cobra.ExactArgs(1),
+		RunE:              history,
+		ValidArgsFunction: common.AutocompleteImages,
+		Example:           "podman history quay.io/fedora/fedora",
 	}
 
 	imageHistoryCmd = &cobra.Command{
-		Args:    historyCmd.Args,
-		Use:     historyCmd.Use,
-		Short:   historyCmd.Short,
-		Long:    historyCmd.Long,
-		RunE:    historyCmd.RunE,
-		Example: `podman image history quay.io/fedora/fedora`,
+		Args:              historyCmd.Args,
+		Use:               historyCmd.Use,
+		Short:             historyCmd.Short,
+		Long:              historyCmd.Long,
+		ValidArgsFunction: historyCmd.ValidArgsFunction,
+		RunE:              historyCmd.RunE,
+		Example:           `podman image history quay.io/fedora/fedora`,
 	}
 
 	opts = struct {
@@ -57,18 +59,23 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: historyCmd,
 	})
-	historyFlags(historyCmd.Flags())
+	historyFlags(historyCmd)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageHistoryCmd,
 		Parent:  imageCmd,
 	})
-	historyFlags(imageHistoryCmd.Flags())
+	historyFlags(imageHistoryCmd)
 }
 
-func historyFlags(flags *pflag.FlagSet) {
-	flags.StringVar(&opts.format, "format", "", "Change the output to JSON or a Go template")
+func historyFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	formatFlagName := "format"
+	flags.StringVar(&opts.format, formatFlagName, "", "Change the output to JSON or a Go template")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVarP(&opts.human, "human", "H", true, "Display sizes and dates in human readable format")
 	flags.BoolVar(&opts.noTrunc, "no-trunc", false, "Do not truncate the output")
 	flags.BoolVar(&opts.noTrunc, "notruncate", false, "Do not truncate the output")

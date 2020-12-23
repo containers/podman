@@ -15,16 +15,16 @@ Volumes can be removed individually by providing their full name or a unique par
 
 ## OPTIONS
 
-**-a**, **--all**
+#### **--all**, **-a**
 
 Remove all volumes.
 
-**-f**, **--force**
+#### **--force**, **-f**
 
 Remove a volume by force.
 If it is being used by containers, the containers will be removed first.
 
-**--help**
+#### **--help**
 
 Print usage statement
 

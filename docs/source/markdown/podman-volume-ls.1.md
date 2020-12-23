@@ -14,19 +14,19 @@ flag. Use the **--quiet** flag to print only the volume names.
 
 ## OPTIONS
 
-**-f**, **--filter**=*filter*
+#### **--filter**=*filter*, **-f**
 
 Filter volume output.
 
-**--format**=*format*
+#### **--format**=*format*
 
 Format volume output using Go template.
 
-**--help**
+#### **--help**
 
 Print usage statement.
 
-**-q**, **--quiet**
+#### **--quiet**, **-q**
 
 Print volume output in quiet mode. Only print the volume names.
 
@@ -40,6 +40,8 @@ $ podman volume ls --format json
 $ podman volume ls --format "{{.Driver}} {{.Scope}}"
 
 $ podman volume ls --filter name=foo,label=blue
+
+$ podman volume ls --filter label=key=value
 ```
 
 ## SEE ALSO

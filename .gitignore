@@ -2,8 +2,6 @@
 /bin/
 /brew
 /build/
-/cmd/podman/varlink/iopodman.go
-/cmd/podman/varlink/ioprojectatomicpodman.go
 /conmon/
 contrib/spec/podman.spec
 *.coverprofile
@@ -21,7 +19,6 @@ coverprofile
 /_output/
 /pause/pause.o
 pkg/api/swagger.yaml
-/pkg/varlink/iopodman.go
 podman-remote*.zip
 podman*.tar.gz
 __pycache__
@@ -34,3 +31,5 @@ release.txt
 /test/goecho/goecho
 .vscode*
 result
+# Necessary to prevent hack/tree-status.sh false-positive
+/*runner_stats.log

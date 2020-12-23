@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,12 +12,14 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -85,7 +88,11 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 		return nil
 	}
 
-	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+	tmpDir, err := ic.Libpod.TmpDir()
+	if err != nil {
+		return err
+	}
+	pausePidPath, err := util.GetRootlessPauseProcessPidPathGivenDir(tmpDir)
 	if err != nil {
 		return errors.Wrapf(err, "could not get pause process pid file path")
 	}
@@ -111,7 +118,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 	}
 
 	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
-	if err := movePauseProcessToScope(); err != nil {
+	if err := movePauseProcessToScope(ic.Libpod); err != nil {
 		conf, err := ic.Config(context.Background())
 		if err != nil {
 			return err
@@ -132,8 +139,12 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 	return nil
 }
 
-func movePauseProcessToScope() error {
-	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+func movePauseProcessToScope(r *libpod.Runtime) error {
+	tmpDir, err := r.TmpDir()
+	if err != nil {
+		return err
+	}
+	pausePidPath, err := util.GetRootlessPauseProcessPidPathGivenDir(tmpDir)
 	if err != nil {
 		return errors.Wrapf(err, "could not get pause process pid file path")
 	}
@@ -158,37 +169,71 @@ func checkInput() error { // nolint:deadcode,unused
 // SystemPrune removes unused data from the system. Pruning pods, containers, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)
-	podPruneReport, err := ic.prunePodHelper(ctx)
-	if err != nil {
-		return nil, err
-	}
-	systemPruneReport.PodPruneReport = podPruneReport
-
-	containerPruneReport, err := ic.pruneContainersHelper(nil)
-	if err != nil {
-		return nil, err
-	}
-	systemPruneReport.ContainerPruneReport = containerPruneReport
-
-	results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, nil)
-	if err != nil {
-		return nil, err
-	}
-	report := entities.ImagePruneReport{
-		Report: entities.Report{
-			Id:  results,
-			Err: nil,
-		},
-	}
-
-	systemPruneReport.ImagePruneReport = &report
-
-	if options.Volume {
-		volumePruneReport, err := ic.pruneVolumesHelper(ctx)
+	var filters []string
+	found := true
+	for found {
+		found = false
+		podPruneReport, err := ic.prunePodHelper(ctx)
 		if err != nil {
 			return nil, err
 		}
-		systemPruneReport.VolumePruneReport = volumePruneReport
+		if len(podPruneReport) > 0 {
+			found = true
+		}
+		systemPruneReport.PodPruneReport = append(systemPruneReport.PodPruneReport, podPruneReport...)
+
+		// TODO: Figure out cleaner way to handle all of the different PruneOptions
+		containerPruneOptions := entities.ContainerPruneOptions{}
+		containerPruneOptions.Filters = (url.Values)(options.Filters)
+
+		containerPruneReport, err := ic.ContainerPrune(ctx, containerPruneOptions)
+		if err != nil {
+			return nil, err
+		}
+		if len(containerPruneReport.ID) > 0 {
+			found = true
+		}
+		if systemPruneReport.ContainerPruneReport == nil {
+			systemPruneReport.ContainerPruneReport = containerPruneReport
+		} else {
+			for name, val := range containerPruneReport.ID {
+				systemPruneReport.ContainerPruneReport.ID[name] = val
+			}
+		}
+		for k, v := range options.Filters {
+			filters = append(filters, fmt.Sprintf("%s=%s", k, v[0]))
+		}
+		results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, filters)
+
+		if err != nil {
+			return nil, err
+		}
+		if len(results) > 0 {
+			found = true
+		}
+
+		if systemPruneReport.ImagePruneReport == nil {
+			systemPruneReport.ImagePruneReport = &entities.ImagePruneReport{
+				Report: entities.Report{
+					Id:  results,
+					Err: nil,
+				},
+			}
+		} else {
+			systemPruneReport.ImagePruneReport.Report.Id = append(systemPruneReport.ImagePruneReport.Report.Id, results...)
+		}
+		if options.Volume {
+			volumePruneOptions := entities.VolumePruneOptions{}
+			volumePruneOptions.Filters = (url.Values)(options.Filters)
+			volumePruneReport, err := ic.VolumePrune(ctx, volumePruneOptions)
+			if err != nil {
+				return nil, err
+			}
+			if len(volumePruneReport) > 0 {
+				found = true
+			}
+			systemPruneReport.VolumePruneReport = append(systemPruneReport.VolumePruneReport, volumePruneReport...)
+		}
 	}
 	return systemPruneReport, nil
 }
@@ -231,17 +276,25 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	dfContainers := make([]*entities.SystemDfContainerReport, 0, len(cons))
 	for _, c := range cons {
 		iid, _ := c.Image()
-		conSize, err := c.RootFsSize()
-		if err != nil {
-			return nil, err
-		}
 		state, err := c.State()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "Failed to get state of container %s", c.ID())
+		}
+		conSize, err := c.RootFsSize()
+		if err != nil {
+			if errors.Cause(err) == storage.ErrContainerUnknown {
+				logrus.Error(errors.Wrapf(err, "Failed to get root file system size of container %s", c.ID()))
+			} else {
+				return nil, errors.Wrapf(err, "Failed to get root file system size of container %s", c.ID())
+			}
 		}
 		rwsize, err := c.RWSize()
 		if err != nil {
-			return nil, err
+			if errors.Cause(err) == storage.ErrContainerUnknown {
+				logrus.Error(errors.Wrapf(err, "Failed to get read/write size of container %s", c.ID()))
+			} else {
+				return nil, errors.Wrapf(err, "Failed to get read/write size of container %s", c.ID())
+			}
 		}
 		report := entities.SystemDfContainerReport{
 			ContainerID:  c.ID(),

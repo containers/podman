@@ -162,6 +162,10 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 
 	runtime.config = conf
 
+	if err := SetXdgDirs(); err != nil {
+		return nil, err
+	}
+
 	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err
@@ -186,7 +190,7 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 	if err := shutdown.Register("libpod", func(sig os.Signal) error {
 		os.Exit(1)
 		return nil
-	}); err != nil {
+	}); err != nil && errors.Cause(err) != shutdown.ErrHandlerExists {
 		logrus.Errorf("Error registering shutdown handler for libpod: %v", err)
 	}
 
@@ -383,8 +387,8 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
 			// runtimes that might not be installed (crun, kata).
-			// Only a warnf so default configs don't spec errors.
-			logrus.Warnf("Error initializing configured OCI runtime %s: %v", name, err)
+			// Only a infof so default configs don't spec errors.
+			logrus.Infof("Error initializing configured OCI runtime %s: %v", name, err)
 			continue
 		}
 
@@ -468,7 +472,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// we will need to access the storage.
 		if os.Geteuid() != 0 {
 			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
-			pausePid, err := util.GetRootlessPauseProcessPidPath()
+			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
 				return errors.Wrapf(err, "could not get pause process pid file path")
 			}
@@ -532,6 +536,15 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 
 	return nil
+}
+
+// TmpDir gets the current Libpod temporary files directory.
+func (r *Runtime) TmpDir() (string, error) {
+	if !r.valid {
+		return "", define.ErrRuntimeStopped
+	}
+
+	return r.config.Engine.TmpDir, nil
 }
 
 // GetConfig returns a copy of the configuration used by the runtime

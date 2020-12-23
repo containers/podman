@@ -6,12 +6,13 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +21,12 @@ var (
 
   By default, streaming mode is used, printing new events as they occur.  Previous events can be listed via --since and --until.`
 	eventsCommand = &cobra.Command{
-		Use:   "events [options]",
-		Args:  validate.NoArgs,
-		Short: "Show podman events",
-		Long:  eventsDescription,
-		RunE:  eventsCmd,
+		Use:               "events [options]",
+		Args:              validate.NoArgs,
+		Short:             "Show podman events",
+		Long:              eventsDescription,
+		RunE:              eventsCmd,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman events
   podman events --filter event=create
   podman events --format {{.Image}}
@@ -43,11 +45,25 @@ func init() {
 		Command: eventsCommand,
 	})
 	flags := eventsCommand.Flags()
-	flags.StringArrayVar(&eventOptions.Filter, "filter", []string{}, "filter output")
-	flags.StringVar(&eventFormat, "format", "", "format the output using a Go template")
+
+	filterFlagName := "filter"
+	flags.StringArrayVar(&eventOptions.Filter, filterFlagName, []string{}, "filter output")
+	_ = eventsCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteEventFilter)
+
+	formatFlagName := "format"
+	flags.StringVar(&eventFormat, formatFlagName, "", "format the output using a Go template")
+	_ = eventsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVar(&eventOptions.Stream, "stream", true, "stream new events; for testing only")
-	flags.StringVar(&eventOptions.Since, "since", "", "show all events created since timestamp")
-	flags.StringVar(&eventOptions.Until, "until", "", "show all events until timestamp")
+
+	sinceFlagName := "since"
+	flags.StringVar(&eventOptions.Since, sinceFlagName, "", "show all events created since timestamp")
+	_ = eventsCommand.RegisterFlagCompletionFunc(sinceFlagName, completion.AutocompleteNone)
+
+	untilFlagName := "until"
+	flags.StringVar(&eventOptions.Until, untilFlagName, "", "show all events until timestamp")
+	_ = eventsCommand.RegisterFlagCompletionFunc(untilFlagName, completion.AutocompleteNone)
+
 	_ = flags.MarkHidden("stream")
 }
 
@@ -87,7 +103,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		case doJSON:
 			jsonStr, err := event.ToJSONString()
 			if err != nil {
-				return errors.Wrapf(err, "unable to format json")
+				return err
 			}
 			fmt.Println(jsonStr)
 		case cmd.Flags().Changed("format"):

@@ -5,296 +5,457 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/libpod/define"
-	"github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 )
 
 const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))"
 
 var containerConfig = registry.PodmanConfig()
 
-func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
-	createFlags := pflag.FlagSet{}
+func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
+	createFlags := cmd.Flags()
+
+	annotationFlagName := "annotation"
 	createFlags.StringSliceVar(
 		&cf.Annotation,
-		"annotation", []string{},
+		annotationFlagName, []string{},
 		"Add annotations to container (key:value)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
+
+	attachFlagName := "attach"
 	createFlags.StringSliceVarP(
 		&cf.Attach,
-		"attach", "a", []string{},
+		attachFlagName, "a", []string{},
 		"Attach to STDIN, STDOUT or STDERR",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(attachFlagName, AutocompleteCreateAttach)
+
+	authfileFlagName := "authfile"
 	createFlags.StringVar(
 		&cf.Authfile,
-		"authfile", auth.GetDefaultAuthFile(),
+		authfileFlagName, auth.GetDefaultAuthFile(),
 		"Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
+
+	blkioWeightFlagName := "blkio-weight"
 	createFlags.StringVar(
 		&cf.BlkIOWeight,
-		"blkio-weight", "",
+		blkioWeightFlagName, "",
 		"Block IO weight (relative weight) accepts a weight value between 10 and 1000.",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(blkioWeightFlagName, completion.AutocompleteNone)
+
+	blkioWeightDeviceFlagName := "blkio-weight-device"
 	createFlags.StringSliceVar(
 		&cf.BlkIOWeightDevice,
-		"blkio-weight-device", []string{},
+		blkioWeightDeviceFlagName, []string{},
 		"Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(blkioWeightDeviceFlagName, completion.AutocompleteDefault)
+
+	capAddFlagName := "cap-add"
 	createFlags.StringSliceVar(
 		&cf.CapAdd,
-		"cap-add", []string{},
+		capAddFlagName, []string{},
 		"Add capabilities to the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(capAddFlagName, completion.AutocompleteCapabilities)
+
+	capDropFlagName := "cap-drop"
 	createFlags.StringSliceVar(
 		&cf.CapDrop,
-		"cap-drop", []string{},
+		capDropFlagName, []string{},
 		"Drop capabilities from the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(capDropFlagName, completion.AutocompleteCapabilities)
+
+	cgroupnsFlagName := "cgroupns"
 	createFlags.String(
-		"cgroupns", "",
+		cgroupnsFlagName, "",
 		"cgroup namespace to use",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cgroupnsFlagName, AutocompleteNamespace)
+
+	cgroupsFlagName := "cgroups"
 	createFlags.StringVar(
 		&cf.CGroupsMode,
-		"cgroups", containerConfig.Cgroups(),
+		cgroupsFlagName, cgroupConfig(),
 		`control container cgroup configuration ("enabled"|"disabled"|"no-conmon"|"split")`,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cgroupsFlagName, AutocompleteCgroupMode)
+
+	cgroupParentFlagName := "cgroup-parent"
 	createFlags.StringVar(
 		&cf.CGroupParent,
-		"cgroup-parent", "",
+		cgroupParentFlagName, "",
 		"Optional parent cgroup for the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cgroupParentFlagName, completion.AutocompleteDefault)
+
+	cidfileFlagName := "cidfile"
 	createFlags.StringVar(
 		&cf.CIDFile,
-		"cidfile", "",
+		cidfileFlagName, "",
 		"Write the container ID to the file",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
+
+	conmonPidfileFlagName := "conmon-pidfile"
 	createFlags.StringVar(
 		&cf.ConmonPIDFile,
-		"conmon-pidfile", "",
+		conmonPidfileFlagName, "",
 		"Path to the file that will receive the PID of conmon",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(conmonPidfileFlagName, completion.AutocompleteDefault)
+
+	cpuPeriodFlagName := "cpu-period"
 	createFlags.Uint64Var(
 		&cf.CPUPeriod,
-		"cpu-period", 0,
+		cpuPeriodFlagName, 0,
 		"Limit the CPU CFS (Completely Fair Scheduler) period",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cpuPeriodFlagName, completion.AutocompleteNone)
+
+	cpuQuotaFlagName := "cpu-quota"
 	createFlags.Int64Var(
 		&cf.CPUQuota,
-		"cpu-quota", 0,
+		cpuQuotaFlagName, 0,
 		"Limit the CPU CFS (Completely Fair Scheduler) quota",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cpuQuotaFlagName, completion.AutocompleteNone)
+
+	cpuRtPeriodFlagName := "cpu-rt-period"
 	createFlags.Uint64Var(
 		&cf.CPURTPeriod,
-		"cpu-rt-period", 0,
+		cpuRtPeriodFlagName, 0,
 		"Limit the CPU real-time period in microseconds",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cpuRtPeriodFlagName, completion.AutocompleteNone)
+
+	cpuRtRuntimeFlagName := "cpu-rt-runtime"
 	createFlags.Int64Var(
 		&cf.CPURTRuntime,
-		"cpu-rt-runtime", 0,
+		cpuRtRuntimeFlagName, 0,
 		"Limit the CPU real-time runtime in microseconds",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cpuRtRuntimeFlagName, completion.AutocompleteNone)
+
+	cpuSharesFlagName := "cpu-shares"
 	createFlags.Uint64Var(
 		&cf.CPUShares,
-		"cpu-shares", 0,
+		cpuSharesFlagName, 0,
 		"CPU shares (relative weight)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cpuSharesFlagName, completion.AutocompleteNone)
+
+	cpusFlagName := "cpus"
 	createFlags.Float64Var(
 		&cf.CPUS,
-		"cpus", 0,
+		cpusFlagName, 0,
 		"Number of CPUs. The default is 0.000 which means no limit",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
+
+	cpusetCpusFlagName := "cpuset-cpus"
 	createFlags.StringVar(
 		&cf.CPUSetCPUs,
-		"cpuset-cpus", "",
+		cpusetCpusFlagName, "",
 		"CPUs in which to allow execution (0-3, 0,1)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cpusetCpusFlagName, completion.AutocompleteNone)
+
+	cpusetMemsFlagName := "cpuset-mems"
 	createFlags.StringVar(
 		&cf.CPUSetMems,
-		"cpuset-mems", "",
+		cpusetMemsFlagName, "",
 		"Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
+
+	deviceFlagName := "device"
 	createFlags.StringSliceVar(
 		&cf.Devices,
-		"device", containerConfig.Devices(),
+		deviceFlagName, devices(),
 		fmt.Sprintf("Add a host device to the container"),
 	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
+
+	deviceCgroupRuleFlagName := "device-cgroup-rule"
 	createFlags.StringSliceVar(
 		&cf.DeviceCGroupRule,
-		"device-cgroup-rule", []string{},
+		deviceCgroupRuleFlagName, []string{},
 		"Add a rule to the cgroup allowed devices list",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceCgroupRuleFlagName, completion.AutocompleteNone)
+
+	deviceReadBpsFlagName := "device-read-bps"
 	createFlags.StringSliceVar(
 		&cf.DeviceReadBPs,
-		"device-read-bps", []string{},
+		deviceReadBpsFlagName, []string{},
 		"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
+
+	deviceReadIopsFlagName := "device-read-iops"
 	createFlags.StringSliceVar(
 		&cf.DeviceReadIOPs,
-		"device-read-iops", []string{},
+		deviceReadIopsFlagName, []string{},
 		"Limit read rate (IO per second) from a device (e.g. --device-read-iops=/dev/sda:1000)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceReadIopsFlagName, completion.AutocompleteDefault)
+
+	deviceWriteBpsFlagName := "device-write-bps"
 	createFlags.StringSliceVar(
 		&cf.DeviceWriteBPs,
-		"device-write-bps", []string{},
+		deviceWriteBpsFlagName, []string{},
 		"Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceWriteBpsFlagName, completion.AutocompleteDefault)
+
+	deviceWriteIopsFlagName := "device-write-iops"
 	createFlags.StringSliceVar(
 		&cf.DeviceWriteIOPs,
-		"device-write-iops", []string{},
+		deviceWriteIopsFlagName, []string{},
 		"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceWriteIopsFlagName, completion.AutocompleteDefault)
+
 	createFlags.Bool(
 		"disable-content-trust", false,
 		"This is a Docker specific option and is a NOOP",
 	)
-	createFlags.String("entrypoint", "",
+
+	entrypointFlagName := "entrypoint"
+	createFlags.String(entrypointFlagName, "",
 		"Overwrite the default ENTRYPOINT of the image",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(entrypointFlagName, completion.AutocompleteNone)
+
+	envFlagName := "env"
 	createFlags.StringArrayP(
-		"env", "e", containerConfig.Env(),
+		envFlagName, "e", env(),
 		"Set environment variables in container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
+
 	if !registry.IsRemote() {
 		createFlags.BoolVar(
 			&cf.EnvHost,
 			"env-host", false, "Use all current host environment variables in container",
 		)
 	}
+
+	envFileFlagName := "env-file"
 	createFlags.StringSliceVar(
 		&cf.EnvFile,
-		"env-file", []string{},
+		envFileFlagName, []string{},
 		"Read in a file of environment variables",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(envFileFlagName, completion.AutocompleteDefault)
+
+	exposeFlagName := "expose"
 	createFlags.StringSliceVar(
 		&cf.Expose,
-		"expose", []string{},
+		exposeFlagName, []string{},
 		"Expose a port or a range of ports",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(exposeFlagName, completion.AutocompleteNone)
+
+	gidmapFlagName := "gidmap"
 	createFlags.StringSliceVar(
 		&cf.GIDMap,
-		"gidmap", []string{},
+		gidmapFlagName, []string{},
 		"GID map to use for the user namespace",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(gidmapFlagName, completion.AutocompleteNone)
+
+	groupAddFlagName := "group-add"
 	createFlags.StringSliceVar(
 		&cf.GroupAdd,
-		"group-add", []string{},
+		groupAddFlagName, []string{},
 		"Add additional groups to join",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(groupAddFlagName, completion.AutocompleteNone)
+
 	createFlags.Bool(
 		"help", false, "",
 	)
+
+	healthCmdFlagName := "health-cmd"
 	createFlags.StringVar(
 		&cf.HealthCmd,
-		"health-cmd", "",
+		healthCmdFlagName, "",
 		"set a healthcheck command for the container ('none' disables the existing healthcheck)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(healthCmdFlagName, completion.AutocompleteNone)
+
+	healthIntervalFlagName := "health-interval"
 	createFlags.StringVar(
 		&cf.HealthInterval,
-		"health-interval", DefaultHealthCheckInterval,
+		healthIntervalFlagName, DefaultHealthCheckInterval,
 		"set an interval for the healthchecks (a value of disable results in no automatic timer setup)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(healthIntervalFlagName, completion.AutocompleteNone)
+
+	healthRetriesFlagName := "health-retries"
 	createFlags.UintVar(
 		&cf.HealthRetries,
-		"health-retries", DefaultHealthCheckRetries,
+		healthRetriesFlagName, DefaultHealthCheckRetries,
 		"the number of retries allowed before a healthcheck is considered to be unhealthy",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(healthRetriesFlagName, completion.AutocompleteNone)
+
+	healthStartPeriodFlagName := "health-start-period"
 	createFlags.StringVar(
 		&cf.HealthStartPeriod,
-		"health-start-period", DefaultHealthCheckStartPeriod,
+		healthStartPeriodFlagName, DefaultHealthCheckStartPeriod,
 		"the initialization time needed for a container to bootstrap",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(healthStartPeriodFlagName, completion.AutocompleteNone)
+
+	healthTimeoutFlagName := "health-timeout"
 	createFlags.StringVar(
 		&cf.HealthTimeout,
-		"health-timeout", DefaultHealthCheckTimeout,
+		healthTimeoutFlagName, DefaultHealthCheckTimeout,
 		"the maximum time allowed to complete the healthcheck before an interval is considered failed",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(healthTimeoutFlagName, completion.AutocompleteNone)
+
+	hostnameFlagName := "hostname"
 	createFlags.StringVarP(
 		&cf.Hostname,
-		"hostname", "h", "",
+		hostnameFlagName, "h", "",
 		"Set container hostname",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(hostnameFlagName, completion.AutocompleteNone)
+
 	createFlags.BoolVar(
 		&cf.HTTPProxy,
 		"http-proxy", true,
 		"Set proxy environment variables in the container based on the host proxy vars",
 	)
+
+	imageVolumeFlagName := "image-volume"
 	createFlags.StringVar(
 		&cf.ImageVolume,
-		"image-volume", DefaultImageVolume,
+		imageVolumeFlagName, DefaultImageVolume,
 		`Tells podman how to handle the builtin image volumes ("bind"|"tmpfs"|"ignore")`,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(imageVolumeFlagName, AutocompleteImageVolume)
+
 	createFlags.BoolVar(
 		&cf.Init,
 		"init", false,
 		"Run an init binary inside the container that forwards signals and reaps processes",
 	)
+
+	initPathFlagName := "init-path"
 	createFlags.StringVar(
 		&cf.InitPath,
-		"init-path", containerConfig.InitPath(),
+		initPathFlagName, initPath(),
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
 		fmt.Sprintf("Path to the container-init binary"),
 	)
+	_ = cmd.RegisterFlagCompletionFunc(initPathFlagName, completion.AutocompleteDefault)
+
 	createFlags.BoolVarP(
 		&cf.Interactive,
 		"interactive", "i", false,
 		"Keep STDIN open even if not attached",
 	)
+
+	ipcFlagName := "ipc"
 	createFlags.String(
-		"ipc", "",
+		ipcFlagName, "",
 		"IPC namespace to use",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(ipcFlagName, AutocompleteNamespace)
+
+	kernelMemoryFlagName := "kernel-memory"
 	createFlags.StringVar(
 		&cf.KernelMemory,
-		"kernel-memory", "",
+		kernelMemoryFlagName, "",
 		"Kernel memory limit "+sizeWithUnitFormat,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(kernelMemoryFlagName, completion.AutocompleteNone)
+
+	labelFlagName := "label"
 	createFlags.StringArrayVarP(
 		&cf.Label,
-		"label", "l", []string{},
+		labelFlagName, "l", []string{},
 		"Set metadata on container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
+
+	labelFileFlagName := "label-file"
 	createFlags.StringSliceVar(
 		&cf.LabelFile,
-		"label-file", []string{},
+		labelFileFlagName, []string{},
 		"Read in a line delimited file of labels",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(labelFileFlagName, completion.AutocompleteDefault)
+
+	logDriverFlagName := "log-driver"
 	createFlags.StringVar(
 		&cf.LogDriver,
-		"log-driver", "",
+		logDriverFlagName, "",
 		"Logging driver for the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(logDriverFlagName, AutocompleteLogDriver)
+
+	logOptFlagName := "log-opt"
 	createFlags.StringSliceVar(
 		&cf.LogOptions,
-		"log-opt", []string{},
+		logOptFlagName, []string{},
 		"Logging driver options",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(logOptFlagName, AutocompleteLogOpt)
+
+	memoryFlagName := "memory"
 	createFlags.StringVarP(
 		&cf.Memory,
-		"memory", "m", "",
+		memoryFlagName, "m", "",
 		"Memory limit "+sizeWithUnitFormat,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+	memoryReservationFlagName := "memory-reservation"
 	createFlags.StringVar(
 		&cf.MemoryReservation,
-		"memory-reservation", "",
+		memoryReservationFlagName, "",
 		"Memory soft limit "+sizeWithUnitFormat,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(memoryReservationFlagName, completion.AutocompleteNone)
+
+	memorySwapFlagName := "memory-swap"
 	createFlags.StringVar(
 		&cf.MemorySwap,
-		"memory-swap", "",
+		memorySwapFlagName, "",
 		"Swap limit equal to memory plus swap: '-1' to enable unlimited swap",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(memorySwapFlagName, completion.AutocompleteNone)
+
+	memorySwappinessFlagName := "memory-swappiness"
 	createFlags.Int64Var(
 		&cf.MemorySwappiness,
-		"memory-swappiness", -1,
+		memorySwappinessFlagName, -1,
 		"Tune container memory swappiness (0 to 100, or -1 for system default)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(memorySwappinessFlagName, completion.AutocompleteNone)
+
+	nameFlagName := "name"
 	createFlags.StringVar(
 		&cf.Name,
-		"name", "",
+		nameFlagName, "",
 		"Assign a name to the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
+
 	createFlags.BoolVar(
 		&cf.NoHealthCheck,
 		"no-healthcheck", false,
@@ -305,44 +466,77 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"oom-kill-disable", false,
 		"Disable OOM Killer",
 	)
+
+	oomScoreAdjFlagName := "oom-score-adj"
 	createFlags.IntVar(
 		&cf.OOMScoreAdj,
-		"oom-score-adj", 0,
+		oomScoreAdjFlagName, 0,
 		"Tune the host's OOM preferences (-1000 to 1000)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(oomScoreAdjFlagName, completion.AutocompleteNone)
+
+	overrideArchFlagName := "override-arch"
 	createFlags.StringVar(
 		&cf.OverrideArch,
-		"override-arch", "",
+		overrideArchFlagName, "",
 		"use `ARCH` instead of the architecture of the machine for choosing images",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(overrideArchFlagName, completion.AutocompleteNone)
+
+	overrideOSFlagName := "override-os"
 	createFlags.StringVar(
 		&cf.OverrideOS,
-		"override-os", "",
+		overrideOSFlagName, "",
 		"use `OS` instead of the running OS for choosing images",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(overrideOSFlagName, completion.AutocompleteNone)
+
+	overrideVariantFlagName := "override-variant"
 	createFlags.StringVar(
 		&cf.OverrideVariant,
-		"override-variant", "",
+		overrideVariantFlagName, "",
 		"Use _VARIANT_ instead of the running architecture variant for choosing images",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(overrideVariantFlagName, completion.AutocompleteNone)
+
+	pidFlagName := "pid"
 	createFlags.String(
-		"pid", "",
+		pidFlagName, "",
 		"PID namespace to use",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(pidFlagName, AutocompleteNamespace)
+
+	pidsLimitFlagName := "pids-limit"
 	createFlags.Int64(
-		"pids-limit", containerConfig.PidsLimit(),
+		pidsLimitFlagName, pidsLimit(),
 		"Tune container pids limit (set 0 for unlimited, -1 for server defaults)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(pidsLimitFlagName, completion.AutocompleteNone)
+
+	platformFlagName := "platform"
+	createFlags.StringVar(
+		&cf.Platform,
+		platformFlagName, "",
+		"Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(platformFlagName, completion.AutocompleteNone)
+
+	podFlagName := "pod"
 	createFlags.StringVar(
 		&cf.Pod,
-		"pod", "",
+		podFlagName, "",
 		"Run container in an existing pod",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(podFlagName, AutocompletePods)
+
+	podIDFileFlagName := "pod-id-file"
 	createFlags.StringVar(
 		&cf.PodIDFile,
-		"pod-id-file", "",
+		podIDFileFlagName, "",
 		"Read the pod ID from the file",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
+
 	createFlags.BoolVar(
 		&cf.Privileged,
 		"privileged", false,
@@ -353,11 +547,15 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"publish-all", "P", false,
 		"Publish all exposed ports to random ports on the host interface",
 	)
+
+	pullFlagName := "pull"
 	createFlags.StringVar(
 		&cf.Pull,
-		"pull", containerConfig.Engine.PullPolicy,
+		pullFlagName, policy(),
 		`Pull image before creating ("always"|"missing"|"never")`,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(pullFlagName, AutocompletePullOption)
+
 	createFlags.BoolVarP(
 		&cf.Quiet,
 		"quiet", "q", false,
@@ -378,11 +576,15 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"replace", false,
 		`If a container with the same name exists, replace it`,
 	)
+
+	restartFlagName := "restart"
 	createFlags.StringVar(
 		&cf.Restart,
-		"restart", "",
+		restartFlagName, "",
 		`Restart policy to apply when a container exits ("always"|"no"|"on-failure"|"unless-stopped")`,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(restartFlagName, AutocompleteRestartOption)
+
 	createFlags.BoolVar(
 		&cf.Rm,
 		"rm", false,
@@ -393,20 +595,31 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 		"rootfs", false,
 		"The first argument is not an image but the rootfs to the exploded container",
 	)
+
+	sdnotifyFlagName := "sdnotify"
 	createFlags.StringVar(
 		&cf.SdNotifyMode,
-		"sdnotify", define.SdNotifyModeContainer,
+		sdnotifyFlagName, define.SdNotifyModeContainer,
 		`control sd-notify behavior ("container"|"conmon"|"ignore")`,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(sdnotifyFlagName, AutocompleteSDNotify)
+
+	securityOptFlagName := "security-opt"
 	createFlags.StringArrayVar(
 		&cf.SecurityOpt,
-		"security-opt", []string{},
+		securityOptFlagName, []string{},
 		"Security Options",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(securityOptFlagName, AutocompleteSecurityOption)
+
+	shmSizeFlagName := "shm-size"
 	createFlags.String(
-		"shm-size", containerConfig.ShmSize(),
+		shmSizeFlagName, shmSize(),
 		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(shmSizeFlagName, completion.AutocompleteNone)
+
+	stopSignalFlagName := "stop-signal"
 	createFlags.StringVar(
 		&cf.SignaturePolicy,
 		"signature-policy", "",
@@ -414,112 +627,175 @@ func GetCreateFlags(cf *ContainerCLIOpts) *pflag.FlagSet {
 	)
 	createFlags.StringVar(
 		&cf.StopSignal,
-		"stop-signal", "",
+		stopSignalFlagName, "",
 		"Signal to stop a container. Default is SIGTERM",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(stopSignalFlagName, AutocompleteStopSignal)
+
+	stopTimeoutFlagName := "stop-timeout"
 	createFlags.UintVar(
 		&cf.StopTimeout,
-		"stop-timeout", containerConfig.Engine.StopTimeout,
+		stopTimeoutFlagName, containerConfig.Engine.StopTimeout,
 		"Timeout (in seconds) to stop a container. Default is 10",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(stopTimeoutFlagName, completion.AutocompleteNone)
+
+	storageOptFlagName := "storage-opt"
 	createFlags.StringSliceVar(
 		&cf.StoreageOpt,
-		"storage-opt", []string{},
+		storageOptFlagName, []string{},
 		"Storage driver options per container",
 	)
+	//FIXME: What should we suggest here? The flag is not in the man page.
+	_ = cmd.RegisterFlagCompletionFunc(storageOptFlagName, completion.AutocompleteNone)
+
+	subgidnameFlagName := "subgidname"
 	createFlags.StringVar(
 		&cf.SubUIDName,
-		"subgidname", "",
+		subgidnameFlagName, "",
 		"Name of range listed in /etc/subgid for use in user namespace",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(subgidnameFlagName, completion.AutocompleteSubgidName)
+
+	subuidnameFlagName := "subuidname"
 	createFlags.StringVar(
 		&cf.SubGIDName,
-		"subuidname", "",
+		subuidnameFlagName, "",
 		"Name of range listed in /etc/subuid for use in user namespace",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(subuidnameFlagName, completion.AutocompleteSubuidName)
 
+	sysctlFlagName := "sysctl"
 	createFlags.StringSliceVar(
 		&cf.Sysctl,
-		"sysctl", []string{},
+		sysctlFlagName, []string{},
 		"Sysctl options",
 	)
+	//TODO: Add function for systctl completion.
+	_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, completion.AutocompleteNone)
+
+	systemdFlagName := "systemd"
 	createFlags.StringVar(
 		&cf.Systemd,
-		"systemd", "true",
+		systemdFlagName, "true",
 		`Run container in systemd mode ("true"|"false"|"always")`,
 	)
+	_ = cmd.RegisterFlagCompletionFunc(systemdFlagName, AutocompleteSystemdFlag)
+
+	tmpfsFlagName := "tmpfs"
 	createFlags.StringArrayVar(
 		&cf.TmpFS,
-		"tmpfs", []string{},
+		tmpfsFlagName, []string{},
 		"Mount a temporary filesystem (`tmpfs`) into a container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(tmpfsFlagName, completion.AutocompleteDefault)
+
 	createFlags.BoolVarP(
 		&cf.TTY,
 		"tty", "t", false,
 		"Allocate a pseudo-TTY for container",
 	)
+
+	timezonezFlagName := "tz"
 	createFlags.StringVar(
 		&cf.Timezone,
-		"tz", containerConfig.TZ(),
+		timezonezFlagName, containerConfig.TZ(),
 		"Set timezone in container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(timezonezFlagName, completion.AutocompleteNone) //TODO: add timezone completion
+
+	umaskFlagName := "umask"
 	createFlags.StringVar(
 		&cf.Umask,
-		"umask", containerConfig.Umask(),
+		umaskFlagName, containerConfig.Umask(),
 		"Set umask in container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(umaskFlagName, completion.AutocompleteNone)
+
+	uidmapFlagName := "uidmap"
 	createFlags.StringSliceVar(
 		&cf.UIDMap,
-		"uidmap", []string{},
+		uidmapFlagName, []string{},
 		"UID map to use for the user namespace",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(uidmapFlagName, completion.AutocompleteNone)
+
+	ulimitFlagName := "ulimit"
 	createFlags.StringSliceVar(
 		&cf.Ulimit,
-		"ulimit", containerConfig.Ulimits(),
+		ulimitFlagName, ulimits(),
 		"Ulimit options",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(ulimitFlagName, completion.AutocompleteNone)
+
+	userFlagName := "user"
 	createFlags.StringVarP(
 		&cf.User,
-		"user", "u", "",
+		userFlagName, "u", "",
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(userFlagName, AutocompleteUserFlag)
+
+	usernsFlagName := "userns"
 	createFlags.String(
-		"userns", os.Getenv("PODMAN_USERNS"),
+		usernsFlagName, os.Getenv("PODMAN_USERNS"),
 		"User namespace to use",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(usernsFlagName, AutocompleteUserNamespace)
+
+	utsFlagName := "uts"
 	createFlags.String(
-		"uts", "",
+		utsFlagName, "",
 		"UTS namespace to use",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(utsFlagName, AutocompleteNamespace)
+
+	mountFlagName := "mount"
 	createFlags.StringArrayVar(
 		&cf.Mount,
-		"mount", []string{},
+		mountFlagName, []string{},
 		"Attach a filesystem mount to the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(mountFlagName, AutocompleteMountFlag)
+
+	volumeFlagName := "volume"
 	createFlags.StringArrayVarP(
 		&cf.Volume,
-		"volume", "v", containerConfig.Volumes(),
+		volumeFlagName, "v", volumes(),
 		"Bind mount a volume into the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
+
+	volumesFromFlagName := "volumes-from"
 	createFlags.StringArrayVar(
 		&cf.VolumesFrom,
-		"volumes-from", []string{},
+		volumesFromFlagName, []string{},
 		"Mount volumes from the specified container(s)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(volumesFromFlagName, AutocompleteContainers)
+
+	workdirFlagName := "workdir"
 	createFlags.StringVarP(
 		&cf.Workdir,
-		"workdir", "w", "",
+		workdirFlagName, "w", "",
 		"Working directory inside the container",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(workdirFlagName, completion.AutocompleteDefault)
+
+	seccompPolicyFlagName := "seccomp-policy"
 	createFlags.StringVar(
 		&cf.SeccompPolicy,
-		"seccomp-policy", "default",
+		seccompPolicyFlagName, "default",
 		"Policy for selecting a seccomp profile (experimental)",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(seccompPolicyFlagName, completion.AutocompleteDefault)
+
+	cgroupConfFlagName := "cgroup-conf"
 	createFlags.StringSliceVar(
 		&cf.CgroupConf,
-		"cgroup-conf", []string{},
+		cgroupConfFlagName, []string{},
 		"Configure cgroup v2 (key=value)",
 	)
-	return &createFlags
+	_ = cmd.RegisterFlagCompletionFunc(cgroupConfFlagName, completion.AutocompleteNone)
+
 }

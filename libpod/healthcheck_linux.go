@@ -26,6 +26,10 @@ func (c *Container) createTimer() error {
 	if rootless.IsRootless() {
 		cmd = append(cmd, "--user")
 	}
+	path := os.Getenv("PATH")
+	if path != "" {
+		cmd = append(cmd, "--setenv=PATH="+path)
+	}
 	cmd = append(cmd, "--unit", c.ID(), fmt.Sprintf("--on-unit-inactive=%s", c.HealthCheckConfig().Interval.String()), "--timer-property=AccuracySec=1s", podman, "healthcheck", "run", c.ID())
 
 	conn, err := systemd.ConnectToDBUS()

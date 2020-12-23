@@ -2,10 +2,7 @@ package abi
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
-	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -26,18 +23,16 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.Net
 		return nil, err
 	}
 
-	var tokens []string
-	// tokenize the networkListOptions.Filter in key=value.
-	if len(options.Filter) > 0 {
-		tokens = strings.Split(options.Filter, "=")
-		if len(tokens) != 2 {
-			return nil, fmt.Errorf("invalid filter syntax : %s", options.Filter)
-		}
-	}
-
 	for _, n := range networks {
-		if ifPassesFilterTest(n, tokens) {
-			reports = append(reports, &entities.NetworkListReport{NetworkConfigList: n})
+		ok, err := network.IfPassesFilter(n, options.Filters)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			reports = append(reports, &entities.NetworkListReport{
+				NetworkConfigList: n,
+				Labels:            network.GetNetworkLabels(n),
+			})
 		}
 	}
 	return reports, nil
@@ -63,6 +58,26 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 		rawCNINetworks = append(rawCNINetworks, rawList)
 	}
 	return rawCNINetworks, errs, nil
+}
+
+func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
+	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+
+	reports := make([]*entities.NetworkReloadReport, 0, len(ctrs))
+	for _, ctr := range ctrs {
+		report := new(entities.NetworkReloadReport)
+		report.Id = ctr.ID()
+		report.Err = ctr.ReloadNetwork()
+		if options.All && errors.Cause(report.Err) == define.ErrCtrStateInvalid {
+			continue
+		}
+		reports = append(reports, report)
+	}
+
+	return reports, nil
 }
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
@@ -96,7 +111,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 					if err := ic.Libpod.RemovePod(ctx, pod, true, true); err != nil {
 						return reports, err
 					}
-				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true); err != nil {
+				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true); err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
 					return reports, err
 				}
 			}
@@ -110,27 +125,18 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 }
 
 func (ic *ContainerEngine) NetworkCreate(ctx context.Context, name string, options entities.NetworkCreateOptions) (*entities.NetworkCreateReport, error) {
-	return network.Create(name, options, ic.Libpod)
+	runtimeConfig, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	return network.Create(name, options, runtimeConfig)
 }
 
-func ifPassesFilterTest(netconf *libcni.NetworkConfigList, filter []string) bool {
-	result := false
-	if len(filter) == 0 {
-		// No filter, so pass
-		return true
-	}
-	switch strings.ToLower(filter[0]) {
-	case "name":
-		if filter[1] == netconf.Name {
-			result = true
-		}
-	case "plugin":
-		plugins := network.GetCNIPlugins(netconf)
-		if strings.Contains(plugins, filter[1]) {
-			result = true
-		}
-	default:
-		result = false
-	}
-	return result
+// NetworkDisconnect removes a container from a given network
+func (ic *ContainerEngine) NetworkDisconnect(ctx context.Context, networkname string, options entities.NetworkDisconnectOptions) error {
+	return ic.Libpod.DisconnectContainerFromNetwork(options.Container, networkname, options.Force)
+}
+
+func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname string, options entities.NetworkConnectOptions) error {
+	return ic.Libpod.ConnectContainerToNetwork(options.Container, networkname, options.Aliases)
 }

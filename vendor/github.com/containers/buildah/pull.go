@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/containers/buildah/pkg/blobcache"
-	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
@@ -18,6 +17,7 @@ import (
 	"github.com/containers/image/v5/signature"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
@@ -60,6 +60,8 @@ type PullOptions struct {
 	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
+	// PullPolicy takes the value PullIfMissing, PullAlways, PullIfNewer, or PullNever.
+	PullPolicy PullPolicy
 }
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference) (string, error) {
@@ -169,65 +171,66 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 		MaxPullRetries:      options.MaxRetries,
 		PullRetryDelay:      options.RetryDelay,
 		OciDecryptConfig:    options.OciDecryptConfig,
+		PullPolicy:          options.PullPolicy,
 	}
 
-	storageRef, transport, img, err := resolveImage(ctx, systemContext, options.Store, boptions)
+	if !options.AllTags {
+		_, _, img, err := resolveImage(ctx, systemContext, options.Store, boptions)
+		if err != nil {
+			return "", err
+		}
+		return img.ID, nil
+	}
+
+	srcRef, err := alltransports.ParseImageName(imageName)
+	if err == nil && srcRef.Transport().Name() != docker.Transport.Name() {
+		return "", errors.New("Non-docker transport is not supported, for --all-tags pulling")
+	}
+
+	storageRef, _, _, err := resolveImage(ctx, systemContext, options.Store, boptions)
 	if err != nil {
 		return "", err
 	}
 
 	var errs *multierror.Error
-	if options.AllTags {
-		if transport != util.DefaultTransport {
-			return "", errors.New("Non-docker transport is not supported, for --all-tags pulling")
-		}
-
-		repo := reference.TrimNamed(storageRef.DockerReference())
-		dockerRef, err := docker.NewReference(reference.TagNameOnly(storageRef.DockerReference()))
-		if err != nil {
-			return "", errors.Wrapf(err, "internal error creating docker.Transport reference for %s", storageRef.DockerReference().String())
-		}
-		tags, err := docker.GetRepositoryTags(ctx, systemContext, dockerRef)
-		if err != nil {
-			return "", errors.Wrapf(err, "error getting repository tags")
-		}
-		for _, tag := range tags {
-			tagged, err := reference.WithTag(repo, tag)
-			if err != nil {
-				errs = multierror.Append(errs, err)
-				continue
-			}
-			taggedRef, err := docker.NewReference(tagged)
-			if err != nil {
-				return "", errors.Wrapf(err, "internal error creating docker.Transport reference for %s", tagged.String())
-			}
-			if options.ReportWriter != nil {
-				if _, err := options.ReportWriter.Write([]byte("Pulling " + tagged.String() + "\n")); err != nil {
-					return "", errors.Wrapf(err, "error writing pull report")
-				}
-			}
-			ref, err := pullImage(ctx, options.Store, taggedRef, options, systemContext)
-			if err != nil {
-				errs = multierror.Append(errs, err)
-				continue
-			}
-			taggedImg, err := is.Transport.GetStoreImage(options.Store, ref)
-			if err != nil {
-				errs = multierror.Append(errs, err)
-				continue
-			}
-			imageID = taggedImg.ID
-		}
-	} else {
-		imageID = img.ID
+	repo := reference.TrimNamed(storageRef.DockerReference())
+	dockerRef, err := docker.NewReference(reference.TagNameOnly(storageRef.DockerReference()))
+	if err != nil {
+		return "", errors.Wrapf(err, "internal error creating docker.Transport reference for %s", storageRef.DockerReference().String())
 	}
-	if errs == nil {
-		err = nil
-	} else {
-		err = errs.ErrorOrNil()
+	tags, err := docker.GetRepositoryTags(ctx, systemContext, dockerRef)
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting repository tags")
+	}
+	for _, tag := range tags {
+		tagged, err := reference.WithTag(repo, tag)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+		taggedRef, err := docker.NewReference(tagged)
+		if err != nil {
+			return "", errors.Wrapf(err, "internal error creating docker.Transport reference for %s", tagged.String())
+		}
+		if options.ReportWriter != nil {
+			if _, err := options.ReportWriter.Write([]byte("Pulling " + tagged.String() + "\n")); err != nil {
+				return "", errors.Wrapf(err, "error writing pull report")
+			}
+		}
+		ref, err := pullImage(ctx, options.Store, taggedRef, options, systemContext)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+		taggedImg, err := is.Transport.GetStoreImage(options.Store, ref)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+		imageID = taggedImg.ID
 	}
 
-	return imageID, err
+	return imageID, errs.ErrorOrNil()
 }
 
 func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageReference, options PullOptions, sc *types.SystemContext) (types.ImageReference, error) {

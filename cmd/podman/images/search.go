@@ -1,11 +1,13 @@
 package images
 
 import (
+	"fmt"
 	"os"
 	"text/tabwriter"
 	"text/template"
 
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/cmd/podman/parse"
@@ -13,7 +15,6 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // searchOptionsWrapper wraps entities.ImagePullOptions and prevents leaking
@@ -33,11 +34,12 @@ var (
 
 	// Command: podman search
 	searchCmd = &cobra.Command{
-		Use:   "search [options] TERM",
-		Short: "Search registry for image",
-		Long:  searchDescription,
-		RunE:  imageSearch,
-		Args:  cobra.ExactArgs(1),
+		Use:               "search [options] TERM",
+		Short:             "Search registry for image",
+		Long:              searchDescription,
+		RunE:              imageSearch,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman search --filter=is-official --limit 3 alpine
   podman search registry.fedoraproject.org/  # only works with v2 registries
   podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
@@ -45,12 +47,13 @@ var (
 
 	// Command: podman image search
 	imageSearchCmd = &cobra.Command{
-		Use:         searchCmd.Use,
-		Short:       searchCmd.Short,
-		Long:        searchCmd.Long,
-		RunE:        searchCmd.RunE,
-		Args:        searchCmd.Args,
-		Annotations: searchCmd.Annotations,
+		Use:               searchCmd.Use,
+		Short:             searchCmd.Short,
+		Long:              searchCmd.Long,
+		RunE:              searchCmd.RunE,
+		Args:              searchCmd.Args,
+		Annotations:       searchCmd.Annotations,
+		ValidArgsFunction: searchCmd.ValidArgsFunction,
 		Example: `podman image search --filter=is-official --limit 3 alpine
   podman image search registry.fedoraproject.org/  # only works with v2 registries
   podman image search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
@@ -63,9 +66,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: searchCmd,
 	})
-
-	flags := searchCmd.Flags()
-	searchFlags(flags)
+	searchFlags(searchCmd)
 
 	// images search
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -73,18 +74,32 @@ func init() {
 		Command: imageSearchCmd,
 		Parent:  imageCmd,
 	})
-
-	imageSearchFlags := imageSearchCmd.Flags()
-	searchFlags(imageSearchFlags)
+	searchFlags(imageSearchCmd)
 }
 
 // searchFlags set the flags for the pull command.
-func searchFlags(flags *pflag.FlagSet) {
-	flags.StringSliceVarP(&searchOptions.Filters, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
-	flags.StringVar(&searchOptions.Format, "format", "", "Change the output format to a Go template")
-	flags.IntVar(&searchOptions.Limit, "limit", 0, "Limit the number of results")
+func searchFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&searchOptions.Filters, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
+	//TODO add custom filter function
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+
+	formatFlagName := "format"
+	flags.StringVar(&searchOptions.Format, formatFlagName, "", "Change the output format to JSON or a Go template")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+
+	limitFlagName := "limit"
+	flags.IntVar(&searchOptions.Limit, limitFlagName, 0, "Limit the number of results")
+	_ = cmd.RegisterFlagCompletionFunc(limitFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&searchOptions.NoTrunc, "no-trunc", false, "Do not truncate the output")
-	flags.StringVar(&searchOptions.Authfile, "authfile", auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+
+	authfileFlagName := "authfile"
+	flags.StringVar(&searchOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	_ = cmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVar(&searchOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.BoolVar(&searchOptions.ListTags, "list-tags", false, "List the tags of the input registry")
 }
@@ -135,6 +150,13 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 			return errors.Errorf("filters are not applicable to list tags result")
 		}
 		row = "{{.Name}}\t{{.Tag}}\n"
+	case report.IsJSON(searchOptions.Format):
+		prettyJSON, err := json.MarshalIndent(searchReport, "", "    ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(prettyJSON))
+		return nil
 	case cmd.Flags().Changed("format"):
 		renderHeaders = parse.HasTable(searchOptions.Format)
 		row = report.NormalizeFormat(searchOptions.Format)

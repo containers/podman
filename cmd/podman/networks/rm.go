@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/libpod/define"
@@ -16,12 +17,14 @@ import (
 var (
 	networkrmDescription = `Remove networks`
 	networkrmCommand     = &cobra.Command{
-		Use:     "rm [options] NETWORK [NETWORK...]",
-		Short:   "network rm",
-		Long:    networkrmDescription,
-		RunE:    networkRm,
-		Example: `podman network rm podman`,
-		Args:    cobra.MinimumNArgs(1),
+		Use:               "rm [options] NETWORK [NETWORK...]",
+		Aliases:           []string{"remove"},
+		Short:             "network rm",
+		Long:              networkrmDescription,
+		RunE:              networkRm,
+		Example:           `podman network rm podman`,
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: common.AutocompleteNetworks,
 	}
 )
 

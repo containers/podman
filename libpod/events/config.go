@@ -30,6 +30,8 @@ type Event struct {
 	Image string `json:",omitempty"`
 	// Name where applicable
 	Name string `json:",omitempty"`
+	// Network is the network name in a network event
+	Network string `json:"network,omitempty"`
 	// Status describes the event that occurred
 	Status Status
 	// Time the event occurred
@@ -93,14 +95,12 @@ type Type string
 type Status string
 
 const (
-	// If you add or subtract any values to the following lists, make sure you also update
-	// the switch statements below and the enums for EventType or EventStatus in the
-	// varlink description file.
-
 	// Container - event is related to containers
 	Container Type = "container"
 	// Image - event is related to images
 	Image Type = "image"
+	// Network - event is related to networks
+	Network Type = "network"
 	// Pod - event is related to pods
 	Pod Type = "pod"
 	// System - event is related to Podman whole and not to any specific
@@ -121,6 +121,8 @@ const (
 	Cleanup Status = "cleanup"
 	// Commit ...
 	Commit Status = "commit"
+	// Copy ...
+	Copy Status = "copy"
 	// Create ...
 	Create Status = "create"
 	// Exec ...
@@ -141,6 +143,10 @@ const (
 	LoadFromArchive Status = "loadfromarchive"
 	// Mount ...
 	Mount Status = "mount"
+	// NetworkConnect
+	NetworkConnect Status = "connect"
+	// NetworkDisconnect
+	NetworkDisconnect Status = "disconnect"
 	// Pause ...
 	Pause Status = "pause"
 	// Prune ...

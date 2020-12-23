@@ -22,6 +22,7 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // mergeNameAndTagOrDigest creates an image reference as string from the
@@ -386,11 +387,17 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
 		return
 	}
+	defer func() {
+		err := os.Remove(f.Name())
+		if err != nil {
+			logrus.Errorf("Failed to remove temporary file: %v.", err)
+		}
+	}()
 	if err := SaveFromBody(f, r); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		return
 	}
-	id, err := runtime.LoadImage(r.Context(), "", f.Name(), writer, "")
+	id, err := runtime.LoadImage(r.Context(), f.Name(), writer, "")
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
 		return

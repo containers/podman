@@ -35,13 +35,11 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 			Created:      img.Created().Unix(),
 			Dangling:     img.Dangling(),
 			Digest:       string(img.Digest()),
-			Digests:      digests,
+			RepoDigests:  digests,
 			History:      img.NamesHistory(),
 			Names:        img.Names(),
-			ParentId:     img.Parent,
 			ReadOnly:     img.IsReadOnly(),
 			SharedSize:   0,
-			VirtualSize:  img.VirtualSize,
 			RepoTags:     img.Names(), // may include tags and digests
 		}
 		e.Labels, err = img.Labels(ctx)
@@ -60,6 +58,15 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 			return nil, errors.Wrapf(err, "error retrieving size of image %q: you may need to remove the image to resolve the error", img.ID())
 		}
 		e.Size = int64(*sz)
+		// This is good enough for now, but has to be
+		// replaced later with correct calculation logic
+		e.VirtualSize = int64(*sz)
+
+		parent, err := img.ParentID(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving parent of image %q: you may need to remove the image to resolve the error", img.ID())
+		}
+		e.ParentId = parent
 
 		summaries = append(summaries, &e)
 	}

@@ -211,37 +211,39 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	return nil
 }
 
-// Handle container restart policy.
-// This is called when a container has exited, and was not explicitly stopped by
-// an API call to stop the container or pod it is in.
-func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr error) {
-	// If we did not get a restart policy match, exit immediately.
+func (c *Container) shouldRestart() bool {
+	// If we did not get a restart policy match, return false
 	// Do the same if we're not a policy that restarts.
 	if !c.state.RestartPolicyMatch ||
 		c.config.RestartPolicy == RestartPolicyNo ||
 		c.config.RestartPolicy == RestartPolicyNone {
-		return false, nil
+		return false
 	}
 
 	// If we're RestartPolicyOnFailure, we need to check retries and exit
 	// code.
 	if c.config.RestartPolicy == RestartPolicyOnFailure {
 		if c.state.ExitCode == 0 {
-			return false, nil
+			return false
 		}
 
 		// If we don't have a max retries set, continue
 		if c.config.RestartRetries > 0 {
-			if c.state.RestartCount < c.config.RestartRetries {
-				logrus.Debugf("Container %s restart policy trigger: on retry %d (of %d)",
-					c.ID(), c.state.RestartCount, c.config.RestartRetries)
-			} else {
-				logrus.Debugf("Container %s restart policy trigger: retries exhausted", c.ID())
-				return false, nil
+			if c.state.RestartCount >= c.config.RestartRetries {
+				return false
 			}
 		}
 	}
+	return true
+}
 
+// Handle container restart policy.
+// This is called when a container has exited, and was not explicitly stopped by
+// an API call to stop the container or pod it is in.
+func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr error) {
+	if !c.shouldRestart() {
+		return false, nil
+	}
 	logrus.Debugf("Restarting container %s due to restart policy %s", c.ID(), c.config.RestartPolicy)
 
 	// Need to check if dependencies are alive.
@@ -528,7 +530,7 @@ func (c *Container) teardownStorage() error {
 		// Potentially another tool using containers/storage already
 		// removed it?
 		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
-			logrus.Warnf("Storage for container %s already removed", c.ID())
+			logrus.Infof("Storage for container %s already removed", c.ID())
 			return nil
 		}
 
@@ -646,13 +648,13 @@ func (c *Container) removeIPv4Allocations() error {
 		cniDefaultNetwork = c.runtime.netPlugin.GetDefaultNetworkName()
 	}
 
-	switch {
-	case len(c.config.Networks) > 0 && len(c.config.Networks) != len(c.state.NetworkStatus):
-		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(c.config.Networks), len(c.state.NetworkStatus))
-	case len(c.config.Networks) == 0 && len(c.state.NetworkStatus) != 1:
-		return errors.Wrapf(define.ErrInternal, "network mismatch: did not specify CNI networks but joined more than one (%d)", len(c.state.NetworkStatus))
-	case len(c.config.Networks) == 0 && cniDefaultNetwork == "":
-		return errors.Wrapf(define.ErrInternal, "could not retrieve name of CNI default network")
+	networks, _, err := c.networks()
+	if err != nil {
+		return err
+	}
+
+	if len(networks) != len(c.state.NetworkStatus) {
+		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(networks), len(c.state.NetworkStatus))
 	}
 
 	for index, result := range c.state.NetworkStatus {
@@ -661,11 +663,11 @@ func (c *Container) removeIPv4Allocations() error {
 				continue
 			}
 			candidate := ""
-			if len(c.config.Networks) > 0 {
+			if len(networks) > 0 {
 				// CNI returns networks in order we passed them.
 				// So our index into results should be our index
 				// into networks.
-				candidate = filepath.Join(cniNetworksDir, c.config.Networks[index], ctrIP.Address.IP.String())
+				candidate = filepath.Join(cniNetworksDir, networks[index], ctrIP.Address.IP.String())
 			} else {
 				candidate = filepath.Join(cniNetworksDir, cniDefaultNetwork, ctrIP.Address.IP.String())
 			}
@@ -1508,6 +1510,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 // config.
 // Returns the volume that was mounted.
 func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string) (*Volume, error) {
+	logrus.Debugf("Going to mount named volume %s", v.Name)
 	vol, err := c.runtime.state.Volume(v.Name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())

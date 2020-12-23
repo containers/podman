@@ -1,6 +1,8 @@
 package ocicni
 
 import (
+	"context"
+
 	"github.com/containernetworking/cni/pkg/types"
 )
 
@@ -87,6 +89,11 @@ type PodNetwork struct {
 	// It is optional, and can be omitted for some or all specified networks
 	// without issue.
 	RuntimeConfig map[string]RuntimeConfig
+
+	// Aliases are network-scoped names for resolving a container
+	// by name. The key value is the network name and the value is
+	// is a string slice of aliases
+	Aliases map[string][]string
 }
 
 // NetAttachment describes a container network attachment
@@ -122,11 +129,20 @@ type CNIPlugin interface {
 	// pod are launched.
 	SetUpPod(network PodNetwork) ([]NetResult, error)
 
+	// SetUpPodWithContext is the same as SetUpPod but takes a context
+	SetUpPodWithContext(ctx context.Context, network PodNetwork) ([]NetResult, error)
+
 	// TearDownPod is the method called before a pod's sandbox container will be deleted
 	TearDownPod(network PodNetwork) error
 
-	// Status is the method called to obtain the ipv4 or ipv6 addresses of the pod sandbox
+	// TearDownPodWithContext is the same as TearDownPod but takes a context
+	TearDownPodWithContext(ctx context.Context, network PodNetwork) error
+
+	// GetPodNetworkStatus is the method called to obtain the ipv4 or ipv6 addresses of the pod sandbox
 	GetPodNetworkStatus(network PodNetwork) ([]NetResult, error)
+
+	// GetPodNetworkStatusWithContext is the same as GetPodNetworkStatus but takes a context
+	GetPodNetworkStatusWithContext(ctx context.Context, network PodNetwork) ([]NetResult, error)
 
 	// NetworkStatus returns error if the network plugin is in error state
 	Status() error

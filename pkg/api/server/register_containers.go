@@ -690,6 +690,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//        - `label`=(`key` or `"key=value"`) of an container label
 	//        - `name=<name>` a container's name
 	//        - `network`=(`<network id>` or `<network name>`)
+	//        - `pod`=(`<pod id>` or `<pod name>`)
 	//        - `publish`=(`<port>[/<proto>]` or `<startport-endport>/[<proto>]`)
 	//        - `since`=(`<container id>` or `<container name>`)
 	//        - `status`=(`created`, `restarting`, `running`, `removing`, `paused`, `exited` or `dead`)

@@ -127,12 +127,16 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	return reports, errs, nil
 }
 
-func (ic *ContainerEngine) VolumePrune(ctx context.Context) ([]*entities.VolumePruneReport, error) {
-	return ic.pruneVolumesHelper(ctx)
+func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.VolumePruneOptions) ([]*entities.VolumePruneReport, error) {
+	filterFuncs, err := filters.GenerateVolumeFilters(options.Filters)
+	if err != nil {
+		return nil, err
+	}
+	return ic.pruneVolumesHelper(ctx, filterFuncs)
 }
 
-func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context) ([]*entities.VolumePruneReport, error) {
-	pruned, err := ic.Libpod.PruneVolumes(ctx)
+func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter) ([]*entities.VolumePruneReport, error) {
+	pruned, err := ic.Libpod.PruneVolumes(ctx, filterFuncs)
 	if err != nil {
 		return nil, err
 	}

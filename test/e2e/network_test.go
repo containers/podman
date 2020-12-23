@@ -2,10 +2,9 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v2/pkg/rootless"
 	. "github.com/containers/podman/v2/test/utils"
@@ -13,53 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-func writeConf(conf []byte, confPath string) {
-	if err := ioutil.WriteFile(confPath, conf, 777); err != nil {
-		fmt.Println(err)
-	}
-}
-func removeConf(confPath string) {
-	if err := os.Remove(confPath); err != nil {
-		fmt.Println(err)
-	}
-}
-
-// generateNetworkConfig generates a cni config with a random name
-// it returns the network name and the filepath
-func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
-	// generate a random name to prevent conflicts with other tests
-	name := "net" + stringid.GenerateNonCryptoID()
-	path := filepath.Join(p.CNIConfigDir, fmt.Sprintf("%s.conflist", name))
-	conf := fmt.Sprintf(`{
-		"cniVersion": "0.3.0",
-		"name": "%s",
-		"plugins": [
-		  {
-			"type": "bridge",
-			"bridge": "cni1",
-			"isGateway": true,
-			"ipMasq": true,
-			"ipam": {
-				"type": "host-local",
-				"subnet": "10.99.0.0/16",
-				"routes": [
-					{ "dst": "0.0.0.0/0" }
-				]
-			}
-		  },
-		  {
-			"type": "portmap",
-			"capabilities": {
-			  "portMappings": true
-			}
-		  }
-		]
-	}`, name)
-	writeConf([]byte(conf), path)
-
-	return name, path
-}
 
 var _ = Describe("Podman network", func() {
 	var (
@@ -114,6 +66,71 @@ var _ = Describe("Podman network", func() {
 		Expect(session.LineInOutputContains(name)).To(BeTrue())
 	})
 
+	It("podman network list --filter plugin and name", func() {
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
+
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=bridge", "--filter", "name=" + name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(name))
+	})
+
+	It("podman network list --filter two names", func() {
+		name1, path1 := generateNetworkConfig(podmanTest)
+		defer removeConf(path1)
+
+		name2, path2 := generateNetworkConfig(podmanTest)
+		defer removeConf(path2)
+
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "name=" + name1, "--filter", "name=" + name2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(name1))
+		Expect(session.OutputToString()).To(ContainSubstring(name2))
+	})
+
+	It("podman network list --filter labels", func() {
+		net1 := "labelnet" + stringid.GenerateNonCryptoID()
+		label1 := "testlabel1=abc"
+		label2 := "abcdef"
+		session := podmanTest.Podman([]string{"network", "create", "--label", label1, net1})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net1)
+		Expect(session.ExitCode()).To(BeZero())
+
+		net2 := "labelnet" + stringid.GenerateNonCryptoID()
+		session = podmanTest.Podman([]string{"network", "create", "--label", label1, "--label", label2, net2})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net2)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "label=" + label1})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(net1))
+		Expect(session.OutputToString()).To(ContainSubstring(net2))
+
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "label=" + label1, "--filter", "label=" + label2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).ToNot(ContainSubstring(net1))
+		Expect(session.OutputToString()).To(ContainSubstring(net2))
+	})
+
+	It("podman network list --filter invalid value", func() {
+		net := "net" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "namr=ab"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring(`invalid filter "namr"`))
+	})
+
 	It("podman network list --filter failure", func() {
 		name, path := generateNetworkConfig(podmanTest)
 		defer removeConf(path)
@@ -124,31 +141,70 @@ var _ = Describe("Podman network", func() {
 		Expect(session.LineInOutputContains(name)).To(BeFalse())
 	})
 
-	It("podman network rm no args", func() {
-		session := podmanTest.Podman([]string{"network", "rm"})
+	It("podman network ID test", func() {
+		net := "networkIDTest"
+		// the network id should be the sha256 hash of the network name
+		netID := "6073aefe03cdf8f29be5b23ea9795c431868a3a22066a6290b187691614fee84"
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(session.OutputToString()).To(ContainSubstring(net + " " + netID[:12]))
+
+		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID[10:50], "--no-trunc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(session.OutputToString()).To(ContainSubstring(net + " " + netID))
+
+		session = podmanTest.Podman([]string{"network", "inspect", netID[:40]})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(session.OutputToString()).To(ContainSubstring(net))
+
+		session = podmanTest.Podman([]string{"network", "inspect", netID[1:]})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(BeZero())
-	})
+		Expect(session.ErrorToString()).To(ContainSubstring("no such network"))
 
-	It("podman network rm", func() {
-		SkipIfRootless("FIXME: This one is definitely broken in rootless mode")
-		name, path := generateNetworkConfig(podmanTest)
-		defer removeConf(path)
-
-		session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
+		session = podmanTest.Podman([]string{"network", "rm", netID})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOutputContains(name)).To(BeTrue())
-
-		rm := podmanTest.Podman([]string{"network", "rm", name})
-		rm.WaitWithDefaultTimeout()
-		Expect(rm.ExitCode()).To(BeZero())
-
-		results := podmanTest.Podman([]string{"network", "ls", "--quiet"})
-		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
-		Expect(results.LineInOutputContains(name)).To(BeFalse())
+		Expect(session.ExitCode()).To(BeZero())
 	})
+
+	rm_func := func(rm string) {
+		It(fmt.Sprintf("podman network %s no args", rm), func() {
+			session := podmanTest.Podman([]string{"network", rm})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).ToNot(BeZero())
+
+		})
+
+		It(fmt.Sprintf("podman network %s", rm), func() {
+			name, path := generateNetworkConfig(podmanTest)
+			defer removeConf(path)
+
+			session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session.LineInOutputContains(name)).To(BeTrue())
+
+			rm := podmanTest.Podman([]string{"network", rm, name})
+			rm.WaitWithDefaultTimeout()
+			Expect(rm.ExitCode()).To(BeZero())
+
+			results := podmanTest.Podman([]string{"network", "ls", "--quiet"})
+			results.WaitWithDefaultTimeout()
+			Expect(results.ExitCode()).To(Equal(0))
+			Expect(results.LineInOutputContains(name)).To(BeFalse())
+		})
+	}
+
+	rm_func("rm")
+	rm_func("remove")
 
 	It("podman network inspect no args", func() {
 		session := podmanTest.Podman([]string{"network", "inspect"})
@@ -350,5 +406,54 @@ var _ = Describe("Podman network", func() {
 		lines := session.OutputToStringArray()
 		Expect(lines[0]).To(Equal(netName1))
 		Expect(lines[1]).To(Equal(netName2))
+	})
+	It("podman network with multiple aliases", func() {
+		Skip("Until DNSName is updated on our CI images")
+		var worked bool
+		netName := "aliasTest" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", netName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
+
+		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", nginx})
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(BeZero())
+		interval := time.Duration(250 * time.Millisecond)
+		// Wait for the nginx service to be running
+		for i := 0; i < 6; i++ {
+			// Test curl against the container's name
+			c1 := podmanTest.Podman([]string{"run", "--network=" + netName, nginx, "curl", "web"})
+			c1.WaitWithDefaultTimeout()
+			worked = Expect(c1.ExitCode()).To(BeZero())
+			if worked {
+				break
+			}
+			time.Sleep(interval)
+			interval *= 2
+		}
+		Expect(worked).To(BeTrue())
+
+		// Nginx is now running so no need to do a loop
+		// Test against the first alias
+		c2 := podmanTest.Podman([]string{"run", "--network=" + netName, nginx, "curl", "web1"})
+		c2.WaitWithDefaultTimeout()
+		Expect(c2.ExitCode()).To(BeZero())
+
+		// Test against the second alias
+		c3 := podmanTest.Podman([]string{"run", "--network=" + netName, nginx, "curl", "web2"})
+		c3.WaitWithDefaultTimeout()
+		Expect(c3.ExitCode()).To(BeZero())
+	})
+
+	It("podman network create/remove macvlan", func() {
+		net := "macvlan" + stringid.GenerateNonCryptoID()
+		nc := podmanTest.Podman([]string{"network", "create", "--macvlan", "lo", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(Equal(0))
+
+		nc = podmanTest.Podman([]string{"network", "rm", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(Equal(0))
 	})
 })

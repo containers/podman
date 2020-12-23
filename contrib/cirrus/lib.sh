@@ -41,7 +41,7 @@ fi
 
 OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 # GCE image-name compatible string representation of distribution _major_ version
-OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
+OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | tr -d '.')"
 # Combined to ease soe usage
 OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 # This is normally set from .cirrus.yml but default is necessary when
@@ -71,8 +71,8 @@ SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
 # Downloaded, but not installed packages.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
-# Log remote-client system test varlink output here
-PODMAN_SERVER_LOG=$CIRRUS_WORKING_DIR/varlink.log
+# Log remote-client system test server output here
+PODMAN_SERVER_LOG=$CIRRUS_WORKING_DIR/server.log
 
 # Defaults when not running under CI
 export CI="${CI:-false}"

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -13,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -28,6 +29,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
+		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman rm imageID
   podman rm mywebserver myflaskserver 860a4b23
   podman rm --force --all
@@ -42,6 +44,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
+		ValidArgsFunction: rmCommand.ValidArgsFunction,
 		Example: `podman container rm imageID
   podman container rm mywebserver myflaskserver 860a4b23
   podman container rm --force --all
@@ -53,12 +56,17 @@ var (
 	rmOptions = entities.RmOptions{}
 )
 
-func rmFlags(flags *pflag.FlagSet) {
+func rmFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all containers")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running or unusable container.  The default is false")
 	flags.BoolVarP(&rmOptions.Volumes, "volumes", "v", false, "Remove anonymous volumes associated with the container")
-	flags.StringArrayVarP(&rmOptions.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
+
+	cidfileFlagName := "cidfile"
+	flags.StringArrayVarP(&rmOptions.CIDFiles, cidfileFlagName, "", nil, "Read the container ID from the file")
+	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	if !registry.IsRemote() {
 		// This option is deprecated, but needs to still exists for backwards compatibility
@@ -72,7 +80,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: rmCommand,
 	})
-	rmFlags(rmCommand.Flags())
+	rmFlags(rmCommand)
 	validate.AddLatestFlag(rmCommand, &rmOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -80,7 +88,7 @@ func init() {
 		Command: containerRmCommand,
 		Parent:  containerCmd,
 	})
-	rmFlags(containerRmCommand.Flags())
+	rmFlags(containerRmCommand)
 	validate.AddLatestFlag(containerRmCommand, &rmOptions.Latest)
 }
 

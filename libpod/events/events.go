@@ -77,6 +77,8 @@ func (e *Event) ToHumanReadable() string {
 			}
 		}
 		humanFormat += ")"
+	case Network:
+		humanFormat = fmt.Sprintf("%s %s %s %s (container=%s, name=%s)", e.Time, e.Type, e.Status, e.ID, e.ID, e.Network)
 	case Image:
 		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, e.ID, e.Name)
 	case System:
@@ -115,6 +117,8 @@ func StringToType(name string) (Type, error) {
 		return Container, nil
 	case Image.String():
 		return Image, nil
+	case Network.String():
+		return Network, nil
 	case Pod.String():
 		return Pod, nil
 	case System.String():
@@ -162,6 +166,10 @@ func StringToStatus(name string) (Status, error) {
 		return LoadFromArchive, nil
 	case Mount.String():
 		return Mount, nil
+	case NetworkConnect.String():
+		return NetworkConnect, nil
+	case NetworkDisconnect.String():
+		return NetworkDisconnect, nil
 	case Pause.String():
 		return Pause, nil
 	case Prune.String():
@@ -208,8 +216,5 @@ func (e EventLogFile) getTail(options ReadOptions) (*tail.Tail, error) {
 		reopen = false
 	}
 	stream := options.Stream
-	if len(options.Until) > 0 {
-		stream = false
-	}
 	return tail.TailFile(e.options.LogFilePath, tail.Config{ReOpen: reopen, Follow: stream, Location: &seek, Logger: tail.DiscardingLogger, Poll: true})
 }

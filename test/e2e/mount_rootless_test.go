@@ -1,5 +1,3 @@
-// +build !remote
-
 package integration
 
 import (
@@ -18,9 +16,8 @@ var _ = Describe("Podman mount", func() {
 	)
 
 	BeforeEach(func() {
-		if os.Geteuid() == 0 {
-			Skip("This function is not enabled for rootfull podman")
-		}
+		SkipIfNotRootless("This function is not enabled for rootfull podman")
+		SkipIfRemote("Podman mount not supported for remote connections")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -61,18 +58,16 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman image mount", func() {
-		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		mount := podmanTest.PodmanNoCache([]string{"image", "mount", ALPINE})
+		podmanTest.AddImageToRWStore(ALPINE)
+		mount := podmanTest.Podman([]string{"image", "mount", ALPINE})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).ToNot(Equal(0))
 		Expect(mount.ErrorToString()).To(ContainSubstring("podman unshare"))
 	})
 
 	It("podman unshare image podman mount", func() {
-		setup := podmanTest.PodmanNoCache([]string{"pull", ALPINE})
+		podmanTest.AddImageToRWStore(ALPINE)
+		setup := podmanTest.Podman([]string{"pull", ALPINE})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 

@@ -6,15 +6,11 @@ podman\-ps - Prints out information about containers
 ## SYNOPSIS
 **podman ps** [*options*]
 
+**podman container ps** [*options*]
+
 **podman container list** [*options*]
 
 **podman container ls** [*options*]
-
-**podman container ps** [*options*]
-
-**podman list** [*options*]
-
-**podman ls** [*options*]
 
 ## DESCRIPTION
 **podman ps** lists the running containers on the system. Use the **--all** flag to view
@@ -30,29 +26,29 @@ all the containers information.  By default it lists:
 
 ## OPTIONS
 
-**--all**, **-a**
+#### **--all**, **-a**
 
 Show all the containers created by Podman, default is only running containers.
 
 Note: Podman shares containers storage with other tools such as Buildah and CRI-O. In some cases these `external` containers might also exist in the same storage. Use the `--external` option to see these external containers. External containers show the 'storage' status.
 
-**--external**
+#### **--external**
 
 Display external containers that are not controlled by Podman but are stored in containers storage.  These external containers are generally created via other container technology such as Buildah or CRI-O and may depend on the same container images that Podman is also using.  External containers are denoted with either a 'buildah' or 'storage' in the COMMAND and STATUS column of the ps output. Only used with the --all option.
 
-**--filter**, **-f**
+#### **--filter**, **-f**
 
 Filter what containers are shown in the output.
 Multiple filters can be given with multiple uses of the --filter flag.
-If multiple filters are given, only containers which match all of the given filters will be shown.
-Results will be drawn from all containers, regardless of whether --all was given.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
 
 Valid filters are listed below:
 
 | **Filter**      | **Description**                                                                  |
 | --------------- | -------------------------------------------------------------------------------- |
-| id              | [ID] Container's ID                                                              |
-| name            | [Name] Container's name                                                          |
+| id              | [ID] Container's ID (accepts regex)                                              |
+| name            | [Name] Container's name (accepts regex)                                          |
 | label           | [Key] or [Key=Value] Label assigned to a container                               |
 | exited          | [Int] Container's exit code                                                      |
 | status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
@@ -61,8 +57,10 @@ Valid filters are listed below:
 | since           | [ID] or [Name] Containers created since this container                           |
 | volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
 | health          | [Status] healthy or unhealthy                                                    |
+| pod             | [Pod] name or full or partial ID of pod                                          |
 
-**--format**=*format*
+
+#### **--format**=*format*
 
 Pretty-print containers to JSON or using a Go template
 
@@ -84,54 +82,54 @@ Valid placeholders for the Go template are listed below:
 | .Labels         | All the labels assigned to the container         |
 | .Mounts         | Volumes mounted in the container                 |
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 
-**--last**, **-n**
+#### **--last**, **-n**
 
 Print the n last created containers (all states)
 
-**--latest**, **-l**
+#### **--latest**, **-l**
 
 Show the latest container created (all states)
 
 The latest option is not supported on the remote client.
 
-**--namespace**, **--ns**
+#### **--namespace**, **--ns**
 
 Display namespace information
 
-**--no-trunc**
+#### **--no-trunc**
 
 Display the extended information
 
-**--pod**, **-p**
+#### **--pod**, **-p**
 
 Display the pods the containers are associated with
 
-**--quiet**, **-q**
+#### **--quiet**, **-q**
 
 Print the numeric IDs of the containers only
 
-**--sort**
+#### **--sort**
 
 Sort by command, created, id, image, names, runningfor, size, or status",
 Note: Choosing size will sort by size of rootFs, not alphabetically like the rest of the options
 Default: created
 
-**--size**, **-s**
+#### **--size**, **-s**
 
 Display the total file size
 
-**--sync**
+#### **--sync**
 
 Force a sync of container state with the OCI runtime.
 In some cases, a container's state in the runtime can become out of sync with Podman's state.
 This will update Podman's state based on what the OCI runtime reports.
 Forcibly syncing is much slower, but can resolve inconsistent state issues.
 
-**--watch**, **-w**
+#### **--watch**, **-w**
 
 Refresh the output with current containers on an interval in seconds.
 

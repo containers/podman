@@ -37,7 +37,7 @@ var _ = Describe("Podman containers ", func() {
 
 	It("podman pause a bogus container", func() {
 		// Pausing bogus container should return 404
-		err = containers.Pause(bt.conn, "foobar")
+		err = containers.Pause(bt.conn, "foobar", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -45,7 +45,7 @@ var _ = Describe("Podman containers ", func() {
 
 	It("podman unpause a bogus container", func() {
 		// Unpausing bogus container should return 404
-		err = containers.Unpause(bt.conn, "foobar")
+		err = containers.Unpause(bt.conn, "foobar", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -56,7 +56,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, name)
+		err = containers.Pause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
 		// Ensure container is paused
@@ -70,7 +70,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, cid)
+		err = containers.Pause(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
 
 		// Ensure container is paused
@@ -84,9 +84,9 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, name)
+		err = containers.Pause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
-		err = containers.Unpause(bt.conn, name)
+		err = containers.Unpause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
 		// Ensure container is unpaused
@@ -101,11 +101,11 @@ var _ = Describe("Podman containers ", func() {
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Pause by name
-		err = containers.Pause(bt.conn, name)
+		err = containers.Pause(bt.conn, name, nil)
 		//paused := "paused"
 		//_, err = containers.Wait(bt.conn, cid, &paused)
 		//Expect(err).To(BeNil())
-		err = containers.Unpause(bt.conn, name)
+		err = containers.Unpause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
 		// Ensure container is unpaused
@@ -119,9 +119,9 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, name)
+		err = containers.Pause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, name)
+		err = containers.Pause(bt.conn, name, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -132,9 +132,9 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, cid)
+		err = containers.Pause(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, cid)
+		err = containers.Pause(bt.conn, cid, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -147,7 +147,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, name)
+		err = containers.Pause(bt.conn, name, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -160,7 +160,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		err = containers.Stop(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, cid)
+		err = containers.Pause(bt.conn, cid, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -171,9 +171,9 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, cid)
+		err = containers.Pause(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
-		err = containers.Remove(bt.conn, cid, bindings.PFalse, bindings.PFalse)
+		err = containers.Remove(bt.conn, cid, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -184,9 +184,9 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, cid)
+		err = containers.Pause(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
-		err = containers.Remove(bt.conn, cid, bindings.PTrue, bindings.PFalse)
+		err = containers.Remove(bt.conn, cid, new(containers.RemoveOptions).WithForce(true))
 		Expect(err).To(BeNil())
 	})
 
@@ -195,7 +195,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, name)
+		err = containers.Pause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).ToNot(BeNil())
@@ -208,7 +208,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, cid)
+		err = containers.Pause(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
 		err = containers.Stop(bt.conn, cid, nil)
 		Expect(err).ToNot(BeNil())
@@ -280,27 +280,27 @@ var _ = Describe("Podman containers ", func() {
 		_, err := bt.RunTopContainer(&name, nil, nil)
 		Expect(err).To(BeNil())
 		go func() {
-			exitCode, err = containers.Wait(bt.conn, name, &pause)
+			exitCode, err = containers.Wait(bt.conn, name, new(containers.WaitOptions).WithCondition(pause))
 			errChan <- err
 			close(errChan)
 		}()
-		err = containers.Pause(bt.conn, name)
+		err = containers.Pause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 		wait := <-errChan
 		Expect(wait).To(BeNil())
 		Expect(exitCode).To(BeNumerically("==", -1))
 
-		errChan = make(chan error)
+		unpauseErrChan := make(chan error)
 		go func() {
 			defer GinkgoRecover()
 
-			_, waitErr := containers.Wait(bt.conn, name, &running)
-			errChan <- waitErr
-			close(errChan)
+			_, waitErr := containers.Wait(bt.conn, name, new(containers.WaitOptions).WithCondition(running))
+			unpauseErrChan <- waitErr
+			close(unpauseErrChan)
 		}()
-		err = containers.Unpause(bt.conn, name)
+		err = containers.Unpause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
-		unPausewait := <-errChan
+		unPausewait := <-unpauseErrChan
 		Expect(unPausewait).To(BeNil())
 		Expect(exitCode).To(BeNumerically("==", -1))
 	})
@@ -309,7 +309,7 @@ var _ = Describe("Podman containers ", func() {
 		bt.runPodman([]string{"run", "-d", "--name", "hc", "--health-interval", "disable", "--health-retries", "2", "--health-cmd", "ls / || exit 1", alpine.name, "top"})
 
 		// bogus name should result in 404
-		_, err := containers.RunHealthCheck(bt.conn, "foobar")
+		_, err := containers.RunHealthCheck(bt.conn, "foobar", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -317,7 +317,7 @@ var _ = Describe("Podman containers ", func() {
 		// a container that has no healthcheck should be a 409
 		var name = "top"
 		bt.RunTopContainer(&name, bindings.PFalse, nil)
-		_, err = containers.RunHealthCheck(bt.conn, name)
+		_, err = containers.RunHealthCheck(bt.conn, name, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusConflict))
@@ -355,7 +355,7 @@ var _ = Describe("Podman containers ", func() {
 		s := specgen.NewSpecGenerator(alpine.name, false)
 		s.Terminal = true
 		s.Command = []string{"date", "-R"}
-		r, err := containers.CreateWithSpec(bt.conn, s)
+		r, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).To(BeNil())
 		err = containers.Start(bt.conn, r.ID, nil)
 		Expect(err).To(BeNil())
@@ -363,7 +363,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err = containers.Wait(bt.conn, r.ID, nil)
 		Expect(err).To(BeNil())
 
-		opts := containers.LogOptions{Stdout: bindings.PTrue, Follow: bindings.PTrue}
+		opts := new(containers.LogOptions).WithStdout(true).WithFollow(true)
 		go func() {
 			containers.Logs(bt.conn, r.ID, opts, stdoutChan, nil)
 		}()
@@ -387,7 +387,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 
 		// With descriptors
-		output, err := containers.Top(bt.conn, cid, []string{"user,pid,hpid"})
+		output, err := containers.Top(bt.conn, cid, new(containers.TopOptions).WithDescriptors([]string{"user", "pid", "hpid"}))
 		Expect(err).To(BeNil())
 		header := strings.Split(output[0], "\t")
 		for _, d := range []string{"USER", "PID", "HPID"} {
@@ -399,7 +399,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).ToNot(BeNil())
 
 		// With bogus descriptors
-		_, err = containers.Top(bt.conn, cid, []string{"Me,Neither"})
+		_, err = containers.Top(bt.conn, cid, new(containers.TopOptions).WithDescriptors([]string{"Me,Neither"}))
 		Expect(err).To(BeNil())
 	})
 
@@ -442,7 +442,7 @@ var _ = Describe("Podman containers ", func() {
 
 	It("podman kill bogus container", func() {
 		// Killing bogus container should return 404
-		err := containers.Kill(bt.conn, "foobar", "SIGTERM")
+		err := containers.Kill(bt.conn, "foobar", "SIGTERM", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -453,7 +453,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, name, "SIGINT")
+		err = containers.Kill(bt.conn, name, "SIGINT", nil)
 		Expect(err).To(BeNil())
 		_, err = containers.Exists(bt.conn, name, false)
 		Expect(err).To(BeNil())
@@ -464,7 +464,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, cid, "SIGTERM")
+		err = containers.Kill(bt.conn, cid, "SIGTERM", nil)
 		Expect(err).To(BeNil())
 		_, err = containers.Exists(bt.conn, cid, false)
 		Expect(err).To(BeNil())
@@ -475,7 +475,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, cid, "SIGKILL")
+		err = containers.Kill(bt.conn, cid, "SIGKILL", nil)
 		Expect(err).To(BeNil())
 	})
 
@@ -484,7 +484,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, cid, "foobar")
+		err = containers.Kill(bt.conn, cid, "foobar", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -494,19 +494,18 @@ var _ = Describe("Podman containers ", func() {
 		// Killing latest container should work
 		var name1 = "first"
 		var name2 = "second"
-		var latestContainers = 1
 		_, err := bt.RunTopContainer(&name1, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		_, err = bt.RunTopContainer(&name2, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		containerLatestList, err := containers.List(bt.conn, nil, nil, &latestContainers, nil, nil, nil)
+		containerLatestList, err := containers.List(bt.conn, new(containers.ListOptions).WithLast(1))
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, containerLatestList[0].Names[0], "SIGTERM")
+		err = containers.Kill(bt.conn, containerLatestList[0].Names[0], "SIGTERM", nil)
 		Expect(err).To(BeNil())
 	})
 
 	It("container init on a bogus container", func() {
-		err := containers.ContainerInit(bt.conn, "doesnotexist")
+		err := containers.ContainerInit(bt.conn, "doesnotexist", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -514,12 +513,12 @@ var _ = Describe("Podman containers ", func() {
 
 	It("container init", func() {
 		s := specgen.NewSpecGenerator(alpine.name, false)
-		ctr, err := containers.CreateWithSpec(bt.conn, s)
+		ctr, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).To(BeNil())
-		err = containers.ContainerInit(bt.conn, ctr.ID)
+		err = containers.ContainerInit(bt.conn, ctr.ID, nil)
 		Expect(err).To(BeNil())
 		//	trying to init again should be an error
-		err = containers.ContainerInit(bt.conn, ctr.ID)
+		err = containers.ContainerInit(bt.conn, ctr.ID, nil)
 		Expect(err).ToNot(BeNil())
 	})
 
@@ -550,14 +549,14 @@ var _ = Describe("Podman containers ", func() {
 		filtersIncorrect := map[string][]string{
 			"status": {"dummy"},
 		}
-		pruneResponse, err := containers.Prune(bt.conn, filtersIncorrect)
+		pruneResponse, err := containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filtersIncorrect))
 		Expect(err).ToNot(BeNil())
 
 		// Mismatched filter params no container should be pruned.
 		filtersIncorrect = map[string][]string{
 			"name": {"r"},
 		}
-		pruneResponse, err = containers.Prune(bt.conn, filtersIncorrect)
+		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filtersIncorrect))
 		Expect(err).To(BeNil())
 		Expect(len(pruneResponse.Err)).To(Equal(0))
 		Expect(len(pruneResponse.ID)).To(Equal(0))
@@ -566,7 +565,7 @@ var _ = Describe("Podman containers ", func() {
 		filters := map[string][]string{
 			"name": {"top"},
 		}
-		pruneResponse, err = containers.Prune(bt.conn, filters)
+		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filters))
 		Expect(err).To(BeNil())
 		Expect(len(pruneResponse.Err)).To(Equal(0))
 		Expect(len(pruneResponse.ID)).To(Equal(1))
@@ -620,7 +619,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		_, err = containers.Inspect(bt.conn, name, bindings.PTrue)
+		_, err = containers.Inspect(bt.conn, name, new(containers.InspectOptions).WithSize(true))
 		Expect(err).To(BeNil())
 	})
 
@@ -631,12 +630,12 @@ var _ = Describe("Podman containers ", func() {
 		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 		// Inspecting stopped container with size should succeed
-		_, err = containers.Inspect(bt.conn, name, bindings.PTrue)
+		_, err = containers.Inspect(bt.conn, name, new(containers.InspectOptions).WithSize(true))
 		Expect(err).To(BeNil())
 	})
 
 	It("podman remove bogus container", func() {
-		err = containers.Remove(bt.conn, "foobar", nil, nil)
+		err = containers.Remove(bt.conn, "foobar", nil)
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 	})
@@ -646,7 +645,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Removing running container should fail
-		err = containers.Remove(bt.conn, name, nil, nil)
+		err = containers.Remove(bt.conn, name, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -657,7 +656,7 @@ var _ = Describe("Podman containers ", func() {
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Removing running container should fail
-		err = containers.Remove(bt.conn, cid, nil, nil)
+		err = containers.Remove(bt.conn, cid, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -668,7 +667,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Removing running container should fail
-		err = containers.Remove(bt.conn, name, bindings.PTrue, nil)
+		err = containers.Remove(bt.conn, name, new(containers.RemoveOptions).WithForce(true))
 		Expect(err).To(BeNil())
 		//code, _ := bindings.CheckResponseCode(err)
 		//Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -679,7 +678,7 @@ var _ = Describe("Podman containers ", func() {
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Removing running container should fail
-		err = containers.Remove(bt.conn, cid, bindings.PTrue, nil)
+		err = containers.Remove(bt.conn, cid, new(containers.RemoveOptions).WithForce(true))
 		Expect(err).To(BeNil())
 		//code, _ := bindings.CheckResponseCode(err)
 		//Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -690,7 +689,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Removing running container should fail
-		err = containers.Remove(bt.conn, name, nil, bindings.PTrue)
+		err = containers.Remove(bt.conn, name, new(containers.RemoveOptions).WithVolumes(true))
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -701,7 +700,7 @@ var _ = Describe("Podman containers ", func() {
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Removing running container should fail
-		err = containers.Remove(bt.conn, cid, nil, bindings.PTrue)
+		err = containers.Remove(bt.conn, cid, new(containers.RemoveOptions).WithVolumes(true))
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -712,7 +711,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Removing running container should fail
-		err = containers.Remove(bt.conn, name, bindings.PTrue, bindings.PTrue)
+		err = containers.Remove(bt.conn, name, new(containers.RemoveOptions).WithVolumes(true).WithForce(true))
 		Expect(err).To(BeNil())
 		//code, _ := bindings.CheckResponseCode(err)
 		//Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -723,7 +722,7 @@ var _ = Describe("Podman containers ", func() {
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// Removing running container should fail
-		err = containers.Remove(bt.conn, cid, bindings.PTrue, bindings.PTrue)
+		err = containers.Remove(bt.conn, cid, new(containers.RemoveOptions).WithForce(true).WithVolumes(true))
 		Expect(err).To(BeNil())
 		//code, _ := bindings.CheckResponseCode(err)
 		//Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -739,12 +738,12 @@ var _ = Describe("Podman containers ", func() {
 		s := specgen.NewSpecGenerator(alpine.name, false)
 		s.Terminal = true
 		s.Command = []string{"date", "-R"}
-		_, err = containers.CreateWithSpec(bt.conn, s)
+		_, err = containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).To(BeNil())
 		// Validate list container with id filter
 		filters := make(map[string][]string)
 		filters["id"] = []string{cid}
-		c, err := containers.List(bt.conn, filters, bindings.PTrue, nil, nil, nil, nil)
+		c, err := containers.List(bt.conn, new(containers.ListOptions).WithFilters(filters).WithAll(true))
 		Expect(err).To(BeNil())
 		Expect(len(c)).To(Equal(1))
 	})
@@ -758,7 +757,7 @@ var _ = Describe("Podman containers ", func() {
 
 		lastNum := 1
 
-		c, err := containers.List(bt.conn, nil, bindings.PTrue, &lastNum, nil, nil, nil)
+		c, err := containers.List(bt.conn, new(containers.ListOptions).WithAll(true).WithLast(lastNum))
 		Expect(err).To(BeNil())
 		Expect(len(c)).To(Equal(1))
 		Expect(c[0].PodName).To(Equal(podName))

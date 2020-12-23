@@ -21,19 +21,17 @@ import (
 
 func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	var (
-		filterFuncs []libpod.ContainerFilter
-		pss         = []entities.ListContainer{}
+		pss = []entities.ListContainer{}
 	)
+	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 	all := options.All || options.Last > 0
 	if len(options.Filters) > 0 {
 		for k, v := range options.Filters {
-			for _, val := range v {
-				generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, val, runtime)
-				if err != nil {
-					return nil, err
-				}
-				filterFuncs = append(filterFuncs, generatedFunc)
+			generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, v, runtime)
+			if err != nil {
+				return nil, err
 			}
+			filterFuncs = append(filterFuncs, generatedFunc)
 		}
 	}
 
@@ -43,7 +41,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 		all = true
 	}
 	if !all {
-		runningOnly, err := lpfilters.GenerateContainerFilterFuncs("status", define.ContainerStateRunning.String(), runtime)
+		runningOnly, err := lpfilters.GenerateContainerFilterFuncs("status", []string{define.ContainerStateRunning.String()}, runtime)
 		if err != nil {
 			return nil, err
 		}
@@ -181,24 +179,25 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 	}
 
 	ps := entities.ListContainer{
-		Command:   conConfig.Command,
-		Created:   conConfig.CreatedTime.Unix(),
-		Exited:    exited,
-		ExitCode:  exitCode,
-		ExitedAt:  exitedTime.Unix(),
-		ID:        conConfig.ID,
-		Image:     conConfig.RootfsImageName,
-		ImageID:   conConfig.RootfsImageID,
-		IsInfra:   conConfig.IsInfra,
-		Labels:    conConfig.Labels,
-		Mounts:    ctr.UserVolumes(),
-		Names:     []string{conConfig.Name},
-		Pid:       pid,
-		Pod:       conConfig.Pod,
-		Ports:     portMappings,
-		Size:      size,
-		StartedAt: startedTime.Unix(),
-		State:     conState.String(),
+		AutoRemove: ctr.AutoRemove(),
+		Command:    conConfig.Command,
+		Created:    conConfig.CreatedTime,
+		Exited:     exited,
+		ExitCode:   exitCode,
+		ExitedAt:   exitedTime.Unix(),
+		ID:         conConfig.ID,
+		Image:      conConfig.RootfsImageName,
+		ImageID:    conConfig.RootfsImageID,
+		IsInfra:    conConfig.IsInfra,
+		Labels:     conConfig.Labels,
+		Mounts:     ctr.UserVolumes(),
+		Names:      []string{conConfig.Name},
+		Pid:        pid,
+		Pod:        conConfig.Pod,
+		Ports:      portMappings,
+		Size:       size,
+		StartedAt:  startedTime.Unix(),
+		State:      conState.String(),
 	}
 	if opts.Pod && len(conConfig.Pod) > 0 {
 		podName, err := rt.GetName(conConfig.Pod)
@@ -233,7 +232,7 @@ func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container, opts entiti
 
 	ps := entities.ListContainer{
 		ID:      ctr.ID,
-		Created: ctr.Created.Unix(),
+		Created: ctr.Created,
 		ImageID: ctr.ImageID,
 		State:   "storage",
 		Names:   []string{name},
@@ -303,5 +302,5 @@ func (a SortPSContainers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 type SortPSCreateTime struct{ SortPSContainers }
 
 func (a SortPSCreateTime) Less(i, j int) bool {
-	return a.SortPSContainers[i].Created > a.SortPSContainers[j].Created
+	return a.SortPSContainers[i].Created.Before(a.SortPSContainers[j].Created)
 }

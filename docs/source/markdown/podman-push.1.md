@@ -29,21 +29,31 @@ Images are pushed from those stored in local image storage.
   **dir:**_path_
   An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
 
+    $ podman push myimage dir:/tmp/myimage
+
   **docker://**_docker-reference_
   An image in a registry implementing the "Docker Registry HTTP API V2". By default, uses the authorization state in `$XDG_RUNTIME_DIR/containers/auth.json`, which is set using `(podman login)`. If the authorization state is not found there, `$HOME/.docker/config.json` is checked, which is set using `(docker login)`.
+
+    $ podman push myimage quay.io/username/myimage
 
   **docker-archive:**_path_[**:**_docker-reference_]
   An image is stored in the `docker save` formatted file.  _docker-reference_ is only used when creating such a file, and it must not contain a digest.
 
+    $ podman push myimage docker-archive:/tmp/myimage
+
   **docker-daemon:**_docker-reference_
-  An image _docker-reference_ stored in the docker daemon internal storage.  _docker-reference_ must contain either a tag or a digest.  Alternatively, when reading images, the format can also be docker-daemon:algo:digest (an image ID).
+  An image in _docker-reference_ format stored in the docker daemon internal storage. _docker-reference_ must contain a tag.
+
+    $ sudo podman push myimage docker-daemon:docker.io/library/myimage:33
 
   **oci-archive:**_path_**:**_tag_
   An image _tag_ in a directory compliant with "Open Container Image Layout Specification" at _path_.
 
+    $ podman push myimage oci-archive:/tmp/myimage
+
 ## OPTIONS
 
-**--authfile**=*path*
+#### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
@@ -51,50 +61,50 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-**--creds**=*[username[:password]]*
+#### **--creds**=*[username[:password]]*
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**--cert-dir**=*path*
+#### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--compress**
+#### **--compress**
 
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set when using the **dir** transport
 
-**--digestfile** *Digestfile*
+#### **--digestfile** *Digestfile*
 
 After copying the image, write the digest of the resulting image to the file.  (Not available for remote commands)
 
-**--disable-content-trust**
+#### **--disable-content-trust**
 
 This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
 solely for scripting compatibility.
 
-**--format**, **-f**=*format*
+#### **--format**, **-f**=*format*
 
 Manifest Type (oci, v2s1, or v2s2) to use when pushing an image to a directory using the 'dir:' transport (default is manifest type of source)
 Note: This flag can only be set when using the **dir** transport
 
-**--quiet**, **-q**
+#### **--quiet**, **-q**
 
 When writing the output image, suppress progress output
 
-**--remove-signatures**
+#### **--remove-signatures**
 
 Discard any pre-existing signatures in the image
 
-**--sign-by**=*key*
+#### **--sign-by**=*key*
 
 Add a signature at the destination using the specified key
 
-**--tls-verify**=*true|false*
+#### **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,

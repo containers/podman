@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
@@ -277,7 +278,7 @@ func (s *PodmanSession) ErrorGrepString(term string) (bool, []string) {
 
 // LineInOutputStartsWith returns true if a line in a
 // session output starts with the supplied string
-func (s *PodmanSession) LineInOuputStartsWith(term string) bool {
+func (s *PodmanSession) LineInOutputStartsWith(term string) bool {
 	for _, i := range s.OutputToStringArray() {
 		if strings.HasPrefix(i, term) {
 			return true
@@ -464,4 +465,17 @@ func Containerized() bool {
 		return true
 	}
 	return false
+}
+
+var randomLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+// RandomString returns a string of given length composed of random characters
+func RandomString(n int) string {
+	rand.Seed(GinkgoRandomSeed())
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = randomLetters[rand.Intn(len(randomLetters))]
+	}
+	return string(b)
 }

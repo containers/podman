@@ -2,32 +2,25 @@ package generate
 
 import (
 	"context"
+	"errors"
 	"net/http"
-	"net/url"
-	"strconv"
 
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 )
 
-func Systemd(ctx context.Context, nameOrID string, options entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
+func Systemd(ctx context.Context, nameOrID string, options *SystemdOptions) (*entities.GenerateSystemdReport, error) {
+	if options == nil {
+		options = new(SystemdOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-
-	params.Set("useName", strconv.FormatBool(options.Name))
-	params.Set("new", strconv.FormatBool(options.New))
-	if options.RestartPolicy != "" {
-		params.Set("restartPolicy", options.RestartPolicy)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
 	}
-	if options.StopTimeout != nil {
-		params.Set("stopTimeout", strconv.FormatUint(uint64(*options.StopTimeout), 10))
-	}
-	params.Set("containerPrefix", options.ContainerPrefix)
-	params.Set("podPrefix", options.PodPrefix)
-	params.Set("separator", options.Separator)
 
 	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/%s/systemd", params, nil, nameOrID)
 	if err != nil {
@@ -37,15 +30,26 @@ func Systemd(ctx context.Context, nameOrID string, options entities.GenerateSyst
 	return report, response.Process(&report.Units)
 }
 
-func Kube(ctx context.Context, nameOrID string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
+func Kube(ctx context.Context, nameOrIDs []string, options *KubeOptions) (*entities.GenerateKubeReport, error) {
+	if options == nil {
+		options = new(KubeOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	params.Set("service", strconv.FormatBool(options.Service))
+	if len(nameOrIDs) < 1 {
+		return nil, errors.New("must provide the name or ID of one container or pod")
+	}
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/%s/kube", params, nil, nameOrID)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range nameOrIDs {
+		params.Add("names", name)
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/kube", params, nil)
 	if err != nil {
 		return nil, err
 	}

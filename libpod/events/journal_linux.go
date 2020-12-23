@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/pkg/errors"
@@ -56,6 +57,9 @@ func (e EventJournalD) Write(ee Event) error {
 			}
 			m["PODMAN_LABELS"] = string(b)
 		}
+	case Network:
+		m["PODMAN_ID"] = ee.ID
+		m["PODMAN_NETWORK_NAME"] = ee.Network
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
@@ -68,6 +72,13 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	eventOptions, err := generateEventOptions(options.Filters, options.Since, options.Until)
 	if err != nil {
 		return errors.Wrapf(err, "failed to generate event options")
+	}
+	var untilTime time.Time
+	if len(options.Until) > 0 {
+		untilTime, err = util.ParseInputTime(options.Until)
+		if err != nil {
+			return err
+		}
 	}
 	j, err := sdjournal.NewJournal()
 	if err != nil {
@@ -119,10 +130,14 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 			return errors.Wrap(err, "failed to get journal cursor")
 		}
 		if prevCursor == newCursor {
-			if len(options.Until) > 0 || !options.Stream {
+			if !options.Stream || (len(options.Until) > 0 && time.Now().After(untilTime)) {
 				break
 			}
-			_ = j.Wait(sdjournal.IndefiniteWait)
+			t := sdjournal.IndefiniteWait
+			if len(options.Until) > 0 {
+				t = time.Until(untilTime)
+			}
+			_ = j.Wait(t)
 			continue
 		}
 		prevCursor = newCursor
@@ -197,6 +212,9 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 				newEvent.Details = Details{Attributes: labels}
 			}
 		}
+	case Network:
+		newEvent.ID = entry.Fields["PODMAN_ID"]
+		newEvent.Network = entry.Fields["PODMAN_NETWORK_NAME"]
 	case Image:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 	}

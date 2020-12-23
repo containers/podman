@@ -24,7 +24,6 @@ python3-pip
 python3-psutil
 python3-pytoml
 python3-pyyaml
-python3-varlink
 rsync
 slirp4netns
 unzip

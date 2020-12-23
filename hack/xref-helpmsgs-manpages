@@ -176,10 +176,10 @@ sub xref_by_man {
             # Special case: weirdness with Cobra and global/local options
             next if $k eq '--namespace' && $man =~ /-ps/;
 
-            # Special case: these require compiling with 'varlink' tag,
-            # which doesn't happen in CI gating task.
-            next if $k eq 'varlink';
             next if "@subcommand" eq 'system' && $k eq 'service';
+
+            # Special case: podman completion is a hidden command
+            next if $k eq 'completion';
 
             warn "$ME: podman @subcommand: $k in $man, but not --help\n";
             ++$Errs;
@@ -248,7 +248,7 @@ sub podman_help {
                     unless $subcommand eq 'help';       # 'help' not in man
             }
         }
-        elsif ($section eq 'flags') {
+        elsif ($section eq 'options') {
             # Handle '--foo' or '-f, --foo'
             if ($line =~ /^\s{1,10}(--\S+)\s/) {
                 print "> podman @_ $1\n"                        if $debug;
@@ -293,7 +293,7 @@ sub podman_man {
         elsif ($line =~ /^\#\#\s+(SUB)?COMMANDS/) {
             $section = 'commands';
         }
-        elsif ($line =~ /^\#\#/) {
+        elsif ($line =~ /^\#\#[^#]/) {
             $section = '';
         }
 
@@ -329,12 +329,22 @@ sub podman_man {
             }
 
             @most_recent_flags = ();
-            # Handle any variation of '**--foo**, **-f**'
-            while ($line =~ s/^\*\*((--[a-z0-9-]+)|(-.))\*\*(,\s+)?//g) {
-                $man{$1} = 1;
+            # As of PR #8292, all options are <h4> and anchored
+            if ($line =~ s/^\#{4}\s+//) {
+                # If option has long and short form, long must come first.
+                # This is a while-loop because there may be multiple long
+                # option names, e.g. --net/--network
+                while ($line =~ s/^\*\*(--[a-z0-9-]+)\*\*(=\*[a-zA-Z0-9-]+\*)?(,\s+)?//g) {
+                    $man{$1} = 1;
+                    push @most_recent_flags, $1;
+                }
+                # Short form
+                if ($line =~ s/^\*\*(-[a-zA-Z0-9])\*\*(=\*[a-zA-Z0-9-]+\*)?//g) {
+                    $man{$1} = 1;
 
-                # Keep track of them, in case we see 'Not implemented' below
-                push @most_recent_flags, $1;
+                    # Keep track of them, in case we see 'Not implemented' below
+                    push @most_recent_flags, $1;
+                }
             }
         }
     }

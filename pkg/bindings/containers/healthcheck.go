@@ -10,7 +10,11 @@ import (
 
 // RunHealthCheck executes the container's healthcheck and returns the health status of the
 // container.
-func RunHealthCheck(ctx context.Context, nameOrID string) (*define.HealthCheckResults, error) {
+func RunHealthCheck(ctx context.Context, nameOrID string, options *HealthCheckOptions) (*define.HealthCheckResults, error) {
+	if options == nil {
+		options = new(HealthCheckOptions)
+	}
+	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

@@ -39,12 +39,12 @@ func StartContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state == define.ContainerStateRunning {
-		utils.WriteResponse(w, http.StatusNotModified, "")
+		utils.WriteResponse(w, http.StatusNotModified, nil)
 		return
 	}
 	if err := con.Start(r.Context(), len(con.PodID()) > 0); err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, nil)
 }

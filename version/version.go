@@ -8,9 +8,9 @@ import (
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-var Version = semver.MustParse("2.2.0-dev")
+var Version = semver.MustParse("3.0.0-dev")
 
 // APIVersion is the version for the remote
 // client API.  It is used to determine compatibility
 // between a remote podman client and its backend
-var APIVersion = semver.MustParse("2.0.0")
+var APIVersion = semver.MustParse("3.0.0")

@@ -17,7 +17,6 @@ var _ = Describe("Podman info", func() {
 	var (
 		bt *bindingTest
 		s  *gexec.Session
-		t  bool = true
 	)
 
 	BeforeEach(func() {
@@ -35,23 +34,24 @@ var _ = Describe("Podman info", func() {
 	})
 
 	It("podman info", func() {
-		info, err := system.Info(bt.conn)
+		info, err := system.Info(bt.conn, nil)
 		Expect(err).To(BeNil())
 		Expect(info.Host.Arch).To(Equal(runtime.GOARCH))
 		Expect(info.Host.OS).To(Equal(runtime.GOOS))
-		i, err := images.List(bt.conn, &t, nil)
+		listOptions := new(images.ListOptions)
+		i, err := images.List(bt.conn, listOptions.WithAll(true))
 		Expect(err).To(BeNil())
 		Expect(info.Store.ImageStore.Number).To(Equal(len(i)))
 	})
 
 	It("podman info container counts", func() {
 		s := specgen.NewSpecGenerator(alpine.name, false)
-		_, err := containers.CreateWithSpec(bt.conn, s)
+		_, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).To(BeNil())
 
 		idPause, err := bt.RunTopContainer(nil, nil, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(bt.conn, idPause)
+		err = containers.Pause(bt.conn, idPause, nil)
 		Expect(err).To(BeNil())
 
 		idStop, err := bt.RunTopContainer(nil, nil, nil)
@@ -62,7 +62,7 @@ var _ = Describe("Podman info", func() {
 		_, err = bt.RunTopContainer(nil, nil, nil)
 		Expect(err).To(BeNil())
 
-		info, err := system.Info(bt.conn)
+		info, err := system.Info(bt.conn, nil)
 		Expect(err).To(BeNil())
 
 		Expect(info.Store.ContainerStore.Number).To(BeNumerically("==", 4))

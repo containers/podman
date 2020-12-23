@@ -14,7 +14,7 @@ PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODM
 IMAGE=$PODMAN_TEST_IMAGE_FQN
 
 # Default timeout for a podman command.
-PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-60}
+PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-120}
 
 # Prompt to display when logging podman commands; distinguish root/rootless
 _LOG_PROMPT='$'
@@ -168,8 +168,11 @@ function run_podman() {
 
     if [ "$status" -eq 124 ]; then
         if expr "$output" : ".*timeout: sending" >/dev/null; then
-            echo "*** TIMED OUT ***"
-            false
+            # It's possible for a subtest to _want_ a timeout
+            if [[ "$expected_rc" != "124" ]]; then
+                echo "*** TIMED OUT ***"
+                false
+            fi
         fi
     fi
 
@@ -259,6 +262,31 @@ function is_cgroupsv2() {
     test "$cgroup_type" = "cgroup2fs"
 }
 
+# rhbz#1895105: rootless journald is unavailable except to users in
+# certain magic groups; which our testuser account does not belong to
+# (intentional: that is the RHEL default, so that's the setup we test).
+function journald_unavailable() {
+    if ! is_rootless; then
+        # root must always have access to journal
+        return 1
+    fi
+
+    run journalctl -n 1
+    if [[ $status -eq 0 ]]; then
+        return 1
+    fi
+
+    if [[ $output =~ permission ]]; then
+        return 0
+    fi
+
+    # This should never happen; if it does, it's likely that a subsequent
+    # test will fail. This output may help track that down.
+    echo "WEIRD: 'journalctl -n 1' failed with a non-permission error:"
+    echo "$output"
+    return 1
+}
+
 ###########################
 #  _add_label_if_missing  #  make sure skip messages include rootless/remote
 ###########################
@@ -312,6 +340,15 @@ function skip_if_no_selinux() {
 function skip_if_cgroupsv1() {
     if ! is_cgroupsv2; then
         skip "${1:-test requires cgroupsv2}"
+    fi
+}
+
+##################################
+#  skip_if_journald_unavailable  #  rhbz#1895105: rootless journald permissions
+##################################
+function skip_if_journald_unavailable {
+    if journald_unavailable; then
+        skip "Cannot use rootless journald on this system"
     fi
 }
 
@@ -519,6 +556,16 @@ function remove_same_dev_warning() {
 
     lines=("${new_lines[@]}")
     output=$(printf '%s\n' "${lines[@]}")
+}
+
+# run 'podman help', parse the output looking for 'Available Commands';
+# return that list.
+function _podman_commands() {
+    dprint "$@"
+    run_podman help "$@" |
+        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |
+        grep .
+    "$output"
 }
 
 # END   miscellaneous tools

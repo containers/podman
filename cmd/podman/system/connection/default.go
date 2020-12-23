@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/system"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -18,6 +19,7 @@ var (
 		Short:                 "Set named destination as default",
 		Long:                  `Set named destination as default for the Podman service`,
 		DisableFlagsInUseLine: true,
+		ValidArgsFunction:     common.AutocompleteSystemConnections,
 		RunE:                  defaultRunE,
 		Example:               `podman system connection default testing`,
 	}

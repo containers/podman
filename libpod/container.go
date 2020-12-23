@@ -1,26 +1,24 @@
 package libpod
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/lock"
 	"github.com/containers/podman/v2/pkg/rootless"
-	"github.com/containers/podman/v2/utils"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
@@ -210,6 +208,10 @@ type ContainerState struct {
 	// and not delegated to the OCI runtime.
 	ExtensionStageHooks map[string][]spec.Hook `json:"extensionStageHooks,omitempty"`
 
+	// NetInterfaceDescriptions describe the relationship between a CNI
+	// network and an interface names
+	NetInterfaceDescriptions ContainerNetworkDescriptions `json:"networkDescriptions,omitempty"`
+
 	// containerPlatformState holds platform-specific container state.
 	containerPlatformState
 }
@@ -248,6 +250,10 @@ type ContainerImageVolume struct {
 	ReadWrite bool `json:"rw"`
 }
 
+// ContainerNetworkDescriptions describes the relationship between the CNI
+// network and the ethN where N is an integer
+type ContainerNetworkDescriptions map[string]int
+
 // Config accessors
 // Unlocked
 
@@ -259,6 +265,11 @@ func (c *Container) Config() *ContainerConfig {
 	}
 
 	return returnConfig
+}
+
+// Runtime returns the container's Runtime.
+func (c *Container) Runtime() *Runtime {
+	return c.runtime
 }
 
 // Spec returns the container's OCI runtime spec
@@ -910,46 +921,64 @@ func (c *Container) CgroupManager() string {
 	return cgroupManager
 }
 
-// CGroupPath returns a cgroups "path" for a given container.
+// CGroupPath returns a cgroups "path" for the given container.
+// Note that the container must be running.  Otherwise, an error
+// is returned.
 func (c *Container) CGroupPath() (string, error) {
-	cgroupManager := c.CgroupManager()
-
-	switch {
-	case c.config.NoCgroups || c.config.CgroupsMode == "disabled":
-		return "", errors.Wrapf(define.ErrNoCgroups, "this container is not creating cgroups")
-	case c.config.CgroupsMode == cgroupSplit:
-		if c.config.CgroupParent != "" {
-			return "", errors.Errorf("cannot specify cgroup-parent with cgroup-mode %q", cgroupSplit)
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return "", errors.Wrapf(err, "error updating container %s state", c.ID())
 		}
-		cg, err := utils.GetCgroupProcess(c.state.ConmonPID)
-		if err != nil {
-			return "", err
-		}
-		// Use the conmon cgroup for two reasons: we validate the container
-		// delegation was correct, and the conmon cgroup doesn't change at runtime
-		// while we are not sure about the container that can create sub cgroups.
-		if !strings.HasSuffix(cg, "supervisor") {
-			return "", errors.Errorf("invalid cgroup for conmon %q", cg)
-		}
-		return strings.TrimSuffix(cg, "/supervisor") + "/container", nil
-	case cgroupManager == config.CgroupfsCgroupsManager:
-		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case cgroupManager == config.SystemdCgroupsManager:
-		if rootless.IsRootless() {
-			uid := rootless.GetRootlessUID()
-			parts := strings.SplitN(c.config.CgroupParent, "/", 2)
-
-			dir := ""
-			if len(parts) > 1 {
-				dir = parts[1]
-			}
-
-			return filepath.Join(parts[0], fmt.Sprintf("user-%d.slice/user@%d.service/user.slice/%s", uid, uid, dir), createUnitName("libpod", c.ID())), nil
-		}
-		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
-	default:
-		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", cgroupManager)
 	}
+	return c.cGroupPath()
+}
+
+// cGroupPath returns a cgroups "path" for the given container.
+// Note that the container must be running.  Otherwise, an error
+// is returned.
+// NOTE: only call this when owning the container's lock.
+func (c *Container) cGroupPath() (string, error) {
+	if c.config.NoCgroups || c.config.CgroupsMode == "disabled" {
+		return "", errors.Wrapf(define.ErrNoCgroups, "this container is not creating cgroups")
+	}
+	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
+		return "", errors.Wrapf(define.ErrCtrStopped, "cannot get cgroup path unless container %s is running", c.ID())
+	}
+
+	// Read /proc/{PID}/cgroup and find the *longest* cgroup entry.  That's
+	// needed to account for hacks in cgroups v1, where each line in the
+	// file could potentially point to a cgroup.  The longest one, however,
+	// is the libpod-specific one we're looking for.
+	//
+	// See #8397 on the need for the longest-path look up.
+	procPath := fmt.Sprintf("/proc/%d/cgroup", c.state.PID)
+	lines, err := ioutil.ReadFile(procPath)
+	if err != nil {
+		return "", err
+	}
+
+	var cgroupPath string
+	for _, line := range bytes.Split(lines, []byte("\n")) {
+		// cgroups(7) nails it down to three fields with the 3rd
+		// pointing to the cgroup's path which works both on v1 and v2.
+		fields := bytes.Split(line, []byte(":"))
+		if len(fields) != 3 {
+			logrus.Debugf("Error parsing cgroup: expected 3 fields but got %d: %s", len(fields), procPath)
+			continue
+		}
+		path := string(fields[2])
+		if len(path) > len(cgroupPath) {
+			cgroupPath = path
+		}
+	}
+
+	if len(cgroupPath) == 0 {
+		return "", errors.Errorf("could not find any cgroup in %q", procPath)
+	}
+
+	return cgroupPath, nil
 }
 
 // RootFsSize returns the root FS size of the container
@@ -1084,4 +1113,69 @@ func (c *Container) Timezone() string {
 // Umask returns the Umask bits configured inside the container.
 func (c *Container) Umask() string {
 	return c.config.Umask
+}
+
+// Networks gets all the networks this container is connected to.
+// Please do NOT use ctr.config.Networks, as this can be changed from those
+// values at runtime via network connect and disconnect.
+// If the container is configured to use CNI and this function returns an empty
+// array, the container will still be connected to the default network.
+// The second return parameter, a bool, indicates that the container container
+// is joining the default CNI network - the network name will be included in the
+// returned array of network names, but the container did not explicitly join
+// this network.
+func (c *Container) Networks() ([]string, bool, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, false, err
+		}
+	}
+
+	return c.networks()
+}
+
+// Unlocked accessor for networks
+func (c *Container) networks() ([]string, bool, error) {
+	networks, err := c.runtime.state.GetNetworks(c)
+	if err != nil && errors.Cause(err) == define.ErrNoSuchNetwork {
+		if len(c.config.Networks) == 0 && !rootless.IsRootless() {
+			return []string{c.runtime.netPlugin.GetDefaultNetworkName()}, true, nil
+		}
+		return c.config.Networks, false, nil
+	}
+
+	return networks, false, err
+}
+
+// networksByNameIndex provides us with a map of container networks where key
+// is network name and value is the index position
+func (c *Container) networksByNameIndex() (map[string]int, error) {
+	networks, _, err := c.networks()
+	if err != nil {
+		return nil, err
+	}
+	networkNamesByIndex := make(map[string]int, len(networks))
+	for index, name := range networks {
+		networkNamesByIndex[name] = index
+	}
+	return networkNamesByIndex, nil
+}
+
+// add puts the new given CNI network name into the tracking map
+// and assigns it a new integer based on the map length
+func (d ContainerNetworkDescriptions) add(networkName string) {
+	d[networkName] = len(d)
+}
+
+// getInterfaceByName returns a formatted interface name for a given
+// network along with a bool as to whether the network existed
+func (d ContainerNetworkDescriptions) getInterfaceByName(networkName string) (string, bool) {
+	val, exists := d[networkName]
+	if !exists {
+		return "", exists
+	}
+	return fmt.Sprintf("eth%d", val), exists
 }

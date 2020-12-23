@@ -71,7 +71,7 @@ func sourceIsRemote(source string) bool {
 }
 
 // getURL writes a tar archive containing the named content
-func getURL(src, mountpoint, renameTarget string, writer io.Writer) error {
+func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer) error {
 	url, err := url.Parse(src)
 	if err != nil {
 		return err
@@ -122,10 +122,18 @@ func getURL(src, mountpoint, renameTarget string, writer io.Writer) error {
 	// Write the output archive.  Set permissions for compatibility.
 	tw := tar.NewWriter(writer)
 	defer tw.Close()
+	uid := 0
+	gid := 0
+	if chown != nil {
+		uid = chown.UID
+		gid = chown.GID
+	}
 	hdr := tar.Header{
 		Typeflag: tar.TypeReg,
 		Name:     name,
 		Size:     size,
+		Uid:      uid,
+		Gid:      gid,
 		Mode:     0600,
 		ModTime:  date,
 	}
@@ -323,7 +331,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			pipeReader, pipeWriter := io.Pipe()
 			wg.Add(1)
 			go func() {
-				getErr = getURL(src, mountPoint, renameTarget, pipeWriter)
+				getErr = getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter)
 				pipeWriter.Close()
 				wg.Done()
 			}()
@@ -341,9 +349,9 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					putOptions := copier.PutOptions{
 						UIDMap:     destUIDMap,
 						GIDMap:     destGIDMap,
-						ChownDirs:  chownDirs,
+						ChownDirs:  nil,
 						ChmodDirs:  nil,
-						ChownFiles: chownFiles,
+						ChownFiles: nil,
 						ChmodFiles: nil,
 					}
 					putErr = copier.Put(mountPoint, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))

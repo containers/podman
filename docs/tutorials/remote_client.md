@@ -29,19 +29,19 @@ You will need to [install Podman](https://podman.io/getting-started/installation
 
 Before performing any Podman client commands, you must enable the podman.sock SystemD service on the Linux server.  In these examples, we are running Podman as a normal, unprivileged user, also known as a rootless user.  By default, the rootless socket listens at `/run/user/${UID}/podman/podman.sock`.  You can enable this socket permanently using the following command:
 ```
-$ systemctl --user enable podman.socket
+systemctl --user enable --now podman.socket
 ```
 You will need to enable linger for this user in order for the socket to work when the user is not logged in:
 
 ```
-$ sudo loginctl enable-linger $USER
+sudo loginctl enable-linger $USER
 ```
 This is only required if you are not running Podman as root.
 
 You can verify that the socket is listening with a simple Podman command.
 
 ```
-$ podman --remote info
+podman --remote info
 host:
   arch: amd64
   buildahVersion: 1.16.0-dev
@@ -54,13 +54,13 @@ host:
 
 In order for the Podman client to communicate with the server you need to enable and start the SSH daemon on your Linux machine, if it is not currently enabled.
 ```
-$ sudo systemctl enable -s sshd
+sudo systemctl enable --now -s sshd
 ```
 
 #### Setting up SSH
 Remote Podman uses SSH to communicate between the client and server. The remote client works considerably smoother using SSH keys. To set up your ssh connection, you need to generate an ssh key pair from your client machine.
 ```
-$ ssh-keygen
+ssh-keygen
 ```
 Your public key by default should be in your home directory under ~/.ssh/id_rsa.pub. You then need to copy the contents of id_rsa.pub and append it into  ~/.ssh/authorized_keys on the Linux  server. You can automate this using ssh-copy-id.
 
@@ -75,13 +75,13 @@ The first step in using the Podman remote client is to configure a connection.
 You can add a connection by using the `podman-remote system connection add` command.
 
 ```
-$ podman-remote system connection add myuser --identity ~/.ssh/id_rsa ssh://192.168.122.1/run/user/1000/podman/podman.sock
+podman-remote system connection add myuser --identity ~/.ssh/id_rsa ssh://192.168.122.1/run/user/1000/podman/podman.sock
 ```
 
 This will add a remote connection to Podman and if it is the first connection added, it will mark the connection as the default.  You can observe your connections with `podman-remote system connection list`:
 
 ```
-$ podman-remote system connection list
+podman-remote system connection list
 Name	  Identity 	       URI
 myuser*	  id_rsa	       ssh://myuser@192.168.122.1/run/user/1000/podman/podman.sock
 ```
@@ -89,7 +89,7 @@ myuser*	  id_rsa	       ssh://myuser@192.168.122.1/run/user/1000/podman/podman.s
 Now we can test the connection with `podman info`:
 
 ```
-$ podman-remote info
+podman-remote info
 host:
   arch: amd64
   buildahVersion: 1.16.0-dev
@@ -101,7 +101,7 @@ host:
 Podman-remote has also introduced a “--connection” flag where you can use other connections you have defined.  If no connection is provided, the default connection will be used.
 
 ```
-$ podman-remote system connection --help
+podman-remote system connection --help
 ```
 
 ## Wrap up

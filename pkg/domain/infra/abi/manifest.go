@@ -54,7 +54,7 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 			}
 			return buf, nil
 			// no return if local image is not a list of images type
-			// continue on getting valid manifest through remote serice
+			// continue on getting valid manifest through remote service
 		} else if errors.Cause(err) != buildahManifests.ErrManifestTypeNotSupported {
 			return nil, errors.Wrapf(err, "loading manifest %q", name)
 		}
@@ -244,15 +244,16 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 }
 
 // ManifestPush pushes a manifest list or image index to the destination
-func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts entities.ManifestPushOptions) error {
-	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(names[0])
+func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ManifestPushOptions) error {
+	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving local image from image name %s", names[0])
+		return errors.Wrapf(err, "error retrieving local image from image name %s", name)
 	}
-	dest, err := alltransports.ParseImageName(names[1])
+	dest, err := alltransports.ParseImageName(destination)
 	if err != nil {
 		return err
 	}
+
 	var manifestType string
 	if opts.Format != "" {
 		switch opts.Format {
@@ -267,8 +268,8 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts en
 
 	// Set the system context.
 	sys := ir.Libpod.SystemContext()
-	if sys != nil {
-		sys = &types.SystemContext{}
+	if sys == nil {
+		sys = new(types.SystemContext)
 	}
 	sys.AuthFilePath = opts.Authfile
 	sys.DockerInsecureSkipTLSVerify = opts.SkipTLSVerify
@@ -296,12 +297,12 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, names []string, opts en
 	if !opts.Quiet {
 		options.ReportWriter = os.Stderr
 	}
-	digest, err := listImage.PushManifest(dest, options)
+	manDigest, err := listImage.PushManifest(dest, options)
 	if err == nil && opts.Purge {
 		_, err = ir.Libpod.GetStore().DeleteImage(listImage.ID(), true)
 	}
 	if opts.DigestFile != "" {
-		if err = ioutil.WriteFile(opts.DigestFile, []byte(digest.String()), 0644); err != nil {
+		if err = ioutil.WriteFile(opts.DigestFile, []byte(manDigest.String()), 0644); err != nil {
 			return buildahUtil.GetFailureCause(err, errors.Wrapf(err, "failed to write digest to file %q", opts.DigestFile))
 		}
 	}

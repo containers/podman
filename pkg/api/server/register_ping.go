@@ -53,7 +53,7 @@ func (s *APIServer) registerPingHandlers(r *mux.Router) error {
 	//             Max Podman API Version the server supports.
 	//             Available if service is backed by Podman, therefore may be used to
 	//             determine if talking to Podman engine or another engine
-	//         Libpod-Buildha-Version:
+	//         Libpod-Buildah-Version:
 	//           type: string
 	//           description: |
 	//             Default version of libpod image builder.

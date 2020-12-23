@@ -210,3 +210,19 @@ func NewLogLine(line string) (*LogLine, error) {
 func (l *LogLine) Partial() bool {
 	return l.ParseLogType == PartialLogType
 }
+
+func (l *LogLine) Write(stdout io.Writer, stderr io.Writer, logOpts *LogOptions) {
+	switch l.Device {
+	case "stdout":
+		if stdout != nil {
+			fmt.Fprintln(stdout, l.String(logOpts))
+		}
+	case "stderr":
+		if stderr != nil {
+			fmt.Fprintln(stderr, l.String(logOpts))
+		}
+	default:
+		// Warn the user if the device type does not match. Most likely the file is corrupted.
+		logrus.Warnf("unknown Device type '%s' in log file from Container %s", l.Device, l.CID)
+	}
+}

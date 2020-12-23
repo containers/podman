@@ -1,6 +1,8 @@
 package network
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net"
 	"os"
@@ -10,6 +12,7 @@ import (
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -174,28 +177,33 @@ func RemoveNetwork(config *config.Config, name string) error {
 		return err
 	}
 	defer l.releaseCNILock()
-	cniPath, err := GetCNIConfigPathByName(config, name)
+	cniPath, err := GetCNIConfigPathByNameOrID(config, name)
 	if err != nil {
 		return err
 	}
 	// Before we delete the configuration file, we need to make sure we can read and parse
 	// it to get the network interface name so we can remove that too
 	interfaceName, err := GetInterfaceNameFromConfig(cniPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to find network interface name in %q", cniPath)
-	}
-	liveNetworkNames, err := GetLiveNetworkNames()
-	if err != nil {
-		return errors.Wrapf(err, "failed to get live network names")
-	}
-	if util.StringInSlice(interfaceName, liveNetworkNames) {
-		if err := RemoveInterface(interfaceName); err != nil {
-			return errors.Wrapf(err, "failed to delete the network interface %q", interfaceName)
+	if err == nil {
+		// Don't try to remove the network interface if we are not root
+		if !rootless.IsRootless() {
+			liveNetworkNames, err := GetLiveNetworkNames()
+			if err != nil {
+				return errors.Wrapf(err, "failed to get live network names")
+			}
+			if util.StringInSlice(interfaceName, liveNetworkNames) {
+				if err := RemoveInterface(interfaceName); err != nil {
+					return errors.Wrapf(err, "failed to delete the network interface %q", interfaceName)
+				}
+			}
 		}
+	} else if err != ErrNoSuchNetworkInterface {
+		// Don't error if we couldn't find the network interface name
+		return err
 	}
 	// Remove the configuration file
 	if err := os.Remove(cniPath); err != nil {
-		return errors.Wrapf(err, "failed to remove network configuration file %q", cniPath)
+		return errors.Wrap(err, "failed to remove network configuration")
 	}
 	return nil
 }
@@ -222,4 +230,11 @@ func Exists(config *config.Config, name string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// GetNetworkID return the network ID for a given name.
+// It is just the sha256 hash but this should be good enough.
+func GetNetworkID(name string) string {
+	hash := sha256.Sum256([]byte(name))
+	return hex.EncodeToString(hash[:])
 }

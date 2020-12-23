@@ -51,10 +51,7 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 }
 
 // NewServerWithSettings will create and configure a new API server using provided settings
-func NewServerWithSettings(runtime *libpod.Runtime, duration time.Duration, listener *net.Listener) (
-	*APIServer,
-	error,
-) {
+func NewServerWithSettings(runtime *libpod.Runtime, duration time.Duration, listener *net.Listener) (*APIServer, error) {
 	return newServer(runtime, duration, listener)
 }
 
@@ -75,6 +72,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		listener = &listeners[0]
 	}
 
+	logrus.Infof("API server listening on %q", (*listener).Addr())
 	router := mux.NewRouter().UseEncodedPath()
 	idle := idle.NewTracker(duration)
 

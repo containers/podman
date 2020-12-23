@@ -10,6 +10,7 @@ import (
 
 	"github.com/buger/goterm"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -33,10 +34,11 @@ var (
 	statsDescription = `Display the containers' resource-usage statistics of one or more running pod`
 	// Command: podman pod _pod_
 	statsCmd = &cobra.Command{
-		Use:   "stats [options] [POD...]",
-		Short: "Display a live stream of resource usage statistics for the containers in one or more pods",
-		Long:  statsDescription,
-		RunE:  stats,
+		Use:               "stats [options] [POD...]",
+		Short:             "Display a live stream of resource usage statistics for the containers in one or more pods",
+		Long:              statsDescription,
+		RunE:              stats,
+		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod stats
   podman pod stats a69b23034235 named-pod
   podman pod stats --latest
@@ -53,7 +55,11 @@ func init() {
 
 	flags := statsCmd.Flags()
 	flags.BoolVarP(&statsOptions.All, "all", "a", false, "Provide stats for all pods")
-	flags.StringVar(&statsOptions.Format, "format", "", "Pretty-print container statistics to JSON or using a Go template")
+
+	formatFlagName := "format"
+	flags.StringVar(&statsOptions.Format, formatFlagName, "", "Pretty-print container statistics to JSON or using a Go template")
+	_ = statsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVar(&statsOptions.NoReset, "no-reset", false, "Disable resetting the screen when streaming")
 	flags.BoolVar(&statsOptions.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result")
 	validate.AddLatestFlag(statsCmd, &statsOptions.Latest)

@@ -3,33 +3,35 @@ package containers
 import (
 	"os"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	attachDescription = "The podman attach command allows you to attach to a running container using the container's ID or name, either to view its ongoing output or to control it interactively."
 	attachCommand     = &cobra.Command{
-		Use:   "attach [options] CONTAINER",
-		Short: "Attach to a running container",
-		Long:  attachDescription,
-		RunE:  attach,
-		Args:  validate.IDOrLatestArgs,
+		Use:               "attach [options] CONTAINER",
+		Short:             "Attach to a running container",
+		Long:              attachDescription,
+		RunE:              attach,
+		Args:              validate.IDOrLatestArgs,
+		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman attach ctrID
   podman attach 1234
   podman attach --no-stdin foobar`,
 	}
 
 	containerAttachCommand = &cobra.Command{
-		Use:   attachCommand.Use,
-		Short: attachCommand.Short,
-		Long:  attachCommand.Long,
-		RunE:  attachCommand.RunE,
-		Args:  validate.IDOrLatestArgs,
+		Use:               attachCommand.Use,
+		Short:             attachCommand.Short,
+		Long:              attachCommand.Long,
+		RunE:              attachCommand.RunE,
+		Args:              validate.IDOrLatestArgs,
+		ValidArgsFunction: attachCommand.ValidArgsFunction,
 		Example: `podman container attach ctrID
 	podman container attach 1234
 	podman container attach --no-stdin foobar`,
@@ -40,8 +42,13 @@ var (
 	attachOpts entities.AttachOptions
 )
 
-func attachFlags(flags *pflag.FlagSet) {
-	flags.StringVar(&attachOpts.DetachKeys, "detach-keys", containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+func attachFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	detachKeysFlagName := "detach-keys"
+	flags.StringVar(&attachOpts.DetachKeys, detachKeysFlagName, containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+	_ = cmd.RegisterFlagCompletionFunc(detachKeysFlagName, common.AutocompleteDetachKeys)
+
 	flags.BoolVar(&attachOpts.NoStdin, "no-stdin", false, "Do not attach STDIN. The default is false")
 	flags.BoolVar(&attachOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 }
@@ -51,7 +58,7 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: attachCommand,
 	})
-	attachFlags(attachCommand.Flags())
+	attachFlags(attachCommand)
 	validate.AddLatestFlag(attachCommand, &attachOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -59,7 +66,7 @@ func init() {
 		Command: containerAttachCommand,
 		Parent:  containerCmd,
 	})
-	attachFlags(containerAttachCommand.Flags())
+	attachFlags(containerAttachCommand)
 	validate.AddLatestFlag(containerAttachCommand, &attachOpts.Latest)
 
 }

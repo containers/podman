@@ -60,6 +60,7 @@ type ApplyDiffOpts struct {
 	Mappings          *idtools.IDMappings
 	MountLabel        string
 	IgnoreChownErrors bool
+	ForceMask         *os.FileMode
 }
 
 // InitFunc initializes the storage driver.

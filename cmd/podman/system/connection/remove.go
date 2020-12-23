@@ -2,6 +2,7 @@ package connection
 
 import (
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/system"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -17,6 +18,7 @@ var (
 		Long:                  `Delete named destination from podman configuration`,
 		Short:                 "Delete named destination",
 		DisableFlagsInUseLine: true,
+		ValidArgsFunction:     common.AutocompleteSystemConnections,
 		RunE:                  rm,
 		Example: `podman system connection remove devl
   podman system connection rm devl`,

@@ -15,11 +15,11 @@ Displays information pertinent to the host, current storage stats, configured co
 
 ## OPTIONS
 
-**-D**, **--debug**
+#### **--debug**, **-D**
 
 Show additional information
 
-**-f**, **--format**=*format*
+#### **--format**=*format*, **-f**
 
 Change output format to "json" or a Go template.
 
@@ -31,17 +31,18 @@ Run podman info with plain text response:
 $ podman info
 host:
   arch: amd64
-  buildahVersion: 1.15.0
-  cgroupVersion: v1
+  buildahVersion: 1.19.0-dev
+  cgroupManager: systemd
+  cgroupVersion: v2
   conmon:
-    package: conmon-2.0.16-2.fc32.x86_64
+    package: conmon-2.0.22-2.fc33.x86_64
     path: /usr/bin/conmon
-    version: 'conmon version 2.0.16, commit: 1044176f7dd177c100779d1c63931d6022e419bd'
+    version: 'conmon version 2.0.22, commit: 1be6c73605006a85f7ed60b7f76a51e28eb67e01'
   cpus: 8
   distribution:
     distribution: fedora
-    version: "32"
-  eventLogger: file
+    version: "33"
+  eventLogger: journald
   hostname: localhost.localdomain
   idMappings:
     gidmap:
@@ -58,33 +59,41 @@ host:
     - container_id: 1
       host_id: 100000
       size: 65536
-  kernel: 5.6.11-300.fc32.x86_64
+  kernel: 5.9.11-200.fc33.x86_64
   linkmode: dynamic
-  memFree: 1401929728
-  memTotal: 16416161792
+  memFree: 837505024
+  memTotal: 16416481280
   ociRuntime:
-    name: runc
-    package: containerd.io-1.2.10-3.2.fc31.x86_64
-    path: /usr/bin/runc
+    name: crun
+    package: crun-0.16-1.fc33.x86_64
+    path: /usr/bin/crun
     version: |-
-      runc version 1.0.0-rc8+dev
-      commit: 3e425f80a8c931f88e6d94a8c831b9d5aa481657
-      spec: 1.0.1-dev
+      crun version 0.16
+      commit: eb0145e5ad4d8207e84a327248af76663d4e50dd
+      spec: 1.0.0
+      +SYSTEMD +SELINUX +APPARMOR +CAP +SECCOMP +EBPF +YAJL
   os: linux
   remoteSocket:
-    exists: false
-    path: /run/user/1000/podman/podman.sock
-  rootless: true
+    exists: true
+    path: /run/user/3267/podman/podman.sock
+  security:
+    apparmorEnabled: false
+    capabilities: CAP_CHOWN,CAP_DAC_OVERRIDE,CAP_FOWNER,CAP_FSETID,CAP_KILL,CAP_NET_BIND_SERVICE,CAP_SETFCAP,CAP_SETGID,CAP_SETPCAP,CAP_SETUID,CAP_SYS_CHROOT
+    rootless: true
+    seccompEnabled: true
+    selinuxEnabled: true
   slirp4netns:
     executable: /bin/slirp4netns
-    package: slirp4netns-1.0.0-1.fc32.x86_64
+    package: slirp4netns-1.1.4-4.dev.giteecccdb.fc33.x86_64
     version: |-
-      slirp4netns version 1.0.0
-      commit: a3be729152a33e692cd28b52f664defbf2e7810a
-      libslirp: 4.2.0
-  swapFree: 8291610624
-  swapTotal: 8296329216
-  uptime: 52h 29m 39.78s (Approximately 2.17 days)
+      slirp4netns version 1.1.4+dev
+      commit: eecccdb96f587b11d7764556ffacfeaffe4b6e11
+      libslirp: 4.3.1
+      SLIRP_CONFIG_VERSION_MAX: 3
+      libseccomp: 2.5.0
+  swapFree: 6509203456
+  swapTotal: 12591292416
+  uptime: 264h 14m 32.73s (Approximately 11.00 days)
 registries:
   search:
   - registry.fedoraproject.org
@@ -94,19 +103,19 @@ registries:
 store:
   configFile: /home/dwalsh/.config/containers/storage.conf
   containerStore:
-    number: 2
+    number: 3
     paused: 0
     running: 0
-    stopped: 2
+    stopped: 3
   graphDriverName: overlay
   graphOptions:
     overlay.mount_program:
       Executable: /home/dwalsh/bin/fuse-overlayfs
       Package: Unknown
       Version: |-
-        fusermount3 version: 3.9.1
+        fusermount3 version: 3.9.3
         fuse-overlayfs: version 0.7.2
-        FUSE library version 3.9.1
+        FUSE library version 3.9.3
         using FUSE kernel interface version 7.31
   graphRoot: /home/dwalsh/.local/share/containers/storage
   graphStatus:
@@ -115,36 +124,38 @@ store:
     Supports d_type: "true"
     Using metacopy: "false"
   imageStore:
-    number: 7
+    number: 77
   runRoot: /run/user/3267/containers
   volumePath: /home/dwalsh/.local/share/containers/storage/volumes
 version:
-  Built: 1589899246
-  BuiltTime: Tue May 19 10:40:46 2020
-  GitCommit: c3678ce3289f4195f3f16802411e795c6a587c9f-dirty
-  GoVersion: go1.14.2
+  APIVersion: 3.0.0
+  Built: 1608562922
+  BuiltTime: Mon Dec 21 10:02:02 2020
+  GitCommit: d6925182cdaf94225908a386d02eae8fd3e01123-dirty
+  GoVersion: go1.15.5
   OsArch: linux/amd64
-  APIVersion: 1
-  Version: 2.0.0
+  Version: 3.0.0-dev
+
 ```
 Run podman info with JSON formatted response:
 ```
 {
   "host": {
     "arch": "amd64",
-    "buildahVersion": "1.15.0",
-    "cgroupVersion": "v1",
+    "buildahVersion": "1.19.0-dev",
+    "cgroupManager": "systemd",
+    "cgroupVersion": "v2",
     "conmon": {
-      "package": "conmon-2.0.16-2.fc32.x86_64",
+      "package": "conmon-2.0.22-2.fc33.x86_64",
       "path": "/usr/bin/conmon",
-      "version": "conmon version 2.0.16, commit: 1044176f7dd177c100779d1c63931d6022e419bd"
+      "version": "conmon version 2.0.22, commit: 1be6c73605006a85f7ed60b7f76a51e28eb67e01"
     },
     "cpus": 8,
     "distribution": {
       "distribution": "fedora",
-      "version": "32"
+      "version": "33"
     },
-    "eventLogger": "file",
+    "eventLogger": "journald",
     "hostname": "localhost.localdomain",
     "idMappings": {
       "gidmap": [
@@ -172,45 +183,51 @@ Run podman info with JSON formatted response:
         }
       ]
     },
-    "kernel": "5.6.11-300.fc32.x86_64",
-    "memFree": 1380356096,
-    "memTotal": 16416161792,
+    "kernel": "5.9.11-200.fc33.x86_64",
+    "memFree": 894574592,
+    "memTotal": 16416481280,
     "ociRuntime": {
-      "name": "runc",
-      "package": "containerd.io-1.2.10-3.2.fc31.x86_64",
-      "path": "/usr/bin/runc",
-      "version": "runc version 1.0.0-rc8+dev\ncommit: 3e425f80a8c931f88e6d94a8c831b9d5aa481657\nspec: 1.0.1-dev"
+      "name": "crun",
+      "package": "crun-0.16-1.fc33.x86_64",
+      "path": "/usr/bin/crun",
+      "version": "crun version 0.16\ncommit: eb0145e5ad4d8207e84a327248af76663d4e50dd\nspec: 1.0.0\n+SYSTEMD +SELINUX +APPARMOR +CAP +SECCOMP +EBPF +YAJL"
     },
     "os": "linux",
     "remoteSocket": {
-      "path": "/run/user/1000/podman/podman.sock",
-      "exists": false
+      "path": "/run/user/3267/podman/podman.sock",
+      "exists": true
     },
-    "rootless": true,
+    "security": {
+      "apparmorEnabled": false,
+      "capabilities": "CAP_CHOWN,CAP_DAC_OVERRIDE,CAP_FOWNER,CAP_FSETID,CAP_KILL,CAP_NET_BIND_SERVICE,CAP_SETFCAP,CAP_SETGID,CAP_SETPCAP,CAP_SETUID,CAP_SYS_CHROOT",
+      "rootless": true,
+      "seccompEnabled": true,
+      "selinuxEnabled": true
+    },
     "slirp4netns": {
       "executable": "/bin/slirp4netns",
-      "package": "slirp4netns-1.0.0-1.fc32.x86_64",
-      "version": "slirp4netns version 1.0.0\ncommit: a3be729152a33e692cd28b52f664defbf2e7810a\nlibslirp: 4.2.0"
+      "package": "slirp4netns-1.1.4-4.dev.giteecccdb.fc33.x86_64",
+      "version": "slirp4netns version 1.1.4+dev\ncommit: eecccdb96f587b11d7764556ffacfeaffe4b6e11\nlibslirp: 4.3.1\nSLIRP_CONFIG_VERSION_MAX: 3\nlibseccomp: 2.5.0"
     },
-    "swapFree": 8291610624,
-    "swapTotal": 8296329216,
-    "uptime": "52h 27m 39.38s (Approximately 2.17 days)",
+    "swapFree": 6509203456,
+    "swapTotal": 12591292416,
+    "uptime": "264h 13m 12.39s (Approximately 11.00 days)",
     "linkmode": "dynamic"
   },
   "store": {
     "configFile": "/home/dwalsh/.config/containers/storage.conf",
     "containerStore": {
-      "number": 2,
+      "number": 3,
       "paused": 0,
       "running": 0,
-      "stopped": 2
+      "stopped": 3
     },
     "graphDriverName": "overlay",
     "graphOptions": {
       "overlay.mount_program": {
   "Executable": "/home/dwalsh/bin/fuse-overlayfs",
   "Package": "Unknown",
-  "Version": "fusermount3 version: 3.9.1\nfuse-overlayfs: version 0.7.2\nFUSE library version 3.9.1\nusing FUSE kernel interface version 7.31"
+  "Version": "fusermount3 version: 3.9.3\nfuse-overlayfs: version 0.7.2\nFUSE library version 3.9.3\nusing FUSE kernel interface version 7.31"
 }
     },
     "graphRoot": "/home/dwalsh/.local/share/containers/storage",
@@ -221,7 +238,7 @@ Run podman info with JSON formatted response:
       "Using metacopy": "false"
     },
     "imageStore": {
-      "number": 7
+      "number": 77
     },
     "runRoot": "/run/user/3267/containers",
     "volumePath": "/home/dwalsh/.local/share/containers/storage/volumes"
@@ -235,12 +252,12 @@ Run podman info with JSON formatted response:
 ]
   },
   "version": {
-    "APIVersion": 1,
-    "Version": "2.0.0",
-    "GoVersion": "go1.14.2",
-    "GitCommit": "c3678ce3289f4195f3f16802411e795c6a587c9f-dirty",
-    "BuiltTime": "Tue May 19 10:40:46 2020",
-    "Built": 1589899246,
+    "APIVersion": "3.0.0",
+    "Version": "3.0.0-dev",
+    "GoVersion": "go1.15.5",
+    "GitCommit": "d6925182cdaf94225908a386d02eae8fd3e01123-dirty",
+    "BuiltTime": "Mon Dec 21 10:02:02 2020",
+    "Built": 1608562922,
     "OsArch": "linux/amd64"
   }
 }

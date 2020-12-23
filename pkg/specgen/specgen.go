@@ -1,13 +1,13 @@
 package specgen
 
 import (
-	"errors"
 	"net"
 	"syscall"
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 )
 
 //  LogConfig describes the logging characteristics for a container
@@ -307,6 +307,13 @@ type ContainerSecurityConfig struct {
 	Umask string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.
 	ProcOpts []string `json:"procfs_opts,omitempty"`
+	// Mask is the path we want to mask in the container. This masks the paths
+	// given in addition to the default list.
+	// Optional
+	Mask []string `json:"mask,omitempty"`
+	// Unmask is the path we want to unmask in the container. To override
+	// all the default paths that are masked, set unmask=ALL.
+	Unmask []string `json:"unmask,omitempty"`
 }
 
 // ContainerCgroupConfig contains configuration information about a container's
@@ -328,6 +335,9 @@ type ContainerCgroupConfig struct {
 // ContainerNetworkConfig contains information on a container's network
 // configuration.
 type ContainerNetworkConfig struct {
+	// Aliases are a list of network-scoped aliases for container
+	// Optional
+	Aliases map[string][]string `json:"aliases"`
 	// NetNS is the configuration to use for the container's network
 	// namespace.
 	// Mandatory.
@@ -454,42 +464,6 @@ type SpecGenerator struct {
 	ContainerNetworkConfig
 	ContainerResourceConfig
 	ContainerHealthCheckConfig
-}
-
-// NamedVolume holds information about a named volume that will be mounted into
-// the container.
-type NamedVolume struct {
-	// Name is the name of the named volume to be mounted. May be empty.
-	// If empty, a new named volume with a pseudorandomly generated name
-	// will be mounted at the given destination.
-	Name string
-	// Destination to mount the named volume within the container. Must be
-	// an absolute path. Path will be created if it does not exist.
-	Dest string
-	// Options are options that the named volume will be mounted with.
-	Options []string
-}
-
-// OverlayVolume holds information about a overlay volume that will be mounted into
-// the container.
-type OverlayVolume struct {
-	// Destination is the absolute path where the mount will be placed in the container.
-	Destination string `json:"destination"`
-	// Source specifies the source path of the mount.
-	Source string `json:"source,omitempty"`
-}
-
-// ImageVolume is a volume based on a container image.  The container image is
-// first mounted on the host and is then bind-mounted into the container.  An
-// ImageVolume is always mounted read only.
-type ImageVolume struct {
-	// Source is the source of the image volume.  The image can be referred
-	// to by name and by ID.
-	Source string
-	// Destination is the absolute path of the mount in the container.
-	Destination string
-	// ReadWrite sets the volume writable.
-	ReadWrite bool
 }
 
 // PortMapping is one or more ports that will be mapped into the container.

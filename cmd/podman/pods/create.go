@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
@@ -27,11 +28,12 @@ var (
   You can then start it at any time with the  podman pod start <pod_id> command. The pod will be created with the initial state 'created'.`
 
 	createCommand = &cobra.Command{
-		Use:   "create [options]",
-		Args:  validate.NoArgs,
-		Short: "Create a new empty pod",
-		Long:  podCreateDescription,
-		RunE:  create,
+		Use:               "create [options]",
+		Args:              validate.NoArgs,
+		Short:             "Create a new empty pod",
+		Long:              podCreateDescription,
+		RunE:              create,
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
 
@@ -51,19 +53,53 @@ func init() {
 	})
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
-	flags.AddFlagSet(common.GetNetFlags())
-	flags.StringVar(&createOptions.CGroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
+
+	common.DefineNetFlags(createCommand)
+
+	cgroupParentflagName := "cgroup-parent"
+	flags.StringVar(&createOptions.CGroupParent, cgroupParentflagName, "", "Set parent cgroup for the pod")
+	_ = createCommand.RegisterFlagCompletionFunc(cgroupParentflagName, completion.AutocompleteDefault)
+
 	flags.BoolVar(&createOptions.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
-	flags.StringVar(&createOptions.InfraConmonPidFile, "infra-conmon-pidfile", "", "Path to the file that will receive the POD of the infra container's conmon")
-	flags.String("infra-image", containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
-	flags.String("infra-command", containerConfig.Engine.InfraCommand, "The command to run on the infra container when the pod is started")
-	flags.StringSliceVar(&labelFile, "label-file", []string{}, "Read in a line delimited file of labels")
-	flags.StringSliceVarP(&labels, "label", "l", []string{}, "Set metadata on pod (default [])")
-	flags.StringVarP(&createOptions.Name, "name", "n", "", "Assign a name to the pod")
-	flags.StringVarP(&createOptions.Hostname, "hostname", "", "", "Set a hostname to the pod")
-	flags.StringVar(&podIDFile, "pod-id-file", "", "Write the pod ID to the file")
-	flags.BoolVar(&replace, "replace", false, "If a pod with the same exists, replace it")
-	flags.StringVar(&share, "share", specgen.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
+
+	infraConmonPidfileFlagName := "infra-conmon-pidfile"
+	flags.StringVar(&createOptions.InfraConmonPidFile, infraConmonPidfileFlagName, "", "Path to the file that will receive the POD of the infra container's conmon")
+	_ = createCommand.RegisterFlagCompletionFunc(infraConmonPidfileFlagName, completion.AutocompleteDefault)
+
+	infraImageFlagName := "infra-image"
+	flags.String(infraImageFlagName, containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
+	_ = createCommand.RegisterFlagCompletionFunc(infraImageFlagName, common.AutocompleteImages)
+
+	infraCommandFlagName := "infra-command"
+	flags.String(infraCommandFlagName, containerConfig.Engine.InfraCommand, "The command to run on the infra container when the pod is started")
+	_ = createCommand.RegisterFlagCompletionFunc(infraCommandFlagName, completion.AutocompleteNone)
+
+	labelFileFlagName := "label-file"
+	flags.StringSliceVar(&labelFile, labelFileFlagName, []string{}, "Read in a line delimited file of labels")
+	_ = createCommand.RegisterFlagCompletionFunc(labelFileFlagName, completion.AutocompleteDefault)
+
+	labelFlagName := "label"
+	flags.StringSliceVarP(&labels, labelFlagName, "l", []string{}, "Set metadata on pod (default [])")
+	_ = createCommand.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
+
+	nameFlagName := "name"
+	flags.StringVarP(&createOptions.Name, nameFlagName, "n", "", "Assign a name to the pod")
+	_ = createCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
+
+	hostnameFlagName := "hostname"
+	flags.StringVarP(&createOptions.Hostname, hostnameFlagName, "", "", "Set a hostname to the pod")
+	_ = createCommand.RegisterFlagCompletionFunc(hostnameFlagName, completion.AutocompleteNone)
+
+	podIDFileFlagName := "pod-id-file"
+	flags.StringVar(&podIDFile, podIDFileFlagName, "", "Write the pod ID to the file")
+	_ = createCommand.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
+
+	flags.BoolVar(&replace, "replace", false, "If a pod with the same name exists, replace it")
+
+	shareFlagName := "share"
+	flags.StringVar(&share, shareFlagName, specgen.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
+	_ = createCommand.RegisterFlagCompletionFunc(shareFlagName, common.AutocompletePodShareNamespace)
+
 	flags.SetNormalizeFunc(aliasNetworkFlag)
 }
 
@@ -182,7 +218,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	if len(podIDFile) > 0 {
 		if err = ioutil.WriteFile(podIDFile, []byte(response.Id), 0644); err != nil {
-			return errors.Wrapf(err, "failed to write pod ID to file %q", podIDFile)
+			return errors.Wrapf(err, "failed to write pod ID to file")
 		}
 	}
 	fmt.Println(response.Id)

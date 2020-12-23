@@ -29,3 +29,11 @@ func (h *HardlinkChecker) Add(fi os.FileInfo, name string) {
 		h.hardlinks.Store(makeHardlinkDeviceAndInode(st), name)
 	}
 }
+
+func UID(st os.FileInfo) int {
+	return int(st.Sys().(*syscall.Stat_t).Uid)
+}
+
+func GID(st os.FileInfo) int {
+	return int(st.Sys().(*syscall.Stat_t).Gid)
+}

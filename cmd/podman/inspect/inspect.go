@@ -1,7 +1,9 @@
 package inspect
 
 import (
+	"bytes"
 	"context"
+	"encoding/json" // due to a bug in json-iterator it cannot be used here
 	"fmt"
 	"os"
 	"regexp"
@@ -9,7 +11,9 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
@@ -26,16 +30,13 @@ const (
 	ContainerType = "container"
 	// ImageType is the image type.
 	ImageType = "image"
-	//NetworkType is the network type
+	// NetworkType is the network type
 	NetworkType = "network"
-	//PodType is the pod type.
+	// PodType is the pod type.
 	PodType = "pod"
-	//VolumeType is the volume type
+	// VolumeType is the volume type
 	VolumeType = "volume"
 )
-
-// Pull in configured json library
-var json = registry.JSONLibrary()
 
 // AddInspectFlagSet takes a command and adds the inspect flags and returns an
 // InspectOptions object.
@@ -44,8 +45,14 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 
 	flags := cmd.Flags()
 	flags.BoolVarP(&opts.Size, "size", "s", false, "Display total file size")
-	flags.StringVarP(&opts.Format, "format", "f", "json", "Format the output to a Go template or json")
-	flags.StringVarP(&opts.Type, "type", "t", AllType, fmt.Sprintf("Specify inspect-oject type (%q, %q or %q)", ImageType, ContainerType, AllType))
+
+	formatFlagName := "format"
+	flags.StringVarP(&opts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+
+	typeFlagName := "type"
+	flags.StringVarP(&opts.Type, typeFlagName, "t", AllType, fmt.Sprintf("Specify inspect-oject type (%q, %q or %q)", ImageType, ContainerType, AllType))
+	_ = cmd.RegisterFlagCompletionFunc(typeFlagName, common.AutocompleteInspectType)
 
 	validate.AddLatestFlag(cmd, &opts.Latest)
 	return &opts
@@ -165,7 +172,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 				data = append(data, podData)
 			}
 		}
-		if i.podOptions.Latest { //latest means there are no names in the namesOrID array
+		if i.podOptions.Latest { // latest means there are no names in the namesOrID array
 			podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
 			if err != nil {
 				cause := errors.Cause(err)
@@ -230,13 +237,24 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 }
 
 func printJSON(data []interface{}) error {
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "     ")
-	return enc.Encode(data)
+	buf, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Println(string(buf))
+	return err
 }
 
 func printTmpl(typ, row string, data []interface{}) error {
-	t, err := template.New(typ + " inspect").Parse(row)
+	t, err := template.New(typ + " inspect").Funcs(map[string]interface{}{
+		"json": func(v interface{}) string {
+			b := &bytes.Buffer{}
+			e := registry.JSONLibrary().NewEncoder(b)
+			e.SetEscapeHTML(false)
+			_ = e.Encode(v)
+			return strings.TrimSpace(b.String())
+		},
+	}).Parse(row)
 	if err != nil {
 		return err
 	}

@@ -26,37 +26,37 @@ By default it lists:
 
 ## OPTIONS
 
-**--ctr-names**
+#### **--ctr-names**
 
 Includes the container names in the container info field
 
-**--ctr-ids**
+#### **--ctr-ids**
 
 Includes the container IDs in the container info field
 
-**--ctr-status**
+#### **--ctr-status**
 
 Includes the container statuses in the container info field
 
-**--latest**, **-l**
+#### **--latest**, **-l**
 
 Show the latest pod created (all states)
 
 The latest option is not supported on the remote client.
 
-**--no-trunc**
+#### **--no-trunc**
 
 Display the extended information
 
-**--ns**
+#### **--ns**
 
 Display namespace information of the pod
 
-**--quiet**, **-q**
+#### **--quiet**, **-q**
 
 Print the numeric IDs of the pods only
 
-**--format**=*format*
+#### **--format**=*format*
 
 Pretty-print containers to JSON or using a Go template
 
@@ -72,29 +72,33 @@ Valid placeholders for the Go template are listed below:
 | .Cgroup             | Cgroup path of pod                                                                              |
 | .Created            | Creation time of pod                                                                            |
 | .InfraID            | Pod infra container ID                                                                          |
-**--sort**
+#### **--sort**
 
 Sort by created, ID, name, status, or number of containers
 
 Default: created
 
-**--filter**, **-f**=*filter*
+#### **--filter**, **-f**=*filter*
 
-Filter output based on conditions given
+Filter output based on conditions given.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
 
 Valid filters are listed below:
 
-| **Filter**      | **Description**                                                     |
-| --------------- | ------------------------------------------------------------------- |
-| id              | [ID] Pod's ID                                                       |
-| name            | [Name] Pod's name                                                   |
-| label           | [Key] or [Key=Value] Label assigned to a container                  |
-| ctr-names       | Container name within the pod                                       |
-| ctr-ids         | Container ID within the pod                                         |
-| ctr-status      | Container status within the pod                                     |
-| ctr-number      | Number of containers in the pod                                     |
+| **Filter** | **Description**                                                                       |
+| ---------- | ------------------------------------------------------------------------------------- |
+| id         | [ID] Pod's ID (accepts regex)                                                         |
+| name       | [Name] Pod's name (accepts regex)                                                     |
+| label      | [Key] or [Key=Value] Label assigned to a container                                    |
+| status     | Pod's status: `stopped`, `running`, `paused`, `exited`, `dead`, `created`, `degraded` |
+| ctr-names  | Container name within the pod (accepts regex)                                         |
+| ctr-ids    | Container ID within the pod (accepts regex)                                           |
+| ctr-status | Container status within the pod                                                       |
+| ctr-number | Number of containers in the pod                                                       |
 
-**--help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

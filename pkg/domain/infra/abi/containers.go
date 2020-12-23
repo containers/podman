@@ -205,15 +205,13 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
-	var filterFuncs []libpod.ContainerFilter
+	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 	for k, v := range options.Filters {
-		for _, val := range v {
-			generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, val, ic.Libpod)
-			if err != nil {
-				return nil, err
-			}
-			filterFuncs = append(filterFuncs, generatedFunc)
+		generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
+		if err != nil {
+			return nil, err
 		}
+		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 	return ic.pruneContainersHelper(filterFuncs)
 }
@@ -913,7 +911,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	} else {
 		report.ExitCode = int(ecode)
 	}
-	if opts.Rm {
+	if opts.Rm && !ctr.ShouldRestart(ctx) {
 		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchCtr ||
 				errors.Cause(err) == define.ErrCtrRemoved {
@@ -927,7 +925,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 }
 
 func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []string, options entities.ContainerLogsOptions) error {
-	if options.Writer == nil {
+	if options.StdoutWriter == nil && options.StderrWriter == nil {
 		return errors.New("no io.Writer set for container logs")
 	}
 
@@ -965,7 +963,7 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 	}()
 
 	for line := range logChannel {
-		fmt.Fprintln(options.Writer, line.String(logOpts))
+		line.Write(options.StdoutWriter, options.StderrWriter, logOpts)
 	}
 
 	return nil
@@ -994,7 +992,7 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 			return []*entities.ContainerCleanupReport{}, nil
 		}
 
-		if options.Remove {
+		if options.Remove && !ctr.ShouldRestart(ctx) {
 			err = ic.Libpod.RemoveContainer(ctx, ctr, false, true)
 			if err != nil {
 				report.RmErr = errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
@@ -1017,6 +1015,7 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 			_, err = ic.Libpod.RemoveImage(ctx, ctrImage, false)
 			report.RmiErr = err
 		}
+
 		reports = append(reports, &report)
 	}
 	return reports, nil
@@ -1315,4 +1314,14 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 	}()
 
 	return statsChan, nil
+}
+
+// ShouldRestart returns whether the container should be restarted
+func (ic *ContainerEngine) ShouldRestart(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	ctr, err := ic.Libpod.LookupContainer(nameOrID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entities.BoolReport{Value: ctr.ShouldRestart(ctx)}, nil
 }

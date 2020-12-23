@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v2/pkg/api/handlers/compat"
-	"github.com/containers/podman/v2/pkg/api/handlers/libpod"
 	"github.com/gorilla/mux"
 )
 
@@ -92,7 +91,7 @@ func (s *APIServer) registerAchiveHandlers(r *mux.Router) error {
 		Libpod
 	*/
 
-	// swagger:operation POST /libpod/containers/{name}/copy libpod libpodPutArchive
+	// swagger:operation POST /libpod/containers/{name}/archive libpod libpodPutArchive
 	// ---
 	//  summary: Copy files into a container
 	//  description: Copy a tar archive of files into a container
@@ -133,7 +132,7 @@ func (s *APIServer) registerAchiveHandlers(r *mux.Router) error {
 	//    500:
 	//      $ref: "#/responses/InternalError"
 
-	// swagger:operation GET /libpod/containers/{name}/copy libpod libpodGetArchive
+	// swagger:operation GET /libpod/containers/{name}/archive libpod libpodGetArchive
 	// ---
 	//  summary: Copy files from a container
 	//  description: Copy a tar archive of files from a container
@@ -164,8 +163,7 @@ func (s *APIServer) registerAchiveHandlers(r *mux.Router) error {
 	//      $ref: "#/responses/NoSuchContainer"
 	//    500:
 	//      $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/copy"), s.APIHandler(libpod.Archive)).Methods(http.MethodGet, http.MethodPost)
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/archive"), s.APIHandler(libpod.Archive)).Methods(http.MethodGet, http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/archive"), s.APIHandler(compat.Archive)).Methods(http.MethodGet, http.MethodPut, http.MethodHead)
 
 	return nil
 }

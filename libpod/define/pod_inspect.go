@@ -67,7 +67,7 @@ type InspectPodInfraConfig struct {
 	StaticIP net.IP
 	// StaticMAC is a static MAC address that will be assigned to the infra
 	// container and then used by the pod.
-	StaticMAC net.HardwareAddr
+	StaticMAC string
 	// NoManageResolvConf indicates that the pod will not manage resolv.conf
 	// and instead each container will handle their own.
 	NoManageResolvConf bool

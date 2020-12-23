@@ -28,12 +28,15 @@ verify_iid_and_name() {
 
 @test "podman save to pipe and load" {
     # Generate a random name and tag (must be lower-case)
-    local random_name=x$(random_string 12 | tr A-Z a-z)
-    local random_tag=t$(random_string 7 | tr A-Z a-z)
+    local random_name=x0$(random_string 12 | tr A-Z a-z)
+    local random_tag=t0$(random_string 7 | tr A-Z a-z)
     local fqin=localhost/$random_name:$random_tag
     run_podman tag $IMAGE $fqin
 
-    archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
+    # Believe it or not, 'podman load' would barf if any path element
+    # included a capital letter
+    archive=$PODMAN_TMPDIR/MySubDirWithCaps/MyImage-$(random_string 8).tar
+    mkdir -p $(dirname $archive)
 
     # We can't use run_podman because that uses the BATS 'run' function
     # which redirects stdout and stderr. Here we need to guarantee
@@ -51,19 +54,20 @@ verify_iid_and_name() {
     run_podman images $fqin --format '{{.Repository}}:{{.Tag}}'
     is "$output" "$fqin" "image preserves name across save/load"
 
-    # FIXME: when/if 7337 gets fixed, load with a new tag
-    if false; then
-    local new_name=x$(random_string 14 | tr A-Z a-z)
-    local new_tag=t$(random_string 6 | tr A-Z a-z)
+    # Load with a new tag
+    local new_name=x1$(random_string 14 | tr A-Z a-z)
+    local new_tag=t1$(random_string 6 | tr A-Z a-z)
     run_podman rmi $fqin
-    fqin=localhost/$new_name:$new_tag
-    run_podman load -i $archive $fqin
-    run_podman images $fqin --format '{{.Repository}}:{{.Tag}}'
-    is "$output" "$fqin" "image can be loaded with new name:tag"
-    fi
+
+    new_fqin=localhost/$new_name:$new_tag
+    run_podman load -i $archive $new_fqin
+    run_podman images --format '{{.Repository}}:{{.Tag}}' --sort tag
+    is "${lines[0]}" "$IMAGE"     "image is preserved"
+    is "${lines[1]}" "$fqin"      "image is reloaded with old fqin"
+    is "${lines[2]}" "$new_fqin"  "image is reloaded with new fqin too"
 
     # Clean up
-    run_podman rmi $fqin
+    run_podman rmi $fqin $new_fqin
 }
 
 

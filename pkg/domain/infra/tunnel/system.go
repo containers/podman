@@ -11,11 +11,7 @@ import (
 )
 
 func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
-	return system.Info(ic.ClientCxt)
-}
-
-func (ic *ContainerEngine) VarlinkService(_ context.Context, _ entities.ServiceOptions) error {
-	panic(errors.New("varlink service is not supported when tunneling"))
+	return system.Info(ic.ClientCxt, nil)
 }
 
 func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {
@@ -23,12 +19,13 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 }
 
 // SystemPrune prunes unused data from the system.
-func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
-	return system.Prune(ic.ClientCxt, &options.All, &options.Volume)
+func (ic *ContainerEngine) SystemPrune(ctx context.Context, opts entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
+	options := new(system.PruneOptions).WithAll(opts.All).WithVolumes(opts.Volume).WithFilters(opts.Filters)
+	return system.Prune(ic.ClientCxt, options)
 }
 
 func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
-	return system.DiskUsage(ic.ClientCxt)
+	return system.DiskUsage(ic.ClientCxt, nil)
 }
 
 func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
@@ -36,5 +33,5 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
 }
 
 func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
-	return system.Version(ic.ClientCxt)
+	return system.Version(ic.ClientCxt, nil)
 }

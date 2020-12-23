@@ -11,7 +11,9 @@ import (
 	"time"
 
 	tm "github.com/buger/goterm"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -21,20 +23,30 @@ import (
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	psDescription = "Prints out information about the containers"
 	psCommand     = &cobra.Command{
-		Use:   "ps [options]",
-		Args:  validate.NoArgs,
-		Short: "List containers",
-		Long:  psDescription,
-		RunE:  ps,
+		Use:               "ps [options]",
+		Short:             "List containers",
+		Long:              psDescription,
+		RunE:              ps,
+		Args:              validate.NoArgs,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman ps -a
   podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
   podman ps --size --sort names`,
+	}
+
+	psContainerCommand = &cobra.Command{
+		Use:               psCommand.Use,
+		Short:             psCommand.Short,
+		Long:              psCommand.Long,
+		RunE:              psCommand.RunE,
+		Args:              psCommand.Args,
+		ValidArgsFunction: psCommand.ValidArgsFunction,
+		Example:           strings.ReplaceAll(psCommand.Example, "podman ps", "podman container ps"),
 	}
 )
 var (
@@ -50,40 +62,58 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: psCommand,
 	})
-	listFlagSet(psCommand.Flags())
+	listFlagSet(psCommand)
 	validate.AddLatestFlag(psCommand, &listOpts.Latest)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: psContainerCommand,
+		Parent:  containerCmd,
+	})
+	listFlagSet(psContainerCommand)
+	validate.AddLatestFlag(psContainerCommand, &listOpts.Latest)
 }
 
-func listFlagSet(flags *pflag.FlagSet) {
+func listFlagSet(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&listOpts.All, "all", "a", false, "Show all the containers, default is only running containers")
-	flags.StringSliceVarP(&filters, "filter", "f", []string{}, "Filter output based on conditions given")
 	flags.BoolVar(&listOpts.Storage, "external", false, "Show containers in storage not controlled by Podman")
-	flags.StringVar(&listOpts.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
-	flags.IntVarP(&listOpts.Last, "last", "n", -1, "Print the n last created containers (all states)")
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
+
+	formatFlagName := "format"
+	flags.StringVar(&listOpts.Format, formatFlagName, "", "Pretty-print containers to JSON or using a Go template")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
+	lastFlagName := "last"
+	flags.IntVarP(&listOpts.Last, lastFlagName, "n", -1, "Print the n last created containers (all states)")
+	_ = cmd.RegisterFlagCompletionFunc(lastFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&listOpts.Namespace, "ns", false, "Display namespace information")
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Display the extended information")
 	flags.BoolVarP(&listOpts.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
 	flags.BoolVarP(&listOpts.Quiet, "quiet", "q", false, "Print the numeric IDs of the containers only")
 	flags.BoolVarP(&listOpts.Size, "size", "s", false, "Display the total file sizes")
 	flags.BoolVar(&listOpts.Sync, "sync", false, "Sync container state with OCI runtime")
-	flags.UintVarP(&listOpts.Watch, "watch", "w", 0, "Watch the ps output on an interval in seconds")
+
+	watchFlagName := "watch"
+	flags.UintVarP(&listOpts.Watch, watchFlagName, "w", 0, "Watch the ps output on an interval in seconds")
+	_ = cmd.RegisterFlagCompletionFunc(watchFlagName, completion.AutocompleteNone)
 
 	sort := validate.Value(&listOpts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
-	flags.Var(sort, "sort", "Sort output by: "+sort.Choices())
+	sortFlagName := "sort"
+	flags.Var(sort, sortFlagName, "Sort output by: "+sort.Choices())
+	_ = cmd.RegisterFlagCompletionFunc(sortFlagName, common.AutocompletePsSort)
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 func checkFlags(c *cobra.Command) error {
 	// latest, and last are mutually exclusive.
 	if listOpts.Last >= 0 && listOpts.Latest {
 		return errors.Errorf("last and latest are mutually exclusive")
-	}
-	// Filter on status forces all
-	for _, filter := range filters {
-		splitFilter := strings.SplitN(filter, "=", 2)
-		if strings.ToLower(splitFilter[0]) == "status" {
-			listOpts.All = true
-			break
-		}
 	}
 	// Quiet conflicts with size and namespace and is overridden by a Go
 	// template.
@@ -114,7 +144,7 @@ func checkFlags(c *cobra.Command) error {
 func jsonOut(responses []entities.ListContainer) error {
 	r := make([]entities.ListContainer, 0)
 	for _, con := range responses {
-		con.CreatedAt = units.HumanDuration(time.Since(time.Unix(con.Created, 0))) + " ago"
+		con.CreatedAt = units.HumanDuration(time.Since(con.Created)) + " ago"
 		con.Status = psReporter{con}.Status()
 		r = append(r, con)
 	}
@@ -374,12 +404,12 @@ func (l psReporter) Ports() string {
 // CreatedAt returns the container creation time in string format.  podman
 // and docker both return a timestamped value for createdat
 func (l psReporter) CreatedAt() string {
-	return time.Unix(l.Created, 0).String()
+	return l.Created.String()
 }
 
 // CreateHuman allows us to output the created time in human readable format
 func (l psReporter) CreatedHuman() string {
-	return units.HumanDuration(time.Since(time.Unix(l.Created, 0))) + " ago"
+	return units.HumanDuration(time.Since(l.Created)) + " ago"
 }
 
 // Cgroup exposes .Namespaces.Cgroup

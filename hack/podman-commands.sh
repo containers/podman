@@ -23,8 +23,14 @@ function die() {
 # the command name but not its description.
 function podman_commands() {
     $PODMAN help "$@" |\
-        awk '/^Available Commands:/{ok=1;next}/^Flags:/{ok=0}ok { print $1 }' |\
+        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |\
         grep .
+
+    # Special case: podman-completion is a hidden command
+    # it does not show in podman help so add it here
+    if [[ -z "$@" ]]; then
+        echo "completion"
+    fi
 }
 
 # Read a list of subcommands from a command's metadoc

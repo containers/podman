@@ -41,6 +41,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if options.NoCache {
 		params.Set("nocache", "1")
 	}
+	if options.Layers {
+		params.Set("layers", "1")
+	}
 	//	 TODO cachefrom
 	if options.PullPolicy == buildah.PullAlways {
 		params.Set("pull", "1")
@@ -187,7 +190,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		case s.Stream != "":
 			stdout.Write([]byte(s.Stream))
 			if re.Match([]byte(s.Stream)) {
-				id = s.Stream
+				id = strings.TrimSuffix(s.Stream, "\n")
 			}
 		case s.Error != "":
 			return nil, errors.New(s.Error)

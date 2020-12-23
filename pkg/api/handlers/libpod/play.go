@@ -22,8 +22,11 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Network   string `schema:"reference"`
 		TLSVerify bool   `schema:"tlsVerify"`
+		LogDriver string `schema:"logDriver"`
+		Start     bool   `schema:"start"`
 	}{
 		TLSVerify: true,
+		Start:     true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -62,14 +65,18 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := entities.PlayKubeOptions{
-		Authfile: authfile,
-		Username: username,
-		Password: password,
-		Network:  query.Network,
-		Quiet:    true,
+		Authfile:  authfile,
+		Username:  username,
+		Password:  password,
+		Network:   query.Network,
+		Quiet:     true,
+		LogDriver: query.LogDriver,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+	if _, found := r.URL.Query()["start"]; found {
+		options.Start = types.NewOptionalBool(query.Start)
 	}
 
 	report, err := containerEngine.PlayKube(r.Context(), tmpfile.Name(), options)

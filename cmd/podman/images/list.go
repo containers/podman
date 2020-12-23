@@ -10,15 +10,16 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 type listFlagType struct {
@@ -35,12 +36,13 @@ type listFlagType struct {
 var (
 	// Command: podman image _list_
 	listCmd = &cobra.Command{
-		Use:     "list [options] [IMAGE]",
-		Aliases: []string{"ls"},
-		Args:    cobra.MaximumNArgs(1),
-		Short:   "List images in local storage",
-		Long:    "Lists images previously pulled to the system or created on the system.",
-		RunE:    images,
+		Use:               "list [options] [IMAGE]",
+		Aliases:           []string{"ls"},
+		Args:              cobra.MaximumNArgs(1),
+		Short:             "List images in local storage",
+		Long:              "Lists images previously pulled to the system or created on the system.",
+		RunE:              images,
+		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image list --format json
   podman image list --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
   podman image list --filter dangling=true`,
@@ -67,18 +69,31 @@ func init() {
 		Command: listCmd,
 		Parent:  imageCmd,
 	})
-	imageListFlagSet(listCmd.Flags())
+	imageListFlagSet(listCmd)
 }
 
-func imageListFlagSet(flags *pflag.FlagSet) {
+func imageListFlagSet(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	flags.BoolVarP(&listOptions.All, "all", "a", false, "Show all images (default hides intermediate images)")
-	flags.StringSliceVarP(&listOptions.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
-	flags.StringVar(&listFlag.format, "format", "", "Change the output format to JSON or a Go template")
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&listOptions.Filter, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteImageFilters)
+
+	formatFlagName := "format"
+	flags.StringVar(&listFlag.format, formatFlagName, "", "Change the output format to JSON or a Go template")
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVar(&listFlag.digests, "digests", false, "Show digests")
 	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print column headings")
 	flags.BoolVar(&listFlag.noTrunc, "no-trunc", false, "Do not truncate output")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Display only image IDs")
-	flags.StringVar(&listFlag.sort, "sort", "created", "Sort by "+sortFields.String())
+
+	sortFlagName := "sort"
+	flags.StringVar(&listFlag.sort, sortFlagName, "created", "Sort by "+sortFields.String())
+	_ = cmd.RegisterFlagCompletionFunc(sortFlagName, completion.AutocompleteNone)
+
 	flags.BoolVarP(&listFlag.history, "history", "", false, "Display the image name history")
 }
 
@@ -111,8 +126,8 @@ func images(cmd *cobra.Command, args []string) error {
 	case listFlag.quiet:
 		return writeID(imgs)
 	default:
-		if cmd.Flag("format").Changed {
-			listFlag.noHeading = true // V1 compatibility
+		if cmd.Flags().Changed("format") && !parse.HasTable(listFlag.format) {
+			listFlag.noHeading = true
 		}
 		return writeTemplate(imgs)
 	}

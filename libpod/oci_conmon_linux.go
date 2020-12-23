@@ -442,7 +442,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		}
 
 		if err := waitContainerStop(ctr, time.Duration(timeout)*time.Second); err != nil {
-			logrus.Warnf("Timed out stopping container %s, resorting to SIGKILL", ctr.ID())
+			logrus.Infof("Timed out stopping container %s, resorting to SIGKILL: %v", ctr.ID(), err)
 		} else {
 			// No error, the container is dead
 			return nil
@@ -1021,7 +1021,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	if ctr.config.SdNotifyMode == define.SdNotifyModeIgnore {
 		if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
-			logrus.Warnf("Error unsetting NOTIFY_SOCKET %s", err.Error())
+			logrus.Warnf("Error unsetting NOTIFY_SOCKET %v", err)
 		}
 	}
 
@@ -1167,14 +1167,14 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	conmonPID, err := readConmonPidFile(ctr.config.ConmonPidFile)
 	if err != nil {
-		logrus.Warnf("error reading conmon pid file for container %s: %s", ctr.ID(), err.Error())
+		logrus.Warnf("error reading conmon pid file for container %s: %v", ctr.ID(), err)
 	} else if conmonPID > 0 {
 		// conmon not having a pid file is a valid state, so don't set it if we don't have it
 		logrus.Infof("Got Conmon PID as %d", conmonPID)
 		ctr.state.ConmonPID = conmonPID
 		if ctr.config.SdNotifyMode != define.SdNotifyModeIgnore {
 			if sent, err := daemon.SdNotify(false, fmt.Sprintf("MAINPID=%d", conmonPID)); err != nil {
-				logrus.Errorf("Error notifying systemd of Conmon PID: %s", err.Error())
+				logrus.Errorf("Error notifying systemd of Conmon PID: %v", err)
 			} else if sent {
 				logrus.Debugf("Notify MAINPID sent successfully")
 			}
@@ -1445,6 +1445,14 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 	}
 
 	if mustCreateCgroup {
+		// Usually rootless users are not allowed to configure cgroupfs.
+		// There are cases though, where it is allowed, e.g. if the cgroup
+		// is manually configured and chowned).  Avoid detecting all
+		// such cases and simply use a lower log level.
+		logLevel := logrus.WarnLevel
+		if rootless.IsRootless() {
+			logLevel = logrus.InfoLevel
+		}
 		// TODO: This should be a switch - we are not guaranteed that
 		// there are only 2 valid cgroup managers
 		cgroupParent := ctr.CgroupParent()
@@ -1459,17 +1467,17 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 
 			logrus.Infof("Running conmon under slice %s and unitName %s", realCgroupParent, unitName)
 			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, realCgroupParent, unitName); err != nil {
-				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
+				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to systemd sandbox cgroup: %v", err)
 			}
 		} else {
 			cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
 			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
 			if err != nil {
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			} else if err := control.AddPid(cmd.Process.Pid); err != nil {
 				// we need to remove this defer and delete the cgroup once conmon exits
 				// maybe need a conmon monitor?
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 		}
 	}

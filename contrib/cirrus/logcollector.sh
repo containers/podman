@@ -53,7 +53,7 @@ case $1 in
                     slirp4netns \
         )
         case $OS_RELEASE_ID in
-            fedora*)
+            fedora)
                 cat /etc/fedora-release
                 PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
                 PKG_NAMES+=(\
@@ -61,7 +61,7 @@ case $1 in
                     libseccomp \
                 )
                 ;;
-            ubuntu*)
+            ubuntu)
                 cat /etc/issue
                 PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
                 PKG_NAMES+=(\
@@ -75,6 +75,11 @@ case $1 in
         echo "Cgroups: " $(stat -f -c %T /sys/fs/cgroup)
         # Any not-present packages will be listed as such
         $PKG_LST_CMD "${PKG_NAMES[@]}" | sort -u
+        ;;
+    time)
+        # Assumed to be empty/undefined outside of Cirrus-CI (.cirrus.yml)
+        # shellcheck disable=SC2154
+        if [[ -r "$STATS_LOGFILE" ]]; then cat "$STATS_LOGFILE"; fi
         ;;
     *) die "Warning, $(basename $0) doesn't know how to handle the parameter '$1'"
 esac

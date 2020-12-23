@@ -8,12 +8,15 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -21,25 +24,34 @@ import (
 var (
 	networklistDescription = `List networks`
 	networklistCommand     = &cobra.Command{
-		Use:     "ls [options]",
-		Args:    validate.NoArgs,
-		Short:   "network list",
-		Long:    networklistDescription,
-		RunE:    networkList,
-		Example: `podman network list`,
+		Use:               "ls [options]",
+		Args:              validate.NoArgs,
+		Short:             "network list",
+		Long:              networklistDescription,
+		RunE:              networkList,
+		ValidArgsFunction: completion.AutocompleteNone,
+		Example:           `podman network list`,
 	}
 )
 
 var (
 	networkListOptions entities.NetworkListOptions
+	filters            []string
+	noTrunc            bool
 )
 
 func networkListFlags(flags *pflag.FlagSet) {
-	// TODO enable filters based on something
-	// flags.StringSliceVarP(&networklistCommand.Filter, "filter", "f",  []string{}, "Pause all running containers")
-	flags.StringVarP(&networkListOptions.Format, "format", "f", "", "Pretty-print networks to JSON or using a Go template")
+	formatFlagName := "format"
+	flags.StringVar(&networkListOptions.Format, formatFlagName, "", "Pretty-print networks to JSON or using a Go template")
+	_ = networklistCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVarP(&networkListOptions.Quiet, "quiet", "q", false, "display only names")
-	flags.StringVarP(&networkListOptions.Filter, "filter", "", "", "Provide filter values (e.g. 'name=podman')")
+	flags.BoolVar(&noTrunc, "no-trunc", false, "Do not truncate the network ID")
+
+	filterFlagName := "filter"
+	flags.StringArrayVarP(&filters, filterFlagName, "f", nil, "Provide filter values (e.g. 'name=podman')")
+	_ = networklistCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteNetworkFilters)
+
 }
 
 func init() {
@@ -53,14 +65,14 @@ func init() {
 }
 
 func networkList(cmd *cobra.Command, args []string) error {
-	// validate the filter pattern.
-	if len(networkListOptions.Filter) > 0 {
-		tokens := strings.Split(networkListOptions.Filter, "=")
-		if len(tokens) != 2 {
-			return fmt.Errorf("invalid filter syntax : %s", networkListOptions.Filter)
+	networkListOptions.Filters = make(map[string][]string)
+	for _, f := range filters {
+		split := strings.SplitN(f, "=", 2)
+		if len(split) == 1 {
+			return errors.Errorf("invalid filter %q", f)
 		}
+		networkListOptions.Filters[split[0]] = append(networkListOptions.Filters[split[0]], split[1])
 	}
-
 	responses, err := registry.ContainerEngine().NetworkList(registry.Context(), networkListOptions)
 	if err != nil {
 		return err
@@ -79,9 +91,14 @@ func networkList(cmd *cobra.Command, args []string) error {
 		nlprs = append(nlprs, ListPrintReports{r})
 	}
 
+	// Headers() gets lost resolving the embedded field names so add them
 	headers := report.Headers(ListPrintReports{}, map[string]string{
+		"Name":       "name",
 		"CNIVersion": "version",
+		"Version":    "version",
 		"Plugins":    "plugins",
+		"Labels":     "labels",
+		"ID":         "network id",
 	})
 	renderHeaders := true
 	row := "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
@@ -102,7 +119,6 @@ func networkList(cmd *cobra.Command, args []string) error {
 		if err := tmpl.Execute(w, headers); err != nil {
 			return err
 		}
-
 	}
 	return tmpl.Execute(w, nlprs)
 }
@@ -133,4 +149,20 @@ func (n ListPrintReports) Version() string {
 
 func (n ListPrintReports) Plugins() string {
 	return network.GetCNIPlugins(n.NetworkConfigList)
+}
+
+func (n ListPrintReports) Labels() string {
+	list := make([]string, 0, len(n.NetworkListReport.Labels))
+	for k, v := range n.NetworkListReport.Labels {
+		list = append(list, k+"="+v)
+	}
+	return strings.Join(list, ",")
+}
+
+func (n ListPrintReports) ID() string {
+	length := 12
+	if noTrunc {
+		length = 64
+	}
+	return network.GetNetworkID(n.Name)[:length]
 }

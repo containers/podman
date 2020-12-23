@@ -43,7 +43,7 @@ var _ = Describe("Podman containers exec", func() {
 		Expect(err).To(BeNil())
 		Expect(sessionID).To(Not(Equal("")))
 
-		inspectOut, err := containers.ExecInspect(bt.conn, sessionID)
+		inspectOut, err := containers.ExecInspect(bt.conn, sessionID, nil)
 		Expect(err).To(BeNil())
 		Expect(inspectOut.ContainerID).To(Equal(cid))
 		Expect(inspectOut.ProcessConfig.Entrypoint).To(Equal("echo"))
@@ -71,7 +71,7 @@ var _ = Describe("Podman containers exec", func() {
 	})
 
 	It("Podman exec inspect on invalid session fails", func() {
-		_, err := containers.ExecInspect(bt.conn, "0000000000000000000000000000000000000000000000000000000000000000")
+		_, err := containers.ExecInspect(bt.conn, "0000000000000000000000000000000000000000000000000000000000000000", nil)
 		Expect(err).To(Not(BeNil()))
 	})
 })

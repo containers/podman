@@ -22,9 +22,9 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/overlay"
-	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/annotations"
@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
+	"github.com/containers/podman/v2/version"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -230,6 +231,19 @@ func (c *Container) cleanupNetwork() error {
 	return nil
 }
 
+// reloadNetwork reloads the network for the given container, recreating
+// firewall rules.
+func (c *Container) reloadNetwork() error {
+	result, err := c.runtime.reloadContainerNetwork(c)
+	if err != nil {
+		return err
+	}
+
+	c.state.NetworkStatus = result
+
+	return c.save()
+}
+
 func (c *Container) getUserOverrides() *lookup.Overrides {
 	var hasPasswdFile, hasGroupFile bool
 	overrides := lookup.Overrides{}
@@ -352,7 +366,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if !MountExists(g.Mounts(), dstPath) {
 			g.AddMount(newMount)
 		} else {
-			logrus.Warnf("User mount overriding libpod mount at %q", dstPath)
+			logrus.Infof("User mount overriding libpod mount at %q", dstPath)
 		}
 	}
 
@@ -410,11 +424,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if c.config.User != "" {
-		if rootless.IsRootless() {
-			if err := util.CheckRootlessUIDRange(execUser.Uid); err != nil {
-				return nil, err
-			}
-		}
 		// User and Group must go together
 		g.SetProcessUID(uint32(execUser.Uid))
 		g.SetProcessGID(uint32(execUser.Gid))
@@ -1378,6 +1387,14 @@ func (c *Container) makeBindMounts() error {
 				return err
 			}
 		}
+	} else {
+		if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
+			newHosts, err := c.generateHosts("/etc/hosts")
+			if err != nil {
+				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+			}
+			c.state.BindMounts["/etc/hosts"] = newHosts
+		}
 	}
 
 	// SHM is always added when we mount the container
@@ -1439,11 +1456,26 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	// Make .containerenv
-	// Empty file, so no need to recreate if it exists
+	// Make .containerenv if it does not exist
 	if _, ok := c.state.BindMounts["/run/.containerenv"]; !ok {
-		// Empty string for now, but we may consider populating this later
-		containerenvPath, err := c.writeStringToRundir(".containerenv", "")
+		var containerenv string
+		isRootless := 0
+		if rootless.IsRootless() {
+			isRootless = 1
+		}
+		imageID, imageName := c.Image()
+
+		if c.Privileged() {
+			// Populate the .containerenv with container information
+			containerenv = fmt.Sprintf(`engine="podman-%s"
+name=%q
+id=%q
+image=%q
+imageid=%q
+rootless=%d
+`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless)
+		}
+		containerenvPath, err := c.writeStringToRundir(".containerenv", containerenv)
 		if err != nil {
 			return errors.Wrapf(err, "error creating containerenv file for container %s", c.ID())
 		}
@@ -1451,7 +1483,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.Containers.DefaultMountsFile, c.state.Mountpoint, c.RootUID(), c.RootGID(), rootless.IsRootless(), false)
+	secretMounts := subscriptions.MountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.Containers.DefaultMountsFile, c.state.Mountpoint, c.RootUID(), c.RootGID(), rootless.IsRootless(), false)
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -1638,14 +1670,11 @@ func (c *Container) getHosts() string {
 			}
 			if !hasNetNS {
 				// 127.0.1.1 and host's hostname to match Docker
-				osHostname, err := os.Hostname()
-				if err != nil {
-					osHostname = c.Hostname()
-				}
-				hosts += fmt.Sprintf("127.0.1.1 %s\n", osHostname)
+				osHostname, _ := os.Hostname()
+				hosts += fmt.Sprintf("127.0.1.1 %s %s %s\n", osHostname, c.Hostname(), c.config.Name)
 			}
 			if netNone {
-				hosts += fmt.Sprintf("127.0.1.1 %s\n", c.Hostname())
+				hosts += fmt.Sprintf("127.0.1.1 %s %s\n", c.Hostname(), c.config.Name)
 			}
 		}
 	}
@@ -2115,10 +2144,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
 	case cgroupManager == config.CgroupfsCgroupsManager:
-		cgroupPath, err := c.CGroupPath()
-		if err != nil {
-			return "", err
-		}
+		cgroupPath := filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()))
 		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
 		return cgroupPath, nil
 	default:

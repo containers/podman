@@ -4,6 +4,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/containernetworking/cni/libcni"
+	"github.com/containers/podman/v2/pkg/util"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -14,22 +19,36 @@ const (
 // NcList describes a generic map
 type NcList map[string]interface{}
 
+// NcArgs describes the cni args field
+type NcArgs map[string]NcLabels
+
+// NcLabels describes the label map
+type NcLabels map[string]string
+
+// PodmanLabelKey key used to store the podman network label in a cni config
+const PodmanLabelKey = "podman_labels"
+
 // NewNcList creates a generic map of values with string
 // keys and adds in version and network name
-func NewNcList(name, version string) NcList {
+func NewNcList(name, version string, labels NcLabels) NcList {
 	n := NcList{}
 	n["cniVersion"] = version
 	n["name"] = name
+	if len(labels) > 0 {
+		n["args"] = NcArgs{PodmanLabelKey: labels}
+	}
 	return n
 }
 
 // NewHostLocalBridge creates a new LocalBridge for host-local
-func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, ipamConf IPAMHostLocalConf) *HostLocalBridge {
+func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, mtu int, vlan int, ipamConf IPAMHostLocalConf) *HostLocalBridge {
 	hostLocalBridge := HostLocalBridge{
 		PluginType:  "bridge",
 		BrName:      name,
 		IPMasq:      ipMasq,
+		MTU:         mtu,
 		HairpinMode: true,
+		Vlan:        vlan,
 		IPAM:        ipamConf,
 	}
 	if isGateWay {
@@ -42,8 +61,7 @@ func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, ipamCo
 }
 
 // NewIPAMHostLocalConf creates a new IPAMHostLocal configfuration
-func NewIPAMHostLocalConf(subnet *net.IPNet, routes []IPAMRoute, ipRange net.IPNet, gw net.IP) (IPAMHostLocalConf, error) {
-	var ipamRanges [][]IPAMLocalHostRangeConf
+func NewIPAMHostLocalConf(routes []IPAMRoute, ipamRanges [][]IPAMLocalHostRangeConf) (IPAMHostLocalConf, error) {
 	ipamConf := IPAMHostLocalConf{
 		PluginType: "host-local",
 		Routes:     routes,
@@ -51,22 +69,19 @@ func NewIPAMHostLocalConf(subnet *net.IPNet, routes []IPAMRoute, ipRange net.IPN
 		//ResolveConf: "",
 		//DataDir: ""
 	}
-	IPAMRange, err := newIPAMLocalHostRange(subnet, &ipRange, &gw)
-	if err != nil {
-		return ipamConf, err
-	}
-	ipamRanges = append(ipamRanges, IPAMRange)
+
 	ipamConf.Ranges = ipamRanges
 	return ipamConf, nil
 }
 
-func newIPAMLocalHostRange(subnet *net.IPNet, ipRange *net.IPNet, gw *net.IP) ([]IPAMLocalHostRangeConf, error) { //nolint:interfacer
+// NewIPAMLocalHostRange create a new IPAM range
+func NewIPAMLocalHostRange(subnet *net.IPNet, ipRange *net.IPNet, gw net.IP) ([]IPAMLocalHostRangeConf, error) { //nolint:interfacer
 	var ranges []IPAMLocalHostRangeConf
 	hostRange := IPAMLocalHostRangeConf{
 		Subnet: subnet.String(),
 	}
 	// an user provided a range, we add it here
-	if ipRange.IP != nil {
+	if ipRange != nil && ipRange.IP != nil {
 		first, err := FirstIPInSubnet(ipRange)
 		if err != nil {
 			return nil, err
@@ -80,6 +95,10 @@ func newIPAMLocalHostRange(subnet *net.IPNet, ipRange *net.IPNet, gw *net.IP) ([
 	}
 	if gw != nil {
 		hostRange.Gateway = gw.String()
+	} else {
+		// Add first ip in subnet as gateway. It is not required
+		// by cni but should be included because of network inspect.
+		hostRange.Gateway = CalcGatewayIP(subnet).String()
 	}
 	ranges = append(ranges, hostRange)
 	return ranges, nil
@@ -123,12 +142,22 @@ func NewFirewallPlugin() FirewallConfig {
 	}
 }
 
+// NewTuningPlugin creates a generic tuning section
+func NewTuningPlugin() TuningConfig {
+	return TuningConfig{
+		PluginType: "tuning",
+	}
+}
+
 // NewDNSNamePlugin creates the dnsname config with a given
 // domainname
 func NewDNSNamePlugin(domainName string) DNSNameConfig {
+	caps := make(map[string]bool, 1)
+	caps["aliases"] = true
 	return DNSNameConfig{
-		PluginType: "dnsname",
-		DomainName: domainName,
+		PluginType:   "dnsname",
+		DomainName:   domainName,
+		Capabilities: caps,
 	}
 }
 
@@ -152,4 +181,73 @@ func NewMacVLANPlugin(device string) MacVLANConfig {
 		IPAM:       i,
 	}
 	return m
+}
+
+// IfPassesFilter filters NetworkListReport and returns true if the filter match the given config
+func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]string) (bool, error) {
+	result := true
+	for key, filterValues := range filters {
+		result = false
+		switch strings.ToLower(key) {
+		case "name":
+			// matches one name, regex allowed
+			result = util.StringMatchRegexSlice(netconf.Name, filterValues)
+
+		case "plugin":
+			// match one plugin
+			plugins := GetCNIPlugins(netconf)
+			for _, val := range filterValues {
+				if strings.Contains(plugins, val) {
+					result = true
+					break
+				}
+			}
+
+		case "label":
+			// matches all labels
+			labels := GetNetworkLabels(netconf)
+		outer:
+			for _, filterValue := range filterValues {
+				filterArray := strings.SplitN(filterValue, "=", 2)
+				filterKey := filterArray[0]
+				if len(filterArray) > 1 {
+					filterValue = filterArray[1]
+				} else {
+					filterValue = ""
+				}
+				for labelKey, labelValue := range labels {
+					if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+						result = true
+						continue outer
+					}
+				}
+				result = false
+			}
+
+		case "driver":
+			// matches only for the DefaultNetworkDriver
+			for _, filterValue := range filterValues {
+				plugins := GetCNIPlugins(netconf)
+				if filterValue == DefaultNetworkDriver &&
+					strings.Contains(plugins, DefaultNetworkDriver) {
+					result = true
+				}
+			}
+
+		case "id":
+			// matches part of one id
+			for _, filterValue := range filterValues {
+				if strings.Contains(GetNetworkID(netconf.Name), filterValue) {
+					result = true
+					break
+				}
+			}
+
+		// TODO: add dangling filter
+
+		default:
+			return false, errors.Errorf("invalid filter %q", key)
+		}
+	}
+	return result, nil
 }

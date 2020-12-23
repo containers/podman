@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/uber/jaeger-client-go/utils"
@@ -48,9 +49,28 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run network connection with default", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "default", ALPINE, "wget", "www.podman.io"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run network connection with none", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "none", ALPINE, "wget", "www.podman.io"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+		Expect(session.ErrorToString()).To(ContainSubstring("wget: bad address 'www.podman.io'"))
+	})
+
+	It("podman run network connection with private", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "private", ALPINE, "wget", "www.podman.io"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run network connection with loopback", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--network", "host", ALPINE, "wget", "www.podman.io"})
-		session.Wait(90)
+		session := podmanTest.Podman([]string{"run", "--network", "host", ALPINE, "wget", "www.podman.io"})
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
@@ -75,6 +95,69 @@ var _ = Describe("Podman run networking", func() {
 		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+	})
+
+	It("podman run -p 80-82 -p 8080:8080", func() {
+		name := "testctr"
+		session := podmanTest.Podman([]string{"create", "-t", "-p", "80-82", "-p", "8080:8080", "--name", name, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(len(inspectOut)).To(Equal(1))
+		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(4))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["81/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0].HostPort).To(Not(Equal("81")))
+		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["82/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["82/tcp"][0].HostPort).To(Not(Equal("82")))
+		Expect(inspectOut[0].NetworkSettings.Ports["82/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["8080/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["8080/tcp"][0].HostPort).To(Equal("8080"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8080/tcp"][0].HostIP).To(Equal(""))
+	})
+
+	It("podman run -p 80-81 -p 8080-8081", func() {
+		name := "testctr"
+		session := podmanTest.Podman([]string{"create", "-t", "-p", "80-81", "-p", "8080-8081", "--name", name, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(len(inspectOut)).To(Equal(1))
+		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(4))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["81/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0].HostPort).To(Not(Equal("81")))
+		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["8080/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["8080/tcp"][0].HostPort).To(Not(Equal("8080")))
+		Expect(inspectOut[0].NetworkSettings.Ports["8080/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["8081/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["8081/tcp"][0].HostPort).To(Not(Equal("8081")))
+		Expect(inspectOut[0].NetworkSettings.Ports["8081/tcp"][0].HostIP).To(Equal(""))
+	})
+
+	It("podman run -p 80 -p 8080-8082:8080-8082", func() {
+		name := "testctr"
+		session := podmanTest.Podman([]string{"create", "-t", "-p", "80", "-p", "8080-8082:8080-8082", "--name", name, ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(len(inspectOut)).To(Equal(1))
+		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(4))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["80/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["8080/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["8080/tcp"][0].HostPort).To(Equal("8080"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8080/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["8081/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["8081/tcp"][0].HostPort).To(Equal("8081"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8081/tcp"][0].HostIP).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Ports["8082/tcp"])).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["8082/tcp"][0].HostPort).To(Equal("8082"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8082/tcp"][0].HostIP).To(Equal(""))
 	})
 
 	It("podman run -p 8080:80", func() {
@@ -550,6 +633,10 @@ var _ = Describe("Podman run networking", func() {
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(BeZero())
 		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
+
+		create = podmanTest.Podman([]string{"network", "rm", netName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(BeZero())
 	})
 
 	It("podman run with new:pod and static-ip", func() {
@@ -587,12 +674,43 @@ var _ = Describe("Podman run networking", func() {
 		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
 	})
 
-	It("podman run with --net=none adds hostname to /etc/hosts", func() {
+	It("podman run with --net=none sets hostname", func() {
 		hostname := "testctr"
 		run := podmanTest.Podman([]string{"run", "--net=none", "--hostname", hostname, ALPINE, "hostname"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(BeZero())
 		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
+	})
+
+	It("podman run with --net=none adds hostname to /etc/hosts", func() {
+		hostname := "testctr"
+		run := podmanTest.Podman([]string{"run", "--net=none", "--hostname", hostname, ALPINE, "cat", "/etc/hosts"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
+	})
+
+	ping_test := func(netns string) {
+		hostname := "testctr"
+		run := podmanTest.Podman([]string{"run", netns, "--hostname", hostname, ALPINE, "ping", "-c", "1", hostname})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+
+		run = podmanTest.Podman([]string{"run", netns, "--hostname", hostname, "--name", "test", ALPINE, "ping", "-c", "1", "test"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+	}
+
+	It("podman attempt to ping container name and hostname --net=none", func() {
+		ping_test("--net=none")
+	})
+
+	It("podman attempt to ping container name and hostname --net=host", func() {
+		ping_test("--net=host")
+	})
+
+	It("podman attempt to ping container name and hostname --net=private", func() {
+		ping_test("--net=private")
 	})
 
 	It("podman run check dnsname plugin", func() {
@@ -601,11 +719,11 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 
-		net := "dnsNetTest"
+		net := "IntTest" + stringid.GenerateNonCryptoID()
 		session = podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
 		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
 
 		pod2 := "testpod2"
 		session = podmanTest.Podman([]string{"pod", "create", "--network", net, "--name", pod2})
@@ -620,10 +738,10 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 
-		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, ALPINE, "nslookup", "con3"})
+		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, ALPINE, "nslookup", "con1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))
-		Expect(session.ErrorToString()).To(ContainSubstring("can't resolve 'con3'"))
+		Expect(session.ErrorToString()).To(ContainSubstring("can't resolve 'con1'"))
 
 		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, ALPINE, "nslookup", pod2})
 		session.WaitWithDefaultTimeout()

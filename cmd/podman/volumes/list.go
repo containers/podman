@@ -8,7 +8,9 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -24,12 +26,13 @@ podman volume ls
 List all available volumes. The output of the volumes can be filtered
 and the output format can be changed to JSON or a user specified Go template.`
 	lsCommand = &cobra.Command{
-		Use:     "ls [options]",
-		Aliases: []string{"list"},
-		Args:    validate.NoArgs,
-		Short:   "List volumes",
-		Long:    volumeLsDescription,
-		RunE:    list,
+		Use:               "ls [options]",
+		Aliases:           []string{"list"},
+		Args:              validate.NoArgs,
+		Short:             "List volumes",
+		Long:              volumeLsDescription,
+		RunE:              list,
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
 
@@ -50,8 +53,15 @@ func init() {
 		Parent:  volumeCmd,
 	})
 	flags := lsCommand.Flags()
-	flags.StringSliceVarP(&cliOpts.Filter, "filter", "f", []string{}, "Filter volume output")
-	flags.StringVar(&cliOpts.Format, "format", "{{.Driver}}\t{{.Name}}\n", "Format volume output using Go template")
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&cliOpts.Filter, filterFlagName, "f", []string{}, "Filter volume output")
+	_ = lsCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumeFilters)
+
+	formatFlagName := "format"
+	flags.StringVar(&cliOpts.Format, formatFlagName, "{{.Driver}}\t{{.Name}}\n", "Format volume output using Go template")
+	_ = lsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+
 	flags.BoolVarP(&cliOpts.Quiet, "quiet", "q", false, "Print volume output in quiet mode")
 }
 
@@ -63,11 +73,11 @@ func list(cmd *cobra.Command, args []string) error {
 		lsOpts.Filter = make(map[string][]string)
 	}
 	for _, f := range cliOpts.Filter {
-		filterSplit := strings.Split(f, "=")
+		filterSplit := strings.SplitN(f, "=", 2)
 		if len(filterSplit) < 2 {
 			return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 		}
-		lsOpts.Filter[filterSplit[0]] = append(lsOpts.Filter[filterSplit[0]], filterSplit[1:]...)
+		lsOpts.Filter[filterSplit[0]] = append(lsOpts.Filter[filterSplit[0]], filterSplit[1])
 	}
 	responses, err := registry.ContainerEngine().VolumeList(context.Background(), lsOpts)
 	if err != nil {

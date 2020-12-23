@@ -401,7 +401,7 @@ json-file | f
         is "$output" "$driver" "podman inspect: driver"
 
         # If LogPath is non-null, check that it exists and has a valid log
-        run_podman inspect --format '{{.LogPath}}' myctr
+        run_podman inspect --format '{{.HostConfig.LogConfig.Path}}' myctr
         if [[ $do_check != '-' ]]; then
             is "$output" "/.*" "LogPath (driver=$driver)"
             if ! test -e "$output"; then
@@ -415,13 +415,18 @@ json-file | f
         fi
 
         if [[ $driver != 'none' ]]; then
-            run_podman logs myctr
-            is "$output" "$msg" "check that podman logs works as expected"
+            if [[ $driver = 'journald' ]] && journald_unavailable; then
+                # Cannot perform check
+                :
+            else
+                run_podman logs myctr
+                is "$output" "$msg" "podman logs, with driver '$driver'"
+            fi
         else
             run_podman 125 logs myctr
             if ! is_remote; then
                 is "$output" ".*this container is using the 'none' log driver, cannot read logs.*" \
-                   "podman logs does not work with none log driver"
+                   "podman logs, with driver 'none', should fail with error"
             fi
         fi
         run_podman rm myctr
@@ -436,10 +441,15 @@ json-file | f
 @test "podman run --log-driver journald" {
     skip_if_remote "We cannot read journalctl over remote."
 
+    # We can't use journald on RHEL as rootless, either: rhbz#1895105
+    skip_if_journald_unavailable
+
     msg=$(random_string 20)
     pidfile="${PODMAN_TMPDIR}/$(random_string 20)"
 
-    run_podman run --name myctr --log-driver journald --conmon-pidfile $pidfile $IMAGE echo $msg
+    # Multiple --log-driver options to confirm that last one wins
+    run_podman run --name myctr --log-driver=none --log-driver journald \
+               --conmon-pidfile $pidfile $IMAGE echo $msg
 
     journalctl --output cat  _PID=$(cat $pidfile)
     is "$output" "$msg" "check that journalctl output equals the container output"
@@ -454,7 +464,9 @@ json-file | f
     run_podman run --rm $IMAGE date -r $testfile
     is "$output" "Sun Sep 13 12:26:40 UTC 2020" "podman run with no TZ"
 
-    run_podman run --rm --tz=MST7MDT $IMAGE date -r $testfile
+    # Multiple --tz options; confirm that the last one wins
+    run_podman run --rm --tz=US/Eastern --tz=Iceland --tz=MST7MDT \
+               $IMAGE date -r $testfile
     is "$output" "Sun Sep 13 06:26:40 MDT 2020" "podman run with --tz=MST7MDT"
 
     # --tz=local pays attention to /etc/localtime, not $TZ. We set TZ anyway,
@@ -520,6 +532,61 @@ json-file | f
     # Clean up.
     run_podman rm $cid $cname
     run_podman untag $IMAGE $newtag $newtag2
+}
+
+# Regression test for issue #8558
+@test "podman run on untagged image: make sure that image metadata is set" {
+    run_podman inspect $IMAGE --format "{{.ID}}"
+    imageID="$output"
+
+    # prior to #8623 `podman run` would error out on untagged images with:
+    # Error: both RootfsImageName and RootfsImageID must be set if either is set: invalid argument
+    run_podman untag $IMAGE
+    run_podman run --rm $imageID ls
+
+    run_podman tag $imageID $IMAGE
+}
+
+@test "Verify /run/.containerenv exist" {
+    # Nonprivileged container: file exists, but must be empty
+    run_podman run --rm $IMAGE stat -c '%s' /run/.containerenv
+    is "$output" "0" "file size of /run/.containerenv, nonprivileged"
+
+    # Prep work: get ID of image; make a cont. name; determine if we're rootless
+    run_podman inspect --format '{{.ID}}' $IMAGE
+    local iid="$output"
+
+    random_cname=c$(random_string 15 | tr A-Z a-z)
+    local rootless=0
+    if is_rootless; then
+        rootless=1
+    fi
+
+    run_podman run --privileged --rm --name $random_cname $IMAGE \
+               sh -c '. /run/.containerenv; echo $engine; echo $name; echo $image; echo $id; echo $imageid; echo $rootless'
+
+    # FIXME: on some CI systems, 'run --privileged' emits a spurious
+    # warning line about dup devices. Ignore it.
+    remove_same_dev_warning
+
+    is "${lines[0]}" "podman-.*"      'containerenv : $engine'
+    is "${lines[1]}" "$random_cname"  'containerenv : $name'
+    is "${lines[2]}" "$IMAGE"         'containerenv : $image'
+    is "${lines[3]}" "[0-9a-f]\{64\}" 'containerenv : $id'
+    is "${lines[4]}" "$iid"           'containerenv : $imageid'
+    is "${lines[5]}" "$rootless"      'containerenv : $rootless'
+}
+
+@test "podman run with --net=host and --port prints warning" {
+    rand=$(random_string 10)
+
+    # Please keep the duplicate "--net" options; this tests against #8507,
+    # a regression in which subsequent --net options did not override earlier.
+    run_podman run --rm -p 8080 --net=none --net=host $IMAGE echo $rand
+    is "${lines[0]}" \
+       "Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use" \
+       "Warning is emitted before container output"
+    is "${lines[1]}" "$rand" "Container runs successfully despite warning"
 }
 
 # vim: filetype=sh

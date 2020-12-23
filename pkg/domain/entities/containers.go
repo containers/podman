@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/copy"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
@@ -143,6 +144,10 @@ type ContainerInspectReport struct {
 	*define.InspectContainerData
 }
 
+type ContainerStatReport struct {
+	copy.FileInfo
+}
+
 type CommitOptions struct {
 	Author         string
 	Changes        []string
@@ -230,8 +235,10 @@ type ContainerLogsOptions struct {
 	Tail int64
 	// Show timestamps in the logs.
 	Timestamps bool
-	// Write the logs to Writer.
-	Writer io.Writer
+	// Write the stdout to this Writer.
+	StdoutWriter io.Writer
+	// Write the stderr to this Writer.
+	StderrWriter io.Writer
 }
 
 // ExecOptions describes the cli values to exec into
@@ -406,14 +413,12 @@ type ContainerPortReport struct {
 	Ports []ocicni.PortMapping
 }
 
-// ContainerCpOptions describes input options for cp
+// ContainerCpOptions describes input options for cp.
 type ContainerCpOptions struct {
-	Pause   bool
+	// Pause the container while copying.
+	Pause bool
+	// Extract the tarfile into the destination directory.
 	Extract bool
-}
-
-// ContainerCpReport describes the output from a cp operation
-type ContainerCpReport struct {
 }
 
 // ContainerStatsOptions describes input options for getting

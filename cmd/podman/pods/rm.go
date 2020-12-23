@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -35,6 +36,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndPodIDFile(cmd, args, false, true)
 		},
+		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod rm mywebserverpod
   podman pod rm -f 860a4b23
   podman pod rm -f -a`,
@@ -52,7 +54,11 @@ func init() {
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all running pods")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
-	flags.StringArrayVarP(&rmOptions.PodIDFiles, "pod-id-file", "", nil, "Read the pod ID from the file")
+
+	podIDFileFlagName := "pod-id-file"
+	flags.StringArrayVarP(&rmOptions.PodIDFiles, podIDFileFlagName, "", nil, "Read the pod ID from the file")
+	_ = rmCommand.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
+
 	validate.AddLatestFlag(rmCommand, &rmOptions.Latest)
 
 	if registry.IsRemote() {

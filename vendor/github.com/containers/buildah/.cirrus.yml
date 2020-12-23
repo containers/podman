@@ -178,7 +178,7 @@ gce_instance:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
+#            image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'

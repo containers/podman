@@ -35,4 +35,90 @@ load helpers
     run_podman rm $cid
 }
 
+@test "podman ps --filter" {
+    run_podman run -d --name runner $IMAGE top
+    cid_runner=$output
+
+    run_podman run -d --name stopped $IMAGE true
+    cid_stopped=$output
+    run_podman wait stopped
+
+    run_podman run -d --name failed $IMAGE false
+    cid_failed=$output
+    run_podman wait failed
+
+    run_podman create --name created $IMAGE echo hi
+    cid_created=$output
+
+    run_podman ps --filter name=runner --format '{{.ID}}'
+    is "$output" "${cid_runner:0:12}" "filter: name=runner"
+
+    # Stopped container should not appear (because we're not using -a)
+    run_podman ps --filter name=stopped --format '{{.ID}}'
+    is "$output" "" "filter: name=stopped (without -a)"
+
+    # Again, but with -a
+    run_podman ps -a --filter name=stopped --format '{{.ID}}'
+    is "$output" "${cid_stopped:0:12}" "filter: name=stopped (with -a)"
+
+    run_podman ps --filter status=stopped --format '{{.Names}}' --sort names
+    is "${lines[0]}" "failed"  "status=stopped: 1 of 2"
+    is "${lines[1]}" "stopped" "status=stopped: 2 of 2"
+
+    run_podman ps --filter status=exited --filter exited=0 --format '{{.Names}}'
+    is "$output" "stopped" "exited=0"
+
+    run_podman ps --filter status=exited --filter exited=1 --format '{{.Names}}'
+    is "$output" "failed" "exited=1"
+
+    # Multiple statuses allowed; and test sort=created
+    run_podman ps -a --filter status=exited --filter status=running \
+               --format '{{.Names}}' --sort created
+    is "${lines[0]}" "runner"  "status=stopped: 1 of 3"
+    is "${lines[1]}" "stopped" "status=stopped: 2 of 3"
+    is "${lines[2]}" "failed"  "status=stopped: 3 of 3"
+
+    run_podman stop -t 1 runner
+    run_podman rm -a
+}
+
+@test "podman ps -a --storage" {
+    skip_if_remote "ps --storage does not work over remote"
+
+    # Setup: ensure that we have no hidden storage containers
+    run_podman ps --storage -a
+    is "${#lines[@]}" "1" "setup check: no storage containers at start of test"
+
+    # Force a buildah timeout; this leaves a buildah container behind
+    PODMAN_TIMEOUT=5 run_podman 124 build -t thiswillneverexist - <<EOF
+FROM $IMAGE
+RUN sleep 30
+EOF
+
+    run_podman ps -a
+    is "${#lines[@]}" "1" "podman ps -a does not see buildah container"
+
+    run_podman ps --storage -a
+    is "${#lines[@]}" "2" "podman ps -a --storage sees buildah container"
+    is "${lines[1]}" \
+       "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds ago .* storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
+       "podman ps --storage"
+
+    cid="${lines[1]:0:12}"
+
+    # 'rm -a' should be a NOP
+    run_podman rm -a
+    run_podman ps --storage -a
+    is "${#lines[@]}" "2" "podman ps -a --storage sees buildah container"
+
+    # This is what deletes the container
+    # FIXME: why doesn't "podman rm --storage $cid" do anything?
+    run_podman rm -f "$cid"
+
+    run_podman ps --storage -a
+    is "${#lines[@]}" "1" "storage container has been removed"
+}
+
+
+
 # vim: filetype=sh

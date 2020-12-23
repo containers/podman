@@ -75,11 +75,9 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		// the --rm option conflicts with --restart, when the restartPolicy is not "" and "no"
-		// so the exitCode should not equal 0
 		session = podmanTest.Podman([]string{"run", "--rm", "--restart", "on-failure", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--restart", "always", ALPINE})
 		session.WaitWithDefaultTimeout()
@@ -234,6 +232,54 @@ var _ = Describe("Podman run", func() {
 		}
 		return jsonFile
 	}
+
+	It("podman run mask and unmask path test", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name=maskCtr1", "--security-opt", "unmask=ALL", "--security-opt", "mask=/proc/acpi", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr1", "ls", "/sys/firmware"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr1", "ls", "/proc/acpi"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(BeEmpty())
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr2", "--security-opt", "unmask=/proc/acpi:/sys/firmware", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/sys/firmware"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/proc/acpi"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr3", "--security-opt", "mask=/sys/power/disk", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr3", "cat", "/sys/power/disk"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(BeEmpty())
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr4", "--security-opt", "systempaths=unconfined", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "maskCtr4", "ls", "/sys/firmware"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr5", "--security-opt", "systempaths=unconfined", ALPINE, "grep", "/proc", "/proc/self/mounts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		stdoutLines := session.OutputToStringArray()
+		Expect(stdoutLines).Should(HaveLen(1))
+
+	})
 
 	It("podman run seccomp test", func() {
 		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", strings.Join([]string{"seccomp=", forbidGetCWDSeccompProfile()}, ""), ALPINE, "pwd"})
@@ -447,7 +493,9 @@ USER bin`
 				Skip("Kernel does not support blkio.weight")
 			}
 		}
-
+		if podmanTest.Host.Distribution == "ubuntu" {
+			Skip("Ubuntu <= 20.10 lacks BFQ scheduler")
+		}
 		if CGROUPSV2 {
 			// convert linearly from [10-1000] to [1-10000]
 			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.bfq.weight"})
@@ -572,12 +620,12 @@ USER bin`
 	})
 
 	It("podman run tagged image", func() {
-		podmanTest.RestoreArtifact(BB)
-		tag := podmanTest.PodmanNoCache([]string{"tag", "busybox", "bb"})
+		podmanTest.AddImageToRWStore(BB)
+		tag := podmanTest.Podman([]string{"tag", BB, "bb"})
 		tag.WaitWithDefaultTimeout()
 		Expect(tag.ExitCode()).To(Equal(0))
 
-		session := podmanTest.PodmanNoCache([]string{"run", "--rm", "bb", "ls"})
+		session := podmanTest.Podman([]string{"run", "--rm", "bb", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -1269,7 +1317,7 @@ USER mail`
 	It("podman run verify pids-limit", func() {
 		SkipIfCgroupV1("pids-limit not supported on cgroup V1")
 		limit := "4321"
-		session := podmanTest.Podman([]string{"run", "--pids-limit", limit, "--rm", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
+		session := podmanTest.Podman([]string{"run", "--pids-limit", limit, "--net=none", "--rm", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(limit))
@@ -1339,42 +1387,30 @@ WORKDIR /madethis`
 	})
 
 	It("podman run a container with --pull never should fail if no local store", func() {
-		// Make sure ALPINE image does not exist. Ignore errors
-		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
-		session.WaitWithDefaultTimeout()
-
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "never", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--pull", "never", "docker.io/library/debian:latest", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 	})
 
 	It("podman run container with --pull missing and only pull once", func() {
-		// Make sure ALPINE image does not exist. Ignore errors
-		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
-		session.WaitWithDefaultTimeout()
-
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "missing", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--pull", "missing", cirros, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "missing", ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"run", "--pull", "missing", cirros, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
 	})
 
 	It("podman run container with --pull missing should pull image multiple times", func() {
-		// Make sure ALPINE image does not exist. Ignore errors
-		session := podmanTest.PodmanNoCache([]string{"rmi", "--force", "never", ALPINE})
-		session.WaitWithDefaultTimeout()
-
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "always", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--pull", "always", cirros, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 
-		session = podmanTest.PodmanNoCache([]string{"run", "--pull", "always", ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"run", "--pull", "always", cirros, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))

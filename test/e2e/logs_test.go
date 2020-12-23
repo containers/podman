@@ -332,9 +332,49 @@ var _ = Describe("Podman logs", func() {
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).To(Exit(0))
 
+		inspect := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.HostConfig.LogConfig.Size}}", cid})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("10kB"))
+
 		results := podmanTest.Podman([]string{"logs", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results).To(Exit(0))
 		Expect(results.OutputToString()).To(Equal("podman podman podman"))
+	})
+
+	It("Make sure logs match expected length", func() {
+		logc := podmanTest.Podman([]string{"run", "-t", "--name", "test", ALPINE, "sh", "-c", "echo 1; echo 2"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(Exit(0))
+
+		wait := podmanTest.Podman([]string{"wait", "test"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).To(Exit(0))
+
+		results := podmanTest.Podman([]string{"logs", "test"})
+		results.WaitWithDefaultTimeout()
+		Expect(results).To(Exit(0))
+		outlines := results.OutputToStringArray()
+		Expect(len(outlines)).To(Equal(2))
+		Expect(outlines[0]).To(Equal("1\r"))
+		Expect(outlines[1]).To(Equal("2\r"))
+	})
+
+	It("podman logs test stdout and stderr", func() {
+		cname := "log-test"
+		logc := podmanTest.Podman([]string{"run", "--name", cname, ALPINE, "sh", "-c", "echo stdout; echo stderr >&2"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(Exit(0))
+
+		wait := podmanTest.Podman([]string{"wait", cname})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).To(Exit(0))
+
+		results := podmanTest.Podman([]string{"logs", cname})
+		results.WaitWithDefaultTimeout()
+		Expect(results).To(Exit(0))
+		Expect(results.OutputToString()).To(Equal("stdout"))
+		Expect(results.ErrorToString()).To(Equal("stderr"))
 	})
 })

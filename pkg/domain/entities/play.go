@@ -26,6 +26,10 @@ type PlayKubeOptions struct {
 	SeccompProfileRoot string
 	// ConfigMaps - slice of pathnames to kubernetes configmap YAMLs.
 	ConfigMaps []string
+	// LogDriver for the container. For example: journald
+	LogDriver string
+	// Start - don't start the pod if false
+	Start types.OptionalBool
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube

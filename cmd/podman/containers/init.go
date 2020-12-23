@@ -3,6 +3,7 @@ package containers
 import (
 	"fmt"
 
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
@@ -22,17 +23,19 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
+		ValidArgsFunction: common.AutocompleteContainersCreated,
 		Example: `podman init --latest
   podman init 3c45ef19d893
   podman init test1`,
 	}
 
 	containerInitCommand = &cobra.Command{
-		Use:   initCommand.Use,
-		Short: initCommand.Short,
-		Long:  initCommand.Long,
-		RunE:  initCommand.RunE,
-		Args:  initCommand.Args,
+		Use:               initCommand.Use,
+		Short:             initCommand.Short,
+		Long:              initCommand.Long,
+		RunE:              initCommand.RunE,
+		Args:              initCommand.Args,
+		ValidArgsFunction: initCommand.ValidArgsFunction,
 		Example: `podman container init --latest
   podman container init 3c45ef19d893
   podman container init test1`,

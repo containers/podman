@@ -1,6 +1,7 @@
 package volumes
 
 import (
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/inspect"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/pkg/domain/entities"
@@ -13,10 +14,11 @@ var (
 
   Use a Go template to change the format from JSON.`
 	inspectCommand = &cobra.Command{
-		Use:   "inspect [options] VOLUME [VOLUME...]",
-		Short: "Display detailed information on one or more volumes",
-		Long:  volumeInspectDescription,
-		RunE:  volumeInspect,
+		Use:               "inspect [options] VOLUME [VOLUME...]",
+		Short:             "Display detailed information on one or more volumes",
+		Long:              volumeInspectDescription,
+		RunE:              volumeInspect,
+		ValidArgsFunction: common.AutocompleteVolumes,
 		Example: `podman volume inspect myvol
   podman volume inspect --all
   podman volume inspect --format "{{.Driver}} {{.Scope}}" myvol`,
@@ -36,7 +38,10 @@ func init() {
 	inspectOpts = new(entities.InspectOptions)
 	flags := inspectCommand.Flags()
 	flags.BoolVarP(&inspectOpts.All, "all", "a", false, "Inspect all volumes")
-	flags.StringVarP(&inspectOpts.Format, "format", "f", "json", "Format volume output using Go template")
+
+	formatFlagName := "format"
+	flags.StringVarP(&inspectOpts.Format, formatFlagName, "f", "json", "Format volume output using Go template")
+	_ = inspectCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 }
 
 func volumeInspect(cmd *cobra.Command, args []string) error {

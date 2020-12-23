@@ -15,77 +15,77 @@ containers added to it. The pod id is printed to STDOUT. You can then use
 
 ## OPTIONS
 
-**--add-host**=_host_:_ip_
+#### **--add-host**=_host_:_ip_
 
 Add a host to the /etc/hosts file shared between all containers in the pod.
 
-**--cgroup-parent**=*path*
+#### **--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
-**--dns**=*ipaddr*
+#### **--dns**=*ipaddr*
 
 Set custom DNS servers in the /etc/resolv.conf file that will be shared between all containers in the pod. A special option, "none" is allowed which disables creation of /etc/resolv.conf for the pod.
 
-**--dns-opt**=*option*
+#### **--dns-opt**=*option*
 
 Set custom DNS options in the /etc/resolv.conf file that will be shared between all containers in the pod.
 
-**--dns-search**=*domain*
+#### **--dns-search**=*domain*
 
 Set custom DNS search domains in the /etc/resolv.conf file that will be shared between all containers in the pod.
 
-**--help**
+#### **--help**
 
 Print usage statement.
 
-**--hostname**=name
+#### **--hostname**=name
 
 Set a hostname to the pod
 
-**--infra**=**true**|**false**
+#### **--infra**=**true**|**false**
 
 Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true.
 
-**--infra-conmon-pidfile**=*file*
+#### **--infra-conmon-pidfile**=*file*
 
 Write the pid of the infra container's **conmon** process to a file. As **conmon** runs in a separate process than Podman, this is necessary when using systemd to manage Podman containers and pods.
 
-**--infra-command**=*command*
+#### **--infra-command**=*command*
 
 The command that will be run to start the infra container. Default: "/pause".
 
-**--infra-image**=*image*
+#### **--infra-image**=*image*
 
 The image that will be created for the infra container. Default: "k8s.gcr.io/pause:3.1".
 
-**--ip**=*ipaddr*
+#### **--ip**=*ipaddr*
 
 Set a static IP for the pod's shared network.
 
-**-l**, **--label**=*label*
+#### **--label**=*label*, **-l**
 
 Add metadata to a pod (e.g., --label com.example.key=value).
 
-**--label-file**=*label*
+#### **--label-file**=*label*
 
 Read in a line delimited file of labels.
 
-**--mac-address**=*address*
+#### **--mac-address**=*address*
 
 Set a static MAC address for the pod's shared network.
 
-**-n**, **--name**=*name*
+#### **--name**=*name*, **-n**
 
 Assign a name to the pod.
 
-**--network**=*mode*
+#### **--network**=*mode*, **--net**
 
 Set network mode for the pod. Supported values are
-- `bridge`: Create a network stack on the default bridge. This is the default for rootful containers.
-- `host`: Do not create a network namespace, all containers in the pod will use the host's network. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+- **bridge**: Create a network stack on the default bridge. This is the default for rootful containers.
+- **host**: Do not create a network namespace, all containers in the pod will use the host's network. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
 - Comma-separated list of the names of CNI networks the pod should join.
-- `slirp4netns[:OPTIONS,...]`: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
+- **slirp4netns[:OPTIONS,...]**: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:
   - **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`). Default is false.
   - **cidr=CIDR**: Specify ip range to use for this network. (Default is `10.0.2.0/24`).
   - **enable_ipv6=true|false**: Enable IPv6. Default is false. (Required for `outbound_addr6`).
@@ -96,15 +96,19 @@ Set network mode for the pod. Supported values are
   - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding.
 
-**--no-hosts**=**true**|**false**
+#### **--network-alias**=strings
+
+Add a DNS alias for the container. When the container is joined to a CNI network with support for the dnsname plugin, the container will be accessible through this name from other containers in the network.
+
+#### **--no-hosts**=**true**|**false**
 
 Disable creation of /etc/hosts for the pod.
 
-**--pod-id-file**=*path*
+#### **--pod-id-file**=*path*
 
 Write the pod ID to the file.
 
-**-p**, **--publish**=*port*
+#### **--publish**=*port*, **-p**
 
 Publish a port or range of ports from the pod to the host.
 
@@ -115,11 +119,11 @@ Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPO
 
 NOTE: This cannot be modified once the pod is created.
 
-**--replace**=**true**|**false**
+#### **--replace**=**true**|**false**
 
 If another pod with the same name already exists, replace and remove it.  The default is **false**.
 
-**--share**=*namespace*
+#### **--share**=*namespace*
 
 A comma delimited list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, uts.
 

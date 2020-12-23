@@ -8,7 +8,9 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/libpod/define"
@@ -18,10 +20,11 @@ import (
 
 var (
 	versionCommand = &cobra.Command{
-		Use:   "version [options]",
-		Args:  validate.NoArgs,
-		Short: "Display the Podman Version Information",
-		RunE:  version,
+		Use:               "version [options]",
+		Args:              validate.NoArgs,
+		Short:             "Display the Podman Version Information",
+		RunE:              version,
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 	versionFormat string
 )
@@ -32,7 +35,10 @@ func init() {
 		Command: versionCommand,
 	})
 	flags := versionCommand.Flags()
-	flags.StringVarP(&versionFormat, "format", "f", "", "Change the output format to JSON or a Go template")
+
+	formatFlagName := "format"
+	flags.StringVarP(&versionFormat, formatFlagName, "f", "", "Change the output format to JSON or a Go template")
+	_ = versionCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
 }
 
 func version(cmd *cobra.Command, args []string) error {

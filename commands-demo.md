@@ -47,6 +47,8 @@
 | [podman-mount(1)](https://podman.readthedocs.io/en/latest/markdown/podman-mount.1.html)                               | Mount a working container's root filesystem                                |
 | [podman-network(1)](https://podman.readthedocs.io/en/latest/network.html)                                             | Manage Podman CNI networks                                                 |
 | [podman-network-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-create.1.html)             | Create a CNI network                                                       |
+| [podman-network-connect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-connect.1.html)           | Connect a container to a CNI network                                       |
+| [podman-network-disconnect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-dosconnect.1.html)             | Disconnect a container from a CNI network                                  |
 | [podman-network-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-inspect.1.html)           | Displays the raw CNI network configuration for one or more networks        |
 | [podman-network-ls(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-ls.1.html)                     | Display a summary of CNI networks                                          |
 | [podman-network-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-rm.1.html)                     | Remove one or more CNI networks                                            |
@@ -92,7 +94,6 @@
 | [podman-umount(1)](https://podman.readthedocs.io/en/latest/markdown/podman-umount.1.html)                             | Unmount a working container's root filesystem                              |
 | [podman-unpause(1)](https://podman.readthedocs.io/en/latest/markdown/podman-unpause.1.html)                           | Unpause one or more containers                                             | [![...](/docs/source/markdown/play.png)](https://podman.io/asciinema/podman/pause_unpause/)        | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_pause_unpause.sh) |
 | [podman-unshare(1)](https://podman.readthedocs.io/en/latest/markdown/podman-unshare.1.html)                           | Run a command inside of a modified user namespace                          |
-| [podman-varlink(1)](https://podman.readthedocs.io/en/latest/markdown/podman-varlink.1.html)                           | Runs the varlink backend interface                                         |
 | [podman-version(1)](https://podman.readthedocs.io/en/latest/markdown/podman-version.1.html)                           | Display the Podman version information                                     |
 | [podman-volume(1)](https://podman.readthedocs.io/en/latest/volume.html)                                               | Manage Volumes                                                             |
 | [podman-volume-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-volume-create.1.html)               | Create a new volume                                                        |

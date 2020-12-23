@@ -99,11 +99,22 @@ func GetRootlessConfigHomeDir() (string, error) {
 }
 
 // GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
-// the pause process
+// the pause process.
+// DEPRECATED - switch to GetRootlessPauseProcessPidPathGivenDir
 func GetRootlessPauseProcessPidPath() (string, error) {
 	runtimeDir, err := GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(runtimeDir, "libpod", "pause.pid"), nil
+}
+
+// GetRootlessPauseProcessPidPathGivenDir returns the path to the file that
+// holds the PID of the pause process, given the location of Libpod's temporary
+// files.
+func GetRootlessPauseProcessPidPathGivenDir(libpodTmpDir string) (string, error) {
+	if libpodTmpDir == "" {
+		return "", errors.Errorf("must provide non-empty tmporary directory")
+	}
+	return filepath.Join(libpodTmpDir, "pause.pid"), nil
 }

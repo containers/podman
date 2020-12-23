@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v2/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -137,38 +140,59 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	return addDevice(g, strings.Join(append([]string{resolvedDevicePath}, devs[1:]...), ":"))
 }
 
-func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.Generator) {
+func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, mask, unmask []string, g *generate.Generator) {
+	defaultMaskPaths := []string{"/proc/acpi",
+		"/proc/kcore",
+		"/proc/keys",
+		"/proc/latency_stats",
+		"/proc/timer_list",
+		"/proc/timer_stats",
+		"/proc/sched_debug",
+		"/proc/scsi",
+		"/sys/firmware",
+		"/sys/fs/selinux",
+		"/sys/dev/block",
+	}
+
+	unmaskAll := false
+	if unmask != nil && unmask[0] == "ALL" {
+		unmaskAll = true
+	}
+
 	if !privileged {
-		for _, mp := range []string{
-			"/proc/acpi",
-			"/proc/kcore",
-			"/proc/keys",
-			"/proc/latency_stats",
-			"/proc/timer_list",
-			"/proc/timer_stats",
-			"/proc/sched_debug",
-			"/proc/scsi",
-			"/sys/firmware",
-			"/sys/fs/selinux",
-			"/sys/dev",
-		} {
-			g.AddLinuxMaskedPaths(mp)
+		if !unmaskAll {
+			for _, mp := range defaultMaskPaths {
+				// check that the path to mask is not in the list of paths to unmask
+				if !util.StringInSlice(mp, unmask) {
+					g.AddLinuxMaskedPaths(mp)
+				}
+			}
+			for _, rp := range []string{
+				"/proc/asound",
+				"/proc/bus",
+				"/proc/fs",
+				"/proc/irq",
+				"/proc/sys",
+				"/proc/sysrq-trigger",
+			} {
+				if !util.StringInSlice(rp, unmask) {
+					g.AddLinuxReadonlyPaths(rp)
+				}
+			}
 		}
 
 		if pidModeIsHost && rootless.IsRootless() {
 			return
 		}
+	}
 
-		for _, rp := range []string{
-			"/proc/asound",
-			"/proc/bus",
-			"/proc/fs",
-			"/proc/irq",
-			"/proc/sys",
-			"/proc/sysrq-trigger",
-		} {
-			g.AddLinuxReadonlyPaths(rp)
+	// mask the paths provided by the user
+	for _, mp := range mask {
+		if !path.IsAbs(mp) && mp != "" {
+			logrus.Errorf("Path %q is not an absolute path, skipping...", mp)
+			continue
 		}
+		g.AddLinuxMaskedPaths(mp)
 	}
 }
 

@@ -12,8 +12,13 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
+// ErrNoSuchNetworkInterface indicates that no network interface exists
+var ErrNoSuchNetworkInterface = errors.New("unable to find interface name for network")
+
+// GetCNIConfDir get CNI configuration directory
 func GetCNIConfDir(configArg *config.Config) string {
 	if len(configArg.Network.NetworkConfigDir) < 1 {
 		dc, err := config.DefaultConfig()
@@ -45,13 +50,15 @@ func LoadCNIConfsFromDir(dir string) ([]*libcni.NetworkConfigList, error) {
 	return configs, nil
 }
 
-// GetCNIConfigPathByName finds a CNI network by name and
+// GetCNIConfigPathByNameOrID finds a CNI network by name and
 // returns its configuration file path
-func GetCNIConfigPathByName(config *config.Config, name string) (string, error) {
+func GetCNIConfigPathByNameOrID(config *config.Config, name string) (string, error) {
 	files, err := libcni.ConfFiles(GetCNIConfDir(config), []string{".conflist"})
 	if err != nil {
 		return "", err
 	}
+	idMatch := 0
+	file := ""
 	for _, confFile := range files {
 		conf, err := libcni.ConfListFromFile(confFile)
 		if err != nil {
@@ -60,6 +67,16 @@ func GetCNIConfigPathByName(config *config.Config, name string) (string, error) 
 		if conf.Name == name {
 			return confFile, nil
 		}
+		if strings.HasPrefix(GetNetworkID(conf.Name), name) {
+			idMatch++
+			file = confFile
+		}
+	}
+	if idMatch == 1 {
+		return file, nil
+	}
+	if idMatch > 1 {
+		return "", errors.Errorf("more than one result for network ID %s", name)
 	}
 	return "", errors.Wrap(define.ErrNoSuchNetwork, fmt.Sprintf("unable to find network configuration for %s", name))
 }
@@ -67,7 +84,7 @@ func GetCNIConfigPathByName(config *config.Config, name string) (string, error) 
 // ReadRawCNIConfByName reads the raw CNI configuration for a CNI
 // network by name
 func ReadRawCNIConfByName(config *config.Config, name string) ([]byte, error) {
-	confFile, err := GetCNIConfigPathByName(config, name)
+	confFile, err := GetCNIConfigPathByNameOrID(config, name)
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +100,35 @@ func GetCNIPlugins(list *libcni.NetworkConfigList) string {
 		plugins = append(plugins, plug.Network.Type)
 	}
 	return strings.Join(plugins, ",")
+}
+
+// GetNetworkLabels returns a list of labels as a string
+func GetNetworkLabels(list *libcni.NetworkConfigList) NcLabels {
+	cniJSON := make(map[string]interface{})
+	err := json.Unmarshal(list.Bytes, &cniJSON)
+	if err != nil {
+		logrus.Errorf("failed to unmarshal network config %v %v", cniJSON["name"], err)
+		return nil
+	}
+	if args, ok := cniJSON["args"]; ok {
+		if key, ok := args.(map[string]interface{}); ok {
+			if labels, ok := key[PodmanLabelKey]; ok {
+				if labels, ok := labels.(map[string]interface{}); ok {
+					result := make(NcLabels, len(labels))
+					for k, v := range labels {
+						if v, ok := v.(string); ok {
+							result[k] = v
+						} else {
+							logrus.Errorf("network config %v invalid label value type %T should be string", cniJSON["name"], labels)
+						}
+					}
+					return result
+				}
+				logrus.Errorf("network config %v invalid label type %T should be map[string]string", cniJSON["name"], labels)
+			}
+		}
+	}
+	return nil
 }
 
 // GetNetworksFromFilesystem gets all the networks from the cni configuration
@@ -141,7 +187,7 @@ func GetInterfaceNameFromConfig(path string) (string, error) {
 		}
 	}
 	if len(name) == 0 {
-		return "", errors.New("unable to find interface name for network")
+		return "", ErrNoSuchNetworkInterface
 	}
 	return name, nil
 }
