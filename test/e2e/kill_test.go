@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 
 	. "github.com/containers/podman/v2/test/utils"
@@ -112,4 +113,58 @@ var _ = Describe("Podman kill", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
+
+	It("podman kill --cidfile", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile := tmpDir + "cid"
+		defer os.RemoveAll(tmpDir)
+
+		session := podmanTest.Podman([]string{"run", "-dt", "--cidfile", tmpFile, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToStringArray()[0]
+
+		kill := podmanTest.Podman([]string{"kill", "--cidfile", tmpFile})
+		kill.WaitWithDefaultTimeout()
+		Expect(kill.ExitCode()).To(BeZero())
+
+		wait := podmanTest.Podman([]string{"wait", "--condition", "exited", cid})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait.ExitCode()).To(BeZero())
+	})
+
+	It("podman kill multiple --cidfile", func() {
+		tmpDir1, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile1 := tmpDir1 + "cid"
+		defer os.RemoveAll(tmpDir1)
+
+		tmpDir2, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile2 := tmpDir2 + "cid"
+		defer os.RemoveAll(tmpDir2)
+
+		session := podmanTest.Podman([]string{"run", "-dt", "--cidfile", tmpFile1, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid1 := session.OutputToStringArray()[0]
+
+		session2 := podmanTest.Podman([]string{"run", "-dt", "--cidfile", tmpFile2, ALPINE, "top"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+		cid2 := session2.OutputToStringArray()[0]
+
+		kill := podmanTest.Podman([]string{"kill", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		kill.WaitWithDefaultTimeout()
+		Expect(kill.ExitCode()).To(BeZero())
+
+		wait := podmanTest.Podman([]string{"wait", "--condition", "exited", cid1})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait.ExitCode()).To(BeZero())
+		wait = podmanTest.Podman([]string{"wait", "--condition", "exited", cid2})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait.ExitCode()).To(BeZero())
+	})
+
 })

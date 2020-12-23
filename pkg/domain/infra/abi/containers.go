@@ -229,6 +229,14 @@ func (ic *ContainerEngine) pruneContainersHelper(filterFuncs []libpod.ContainerF
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {
+	for _, cidFile := range options.CIDFiles {
+		content, err := ioutil.ReadFile(cidFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "error reading CIDFile")
+		}
+		id := strings.Split(string(content), "\n")[0]
+		namesOrIds = append(namesOrIds, id)
+	}
 	sig, err := signal.ParseSignalNameOrNumber(options.Signal)
 	if err != nil {
 		return nil, err
@@ -246,6 +254,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	}
 	return reports, nil
 }
+
 func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []string, options entities.RestartOptions) ([]*entities.RestartReport, error) {
 	var (
 		ctrs []*libpod.Container
