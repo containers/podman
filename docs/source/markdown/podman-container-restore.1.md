@@ -85,6 +85,12 @@ exported checkpoint with **--name, -n**.
 
 Using **--ignore-static-mac** tells Podman to ignore the MAC address if it was
 configured with **--mac-address** during container creation.
+
+#### **--import-previous**
+
+Import a pre-checkpoint tar.gz file if need, which was exported by Podman. The option 
+should be used with **-i** or **--import**.
+
 ## EXAMPLE
 
 podman container restore mywebserver
