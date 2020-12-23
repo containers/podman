@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/checkpoint"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	dfilters "github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi/terminal"
 	parallelctr "github.com/containers/podman/v2/pkg/parallel/ctr"
@@ -204,7 +205,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
+func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) ([]*reports.PruneReport, error) {
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 	for k, v := range options.Filters {
 		generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
@@ -213,19 +214,7 @@ func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.
 		}
 		filterFuncs = append(filterFuncs, generatedFunc)
 	}
-	return ic.pruneContainersHelper(filterFuncs)
-}
-
-func (ic *ContainerEngine) pruneContainersHelper(filterFuncs []libpod.ContainerFilter) (*entities.ContainerPruneReport, error) {
-	prunedContainers, pruneErrors, err := ic.Libpod.PruneContainers(filterFuncs)
-	if err != nil {
-		return nil, err
-	}
-	report := entities.ContainerPruneReport{
-		ID:  prunedContainers,
-		Err: pruneErrors,
-	}
-	return &report, nil
+	return ic.Libpod.PruneContainers(filterFuncs)
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {

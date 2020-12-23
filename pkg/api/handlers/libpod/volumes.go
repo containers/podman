@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi/parse"
 	"github.com/gorilla/schema"
@@ -178,7 +179,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, reports)
 }
 
-func pruneVolumesHelper(r *http.Request) ([]*entities.VolumePruneReport, error) {
+func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
@@ -199,16 +200,9 @@ func pruneVolumesHelper(r *http.Request) ([]*entities.VolumePruneReport, error) 
 		return nil, err
 	}
 
-	pruned, err := runtime.PruneVolumes(r.Context(), filterFuncs)
+	reports, err := runtime.PruneVolumes(r.Context(), filterFuncs)
 	if err != nil {
 		return nil, err
-	}
-	reports := make([]*entities.VolumePruneReport, 0, len(pruned))
-	for k, v := range pruned {
-		reports = append(reports, &entities.VolumePruneReport{
-			Err: v,
-			Id:  k,
-		})
 	}
 	return reports, nil
 }

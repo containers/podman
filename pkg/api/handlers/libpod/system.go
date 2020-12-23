@@ -38,35 +38,28 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 	systemPruneReport.PodPruneReport = podPruneReport
 
 	// We could parallelize this, should we?
-	containerPruneReport, err := compat.PruneContainersHelper(w, r, nil)
+	containerPruneReports, err := compat.PruneContainersHelper(w, r, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	systemPruneReport.ContainerPruneReport = containerPruneReport
+	systemPruneReport.ContainerPruneReports = containerPruneReports
 
-	results, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, nil)
+	imagePruneReports, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 
-	report := entities.ImagePruneReport{
-		Report: entities.Report{
-			Id:  results,
-			Err: nil,
-		},
-	}
-
-	systemPruneReport.ImagePruneReport = &report
+	systemPruneReport.ImagePruneReports = imagePruneReports
 
 	if query.Volumes {
-		volumePruneReport, err := pruneVolumesHelper(r)
+		volumePruneReports, err := pruneVolumesHelper(r)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
-		systemPruneReport.VolumePruneReport = volumePruneReport
+		systemPruneReport.VolumePruneReports = volumePruneReports
 	}
 	utils.WriteResponse(w, http.StatusOK, systemPruneReport)
 }

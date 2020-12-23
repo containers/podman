@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 )
 
 // IsDir returns true if the specified path refers to a directory.
@@ -41,21 +42,21 @@ func PrintPodPruneResults(podPruneReports []*entities.PodPruneReport, heading bo
 	return errs.PrintErrors()
 }
 
-func PrintContainerPruneResults(containerPruneReport *entities.ContainerPruneReport, heading bool) error {
+func PrintContainerPruneResults(containerPruneReports []*reports.PruneReport, heading bool) error {
 	var errs OutputErrors
-	if heading && (len(containerPruneReport.ID) > 0 || len(containerPruneReport.Err) > 0) {
+	if heading && (len(containerPruneReports) > 0) {
 		fmt.Println("Deleted Containers")
 	}
-	for k := range containerPruneReport.ID {
-		fmt.Println(k)
-	}
-	for _, v := range containerPruneReport.Err {
-		errs = append(errs, v)
+	for _, v := range containerPruneReports {
+		fmt.Println(v.Id)
+		if v.Err != nil {
+			errs = append(errs, v.Err)
+		}
 	}
 	return errs.PrintErrors()
 }
 
-func PrintVolumePruneResults(volumePruneReport []*entities.VolumePruneReport, heading bool) error {
+func PrintVolumePruneResults(volumePruneReport []*reports.PruneReport, heading bool) error {
 	var errs OutputErrors
 	if heading && len(volumePruneReport) > 0 {
 		fmt.Println("Deleted Volumes")
@@ -70,18 +71,16 @@ func PrintVolumePruneResults(volumePruneReport []*entities.VolumePruneReport, he
 	return errs.PrintErrors()
 }
 
-func PrintImagePruneResults(imagePruneReport *entities.ImagePruneReport, heading bool) error {
-	if heading && (len(imagePruneReport.Report.Id) > 0 || len(imagePruneReport.Report.Err) > 0) {
+func PrintImagePruneResults(imagePruneReports []*reports.PruneReport, heading bool) error {
+	if heading {
 		fmt.Println("Deleted Images")
 	}
-	for _, i := range imagePruneReport.Report.Id {
-		fmt.Println(i)
+	for _, r := range imagePruneReports {
+		fmt.Println(r.Id)
+		if r.Err != nil {
+			fmt.Fprint(os.Stderr, r.Err.Error()+"\n")
+		}
 	}
-	for _, e := range imagePruneReport.Report.Err {
-		fmt.Fprint(os.Stderr, e.Error()+"\n")
-	}
-	if imagePruneReport.Size > 0 {
-		fmt.Fprintf(os.Stdout, "Size: %d\n", imagePruneReport.Size)
-	}
+
 	return nil
 }

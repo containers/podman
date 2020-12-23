@@ -116,11 +116,6 @@ type VolumePruneOptions struct {
 	Filters url.Values `json:"filters" schema:"filters"`
 }
 
-type VolumePruneReport struct {
-	Err error
-	Id  string //nolint
-}
-
 type VolumeListOptions struct {
 	Filter map[string][]string
 }

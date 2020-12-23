@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/containers/podman/v2/libpod/define"
@@ -77,6 +79,18 @@ type VolumeState struct {
 // Name retrieves the volume's name
 func (v *Volume) Name() string {
 	return v.config.Name
+}
+
+// Returns the size on disk of volume
+func (v *Volume) Size() (uint64, error) {
+	var size uint64
+	err := filepath.Walk(v.config.MountPoint, func(path string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() {
+			size += (uint64)(info.Size())
+		}
+		return err
+	})
+	return size, err
 }
 
 // Driver retrieves the volume's driver.

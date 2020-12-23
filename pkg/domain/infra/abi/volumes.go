@@ -6,6 +6,7 @@ import (
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi/parse"
 	"github.com/pkg/errors"
@@ -127,7 +128,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	return reports, errs, nil
 }
 
-func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.VolumePruneOptions) ([]*entities.VolumePruneReport, error) {
+func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.VolumePruneOptions) ([]*reports.PruneReport, error) {
 	filterFuncs, err := filters.GenerateVolumeFilters(options.Filters)
 	if err != nil {
 		return nil, err
@@ -135,19 +136,12 @@ func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.Vol
 	return ic.pruneVolumesHelper(ctx, filterFuncs)
 }
 
-func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter) ([]*entities.VolumePruneReport, error) {
+func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter) ([]*reports.PruneReport, error) {
 	pruned, err := ic.Libpod.PruneVolumes(ctx, filterFuncs)
 	if err != nil {
 		return nil, err
 	}
-	reports := make([]*entities.VolumePruneReport, 0, len(pruned))
-	for k, v := range pruned {
-		reports = append(reports, &entities.VolumePruneReport{
-			Err: v,
-			Id:  k,
-		})
-	}
-	return reports, nil
+	return pruned, nil
 }
 
 func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeListOptions) ([]*entities.VolumeListReport, error) {

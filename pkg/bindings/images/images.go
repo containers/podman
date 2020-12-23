@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/pkg/errors"
 )
 
@@ -163,9 +164,9 @@ func Export(ctx context.Context, nameOrIDs []string, w io.Writer, options *Expor
 
 // Prune removes unused images from local storage.  The optional filters can be used to further
 // define which images should be pruned.
-func Prune(ctx context.Context, options *PruneOptions) ([]string, error) {
+func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, error) {
 	var (
-		deleted []string
+		deleted []*reports.PruneReport
 	)
 	if options == nil {
 		options = new(PruneOptions)
@@ -182,7 +183,8 @@ func Prune(ctx context.Context, options *PruneOptions) ([]string, error) {
 	if err != nil {
 		return deleted, err
 	}
-	return deleted, response.Process(&deleted)
+	err = response.Process(&deleted)
+	return deleted, err
 }
 
 // Tag adds an additional name to locally-stored image. Both the tag and repo parameters are required.

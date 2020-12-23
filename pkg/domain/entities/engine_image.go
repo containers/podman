@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 )
 
 type ImageEngine interface {
@@ -17,7 +18,7 @@ type ImageEngine interface {
 	List(ctx context.Context, opts ImageListOptions) ([]*ImageSummary, error)
 	Load(ctx context.Context, opts ImageLoadOptions) (*ImageLoadReport, error)
 	Mount(ctx context.Context, images []string, options ImageMountOptions) ([]*ImageMountReport, error)
-	Prune(ctx context.Context, opts ImagePruneOptions) (*ImagePruneReport, error)
+	Prune(ctx context.Context, opts ImagePruneOptions) ([]*reports.PruneReport, error)
 	Pull(ctx context.Context, rawImage string, opts ImagePullOptions) (*ImagePullReport, error)
 	Push(ctx context.Context, source string, destination string, opts ImagePushOptions) error
 	Remove(ctx context.Context, images []string, opts ImageRemoveOptions) (*ImageRemoveReport, []error)

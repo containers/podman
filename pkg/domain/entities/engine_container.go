@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +36,7 @@ type ContainerEngine interface {
 	ContainerMount(ctx context.Context, nameOrIDs []string, options ContainerMountOptions) ([]*ContainerMountReport, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
 	ContainerPort(ctx context.Context, nameOrID string, options ContainerPortOptions) ([]*ContainerPortReport, error)
-	ContainerPrune(ctx context.Context, options ContainerPruneOptions) (*ContainerPruneReport, error)
+	ContainerPrune(ctx context.Context, options ContainerPruneOptions) ([]*reports.PruneReport, error)
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)
 	ContainerRestore(ctx context.Context, namesOrIds []string, options RestoreOptions) ([]*RestoreReport, error)
 	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*RmReport, error)
@@ -85,6 +86,6 @@ type ContainerEngine interface {
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IDOrNameResponse, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts InspectOptions) ([]*VolumeInspectReport, []error, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)
-	VolumePrune(ctx context.Context, options VolumePruneOptions) ([]*VolumePruneReport, error)
+	VolumePrune(ctx context.Context, options VolumePruneOptions) ([]*reports.PruneReport, error)
 	VolumeRm(ctx context.Context, namesOrIds []string, opts VolumeRmOptions) ([]*VolumeRmReport, error)
 }

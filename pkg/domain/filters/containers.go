@@ -233,7 +233,6 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			}
 			return false
 		}, nil
-
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)
 }

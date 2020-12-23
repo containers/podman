@@ -58,10 +58,10 @@ t GET libpod/system/df 200 '.Volumes | length=3'
 
 # -G --data-urlencode 'volumes=true&filters={"label":["testlabel1=testonly"]}'
 # only foo3 should be pruned because of filter
-t POST 'libpod/system/prune?volumes=true&filters=%7B%22label%22:%5B%22testlabel1=testonly%22%5D%7D' params='' 200 .VolumePruneReport[0].Id=foo3
+t POST 'libpod/system/prune?volumes=true&filters=%7B%22label%22:%5B%22testlabel1=testonly%22%5D%7D' params='' 200 .VolumePruneReports[0].Id=foo3
 # only foo2 should be pruned because of filter
-t POST 'libpod/system/prune?volumes=true&filters=%7B%22label%22:%5B%22testlabel1%22%5D%7D' params='' 200 .VolumePruneReport[0].Id=foo2
+t POST 'libpod/system/prune?volumes=true&filters=%7B%22label%22:%5B%22testlabel1%22%5D%7D' params='' 200 .VolumePruneReports[0].Id=foo2
 # foo1, the last remaining volume should be pruned without any filters applied
-t POST 'libpod/system/prune?volumes=true' params='' 200 .VolumePruneReport[0].Id=foo1
+t POST 'libpod/system/prune?volumes=true' params='' 200 .VolumePruneReports[0].Id=foo1
 
 # TODO add other system prune tests for pods / images

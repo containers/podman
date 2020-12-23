@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/docker/docker/api/types"
 	"github.com/spf13/cobra"
 )
@@ -24,10 +25,11 @@ type SystemPruneOptions struct {
 
 // SystemPruneReport provides report after system prune is executed.
 type SystemPruneReport struct {
-	PodPruneReport []*PodPruneReport
-	*ContainerPruneReport
-	*ImagePruneReport
-	VolumePruneReport []*VolumePruneReport
+	PodPruneReport        []*PodPruneReport
+	ContainerPruneReports []*reports.PruneReport
+	ImagePruneReports     []*reports.PruneReport
+	VolumePruneReports    []*reports.PruneReport
+	ReclaimedSpace        uint64
 }
 
 // SystemMigrateOptions describes the options needed for the

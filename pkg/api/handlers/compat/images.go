@@ -99,21 +99,23 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 			filters = append(filters, fmt.Sprintf("%s=%s", k, val))
 		}
 	}
-	pruneCids, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, filters)
+	imagePruneReports, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, filters)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	for _, p := range pruneCids {
+	reclaimedSpace := uint64(0)
+	for _, p := range imagePruneReports {
 		idr = append(idr, types.ImageDeleteResponseItem{
-			Deleted: p,
+			Deleted: p.Id,
 		})
+		reclaimedSpace = reclaimedSpace + p.Size
 	}
 
 	// FIXME/TODO to do this exactly correct, pruneimages needs to return idrs and space-reclaimed, then we are golden
 	ipr := types.ImagesPruneReport{
 		ImagesDeleted:  idr,
-		SpaceReclaimed: 1, // TODO we cannot supply this right now
+		SpaceReclaimed: reclaimedSpace,
 	}
 	utils.WriteResponse(w, http.StatusOK, handlers.ImagesPruneReport{ImagesPruneReport: ipr})
 }

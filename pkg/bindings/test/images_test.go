@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
 	"github.com/containers/podman/v2/pkg/bindings/images"
+	dreports "github.com/containers/podman/v2/pkg/domain/entities/reports"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -355,7 +356,7 @@ var _ = Describe("Podman images", func() {
 		results, err := images.Prune(bt.conn, options)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(results)).To(BeNumerically(">", 0))
-		Expect(results).To(ContainElement("docker.io/library/alpine:latest"))
+		Expect(dreports.PruneReportsIds(results)).To(ContainElement("docker.io/library/alpine:latest"))
 	})
 
 	// TODO: we really need to extent to pull tests once we have a more sophisticated CI.

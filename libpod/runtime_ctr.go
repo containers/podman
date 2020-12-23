@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/libpod/shutdown"
 	"github.com/containers/podman/v2/pkg/cgroups"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
@@ -884,9 +885,8 @@ func (r *Runtime) GetExecSessionContainer(id string) (*Container, error) {
 
 // PruneContainers removes stopped and exited containers from localstorage.  A set of optional filters
 // can be provided to be more granular.
-func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int64, map[string]error, error) {
-	pruneErrors := make(map[string]error)
-	prunedContainers := make(map[string]int64)
+func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) ([]*reports.PruneReport, error) {
+	preports := make([]*reports.PruneReport, 0)
 	// We add getting the exited and stopped containers via a filter
 	containerStateFilter := func(c *Container) bool {
 		if c.PodID() != "" {
@@ -906,23 +906,28 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int
 	filterFuncs = append(filterFuncs, containerStateFilter)
 	delContainers, err := r.GetContainers(filterFuncs...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	for _, c := range delContainers {
-		ctr := c
-		size, err := ctr.RWSize()
+		report := new(reports.PruneReport)
+		report.Id = c.ID()
+		report.Err = nil
+		report.Size = 0
+		size, err := c.RWSize()
 		if err != nil {
-			pruneErrors[ctr.ID()] = err
+			report.Err = err
+			preports = append(preports, report)
 			continue
 		}
-		err = r.RemoveContainer(context.Background(), ctr, false, false)
+		err = r.RemoveContainer(context.Background(), c, false, false)
 		if err != nil {
-			pruneErrors[ctr.ID()] = err
+			report.Err = err
 		} else {
-			prunedContainers[ctr.ID()] = size
+			report.Size = (uint64)(size)
 		}
+		preports = append(preports, report)
 	}
-	return prunedContainers, pruneErrors, nil
+	return preports, nil
 }
 
 // MountStorageContainer mounts the storage container's root filesystem

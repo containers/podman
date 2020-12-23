@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -77,9 +78,9 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.VolumeListRepo
 }
 
 // Prune removes unused volumes from the local filesystem.
-func Prune(ctx context.Context, options *PruneOptions) ([]*entities.VolumePruneReport, error) {
+func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, error) {
 	var (
-		pruned []*entities.VolumePruneReport
+		pruned []*reports.PruneReport
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {

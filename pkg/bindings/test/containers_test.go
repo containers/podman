@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/specgen"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -533,8 +534,8 @@ var _ = Describe("Podman containers ", func() {
 		// Prune container should return no errors and one pruned container ID.
 		pruneResponse, err := containers.Prune(bt.conn, nil)
 		Expect(err).To(BeNil())
-		Expect(len(pruneResponse.Err)).To(Equal(0))
-		Expect(len(pruneResponse.ID)).To(Equal(1))
+		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
+		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(1))
 	})
 
 	It("podman prune stopped containers with filters", func() {
@@ -558,8 +559,8 @@ var _ = Describe("Podman containers ", func() {
 		}
 		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filtersIncorrect))
 		Expect(err).To(BeNil())
-		Expect(len(pruneResponse.Err)).To(Equal(0))
-		Expect(len(pruneResponse.ID)).To(Equal(0))
+		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(0))
+		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
 
 		// Valid filter params container should be pruned now.
 		filters := map[string][]string{
@@ -567,8 +568,8 @@ var _ = Describe("Podman containers ", func() {
 		}
 		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filters))
 		Expect(err).To(BeNil())
-		Expect(len(pruneResponse.Err)).To(Equal(0))
-		Expect(len(pruneResponse.ID)).To(Equal(1))
+		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
+		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(1))
 	})
 
 	It("podman prune running containers", func() {
@@ -585,7 +586,7 @@ var _ = Describe("Podman containers ", func() {
 		// Prune. Should return no error no prune response ID.
 		pruneResponse, err := containers.Prune(bt.conn, nil)
 		Expect(err).To(BeNil())
-		Expect(len(pruneResponse.ID)).To(Equal(0))
+		Expect(len(pruneResponse)).To(Equal(0))
 	})
 
 	It("podman inspect bogus container", func() {

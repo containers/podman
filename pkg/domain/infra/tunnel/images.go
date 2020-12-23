@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	images "github.com/containers/podman/v2/pkg/bindings/images"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/domain/utils"
 	utils2 "github.com/containers/podman/v2/utils"
 	"github.com/pkg/errors"
@@ -90,26 +91,18 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entiti
 	return &history, nil
 }
 
-func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) (*entities.ImagePruneReport, error) {
+func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
 	filters := make(map[string][]string, len(opts.Filter))
 	for _, filter := range opts.Filter {
 		f := strings.Split(filter, "=")
 		filters[f[0]] = f[1:]
 	}
 	options := new(images.PruneOptions).WithAll(opts.All).WithFilters(filters)
-	results, err := images.Prune(ir.ClientCtx, options)
+	reports, err := images.Prune(ir.ClientCtx, options)
 	if err != nil {
 		return nil, err
 	}
-
-	report := entities.ImagePruneReport{
-		Report: entities.Report{
-			Id:  results,
-			Err: nil,
-		},
-		Size: 0,
-	}
-	return &report, nil
+	return reports, nil
 }
 
 func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.ImagePullOptions) (*entities.ImagePullReport, error) {
