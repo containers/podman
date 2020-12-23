@@ -62,6 +62,7 @@ metadata:
 spec:
   restartPolicy: {{ .RestartPolicy }}
   hostname: {{ .Hostname }}
+  hostNetwork: {{ .HostNetwork }}
   hostAliases:
 {{ range .HostAliases }}
   - hostnames:
@@ -220,6 +221,7 @@ spec:
     spec:
       restartPolicy: {{ .RestartPolicy }}
       hostname: {{ .Hostname }}
+      hostNetwork: {{ .HostNetwork }}
       containers:
     {{ with .Ctrs }}
       {{ range . }}
@@ -376,6 +378,7 @@ type Pod struct {
 	Name          string
 	RestartPolicy string
 	Hostname      string
+	HostNetwork   bool
 	HostAliases   []HostAlias
 	Ctrs          []*Ctr
 	Volumes       []*Volume
@@ -396,6 +399,7 @@ func getPod(options ...podOption) *Pod {
 		Name:          defaultPodName,
 		RestartPolicy: "Never",
 		Hostname:      "",
+		HostNetwork:   false,
 		HostAliases:   nil,
 		Ctrs:          make([]*Ctr, 0),
 		Volumes:       make([]*Volume, 0),
@@ -461,6 +465,12 @@ func withAnnotation(k, v string) podOption {
 func withVolume(v *Volume) podOption {
 	return func(pod *Pod) {
 		pod.Volumes = append(pod.Volumes, v)
+	}
+}
+
+func withHostNetwork() podOption {
+	return func(pod *Pod) {
+		pod.HostNetwork = true
 	}
 }
 
@@ -1586,5 +1596,24 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(Equal("false"))
+	})
+
+	It("podman play kube test with HostNetwork", func() {
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test only works on crun")
+		}
+
+		pod := getPod(withHostNetwork())
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", pod.Name, "--format", "{{ .InfraConfig.HostNetwork }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(Equal("true"))
 	})
 })

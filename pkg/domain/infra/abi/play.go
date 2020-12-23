@@ -226,7 +226,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, err
 		}
 
-		specGen, err := kube.ToSpecGen(ctx, container, container.Image, newImage, volumes, pod.ID(), podName, podInfraID, configMaps, seccompPaths, ctrRestartPolicy)
+		specGen, err := kube.ToSpecGen(ctx, container, container.Image, newImage, volumes, pod.ID(), podName, podInfraID, configMaps, seccompPaths, ctrRestartPolicy, p.NetNS.IsHost())
 		if err != nil {
 			return nil, err
 		}

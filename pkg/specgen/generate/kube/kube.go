@@ -30,7 +30,7 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 		p.Hostname = podName
 	}
 	if podYAML.Spec.HostNetwork {
-		p.NetNS.Value = "host"
+		p.NetNS.NSMode = specgen.Host
 	}
 	if podYAML.Spec.HostAliases != nil {
 		hosts := make([]string, 0, len(podYAML.Spec.HostAliases))
@@ -47,7 +47,7 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 	return p, nil
 }
 
-func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newImage *image.Image, volumes map[string]*KubeVolume, podID, podName, infraID string, configMaps []v1.ConfigMap, seccompPaths *KubeSeccompPaths, restartPolicy string) (*specgen.SpecGenerator, error) {
+func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newImage *image.Image, volumes map[string]*KubeVolume, podID, podName, infraID string, configMaps []v1.ConfigMap, seccompPaths *KubeSeccompPaths, restartPolicy string, hostNet bool) (*specgen.SpecGenerator, error) {
 	s := specgen.NewSpecGenerator(iid, false)
 
 	// podName should be non-empty for Deployment objects to be able to create
@@ -213,6 +213,10 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 	}
 
 	s.RestartPolicy = restartPolicy
+
+	if hostNet {
+		s.NetNS.NSMode = specgen.Host
+	}
 
 	return s, nil
 }
