@@ -17,19 +17,19 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora"
-    PRIOR_FEDORA_NAME: "prior-fedora"
-    UBUNTU_NAME: "ubuntu"
-    PRIOR_UBUNTU_NAME: "prior-ubuntu"
+    FEDORA_NAME: "fedora-33"
+    PRIOR_FEDORA_NAME: "fedora-32"
+    UBUNTU_NAME: "ubuntu-2010"
+    PRIOR_UBUNTU_NAME: "ubuntu-2004"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    _BUILT_IMAGE_SUFFIX: "c4948709391728640"
-    FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "${PRIOR_UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
+    _BUILT_IMAGE_SUFFIX: "c6233039174893568"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${_BUILT_IMAGE_SUFFIX}"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "prior-ubuntu-${_BUILT_IMAGE_SUFFIX}"
 
     ####
     #### Command variables to help avoid duplication
@@ -57,41 +57,29 @@ gce_instance:
     image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
 
-testing_task:
-
+fedora_testing_task: &fedora_testing
+    alias: fedora_testing
+    name: &std_test_name "${OS_NAME} ${TEST_DRIVER}"
     depends_on:
         - lint
 
-    # Not all $TEST_DRIVER combinations are valid for all OS types.
-    # N/B: As of the addition of this note, nested-variable resolution
-    # does not happen for boolean `only_if` expressions.  Since $VM_IMAGE
-    # contains nested variables, we must filter based on that and not the
-    # actual distro/version value.
-    only_if: >-
-        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "vfs" ) ||
-        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "aufs" ) ||
-        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "overlay" ) ||
-        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "fuse-overlay" ) ||
-        ( $VM_IMAGE =~ '.*FEDORA.*' && $TEST_DRIVER != "aufs" )
-
-    allow_failures: $TEST_DRIVER == "devicemapper"
-
-    env:
-        matrix:
-            VM_IMAGE: "${FEDORA_CACHE_IMAGE_NAME}"
-            VM_IMAGE: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            VM_IMAGE: "${UBUNTU_CACHE_IMAGE_NAME}"
-            # VM_IMAGE: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"  # No fuse3 support
-        matrix:  # See ./contrib/cirrus/build_and_test.sh
-            TEST_DRIVER: "vfs"
-            TEST_DRIVER: "aufs"
-            TEST_DRIVER: "overlay"
-            TEST_DRIVER: "fuse-overlay"
-            TEST_DRIVER: "devicemapper"
-            TEST_DRIVER: "fuse-overlay-whiteout"
-
     gce_instance:  # Only need to specify differences from defaults (above)
         image_name: "${VM_IMAGE}"
+
+    env:
+        OS_NAME: "${FEDORA_NAME}"
+        VM_IMAGE: "${FEDORA_CACHE_IMAGE_NAME}"
+
+    # Not all $TEST_DRIVER combinations valid for all $VM_IMAGE types.
+    matrix: &test_matrix
+        - env:
+            TEST_DRIVER: "vfs"
+        - env:
+            TEST_DRIVER: "overlay"
+        - env:
+            TEST_DRIVER: "fuse-overlay"
+        - env:
+            TEST_DRIVER: "fuse-overlay-whiteout"
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
@@ -102,6 +90,41 @@ testing_task:
         rh_audit_log_script: '${_RAUDITCMD} || true'
         ubuntu_audit_log_script: '${_UAUDITCMD} || true'
         journal_log_script: '${_JOURNALCMD} || true'
+
+
+prior_fedora_testing_task:
+    <<: *fedora_testing
+    alias: prior_fedora_testing
+    name: *std_test_name
+    env:
+        OS_NAME: "${PRIOR_FEDORA_NAME}"
+        VM_IMAGE: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+
+
+ubuntu_testing_task: &ubuntu_testing
+    <<: *fedora_testing
+    alias: ubuntu_testing
+    name: *std_test_name
+    env:
+        OS_NAME: "${UBUNTU_NAME}"
+        VM_IMAGE: "${UBUNTU_CACHE_IMAGE_NAME}"
+    matrix:
+        - env:
+            TEST_DRIVER: "vfs"
+        - env:
+            TEST_DRIVER: "aufs"
+        - env:
+            TEST_DRIVER: "overlay"
+
+
+prior_ubuntu_testing_task:
+    <<: *ubuntu_testing
+    alias: prior_ubuntu_testing
+    name: *std_test_name
+    env:
+        OS_NAME: "${PRIOR_UBUNTU_NAME}"
+        VM_IMAGE: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
+
 
 lint_task:
     env:
@@ -116,6 +139,7 @@ lint_task:
       apt-get update
       apt-get install -y libbtrfs-dev libdevmapper-dev
     test_script: make lint
+
 
 # Update metadata on VM images referenced by this repository state
 meta_task:
@@ -141,6 +165,7 @@ meta_task:
 
     script: '/usr/local/bin/entrypoint.sh |& ${_TIMESTAMP}'
 
+
 vendor_task:
     container:
         image: golang:1.15
@@ -150,11 +175,15 @@ vendor_task:
     build_script: make vendor
     test_script: hack/tree_status.sh
 
+
 # Represent overall pass/fail status from required dependent tasks
 success_task:
     depends_on:
         - lint
-        - testing
+        - fedora_testing
+        - prior_fedora_testing
+        - ubuntu_testing
+        - prior_ubuntu_testing
         - meta
         - vendor
     container:

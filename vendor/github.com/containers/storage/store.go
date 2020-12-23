@@ -3640,7 +3640,7 @@ func reloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptio
 }
 
 func init() {
-	defaultStoreOptions.RunRoot = "/var/run/containers/storage"
+	defaultStoreOptions.RunRoot = "/run/containers/storage"
 	defaultStoreOptions.GraphRoot = "/var/lib/containers/storage"
 	defaultStoreOptions.GraphDriverName = ""
 
