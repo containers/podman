@@ -5,8 +5,8 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
-	lpfilters "github.com/containers/podman/v2/libpod/filters"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	dfilters "github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/containers/podman/v2/pkg/signal"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/specgen/generate"
@@ -288,7 +288,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 
 	filters := make([]libpod.PodFilter, 0, len(options.Filters))
 	for k, v := range options.Filters {
-		f, err := lpfilters.GeneratePodFilterFunc(k, v)
+		f, err := dfilters.GeneratePodFilterFunc(k, v)
 		if err != nil {
 			return nil, err
 		}

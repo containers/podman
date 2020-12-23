@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v2/libpod"
-	lpfilters "github.com/containers/podman/v2/libpod/filters"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -29,7 +29,7 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 	}
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(query.Filters))
 	for k, v := range query.Filters {
-		generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, v, runtime)
+		generatedFunc, err := filters.GenerateContainerFilterFuncs(k, v, runtime)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return

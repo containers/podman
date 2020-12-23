@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v2/libpod"
-	lpfilters "github.com/containers/podman/v2/libpod/filters"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	dfilters "github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/gorilla/schema"
 )
 
@@ -31,7 +31,7 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport
 
 	filters := make([]libpod.PodFilter, 0, len(query.Filters))
 	for k, v := range query.Filters {
-		f, err := lpfilters.GeneratePodFilterFunc(k, v)
+		f, err := dfilters.GeneratePodFilterFunc(k, v)
 		if err != nil {
 			return nil, err
 		}
