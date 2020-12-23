@@ -2,10 +2,12 @@ package rootless
 
 import (
 	"os"
+	"sort"
 	"sync"
 
 	"github.com/containers/storage"
 	"github.com/opencontainers/runc/libcontainer/user"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
 
@@ -87,6 +89,20 @@ func GetAvailableGidMap() ([]user.IDMap, error) {
 	return gidMap, gidMapError
 }
 
+// GetAvailableIDMaps returns the UID and GID mappings in the
+// current user namespace.
+func GetAvailableIDMaps() ([]user.IDMap, []user.IDMap, error) {
+	u, err := GetAvailableUidMap()
+	if err != nil {
+		return nil, nil, err
+	}
+	g, err := GetAvailableGidMap()
+	if err != nil {
+		return nil, nil, err
+	}
+	return u, g, nil
+}
+
 func countAvailableIDs(mappings []user.IDMap) int64 {
 	availableUids := int64(0)
 	for _, r := range mappings {
@@ -115,4 +131,72 @@ func GetAvailableGids() (int64, error) {
 	}
 
 	return countAvailableIDs(gids), nil
+}
+
+// findIDInMappings find the the mapping that contains the specified ID.
+// It assumes availableMappings is sorted by ID.
+func findIDInMappings(id int64, availableMappings []user.IDMap) *user.IDMap {
+	i := sort.Search(len(availableMappings), func(i int) bool {
+		return availableMappings[i].ID >= id
+	})
+	if i < 0 || i >= len(availableMappings) {
+		return nil
+	}
+	r := &availableMappings[i]
+	if id >= r.ID && id < r.ID+r.Count {
+		return r
+	}
+	return nil
+}
+
+// MaybeSplitMappings checks whether the specified OCI mappings are possible
+// in the current user namespace or the specified ranges must be split.
+func MaybeSplitMappings(mappings []spec.LinuxIDMapping, availableMappings []user.IDMap) []spec.LinuxIDMapping {
+	var ret []spec.LinuxIDMapping
+	var overflow spec.LinuxIDMapping
+	overflow.Size = 0
+	consumed := 0
+	sort.Slice(availableMappings, func(i, j int) bool {
+		return availableMappings[i].ID < availableMappings[j].ID
+	})
+	for {
+		cur := overflow
+		// if there is no overflow left from the previous request, get the next one
+		if cur.Size == 0 {
+			if consumed == len(mappings) {
+				// all done
+				return ret
+			}
+			cur = mappings[consumed]
+			consumed++
+		}
+
+		// Find the range where the first specified ID is present
+		r := findIDInMappings(int64(cur.HostID), availableMappings)
+		if r == nil {
+			// The requested range is not available.  Just return the original request
+			// and let other layers deal with it.
+			return mappings
+		}
+
+		offsetInRange := cur.HostID - uint32(r.ID)
+
+		usableIDs := uint32(r.Count) - offsetInRange
+
+		// the current range can satisfy the whole request
+		if usableIDs >= cur.Size {
+			// reset the overflow
+			overflow.Size = 0
+		} else {
+			// the current range can satisfy the request partially
+			// so move the rest to overflow
+			overflow.Size = cur.Size - usableIDs
+			overflow.ContainerID = cur.ContainerID + usableIDs
+			overflow.HostID = cur.HostID + usableIDs
+
+			// and cap to the usableIDs count
+			cur.Size = usableIDs
+		}
+		ret = append(ret, cur)
+	}
 }
