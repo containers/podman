@@ -16,6 +16,10 @@ The main process inside each container specified will be sent SIGKILL, or any si
 
 Signal all running containers.  This does not include paused containers.
 
+#### **--cidfile**
+
+Read container ID from the specified file and remove the container.  Can be specified multiple times.
+
 #### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
@@ -39,6 +43,10 @@ podman kill --signal TERM 860a4b23
 podman kill --latest
 
 podman kill --signal KILL -a
+
+podman kill --cidfile /home/user/cidfile-1
+
+podman kill --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
 
 ## SEE ALSO
 podman(1), podman-stop(1)

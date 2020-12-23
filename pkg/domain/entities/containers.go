@@ -104,9 +104,10 @@ type TopOptions struct {
 }
 
 type KillOptions struct {
-	All    bool
-	Latest bool
-	Signal string
+	All      bool
+	Latest   bool
+	Signal   string
+	CIDFiles []string
 }
 
 type KillReport struct {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -22,7 +23,7 @@ var (
 		Long:  killDescription,
 		RunE:  kill,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman kill mywebserver
@@ -32,7 +33,7 @@ var (
 
 	containerKillCommand = &cobra.Command{
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},
 		Use:               killCommand.Use,
 		Short:             killCommand.Short,
@@ -57,6 +58,9 @@ func killFlags(cmd *cobra.Command) {
 	signalFlagName := "signal"
 	flags.StringVarP(&killOptions.Signal, signalFlagName, "s", "KILL", "Signal to send to the container")
 	_ = cmd.RegisterFlagCompletionFunc(signalFlagName, common.AutocompleteStopSignal)
+	cidfileFlagName := "cidfile"
+	flags.StringArrayVar(&killOptions.CIDFiles, cidfileFlagName, []string{}, "Read the container ID from the file")
+	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 }
 
 func init() {
