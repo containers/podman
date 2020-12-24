@@ -387,7 +387,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		finalEnv = append(finalEnv, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	processFile, err := prepareProcessExec(c, options.Cmd, finalEnv, options.Terminal, options.Cwd, options.User, sessionID)
+	processFile, err := prepareProcessExec(c, options, finalEnv, sessionID)
 	if err != nil {
 		return nil, nil, err
 	}

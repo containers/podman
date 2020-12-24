@@ -1185,26 +1185,26 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible to close the returned *os.File if needed.
-func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, sessionID string) (*os.File, error) {
+func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessionID string) (*os.File, error) {
 	f, err := ioutil.TempFile(c.execBundlePath(sessionID), "exec-process-")
 	if err != nil {
 		return nil, err
 	}
 	pspec := c.config.Spec.Process
 	pspec.SelinuxLabel = c.config.ProcessLabel
-	pspec.Args = cmd
+	pspec.Args = options.Cmd
 	// We need to default this to false else it will inherit terminal as true
 	// from the container.
 	pspec.Terminal = false
-	if tty {
+	if options.Terminal {
 		pspec.Terminal = true
 	}
 	if len(env) > 0 {
 		pspec.Env = append(pspec.Env, env...)
 	}
 
-	if cwd != "" {
-		pspec.Cwd = cwd
+	if options.Cwd != "" {
+		pspec.Cwd = options.Cwd
 
 	}
 
@@ -1212,6 +1212,7 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 	var sgids []uint32
 
 	// if the user is empty, we should inherit the user that the container is currently running with
+	user := options.User
 	if user == "" {
 		user = c.config.User
 		addGroups = c.config.Groups
