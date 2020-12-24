@@ -47,30 +47,53 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 	return p, nil
 }
 
-func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newImage *image.Image, volumes map[string]*KubeVolume, podID, podName, infraID string, configMaps []v1.ConfigMap, seccompPaths *KubeSeccompPaths, restartPolicy string, hostNet bool) (*specgen.SpecGenerator, error) {
-	s := specgen.NewSpecGenerator(iid, false)
+type CtrSpecGenOptions struct {
+	// Container as read from the pod yaml
+	Container v1.Container
+	// Image available to use (pulled or found local)
+	Image *image.Image
+	// Volumes for all containers
+	Volumes map[string]*KubeVolume
+	// PodID of the parent pod
+	PodID string
+	// PodName of the parent pod
+	PodName string
+	// PodInfraID as the infrastructure container id
+	PodInfraID string
+	// ConfigMaps the configuration maps for environment variables
+	ConfigMaps []v1.ConfigMap
+	// SeccompPaths for finding the seccomp profile path
+	SeccompPaths *KubeSeccompPaths
+	// RestartPolicy defines the restart policy of the container
+	RestartPolicy string
+	// NetNSIsHost tells the container to use the host netns
+	NetNSIsHost bool
+}
 
-	// podName should be non-empty for Deployment objects to be able to create
+func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
+	s := specgen.NewSpecGenerator(opts.Container.Image, false)
+
+	// pod name should be non-empty for Deployment objects to be able to create
 	// multiple pods having containers with unique names
-	if len(podName) < 1 {
-		return nil, errors.Errorf("kubeContainerToCreateConfig got empty podName")
+	if len(opts.PodName) < 1 {
+		return nil, errors.Errorf("got empty pod name on container creation when playing kube")
 	}
 
-	s.Name = fmt.Sprintf("%s-%s", podName, containerYAML.Name)
+	s.Name = fmt.Sprintf("%s-%s", opts.PodName, opts.Container.Name)
 
-	s.Terminal = containerYAML.TTY
+	s.Terminal = opts.Container.TTY
 
-	s.Pod = podID
+	s.Pod = opts.PodID
 
-	setupSecurityContext(s, containerYAML)
+	setupSecurityContext(s, opts.Container)
 
 	// Since we prefix the container name with pod name to work-around the uniqueness requirement,
 	// the seccomp profile should reference the actual container name from the YAML
 	// but apply to the containers with the prefixed name
-	s.SeccompProfilePath = seccompPaths.FindForContainer(containerYAML.Name)
+	s.SeccompProfilePath = opts.SeccompPaths.FindForContainer(opts.Container.Name)
 
 	s.ResourceLimits = &spec.LinuxResources{}
-	milliCPU, err := quantityToInt64(containerYAML.Resources.Limits.Cpu())
+	milliCPU, err := quantityToInt64(opts.Container.Resources.Limits.Cpu())
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to set CPU quota")
 	}
@@ -82,12 +105,12 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 		}
 	}
 
-	limit, err := quantityToInt64(containerYAML.Resources.Limits.Memory())
+	limit, err := quantityToInt64(opts.Container.Resources.Limits.Memory())
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to set memory limit")
 	}
 
-	memoryRes, err := quantityToInt64(containerYAML.Resources.Requests.Memory())
+	memoryRes, err := quantityToInt64(opts.Container.Resources.Requests.Memory())
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to set memory reservation")
 	}
@@ -107,7 +130,7 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 	// TODO: We don't understand why specgen does not take of this, but
 	// integration tests clearly pointed out that it was required.
 	s.Command = []string{}
-	imageData, err := newImage.Inspect(ctx)
+	imageData, err := opts.Image.Inspect(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -134,26 +157,26 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 		}
 	}
 	// If only the yaml.Command is specified, set it as the entrypoint and drop the image Cmd
-	if len(containerYAML.Command) != 0 {
-		entrypoint = containerYAML.Command
+	if len(opts.Container.Command) != 0 {
+		entrypoint = opts.Container.Command
 		cmd = []string{}
 	}
 	// Only override the cmd field if yaml.Args is specified
 	// Keep the image entrypoint, or the yaml.command if specified
-	if len(containerYAML.Args) != 0 {
-		cmd = containerYAML.Args
+	if len(opts.Container.Args) != 0 {
+		cmd = opts.Container.Args
 	}
 
 	s.Command = append(entrypoint, cmd...)
 	// FIXME,
 	// we are currently ignoring imageData.Config.ExposedPorts
-	if containerYAML.WorkingDir != "" {
-		s.WorkDir = containerYAML.WorkingDir
+	if opts.Container.WorkingDir != "" {
+		s.WorkDir = opts.Container.WorkingDir
 	}
 
 	annotations := make(map[string]string)
-	if infraID != "" {
-		annotations[ann.SandboxID] = infraID
+	if opts.PodInfraID != "" {
+		annotations[ann.SandboxID] = opts.PodInfraID
 		annotations[ann.ContainerType] = ann.ContainerTypeContainer
 	}
 	s.Annotations = annotations
@@ -165,13 +188,13 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 		envs[keyval[0]] = keyval[1]
 	}
 
-	for _, env := range containerYAML.Env {
-		value := envVarValue(env, configMaps)
+	for _, env := range opts.Container.Env {
+		value := envVarValue(env, opts.ConfigMaps)
 
 		envs[env.Name] = value
 	}
-	for _, envFrom := range containerYAML.EnvFrom {
-		cmEnvs := envVarsFromConfigMap(envFrom, configMaps)
+	for _, envFrom := range opts.Container.EnvFrom {
+		cmEnvs := envVarsFromConfigMap(envFrom, opts.ConfigMaps)
 
 		for k, v := range cmEnvs {
 			envs[k] = v
@@ -179,8 +202,8 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 	}
 	s.Env = envs
 
-	for _, volume := range containerYAML.VolumeMounts {
-		volumeSource, exists := volumes[volume.Name]
+	for _, volume := range opts.Container.VolumeMounts {
+		volumeSource, exists := opts.Volumes[volume.Name]
 		if !exists {
 			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
 		}
@@ -212,9 +235,9 @@ func ToSpecGen(ctx context.Context, containerYAML v1.Container, iid string, newI
 		}
 	}
 
-	s.RestartPolicy = restartPolicy
+	s.RestartPolicy = opts.RestartPolicy
 
-	if hostNet {
+	if opts.NetNSIsHost {
 		s.NetNS.NSMode = specgen.Host
 	}
 
