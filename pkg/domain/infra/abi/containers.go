@@ -538,7 +538,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 
 	switch {
 	case options.Import != "":
-		cons, err = checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options.Import, options.Name)
+		cons, err = checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options)
 	case options.All:
 		cons, err = ic.Libpod.GetContainers(filterFuncs...)
 	default:

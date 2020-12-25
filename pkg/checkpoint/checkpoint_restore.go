@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage/pkg/archive"
@@ -36,10 +37,10 @@ func crImportFromJSON(filePath string, v interface{}) error {
 
 // CRImportCheckpoint it the function which imports the information
 // from checkpoint tarball and re-creates the container from that information
-func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input string, name string) ([]*libpod.Container, error) {
+func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOptions entities.RestoreOptions) ([]*libpod.Container, error) {
 	// First get the container definition from the
 	// tarball to a temporary directory
-	archiveFile, err := os.Open(input)
+	archiveFile, err := os.Open(restoreOptions.Import)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to open checkpoint archive for import")
 	}
@@ -66,7 +67,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	}()
 	err = archive.Untar(archiveFile, dir, options)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Unpacking of checkpoint archive %s failed", input)
+		return nil, errors.Wrapf(err, "Unpacking of checkpoint archive %s failed", restoreOptions.Import)
 	}
 
 	// Load spec.dump from temporary directory
@@ -90,9 +91,9 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	newName := false
 
 	// Check if the restored container gets a new name
-	if name != "" {
+	if restoreOptions.Name != "" {
 		config.ID = ""
-		config.Name = name
+		config.Name = restoreOptions.Name
 		newName = true
 	}
 
