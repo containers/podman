@@ -156,9 +156,21 @@ func imagePull(cmd *cobra.Command, args []string) error {
 		pullOptions.Username = creds.Username
 		pullOptions.Password = creds.Password
 	}
+
+	rawImgName := args[0]
+	// TODO: maybe need update at github.com/containers/image/v5/docker/docker_transport.go:79-81
+	// if use tag and digest, the tag should be ignored
+	if !strings.Contains(rawImgName, "://") {
+		rawImgParts := strings.Split(rawImgName, ":")
+		if len(rawImgParts) == 3 && strings.Contains(rawImgParts[1], "@sha256") {
+			// Equal to 3, which means the tag should be ignored
+			rawImgName = fmt.Sprintf("%s@sha256:%s", rawImgParts[0], rawImgParts[2])
+		}
+	}
+
 	// Let's do all the remaining Yoga in the API to prevent us from
 	// scattering logic across (too) many parts of the code.
-	pullReport, err := registry.ImageEngine().Pull(registry.GetContext(), args[0], pullOptions.ImagePullOptions)
+	pullReport, err := registry.ImageEngine().Pull(registry.GetContext(), rawImgName, pullOptions.ImagePullOptions)
 	if err != nil {
 		return err
 	}

@@ -91,6 +91,16 @@ var _ = Describe("Podman pull", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman pull with both a tag and digest", func() {
+		session := podmanTest.Podman([]string{"pull", ALPINELISTTAGWITHDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"rmi", ALPINEAMD64ID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman pull by digest (image list)", func() {
 		session := podmanTest.Podman([]string{"pull", "--override-arch=arm64", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
