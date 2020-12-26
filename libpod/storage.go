@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/containers/image/v5/image"
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/define"
@@ -87,14 +88,19 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 			return ContainerInfo{}, err
 		}
 		// Pull out a copy of the image's configuration.
-		image, err := ref.NewImage(ctx, systemContext)
+		src, err := ref.NewImageSource(ctx, systemContext)
 		if err != nil {
 			return ContainerInfo{}, err
 		}
-		defer image.Close()
+		defer src.Close()
+		ic, err := image.FromSource(ctx, systemContext, src)
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+		defer ic.Close()
 
 		// Get OCI configuration of image
-		imageConfig, err = image.OCIConfig(ctx)
+		imageConfig, err = ic.OCIConfig(ctx)
 		if err != nil {
 			return ContainerInfo{}, err
 		}
