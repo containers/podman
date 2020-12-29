@@ -247,6 +247,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	path := r.config.Engine.NetworkCmdPath
 	slirpOptions := r.config.Engine.NetworkCmdOptions
+	noPivotRoot := r.config.Engine.NoPivotRoot
 	if path == "" {
 		var err error
 		path, err = exec.LookPath("slirp4netns")
@@ -351,7 +352,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	if slirpFeatures.HasMTU {
 		cmdArgs = append(cmdArgs, "--mtu", "65520")
 	}
-	if slirpFeatures.HasEnableSandbox {
+	if !noPivotRoot && slirpFeatures.HasEnableSandbox {
 		cmdArgs = append(cmdArgs, "--enable-sandbox")
 	}
 	if slirpFeatures.HasEnableSeccomp {
@@ -424,7 +425,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	}
 
 	// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
-	if slirpFeatures.HasEnableSandbox {
+	if !noPivotRoot && slirpFeatures.HasEnableSandbox {
 		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
 		cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
 	}
