@@ -71,3 +71,30 @@ func quoteArguments(command []string) []string {
 	}
 	return command
 }
+
+func removeDetachArg(args []string, argCount int) []string {
+	// "--detach=false" could also be in the container entrypoint
+	// split them off so we do not remove it there
+	realArgs := args[len(args)-argCount:]
+	flagArgs := removeArg("-d=false", args[:len(args)-argCount])
+	flagArgs = removeArg("--detach=false", flagArgs)
+	return append(flagArgs, realArgs...)
+}
+
+func removeReplaceArg(args []string, argCount int) []string {
+	// "--replace=false" could also be in the container entrypoint
+	// split them off so we do not remove it there
+	realArgs := args[len(args)-argCount:]
+	flagArgs := removeArg("--replace=false", args[:len(args)-argCount])
+	return append(flagArgs, realArgs...)
+}
+
+func removeArg(arg string, args []string) []string {
+	newArgs := []string{}
+	for _, a := range args {
+		if a != arg {
+			newArgs = append(newArgs, a)
+		}
+	}
+	return newArgs
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v2/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
 )
 
 // containerInfo contains data required for generating a container's systemd
@@ -44,6 +45,9 @@ type containerInfo struct {
 	// Executable is the path to the podman executable. Will be auto-filled if
 	// left empty.
 	Executable string
+	// RootFlags contains the root flags which were used to create the container
+	// Only used with --new
+	RootFlags string
 	// TimeStamp at the time of creating the unit file. Will be set internally.
 	TimeStamp string
 	// CreateCommand is the full command plus arguments of the process the
@@ -185,22 +189,30 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.ContainerIDFile = "%t/" + info.ServiceName + ".ctr-id"
 		// The create command must at least have three arguments:
 		// 	/usr/bin/podman run $IMAGE
-		index := 2
-		if info.CreateCommand[1] == "container" {
-			index = 3
+		index := 0
+		for i, arg := range info.CreateCommand {
+			if arg == "run" || arg == "create" {
+				index = i + 1
+				break
+			}
 		}
-		if len(info.CreateCommand) < index+1 {
+		if index == 0 {
 			return "", errors.Errorf("container's create command is too short or invalid: %v", info.CreateCommand)
 		}
 		// We're hard-coding the first five arguments and append the
 		// CreateCommand with a stripped command and subcommand.
-		startCommand := []string{
-			info.Executable,
+		startCommand := []string{info.Executable}
+		if index > 2 {
+			// include root flags
+			info.RootFlags = strings.Join(quoteArguments(info.CreateCommand[1:index-1]), " ")
+			startCommand = append(startCommand, info.CreateCommand[1:index-1]...)
+		}
+		startCommand = append(startCommand,
 			"run",
 			"--conmon-pidfile", "{{.PIDFile}}",
 			"--cidfile", "{{.ContainerIDFile}}",
 			"--cgroups=no-conmon",
-		}
+		)
 		// If the container is in a pod, make sure that the
 		// --pod-id-file is set correctly.
 		if info.pod != nil {
@@ -210,22 +222,26 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 
 		// Presence check for certain flags/options.
-		hasDetachParam := false
-		hasNameParam := false
-		hasReplaceParam := false
-		for _, p := range info.CreateCommand[index:] {
-			switch p {
-			case "--detach", "-d":
-				hasDetachParam = true
-			case "--name":
-				hasNameParam = true
-			case "--replace":
-				hasReplaceParam = true
-			}
-			if strings.HasPrefix(p, "--name=") {
-				hasNameParam = true
-			}
+		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
+		fs.ParseErrorsWhitelist.UnknownFlags = true
+		fs.Usage = func() {}
+		fs.SetInterspersed(false)
+		fs.BoolP("detach", "d", false, "")
+		fs.String("name", "", "")
+		fs.Bool("replace", false, "")
+		fs.Parse(info.CreateCommand[index:])
+
+		hasDetachParam, err := fs.GetBool("detach")
+		if err != nil {
+			return "", err
 		}
+		hasNameParam := fs.Lookup("name").Changed
+		hasReplaceParam, err := fs.GetBool("replace")
+		if err != nil {
+			return "", err
+		}
+
+		remainingCmd := info.CreateCommand[index:]
 
 		if !hasDetachParam {
 			// Enforce detaching
@@ -240,6 +256,13 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			// will wait the `podman run` command exit until failed
 			// with timeout error.
 			startCommand = append(startCommand, "-d")
+
+			if fs.Changed("detach") {
+				// this can only happen if --detach=false is set
+				// in that case we need to remove it otherwise we
+				// would overwrite the previous detach arg to false
+				remainingCmd = removeDetachArg(remainingCmd, fs.NArg())
+			}
 		}
 		if hasNameParam && !hasReplaceParam {
 			// Enforce --replace for named containers.  This will
@@ -247,14 +270,21 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			// start after system crashes (see
 			// github.com/containers/podman/issues/5485).
 			startCommand = append(startCommand, "--replace")
+
+			if fs.Changed("replace") {
+				// this can only happen if --replace=false is set
+				// in that case we need to remove it otherwise we
+				// would overwrite the previous replace arg to false
+				remainingCmd = removeReplaceArg(remainingCmd, fs.NArg())
+			}
 		}
-		startCommand = append(startCommand, info.CreateCommand[index:]...)
+		startCommand = append(startCommand, remainingCmd...)
 		startCommand = quoteArguments(startCommand)
 
 		info.ExecStartPre = "/bin/rm -f {{.PIDFile}} {{.ContainerIDFile}}"
 		info.ExecStart = strings.Join(startCommand, " ")
-		info.ExecStop = "{{.Executable}} stop --ignore --cidfile {{.ContainerIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
-		info.ExecStopPost = "{{.Executable}} rm --ignore -f --cidfile {{.ContainerIDFile}}"
+		info.ExecStop = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}stop --ignore --cidfile {{.ContainerIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
+		info.ExecStopPost = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}rm --ignore -f --cidfile {{.ContainerIDFile}}"
 	}
 
 	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout

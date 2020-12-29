@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v2/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
 )
 
 // podInfo contains data required for generating a pod's systemd
@@ -44,6 +45,9 @@ type podInfo struct {
 	// Executable is the path to the podman executable. Will be auto-filled if
 	// left empty.
 	Executable string
+	// RootFlags contains the root flags which were used to create the container
+	// Only used with --new
+	RootFlags string
 	// TimeStamp at the time of creating the unit file. Will be set internally.
 	TimeStamp string
 	// CreateCommand is the full command plus arguments of the process the
@@ -264,7 +268,8 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 			if podCreateIndex == 0 {
 				return "", errors.Errorf("pod does not appear to be created via `podman pod create`: %v", info.CreateCommand)
 			}
-			podRootArgs = info.CreateCommand[0 : podCreateIndex-2]
+			podRootArgs = info.CreateCommand[1 : podCreateIndex-1]
+			info.RootFlags = strings.Join(quoteArguments(podRootArgs), " ")
 			podCreateArgs = filterPodFlags(info.CreateCommand[podCreateIndex+1:])
 		}
 		// We're hard-coding the first five arguments and append the
@@ -277,17 +282,26 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 				"--pod-id-file", "{{.PodIDFile}}"}...)
 
 		// Presence check for certain flags/options.
-		hasNameParam := false
-		hasReplaceParam := false
-		for _, p := range podCreateArgs {
-			switch p {
-			case "--name":
-				hasNameParam = true
-			case "--replace":
-				hasReplaceParam = true
-			}
+		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
+		fs.ParseErrorsWhitelist.UnknownFlags = true
+		fs.Usage = func() {}
+		fs.SetInterspersed(false)
+		fs.String("name", "", "")
+		fs.Bool("replace", false, "")
+		fs.Parse(podCreateArgs)
+
+		hasNameParam := fs.Lookup("name").Changed
+		hasReplaceParam, err := fs.GetBool("replace")
+		if err != nil {
+			return "", err
 		}
 		if hasNameParam && !hasReplaceParam {
+			if fs.Changed("replace") {
+				// this can only happen if --replace=false is set
+				// in that case we need to remove it otherwise we
+				// would overwrite the previous replace arg to false
+				podCreateArgs = removeReplaceArg(podCreateArgs, fs.NArg())
+			}
 			podCreateArgs = append(podCreateArgs, "--replace")
 		}
 
@@ -296,9 +310,9 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 
 		info.ExecStartPre1 = "/bin/rm -f {{.PIDFile}} {{.PodIDFile}}"
 		info.ExecStartPre2 = strings.Join(startCommand, " ")
-		info.ExecStart = "{{.Executable}} pod start --pod-id-file {{.PodIDFile}}"
-		info.ExecStop = "{{.Executable}} pod stop --ignore --pod-id-file {{.PodIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
-		info.ExecStopPost = "{{.Executable}} pod rm --ignore -f --pod-id-file {{.PodIDFile}}"
+		info.ExecStart = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}pod start --pod-id-file {{.PodIDFile}}"
+		info.ExecStop = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}pod stop --ignore --pod-id-file {{.PodIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
+		info.ExecStopPost = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}pod rm --ignore -f --pod-id-file {{.PodIDFile}}"
 	}
 	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
 
