@@ -652,4 +652,99 @@ var _ = Describe("Podman checkpoint", func() {
 		// Remove exported checkpoint
 		os.Remove(fileName)
 	})
+
+	It("podman checkpoint a container with volumes", func() {
+		session := podmanTest.Podman([]string{
+			"build", "-f", "build/basicalpine/Containerfile.volume", "-t", "test-cr-volume",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Start the container
+		localRunString := getRunString([]string{
+			"--rm",
+			"-v", "/volume1",
+			"-v", "my-test-vol:/volume2",
+			"test-cr-volume",
+			"top",
+		})
+		session = podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+
+		cid := session.OutputToString()
+
+		// Add file in volume0
+		result := podmanTest.Podman([]string{
+			"exec", "-l", "/bin/sh", "-c", "echo " + cid + " > /volume0/test.output",
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		// Add file in volume1
+		result = podmanTest.Podman([]string{
+			"exec", "-l", "/bin/sh", "-c", "echo " + cid + " > /volume1/test.output",
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		// Add file in volume2
+		result = podmanTest.Podman([]string{
+			"exec", "-l", "/bin/sh", "-c", "echo " + cid + " > /volume2/test.output",
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		checkpointFileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+		// Checkpoint the container
+		result = podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", checkpointFileName})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Restore container should fail because named volume still exists
+		result = podmanTest.Podman([]string{"container", "restore", "-i", checkpointFileName})
+		result.WaitWithDefaultTimeout()
+		Expect(result).To(ExitWithError())
+		Expect(result.ErrorToString()).To(ContainSubstring(
+			"volume with name my-test-vol already exists. Use --ignore-volumes to not restore content of volumes",
+		))
+
+		// Remove named volume
+		session = podmanTest.Podman([]string{"volume", "rm", "my-test-vol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Restoring container
+		result = podmanTest.Podman([]string{"container", "restore", "-i", checkpointFileName})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// Validate volume0 content
+		result = podmanTest.Podman([]string{"exec", "-l", "cat", "/volume0/test.output"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
+
+		// Validate volume1 content
+		result = podmanTest.Podman([]string{"exec", "-l", "cat", "/volume1/test.output"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
+
+		// Validate volume2 content
+		result = podmanTest.Podman([]string{"exec", "-l", "cat", "/volume2/test.output"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
+
+		// Remove exported checkpoint
+		os.Remove(checkpointFileName)
+	})
 })
