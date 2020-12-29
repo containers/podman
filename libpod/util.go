@@ -153,6 +153,10 @@ func queryPackageVersion(cmdArg ...string) string {
 	return strings.Trim(output, "\n")
 }
 
+func equeryVersion(path string) string {
+	return queryPackageVersion("/usr/bin/equery", "b", path)
+}
+
 func pacmanVersion(path string) string {
 	return queryPackageVersion("/usr/bin/pacman", "-Qo", path)
 }
@@ -172,7 +176,10 @@ func packageVersion(program string) string {
 	if out := dpkgVersion(program); out != unknownPackage {
 		return out
 	}
-	return pacmanVersion(program)
+	if out := pacmanVersion(program); out != unknownPackage {
+		return out
+	}
+	return equeryVersion(program)
 }
 
 func programVersion(mountProgram string) (string, error) {
