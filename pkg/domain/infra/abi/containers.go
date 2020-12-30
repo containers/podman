@@ -16,12 +16,12 @@ import (
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
-	lpfilters "github.com/containers/podman/v2/libpod/filters"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/libpod/logs"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/checkpoint"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	dfilters "github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi/terminal"
 	parallelctr "github.com/containers/podman/v2/pkg/parallel/ctr"
 	"github.com/containers/podman/v2/pkg/ps"
@@ -207,7 +207,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 	for k, v := range options.Filters {
-		generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
+		generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}

@@ -1,4 +1,4 @@
-package lpfilters
+package filters
 
 import (
 	"strconv"

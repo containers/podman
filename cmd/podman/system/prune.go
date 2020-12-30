@@ -11,8 +11,8 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
-	lpfilters "github.com/containers/podman/v2/libpod/filters"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	dfilters "github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/spf13/cobra"
 )
 
@@ -80,7 +80,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 		}
 	}
 
-	pruneOptions.Filters, err = lpfilters.ParseFilterArgumentsIntoFilters(filters)
+	pruneOptions.Filters, err = dfilters.ParseFilterArgumentsIntoFilters(filters)
 	if err != nil {
 		return err
 	}

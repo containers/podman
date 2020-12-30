@@ -11,8 +11,8 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
-	lpfilters "github.com/containers/podman/v2/libpod/filters"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/filters"
 	psdefine "github.com/containers/podman/v2/pkg/ps/define"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -27,7 +27,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 	all := options.All || options.Last > 0
 	if len(options.Filters) > 0 {
 		for k, v := range options.Filters {
-			generatedFunc, err := lpfilters.GenerateContainerFilterFuncs(k, v, runtime)
+			generatedFunc, err := filters.GenerateContainerFilterFuncs(k, v, runtime)
 			if err != nil {
 				return nil, err
 			}
@@ -41,7 +41,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 		all = true
 	}
 	if !all {
-		runningOnly, err := lpfilters.GenerateContainerFilterFuncs("status", []string{define.ContainerStateRunning.String()}, runtime)
+		runningOnly, err := filters.GenerateContainerFilterFuncs("status", []string{define.ContainerStateRunning.String()}, runtime)
 		if err != nil {
 			return nil, err
 		}
