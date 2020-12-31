@@ -20,8 +20,8 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 
 	// /containers/{id}/resize
 	query := struct {
-		height uint16 `schema:"h"`
-		width  uint16 `schema:"w"`
+		Height uint16 `schema:"h"`
+		Width  uint16 `schema:"w"`
 	}{
 		// override any golang type defaults
 	}
@@ -33,8 +33,8 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sz := remotecommand.TerminalSize{
-		Width:  query.width,
-		Height: query.height,
+		Width:  query.Width,
+		Height: query.Height,
 	}
 
 	var status int
