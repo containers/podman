@@ -203,6 +203,15 @@ t GET 'containers/json?limit=0&all=1' 200 \
   .[0].Id~[0-9a-f]\\{64\\} \
   .[1].Id~[0-9a-f]\\{64\\}
 
+t GET containers/json?limit=2 200 length=2
+
+# Filter with two ids should return both container
+t GET "containers/json?filters=%7B%22id%22%3A%5B%22${cid}%22%2C%22${cid_top}%22%5D%7D&all=1" 200 length=2
+# Filter with two ids and status running should return only 1 container
+t GET "containers/json?filters=%7B%22id%22%3A%5B%22${cid}%22%2C%22${cid_top}%22%5D%2C%22status%22%3A%5B%22running%22%5D%7D&all=1" 200 \
+  length=1 \
+  .[0].Id=${cid_top}
+
 t POST containers/${cid_top}/stop "" 204
 
 t DELETE containers/$cid 204
