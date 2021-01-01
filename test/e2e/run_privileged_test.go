@@ -110,6 +110,15 @@ var _ = Describe("Podman privileged container tests", func() {
 		Expect("0000000000000000").To(Equal(capEff[1]))
 	})
 
+	It("podman privileged should disable seccomp by default", func() {
+		hostSeccomp := SystemExec("grep", []string{"-Ei", "^Seccomp:\\s+0$", "/proc/self/status"})
+		Expect(hostSeccomp.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "grep", "-Ei", "^Seccomp:\\s+0$", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman non-privileged should have very few devices", func() {
 		session := podmanTest.Podman([]string{"run", "-t", "busybox", "ls", "-l", "/dev"})
 		session.WaitWithDefaultTimeout()
