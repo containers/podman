@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -13,6 +14,8 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/domain/filters"
+	"github.com/containers/podman/v2/pkg/ps"
 	"github.com/containers/podman/v2/pkg/signal"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -78,10 +81,6 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
-	var (
-		containers []*libpod.Container
-		err        error
-	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
@@ -97,22 +96,48 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	if query.All {
-		containers, err = runtime.GetAllContainers()
-	} else {
-		containers, err = runtime.GetRunningContainers()
+
+	filterFuncs := make([]libpod.ContainerFilter, 0, len(query.Filters))
+	all := query.All || query.Limit > 0
+	if len(query.Filters) > 0 {
+		for k, v := range query.Filters {
+			generatedFunc, err := filters.GenerateContainerFilterFuncs(k, v, runtime)
+			if err != nil {
+				utils.InternalServerError(w, err)
+				return
+			}
+			filterFuncs = append(filterFuncs, generatedFunc)
+		}
 	}
+
+	// Docker thinks that if status is given as an input, then we should override
+	// the all setting and always deal with all containers.
+	if len(query.Filters["status"]) > 0 {
+		all = true
+	}
+	if !all {
+		runningOnly, err := filters.GenerateContainerFilterFuncs("status", []string{define.ContainerStateRunning.String()}, runtime)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		filterFuncs = append(filterFuncs, runningOnly)
+	}
+
+	containers, err := runtime.GetContainers(filterFuncs...)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 	if _, found := r.URL.Query()["limit"]; found && query.Limit > 0 {
-		last := query.Limit
-		if len(containers) > last {
-			containers = containers[len(containers)-last:]
+		// Sort the libpod containers
+		sort.Sort(ps.SortCreateTime{SortContainers: containers})
+		// we should perform the lopping before we start getting
+		// the expensive information on containers
+		if len(containers) > query.Limit {
+			containers = containers[:query.Limit]
 		}
 	}
-	// TODO filters still need to be applied
 	var list = make([]*handlers.Container, len(containers))
 	for i, ctnr := range containers {
 		api, err := LibpodToContainer(ctnr, query.Size)
