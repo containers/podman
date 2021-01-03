@@ -376,6 +376,5 @@ type ImageUnmountReport struct {
 }
 
 type ImageScanOptions struct {
-	ContainerRunOptions
 	ScannerImage string
 }

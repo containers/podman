@@ -1,117 +1,105 @@
 package images
 
 import (
-	"context"
 	"fmt"
+	"os"
+
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/specgen"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"os"
-	"strings"
 )
 
 var (
-	scanDescription = `Scan a container image for known vulnerabilities.  The image name or digest can be used.`
-	scanCommand     = &cobra.Command{
-		Use:     "scan [run-options] IMAGE [scanner-options]",
-		Short:   "Scan a container image for known vulnerabilities",
-		Long:    scanDescription,
-		RunE:    scan,
-		Example: `podman scan centos:latest`,
-	}
-
 	imageScanCommand     = &cobra.Command{
 		Use:     "scan [run-options] IMAGE [scanner-options]",
 		Short:   "Scan a container image for known vulnerabilities",
-		Long:    scanDescription,
+		Long:    `Scan a container image for known vulnerabilities. The image name or digest can be used.`,
+		Args: cobra.MinimumNArgs(1),
 		RunE:    scan,
 		Example: `podman image scan centos:latest`,
 	}
+
+	scanOptions entities.ImageScanOptions
 )
 
-var (
-	scanOptions = entities.ImageScanOptions{
-		ContainerRunOptions: entities.ContainerRunOptions{
-			OutputStream: os.Stdout,
-			ErrorStream:  os.Stderr,
-			Rm: true,
-		},
-	}
-
-	cliVals common.ContainerCLIOpts
-)
 
 func scanFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
-	common.DefineCreateFlags(cmd, &cliVals)
-	common.DefineNetFlags(cmd)
-
 	// TODO: derive default from containers.conf configuration
 	scannerFlagName := "scanner"
-	flags.StringVar(&scanOptions.ScannerImage, scannerFlagName, "docker.io/library/grype:latest", "The vulnerability scanner container image to use")
+	flags.StringVar(&scanOptions.ScannerImage, scannerFlagName, "docker.io/anchore/grype:latest", "The vulnerability scanner container image to use")
 }
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: scanCommand,
-	})
-	scanFlags(scanCommand)
-
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: imageScanCommand,
 		Parent:  imageCmd,
 	})
 	scanFlags(imageScanCommand)
-
 }
 
 func scan(cmd *cobra.Command, args []string) error {
-	var err error
-
-	if len(args) < 1 {
-		return fmt.Errorf("requires exactly one image, given %+v", args)
-	}
-	var imageToScan = args[0]
-	var mountTarget = "/podman-scan-image-mount"
-	var scanMount = fmt.Sprintf("type=image,src=%s,target=%s", imageToScan, mountTarget)
-
-	cliVals.Mount = append(cliVals.Mount, scanMount)
-
+	imageToScan := args[0]
+	mountTarget := "/podman-scan-image-mount"
 	// allow parsing to continue with the first arg being the scanner image (not the image to scan)
 	args[0] = scanOptions.ScannerImage
 
-	cliVals.Net, err = common.NetFlagsToNetOptions(cmd)
-	if err != nil {
-		return err
+	ctrConfig := registry.PodmanConfig()
+
+	ctrOpts := common.ContainerCLIOpts{
+		Mount: []string{fmt.Sprintf("type=image,src=%s,target=%s,readwrite=false", imageToScan, mountTarget)},
+		ImageVolume: common.DefaultImageVolume,
+		HealthInterval: common.DefaultHealthCheckInterval,
+		HealthRetries: common.DefaultHealthCheckRetries,
+		HealthStartPeriod: common.DefaultHealthCheckStartPeriod,
+		HealthTimeout: common.DefaultHealthCheckTimeout,
+		HTTPProxy: true,
+		MemorySwappiness: -1,
+		// TODO: scanners may need these options to be made available to the user, yes?
+		Net:          &entities.NetOptions{},
+		CGroupsMode:  ctrConfig.Cgroups(),
+		Devices:      ctrConfig.Devices(),
+		Env:          ctrConfig.Env(),
+		Ulimit:       ctrConfig.Ulimits(),
+		InitPath:     ctrConfig.InitPath(),
+		Pull:         ctrConfig.Engine.PullPolicy,
+		SdNotifyMode: define.SdNotifyModeContainer,
+		ShmSize:      ctrConfig.ShmSize(),
+		StopTimeout:  ctrConfig.Engine.StopTimeout,
+		Systemd:  "true",
+		Timezone: ctrConfig.TZ(),
+		Umask:    ctrConfig.Umask(),
+		UserNS:   os.Getenv("PODMAN_USERNS"),
+		Volume:   ctrConfig.Volumes(),
+		SeccompPolicy: "default",
 	}
 
-	if af := cliVals.Authfile; len(af) > 0 {
-		if _, err := os.Stat(af); err != nil {
-			return err
-		}
-	}
+	ctrOpts.Env = append(ctrOpts.Env, fmt.Sprintf("PODMAN_SCAN_MOUNT=%s", mountTarget))
 
 	s := specgen.NewSpecGenerator(scanOptions.ScannerImage, false)
-	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
+	if err := common.FillOutSpecGen(s, &ctrOpts, args); err != nil {
 		return err
 	}
+
 	s.RawImageName = scanOptions.ScannerImage
-	scanOptions.Spec = s
+	s.Terminal = true
 
-	// TODO: support templating in config
-	// now force the scanner to use the mount as the first argument
-	s.Command = append([]string{"dir:"+mountTarget}, s.Command...)
-
-	if _, err := createPodIfNecessary(s, cliVals.Net); err != nil {
-		return err
+	runOpts := entities.ContainerRunOptions{
+		OutputStream: os.Stdout,
+		ErrorStream:  os.Stderr,
+		InputStream:  os.Stdin,
+		Rm:           true,
+		Spec:         s,
+		SigProxy:     true,
+		DetachKeys:   ctrConfig.DetachKeys(),
 	}
 
-	report, err := registry.ContainerEngine().ContainerRun(registry.GetContext(), scanOptions.ContainerRunOptions)
+	report, err := registry.ContainerEngine().ContainerRun(registry.GetContext(), runOpts)
 	// report.ExitCode is set by ContainerRun even it it returns an error
 	if report != nil {
 		registry.SetExitCode(report.ExitCode)
@@ -120,37 +108,10 @@ func scan(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if scanOptions.Detach {
+	if runOpts.Detach {
 		fmt.Println(report.Id)
 		return nil
 	}
 	return nil
 
 }
-
-// createPodIfNecessary automatically creates a pod when requested.  if the pod name
-// has the form new:ID, the pod ID is created and the name in the spec generator is replaced
-// with ID.
-func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions) (*entities.PodCreateReport, error) {
-	if !strings.HasPrefix(s.Pod, "new:") {
-		return nil, nil
-	}
-	podName := strings.Replace(s.Pod, "new:", "", 1)
-	if len(podName) < 1 {
-		return nil, errors.Errorf("new pod name must be at least one character")
-	}
-	createOptions := entities.PodCreateOptions{
-		Name:          podName,
-		Infra:         true,
-		Net:           netOpts,
-		CreateCommand: os.Args,
-		Hostname:      s.ContainerBasicConfig.Hostname,
-	}
-	// Unset config values we passed to the pod to prevent them being used twice for the container and pod.
-	s.ContainerBasicConfig.Hostname = ""
-	s.ContainerNetworkConfig = specgen.ContainerNetworkConfig{}
-
-	s.Pod = podName
-	return registry.ContainerEngine().PodCreate(context.Background(), createOptions)
-}
-
