@@ -115,10 +115,10 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writer := channel.NewWriter(make(chan []byte, 1))
+	writer := channel.NewWriter(make(chan []byte))
 	defer writer.Close()
 
-	stderr := channel.NewWriter(make(chan []byte, 1))
+	stderr := channel.NewWriter(make(chan []byte))
 	defer stderr.Close()
 
 	images := make([]string, 0, len(imagesToPull))
