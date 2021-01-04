@@ -215,12 +215,7 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 	if fInfo.IsDir() {
 		return nil, errors.Errorf("remote client supports archives only but %q is a directory", opts.Input)
 	}
-	ref := opts.Name
-	if len(opts.Tag) > 0 {
-		ref += ":" + opts.Tag
-	}
-	options := new(images.LoadOptions).WithReference(ref)
-	return images.Load(ir.ClientCtx, f, options)
+	return images.Load(ir.ClientCtx, f)
 }
 
 func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {

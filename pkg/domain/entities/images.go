@@ -256,8 +256,6 @@ type ImageInspectReport struct {
 }
 
 type ImageLoadOptions struct {
-	Name            string
-	Tag             string
 	Input           string
 	Quiet           bool
 	SignaturePolicy string

@@ -797,10 +797,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// summary: Load image
 	// description: Load an image (oci-archive or docker-archive) stream.
 	// parameters:
-	//   - in: query
-	//     name: reference
-	//     description: "Optional Name[:TAG] for the image"
-	//     type: string
 	//   - in: formData
 	//     name: upload
 	//     description: tarball of container image

@@ -113,20 +113,13 @@ func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*
 	return history, response.Process(&history)
 }
 
-func Load(ctx context.Context, r io.Reader, options *LoadOptions) (*entities.ImageLoadReport, error) {
-	if options == nil {
-		options = new(LoadOptions)
-	}
+func Load(ctx context.Context, r io.Reader) (*entities.ImageLoadReport, error) {
 	var report entities.ImageLoadReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params, err := options.ToParams()
-	if err != nil {
-		return nil, err
-	}
-	response, err := conn.DoRequest(r, http.MethodPost, "/images/load", params, nil)
+	response, err := conn.DoRequest(r, http.MethodPost, "/images/load", nil, nil)
 	if err != nil {
 		return nil, err
 	}
