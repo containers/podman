@@ -13,10 +13,10 @@ import (
 
 var _ = Describe("Podman systemd", func() {
 	var (
-		tempdir           string
-		err               error
-		podmanTest        *PodmanTestIntegration
-		systemd_unit_file string
+		tempdir         string
+		err             error
+		podmanTest      *PodmanTestIntegration
+		systemdUnitFile string
 	)
 
 	BeforeEach(func() {
@@ -27,7 +27,7 @@ var _ = Describe("Podman systemd", func() {
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
 		podmanTest.SeedImages()
-		systemd_unit_file = `[Unit]
+		systemdUnitFile = `[Unit]
 Description=redis container
 [Service]
 Restart=always
@@ -50,7 +50,7 @@ WantedBy=multi-user.target
 		SkipIfRootless("rootless can not write to /etc")
 		SkipIfContainerized("test does not have systemd as pid 1")
 
-		sys_file := ioutil.WriteFile("/etc/systemd/system/redis.service", []byte(systemd_unit_file), 0644)
+		sys_file := ioutil.WriteFile("/etc/systemd/system/redis.service", []byte(systemdUnitFile), 0644)
 		Expect(sys_file).To(BeNil())
 		defer func() {
 			stop := SystemExec("bash", []string{"-c", "systemctl stop redis"})
@@ -129,6 +129,21 @@ WantedBy=multi-user.target
 		conData := result.InspectContainerToJSON()
 		Expect(len(conData)).To(Equal(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+	})
+
+	It("podman create container with --uidmap and conmon PidFile accessible", func() {
+		ctrName := "testCtrUidMap"
+		run := podmanTest.Podman([]string{"run", "-d", "--uidmap=0:1:1000", "--name", ctrName, ALPINE, "top"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"inspect", "--format", "{{.ConmonPidFile}}", ctrName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		pidFile := strings.TrimSuffix(session.OutputToString(), "\n")
+		_, err := ioutil.ReadFile(pidFile)
+		Expect(err).To(BeNil())
 	})
 
 	It("podman create container with systemd=always triggers systemd mode", func() {
