@@ -119,6 +119,21 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.ExitCode()).To(Equal(100))
 	})
 
+	It("podman exec --privileged", func() {
+		hostCap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
+		Expect(hostCap.ExitCode()).To(Equal(0))
+
+		setup := podmanTest.RunTopContainer("test-privileged")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "--privileged", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		containerCapMatchesHost(session.OutputToString(), hostCap.OutputToString())
+	})
+
 	It("podman exec terminal doesn't hang", func() {
 		setup := podmanTest.Podman([]string{"run", "-dti", "--name", "test1", fedoraMinimal, "sleep", "+Inf"})
 		setup.WaitWithDefaultTimeout()

@@ -16,22 +16,22 @@ import (
 // know about at compile time. That is: the kernel may have more caps
 // available than we are aware of, leading to host=FFF... and ctr=3FF...
 // because the latter is all we request. Accept that.
-func containerCapMatchesHost(ctr_cap string, host_cap string) {
+func containerCapMatchesHost(ctrCap string, hostCap string) {
 	if isRootless() {
 		return
 	}
-	ctr_cap_n, err := strconv.ParseUint(ctr_cap, 16, 64)
-	Expect(err).NotTo(HaveOccurred(), "Error parsing %q as hex", ctr_cap)
+	ctrCap_n, err := strconv.ParseUint(ctrCap, 16, 64)
+	Expect(err).NotTo(HaveOccurred(), "Error parsing %q as hex", ctrCap)
 
-	host_cap_n, err := strconv.ParseUint(host_cap, 16, 64)
-	Expect(err).NotTo(HaveOccurred(), "Error parsing %q as hex", host_cap)
+	hostCap_n, err := strconv.ParseUint(hostCap, 16, 64)
+	Expect(err).NotTo(HaveOccurred(), "Error parsing %q as hex", hostCap)
 
 	// host caps can never be zero (except rootless).
 	// and host caps must always be a superset (inclusive) of container
-	Expect(host_cap_n).To(BeNumerically(">", 0), "host cap %q should be nonzero", host_cap)
-	Expect(host_cap_n).To(BeNumerically(">=", ctr_cap_n), "host cap %q should never be less than container cap %q", host_cap, ctr_cap)
-	host_cap_masked := host_cap_n & (1<<len(capability.List()) - 1)
-	Expect(ctr_cap_n).To(Equal(host_cap_masked), "container cap %q is not a subset of host cap %q", ctr_cap, host_cap)
+	Expect(hostCap_n).To(BeNumerically(">", 0), "host cap %q should be nonzero", hostCap)
+	Expect(hostCap_n).To(BeNumerically(">=", ctrCap_n), "host cap %q should never be less than container cap %q", hostCap, ctrCap)
+	hostCap_masked := hostCap_n & (1<<len(capability.List()) - 1)
+	Expect(ctrCap_n).To(Equal(hostCap_masked), "container cap %q is not a subset of host cap %q", ctrCap, hostCap)
 }
 
 var _ = Describe("Podman privileged container tests", func() {
@@ -68,38 +68,38 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman privileged CapEff", func() {
-		host_cap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
-		Expect(host_cap.ExitCode()).To(Equal(0))
+		hostCap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
+		Expect(hostCap.ExitCode()).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "--privileged", "busybox", "awk", "/^CapEff/ { print $2 }", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		containerCapMatchesHost(session.OutputToString(), host_cap.OutputToString())
+		containerCapMatchesHost(session.OutputToString(), hostCap.OutputToString())
 	})
 
 	It("podman cap-add CapEff", func() {
 		// Get caps of current process
-		host_cap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
-		Expect(host_cap.ExitCode()).To(Equal(0))
+		hostCap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
+		Expect(hostCap.ExitCode()).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "--cap-add", "all", "busybox", "awk", "/^CapEff/ { print $2 }", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		containerCapMatchesHost(session.OutputToString(), host_cap.OutputToString())
+		containerCapMatchesHost(session.OutputToString(), hostCap.OutputToString())
 	})
 
 	It("podman cap-add CapEff with --user", func() {
 		// Get caps of current process
-		host_cap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
-		Expect(host_cap.ExitCode()).To(Equal(0))
+		hostCap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
+		Expect(hostCap.ExitCode()).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "--user=bin", "--cap-add", "all", "busybox", "awk", "/^CapEff/ { print $2 }", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		containerCapMatchesHost(session.OutputToString(), host_cap.OutputToString())
+		containerCapMatchesHost(session.OutputToString(), hostCap.OutputToString())
 	})
 
 	It("podman cap-drop CapEff", func() {
