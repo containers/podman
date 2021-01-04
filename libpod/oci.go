@@ -151,8 +151,6 @@ type OCIRuntime interface {
 type ExecOptions struct {
 	// Cmd is the command to execute.
 	Cmd []string
-	// CapAdd is a set of capabilities to add to the executed command.
-	CapAdd []string
 	// Env is a set of environment variables to add to the container.
 	Env map[string]string
 	// Terminal is whether to create a new TTY for the exec session.
@@ -181,6 +179,8 @@ type ExecOptions struct {
 	// ExitCommandDelay is a delay (in seconds) between the exec session
 	// exiting, and the exit command being invoked.
 	ExitCommandDelay uint
+	// Privileged indicates the execed process will be launched in Privileged mode
+	Privileged bool
 }
 
 // HTTPAttachStreams informs the HTTPAttach endpoint which of the container's

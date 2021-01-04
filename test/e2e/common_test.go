@@ -378,10 +378,17 @@ func GetRandomIPAddress() string {
 // RunTopContainer runs a simple container in the background that
 // runs top.  If the name passed != "", it will have a name
 func (p *PodmanTestIntegration) RunTopContainer(name string) *PodmanSessionIntegration {
+	return p.RunTopContainerWithArgs(name, nil)
+}
+
+// RunTopContainerWithArgs runs a simple container in the background that
+// runs top.  If the name passed != "", it will have a name, command args can also be passed in
+func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []string) *PodmanSessionIntegration {
 	var podmanArgs = []string{"run"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
+	podmanArgs = append(podmanArgs, args...)
 	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
 	return p.Podman(podmanArgs)
 }
@@ -538,12 +545,7 @@ func (p *PodmanTestIntegration) CreatePodWithLabels(name string, labels map[stri
 }
 
 func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSessionIntegration {
-	var podmanArgs = []string{"run", "--pod", pod}
-	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
-	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
-	return p.Podman(podmanArgs)
+	return p.RunTopContainerWithArgs(name, []string{"--pod", pod})
 }
 
 func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {

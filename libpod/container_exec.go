@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
@@ -973,20 +972,12 @@ func (c *Container) removeAllExecSessions() error {
 // Make an ExecOptions struct to start the OCI runtime and prepare its exec
 // bundle.
 func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
-	// TODO: check logic here - should we set Privileged if the container is
-	// privileged?
-	var capList []string
-	if session.Config.Privileged || c.config.Privileged {
-		capList = capabilities.AllCapabilities()
-	}
-
 	if err := c.createExecBundle(session.ID()); err != nil {
 		return nil, err
 	}
 
 	opts := new(ExecOptions)
 	opts.Cmd = session.Config.Command
-	opts.CapAdd = capList
 	opts.Env = session.Config.Environment
 	opts.Terminal = session.Config.Terminal
 	opts.Cwd = session.Config.WorkDir
@@ -995,6 +986,7 @@ func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
 	opts.DetachKeys = session.Config.DetachKeys
 	opts.ExitCommand = session.Config.ExitCommand
 	opts.ExitCommandDelay = session.Config.ExitCommandDelay
+	opts.Privileged = session.Config.Privileged
 
 	return opts, nil
 }

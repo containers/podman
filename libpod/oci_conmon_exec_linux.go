@@ -398,10 +398,6 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
 	}
 
-	for _, capability := range options.CapAdd {
-		args = append(args, formatRuntimeOpts("--cap", capability)...)
-	}
-
 	if options.Terminal {
 		args = append(args, "-t")
 	}
