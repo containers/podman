@@ -131,6 +131,21 @@ WantedBy=multi-user.target
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
 	})
 
+	It("podman create container with --uidmap and conmon PidFile accessible", func() {
+		ctrName := "testCtrUidMap"
+		run := podmanTest.Podman([]string{"run", "-d", "--uidmap=0:1:1000", "--name", ctrName, ALPINE, "top"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"inspect", "--format", "{{.ConmonPidFile}}", ctrName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		pidFile := strings.TrimSuffix(session.OutputToString(), "\n")
+		_, err := ioutil.ReadFile(pidFile)
+		Expect(err).To(BeNil())
+	})
+
 	It("podman create container with systemd=always triggers systemd mode", func() {
 		ctrName := "testCtr"
 		run := podmanTest.Podman([]string{"create", "--name", ctrName, "--systemd", "always", ALPINE})
