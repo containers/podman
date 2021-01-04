@@ -497,7 +497,7 @@ func (ir *Runtime) getLocalImage(inputName string) (string, *storage.Image, erro
 		return inputName, repoImage, nil
 	}
 
-	return "", nil, errors.Wrapf(ErrNoSuchImage, err.Error())
+	return "", nil, err
 }
 
 // ID returns the image ID as a string
