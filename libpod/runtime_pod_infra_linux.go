@@ -159,6 +159,34 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 		g.AddMount(devPts)
 	}
 
+	// Add default sysctls from containers.conf
+	defaultSysctls, err := util.ValidateSysctls(r.config.Sysctls())
+	if err != nil {
+		return nil, err
+	}
+	for sysctlKey, sysctlVal := range defaultSysctls {
+		// Ignore mqueue sysctls if not sharing IPC
+		if !p.config.UsePodIPC && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
+			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since IPC Namespace for pod is unused", sysctlKey, sysctlVal)
+
+			continue
+		}
+
+		// Ignore net sysctls if host network or not sharing network
+		if (p.config.InfraContainer.HostNetwork || !p.config.UsePodNet) && strings.HasPrefix(sysctlKey, "net.") {
+			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since Network Namespace for pod is unused", sysctlKey, sysctlVal)
+			continue
+		}
+
+		// Ignore uts sysctls if not sharing UTS
+		if !p.config.UsePodUTS && (strings.HasPrefix(sysctlKey, "kernel.domainname") || strings.HasPrefix(sysctlKey, "kernel.hostname")) {
+			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since UTS Namespace for pod is unused", sysctlKey, sysctlVal)
+			continue
+		}
+
+		g.AddLinuxSysctl(sysctlKey, sysctlVal)
+	}
+
 	containerName := p.ID()[:IDTruncLength] + "-infra"
 	options = append(options, r.WithPod(p))
 	options = append(options, WithRootFSFromImage(imgID, imgName, rawImageName))
