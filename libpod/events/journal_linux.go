@@ -84,7 +84,11 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	if err != nil {
 		return err
 	}
-
+	defer func() {
+		if err := j.Close(); err != nil {
+			logrus.Errorf("Unable to close journal :%v", err)
+		}
+	}()
 	// match only podman journal entries
 	podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"}
 	if err := j.AddMatch(podmanJournal.String()); err != nil {
@@ -112,7 +116,6 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get journal cursor")
 	}
-
 	for {
 		select {
 		case <-ctx.Done():
