@@ -529,13 +529,36 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	// Hostname handling:
+	// If we have a UTS namespace, set Hostname in the OCI spec.
+	// Set the HOSTNAME environment variable unless explicitly overridden by
+	// the user (already present in OCI spec). If we don't have a UTS ns,
+	// set it to the host's hostname instead.
+	hostname := c.Hostname()
+	foundUTS := false
 	for _, i := range c.config.Spec.Linux.Namespaces {
 		if i.Type == spec.UTSNamespace && i.Path == "" {
-			hostname := c.Hostname()
+			foundUTS = true
 			g.SetHostname(hostname)
-			g.AddProcessEnv("HOSTNAME", hostname)
 			break
 		}
+	}
+	if !foundUTS {
+		tmpHostname, err := os.Hostname()
+		if err != nil {
+			return nil, err
+		}
+		hostname = tmpHostname
+	}
+	needEnv := true
+	for _, checkEnv := range g.Config.Process.Env {
+		if strings.SplitN(checkEnv, "=", 2)[0] == "HOSTNAME" {
+			needEnv = false
+			break
+		}
+	}
+	if needEnv {
+		g.AddProcessEnv("HOSTNAME", hostname)
 	}
 
 	if c.config.UTSNsCtr != "" {

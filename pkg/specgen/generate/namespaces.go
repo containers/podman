@@ -364,7 +364,9 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 		// namespaces?
 		g.SetHostname(hostname)
 	}
-	g.AddProcessEnv("HOSTNAME", hostname)
+	if _, ok := s.Env["HOSTNAME"]; !ok && s.Hostname != "" {
+		g.AddProcessEnv("HOSTNAME", hostname)
+	}
 
 	// User
 	switch s.UserNS.NSMode {
