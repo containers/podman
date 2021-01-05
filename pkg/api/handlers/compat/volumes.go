@@ -269,9 +269,9 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	prunedIds := make([]string, 0, len(pruned))
-	for k := range pruned {
+	for _, v := range pruned {
 		// XXX: This drops any pruning per-volume error messages on the floor
-		prunedIds = append(prunedIds, k)
+		prunedIds = append(prunedIds, v.Id)
 	}
 	pruneResponse := docker_api_types.VolumesPruneReport{
 		VolumesDeleted: prunedIds,

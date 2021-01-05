@@ -390,13 +390,6 @@ type ContainerPruneOptions struct {
 	Filters url.Values `json:"filters" schema:"filters"`
 }
 
-// ContainerPruneReport describes the results after pruning the
-// stopped containers.
-type ContainerPruneReport struct {
-	ID  map[string]int64
-	Err map[string]error
-}
-
 // ContainerPortOptions describes the options to obtain
 // port information on containers
 type ContainerPortOptions struct {

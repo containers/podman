@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/pkg/errors"
 )
 
@@ -133,22 +134,32 @@ func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
 }
 
 // PruneVolumes removes unused volumes from the system
-func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) (map[string]error, error) {
-	reports := make(map[string]error)
+func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) ([]*reports.PruneReport, error) {
+	preports := make([]*reports.PruneReport, 0)
 	vols, err := r.Volumes(filterFuncs...)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, vol := range vols {
+		report := new(reports.PruneReport)
+		volSize, err := vol.Size()
+		if err != nil {
+			volSize = 0
+		}
+		report.Size = volSize
+		report.Id = vol.Name()
 		if err := r.RemoveVolume(ctx, vol, false); err != nil {
 			if errors.Cause(err) != define.ErrVolumeBeingUsed && errors.Cause(err) != define.ErrVolumeRemoved {
-				reports[vol.Name()] = err
+				report.Err = err
+			} else {
+				// We didn't remove the volume for some reason
+				continue
 			}
-			continue
+		} else {
+			vol.newVolumeEvent(events.Prune)
 		}
-		vol.newVolumeEvent(events.Prune)
-		reports[vol.Name()] = nil
+		preports = append(preports, report)
 	}
-	return reports, nil
+	return preports, nil
 }

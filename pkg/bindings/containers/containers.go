@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -49,11 +50,11 @@ func List(ctx context.Context, options *ListOptions) ([]entities.ListContainer, 
 // used for more granular selection of containers.  The main error returned indicates if there were runtime
 // errors like finding containers.  Errors specific to the removal of a container are in the PruneContainerResponse
 // structure.
-func Prune(ctx context.Context, options *PruneOptions) (*entities.ContainerPruneReport, error) {
+func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, error) {
 	if options == nil {
 		options = new(PruneOptions)
 	}
-	var reports *entities.ContainerPruneReport
+	var reports []*reports.PruneReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

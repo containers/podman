@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v2/libpod/events"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/timetype"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -110,7 +111,8 @@ func (ir *Runtime) GetPruneImages(ctx context.Context, all bool, filterFuncs []I
 
 // PruneImages prunes dangling and optionally all unused images from the local
 // image store
-func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) ([]string, error) {
+func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) ([]*reports.PruneReport, error) {
+	preports := make([]*reports.PruneReport, 0)
 	filterFuncs := make([]ImageFilter, 0, len(filter))
 	for _, f := range filter {
 		filterSplit := strings.SplitN(f, "=", 2)
@@ -125,7 +127,6 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 
-	pruned := []string{}
 	prev := 0
 	for {
 		toPrune, err := ir.GetPruneImages(ctx, all, filterFuncs)
@@ -143,6 +144,13 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 			if err != nil {
 				return nil, err
 			}
+			nameOrID := img.ID()
+			s, err := img.Size(ctx)
+			imgSize := *s
+			if err != nil {
+				logrus.Warnf("Failed to collect image size for: %s, %s", nameOrID, err)
+				imgSize = 0
+			}
 			if err := img.Remove(ctx, false); err != nil {
 				if errors.Cause(err) == storage.ErrImageUsedByContainer {
 					logrus.Warnf("Failed to prune image %s as it is in use: %v.\nA container associated with containers/storage (e.g., Buildah, CRI-O, etc.) maybe associated with this image.\nUsing the rmi command with the --force option will remove the container and image, but may cause failures for other dependent systems.", img.ID(), err)
@@ -151,13 +159,18 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 				return nil, errors.Wrap(err, "failed to prune image")
 			}
 			defer img.newImageEvent(events.Prune)
-			nameOrID := img.ID()
+
 			if len(repotags) > 0 {
 				nameOrID = repotags[0]
 			}
-			pruned = append(pruned, nameOrID)
+
+			preports = append(preports, &reports.PruneReport{
+				Id:   nameOrID,
+				Err:  nil,
+				Size: uint64(imgSize),
+			})
 		}
 
 	}
-	return pruned, nil
+	return preports, nil
 }

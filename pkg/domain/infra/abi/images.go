@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v2/libpod/image"
 	libpodImage "github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	domainUtils "github.com/containers/podman/v2/pkg/domain/utils"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
@@ -49,19 +50,12 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.Boo
 	return &entities.BoolReport{Value: err == nil}, nil
 }
 
-func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) (*entities.ImagePruneReport, error) {
-	results, err := ir.Libpod.ImageRuntime().PruneImages(ctx, opts.All, opts.Filter)
+func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
+	reports, err := ir.Libpod.ImageRuntime().PruneImages(ctx, opts.All, opts.Filter)
 	if err != nil {
 		return nil, err
 	}
-
-	report := entities.ImagePruneReport{
-		Report: entities.Report{
-			Id:  results,
-			Err: nil,
-		},
-	}
-	return &report, nil
+	return reports, err
 }
 
 func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {

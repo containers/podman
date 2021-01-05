@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	dfilters "github.com/containers/podman/v2/pkg/domain/filters"
+	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 )
 
@@ -90,7 +91,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 		return err
 	}
 	// Print container prune results
-	err = utils.PrintContainerPruneResults(response.ContainerPruneReport, true)
+	err = utils.PrintContainerPruneResults(response.ContainerPruneReports, true)
 	if err != nil {
 		return err
 	}
@@ -101,11 +102,17 @@ Are you sure you want to continue? [y/N] `, volumeString)
 	}
 	// Print Volume prune results
 	if pruneOptions.Volume {
-		err = utils.PrintVolumePruneResults(response.VolumePruneReport, true)
+		err = utils.PrintVolumePruneResults(response.VolumePruneReports, true)
 		if err != nil {
 			return err
 		}
 	}
 	// Print Images prune results
-	return utils.PrintImagePruneResults(response.ImagePruneReport, true)
+	err = utils.PrintImagePruneResults(response.ImagePruneReports, true)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Total reclaimed space: %s\n", units.HumanSize((float64)(response.ReclaimedSpace)))
+	return nil
 }

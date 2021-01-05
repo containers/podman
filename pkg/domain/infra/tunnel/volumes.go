@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/podman/v2/pkg/bindings/volumes"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/pkg/errors"
 )
 
@@ -69,7 +70,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	return reports, errs, nil
 }
 
-func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.VolumePruneOptions) ([]*entities.VolumePruneReport, error) {
+func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.VolumePruneOptions) ([]*reports.PruneReport, error) {
 	options := new(volumes.PruneOptions).WithFilters(opts.Filters)
 	return volumes.Prune(ic.ClientCtx, options)
 }

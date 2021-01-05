@@ -156,12 +156,12 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cids, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, libpodFilters)
+	imagePruneReports, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, libpodFilters)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, cids)
+	utils.WriteResponse(w, http.StatusOK, imagePruneReports)
 }
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {

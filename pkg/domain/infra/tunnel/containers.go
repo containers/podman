@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/bindings/containers"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
@@ -196,7 +197,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerPrune(ctx context.Context, opts entities.ContainerPruneOptions) (*entities.ContainerPruneReport, error) {
+func (ic *ContainerEngine) ContainerPrune(ctx context.Context, opts entities.ContainerPruneOptions) ([]*reports.PruneReport, error) {
 	options := new(containers.PruneOptions).WithFilters(opts.Filters)
 	return containers.Prune(ic.ClientCtx, options)
 }

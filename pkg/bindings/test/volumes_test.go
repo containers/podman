@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v2/pkg/bindings/containers"
 	"github.com/containers/podman/v2/pkg/bindings/volumes"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -166,7 +167,7 @@ var _ = Describe("Podman volumes", func() {
 		session.Wait(45)
 		vols, err = volumes.Prune(connText, nil)
 		Expect(err).To(BeNil())
-		Expect(len(vols)).To(BeNumerically("==", 1))
+		Expect(len(reports.PruneReportsIds(vols))).To(BeNumerically("==", 1))
 		_, err = volumes.Inspect(connText, "homer", nil)
 		Expect(err).To(BeNil())
 

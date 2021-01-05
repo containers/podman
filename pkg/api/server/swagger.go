@@ -4,6 +4,7 @@ import (
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 )
 
 // No such image
@@ -170,7 +171,7 @@ type ok struct {
 // swagger:response VolumePruneResponse
 type swagVolumePruneResponse struct {
 	// in:body
-	Body []entities.VolumePruneReport
+	Body []reports.PruneReport
 }
 
 // Volume create response

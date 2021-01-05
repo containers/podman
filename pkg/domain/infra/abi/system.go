@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/podman/v2/utils"
@@ -170,6 +171,7 @@ func checkInput() error { // nolint:deadcode,unused
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)
 	var filters []string
+	reclaimedSpace := (uint64)(0)
 	found := true
 	for found {
 		found = false
@@ -186,42 +188,26 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 		containerPruneOptions := entities.ContainerPruneOptions{}
 		containerPruneOptions.Filters = (url.Values)(options.Filters)
 
-		containerPruneReport, err := ic.ContainerPrune(ctx, containerPruneOptions)
+		containerPruneReports, err := ic.ContainerPrune(ctx, containerPruneOptions)
 		if err != nil {
 			return nil, err
 		}
-		if len(containerPruneReport.ID) > 0 {
-			found = true
-		}
-		if systemPruneReport.ContainerPruneReport == nil {
-			systemPruneReport.ContainerPruneReport = containerPruneReport
-		} else {
-			for name, val := range containerPruneReport.ID {
-				systemPruneReport.ContainerPruneReport.ID[name] = val
-			}
-		}
+		reclaimedSpace = reclaimedSpace + reports.PruneReportsSize(containerPruneReports)
+		systemPruneReport.ContainerPruneReports = append(systemPruneReport.ContainerPruneReports, containerPruneReports...)
 		for k, v := range options.Filters {
 			filters = append(filters, fmt.Sprintf("%s=%s", k, v[0]))
 		}
-		results, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, filters)
+		imagePruneReports, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, filters)
+		reclaimedSpace = reclaimedSpace + reports.PruneReportsSize(imagePruneReports)
 
 		if err != nil {
 			return nil, err
 		}
-		if len(results) > 0 {
+		if len(imagePruneReports) > 0 {
 			found = true
 		}
 
-		if systemPruneReport.ImagePruneReport == nil {
-			systemPruneReport.ImagePruneReport = &entities.ImagePruneReport{
-				Report: entities.Report{
-					Id:  results,
-					Err: nil,
-				},
-			}
-		} else {
-			systemPruneReport.ImagePruneReport.Report.Id = append(systemPruneReport.ImagePruneReport.Report.Id, results...)
-		}
+		systemPruneReport.ImagePruneReports = append(systemPruneReport.ImagePruneReports, imagePruneReports...)
 		if options.Volume {
 			volumePruneOptions := entities.VolumePruneOptions{}
 			volumePruneOptions.Filters = (url.Values)(options.Filters)
@@ -232,9 +218,11 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			if len(volumePruneReport) > 0 {
 				found = true
 			}
-			systemPruneReport.VolumePruneReport = append(systemPruneReport.VolumePruneReport, volumePruneReport...)
+			reclaimedSpace = reclaimedSpace + reports.PruneReportsSize(volumePruneReport)
+			systemPruneReport.VolumePruneReports = append(systemPruneReport.VolumePruneReports, volumePruneReport...)
 		}
 	}
+	systemPruneReport.ReclaimedSpace = reclaimedSpace
 	return systemPruneReport, nil
 }
 
