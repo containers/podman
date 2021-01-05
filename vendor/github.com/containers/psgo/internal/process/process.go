@@ -31,9 +31,9 @@ type Process struct {
 	Pid string
 	// Stat contains data from /proc/$pid/stat.
 	Stat proc.Stat
-	// Status containes data from /proc/$pid/status.
+	// Status contains data from /proc/$pid/status.
 	Status proc.Status
-	// CmdLine containes data from /proc/$pid/cmdline.
+	// CmdLine contains data from /proc/$pid/cmdline.
 	CmdLine []string
 	// Label containers data from /proc/$pid/attr/current.
 	Label string

@@ -113,8 +113,9 @@ func TTYs() (*[]TTY, error) {
 		}
 		s := fi.Sys().(*syscall.Stat_t)
 		t := TTY{
-			Minor: minDevNum(s.Rdev),
-			Major: majDevNum(s.Rdev),
+			// Rdev is type uint32 on mips arch so we have to cast to uint64
+			Minor: minDevNum(uint64(s.Rdev)),
+			Major: majDevNum(uint64(s.Rdev)),
 			Path:  dev,
 		}
 		ttys = append(ttys, t)
