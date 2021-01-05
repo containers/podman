@@ -11,6 +11,11 @@ import (
 // is set to the unit's (unique) name.
 const EnvVariable = "PODMAN_SYSTEMD_UNIT"
 
+// minTimeoutStopSec is the minimal stop timeout for generated systemd units.
+// Once exceeded, processes of the services are killed and the cgroup(s) are
+// cleaned up.
+const minTimeoutStopSec = 60
+
 // RestartPolicies includes all valid restart policies to be used in a unit
 // file.
 var RestartPolicies = []string{"no", "on-success", "on-failure", "on-abnormal", "on-watchdog", "on-abort", "always"}

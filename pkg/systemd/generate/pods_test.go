@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValidateRestartPolicyPod(t *testing.T) {
@@ -50,11 +51,11 @@ Before=container-1.service container-2.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
-ExecStop=/usr/bin/podman stop -t 10 jadda-jadda-infra
-ExecStopPost=/usr/bin/podman stop -t 10 jadda-jadda-infra
+ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
+ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
 PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -75,13 +76,13 @@ Before=container-1.service container-2.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
+TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo "bar=arg with space" --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
 ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
 PIDFile=%t/pod-123abc.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -102,7 +103,7 @@ WantedBy=multi-user.target default.target
 				InfraNameOrID:    "jadda-jadda-infra",
 				RestartPolicy:    "always",
 				PIDFile:          "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:      10,
+				StopTimeout:      42,
 				PodmanVersion:    "CI",
 				RequiredServices: []string{"container-1", "container-2"},
 			},
@@ -139,9 +140,7 @@ WantedBy=multi-user.target default.target
 				t.Errorf("CreatePodSystemdUnit() error = \n%v, wantErr \n%v", err, test.wantErr)
 				return
 			}
-			if got != test.want {
-				t.Errorf("CreatePodSystemdUnit() = \n%v\n---------> want\n%v", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }

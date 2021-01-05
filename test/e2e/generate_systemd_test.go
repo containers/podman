@@ -74,6 +74,9 @@ var _ = Describe("Podman generate systemd", func() {
 
 		found, _ := session.GrepString(" stop -t 1234 ")
 		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("TimeoutStopSec=1294")
+		Expect(found).To(BeTrue())
 	})
 
 	It("podman generate systemd", func() {
