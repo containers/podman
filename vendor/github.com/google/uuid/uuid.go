@@ -37,7 +37,7 @@ var rander = rand.Reader // random function
 
 type invalidLengthError struct{ len int }
 
-func (err *invalidLengthError) Error() string {
+func (err invalidLengthError) Error() string {
 	return fmt.Sprintf("invalid UUID length: %d", err.len)
 }
 
@@ -74,7 +74,7 @@ func Parse(s string) (UUID, error) {
 		}
 		return uuid, nil
 	default:
-		return uuid, &invalidLengthError{len(s)}
+		return uuid, invalidLengthError{len(s)}
 	}
 	// s is now at least 36 bytes long
 	// it must be of the form  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -118,7 +118,7 @@ func ParseBytes(b []byte) (UUID, error) {
 		}
 		return uuid, nil
 	default:
-		return uuid, &invalidLengthError{len(b)}
+		return uuid, invalidLengthError{len(b)}
 	}
 	// s is now at least 36 bytes long
 	// it must be of the form  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
