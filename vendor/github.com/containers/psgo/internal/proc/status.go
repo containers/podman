@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Status is a direct translation of a `/proc/[pid]/status`, wich provides much
+// Status is a direct translation of a `/proc/[pid]/status`, which provides much
 // of the information in /proc/[pid]/stat and /proc/[pid]/statm in a format
 // that's easier for humans to parse.
 type Status struct {

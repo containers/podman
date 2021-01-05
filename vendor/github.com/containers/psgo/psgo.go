@@ -482,7 +482,7 @@ func JoinNamespaceAndProcessInfoByPidsWithOptions(pids []string, descriptors []s
 				// catch race conditions
 				continue
 			}
-			return nil, errors.Wrapf(err, "error extracing PID namespace")
+			return nil, errors.Wrapf(err, "error extracting PID namespace")
 		}
 		if _, exists := nsMap[ns]; !exists {
 			nsMap[ns] = true
@@ -759,7 +759,7 @@ func processVSZ(p *process.Process, ctx *psContext) (string, error) {
 }
 
 // parseCAP parses cap (a string bit mask) and returns the associated set of
-// capabilities.  If all capabilties are set, "full" is returned.  If no
+// capabilities.  If all capabilities are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
 func parseCAP(cap string) (string, error) {
 	mask, err := strconv.ParseUint(cap, 16, 64)
@@ -777,36 +777,36 @@ func parseCAP(cap string) (string, error) {
 	return strings.Join(caps, ","), nil
 }
 
-// processCAPAMB returns the set of ambient capabilties associated with
-// process p.  If all capabilties are set, "full" is returned.  If no
+// processCAPAMB returns the set of ambient capabilities associated with
+// process p.  If all capabilities are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
 func processCAPAMB(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapAmb)
 }
 
-// processCAPINH returns the set of inheritable capabilties associated with
-// process p.  If all capabilties are set, "full" is returned.  If no
+// processCAPINH returns the set of inheritable capabilities associated with
+// process p.  If all capabilities are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
 func processCAPINH(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapInh)
 }
 
-// processCAPPRM returns the set of permitted capabilties associated with
-// process p.  If all capabilties are set, "full" is returned.  If no
+// processCAPPRM returns the set of permitted capabilities associated with
+// process p.  If all capabilities are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
 func processCAPPRM(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapPrm)
 }
 
-// processCAPEFF returns the set of effective capabilties associated with
-// process p.  If all capabilties are set, "full" is returned.  If no
+// processCAPEFF returns the set of effective capabilities associated with
+// process p.  If all capabilities are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
 func processCAPEFF(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapEff)
 }
 
-// processCAPBND returns the set of bounding capabilties associated with
-// process p.  If all capabilties are set, "full" is returned.  If no
+// processCAPBND returns the set of bounding capabilities associated with
+// process p.  If all capabilities are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
 func processCAPBND(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapBnd)

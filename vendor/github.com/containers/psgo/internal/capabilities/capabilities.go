@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package capabilities provides a mapping from common kernel bit masks to the
-// alphanumerical represenation of kernel capabilities.  See capabilities(7)
+// alphanumerical representation of kernel capabilities.  See capabilities(7)
 // for additional information.
 package capabilities
 
