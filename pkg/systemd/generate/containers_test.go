@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValidateRestartPolicyContainer(t *testing.T) {
@@ -48,11 +49,11 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=82
 ExecStart=/usr/bin/podman start 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
-ExecStop=/usr/bin/podman stop -t 10 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
-ExecStopPost=/usr/bin/podman stop -t 10 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
+ExecStop=/usr/bin/podman stop -t 22 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
+ExecStopPost=/usr/bin/podman stop -t 22 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -71,11 +72,11 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -96,11 +97,11 @@ After=a.service b.service c.service pod.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -119,12 +120,12 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 42
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
 PIDFile=%t/jadda-jadda.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -143,12 +144,12 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 42
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
 PIDFile=%t/jadda-jadda.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -167,12 +168,12 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --pod-id-file /tmp/pod-foobar.pod-id-file --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 42
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
 PIDFile=%t/jadda-jadda.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -191,12 +192,12 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --replace --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 42
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
 PIDFile=%t/jadda-jadda.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -215,12 +216,12 @@ After=network-online.target
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
+TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.pid %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.ctr-id
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.pid --cidfile %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.ctr-id --cgroups=no-conmon -d awesome-image:latest
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.ctr-id
 PIDFile=%t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.pid
-KillMode=none
 Type=forking
 
 [Install]
@@ -242,7 +243,7 @@ WantedBy=multi-user.target default.target
 				ContainerNameOrID: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:       10,
+				StopTimeout:       22,
 				PodmanVersion:     "CI",
 				EnvVariable:       EnvVariable,
 			},
@@ -302,7 +303,7 @@ WantedBy=multi-user.target default.target
 				ContainerNameOrID: "jadda-jadda",
 				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:       42,
+				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN", "foo=arg \"with \" space"},
 				EnvVariable:       EnvVariable,
@@ -318,7 +319,7 @@ WantedBy=multi-user.target default.target
 				ContainerNameOrID: "jadda-jadda",
 				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:       42,
+				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 				EnvVariable:       EnvVariable,
@@ -334,7 +335,7 @@ WantedBy=multi-user.target default.target
 				ContainerNameOrID: "jadda-jadda",
 				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:       42,
+				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 				EnvVariable:       EnvVariable,
@@ -353,7 +354,7 @@ WantedBy=multi-user.target default.target
 				ContainerNameOrID: "jadda-jadda",
 				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:       42,
+				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "--detach", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 				EnvVariable:       EnvVariable,
@@ -390,9 +391,7 @@ WantedBy=multi-user.target default.target
 				t.Errorf("CreateContainerSystemdUnit() error = \n%v, wantErr \n%v", err, test.wantErr)
 				return
 			}
-			if got != test.want {
-				t.Errorf("CreateContainerSystemdUnit() = \n%v\n---------> want\n%v", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }

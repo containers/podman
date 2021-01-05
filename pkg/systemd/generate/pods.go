@@ -60,6 +60,8 @@ type podInfo struct {
 	ExecStartPre2 string
 	// ExecStart of the unit.
 	ExecStart string
+	// TimeoutStopSec of the unit.
+	TimeoutStopSec uint
 	// ExecStop of the unit.
 	ExecStop string
 	// ExecStopPost of the unit.
@@ -72,6 +74,7 @@ Before={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ 
 [Service]
 Environment={{.EnvVariable}}=%n
 Restart={{.RestartPolicy}}
+TimeoutStopSec={{.TimeoutStopSec}}
 {{- if .ExecStartPre1}}
 ExecStartPre={{.ExecStartPre1}}
 {{- end}}
@@ -82,7 +85,6 @@ ExecStart={{.ExecStart}}
 ExecStop={{.ExecStop}}
 ExecStopPost={{.ExecStopPost}}
 PIDFile={{.PIDFile}}
-KillMode=none
 Type=forking
 
 [Install]
@@ -298,6 +300,8 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		info.ExecStop = "{{.Executable}} pod stop --ignore --pod-id-file {{.PodIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
 		info.ExecStopPost = "{{.Executable}} pod rm --ignore -f --pod-id-file {{.PodIDFile}}"
 	}
+	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
+
 	if info.PodmanVersion == "" {
 		info.PodmanVersion = version.Version.String()
 	}

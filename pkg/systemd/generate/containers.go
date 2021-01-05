@@ -55,6 +55,8 @@ type containerInfo struct {
 	ExecStartPre string
 	// ExecStart of the unit.
 	ExecStart string
+	// TimeoutStopSec of the unit.
+	TimeoutStopSec uint
 	// ExecStop of the unit.
 	ExecStop string
 	// ExecStopPost of the unit.
@@ -74,6 +76,7 @@ After={{- range $index, $value := .BoundToServices -}}{{if $index}} {{end}}{{ $v
 [Service]
 Environment={{.EnvVariable}}=%n
 Restart={{.RestartPolicy}}
+TimeoutStopSec={{.TimeoutStopSec}}
 {{- if .ExecStartPre}}
 ExecStartPre={{.ExecStartPre}}
 {{- end}}
@@ -81,7 +84,6 @@ ExecStart={{.ExecStart}}
 ExecStop={{.ExecStop}}
 ExecStopPost={{.ExecStopPost}}
 PIDFile={{.PIDFile}}
-KillMode=none
 Type=forking
 
 [Install]
@@ -254,6 +256,8 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.ExecStop = "{{.Executable}} stop --ignore --cidfile {{.ContainerIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
 		info.ExecStopPost = "{{.Executable}} rm --ignore -f --cidfile {{.ContainerIDFile}}"
 	}
+
+	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
 
 	if info.PodmanVersion == "" {
 		info.PodmanVersion = version.Version.String()
