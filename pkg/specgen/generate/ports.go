@@ -107,7 +107,11 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 			var index uint16
 			for index = 0; index < len; index++ {
 				cPort := containerPort + index
-				hPort := hostPort + index
+				hPort := hostPort
+				// Only increment host port if it's not 0.
+				if hostPort != 0 {
+					hPort += index
+				}
 
 				if cPort == 0 {
 					return nil, nil, nil, errors.Errorf("container port cannot be 0")
@@ -162,8 +166,8 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 					tempMappings,
 					tempMapping{
 						mapping:      cniPort,
-						startOfRange: port.Range > 0 && index == 0,
-						isInRange:    port.Range > 0,
+						startOfRange: port.Range > 1 && index == 0,
+						isInRange:    port.Range > 1,
 					},
 				)
 			}
@@ -183,7 +187,7 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 		for _, tmp := range tempMappings {
 			p := tmp.mapping
 
-			if p.HostPort != 0 && !tmp.isInRange {
+			if p.HostPort != 0 {
 				remadeMappings = append(remadeMappings, p)
 				continue
 			}

@@ -7,14 +7,11 @@ import (
 	"context"
 	"io"
 	"path/filepath"
-	"runtime"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/env"
-	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/hashicorp/go-multierror"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -22,11 +19,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// Built from ../contrib/rootless-cni-infra.
-var rootlessCNIInfraImage = map[string]string{
-	"amd64": "quay.io/libpod/rootless-cni-infra@sha256:304742d5d221211df4ec672807a5842ff11e3729c50bc424ea0cea858f69d7b7", // 3-amd64
-}
 
 const (
 	rootlessCNIInfraContainerNamespace = "podman-system"
@@ -233,14 +225,13 @@ func ensureRootlessCNIInfraContainerRunning(ctx context.Context, r *Runtime) (*C
 }
 
 func startRootlessCNIInfraContainer(ctx context.Context, r *Runtime) (*Container, error) {
-	imageName, ok := rootlessCNIInfraImage[runtime.GOARCH]
-	if !ok {
-		return nil, errors.Errorf("cannot find rootless-podman-network-sandbox image for %s", runtime.GOARCH)
-	}
+	imageName := "rootless-cni-infra"
 	logrus.Debugf("rootless CNI: ensuring image %q to exist", imageName)
-	newImage, err := r.ImageRuntime().New(ctx, imageName, "", "", nil, nil,
-		image.SigningOptions{}, nil, util.PullImageMissing)
+	newImage, err := r.ImageRuntime().NewFromLocal(imageName)
 	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchImage {
+			return nil, errors.Errorf("rootless CNI infra image not present - please build image from https://github.com/containers/podman/blob/v2.2.1-rhel/contrib/rootless-cni-infra/ and tag as %q", imageName)
+		}
 		return nil, err
 	}
 	logrus.Debugf("rootless CNI: image %q is ready", imageName)
