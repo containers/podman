@@ -82,7 +82,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			if nll.Partial() {
 				partial += nll.Msg
 				continue
-			} else if !nll.Partial() && len(partial) > 1 {
+			} else if !nll.Partial() && len(partial) > 0 {
 				nll.Msg = partial + nll.Msg
 				partial = ""
 			}
