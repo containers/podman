@@ -236,6 +236,8 @@ type ContainerOverlayVolume struct {
 	Dest string `json:"dest"`
 	// Source specifies the source path of the mount.
 	Source string `json:"source,omitempty"`
+	// Options holds overlay volume options.
+	Options []string `json:"options,omitempty"`
 }
 
 // ContainerImageVolume is a volume based on a container image.  The container

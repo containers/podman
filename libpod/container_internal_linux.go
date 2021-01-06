@@ -23,7 +23,9 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
+	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/apparmor"
+	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/umask"
@@ -356,13 +358,28 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, err
 	}
 
-	// Check if the spec file mounts contain the label Relabel flags z or Z.
-	// If they do, relabel the source directory and then remove the option.
+	// Get host UID and GID based on the container process UID and GID.
+	hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), uint32(execUser.Uid), uint32(execUser.Gid))
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if the spec file mounts contain the options z, Z or U.
+	// If they have z or Z, relabel the source directory and then remove the option.
+	// If they have U, chown the source directory and them remove the option.
 	for i := range g.Config.Mounts {
 		m := &g.Config.Mounts[i]
 		var options []string
 		for _, o := range m.Options {
 			switch o {
+			case "U":
+				if m.Type == "tmpfs" {
+					options = append(options, []string{fmt.Sprintf("uid=%d", execUser.Uid), fmt.Sprintf("gid=%d", execUser.Gid)}...)
+				} else {
+					if err := chown.ChangeHostPathOwnership(m.Source, true, int(hostUID), int(hostGID)); err != nil {
+						return nil, err
+					}
+				}
 			case "z":
 				fallthrough
 			case "Z":
@@ -427,6 +444,21 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "mounting overlay failed %q", overlayVol.Source)
 		}
+
+		// Check overlay volume options
+		for _, o := range overlayVol.Options {
+			switch o {
+			case "U":
+				if err := chown.ChangeHostPathOwnership(overlayVol.Source, true, int(hostUID), int(hostGID)); err != nil {
+					return nil, err
+				}
+
+				if err := chown.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
+					return nil, err
+				}
+			}
+		}
+
 		g.AddMount(overlayMount)
 	}
 

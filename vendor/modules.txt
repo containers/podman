@@ -95,6 +95,7 @@ github.com/containers/common/pkg/apparmor/internal/supported
 github.com/containers/common/pkg/auth
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/cgroupv2
+github.com/containers/common/pkg/chown
 github.com/containers/common/pkg/completion
 github.com/containers/common/pkg/config
 github.com/containers/common/pkg/parse
