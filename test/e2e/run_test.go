@@ -1415,4 +1415,12 @@ WORKDIR /madethis`
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 	})
+
+	It("podman run container with hostname and hostname environment variable", func() {
+		hostnameEnv := "test123"
+		session := podmanTest.Podman([]string{"run", "--hostname", "testctr", "--env", fmt.Sprintf("HOSTNAME=%s", hostnameEnv), ALPINE, "printenv", "HOSTNAME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(hostnameEnv))
+	})
 })
