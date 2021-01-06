@@ -177,8 +177,7 @@ var _ = Describe("Podman pod stats", func() {
 
 	It("podman stats on net=host post", func() {
 		// --net=host not supported for rootless pods at present
-		// problem with sysctls being passed to containers of the pod.
-		SkipIfCgroupV1("Bug: Error: sysctl net.ipv4.ping_group_range is not allowed in the hosts network namespace: OCI runtime error")
+		SkipIfRootlessCgroupsV1("Pause stats not supported in cgroups v1")
 		podName := "testPod"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--net=host", "--name", podName})
 		podCreate.WaitWithDefaultTimeout()
