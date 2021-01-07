@@ -305,6 +305,11 @@ Recognized formats include *oci* (OCI image-spec v1.0, the default) and
 Note: You can also override the default format by setting the BUILDAH\_FORMAT
 environment variable.  `export BUILDAH_FORMAT=docker`
 
+#### **--from**
+
+Overrides the first `FROM` instruction within the Containerfile.  If there are multiple
+FROM instructions in a Containerfile, only the first is changed.
+
 **-h**, **--help**
 
 Print usage statement
@@ -523,6 +528,12 @@ layers are not squashed.
 
 Squash all of the new image's layers (including those inherited from a base
 image) into a single new layer.
+
+#### **--stdin**
+
+Pass stdin into the RUN containers. Sometime commands being RUN within a Containerfile
+want to request information from the user. For example apt asking for a confirmation for install.
+Use --stdin to be able to interact from the terminal during the build.
 
 #### **--tag**, **-t**=*imageName*
 

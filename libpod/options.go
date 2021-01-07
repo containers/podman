@@ -306,7 +306,7 @@ func WithDefaultMountsFile(mountsFile string) RuntimeOption {
 
 // WithTmpDir sets the directory that temporary runtime files which are not
 // expected to survive across reboots will be stored.
-// This should be located on a tmpfs mount (/tmp or /var/run for example).
+// This should be located on a tmpfs mount (/tmp or /run for example).
 func WithTmpDir(dir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {

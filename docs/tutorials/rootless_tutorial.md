@@ -130,7 +130,7 @@ graphroot=""
  Default directory to store all writable content created by container storage programs.
 
 runroot=""
- container storage run dir (default: "/var/run/containers/storage")
+ container storage run dir (default: "/run/containers/storage")
  Default directory to store all temporary writable content created by container storage programs.
 ```
 In rootless podman these fields default to

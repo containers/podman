@@ -13,7 +13,7 @@
 // You can then use cURL on the socket using requests documented below.
 //
 // NOTE: if you install the package podman-docker, it will create a symbolic
-// link for /var/run/docker.sock to /run/podman/podman.sock
+// link for /run/docker.sock to /run/podman/podman.sock
 //
 // See podman-service(1) for more information.
 //
