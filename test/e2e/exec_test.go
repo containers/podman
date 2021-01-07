@@ -120,18 +120,200 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec --privileged", func() {
-		hostCap := SystemExec("awk", []string{"/^CapEff/ { print $2 }", "/proc/self/status"})
-		Expect(hostCap.ExitCode()).To(Equal(0))
+		session := podmanTest.Podman([]string{"run", "--privileged", "--rm", ALPINE, "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		bndPerms := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--privileged", "--rm", ALPINE, "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		effPerms := session.OutputToString()
 
 		setup := podmanTest.RunTopContainer("test-privileged")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"exec", "--privileged", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session = podmanTest.Podman([]string{"exec", "--privileged", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(effPerms))
 
-		containerCapMatchesHost(session.OutputToString(), hostCap.OutputToString())
+		session = podmanTest.Podman([]string{"exec", "--privileged", "test-privileged", "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
+
+	})
+
+	It("podman exec --privileged", func() {
+		session := podmanTest.Podman([]string{"run", "--privileged", "--user=bin", "--rm", ALPINE, "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		bndPerms := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--privileged", "--user=bin", "--rm", ALPINE, "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		effPerms := session.OutputToString()
+
+		setup := podmanTest.RunTopContainer("test-privileged")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "--user=bin", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(effPerms))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "--user=bin", "test-privileged", "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
+
+	})
+
+	It("podman exec --privileged", func() {
+		session := podmanTest.Podman([]string{"run", "--privileged", "--rm", ALPINE, "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		bndPerms := session.OutputToString()
+
+		setup := podmanTest.RunTopContainer("test-privileged")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "--user=bin", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000"))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "--user=bin", "test-privileged", "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
+	})
+
+	It("podman exec --privileged container not running as root", func() {
+		session := podmanTest.Podman([]string{"run", "--privileged", "--rm", ALPINE, "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		bndPerms := session.OutputToString()
+
+		setup := podmanTest.RunTopContainerWithArgs("test-privileged", []string{"--user=bin"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000"))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "--user=bin", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000"))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "--user=root", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "--user=bin", "test-privileged", "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
+	})
+
+	It("podman exec with user with cap-add", func() {
+		capAdd := "--cap-add=net_bind_service"
+		session := podmanTest.Podman([]string{"run", "--user=bin", capAdd, "--rm", ALPINE, "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		bndPerms := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--user=bin", capAdd, "--rm", ALPINE, "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		effPerms := session.OutputToString()
+
+		setup := podmanTest.RunTopContainerWithArgs("test-privileged", []string{"--user=bin", capAdd})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "test-privileged", "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
+
+		session = podmanTest.Podman([]string{"exec", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(effPerms))
+	})
+
+	It("podman exec with user with and cap-drop cap-add", func() {
+		capAdd := "--cap-add=net_bind_service"
+		capDrop := "--cap-drop=all"
+		session := podmanTest.Podman([]string{"run", "--user=bin", capDrop, capAdd, "--rm", ALPINE, "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		bndPerms := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--user=bin", capDrop, capAdd, "--rm", ALPINE, "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		effPerms := session.OutputToString()
+
+		setup := podmanTest.RunTopContainerWithArgs("test-privileged", []string{"--user=bin", capDrop, capAdd})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "test-privileged", "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "test-privileged", "sh", "-c", "grep ^CapInh /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(effPerms))
+
+		session = podmanTest.Podman([]string{"exec", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(effPerms))
+
+		session = podmanTest.Podman([]string{"exec", "test-privileged", "sh", "-c", "grep ^CapPrm /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(effPerms))
+
+		session = podmanTest.Podman([]string{"exec", "test-privileged", "sh", "-c", "grep ^CapAmb /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(effPerms))
+	})
+
+	It("podman exec --privileged with user", func() {
+		session := podmanTest.Podman([]string{"run", "--privileged", "--user=bin", "--rm", ALPINE, "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		bindPerms := session.OutputToString()
+
+		setup := podmanTest.RunTopContainerWithArgs("test-privileged", []string{"--privileged", "--user=bin"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "test-privileged", "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(bindPerms))
+
+		session = podmanTest.Podman([]string{"exec", "--privileged", "test-privileged", "sh", "-c", "grep ^CapEff /proc/self/status | cut -f 2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
 	})
 
 	It("podman exec terminal doesn't hang", func() {

@@ -22,6 +22,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
 	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v2/libpod/define"
@@ -1201,13 +1202,7 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 	}
 	pspec.SelinuxLabel = c.config.ProcessLabel
 	pspec.Args = options.Cmd
-	for _, cap := range options.CapAdd {
-		pspec.Capabilities.Bounding = append(pspec.Capabilities.Bounding, cap)
-		pspec.Capabilities.Effective = append(pspec.Capabilities.Effective, cap)
-		pspec.Capabilities.Inheritable = append(pspec.Capabilities.Inheritable, cap)
-		pspec.Capabilities.Permitted = append(pspec.Capabilities.Permitted, cap)
-		pspec.Capabilities.Ambient = append(pspec.Capabilities.Ambient, cap)
-	}
+
 	// We need to default this to false else it will inherit terminal as true
 	// from the container.
 	pspec.Terminal = false
@@ -1261,6 +1256,31 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 		}
 
 		pspec.User = processUser
+	}
+
+	ctrSpec, err := c.specFromState()
+	if err != nil {
+		return nil, err
+	}
+
+	allCaps := capabilities.AllCapabilities()
+	if options.Privileged {
+		pspec.Capabilities.Bounding = allCaps
+	} else {
+		pspec.Capabilities.Bounding = ctrSpec.Process.Capabilities.Bounding
+	}
+	if execUser.Uid == 0 {
+		pspec.Capabilities.Effective = pspec.Capabilities.Bounding
+		pspec.Capabilities.Inheritable = pspec.Capabilities.Bounding
+		pspec.Capabilities.Permitted = pspec.Capabilities.Bounding
+		pspec.Capabilities.Ambient = pspec.Capabilities.Bounding
+	} else {
+		if user == c.config.User {
+			pspec.Capabilities.Effective = ctrSpec.Process.Capabilities.Effective
+			pspec.Capabilities.Inheritable = ctrSpec.Process.Capabilities.Effective
+			pspec.Capabilities.Permitted = ctrSpec.Process.Capabilities.Effective
+			pspec.Capabilities.Ambient = ctrSpec.Process.Capabilities.Effective
+		}
 	}
 
 	hasHomeSet := false
