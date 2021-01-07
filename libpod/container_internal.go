@@ -758,7 +758,7 @@ func (c *Container) isStopped() (bool, error) {
 		return true, err
 	}
 
-	return !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused), nil
+	return !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopping), nil
 }
 
 // save container state to the database
@@ -1284,8 +1284,47 @@ func (c *Container) stop(timeout uint) error {
 		return err
 	}
 
+	// Set the container state to "stopping" and unlock the container
+	// before handing it over to conmon to unblock other commands.  #8501
+	// demonstrates nicely that a high stop timeout will block even simple
+	// commands such as `podman ps` from progressing if the container lock
+	// is held when busy-waiting for the container to be stopped.
+	c.state.State = define.ContainerStateStopping
+	if err := c.save(); err != nil {
+		return errors.Wrapf(err, "error saving container %s state before stopping", c.ID())
+	}
+	if !c.batched {
+		c.lock.Unlock()
+	}
+
 	if err := c.ociRuntime.StopContainer(c, timeout, all); err != nil {
 		return err
+	}
+
+	if !c.batched {
+		c.lock.Lock()
+		if err := c.syncContainer(); err != nil {
+			switch errors.Cause(err) {
+			// If the container has already been removed (e.g., via
+			// the cleanup process), there's nothing left to do.
+			case define.ErrNoSuchCtr, define.ErrCtrRemoved:
+				return nil
+			default:
+				return err
+			}
+		}
+	}
+
+	// Since we're now subject to a race condition with other processes who
+	// may have altered the state (and other data), let's check if the
+	// state has changed.  If so, we should return immediately and log a
+	// warning.
+	if c.state.State != define.ContainerStateStopping {
+		logrus.Warnf(
+			"Container %q state changed from %q to %q while waiting for it to be stopped: discontinuing stop procedure as another process interfered",
+			c.ID(), define.ContainerStateStopping, c.state.State,
+		)
+		return nil
 	}
 
 	c.newContainerEvent(events.Stop)
@@ -2094,7 +2133,7 @@ func (c *Container) sortUserVolumes(ctrSpec *spec.Spec) ([]*ContainerNamedVolume
 // Check for an exit file, and handle one if present
 func (c *Container) checkExitFile() error {
 	// If the container's not running, nothing to do.
-	if !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
+	if !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopping) {
 		return nil
 	}
 

@@ -28,6 +28,9 @@ const (
 	// ContainerStateRemoving indicates the container is in the process of
 	// being removed.
 	ContainerStateRemoving ContainerStatus = iota
+	// ContainerStateStopping indicates the container is in the process of
+	// being stopped.
+	ContainerStateStopping ContainerStatus = iota
 )
 
 // ContainerStatus returns a string representation for users
@@ -50,6 +53,8 @@ func (t ContainerStatus) String() string {
 		return "exited"
 	case ContainerStateRemoving:
 		return "removing"
+	case ContainerStateStopping:
+		return "stopping"
 	}
 	return "bad state"
 }

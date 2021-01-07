@@ -67,4 +67,32 @@ load helpers
     done
 }
 
+# Regression test for #8501
+@test "podman stop - unlock while waiting for timeout" {
+    # Test that the container state transitions to "stopping" and that other
+    # commands can get the container's lock.  To do that, run a container that
+    # ingores SIGTERM such that the Podman would wait 20 seconds for the stop
+    # to finish.  This gives us enough time to try some commands and inspect
+    # the container's status.
+
+    run_podman run --name stopme -d $IMAGE sh -c \
+        "trap 'echo Received SIGTERM, ignoring' SIGTERM; echo READY; while :; do sleep 1; done"
+
+    # Stop the container in the background
+    $PODMAN stop -t 20 stopme &
+
+    # Other commands can acquire the lock
+    run_podman ps -a
+
+    # The container state transitioned to "stopping"
+    run_podman inspect --format '{{.State.Status}}' stopme
+    is "$output" "stopping" "Status of container should be 'stopping'"
+
+    run_podman kill stopme
+
+    # Exit code should be 137 as it was killed
+    run_podman inspect --format '{{.State.ExitCode}}' stopme
+    is "$output" "137" "Exit code of killed container"
+}
+
 # vim: filetype=sh
