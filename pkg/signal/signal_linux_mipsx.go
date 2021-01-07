@@ -19,6 +19,8 @@ import (
 const (
 	sigrtmin = 34
 	sigrtmax = 127
+
+	SIGWINCH = syscall.SIGWINCH
 )
 
 // signalMap is a map of Linux signals.

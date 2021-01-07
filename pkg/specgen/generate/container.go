@@ -282,8 +282,8 @@ func finishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(statT.Rdev)))
-			v.Minor = (int64(unix.Minor(statT.Rdev)))
+			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
 			s.ResourceLimits.BlockIO.ThrottleReadBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleReadBpsDevice, v)
 		}
 	}
@@ -293,8 +293,8 @@ func finishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(statT.Rdev)))
-			v.Minor = (int64(unix.Minor(statT.Rdev)))
+			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
 			s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice, v)
 		}
 	}
@@ -304,8 +304,8 @@ func finishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(statT.Rdev)))
-			v.Minor = (int64(unix.Minor(statT.Rdev)))
+			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
 			s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice, v)
 		}
 	}
@@ -315,8 +315,8 @@ func finishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(statT.Rdev)))
-			v.Minor = (int64(unix.Minor(statT.Rdev)))
+			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
 			s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice, v)
 		}
 	}
