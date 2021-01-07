@@ -75,7 +75,7 @@ EOF
     is "$output" "/var/lib/containers/storage" "GraphRoot in expected place"
     GRAPH_ROOT="$output"
     run_podman info --format '{{.Store.RunRoot}}'
-    is "$output" "/var/run/containers/storage" "RunRoot in expected place"
+    is "$output" ".*/run/containers/storage" "RunRoot in expected place"
     RUN_ROOT="$output"
 
     # The main test: find all world-writable files or directories underneath

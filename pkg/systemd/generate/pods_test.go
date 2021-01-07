@@ -55,7 +55,7 @@ TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
 ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
-PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
+PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
 
 [Install]
@@ -102,7 +102,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:      "pod-123abc",
 				InfraNameOrID:    "jadda-jadda-infra",
 				RestartPolicy:    "always",
-				PIDFile:          "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      42,
 				PodmanVersion:    "CI",
 				RequiredServices: []string{"container-1", "container-2"},
@@ -117,7 +117,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:      "pod-123abc",
 				InfraNameOrID:    "jadda-jadda-infra",
 				RestartPolicy:    "on-failure",
-				PIDFile:          "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      10,
 				PodmanVersion:    "CI",
 				RequiredServices: []string{"container-1", "container-2"},

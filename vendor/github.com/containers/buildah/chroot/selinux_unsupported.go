@@ -1,4 +1,4 @@
-// +build !linux !selinux
+// +build !linux
 
 package chroot
 

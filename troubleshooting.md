@@ -344,7 +344,7 @@ After creating a container with Podman's storage directories mounted in from the
 
 When running Podman inside a container, it is recommended to mount at a minimum `/var/lib/containers/storage/` as a volume.
 Typically, you will not mount in the host version of the directory, but if you wish to share containers with the host, you can do so.
-If you do mount in the host's `/var/lib/containers/storage`, however, you must also mount in the host's `/var/run/libpod` and `/var/run/containers/storage` directories.
+If you do mount in the host's `/var/lib/containers/storage`, however, you must also mount in the host's `/run/libpod` and `/run/containers/storage` directories.
 Not doing this will cause Podman in the container to detect that temporary files have been cleared, leading it to assume a system restart has taken place.
 This can cause Podman to reset container states and lose track of running containers.
 

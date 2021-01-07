@@ -45,7 +45,7 @@ func getNSRunDir() (string, error) {
 		}
 		return filepath.Join(rootlessDir, "netns"), nil
 	}
-	return "/var/run/netns", nil
+	return "/run/netns", nil
 }
 
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
@@ -80,7 +80,7 @@ func NewNS() (ns.NetNS, error) {
 			return nil, fmt.Errorf("mount --make-rshared %s failed: %q", nsRunDir, err)
 		}
 
-		// Recursively remount /var/run/netns on itself. The recursive flag is
+		// Recursively remount /run/netns on itself. The recursive flag is
 		// so that any existing netns bindmounts are carried over.
 		err = unix.Mount(nsRunDir, nsRunDir, "none", unix.MS_BIND|unix.MS_REC, "")
 		if err != nil {

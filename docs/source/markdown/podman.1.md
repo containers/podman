@@ -122,7 +122,7 @@ Default root dir configured in `/etc/containers/storage.conf`.
 
 #### **--runroot**=*value*
 
-Storage state directory where all state information is stored (default: "/var/run/containers/storage" for UID 0, "/var/run/user/$UID/run" for other users).
+Storage state directory where all state information is stored (default: "/run/containers/storage" for UID 0, "/run/user/$UID/run" for other users).
 Default state dir configured in `/etc/containers/storage.conf`.
 
 #### **--runtime**=*value*

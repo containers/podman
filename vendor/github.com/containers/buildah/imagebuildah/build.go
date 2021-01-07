@@ -187,6 +187,9 @@ type BuildOptions struct {
 	LogRusage bool
 	// Excludes is a list of excludes to be used instead of the .dockerignore file.
 	Excludes []string
+	// From is the image name to use to replace the value specified in the first
+	// FROM instruction in the Containerfile
+	From string
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be

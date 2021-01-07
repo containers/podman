@@ -114,6 +114,7 @@ type Executor struct {
 	logRusage                      bool
 	imageInfoLock                  sync.Mutex
 	imageInfoCache                 map[string]imageTypeAndHistoryAndDiffIDs
+	fromOverride                   string
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -229,6 +230,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		jobs:                           jobs,
 		logRusage:                      options.LogRusage,
 		imageInfoCache:                 make(map[string]imageTypeAndHistoryAndDiffIDs),
+		fromOverride:                   options.From,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -245,6 +247,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 			fmt.Fprintf(exec.out, prefix+format+suffix, args...)
 		}
 	}
+
 	for arg := range options.Args {
 		if _, isBuiltIn := builtinAllowedBuildArgs[arg]; !isBuiltIn {
 			exec.unusedArgs[arg] = struct{}{}
@@ -522,6 +525,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 				switch strings.ToUpper(child.Value) { // first token - instruction
 				case "FROM":
 					if child.Next != nil { // second token on this line
+						// If we have a fromOverride, replace the value of
+						// image name for the first FROM in the Containerfile.
+						if b.fromOverride != "" {
+							child.Next.Value = b.fromOverride
+							b.fromOverride = ""
+						}
 						base := child.Next.Value
 						if base != "scratch" {
 							// TODO: this didn't undergo variable and arg

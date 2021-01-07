@@ -53,7 +53,7 @@ TimeoutStopSec=82
 ExecStart=/usr/bin/podman start 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 ExecStop=/usr/bin/podman stop -t 22 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 ExecStopPost=/usr/bin/podman stop -t 22 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
-PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
+PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
 
 [Install]
@@ -76,7 +76,7 @@ TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
-PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
+PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
 
 [Install]
@@ -101,7 +101,7 @@ TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
-PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
+PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
 
 [Install]
@@ -242,7 +242,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				ContainerNameOrID: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       22,
 				PodmanVersion:     "CI",
 				EnvVariable:       EnvVariable,
@@ -257,7 +257,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:       "container-foobar",
 				ContainerNameOrID: "foobar",
 				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				EnvVariable:       EnvVariable,
@@ -272,7 +272,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:       "container-foobar",
 				ContainerNameOrID: "foobar",
 				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				BoundToServices:   []string{"pod", "a", "b", "c"},
@@ -287,7 +287,7 @@ WantedBy=multi-user.target default.target
 				Executable:    "/usr/bin/podman",
 				ServiceName:   "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				RestartPolicy: "never",
-				PIDFile:       "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:       "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:   10,
 				PodmanVersion: "CI",
 				EnvVariable:   EnvVariable,
@@ -302,7 +302,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
 				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN", "foo=arg \"with \" space"},
@@ -318,7 +318,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
 				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
@@ -334,7 +334,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
 				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
@@ -353,7 +353,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
 				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "--detach", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
@@ -369,7 +369,7 @@ WantedBy=multi-user.target default.target
 				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				ContainerNameOrID: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "awesome-image:latest"},
