@@ -142,9 +142,13 @@ larger PRs into smaller ones - it's easier to review smaller
 code changes. But only if those smaller ones make sense as stand-alone PRs.
 
 Regardless of the type of PR, all PRs should include:
-* well documented code changes
-* additional testcases. Ideally, they should fail w/o your code change applied
-* documentation changes
+* well documented code changes.
+* additional testcases. Ideally, they should fail w/o your code change applied.
+  (With a few exceptions, CI hooks will block your PR unless your change
+  includes files named `*_test.go` or under the `test/` subdirectory. To
+  bypass this block, include the string `[NO TESTS NEEDED]` in your
+  commit message).
+* documentation changes.
 
 Squash your commits into logical pieces of work that might want to be reviewed
 separate from the rest of the PRs. But, squashing down to just one commit is ok

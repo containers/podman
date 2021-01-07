@@ -1,0 +1,70 @@
+#!/bin/bash
+#
+# Intended for use in CI: check git commits, barf if no tests added.
+#
+
+# Docs-only changes are excused
+if [[ "${CIRRUS_CHANGE_TITLE}" =~ CI:DOCS ]]; then
+    exit 0
+fi
+
+# So are PRs where 'NO TESTS NEEDED' appears in the Github message
+if [[ "${CIRRUS_CHANGE_MESSAGE}" =~ NO.TESTS.NEEDED ]]; then
+    exit 0
+fi
+
+# HEAD should be good enough, but the CIRRUS envariable allows us to test
+head=${CIRRUS_CHANGE_IN_REPO:-HEAD}
+# Base of this PR. Here we absolutely rely on cirrus.
+base=$(git merge-base ${DEST_BRANCH:-master} $head)
+
+# This gives us a list of files touched in all commits, e.g.
+#    A    foo.c
+#    M    bar.c
+# We look for Added or Modified (not Deleted!) files under 'test'.
+if git diff --name-status $base $head | egrep -q '^[AM]\s+(test/|.*_test\.go)'; then
+    exit 0
+fi
+
+# Nothing changed under test subdirectory.
+#
+# This is OK if the only files being touched are "safe" ones.
+filtered_changes=$(git diff --name-status $base $head |
+                       awk '{print $2}'               |
+                       fgrep -vx .cirrus.yml          |
+                       fgrep -vx changelog.txt        |
+                       fgrep -vx go.mod               |
+                       fgrep -vx go.sum               |
+                       egrep -v  '^[^/]+\.md$'        |
+                       egrep -v  '^contrib/'          |
+                       egrep -v  '^docs/'             |
+                       egrep -v  '^hack/'             |
+                       egrep -v  '^vendor/'           |
+                       egrep -v  '^version/')
+if [[ -z "$filtered_changes" ]]; then
+    exit 0
+fi
+
+# One last chance: perhaps the developer included the magic '[NO TESTS NEEDED]'
+# string in an amended commit.
+if git log --format=%B ${base}..${head} | fgrep '[NO TESTS NEEDED]'; then
+   exit 0
+fi
+
+cat <<EOF
+$(basename $0): PR does not include changes in the 'tests' directory
+
+Please write a regression test for what you're fixing. Even if it
+seems trivial or obvious, try to add a test that will prevent
+regressions.
+
+If your change is minor, feel free to piggyback on already-written
+tests, possibly just adding a small step to a similar existing test.
+Every second counts in CI.
+
+If your commit really, truly does not need tests, you can proceed
+by adding '[NO TESTS NEEDED]' to the body of your commit message.
+Please think carefully before doing so.
+EOF
+
+exit 1
