@@ -72,9 +72,9 @@ var _ = Describe("Podman build", func() {
 
 		st, err := os.Stat(logfile)
 		Expect(err).To(BeNil())
-		Expect(st.Size()).To(Not(Equal(0)))
+		Expect(st.Size()).To(Not(Equal(int64(0))))
 
-		session = podmanTest.Podman([]string{"rmi", "alpine"})
+		session = podmanTest.Podman([]string{"rmi", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
