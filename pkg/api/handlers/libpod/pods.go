@@ -235,7 +235,7 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodPrune(w http.ResponseWriter, r *http.Request) {
-	reports, err := PodPruneHelper(w, r)
+	reports, err := PodPruneHelper(r)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -243,7 +243,7 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, reports)
 }
 
-func PodPruneHelper(w http.ResponseWriter, r *http.Request) ([]*entities.PodPruneReport, error) {
+func PodPruneHelper(r *http.Request) ([]*entities.PodPruneReport, error) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 	)

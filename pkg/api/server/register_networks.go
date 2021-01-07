@@ -9,6 +9,19 @@ import (
 )
 
 func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
+	// swagger:operation POST /networks/prune compat compatPruneNetwork
+	// ---
+	// tags:
+	// - networks (compat)
+	// Summary: Delete unused networks
+	// description: Not supported
+	// produces:
+	// - application/json
+	// responses:
+	//   404:
+	//     $ref: "#/responses/NoSuchNetwork"
+	r.HandleFunc(VersionedPath("/networks/prune"), compat.UnsupportedHandler).Methods(http.MethodPost)
+	r.HandleFunc("/networks/prune", compat.UnsupportedHandler).Methods(http.MethodPost)
 	// swagger:operation DELETE /networks/{name} compat compatRemoveNetwork
 	// ---
 	// tags:

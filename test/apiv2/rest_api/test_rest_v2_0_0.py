@@ -1,13 +1,15 @@
 import json
+import os
 import random
+import shutil
 import string
 import subprocess
+import sys
+import time
 import unittest
 from multiprocessing import Process
 
 import requests
-import sys
-import time
 from dateutil.parser import parse
 
 from test.apiv2.rest_api import Podman
@@ -449,7 +451,7 @@ class TestApi(unittest.TestCase):
         self.assertEqual(inspect.status_code, 404, inspect.content)
 
         prune = requests.post(PODMAN_URL + "/v1.40/networks/prune")
-        self.assertEqual(prune.status_code, 405, prune.content)
+        self.assertEqual(prune.status_code, 404, prune.content)
 
     def test_volumes_compat(self):
         name = "Volume_" + "".join(random.choice(string.ascii_letters) for i in range(10))
@@ -499,8 +501,18 @@ class TestApi(unittest.TestCase):
         rm = requests.delete(PODMAN_URL + f"/v1.40/volumes/{name}")
         self.assertEqual(rm.status_code, 204, rm.content)
 
+        # recreate volume with data and then prune it
+        r = requests.post(PODMAN_URL + "/v1.40/volumes/create", json={"Name": name})
+        self.assertEqual(create.status_code, 201, create.content)
+        create = json.loads(r.content)
+        with open(os.path.join(create["Mountpoint"], "test_prune"), "w") as file:
+            file.writelines(["This is a test\n", "This is a good test\n"])
+
         prune = requests.post(PODMAN_URL + "/v1.40/volumes/prune")
         self.assertEqual(prune.status_code, 200, prune.content)
+        payload = json.loads(prune.content)
+        self.assertIn(name, payload["VolumesDeleted"])
+        self.assertGreater(payload["SpaceReclaimed"], 0)
 
     def test_auth_compat(self):
         r = requests.post(
@@ -529,6 +541,50 @@ class TestApi(unittest.TestCase):
         self.assertIn("Containers", obj)
         self.assertIn("Volumes", obj)
         self.assertIn("BuildCache", obj)
+
+    def test_prune_compat(self):
+        name = "Ctnr_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+
+        r = requests.post(
+            PODMAN_URL + f"/v1.40/containers/create?name={name}",
+            json={
+                "Cmd": ["cp", "/etc/motd", "/motd.size_test"],
+                "Image": "alpine:latest",
+                "NetworkDisabled": True,
+            },
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+        create = json.loads(r.text)
+
+        r = requests.post(PODMAN_URL + f"/v1.40/containers/{create['Id']}/start")
+        self.assertEqual(r.status_code, 204, r.text)
+
+        r = requests.post(PODMAN_URL + f"/v1.40/containers/{create['Id']}/wait")
+        self.assertEqual(r.status_code, 200, r.text)
+        wait = json.loads(r.text)
+        self.assertEqual(wait["StatusCode"], 0, wait["Error"]["Message"])
+
+        prune = requests.post(PODMAN_URL + "/v1.40/containers/prune")
+        self.assertEqual(prune.status_code, 200, prune.status_code)
+        prune_payload = json.loads(prune.text)
+        self.assertGreater(prune_payload["SpaceReclaimed"], 0)
+        self.assertIn(create["Id"], prune_payload["ContainersDeleted"])
+
+        # Delete any orphaned containers
+        r = requests.get(PODMAN_URL + "/v1.40/containers/json?all=true")
+        self.assertEqual(r.status_code, 200, r.text)
+        for ctnr in json.loads(r.text):
+            requests.delete(PODMAN_URL + f"/v1.40/containers/{ctnr['Id']}?force=true")
+
+        prune = requests.post(PODMAN_URL + "/v1.40/images/prune")
+        self.assertEqual(prune.status_code, 200, prune.text)
+        prune_payload = json.loads(prune.text)
+        self.assertGreater(prune_payload["SpaceReclaimed"], 0)
+
+        # FIXME need method to determine which image is going to be "pruned" to fix test
+        # TODO should handler be recursive when deleting images?
+        # self.assertIn(img["Id"], prune_payload["ImagesDeleted"][1]["Deleted"])
+        self.assertIsNotNone(prune_payload["ImagesDeleted"][1]["Deleted"])
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	podPruneReport, err := PodPruneHelper(w, r)
+	podPruneReport, err := PodPruneHelper(r)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -38,7 +38,7 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 	systemPruneReport.PodPruneReport = podPruneReport
 
 	// We could parallelize this, should we?
-	containerPruneReports, err := compat.PruneContainersHelper(w, r, nil)
+	containerPruneReports, err := compat.PruneContainersHelper(r, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

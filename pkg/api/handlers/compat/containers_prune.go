@@ -1,9 +1,11 @@
 package compat
 
 import (
+	"bytes"
 	"net/http"
 
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/domain/filters"
@@ -32,33 +34,45 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 
+	report, err := PruneContainersHelper(r, filterFuncs)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
 	// Libpod response differs
 	if utils.IsLibpodRequest(r) {
-		report, err := PruneContainersHelper(w, r, filterFuncs)
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-
 		utils.WriteResponse(w, http.StatusOK, report)
 		return
 	}
 
-	report, err := runtime.PruneContainers(filterFuncs)
-	if err != nil {
-		utils.InternalServerError(w, err)
+	var payload handlers.ContainersPruneReport
+	var errorMsg bytes.Buffer
+	for _, pr := range report {
+		if pr.Err != nil {
+			// Docker stops on first error vs. libpod which keeps going. Given API constraints, concatenate all errors
+			// and return that string.
+			errorMsg.WriteString(pr.Err.Error())
+			errorMsg.WriteString("; ")
+			continue
+		}
+		payload.ContainersDeleted = append(payload.ContainersDeleted, pr.Id)
+		payload.SpaceReclaimed += pr.Size
+	}
+	if errorMsg.Len() > 0 {
+		utils.InternalServerError(w, errors.New(errorMsg.String()))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+
+	utils.WriteResponse(w, http.StatusOK, payload)
 }
 
-func PruneContainersHelper(w http.ResponseWriter, r *http.Request, filterFuncs []libpod.ContainerFilter) (
-	[]*reports.PruneReport, error) {
+func PruneContainersHelper(r *http.Request, filterFuncs []libpod.ContainerFilter) ([]*reports.PruneReport, error) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	reports, err := runtime.PruneContainers(filterFuncs)
+
+	report, err := runtime.PruneContainers(filterFuncs)
 	if err != nil {
-		utils.InternalServerError(w, err)
 		return nil, err
 	}
-	return reports, nil
+	return report, nil
 }
