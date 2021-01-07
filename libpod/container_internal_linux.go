@@ -529,6 +529,13 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	availableUIDs, availableGIDs, err := rootless.GetAvailableIDMaps()
+	if err != nil {
+		return nil, err
+	}
+	g.Config.Linux.UIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.UIDMappings, availableUIDs)
+	g.Config.Linux.GIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.GIDMappings, availableGIDs)
+
 	// Hostname handling:
 	// If we have a UTS namespace, set Hostname in the OCI spec.
 	// Set the HOSTNAME environment variable unless explicitly overridden by
@@ -536,6 +543,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// set it to the host's hostname instead.
 	hostname := c.Hostname()
 	foundUTS := false
+
 	for _, i := range c.config.Spec.Linux.Namespaces {
 		if i.Type == spec.UTSNamespace && i.Path == "" {
 			foundUTS = true
