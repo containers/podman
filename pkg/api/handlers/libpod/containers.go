@@ -275,6 +275,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		Import          bool   `schema:"import"`
 		Name            string `schema:"name"`
 		IgnoreRootFS    bool   `schema:"ignoreRootFS"`
+		IgnoreVolumes   bool   `schema:"ignoreVolumes"`
 		IgnoreStaticIP  bool   `schema:"ignoreStaticIP"`
 		IgnoreStaticMAC bool   `schema:"ignoreStaticMAC"`
 	}{

@@ -703,6 +703,9 @@ type ContainerCheckpointOptions struct {
 	// important to be able to restore a container multiple
 	// times with '--import --name'.
 	IgnoreStaticMAC bool
+	// IgnoreVolumes tells the API to not export or not to import
+	// the content of volumes associated with the container
+	IgnoreVolumes bool
 }
 
 // Checkpoint checkpoints a container

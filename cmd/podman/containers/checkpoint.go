@@ -57,6 +57,7 @@ func init() {
 	_ = checkpointCommand.RegisterFlagCompletionFunc(exportFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVar(&checkpointOptions.IgnoreRootFS, "ignore-rootfs", false, "Do not include root file-system changes when exporting")
+	flags.BoolVar(&checkpointOptions.IgnoreVolumes, "ignore-volumes", false, "Do not export volumes associated with container")
 	validate.AddLatestFlag(checkpointCommand, &checkpointOptions.Latest)
 }
 
@@ -67,6 +68,9 @@ func checkpoint(cmd *cobra.Command, args []string) error {
 	}
 	if checkpointOptions.Export == "" && checkpointOptions.IgnoreRootFS {
 		return errors.Errorf("--ignore-rootfs can only be used with --export")
+	}
+	if checkpointOptions.Export == "" && checkpointOptions.IgnoreVolumes {
+		return errors.Errorf("--ignore-volumes can only be used with --export")
 	}
 	responses, err := registry.ContainerEngine().ContainerCheckpoint(context.Background(), args, checkpointOptions)
 	if err != nil {

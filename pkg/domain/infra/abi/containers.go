@@ -487,6 +487,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		TCPEstablished: options.TCPEstablished,
 		TargetFile:     options.Export,
 		IgnoreRootfs:   options.IgnoreRootFS,
+		IgnoreVolumes:  options.IgnoreVolumes,
 		KeepRunning:    options.LeaveRunning,
 	}
 
@@ -525,6 +526,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		TargetFile:      options.Import,
 		Name:            options.Name,
 		IgnoreRootfs:    options.IgnoreRootFS,
+		IgnoreVolumes:   options.IgnoreVolumes,
 		IgnoreStaticIP:  options.IgnoreStaticIP,
 		IgnoreStaticMAC: options.IgnoreStaticMAC,
 	}
@@ -538,7 +540,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 
 	switch {
 	case options.Import != "":
-		cons, err = checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options.Import, options.Name)
+		cons, err = checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options)
 	case options.All:
 		cons, err = ic.Libpod.GetContainers(filterFuncs...)
 	default:

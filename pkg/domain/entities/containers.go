@@ -173,6 +173,7 @@ type CheckpointOptions struct {
 	All            bool
 	Export         string
 	IgnoreRootFS   bool
+	IgnoreVolumes  bool
 	Keep           bool
 	Latest         bool
 	LeaveRunning   bool
@@ -187,6 +188,7 @@ type CheckpointReport struct {
 type RestoreOptions struct {
 	All             bool
 	IgnoreRootFS    bool
+	IgnoreVolumes   bool
 	IgnoreStaticIP  bool
 	IgnoreStaticMAC bool
 	Import          string
