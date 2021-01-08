@@ -18,7 +18,6 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -72,52 +71,6 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rdr.Close()
 	utils.WriteResponse(w, http.StatusOK, rdr)
-}
-
-func PruneImages(w http.ResponseWriter, r *http.Request) {
-	var (
-		filters []string
-	)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
-	query := struct {
-		All     bool
-		Filters map[string][]string `schema:"filters"`
-	}{
-		// This is where you can override the golang default value for one of fields
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
-		return
-	}
-
-	idr := []types.ImageDeleteResponseItem{}
-	for k, v := range query.Filters {
-		for _, val := range v {
-			filters = append(filters, fmt.Sprintf("%s=%s", k, val))
-		}
-	}
-	imagePruneReports, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, filters)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	reclaimedSpace := uint64(0)
-	for _, p := range imagePruneReports {
-		idr = append(idr, types.ImageDeleteResponseItem{
-			Deleted: p.Id,
-		})
-		reclaimedSpace = reclaimedSpace + p.Size
-	}
-
-	// FIXME/TODO to do this exactly correct, pruneimages needs to return idrs and space-reclaimed, then we are golden
-	ipr := types.ImagesPruneReport{
-		ImagesDeleted:  idr,
-		SpaceReclaimed: reclaimedSpace,
-	}
-	utils.WriteResponse(w, http.StatusOK, handlers.ImagesPruneReport{ImagesPruneReport: ipr})
 }
 
 func CommitContainer(w http.ResponseWriter, r *http.Request) {

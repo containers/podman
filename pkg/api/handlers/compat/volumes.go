@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/filters"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi/parse"
@@ -268,17 +270,29 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+
+	var errorMsg bytes.Buffer
+	var reclaimedSpace uint64
 	prunedIds := make([]string, 0, len(pruned))
 	for _, v := range pruned {
-		// XXX: This drops any pruning per-volume error messages on the floor
+		if v.Err != nil {
+			errorMsg.WriteString(v.Err.Error())
+			errorMsg.WriteString("; ")
+			continue
+		}
 		prunedIds = append(prunedIds, v.Id)
+		reclaimedSpace += v.Size
 	}
-	pruneResponse := docker_api_types.VolumesPruneReport{
-		VolumesDeleted: prunedIds,
-		// TODO: We don't have any insight into how much space was reclaimed
-		// from `PruneVolumes()` but it's not nullable
-		SpaceReclaimed: 0,
+	if errorMsg.Len() > 0 {
+		utils.InternalServerError(w, errors.New(errorMsg.String()))
+		return
 	}
 
-	utils.WriteResponse(w, http.StatusOK, pruneResponse)
+	payload := handlers.VolumesPruneReport{
+		VolumesPruneReport: docker_api_types.VolumesPruneReport{
+			VolumesDeleted: prunedIds,
+			SpaceReclaimed: reclaimedSpace,
+		},
+	}
+	utils.WriteResponse(w, http.StatusOK, payload)
 }
