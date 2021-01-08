@@ -40,6 +40,9 @@ type PlayKubePod struct {
 	Containers []string
 	// Logs - non-fatal errors and log messages while processing.
 	Logs []string
+	// ContainerErrors - any errors that occurred while starting containers
+	// in the pod.
+	ContainerErrors []string
 }
 
 // PlayKubeReport contains the results of running play kube.

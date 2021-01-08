@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -130,6 +131,8 @@ func kube(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	ctrsFailed := 0
+
 	for _, pod := range report.Pods {
 		fmt.Printf("Pod:\n")
 		fmt.Println(pod.ID)
@@ -145,8 +148,20 @@ func kube(cmd *cobra.Command, args []string) error {
 		for _, ctr := range pod.Containers {
 			fmt.Println(ctr)
 		}
+		ctrsFailed += len(pod.ContainerErrors)
+		// If We have errors, add a newline
+		if len(pod.ContainerErrors) > 0 {
+			fmt.Println()
+		}
+		for _, err := range pod.ContainerErrors {
+			fmt.Fprintf(os.Stderr, err+"\n")
+		}
 		// Empty line for space for next block
 		fmt.Println()
+	}
+
+	if ctrsFailed > 0 {
+		return errors.Errorf("failed to start %d containers", ctrsFailed)
 	}
 
 	return nil
