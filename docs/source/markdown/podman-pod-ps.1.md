@@ -72,6 +72,8 @@ Valid placeholders for the Go template are listed below:
 | .Cgroup             | Cgroup path of pod                                                                              |
 | .Created            | Creation time of pod                                                                            |
 | .InfraID            | Pod infra container ID                                                                          |
+| .Networks           | Show all networks connected to the infra container                                              |
+
 #### **--sort**
 
 Sort by created, ID, name, status, or number of containers

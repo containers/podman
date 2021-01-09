@@ -191,6 +191,11 @@ func (l ListPodReporter) Labels() map[string]string {
 	return l.ListPodsReport.Labels
 }
 
+// Networks returns the infra container network names in string format
+func (l ListPodReporter) Networks() string {
+	return strings.Join(l.ListPodsReport.Networks, ",")
+}
+
 // NumberOfContainers returns an int representation for
 // the number of containers belonging to the pod
 func (l ListPodReporter) NumberOfContainers() int {

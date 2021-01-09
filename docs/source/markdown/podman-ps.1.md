@@ -80,6 +80,7 @@ Valid placeholders for the Go template are listed below:
 | .Ports          | Exposed ports                                    |
 | .Size           | Size of container                                |
 | .Names          | Name of container                                |
+| .Networks       | Show all networks connected to the container     |
 | .Labels         | All the labels assigned to the container         |
 | .Mounts         | Volumes mounted in the container                 |
 

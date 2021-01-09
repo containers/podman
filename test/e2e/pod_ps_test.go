@@ -305,6 +305,45 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podWithoutNet)))
 	})
 
+	It("podman pod ps --format networks", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"pod", "ps", "--format", "{{ .Networks }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		if isRootless() {
+			// rootless container don't have a network by default
+			Expect(session.OutputToString()).To(Equal(""))
+		} else {
+			// default network name is podman
+			Expect(session.OutputToString()).To(Equal("podman"))
+		}
+
+		net1 := stringid.GenerateNonCryptoID()
+		session = podmanTest.Podman([]string{"network", "create", net1})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(net1)
+		net2 := stringid.GenerateNonCryptoID()
+		session = podmanTest.Podman([]string{"network", "create", net2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(net2)
+
+		session = podmanTest.Podman([]string{"pod", "create", "--network", net1 + "," + net2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		pid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"pod", "ps", "--format", "{{ .Networks }}", "--filter", "id=" + pid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		// the output is not deterministic so check both possible orders
+		Expect(session.OutputToString()).To(Or(Equal(net1+","+net2), Equal(net2+","+net1)))
+	})
+
 	It("pod no infra should ps", func() {
 		session := podmanTest.Podman([]string{"pod", "create", "--infra=false"})
 		session.WaitWithDefaultTimeout()

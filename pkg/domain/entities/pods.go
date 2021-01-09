@@ -28,8 +28,10 @@ type ListPodsReport struct {
 	InfraId    string //nolint
 	Name       string
 	Namespace  string
-	Status     string
-	Labels     map[string]string
+	// Network names connected to infra container
+	Networks []string
+	Status   string
+	Labels   map[string]string
 }
 
 type ListPodContainer struct {

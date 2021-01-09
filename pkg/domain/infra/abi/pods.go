@@ -333,6 +333,17 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 		if err != nil {
 			return nil, err
 		}
+		networks := []string{}
+		if len(infraID) > 0 {
+			infra, err := p.InfraContainer()
+			if err != nil {
+				return nil, err
+			}
+			networks, _, err = infra.Networks()
+			if err != nil {
+				return nil, err
+			}
+		}
 		reports = append(reports, &entities.ListPodsReport{
 			Cgroup:     p.CgroupParent(),
 			Containers: lpcs,
@@ -341,6 +352,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 			InfraId:    infraID,
 			Name:       p.Name(),
 			Namespace:  p.Namespace(),
+			Networks:   networks,
 			Status:     status,
 			Labels:     p.Labels(),
 		})
