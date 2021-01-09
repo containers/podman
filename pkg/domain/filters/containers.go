@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/timetype"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
@@ -229,6 +230,24 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 				// here is ok
 				if p.ID() == c.PodID() {
 					return true
+				}
+			}
+			return false
+		}, nil
+	case "network":
+		return func(c *libpod.Container) bool {
+			networks, _, err := c.Networks()
+			// if err or no networks, quick out
+			if err != nil || len(networks) == 0 {
+				return false
+			}
+			for _, net := range networks {
+				netID := network.GetNetworkID(net)
+				for _, val := range filterValues {
+					// match by network name or id
+					if val == net || val == netID {
+						return true
+					}
 				}
 			}
 			return false

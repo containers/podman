@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -722,6 +723,30 @@ var _ = Describe("Podman ps", func() {
 		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
 		Expect(StringInSlice(pod2.OutputToString(), session.OutputToStringArray()))
 
+	})
+
+	It("podman ps filter network", func() {
+		net := stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(net)
+
+		session = podmanTest.Podman([]string{"create", "--network", net, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		ctrWithNet := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"create", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		ctrWithoutNet := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"ps", "--all", "--no-trunc", "--filter", "network=" + net})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		Expect(session.OutputToString()).To(ContainSubstring(ctrWithNet))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(ctrWithoutNet)))
 	})
 
 })

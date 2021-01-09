@@ -58,6 +58,7 @@ Valid filters are listed below:
 | volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
 | health          | [Status] healthy or unhealthy                                                    |
 | pod             | [Pod] name or full or partial ID of pod                                          |
+| network         | [Network] name or full ID of network                                             |
 
 
 #### **--format**=*format*
