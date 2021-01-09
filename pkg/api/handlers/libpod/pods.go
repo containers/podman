@@ -43,6 +43,7 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func Pods(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Filters map[string][]string `schema:"filters"`
@@ -55,7 +56,11 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pods, err := utils.GetPods(w, r)
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	podPSOptions := entities.PodPSOptions{
+		Filters: query.Filters,
+	}
+	pods, err := containerEngine.PodPs(r.Context(), podPSOptions)
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
