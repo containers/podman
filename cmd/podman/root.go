@@ -158,7 +158,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
-		return err
+		return errors.Wrapf(err, "Cannot connect to the Podman socket, make sure there is a Podman REST API service running.")
 	}
 	if _, err := registry.NewContainerEngine(cmd, args); err != nil {
 		return err
