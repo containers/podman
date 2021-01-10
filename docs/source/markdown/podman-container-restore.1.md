@@ -48,6 +48,11 @@ Import a checkpoint tar.gz file, which was exported by Podman. This can be used
 to import a checkpointed container from another host. Do not specify a *container*
 argument when using this option.
 
+#### **--import-previous**
+
+Import a pre-checkpoint tar.gz file which was exported by Podman. This option
+must be used with **-i** or **--import**. It only works on runc 1.0-rc3 or higher.
+
 #### **--name**, **-n**
 
 This is only available in combination with **--import, -i**. If a container is restored
@@ -97,6 +102,8 @@ the content of associated volumes will not be restored.
 podman container restore mywebserver
 
 podman container restore 860a4b23
+
+podman container restore --import-previous pre-checkpoint.tar.gz --import checkpoint.tar.gz
 
 ## SEE ALSO
 podman(1), podman-container-checkpoint(1)

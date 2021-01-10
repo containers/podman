@@ -769,10 +769,14 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	}
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
+	if options.PreCheckPoint {
+		imagePath = ctr.PreCheckPointPath()
+	}
 	// workPath will be used to store dump.log and stats-dump
 	workPath := ctr.bundlePath()
 	logrus.Debugf("Writing checkpoint to %s", imagePath)
 	logrus.Debugf("Writing checkpoint logs to %s", workPath)
+	logrus.Debugf("Pre-dump the container %t", options.PreCheckPoint)
 	args := []string{}
 	args = append(args, r.runtimeFlags...)
 	args = append(args, "checkpoint")
@@ -786,6 +790,15 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	if options.TCPEstablished {
 		args = append(args, "--tcp-established")
 	}
+	if !options.PreCheckPoint && options.KeepRunning {
+		args = append(args, "--leave-running")
+	}
+	if options.PreCheckPoint {
+		args = append(args, "--pre-dump")
+	}
+	if !options.PreCheckPoint && options.WithPrevious {
+		args = append(args, "--parent-path", ctr.PreCheckPointPath())
+	}
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
@@ -794,6 +807,7 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 	}
 	args = append(args, ctr.ID())
+	logrus.Debugf("the args to checkpoint: %s %s", r.path, strings.Join(args, " "))
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
 }
 

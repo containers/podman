@@ -134,6 +134,11 @@ func (c *Container) CheckpointPath() string {
 	return filepath.Join(c.bundlePath(), "checkpoint")
 }
 
+// PreCheckpointPath returns the path to the directory containing the pre-checkpoint-images
+func (c *Container) PreCheckPointPath() string {
+	return filepath.Join(c.bundlePath(), "pre-checkpoint")
+}
+
 // AttachSocketPath retrieves the path of the container's attach socket
 func (c *Container) AttachSocketPath() (string, error) {
 	return c.ociRuntime.AttachSocketPath(c)
@@ -2021,6 +2026,12 @@ func (c *Container) checkReadyForRemoval() error {
 	}
 
 	return nil
+}
+
+// canWithPrevious return the stat of the preCheckPoint dir
+func (c *Container) canWithPrevious() error {
+	_, err := os.Stat(c.PreCheckPointPath())
+	return err
 }
 
 // writeJSONFile marshalls and writes the given data to a JSON file
