@@ -16,10 +16,17 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-// GetDefaultAuthFile returns env value REGISTRY_AUTH_FILE as default --authfile path
-// used in multiple --authfile flag definitions
+// GetDefaultAuthFile returns env value REGISTRY_AUTH_FILE as default
+// --authfile path used in multiple --authfile flag definitions
+// Will fail over to DOCKER_CONFIG if REGISTRY_AUTH_FILE environment is not set
 func GetDefaultAuthFile() string {
-	return os.Getenv("REGISTRY_AUTH_FILE")
+	authfile := os.Getenv("REGISTRY_AUTH_FILE")
+	if authfile == "" {
+		if authfile, ok := os.LookupEnv("DOCKER_CONFIG"); ok {
+			logrus.Infof("Using DOCKER_CONFIG environment variable for authfile path %s", authfile)
+		}
+	}
+	return authfile
 }
 
 // CheckAuthFile validates filepath given by --authfile

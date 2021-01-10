@@ -529,7 +529,7 @@ func (b *Builder) SetHistoryComment(comment string) {
 }
 
 // StopSignal returns the signal which will be set in the container and in
-// containers built using images buiilt from the container
+// containers built using images built from the container
 func (b *Builder) StopSignal() string {
 	return b.Docker.Config.StopSignal
 }

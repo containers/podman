@@ -91,3 +91,51 @@ func AutocompleteSubgidName(cmd *cobra.Command, args []string, toComplete string
 func AutocompleteSubuidName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return autocompleteSubIDName("/etc/subuid")
 }
+
+// AutocompleteArch - Autocomplete platform supported by container engines
+func AutocompletePlatform(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	completions := []string{
+		"linux/386",
+		"linux/amd64",
+		"linux/arm",
+		"linux/arm64",
+		"linux/ppc64",
+		"linux/ppc64le",
+		"linux/mips",
+		"linux/mipsle",
+		"linux/mips64",
+		"linux/mips64le",
+		"linux/riscv64",
+		"linux/s390x",
+		"windows/386",
+		"windows/amd64",
+		"windows/arm",
+	}
+	return completions, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteArch - Autocomplete architectures supported by container engines
+func AutocompleteArch(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	completions := []string{
+		"386",
+		"amd64",
+		"arm",
+		"arm64",
+		"ppc64",
+		"ppc64le",
+		"mips",
+		"mipsle",
+		"mips64",
+		"mips64le",
+		"riscv64",
+		"s390x",
+	}
+
+	return completions, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteOS - Autocomplete OS supported by container engines
+func AutocompleteOS(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	completions := []string{"linux", "windows"}
+	return completions, cobra.ShellCompDirectiveNoFileComp
+}

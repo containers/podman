@@ -184,7 +184,7 @@ func DefaultConfig() (*Config, error) {
 				"TERM=xterm",
 			},
 			EnvHost:        false,
-			HTTPProxy:      false,
+			HTTPProxy:      true,
 			Init:           false,
 			InitPath:       "",
 			IPCNS:          "private",

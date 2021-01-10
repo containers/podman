@@ -3522,10 +3522,11 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 		fmt.Printf("Failed to parse %s %v\n", configFile, err.Error())
 		return
 	}
+	if config.Storage.Driver != "" {
+		storeOptions.GraphDriverName = config.Storage.Driver
+	}
 	if os.Getenv("STORAGE_DRIVER") != "" {
 		config.Storage.Driver = os.Getenv("STORAGE_DRIVER")
-	}
-	if config.Storage.Driver != "" {
 		storeOptions.GraphDriverName = config.Storage.Driver
 	}
 	if storeOptions.GraphDriverName == "" {

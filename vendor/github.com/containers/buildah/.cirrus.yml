@@ -196,6 +196,7 @@ gce_instance:
         buildah_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_version'
         buildah_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_info'
         package_versions_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh packages'
+        golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
 
 
 'cirrus-ci/required/in_podman_task':

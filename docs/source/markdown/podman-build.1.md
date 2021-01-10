@@ -388,6 +388,11 @@ Adjust the logging level up or down.  Valid option values range from -2 to 3,
 with 3 being roughly equivalent to using the global *--debug* option, and
 values below 0 omitting even error messages which accompany fatal errors.
 
+#### **--manifest** "manifest"
+
+Name of the manifest list to which the image will be added. Creates the manifest list
+if it does not exist. This option is useful for building multi architecture images.
+
 #### **--memory**, **-m**=*LIMIT*
 Memory limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes),
 m (megabytes), or g (gigabytes))
@@ -667,6 +672,10 @@ that the UTS namespace in which `podman` itself is being run should be reused,
 or it can be the path to a UTS namespace which is already in use by another
 process.
 
+#### **--variant**=""
+
+Set the architecture variant of the image to be pulled.
+
 #### **--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
    Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
@@ -768,6 +777,12 @@ mount for `/foo`, then use `mount --make-shared /` to convert `/` into a
 `shared` mount.
 
 ## EXAMPLES
+
+### Building an multi-architecture image using a --manifest option (Requires emulation software)
+
+buildah bud --arch arm --manifest myimage /tmp/mysrc
+buildah bud --arch amd64 --manifest myimage /tmp/mysrc
+buildah bud --arch s390x --manifest myimage /tmp/mysrc
 
 ### Build an image using local Containerfiles
 

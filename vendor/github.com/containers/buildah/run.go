@@ -27,7 +27,7 @@ const (
 	WithTerminal
 )
 
-// String converts a TerminalPoliicy into a string.
+// String converts a TerminalPolicy into a string.
 func (t TerminalPolicy) String() string {
 	switch t {
 	case DefaultTerminal:

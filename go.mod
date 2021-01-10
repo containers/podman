@@ -10,12 +10,12 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containernetworking/cni v0.8.0
 	github.com/containernetworking/plugins v0.9.0
-	github.com/containers/buildah v1.18.1-0.20201222143428-b9fdee076426
-	github.com/containers/common v0.31.2
+	github.com/containers/buildah v1.19.0
+	github.com/containers/common v0.33.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.9.0
 	github.com/containers/psgo v1.5.2
-	github.com/containers/storage v1.24.4
+	github.com/containers/storage v1.24.5
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cri-o/ocicni v0.2.1-0.20201125151022-df072ea5421c
 	github.com/cyphar/filepath-securejoin v0.2.2
