@@ -149,14 +149,13 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		if len(searchOptions.Filters) != 0 {
 			return errors.Errorf("filters are not applicable to list tags result")
 		}
+		if report.IsJSON(searchOptions.Format) {
+			listTagsEntries := buildListTagsJson(searchReport)
+			return printJson(listTagsEntries)
+		}
 		row = "{{.Name}}\t{{.Tag}}\n"
 	case report.IsJSON(searchOptions.Format):
-		prettyJSON, err := json.MarshalIndent(searchReport, "", "    ")
-		if err != nil {
-			return err
-		}
-		fmt.Println(string(prettyJSON))
-		return nil
+		return printJson(searchReport)
 	case cmd.Flags().Changed("format"):
 		renderHeaders = parse.HasTable(searchOptions.Format)
 		row = report.NormalizeFormat(searchOptions.Format)
@@ -179,4 +178,40 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	}
 
 	return tmpl.Execute(w, searchReport)
+}
+
+func printJson(v interface{}) error {
+	prettyJSON, err := json.MarshalIndent(v, "", "    ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(prettyJSON))
+	return nil
+}
+
+func buildListTagsJson(searchReport []entities.ImageSearchReport) interface{} {
+	entries := []struct {
+		Name string
+		Tags []string
+	}{}
+
+ReportLoop:
+	for _, report := range searchReport {
+		for idx, entry := range entries {
+			if entry.Name == report.Name {
+				entries[idx].Tags = append(entries[idx].Tags, report.Tag)
+				continue ReportLoop
+			}
+		}
+		newElem := struct {
+			Name string
+			Tags []string
+		}{
+			report.Name,
+			[]string{report.Tag},
+		}
+
+		entries = append(entries, newElem)
+	}
+	return entries
 }
