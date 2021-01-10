@@ -131,6 +131,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search.IsJSONOutputValid()).To(BeTrue())
 		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 		Expect(search.OutputToString()).To(ContainSubstring("3.10"))
+		Expect(search.OutputToString()).To(ContainSubstring("2.7"))
 	})
 
 	It("podman search no-trunc flag", func() {

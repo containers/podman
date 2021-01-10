@@ -26,6 +26,12 @@ type searchOptionsWrapper struct {
 	Format       string // For go templating
 }
 
+// listEntryTag is a utility structure used for json serialization.
+type listEntryTag struct {
+	Name string
+	Tags []string
+}
+
 var (
 	searchOptions     = searchOptionsWrapper{}
 	searchDescription = `Search registries for a given image. Can search all the default registries or a specific registry.
@@ -189,11 +195,8 @@ func printJson(v interface{}) error {
 	return nil
 }
 
-func buildListTagsJson(searchReport []entities.ImageSearchReport) interface{} {
-	entries := []struct {
-		Name string
-		Tags []string
-	}{}
+func buildListTagsJson(searchReport []entities.ImageSearchReport) []listEntryTag {
+	entries := []listEntryTag{}
 
 ReportLoop:
 	for _, report := range searchReport {
@@ -203,10 +206,7 @@ ReportLoop:
 				continue ReportLoop
 			}
 		}
-		newElem := struct {
-			Name string
-			Tags []string
-		}{
+		newElem := listEntryTag{
 			report.Name,
 			[]string{report.Tag},
 		}
