@@ -294,7 +294,7 @@ If you specify `-f -`, the Containerfile contents will be read from stdin.
 #### **--force-rm**=*true|false*
 
 Always remove intermediate containers after a build, even if the build fails
-(default false).
+(default true).
 
 #### **--format**
 
