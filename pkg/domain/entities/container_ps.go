@@ -43,6 +43,8 @@ type ListContainer struct {
 	// Namespaces the container belongs to.  Requires the
 	// namespace boolean to be true
 	Namespaces ListContainerNamespaces
+	// The network names assigned to the container
+	Networks []string
 	// The process id of the container
 	Pid int
 	// If the container is part of Pod, the Pod ID. Requires the pod

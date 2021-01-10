@@ -72,6 +72,8 @@ Valid placeholders for the Go template are listed below:
 | .Cgroup             | Cgroup path of pod                                                                              |
 | .Created            | Creation time of pod                                                                            |
 | .InfraID            | Pod infra container ID                                                                          |
+| .Networks           | Show all networks connected to the infra container                                              |
+
 #### **--sort**
 
 Sort by created, ID, name, status, or number of containers
@@ -93,6 +95,7 @@ Valid filters are listed below:
 | name       | [Name] Pod's name (accepts regex)                                                     |
 | label      | [Key] or [Key=Value] Label assigned to a container                                    |
 | status     | Pod's status: `stopped`, `running`, `paused`, `exited`, `dead`, `created`, `degraded` |
+| network    | [Network] name or full ID of network                                                  |
 | ctr-names  | Container name within the pod (accepts regex)                                         |
 | ctr-ids    | Container ID within the pod (accepts regex)                                           |
 | ctr-status | Container status within the pod                                                       |

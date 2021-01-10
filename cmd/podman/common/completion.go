@@ -982,9 +982,10 @@ func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string)
 			return []string{define.HealthCheckHealthy,
 				define.HealthCheckUnhealthy}, cobra.ShellCompDirectiveNoFileComp
 		},
-		"label=":  nil,
-		"exited=": nil,
-		"until=":  nil,
+		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s) },
+		"label=":   nil,
+		"exited=":  nil,
+		"until=":   nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }
@@ -1004,7 +1005,8 @@ func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete stri
 		"ctr-status=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return containerStatuses, cobra.ShellCompDirectiveNoFileComp
 		},
-		"label=": nil,
+		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s) },
+		"label=":   nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }

@@ -58,6 +58,7 @@ Valid filters are listed below:
 | volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
 | health          | [Status] healthy or unhealthy                                                    |
 | pod             | [Pod] name or full or partial ID of pod                                          |
+| network         | [Network] name or full ID of network                                             |
 
 
 #### **--format**=*format*
@@ -79,6 +80,7 @@ Valid placeholders for the Go template are listed below:
 | .Ports          | Exposed ports                                    |
 | .Size           | Size of container                                |
 | .Names          | Name of container                                |
+| .Networks       | Show all networks connected to the container     |
 | .Labels         | All the labels assigned to the container         |
 | .Mounts         | Volumes mounted in the container                 |
 

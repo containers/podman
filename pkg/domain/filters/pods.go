@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/libpod/network"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -133,6 +134,29 @@ func GeneratePodFilterFunc(filter string, filterValues []string) (
 				}
 			}
 			return true
+		}, nil
+	case "network":
+		return func(p *libpod.Pod) bool {
+			infra, err := p.InfraContainer()
+			// no infra, quick out
+			if err != nil {
+				return false
+			}
+			networks, _, err := infra.Networks()
+			// if err or no networks, quick out
+			if err != nil || len(networks) == 0 {
+				return false
+			}
+			for _, net := range networks {
+				netID := network.GetNetworkID(net)
+				for _, val := range filterValues {
+					// match by network name or id
+					if val == net || val == netID {
+						return true
+					}
+				}
+			}
+			return false
 		}, nil
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)

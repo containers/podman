@@ -392,6 +392,11 @@ func (l psReporter) Names() string {
 	return l.ListContainer.Names[0]
 }
 
+// Networks returns the container network names in string format
+func (l psReporter) Networks() string {
+	return strings.Join(l.ListContainer.Networks, ",")
+}
+
 // Ports converts from Portmappings to the string form
 // required by ps
 func (l psReporter) Ports() string {

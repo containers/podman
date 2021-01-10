@@ -178,6 +178,11 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		return entities.ListContainer{}, err
 	}
 
+	networks, _, err := ctr.Networks()
+	if err != nil {
+		return entities.ListContainer{}, err
+	}
+
 	ps := entities.ListContainer{
 		AutoRemove: ctr.AutoRemove(),
 		Command:    conConfig.Command,
@@ -192,6 +197,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		Labels:     conConfig.Labels,
 		Mounts:     ctr.UserVolumes(),
 		Names:      []string{conConfig.Name},
+		Networks:   networks,
 		Pid:        pid,
 		Pod:        conConfig.Pod,
 		Ports:      portMappings,
