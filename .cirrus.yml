@@ -311,6 +311,8 @@ alt_build_task:
             ALT_NAME: 'Build Without CGO'
       - env:
             ALT_NAME: 'Test build RPM'
+      - env:
+            ALT_NAME: 'Alt Arch. Cross'
     setup_script: *setup
     main_script: *main
     always: *binary_artifacts
