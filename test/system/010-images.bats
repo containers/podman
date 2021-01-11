@@ -228,4 +228,17 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     run_podman rmi ${aaa_name}:${aaa_tag} ${zzz_name}:${zzz_tag}
 }
 
+# Regression test for #8931
+@test "podman images - bare manifest list" {
+    # Create an empty manifest list and list images.
+
+    run_podman inspect --format '{{.ID}}' $IMAGE
+    iid=$output
+
+    run_podman manifest create test:1.0
+    run_podman images --format '{{.ID}}' --no-trunc
+    [[ "$output" == *"sha256:$iid"* ]]
+
+    run_podman rmi test:1.0
+}
 # vim: filetype=sh

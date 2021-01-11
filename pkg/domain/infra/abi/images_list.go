@@ -44,7 +44,10 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		}
 		e.Labels, err = img.Labels(ctx)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving label for image %q: you may need to remove the image to resolve the error", img.ID())
+			// Ignore empty manifest lists.
+			if errors.Cause(err) != libpodImage.ErrImageIsBareList {
+				return nil, errors.Wrapf(err, "error retrieving label for image %q: you may need to remove the image to resolve the error", img.ID())
+			}
 		}
 
 		ctnrs, err := img.Containers()
