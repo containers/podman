@@ -73,6 +73,10 @@ var (
 	// ErrDecoderClosed will be returned if the Decoder was used after
 	// Close has been called.
 	ErrDecoderClosed = errors.New("decoder used after Close")
+
+	// ErrDecoderNilInput is returned when a nil Reader was provided
+	// and an operation other than Reset/DecodeAll/Close was attempted.
+	ErrDecoderNilInput = errors.New("nil input provided as reader")
 )
 
 func println(a ...interface{}) {
