@@ -746,13 +746,20 @@ func (c *Config) FindConmon() (string, error) {
 }
 
 // GetDefaultEnv returns the environment variables for the container.
-// It will checn the HTTPProxy and HostEnv booleans and add the appropriate
+// It will check the HTTPProxy and HostEnv booleans and add the appropriate
 // environment variables to the container.
 func (c *Config) GetDefaultEnv() []string {
+	return c.GetDefaultEnvEx(c.Containers.EnvHost, c.Containers.HTTPProxy)
+}
+
+// GetDefaultEnvEx returns the environment variables for the container.
+// It will check the HTTPProxy and HostEnv boolean parameters and return the appropriate
+// environment variables for the container.
+func (c *Config) GetDefaultEnvEx(envHost, httpProxy bool) []string {
 	var env []string
-	if c.Containers.EnvHost {
+	if envHost {
 		env = append(env, os.Environ()...)
-	} else if c.Containers.HTTPProxy {
+	} else if httpProxy {
 		proxy := []string{"http_proxy", "https_proxy", "ftp_proxy", "no_proxy", "HTTP_PROXY", "HTTPS_PROXY", "FTP_PROXY", "NO_PROXY"}
 		for _, p := range proxy {
 			if val, ok := os.LookupEnv(p); ok {

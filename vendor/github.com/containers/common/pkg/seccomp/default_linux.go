@@ -378,7 +378,6 @@ func DefaultProfile() *Seccomp {
 				"utimensat_time64",
 				"utimes",
 				"vfork",
-				"vmsplice",
 				"wait4",
 				"waitid",
 				"waitpid",

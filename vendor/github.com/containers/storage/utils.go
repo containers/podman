@@ -211,18 +211,27 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 	} else {
 		opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
 	}
-	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
-		opts.GraphDriverName = "overlay"
-		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
-		for _, o := range systemOpts.GraphDriverOptions {
-			if strings.Contains(o, "ignore_chown_errors") {
-				opts.GraphDriverOptions = append(opts.GraphDriverOptions, o)
-				break
+	opts.GraphDriverName = os.Getenv("STORAGE_DRIVER")
+	if opts.GraphDriverName == "" || opts.GraphDriverName == "overlay" {
+		if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
+			opts.GraphDriverName = "overlay"
+			opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
+			for _, o := range systemOpts.GraphDriverOptions {
+				if strings.Contains(o, "ignore_chown_errors") {
+					opts.GraphDriverOptions = append(opts.GraphDriverOptions, o)
+					break
+				}
 			}
 		}
-	} else {
+	}
+	if opts.GraphDriverName == "" {
 		opts.GraphDriverName = "vfs"
 	}
+
+	if os.Getenv("STORAGE_OPTS") != "" {
+		opts.GraphDriverOptions = append(opts.GraphDriverOptions, strings.Split(os.Getenv("STORAGE_OPTS"), ",")...)
+	}
+
 	return opts, nil
 }
 
