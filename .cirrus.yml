@@ -63,15 +63,6 @@ env:
     ADD_SECOND_PARTITION: 'false'  # will certainly fail inside containers
     MOD_CONTAINERS_CONF: 'true'  # Update containers.conf runtime if required by OS environment
 
-    ####
-    #### Credentials and other secret-sauces, decrypted at runtime when authorized.
-    ####
-    # Freenode IRC credentials for posting status messages
-    IRCID: ENCRYPTED[0c4a3cc4ecda08bc47cd3d31592be8ae5c2bd0151bf3def00a9afd139ef1ab23a1bd0523319d076c027f9749ddb1f3c8]
-    # Service-account client_email - needed to build images
-    SERVICE_ACCOUNT: ENCRYPTED[702a8e07e27a6faf7988fcddcc068c2ef2bb182a5aa671f5ccb7fbbfb891c823aa4a7856fb17240766845dbd68bd3f90]
-    # Service account username part of client_email - for ssh'ing into VMs
-    GCE_SSH_USERNAME: ENCRYPTED[d579f2d3000bb678c9af37c3615e92bcf3726e9afc47748c129cef23ee799faaafd4baba64048329205d162069d90060]
 
 # Default VM to use unless set or modified by task
 gce_instance:
@@ -144,8 +135,6 @@ gating_task:
     # Verify expected bash environment (-o pipefail)
     pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 # Ensure these container images can build
@@ -197,8 +186,6 @@ rpmbuild_task:
         - 'make -C ${CIRRUS_WORKING_DIR} -f ${CIRRUS_WORKING_DIR}/.copr/Makefile'
         - 'rpmbuild --rebuild ${CIRRUS_WORKING_DIR}/podman-*.src.rpm'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
 
 # This task runs `make vendor` followed by ./hack/tree_status.sh to check
 # whether the git tree is clean.  The reasoning for that is to make sure
@@ -230,8 +217,6 @@ vendor_task:
         - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
         - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
 
 
 # This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
@@ -265,8 +250,6 @@ varlink_api_task:
         - '/usr/local/bin/entrypoint.sh BUILDTAGS="varlink" varlink_api_generate |& ${TIMESTAMP}'
         - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 build_each_commit_task:
@@ -297,8 +280,6 @@ build_each_commit_task:
         - 'git fetch --depth 50 origin $DEST_BRANCH |& ${TIMESTAMP}'
         - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 build_without_cgo_task:
@@ -327,8 +308,6 @@ build_without_cgo_task:
         - 'source $SCRIPT_BASE/lib.sh'
         - 'make build-no-cgo'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 # Update metadata on VM images referenced by this repository state
@@ -411,8 +390,6 @@ testing_task:
         path: "*.tar.gz"
         type: "application/x-tar"
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always: &standardlogs
         package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
@@ -455,8 +432,6 @@ special_testing_rootless_task:
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} system_test'
     apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} apiv2_test'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -495,8 +470,6 @@ special_testing_in_podman_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -528,8 +501,6 @@ special_testing_cross_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     # When examining a particular run, provide convenient access to release files.
     zip_artifacts:
@@ -561,8 +532,6 @@ special_testing_bindings_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -587,8 +556,6 @@ special_testing_endpoint_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
 
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -727,7 +694,7 @@ success_task:
         cpu: 1
         memory: 1
 
-    success_script: '/usr/local/bin/entrypoint.sh ./$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
+    success_script: /bin/true
 
 static_build_task:
     container:
@@ -741,5 +708,3 @@ static_build_task:
         - nix build -f nix
     binaries_artifacts:
         path: "result-bin/bin/podman"
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
