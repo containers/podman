@@ -1308,7 +1308,12 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 // configureConmonEnv gets the environment values to add to conmon's exec struct
 // TODO this may want to be less hardcoded/more configurable in the future
 func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string) ([]string, []*os.File) {
-	env := make([]string, 0, 6)
+	var env []string
+	for _, e := range os.Environ() {
+		if strings.HasPrefix(e, "LC_") {
+			env = append(env, e)
+		}
+	}
 	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
 	env = append(env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
