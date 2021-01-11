@@ -178,6 +178,9 @@ function _run_altbuild() {
             make -f ./.copr/Makefile
             rpmbuild --rebuild ./podman-*.src.rpm
             ;;
+        Alt*Cross)
+            make local-cross
+            ;;
         *Static*)
             req_env_vars CTR_FQIN
             [[ "$UID" -eq 0 ]] || \
