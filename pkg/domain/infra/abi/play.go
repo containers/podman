@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/specgen/generate"
@@ -251,21 +252,13 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	if options.Start != types.OptionalBoolFalse {
-		//start the containers
+		// Start the containers
 		podStartErrors, err := pod.Start(ctx)
-		if err != nil {
+		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
 			return nil, err
 		}
-
-		// Previous versions of playkube started containers individually and then
-		// looked for errors.  Because we now use the uber-Pod start call, we should
-		// iterate the map of possible errors and return one if there is a problem. This
-		// keeps the behavior the same
-
-		for _, e := range podStartErrors {
-			if e != nil {
-				return nil, e
-			}
+		for id, err := range podStartErrors {
+			playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, errors.Wrapf(err, "error starting container %s", id).Error())
 		}
 	}
 
