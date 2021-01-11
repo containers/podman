@@ -122,7 +122,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 
 	// Pull cirros but don't put it into the cache
-	pullImages := []string{cirros, fedoraToolbox}
+	pullImages := []string{cirros, fedoraToolbox, volumeTest}
 	pullImages = append(pullImages, CACHE_IMAGES...)
 	for _, image := range pullImages {
 		podman.createArtifact(image)
@@ -483,13 +483,7 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 	session := p.Podman([]string{"volume", "rm", "-fa"})
 	session.Wait(90)
 
-	// Stop remove service on volume cleanup
-	p.StopRemoteService()
-
-	// Nuke tempdir
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		fmt.Printf("%q\n", err)
-	}
+	p.Cleanup()
 }
 
 // InspectContainerToJSON takes the session output of an inspect
