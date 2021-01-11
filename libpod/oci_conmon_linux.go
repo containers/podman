@@ -529,13 +529,12 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 	if err != nil {
 		return err
 	}
-	socketPath := buildSocketPath(attachSock)
 
 	var conn *net.UnixConn
 	if streamAttach {
-		newConn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
+		newConn, err := openUnixSocket(attachSock)
 		if err != nil {
-			return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
+			return errors.Wrapf(err, "failed to connect to container's attach socket: %v", attachSock)
 		}
 		conn = newConn
 		defer func() {
@@ -544,7 +543,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 			}
 		}()
 
-		logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), socketPath)
+		logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), attachSock)
 	}
 
 	detachString := ctr.runtime.config.Engine.DetachKeys

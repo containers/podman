@@ -28,6 +28,15 @@ const (
 	AttachPipeStderr = 3
 )
 
+func openUnixSocket(path string) (*net.UnixConn, error) {
+	fd, err := unix.Open(path, unix.O_PATH, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer unix.Close(fd)
+	return net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: fmt.Sprintf("/proc/self/fd/%d", fd), Net: "unixpacket"})
+}
+
 // Attach to the given container
 // Does not check if state is appropriate
 // started is only required if startContainer is true
@@ -52,11 +61,10 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 	if err != nil {
 		return err
 	}
-	socketPath := buildSocketPath(attachSock)
 
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
+	conn, err := openUnixSocket(attachSock)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
+		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", attachSock)
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -124,7 +132,6 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	if err != nil {
 		return err
 	}
-	socketPath := buildSocketPath(sockPath)
 
 	// 2: read from attachFd that the parent process has set up the console socket
 	if _, err := readConmonPipeData(attachFd, ""); err != nil {
@@ -132,9 +139,9 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	}
 
 	// 2: then attach
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
+	conn, err := openUnixSocket(sockPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
+		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", sockPath)
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -180,16 +187,6 @@ func registerResizeFunc(resize <-chan remotecommand.TerminalSize, bundlePath str
 			logrus.Warnf("Failed to write to control file to resize terminal: %v", err)
 		}
 	})
-}
-
-func buildSocketPath(socketPath string) string {
-	maxUnixLength := unixPathLength()
-	if maxUnixLength < len(socketPath) {
-		socketPath = socketPath[0:maxUnixLength]
-	}
-
-	logrus.Debug("connecting to socket ", socketPath)
-	return socketPath
 }
 
 func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detachKeys []byte) (chan error, chan error) {
