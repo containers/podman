@@ -146,6 +146,11 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		utils.ImageNotFound(w, name, err)
 		return
 	}
+	if _, err := utils.ParseDockerReference(query.Destination); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		return
+	}
+
 	dest, err := alltransports.ParseImageName(query.Destination)
 	if err != nil {
 		utils.Error(w, "invalid destination parameter", http.StatusBadRequest, errors.Errorf("invalid destination parameter %q", query.Destination))

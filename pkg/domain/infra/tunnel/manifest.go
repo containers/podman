@@ -73,7 +73,7 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 }
 
 // ManifestPush pushes a manifest list or image index to the destination
-func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ManifestPushOptions) error {
+func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ImagePushOptions) error {
 	options := new(manifests.PushOptions).WithAll(opts.All)
 	_, err := manifests.Push(ir.ClientCtx, name, destination, options)
 	return err

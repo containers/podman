@@ -171,6 +171,7 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("podman manifest push", func() {
+		SkipIfRemote("manifest push to dir not supported in remote mode")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -199,8 +200,38 @@ var _ = Describe("Podman manifest", func() {
 		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)))
 	})
 
-	It("podman manifest push purge", func() {
-		SkipIfRemote("remote does not support --purge")
+	It("podman push --all", func() {
+		SkipIfRemote("manifest push to dir not supported in remote mode")
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "--all", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		dest := filepath.Join(podmanTest.TempDir, "pushed")
+		err := os.MkdirAll(dest, os.ModePerm)
+		Expect(err).To(BeNil())
+		defer func() {
+			os.RemoveAll(dest)
+		}()
+		session = podmanTest.Podman([]string{"push", "--all", "foo", "dir:" + dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		files, err := filepath.Glob(dest + string(os.PathSeparator) + "*")
+		Expect(err).To(BeNil())
+		check := SystemExec("sha256sum", files)
+		check.WaitWithDefaultTimeout()
+		Expect(check.ExitCode()).To(Equal(0))
+		prefix := "sha256:"
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListAMD64InstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARMInstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListPPC64LEInstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)))
+	})
+
+	It("podman manifest push --rm", func() {
+		SkipIfRemote("remote does not support --rm")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

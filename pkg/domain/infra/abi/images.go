@@ -367,7 +367,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		return err
 	}
 
-	return newImage.PushImageToHeuristicDestination(
+	err = newImage.PushImageToHeuristicDestination(
 		ctx,
 		destination,
 		manifestType,
@@ -379,38 +379,14 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		signOptions,
 		&dockerRegistryOptions,
 		nil)
+	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
+		// Image might be a manifest so attempt a manifest push
+		if manifestErr := ir.ManifestPush(ctx, source, destination, options); manifestErr == nil {
+			return nil
+		}
+	}
+	return err
 }
-
-// func (r *imageRuntime) Delete(ctx context.Context, nameOrID string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {
-// 	image, err := r.libpod.ImageEngine().NewFromLocal(nameOrID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	results, err := r.libpod.RemoveImage(ctx, image, opts.Force)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	report := entities.ImageDeleteReport{}
-// 	if err := domainUtils.DeepCopy(&report, results); err != nil {
-// 		return nil, err
-// 	}
-// 	return &report, nil
-// }
-//
-// func (r *imageRuntime) Prune(ctx context.Context, opts entities.ImagePruneOptions) (*entities.ImagePruneReport, error) {
-// 	// TODO: map FilterOptions
-// 	id, err := r.libpod.ImageEngine().PruneImages(ctx, opts.All, []string{})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	// TODO: Determine Size
-// 	report := entities.ImagePruneReport{}
-// 	copy(report.Report.ID, id)
-// 	return &report, nil
-// }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
 	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)

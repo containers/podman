@@ -1,7 +1,7 @@
 % podman-push(1)
 
 ## NAME
-podman\-push - Push an image from local storage to elsewhere
+podman\-push - Push an image, manifest list or image index from local storage to elsewhere
 
 ## SYNOPSIS
 **podman push** [*options*] *image* [*destination*]
@@ -9,10 +9,11 @@ podman\-push - Push an image from local storage to elsewhere
 **podman image push** [*options*] *image* [*destination*]
 
 ## DESCRIPTION
-Pushes an image from local storage to a specified destination.
-Push is mainly used to push images to registries, however **podman push**
-can be used to save images to tarballs and directories using the following
-transports: **dir:**, **docker-archive:**, **docker-daemon:** and **oci-archive:**.
+Pushes an image, manifest list or image index from local storage to a specified
+destination. Push is mainly used to push images to registries, however
+**podman push** can be used to save images to tarballs and directories using the
+following transports:
+**dir:**, **docker-archive:**, **docker-daemon:** and **oci-archive:**.
 
 ## Image storage
 Images are pushed from those stored in local image storage.
@@ -52,6 +53,11 @@ Images are pushed from those stored in local image storage.
     $ podman push myimage oci-archive:/tmp/myimage
 
 ## OPTIONS
+
+#### **--all**
+
+If the specified image is a manifest list or an image index, push the images in addition to
+the list or index itself.
 
 #### **--authfile**=*path*
 
