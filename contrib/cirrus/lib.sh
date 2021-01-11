@@ -38,7 +38,6 @@ SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
 PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 # Important filepaths
 SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
-AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
 # Downloaded, but not installed packages.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
@@ -98,7 +97,7 @@ BIGTO="timeout_attempt_delay_command 300s 5 60s"
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separately)
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
 # Unsafe env. vars for display
-SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(GC[EP]..+)|(SSH)'
+SECRET_ENV_RE='(ACCOUNT)|(GC[EP]..+)|(SSH)'
 
 SPECIALMODE="${SPECIALMODE:-none}"
 TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
@@ -235,19 +234,6 @@ timeout_attempt_delay_command() {
         echo "##### (exceeded $ATTEMPTS attempts)"
         exit 125
     fi
-}
-
-ircmsg() {
-    req_env_var CIRRUS_TASK_ID IRCID
-    [[ -n "$*" ]] || die 9 "ircmsg() invoked without message text argument"
-    # Sometimes setup_environment.sh didn't run
-    SCRIPT="$(dirname $0)/podbot.py"
-    NICK="podbot_$CIRRUS_TASK_ID"
-    NICK="${NICK:0:15}"  # Any longer will break things
-    set +e
-    $SCRIPT $NICK $@
-    echo "Ignoring exit($?)"
-    set -e
 }
 
 # This covers all possible human & CI workflow parallel & serial combinations
