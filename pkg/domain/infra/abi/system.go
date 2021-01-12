@@ -162,11 +162,6 @@ func movePauseProcessToScope(r *libpod.Runtime) error {
 	return utils.RunUnderSystemdScope(int(pid), "user.slice", "podman-pause.scope")
 }
 
-// checkInput can be used to verify any of the globalopt values
-func checkInput() error { // nolint:deadcode,unused
-	return nil
-}
-
 // SystemPrune removes unused data from the system. Pruning pods, containers, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)

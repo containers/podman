@@ -11,7 +11,6 @@ import (
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/docker/archive"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	ociarchive "github.com/containers/image/v5/oci/archive"
 	oci "github.com/containers/image/v5/oci/layout"
@@ -130,7 +129,7 @@ func (ir *Runtime) getSinglePullRefPairGoal(srcRef types.ImageReference, destNam
 
 // getPullRefPairsFromDockerArchiveReference returns a slice of pullRefPairs
 // for the specified docker reference and the corresponding archive.Reader.
-func (ir *Runtime) getPullRefPairsFromDockerArchiveReference(ctx context.Context, reader *archive.Reader, ref types.ImageReference, sc *types.SystemContext) ([]pullRefPair, error) {
+func (ir *Runtime) getPullRefPairsFromDockerArchiveReference(ctx context.Context, reader *dockerarchive.Reader, ref types.ImageReference, sc *types.SystemContext) ([]pullRefPair, error) {
 	destNames, err := reader.ManifestTagsForReference(ref)
 	if err != nil {
 		return nil, err
@@ -178,7 +177,7 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 	// supports pulling from docker-archive, oci, and registries
 	switch srcRef.Transport().Name() {
 	case DockerArchive:
-		reader, readerRef, err := archive.NewReaderForReference(sc, srcRef)
+		reader, readerRef, err := dockerarchive.NewReaderForReference(sc, srcRef)
 		if err != nil {
 			return nil, err
 		}
@@ -432,7 +431,7 @@ func checkRemoteImageForLabel(ctx context.Context, label string, imageInfo pullR
 	}
 	// Labels are case insensitive; so we iterate instead of simple lookup
 	for k := range remoteInspect.Labels {
-		if strings.ToLower(label) == strings.ToLower(k) {
+		if strings.EqualFold(label, k) {
 			return nil
 		}
 	}

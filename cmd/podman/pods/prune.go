@@ -20,7 +20,7 @@ var (
 )
 
 var (
-	pruneDescription = fmt.Sprintf(`podman pod prune Removes all exited pods`)
+	pruneDescription = `podman pod prune Removes all exited pods`
 
 	pruneCommand = &cobra.Command{
 		Use:               "prune [options]",

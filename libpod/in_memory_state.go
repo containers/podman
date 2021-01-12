@@ -437,12 +437,8 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	}
 
 	// Remove our network aliases
-	if _, ok := s.ctrNetworkAliases[ctr.ID()]; ok {
-		delete(s.ctrNetworkAliases, ctr.ID())
-	}
-	if _, ok := s.ctrNetworks[ctr.ID()]; ok {
-		delete(s.ctrNetworks, ctr.ID())
-	}
+	delete(s.ctrNetworkAliases, ctr.ID())
+	delete(s.ctrNetworks, ctr.ID())
 
 	return nil
 }
@@ -680,9 +676,7 @@ func (s *InMemoryState) NetworkDisconnect(ctr *Container, network string) error 
 		ctrAliases = make(map[string][]string)
 		s.ctrNetworkAliases[ctr.ID()] = ctrAliases
 	}
-	if _, ok := ctrAliases[network]; ok {
-		delete(ctrAliases, network)
-	}
+	delete(ctrAliases, network)
 
 	return nil
 }
@@ -1523,12 +1517,8 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	}
 
 	// Remove our network aliases
-	if _, ok := s.ctrNetworkAliases[ctr.ID()]; ok {
-		delete(s.ctrNetworkAliases, ctr.ID())
-	}
-	if _, ok := s.ctrNetworks[ctr.ID()]; ok {
-		delete(s.ctrNetworks, ctr.ID())
-	}
+	delete(s.ctrNetworkAliases, ctr.ID())
+	delete(s.ctrNetworks, ctr.ID())
 
 	return nil
 }

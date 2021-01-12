@@ -113,15 +113,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	var (
-		err error
-	)
-	ctrs := []*libpod.Container{} //nolint
-	if options.All {
-		ctrs, err = ic.Libpod.GetAllContainers()
-	} else {
-		ctrs, err = getContainersByContext(false, false, namesOrIds, ic.Libpod)
-	}
+	ctrs, err := getContainersByContext(options.All, false, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -134,15 +126,7 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	var (
-		err error
-	)
-	ctrs := []*libpod.Container{} //nolint
-	if options.All {
-		ctrs, err = ic.Libpod.GetAllContainers()
-	} else {
-		ctrs, err = getContainersByContext(false, false, namesOrIds, ic.Libpod)
-	}
+	ctrs, err := getContainersByContext(options.All, false, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}

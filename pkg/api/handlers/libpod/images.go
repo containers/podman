@@ -16,7 +16,6 @@ import (
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
-	image2 "github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/auth"
@@ -524,7 +523,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "failed to get runtime config", http.StatusInternalServerError, errors.Wrap(err, "failed to get runtime config"))
 		return
 	}
-	sc := image2.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
+	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
 	tag := "latest"
 	options := libpod.ContainerCommitOptions{
 		Pause: true,

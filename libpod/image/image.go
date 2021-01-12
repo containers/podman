@@ -17,7 +17,6 @@ import (
 	"github.com/containers/common/pkg/retry"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/directory"
-	"github.com/containers/image/v5/docker/archive"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
@@ -37,7 +36,6 @@ import (
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
-	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -185,7 +183,7 @@ func (ir *Runtime) SaveImages(ctx context.Context, namesOrIDs []string, format s
 
 	sys := GetSystemContext("", "", false)
 
-	archWriter, err := archive.NewWriter(sys, outputFile)
+	archWriter, err := dockerarchive.NewWriter(sys, outputFile)
 	if err != nil {
 		return err
 	}
@@ -291,7 +289,7 @@ func (ir *Runtime) LoadAllImagesFromDockerArchive(ctx context.Context, fileName 
 	}
 
 	sc := GetSystemContext(signaturePolicyPath, "", false)
-	reader, err := archive.NewReader(sc, fileName)
+	reader, err := dockerarchive.NewReader(sc, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -1148,7 +1146,7 @@ func (i *Image) GetLabel(ctx context.Context, label string) (string, error) {
 	}
 
 	for k, v := range labels {
-		if strings.ToLower(k) == strings.ToLower(label) {
+		if strings.EqualFold(k, label) {
 			return v, nil
 		}
 	}
@@ -1326,7 +1324,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 
 	annotations := make(map[string]string)
 
-	//	config imgspecv1.Image
+	//	config ociv1.Image
 	err = updater.ConfigUpdate(imageConfig, annotations)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error updating image config")
@@ -1435,7 +1433,7 @@ func (i *Image) IsParent(ctx context.Context) (bool, error) {
 
 // historiesMatch returns the number of entries in the histories which have the
 // same contents
-func historiesMatch(a, b []imgspecv1.History) int {
+func historiesMatch(a, b []ociv1.History) int {
 	i := 0
 	for i < len(a) && i < len(b) {
 		if a[i].Created != nil && b[i].Created == nil {
@@ -1468,7 +1466,7 @@ func historiesMatch(a, b []imgspecv1.History) int {
 
 // areParentAndChild checks diff ID and history in the two images and return
 // true if the second should be considered to be directly based on the first
-func areParentAndChild(parent, child *imgspecv1.Image) bool {
+func areParentAndChild(parent, child *ociv1.Image) bool {
 	// the child and candidate parent should share all of the
 	// candidate parent's diff IDs, which together would have
 	// controlled which layers were used
@@ -1621,7 +1619,7 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 		if err != nil {
 			return errors.Wrapf(err, "error getting the OCI directory ImageReference for (%q, %q)", output, destImageName)
 		}
-		manifestType = imgspecv1.MediaTypeImageManifest
+		manifestType = ociv1.MediaTypeImageManifest
 	case "docker-dir":
 		destRef, err = directory.NewReference(output)
 		if err != nil {

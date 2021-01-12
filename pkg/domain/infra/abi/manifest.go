@@ -13,7 +13,6 @@ import (
 
 	"github.com/containers/buildah/manifests"
 	buildahManifests "github.com/containers/buildah/pkg/manifests"
-	"github.com/containers/buildah/util"
 	buildahUtil "github.com/containers/buildah/util"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
@@ -60,7 +59,7 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 		}
 	}
 	sc := ir.Libpod.SystemContext()
-	refs, err := util.ResolveNameToReferences(ir.Libpod.GetStore(), sc, name)
+	refs, err := buildahUtil.ResolveNameToReferences(ir.Libpod.GetStore(), sc, name)
 	if err != nil {
 		return nil, err
 	}

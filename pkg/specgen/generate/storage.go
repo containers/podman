@@ -124,14 +124,10 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// named volumes, and vice versa.
 	// We'll delete the conflicts here as we supersede.
 	for dest := range unifiedMounts {
-		if _, ok := baseVolumes[dest]; ok {
-			delete(baseVolumes, dest)
-		}
+		delete(baseVolumes, dest)
 	}
 	for dest := range unifiedVolumes {
-		if _, ok := baseMounts[dest]; ok {
-			delete(baseMounts, dest)
-		}
+		delete(baseMounts, dest)
 	}
 
 	// Supersede volumes-from/image volumes with unified volumes from above.

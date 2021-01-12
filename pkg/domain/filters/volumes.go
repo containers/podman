@@ -39,7 +39,7 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 				}
 				vf = append(vf, func(v *libpod.Volume) bool {
 					for labelKey, labelValue := range v.Labels() {
-						if labelKey == filterKey && ("" == filterVal || labelValue == filterVal) {
+						if labelKey == filterKey && (filterVal == "" || labelValue == filterVal) {
 							return true
 						}
 					}
@@ -56,7 +56,7 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 				}
 				vf = append(vf, func(v *libpod.Volume) bool {
 					for labelKey, labelValue := range v.Options() {
-						if labelKey == filterKey && ("" == filterVal || labelValue == filterVal) {
+						if labelKey == filterKey && (filterVal == "" || labelValue == filterVal) {
 							return true
 						}
 					}

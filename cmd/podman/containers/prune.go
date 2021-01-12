@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	pruneDescription = fmt.Sprintf(`podman container prune
+	pruneDescription = `podman container prune
 
-	Removes all non running containers`)
+	Removes all non running containers`
 	pruneCommand = &cobra.Command{
 		Use:               "prune [options]",
 		Short:             "Remove all non running containers",

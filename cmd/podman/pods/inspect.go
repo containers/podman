@@ -2,7 +2,6 @@ package pods
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"text/tabwriter"
 	"text/template"
@@ -21,9 +20,9 @@ var (
 )
 
 var (
-	inspectDescription = fmt.Sprintf(`Display the configuration for a pod by name or id
+	inspectDescription = `Display the configuration for a pod by name or id
 
-	By default, this will render all results in a JSON array.`)
+	By default, this will render all results in a JSON array.`
 
 	inspectCmd = &cobra.Command{
 		Use:               "inspect [options] POD [POD...]",

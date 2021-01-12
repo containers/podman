@@ -124,7 +124,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string) (
 					filterValue = ""
 				}
 				for labelKey, labelValue := range labels {
-					if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+					if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
 						matched = true
 						break
 					}

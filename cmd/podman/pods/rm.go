@@ -25,9 +25,9 @@ type podRmOptionsWrapper struct {
 
 var (
 	rmOptions        = podRmOptionsWrapper{}
-	podRmDescription = fmt.Sprintf(`podman rm will remove one or more stopped pods and their containers from the host.
+	podRmDescription = `podman rm will remove one or more stopped pods and their containers from the host.
 
-  The pod name or ID can be used.  A pod with containers will not be removed without --force. If --force is specified, all containers will be stopped, then removed.`)
+  The pod name or ID can be used.  A pod with containers will not be removed without --force. If --force is specified, all containers will be stopped, then removed.`
 	rmCommand = &cobra.Command{
 		Use:   "rm [options] POD [POD...]",
 		Short: "Remove one or more pods",
