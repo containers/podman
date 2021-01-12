@@ -67,6 +67,7 @@ gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e4
 ext_svc_check_task:
     alias: 'ext_svc_check'  # int. ref. name - required for depends_on reference
     name: "Ext. services"  # Displayed Title - has no other significance
+    skip: &tags "$CIRRUS_TAG != ''"  # Don't run on tags
     # Default/small container image to execute tasks with
     container: &smallcontainer
         image: ${CTR_FQIN}
@@ -90,7 +91,7 @@ ext_svc_check_task:
 automation_task:
     alias: 'automation'
     name: "Check Automation"
-    skip: &branch "$CIRRUS_PR == '' || $CIRRUS_TAG != ''" # Don't run for branches
+    skip: &branches_and_tags "$CIRRUS_PR == '' || $CIRRUS_TAG != ''" # Don't run on branches/tags
     container: *smallcontainer
     env:
         TEST_FLAVOR: automation
@@ -107,6 +108,7 @@ automation_task:
 smoke_task:
     alias: 'smoke'
     name: "Smoke Test"
+    skip: *tags
     container: &bigcontainer
         image: ${CTR_FQIN}
         # Leave some resources for smallcontainer
@@ -209,6 +211,7 @@ build_task:
 validate_task:
     name: "Validate $DISTRO_NV Build"
     alias: validate
+    skip: *tags
     depends_on:
         - ext_svc_check
         - automation
@@ -237,7 +240,7 @@ bindings_task:
     name: "Test Bindings"
     alias: bindings
     only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-    skip: *branch
+    skip: *branches_and_tags
     depends_on:
         - build
     gce_instance: *standardvm
@@ -275,6 +278,7 @@ swagger_task:
 vendor_task:
     name: "Test Vendoring"
     alias: vendor
+    skip: *tags
     depends_on:
         - build
     container: *smallcontainer
@@ -375,6 +379,7 @@ osx_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
+    skip: *tags
     only_if: *not_docs
     depends_on:
         - build
@@ -395,6 +400,7 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
+    skip: *tags
     only_if: *not_docs
     depends_on:
         - validate
@@ -412,6 +418,7 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
+    skip: *tags
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -439,6 +446,7 @@ apiv2_test_task:
 compose_test_task:
     name: "compose test on $DISTRO_NV"
     alias: compose_test
+    skip: *tags
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -460,7 +468,7 @@ local_integration_test_task: &local_integration_test_task
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
     only_if: *not_docs
-    skip: *branch
+    skip: *branches_and_tags
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -492,7 +500,7 @@ container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
     only_if: *not_docs
-    skip: *branch
+    skip: *branches_and_tags
     depends_on:
         - unit_test
     matrix: &fedora_vm_axis
@@ -523,7 +531,7 @@ rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
     only_if: *not_docs
-    skip: *branch
+    skip: *branches_and_tags
     depends_on:
         - unit_test
     matrix: *fedora_vm_axis
@@ -546,6 +554,7 @@ rootless_integration_test_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
+    skip: *tags
     only_if: *not_docs
     depends_on:
       - local_integration_test
@@ -573,6 +582,7 @@ remote_system_test_task:
 rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
+    skip: *tags
     only_if: *not_docs
     depends_on:
       - rootless_integration_test
@@ -658,7 +668,7 @@ success_task:
 release_task:
     name: "Verify Release"
     alias: release
-    only_if: $CIRRUS_TAG != ''
+    only_if: *tags
     depends_on:
         - success
     gce_instance: *standardvm
@@ -673,7 +683,9 @@ release_task:
 
 
 # When preparing to release a new version, this task may be manually
-# activated at the PR stage to verify the code is in a proper state.
+# activated at the PR stage to verify the build is proper for a potential
+# podman release.
+#
 # Note: This cannot use a YAML alias on 'release_task' as of this
 # comment, it is incompatible with 'trigger_type: manual'
 release_test_task:
