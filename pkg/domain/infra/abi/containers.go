@@ -489,6 +489,8 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		IgnoreRootfs:   options.IgnoreRootFS,
 		IgnoreVolumes:  options.IgnoreVolumes,
 		KeepRunning:    options.LeaveRunning,
+		PreCheckPoint:  options.PreCheckPoint,
+		WithPrevious:   options.WithPrevious,
 	}
 
 	if options.All {
@@ -529,6 +531,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		IgnoreVolumes:   options.IgnoreVolumes,
 		IgnoreStaticIP:  options.IgnoreStaticIP,
 		IgnoreStaticMAC: options.IgnoreStaticMAC,
+		ImportPrevious:  options.ImportPrevious,
 	}
 
 	filterFuncs := []libpod.ContainerFilter{

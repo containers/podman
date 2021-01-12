@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/containers/podman/v2/pkg/criu"
 	. "github.com/containers/podman/v2/test/utils"
@@ -746,5 +747,79 @@ var _ = Describe("Podman checkpoint", func() {
 
 		// Remove exported checkpoint
 		os.Remove(checkpointFileName)
+	})
+
+	It("podman checkpoint container with --pre-checkpoint", func() {
+		if !strings.Contains(podmanTest.OCIRuntime, "runc") {
+			Skip("Test only works on runc 1.0-rc3 or higher.")
+		}
+		localRunString := getRunString([]string{ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"container", "checkpoint", "-P", cid})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		result = podmanTest.Podman([]string{"container", "checkpoint", "--with-previous", cid})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
+
+		result = podmanTest.Podman([]string{"container", "restore", cid})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+	})
+
+	It("podman checkpoint container with --pre-checkpoint and export (migration)", func() {
+		if !strings.Contains(podmanTest.OCIRuntime, "runc") {
+			Skip("Test only works on runc 1.0-rc3 or higher.")
+		}
+		localRunString := getRunString([]string{ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		preCheckpointFileName := "/tmp/pre-checkpoint-" + cid + ".tar.gz"
+		checkpointFileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+		result := podmanTest.Podman([]string{"container", "checkpoint", "-P", "-e", preCheckpointFileName, cid})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		result = podmanTest.Podman([]string{"container", "checkpoint", "--with-previous", "-e", checkpointFileName, cid})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
+
+		result = podmanTest.Podman([]string{"rm", "-f", cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{"container", "restore", "-i", checkpointFileName, "--import-previous", preCheckpointFileName})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		os.Remove(checkpointFileName)
+		os.Remove(preCheckpointFileName)
 	})
 })

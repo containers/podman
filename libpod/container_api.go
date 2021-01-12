@@ -706,6 +706,13 @@ type ContainerCheckpointOptions struct {
 	// IgnoreVolumes tells the API to not export or not to import
 	// the content of volumes associated with the container
 	IgnoreVolumes bool
+	// Pre Checkpoint container and leave container running
+	PreCheckPoint bool
+	// Dump container with Pre Checkpoint images
+	WithPrevious bool
+	// ImportPrevious tells the API to restore container with two
+	// images. One is TargetFile, the other is ImportPrevious.
+	ImportPrevious string
 }
 
 // Checkpoint checkpoints a container
@@ -714,6 +721,12 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 
 	if options.TargetFile != "" {
 		if err := c.prepareCheckpointExport(); err != nil {
+			return err
+		}
+	}
+
+	if options.WithPrevious {
+		if err := c.canWithPrevious(); err != nil {
 			return err
 		}
 	}

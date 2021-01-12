@@ -59,6 +59,10 @@ func init() {
 	flags.StringVarP(&restoreOptions.Name, nameFlagName, "n", "", "Specify new name for container restored from exported checkpoint (only works with --import)")
 	_ = restoreCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
+	importPreviousFlagName := "import-previous"
+	flags.StringVar(&restoreOptions.ImportPrevious, importPreviousFlagName, "", "Restore from exported pre-checkpoint archive (tar.gz)")
+	_ = restoreCommand.RegisterFlagCompletionFunc(importPreviousFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVar(&restoreOptions.IgnoreRootFS, "ignore-rootfs", false, "Do not apply root file-system changes when importing from exported checkpoint")
 	flags.BoolVar(&restoreOptions.IgnoreStaticIP, "ignore-static-ip", false, "Ignore IP address set via --static-ip")
 	flags.BoolVar(&restoreOptions.IgnoreStaticMAC, "ignore-static-mac", false, "Ignore MAC address set via --mac-address")
@@ -70,6 +74,9 @@ func restore(_ *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
 	if rootless.IsRootless() {
 		return errors.New("restoring a container requires root")
+	}
+	if restoreOptions.Import == "" && restoreOptions.ImportPrevious != "" {
+		return errors.Errorf("--import-previous can only be used with --import")
 	}
 	if restoreOptions.Import == "" && restoreOptions.IgnoreRootFS {
 		return errors.Errorf("--ignore-rootfs can only be used with --import")

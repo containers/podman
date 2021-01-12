@@ -58,11 +58,25 @@ This option must be used in combination with the **--export, -e** option.
 When this option is specified, the content of volumes associated with
 the container will not be included into the checkpoint tar.gz file.
 
+#### **--pre-checkpoint**, **-P**
+
+Dump the container's memory information only, leaving the container running. Later
+operations will supersede prior dumps. It only works on runc 1.0-rc3 or higher.
+
+#### **--with-previous**
+
+Check out the container with previous criu image files in pre-dump. It only works
+without **--pre-checkpoint** or **-P**. It only works on runc 1.0-rc3 or higher.
+
 ## EXAMPLE
 
 podman container checkpoint mywebserver
 
 podman container checkpoint 860a4b23
+
+podman container checkpoint -P -e pre-checkpoint.tar.gz -l
+
+podman container checkpoint --with-previous -e checkpoint.tar.gz -l
 
 ## SEE ALSO
 podman(1), podman-container-restore(1)
