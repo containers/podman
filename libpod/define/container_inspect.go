@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/podman/v2/libpod/driver"
 )
 
 // InspectContainerConfig holds further data about how a container was initially
@@ -635,7 +634,7 @@ type InspectContainerData struct {
 	EffectiveCaps   []string                    `json:"EffectiveCaps"`
 	BoundingCaps    []string                    `json:"BoundingCaps"`
 	ExecIDs         []string                    `json:"ExecIDs"`
-	GraphDriver     *driver.Data                `json:"GraphDriver"`
+	GraphDriver     *DriverData                 `json:"GraphDriver"`
 	SizeRw          *int64                      `json:"SizeRw,omitempty"`
 	SizeRootFs      int64                       `json:"SizeRootFs,omitempty"`
 	Mounts          []InspectMount              `json:"Mounts"`
@@ -699,4 +698,10 @@ type InspectExecProcess struct {
 	Tty bool `json:"tty"`
 	// User is the user the exec session was started as.
 	User string `json:"user"`
+}
+
+// DriverData handles the data for a storage driver
+type DriverData struct {
+	Name string            `json:"Name"`
+	Data map[string]string `json:"Data"`
 }

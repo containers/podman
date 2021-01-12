@@ -49,7 +49,7 @@ func (c *Container) Inspect(size bool) (*define.InspectContainerData, error) {
 	return c.inspectLocked(size)
 }
 
-func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) (*define.InspectContainerData, error) {
+func (c *Container) getContainerInspectData(size bool, driverData *define.DriverData) (*define.InspectContainerData, error) {
 	config := c.config
 	runtimeInfo := c.state
 	ctrSpec, err := c.specFromState()
