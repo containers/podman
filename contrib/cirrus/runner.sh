@@ -48,6 +48,7 @@ function _run_automation() {
 
 function _run_validate() {
     # Confirm compile via prior task + cache
+    ls -la bin
     bin/podman --version
     bin/podman-remote --version
 
