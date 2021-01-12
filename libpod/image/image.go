@@ -30,6 +30,7 @@ import (
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/driver"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/inspect"
@@ -972,7 +973,7 @@ func (i *Image) toImageRef(ctx context.Context) (types.Image, error) {
 }
 
 // DriverData gets the driver data from the store on a layer
-func (i *Image) DriverData() (*driver.Data, error) {
+func (i *Image) DriverData() (*define.DriverData, error) {
 	return driver.GetDriverData(i.imageruntime.store, i.TopLayer())
 }
 

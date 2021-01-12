@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/podman/v2/libpod/driver"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -25,7 +25,7 @@ type ImageData struct {
 	Os           string                        `json:"Os"`
 	Size         int64                         `json:"Size"`
 	VirtualSize  int64                         `json:"VirtualSize"`
-	GraphDriver  *driver.Data                  `json:"GraphDriver"`
+	GraphDriver  *define.DriverData            `json:"GraphDriver"`
 	RootFS       *RootFS                       `json:"RootFS"`
 	Labels       map[string]string             `json:"Labels"`
 	Annotations  map[string]string             `json:"Annotations"`
