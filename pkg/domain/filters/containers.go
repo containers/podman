@@ -35,7 +35,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 					filterValue = ""
 				}
 				for labelKey, labelValue := range labels {
-					if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+					if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
 						matched = true
 						break
 					}

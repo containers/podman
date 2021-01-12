@@ -29,7 +29,7 @@ func generatePruneFilterFuncs(filter, filterValue string) (ImageFilter, error) {
 				return false
 			}
 			for labelKey, labelValue := range labels {
-				if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+				if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
 					return true
 				}
 			}

@@ -20,11 +20,11 @@ import (
 var (
 	pruneOptions     = entities.SystemPruneOptions{}
 	filters          []string
-	pruneDescription = fmt.Sprintf(`
+	pruneDescription = `
 	podman system prune
 
         Remove unused data
-`)
+`
 
 	pruneCommand = &cobra.Command{
 		Use:               "prune [options]",

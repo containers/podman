@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/containers/common/pkg/auth"
@@ -181,7 +180,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	createFlags.StringSliceVar(
 		&cf.Devices,
 		deviceFlagName, devices(),
-		fmt.Sprintf("Add a host device to the container"),
+		"Add a host device to the container",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
 
@@ -359,7 +358,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 		&cf.InitPath,
 		initPathFlagName, initPath(),
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
-		fmt.Sprintf("Path to the container-init binary"),
+		"Path to the container-init binary",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(initPathFlagName, completion.AutocompleteDefault)
 

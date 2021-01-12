@@ -22,7 +22,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
-	libpodImage "github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	domainUtils "github.com/containers/podman/v2/pkg/domain/utils"
@@ -206,7 +205,7 @@ func (ir *ImageEngine) Unmount(ctx context.Context, nameOrIDs []string, options 
 	return reports, nil
 }
 
-func ToDomainHistoryLayer(layer *libpodImage.History) entities.ImageHistoryLayer {
+func ToDomainHistoryLayer(layer *image.History) entities.ImageHistoryLayer {
 	l := entities.ImageHistoryLayer{}
 	l.ID = layer.ID
 	l.Created = *layer.Created

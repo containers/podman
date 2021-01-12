@@ -216,7 +216,7 @@ func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]stri
 					filterValue = ""
 				}
 				for labelKey, labelValue := range labels {
-					if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+					if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
 						result = true
 						continue outer
 					}

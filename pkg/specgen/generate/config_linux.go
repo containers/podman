@@ -21,9 +21,6 @@ var (
 	errNotADevice = errors.New("not a device node")
 )
 
-func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
-func fmPtr(i int64) *os.FileMode { fm := os.FileMode(i); return &fm }
-
 func addPrivilegedDevices(g *generate.Generator) error {
 	hostDevices, err := getDevices("/dev")
 	if err != nil {

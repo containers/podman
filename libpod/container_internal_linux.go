@@ -40,7 +40,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -284,7 +283,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, err
 	}
 
-	g := generate.NewFromSpec(c.config.Spec)
+	g := generate.Generator{Config: c.config.Spec}
 
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
@@ -400,7 +399,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			return nil, errors.Wrapf(err, "failed to create TempDir in the %s directory", c.config.StaticDir)
 		}
 
-		var overlayMount specs.Mount
+		var overlayMount spec.Mount
 		if volume.ReadWrite {
 			overlayMount, err = overlay.Mount(contentDir, mountPoint, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		} else {
@@ -1482,18 +1481,14 @@ func (c *Container) makeBindMounts() error {
 	}
 	if newPasswd != "" {
 		// Make /etc/passwd
-		if _, ok := c.state.BindMounts["/etc/passwd"]; ok {
-			// If it already exists, delete so we can recreate
-			delete(c.state.BindMounts, "/etc/passwd")
-		}
+		// If it already exists, delete so we can recreate
+		delete(c.state.BindMounts, "/etc/passwd")
 		c.state.BindMounts["/etc/passwd"] = newPasswd
 	}
 	if newGroup != "" {
 		// Make /etc/group
-		if _, ok := c.state.BindMounts["/etc/group"]; ok {
-			// If it already exists, delete so we can recreate
-			delete(c.state.BindMounts, "/etc/group")
-		}
+		// If it already exists, delete so we can recreate
+		delete(c.state.BindMounts, "/etc/group")
 		c.state.BindMounts["/etc/group"] = newGroup
 	}
 

@@ -910,7 +910,7 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		ctr.config.UserNsCtr = nsCtr.ID()
 		ctr.config.IDMappings = nsCtr.config.IDMappings
 
-		g := generate.NewFromSpec(ctr.config.Spec)
+		g := generate.Generator{Config: ctr.config.Spec}
 
 		g.ClearLinuxUIDMappings()
 		for _, uidmap := range nsCtr.config.IDMappings.UIDMap {

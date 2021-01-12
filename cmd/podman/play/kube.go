@@ -127,23 +127,23 @@ func kube(cmd *cobra.Command, args []string) error {
 
 	for _, pod := range report.Pods {
 		for _, l := range pod.Logs {
-			fmt.Fprintf(os.Stderr, l)
+			fmt.Fprint(os.Stderr, l)
 		}
 	}
 
 	ctrsFailed := 0
 
 	for _, pod := range report.Pods {
-		fmt.Printf("Pod:\n")
+		fmt.Println("Pod:")
 		fmt.Println(pod.ID)
 
 		switch len(pod.Containers) {
 		case 0:
 			continue
 		case 1:
-			fmt.Printf("Container:\n")
+			fmt.Println("Container:")
 		default:
-			fmt.Printf("Containers:\n")
+			fmt.Println("Containers:")
 		}
 		for _, ctr := range pod.Containers {
 			fmt.Println(ctr)
@@ -154,7 +154,7 @@ func kube(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 		}
 		for _, err := range pod.ContainerErrors {
-			fmt.Fprintf(os.Stderr, err+"\n")
+			fmt.Fprintln(os.Stderr, err)
 		}
 		// Empty line for space for next block
 		fmt.Println()
