@@ -126,5 +126,17 @@ func getOCIRuntimeError(runtimeMsg string) error {
 		}
 		return errors.Wrapf(define.ErrOCIRuntimeNotFound, "%s", strings.Trim(errStr, "\n"))
 	}
+	if match := regexp.MustCompile("`/proc/[a-z0-9-].+/attr.*`").FindString(runtimeMsg); match != "" {
+		errStr := match
+		if includeFullOutput {
+			errStr = runtimeMsg
+		}
+		if strings.HasSuffix(match, "/exec`") {
+			return errors.Wrapf(define.ErrSetSecurityAttribute, "%s", strings.Trim(errStr, "\n"))
+		} else if strings.HasSuffix(match, "/current`") {
+			return errors.Wrapf(define.ErrGetSecurityAttribute, "%s", strings.Trim(errStr, "\n"))
+		}
+		return errors.Wrapf(define.ErrSecurityAttribute, "%s", strings.Trim(errStr, "\n"))
+	}
 	return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(runtimeMsg, "\n"))
 }

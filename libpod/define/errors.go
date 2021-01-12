@@ -2,6 +2,7 @@ package define
 
 import (
 	"errors"
+	"fmt"
 )
 
 var (
@@ -181,4 +182,16 @@ var (
 
 	// ErrNoNetwork indicates that a container has no net namespace, like network=none
 	ErrNoNetwork = errors.New("container has no network namespace")
+
+	// ErrSetSecurityAttribute indicates that a request to set a container's security attribute
+	// was not possible.
+	ErrSetSecurityAttribute = fmt.Errorf("%w: unable to assign security attribute", ErrOCIRuntime)
+
+	// ErrGetSecurityAttribute indicates that a request to get a container's security attribute
+	// was not possible.
+	ErrGetSecurityAttribute = fmt.Errorf("%w: unable to get security attribute", ErrOCIRuntime)
+
+	// ErrSecurityAttribute indicates that an error processing security attributes
+	// for the container
+	ErrSecurityAttribute = fmt.Errorf("%w: unable to process security attribute", ErrOCIRuntime)
 )
