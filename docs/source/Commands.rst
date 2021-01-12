@@ -75,6 +75,8 @@ Commands
 
 :doc:`push <markdown/podman-push.1>` Push an image to a specified destination
 
+:doc:`rename <markdown/podman-rename.1>` Rename an existing container
+
 :doc:`restart <markdown/podman-restart.1>` Restart one or more containers
 
 :doc:`rm <markdown/podman-rm.1>` Remove one or more containers

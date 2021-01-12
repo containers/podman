@@ -179,11 +179,3 @@ class TestContainers(unittest.TestCase):
         filters = {"name": "top"}
         ctnrs = self.client.containers.list(all=True, filters=filters)
         self.assertEqual(len(ctnrs), 1)
-
-    def test_rename_container(self):
-        top = self.client.containers.get(TestContainers.topContainerId)
-
-        # rename bogus container
-        with self.assertRaises(errors.APIError) as error:
-            top.rename(name="newname")
-        self.assertEqual(error.exception.response.status_code, 404)

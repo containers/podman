@@ -902,7 +902,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchCtr ||
 				errors.Cause(err) == define.ErrCtrRemoved {
-				logrus.Warnf("Container %s does not exist: %v", ctr.ID(), err)
+				logrus.Infof("Container %s was already removed, skipping --rm", ctr.ID())
 			} else {
 				logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
 			}
@@ -1311,4 +1311,18 @@ func (ic *ContainerEngine) ShouldRestart(ctx context.Context, nameOrID string) (
 	}
 
 	return &entities.BoolReport{Value: ctr.ShouldRestart(ctx)}, nil
+}
+
+// ContainerRename renames the given container.
+func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string, opts entities.ContainerRenameOptions) error {
+	ctr, err := ic.Libpod.LookupContainer(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	if _, err := ic.Libpod.RenameContainer(ctx, ctr, opts.NewName); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -465,3 +465,34 @@ func formatCapabilities(slice []string) {
 		slice[i] = strings.TrimPrefix(slice[i], "CAP_")
 	}
 }
+
+func RenameContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+
+	name := utils.GetName(r)
+	query := struct {
+		Name string `schema:"name"`
+	}{}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+
+	if _, err := runtime.RenameContainer(r.Context(), ctr, query.Name); err != nil {
+		if errors.Cause(err) == define.ErrPodExists || errors.Cause(err) == define.ErrCtrExists {
+			utils.Error(w, "Something went wrong.", http.StatusConflict, err)
+			return
+		}
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	utils.WriteResponse(w, http.StatusNoContent, nil)
+}

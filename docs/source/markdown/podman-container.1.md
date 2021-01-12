@@ -33,6 +33,7 @@ The container command allows you to manage containers
 | port       | [podman-port(1)](podman-port.1.md)                  | List port mappings for the container.                                        |
 | prune      | [podman-container-prune(1)](podman-container-prune.1.md)| Remove all stopped containers from local storage.                        |
 | ps         | [podman-ps(1)](podman-ps.1.md)                      | Prints out information about containers.                                     |
+| rename     | [podman-rename(1)](podman-rename.1.md)              | Rename an existing container.                                                |
 | restart    | [podman-restart(1)](podman-restart.1.md)            | Restart one or more containers.                                              |
 | restore    | [podman-container-restore(1)](podman-container-restore.1.md)  | Restores one or more containers from a checkpoint.                 |
 | rm         | [podman-rm(1)](podman-rm.1.md)                      | Remove one or more containers.                                               |
@@ -42,7 +43,7 @@ The container command allows you to manage containers
 | stats      | [podman-stats(1)](podman-stats.1.md)                | Display a live stream of one or more container's resource usage statistics.  |
 | stop       | [podman-stop(1)](podman-stop.1.md)                  | Stop one or more running containers.                                         |
 | top        | [podman-top(1)](podman-top.1.md)                    | Display the running processes of a container.                                |
-| unmount     | [podman-unmount(1)](podman-unmount.1.md)           | Unmount a working container's root filesystem.(Alias unmount)                |
+| unmount    | [podman-unmount(1)](podman-unmount.1.md)            | Unmount a working container's root filesystem.(Alias unmount)                |
 | unpause    | [podman-unpause(1)](podman-unpause.1.md)            | Unpause one or more containers.                                              |
 | wait       | [podman-wait(1)](podman-wait.1.md)                  | Wait on one or more containers to stop and print their exit codes.           |
 

@@ -434,3 +434,9 @@ type ContainerStatsReport struct {
 	// Results, set when there is no error.
 	Stats []define.ContainerStats
 }
+
+// ContainerRenameOptions describes input options for renaming a container.
+type ContainerRenameOptions struct {
+	// NewName is the new name that will be given to the container.
+	NewName string
+}
