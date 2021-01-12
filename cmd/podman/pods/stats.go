@@ -75,11 +75,12 @@ func stats(cmd *cobra.Command, args []string) error {
 	doJSON := report.IsJSON(row)
 
 	headers := report.Headers(entities.PodStatsReport{}, map[string]string{
-		"CPU":      "CPU %",
-		"MemUsage": "MEM USAGE/ LIMIT",
-		"MEM":      "MEM %",
-		"NET IO":   "NET IO",
-		"BlockIO":  "BLOCK IO",
+		"CPU":           "CPU %",
+		"MemUsage":      "MEM USAGE/ LIMIT",
+		"MemUsageBytes": "MEM USAGE/ LIMIT",
+		"MEM":           "MEM %",
+		"NET IO":        "NET IO",
+		"BlockIO":       "BLOCK IO",
 	})
 
 	for ; ; time.Sleep(time.Second) {

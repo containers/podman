@@ -147,13 +147,14 @@ func stats(cmd *cobra.Command, args []string) error {
 
 func outputStats(reports []define.ContainerStats) error {
 	headers := report.Headers(define.ContainerStats{}, map[string]string{
-		"ID":       "ID",
-		"CPUPerc":  "CPU %",
-		"MemUsage": "MEM USAGE / LIMIT",
-		"MemPerc":  "MEM %",
-		"NetIO":    "NET IO",
-		"BlockIO":  "BLOCK IO",
-		"PIDS":     "PIDS",
+		"ID":            "ID",
+		"CPUPerc":       "CPU %",
+		"MemUsage":      "MEM USAGE / LIMIT",
+		"MemUsageBytes": "MEM USAGE / LIMIT",
+		"MemPerc":       "MEM %",
+		"NetIO":         "NET IO",
+		"BlockIO":       "BLOCK IO",
+		"PIDS":          "PIDS",
 	})
 	if !statsOptions.NoReset {
 		tm.Clear()
@@ -222,8 +223,13 @@ func (s *containerStats) PIDS() string {
 	}
 	return fmt.Sprintf("%d", s.PIDs)
 }
+
 func (s *containerStats) MemUsage() string {
 	return combineHumanValues(s.ContainerStats.MemUsage, s.ContainerStats.MemLimit)
+}
+
+func (s *containerStats) MemUsageBytes() string {
+	return combineBytesValues(s.ContainerStats.MemUsage, s.ContainerStats.MemLimit)
 }
 
 func floatToPercentString(f float64) string {
@@ -240,6 +246,13 @@ func combineHumanValues(a, b uint64) string {
 		return "-- / --"
 	}
 	return fmt.Sprintf("%s / %s", units.HumanSize(float64(a)), units.HumanSize(float64(b)))
+}
+
+func combineBytesValues(a, b uint64) string {
+	if a == 0 && b == 0 {
+		return "-- / --"
+	}
+	return fmt.Sprintf("%s / %s", units.BytesSize(float64(a)), units.BytesSize(float64(b)))
 }
 
 func outputJSON(stats []containerStats) error {

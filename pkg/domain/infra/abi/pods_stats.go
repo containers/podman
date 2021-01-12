@@ -44,15 +44,16 @@ func (ic *ContainerEngine) podsToStatsReport(pods []*libpod.Pod) ([]*entities.Po
 		podID := pods[i].ID()[:12]
 		for j := range podStats {
 			r := entities.PodStatsReport{
-				CPU:      floatToPercentString(podStats[j].CPU),
-				MemUsage: combineHumanValues(podStats[j].MemUsage, podStats[j].MemLimit),
-				Mem:      floatToPercentString(podStats[j].MemPerc),
-				NetIO:    combineHumanValues(podStats[j].NetInput, podStats[j].NetOutput),
-				BlockIO:  combineHumanValues(podStats[j].BlockInput, podStats[j].BlockOutput),
-				PIDS:     pidsToString(podStats[j].PIDs),
-				CID:      podStats[j].ContainerID[:12],
-				Name:     podStats[j].Name,
-				Pod:      podID,
+				CPU:           floatToPercentString(podStats[j].CPU),
+				MemUsage:      combineHumanValues(podStats[j].MemUsage, podStats[j].MemLimit),
+				MemUsageBytes: combineBytesValues(podStats[j].MemUsage, podStats[j].MemLimit),
+				Mem:           floatToPercentString(podStats[j].MemPerc),
+				NetIO:         combineHumanValues(podStats[j].NetInput, podStats[j].NetOutput),
+				BlockIO:       combineHumanValues(podStats[j].BlockInput, podStats[j].BlockOutput),
+				PIDS:          pidsToString(podStats[j].PIDs),
+				CID:           podStats[j].ContainerID[:12],
+				Name:          podStats[j].Name,
+				Pod:           podID,
 			}
 			reports = append(reports, &r)
 		}
@@ -66,6 +67,13 @@ func combineHumanValues(a, b uint64) string {
 		return "-- / --"
 	}
 	return fmt.Sprintf("%s / %s", units.HumanSize(float64(a)), units.HumanSize(float64(b)))
+}
+
+func combineBytesValues(a, b uint64) string {
+	if a == 0 && b == 0 {
+		return "-- / --"
+	}
+	return fmt.Sprintf("%s / %s", units.BytesSize(float64(a)), units.BytesSize(float64(b)))
 }
 
 func floatToPercentString(f float64) string {
