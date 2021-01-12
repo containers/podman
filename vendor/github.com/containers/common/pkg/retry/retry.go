@@ -30,7 +30,7 @@ func RetryIfNecessary(ctx context.Context, operation func() error, retryOptions 
 		if retryOptions.Delay != 0 {
 			delay = retryOptions.Delay
 		}
-		logrus.Infof("Warning: failed, retrying in %s ... (%d/%d). Error: %v", delay, attempt+1, retryOptions.MaxRetry, err)
+		logrus.Warnf("failed, retrying in %s ... (%d/%d). Error: %v", delay, attempt+1, retryOptions.MaxRetry, err)
 		select {
 		case <-time.After(delay):
 			break
@@ -69,7 +69,7 @@ func isRetryable(err error) bool {
 		}
 		return isRetryable(e.Err)
 	case syscall.Errno:
-		return e != syscall.ECONNREFUSED
+		return shouldRestart(e)
 	case errcode.Errors:
 		// if this error is a group of errors, process them all in turn
 		for i := range e {
@@ -92,4 +92,12 @@ func isRetryable(err error) bool {
 	}
 
 	return false
+}
+
+func shouldRestart(e error) bool {
+	switch e {
+	case syscall.ECONNREFUSED, syscall.EINTR, syscall.EAGAIN, syscall.EBUSY, syscall.ENETDOWN, syscall.ENETUNREACH, syscall.ENETRESET, syscall.ECONNABORTED, syscall.ECONNRESET, syscall.ETIMEDOUT, syscall.EHOSTDOWN, syscall.EHOSTUNREACH:
+		return true
+	}
+	return shouldRestartPlatform(e)
 }
