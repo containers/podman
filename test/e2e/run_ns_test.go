@@ -105,6 +105,14 @@ var _ = Describe("Podman run ns", func() {
 		Expect(session).To(ExitWithError())
 	})
 
+	It("podman run mounts fresh cgroup", func() {
+		session := podmanTest.Podman([]string{"run", fedoraMinimal, "grep", "cgroup", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := session.OutputToString()
+		Expect(output).ToNot(ContainSubstring(".."))
+	})
+
 	It("podman run --ipc=host --pid=host", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
 		cmd := exec.Command("ls", "-l", "/proc/self/ns/pid")

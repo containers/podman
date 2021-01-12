@@ -138,10 +138,23 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 	return finalCommand, nil
 }
 
+// canMountSys is a best-effort heuristic to detect whether mounting a new sysfs is permitted in the container
+func canMountSys(isRootless, isNewUserns bool, s *specgen.SpecGenerator) bool {
+	if s.NetNS.IsHost() && (isRootless || isNewUserns) {
+		return false
+	}
+	if isNewUserns {
+		switch s.NetNS.NSMode {
+		case specgen.Slirp, specgen.Private, specgen.NoNetwork, specgen.Bridge:
+			return true
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *image.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string) (*spec.Spec, error) {
-	var (
-		inUserNS bool
-	)
 	cgroupPerm := "ro"
 	g, err := generate.New("linux")
 	if err != nil {
@@ -151,23 +164,11 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	g.RemoveMount("/dev/shm")
 	g.HostSpecific = true
 	addCgroup := true
-	canMountSys := true
 
 	isRootless := rootless.IsRootless()
-	if isRootless {
-		inUserNS = true
-	}
-	if !s.UserNS.IsHost() {
-		if s.UserNS.IsContainer() || s.UserNS.IsPath() {
-			inUserNS = true
-		}
-		if s.UserNS.IsPrivate() {
-			inUserNS = true
-		}
-	}
-	if inUserNS && s.NetNS.NSMode != specgen.NoNetwork {
-		canMountSys = false
-	}
+	isNewUserns := s.UserNS.IsContainer() || s.UserNS.IsPath() || s.UserNS.IsPrivate()
+
+	canMountSys := canMountSys(isRootless, isNewUserns, s)
 
 	if s.Privileged && canMountSys {
 		cgroupPerm = "rw"
@@ -231,6 +232,8 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 		g.AddMount(devPts)
 	}
+
+	inUserNS := isRootless || isNewUserns
 
 	if inUserNS && s.IpcNS.IsHost() {
 		g.RemoveMount("/dev/mqueue")
