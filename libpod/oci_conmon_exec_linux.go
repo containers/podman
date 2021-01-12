@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -512,7 +511,6 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	if err != nil {
 		return err
 	}
-	socketPath := buildSocketPath(sockPath)
 
 	// 2: read from attachFd that the parent process has set up the console socket
 	if _, err := readConmonPipeData(pipes.attachPipe, ""); err != nil {
@@ -520,9 +518,9 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	}
 
 	// 2: then attach
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
+	conn, err := openUnixSocket(sockPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
+		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", sockPath)
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
