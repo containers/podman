@@ -203,16 +203,18 @@ function _run_altbuild() {
 
 function _run_release() {
     # TODO: These tests should come from code external to the podman repo.
-    # to allow test-changes (and re-runs) in the case of a correctible test
+    # to allow test-changes (and re-runs) in the case of a correctable test
     # flaw or flake at release tag-push time.  For now, the test is here
-    # given it's simplicity.
+    # given its simplicity.
+    msg "podman info:"
+    bin/podman info
 
     msg "Checking podman release (or potential release) criteria."
-    info_output=$(bin/podman info 2>&1)
-    if grep -q -- '-dev'<<<"$info_output"; then
-        die "Releases must never contain '-dev' in output of 'podman info':
-$info_output"
+    dev=$(bin/podman info |& grep -- -dev)
+    if [[ -n "$dev" ]]; then
+        die "Releases must never contain '-dev' in output of 'podman info' ($dev)"
     fi
+    msg "All OK"
 }
 
 logformatter() {
