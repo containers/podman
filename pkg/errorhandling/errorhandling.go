@@ -70,3 +70,27 @@ func CloseQuiet(f *os.File) {
 func Contains(err error, sub error) bool {
 	return strings.Contains(err.Error(), sub.Error())
 }
+
+// ErrorModel is used in remote connections with podman
+type ErrorModel struct {
+	// API root cause formatted for automated parsing
+	// example: API root cause
+	Because string `json:"cause"`
+	// human error message, formatted for a human to read
+	// example: human error message
+	Message string `json:"message"`
+	// http response code
+	ResponseCode int `json:"response"`
+}
+
+func (e ErrorModel) Error() string {
+	return e.Message
+}
+
+func (e ErrorModel) Cause() error {
+	return errors.New(e.Because)
+}
+
+func (e ErrorModel) Code() int {
+	return e.ResponseCode
+}

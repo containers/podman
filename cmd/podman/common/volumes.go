@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/parse"
 	"github.com/containers/podman/v2/pkg/specgen"
 	"github.com/containers/podman/v2/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"

@@ -1,7 +1,6 @@
 package entities
 
 import (
-	"errors"
 	"net"
 
 	"github.com/containers/buildah/imagebuildah"
@@ -88,29 +87,6 @@ type ContainerCreateResponse struct {
 	ID string `json:"Id"`
 	// Warnings during container creation
 	Warnings []string `json:"Warnings"`
-}
-
-type ErrorModel struct {
-	// API root cause formatted for automated parsing
-	// example: API root cause
-	Because string `json:"cause"`
-	// human error message, formatted for a human to read
-	// example: human error message
-	Message string `json:"message"`
-	// http response code
-	ResponseCode int `json:"response"`
-}
-
-func (e ErrorModel) Error() string {
-	return e.Message
-}
-
-func (e ErrorModel) Cause() error {
-	return errors.New(e.Because)
-}
-
-func (e ErrorModel) Code() int {
-	return e.ResponseCode
 }
 
 // BuildOptions describe the options for building container images.

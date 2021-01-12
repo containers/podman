@@ -3,7 +3,7 @@ package kube
 import (
 	"os"
 
-	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/parse"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

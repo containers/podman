@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,7 +24,7 @@ var (
 func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Infof("Request Failed(%s): %s", http.StatusText(code), err.Error())
-	em := entities.ErrorModel{
+	em := errorhandling.ErrorModel{
 		Because:      (errors.Cause(err)).Error(),
 		Message:      err.Error(),
 		ResponseCode: code,
