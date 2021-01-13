@@ -1011,8 +1011,11 @@ When set to **true**, Podman will allocate a pseudo-tty and attach to the standa
 input of the container. This can be used, for example, to run a throwaway
 interactive shell. The default is **false**.
 
-**NOTE**: The **-t** option is incompatible with a redirection of the Podman client
-standard input.
+**NOTE**: The --tty flag prevents redirection of standard output.  It combines STDOUT and STDERR, it can insert control characters, and it can hang pipes. This option should only be used when run interactively in a terminal. When feeding input to Podman, use -i only, not -it.
+
+```
+echo "asdf" | podman run --rm -i someimage /bin/cat
+```
 
 #### **--tz**=*timezone*
 
@@ -1526,6 +1529,13 @@ weight by **--blkio-weight-device** flag. Use the following command:
 
 ```
 $ podman run -it --blkio-weight-device "/dev/sda:200" ubuntu
+```
+
+### Using a podman container with input from a pipe
+
+```
+$ echo "asdf" | podman run --rm -i --entrypoint /bin/cat someimage
+asdf
 ```
 
 ### Setting Namespaced Kernel Parameters (Sysctls)
