@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -1865,15 +1866,25 @@ func (c *Container) writeStringToStaticDir(filename, contents string) (string, e
 	return destFileName, nil
 }
 
-// appendStringToRundir appends the provided string to the runtimedir file
-func (c *Container) appendStringToRundir(destFile, output string) (string, error) {
+// appendStringToRunDir appends the provided string to the runtimedir file
+func (c *Container) appendStringToRunDir(destFile, output string) (string, error) {
 	destFileName := filepath.Join(c.state.RunDir, destFile)
 
-	f, err := os.OpenFile(destFileName, os.O_APPEND|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(destFileName, os.O_APPEND|os.O_RDWR, 0600)
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
+
+	compareStr := strings.TrimRight(output, "\n")
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		if strings.Compare(scanner.Text(), compareStr) == 0 {
+			return filepath.Join(c.state.RunDir, destFile), nil
+		}
+	}
 
 	if _, err := f.WriteString(output); err != nil {
 		return "", errors.Wrapf(err, "unable to write %s", destFileName)

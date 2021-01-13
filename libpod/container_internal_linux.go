@@ -1742,7 +1742,7 @@ func (c *Container) generateHosts(path string) (string, error) {
 // FIXME.  Path should be used by this function,but I am not sure what is correct; remove //lint
 // once this is fixed
 func (c *Container) appendHosts(path string, netCtr *Container) (string, error) { //nolint
-	return c.appendStringToRundir("hosts", netCtr.getHosts())
+	return c.appendStringToRunDir("hosts", netCtr.getHosts())
 }
 
 // getHosts finds the pertinent information for a container's host file in its config and state
