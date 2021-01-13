@@ -129,24 +129,20 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	// TODO: We don't understand why specgen does not take of this, but
 	// integration tests clearly pointed out that it was required.
-	s.Command = []string{}
 	imageData, err := opts.Image.Inspect(ctx)
 	if err != nil {
 		return nil, err
 	}
 	s.WorkDir = "/"
-	// We will use "Docker field name" internally here to avoid confusion
-	// and reference the "Kubernetes field name" when referencing the YAML
-	// ref: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
-	entrypoint := []string{}
-	cmd := []string{}
+	// Entrypoint/Command handling is based off of
+	// https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
 	if imageData != nil && imageData.Config != nil {
 		if imageData.Config.WorkingDir != "" {
 			s.WorkDir = imageData.Config.WorkingDir
 		}
 		// Pull entrypoint and cmd from image
-		entrypoint = imageData.Config.Entrypoint
-		cmd = imageData.Config.Cmd
+		s.Entrypoint = imageData.Config.Entrypoint
+		s.Command = imageData.Config.Cmd
 		s.Labels = imageData.Config.Labels
 		if len(imageData.Config.StopSignal) > 0 {
 			stopSignal, err := util.ParseSignal(imageData.Config.StopSignal)
@@ -158,16 +154,15 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 	// If only the yaml.Command is specified, set it as the entrypoint and drop the image Cmd
 	if len(opts.Container.Command) != 0 {
-		entrypoint = opts.Container.Command
-		cmd = []string{}
+		s.Entrypoint = opts.Container.Command
+		s.Command = []string{}
 	}
 	// Only override the cmd field if yaml.Args is specified
 	// Keep the image entrypoint, or the yaml.command if specified
 	if len(opts.Container.Args) != 0 {
-		cmd = opts.Container.Args
+		s.Command = opts.Container.Args
 	}
 
-	s.Command = append(entrypoint, cmd...)
 	// FIXME,
 	// we are currently ignoring imageData.Config.ExposedPorts
 	if opts.Container.WorkingDir != "" {
