@@ -2,6 +2,6 @@
 
 package retry
 
-func shouldRestartPlatform(e error) bool {
+func isErrnoERESTART(e error) bool {
 	return false
 }
