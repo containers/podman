@@ -1,9 +1,9 @@
 package define
 
 import (
+	"errors"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,10 +23,10 @@ const (
 // has a predefined exit code associated. If so, it returns that, otherwise it returns
 // the exit code originally stated in libpod.Exec()
 func TranslateExecErrorToExitCode(originalEC int, err error) int {
-	if errors.Cause(err) == ErrOCIRuntimePermissionDenied {
+	if errors.Is(err, ErrOCIRuntimePermissionDenied) {
 		return ExecErrorCodeCannotInvoke
 	}
-	if errors.Cause(err) == ErrOCIRuntimeNotFound {
+	if errors.Is(err, ErrOCIRuntimeNotFound) {
 		return ExecErrorCodeNotFound
 	}
 	return originalEC

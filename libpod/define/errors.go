@@ -149,11 +149,11 @@ var (
 
 	// ErrOCIRuntimePermissionDenied indicates the OCI runtime attempted to invoke a command that returned
 	// a permission denied error
-	ErrOCIRuntimePermissionDenied = errors.New("OCI permission denied")
+	ErrOCIRuntimePermissionDenied = fmt.Errorf("%w: OCI permission denied", ErrOCIRuntime)
 
 	// ErrOCIRuntimeNotFound indicates the OCI runtime attempted to invoke a command
 	// that was not found
-	ErrOCIRuntimeNotFound = errors.New("OCI not found")
+	ErrOCIRuntimeNotFound = fmt.Errorf("%w: OCI not found", ErrOCIRuntime)
 
 	// ErrOCIRuntimeUnavailable indicates that the OCI runtime associated to a container
 	// could not be found in the configuration

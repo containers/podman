@@ -3,6 +3,7 @@ package libpod
 import (
 	"bufio"
 	"bytes"
+	goerrors "errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -94,11 +95,8 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	config.Command = newCommand
 	exitCode, hcErr := c.Exec(config, streams, nil)
 	if hcErr != nil {
-		errCause := errors.Cause(hcErr)
 		hcResult = define.HealthCheckFailure
-		if errCause == define.ErrOCIRuntimeNotFound ||
-			errCause == define.ErrOCIRuntimePermissionDenied ||
-			errCause == define.ErrOCIRuntime {
+		if goerrors.Is(hcErr, define.ErrOCIRuntime) {
 			returnCode = 1
 			hcErr = nil
 		} else {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	goerrors "errors"
 	"fmt"
 	"os"
 	"path"
@@ -418,13 +419,14 @@ func resolveDestination() (string, string, string) {
 
 func formatError(err error) string {
 	var message string
-	if errors.Cause(err) == define.ErrOCIRuntime {
+	if goerrors.Is(err, define.ErrOCIRuntime) {
 		// OCIRuntimeErrors include the reason for the failure in the
 		// second to last message in the error chain.
 		message = fmt.Sprintf(
 			"Error: %s: %s",
 			define.ErrOCIRuntime.Error(),
-			strings.TrimSuffix(err.Error(), ": "+define.ErrOCIRuntime.Error()),
+			// The ErrOCIRuntime might wrap another error.
+			strings.ReplaceAll(err.Error(), ": "+define.ErrOCIRuntime.Error(), ""),
 		)
 	} else {
 		message = "Error: " + err.Error()
