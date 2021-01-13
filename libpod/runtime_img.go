@@ -279,6 +279,7 @@ func (r *Runtime) LoadImage(ctx context.Context, inputFile string, writer io.Wri
 	if newImages, err := r.LoadAllImageFromArchive(ctx, writer, inputFile, signaturePolicy); err == nil {
 		return newImages, nil
 	}
+
 	return r.LoadImageFromSingleImageArchive(ctx, writer, inputFile, signaturePolicy)
 }
 
@@ -293,7 +294,7 @@ func (r *Runtime) LoadAllImageFromArchive(ctx context.Context, writer io.Writer,
 
 // LoadImageFromSingleImageArchive load image from the archive of single image that inputFile points to.
 func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
-	var err error
+	var saveErr error
 	for _, referenceFn := range []func() (types.ImageReference, error){
 		func() (types.ImageReference, error) {
 			return dockerarchive.ParseReference(inputFile)
@@ -312,10 +313,12 @@ func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io
 		if err == nil && src != nil {
 			if newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
 				return getImageNames(newImages), nil
+			} else {
+				saveErr = err
 			}
 		}
 	}
-	return "", errors.Wrapf(err, "error pulling image")
+	return "", errors.Wrapf(saveErr, "error pulling image")
 }
 
 func getImageNames(images []*image.Image) string {

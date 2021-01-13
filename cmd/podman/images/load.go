@@ -9,9 +9,8 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/podman/v2/cmd/podman/parse"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
@@ -22,11 +21,11 @@ import (
 var (
 	loadDescription = "Loads an image from a locally stored archive (tar file) into container storage."
 	loadCommand     = &cobra.Command{
-		Use:               "load [options] [NAME[:TAG]]",
+		Use:               "load [options]",
 		Short:             "Load image(s) from a tar archive",
 		Long:              loadDescription,
 		RunE:              load,
-		Args:              cobra.MaximumNArgs(1),
+		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
@@ -71,22 +70,8 @@ func loadFlags(cmd *cobra.Command) {
 }
 
 func load(cmd *cobra.Command, args []string) error {
-	if len(args) > 0 {
-		ref, err := reference.Parse(args[0])
-		if err != nil {
-			return err
-		}
-		if t, ok := ref.(reference.Tagged); ok {
-			loadOpts.Tag = t.Tag()
-		} else {
-			loadOpts.Tag = "latest"
-		}
-		if r, ok := ref.(reference.Named); ok {
-			loadOpts.Name = r.Name()
-		}
-	}
 	if len(loadOpts.Input) > 0 {
-		if err := parse.ValidateFileName(loadOpts.Input); err != nil {
+		if _, err := os.Stat(loadOpts.Input); err != nil {
 			return err
 		}
 	} else {

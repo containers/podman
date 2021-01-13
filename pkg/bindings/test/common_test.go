@@ -182,7 +182,7 @@ func (b *bindingTest) RestoreImagesFromCache() {
 	}
 }
 func (b *bindingTest) restoreImageFromCache(i testImage) {
-	p := b.runPodman([]string{"load", "-i", filepath.Join(ImageCacheDir, i.tarballName), i.name})
+	p := b.runPodman([]string{"load", "-i", filepath.Join(ImageCacheDir, i.tarballName)})
 	p.Wait(45)
 }
 

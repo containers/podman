@@ -59,15 +59,13 @@ verify_iid_and_name() {
     local new_tag=t1$(random_string 6 | tr A-Z a-z)
     run_podman rmi $fqin
 
-    new_fqin=localhost/$new_name:$new_tag
-    run_podman load -i $archive $new_fqin
+    run_podman load -i $archive
     run_podman images --format '{{.Repository}}:{{.Tag}}' --sort tag
     is "${lines[0]}" "$IMAGE"     "image is preserved"
     is "${lines[1]}" "$fqin"      "image is reloaded with old fqin"
-    is "${lines[2]}" "$new_fqin"  "image is reloaded with new fqin too"
 
     # Clean up
-    run_podman rmi $fqin $new_fqin
+    run_podman rmi $fqin
 }
 
 
@@ -117,28 +115,6 @@ verify_iid_and_name() {
     run_podman load < $archive
     verify_iid_and_name $img_name
 }
-
-@test "podman load - NAME and NAME:TAG arguments work" {
-    get_iid_and_name
-    run_podman save $iid -o $archive
-    run_podman rmi $iid
-
-    # Load with just a name (note: names must be lower-case)
-    random_name=$(random_string 20 | tr A-Z a-z)
-    run_podman load -i $archive $random_name
-    verify_iid_and_name "localhost/$random_name:latest"
-
-    # Load with NAME:TAG arg
-    run_podman rmi $iid
-    random_tag=$(random_string 10 | tr A-Z a-z)
-    run_podman load -i $archive $random_name:$random_tag
-    verify_iid_and_name "localhost/$random_name:$random_tag"
-
-    # Cleanup: restore desired image name
-    run_podman tag $iid $img_name
-    run_podman rmi "$random_name:$random_tag"
-}
-
 
 @test "podman load - will not read from tty" {
     if [ ! -t 0 ]; then

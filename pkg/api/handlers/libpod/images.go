@@ -353,20 +353,7 @@ func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to load image"))
 		return
 	}
-	split := strings.Split(loadedImage, ",")
-	newImage, err := runtime.ImageRuntime().NewFromLocal(split[0])
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	// TODO this should go into libpod proper at some point.
-	if len(query.Reference) > 0 {
-		if err := newImage.TagImage(query.Reference); err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-	}
-	utils.WriteResponse(w, http.StatusOK, entities.ImageLoadReport{Names: split})
+	utils.WriteResponse(w, http.StatusOK, entities.ImageLoadReport{Names: strings.Split(loadedImage, ",")})
 }
 
 func ImagesImport(w http.ResponseWriter, r *http.Request) {

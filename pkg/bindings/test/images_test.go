@@ -219,7 +219,7 @@ var _ = Describe("Podman images", func() {
 		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
 		defer f.Close()
 		Expect(err).To(BeNil())
-		names, err := images.Load(bt.conn, f, nil)
+		names, err := images.Load(bt.conn, f)
 		Expect(err).To(BeNil())
 		Expect(names.Names[0]).To(Equal(alpine.name))
 		exists, err = images.Exists(bt.conn, alpine.name)
@@ -234,14 +234,9 @@ var _ = Describe("Podman images", func() {
 		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
-		newName := "quay.io/newname:fizzle"
-		options := new(images.LoadOptions).WithReference(newName)
-		names, err = images.Load(bt.conn, f, options)
+		names, err = images.Load(bt.conn, f)
 		Expect(err).To(BeNil())
 		Expect(names.Names[0]).To(Equal(alpine.name))
-		exists, err = images.Exists(bt.conn, newName)
-		Expect(err).To(BeNil())
-		Expect(exists).To(BeTrue())
 
 		// load with a bad repo name should trigger a 500
 		f, err = os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
@@ -251,11 +246,6 @@ var _ = Describe("Podman images", func() {
 		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
-		options = new(images.LoadOptions).WithReference("quay.io/newName:fizzle")
-		_, err = images.Load(bt.conn, f, options)
-		Expect(err).ToNot(BeNil())
-		code, _ := bindings.CheckResponseCode(err)
-		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 	})
 
 	It("Export Image", func() {
