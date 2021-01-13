@@ -5,6 +5,7 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/entities/reports"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 )
 
 // No such image
@@ -12,7 +13,7 @@ import (
 type swagErrNoSuchImage struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -21,7 +22,7 @@ type swagErrNoSuchImage struct {
 type swagErrNoSuchContainer struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -30,7 +31,7 @@ type swagErrNoSuchContainer struct {
 type swagErrNoSuchNetwork struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -39,7 +40,7 @@ type swagErrNoSuchNetwork struct {
 type swagErrNoSuchExecInstance struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -48,7 +49,7 @@ type swagErrNoSuchExecInstance struct {
 type swagErrNoSuchVolume struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -57,7 +58,7 @@ type swagErrNoSuchVolume struct {
 type swagErrNoSuchPod struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -66,7 +67,7 @@ type swagErrNoSuchPod struct {
 type swagErrNoSuchManifest struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -75,7 +76,7 @@ type swagErrNoSuchManifest struct {
 type swagInternalError struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -84,7 +85,7 @@ type swagInternalError struct {
 type swagConflictError struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -93,7 +94,7 @@ type swagConflictError struct {
 type swagBadParamError struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -102,7 +103,7 @@ type swagBadParamError struct {
 type swagContainerAlreadyStartedError struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -111,7 +112,7 @@ type swagContainerAlreadyStartedError struct {
 type swagContainerAlreadyStopped struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -120,7 +121,7 @@ type swagContainerAlreadyStopped struct {
 type swagPodAlreadyStartedError struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 
@@ -129,7 +130,7 @@ type swagPodAlreadyStartedError struct {
 type swagPodAlreadyStopped struct {
 	// in:body
 	Body struct {
-		entities.ErrorModel
+		errorhandling.ErrorModel
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/parse"
 	"github.com/containers/podman/v2/libpod/image"
 	ann "github.com/containers/podman/v2/pkg/annotations"
 	"github.com/containers/podman/v2/pkg/specgen"

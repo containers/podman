@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/podman/v2/pkg/bindings/network"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +23,7 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 	for _, name := range namesOrIds {
 		report, err := network.Inspect(ic.ClientCtx, name, options)
 		if err != nil {
-			errModel, ok := err.(entities.ErrorModel)
+			errModel, ok := err.(errorhandling.ErrorModel)
 			if !ok {
 				return nil, nil, err
 			}

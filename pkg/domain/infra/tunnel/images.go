@@ -8,16 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v2/libpod/image"
-
-	"github.com/containers/image/v5/types"
-
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v2/libpod/image"
 	images "github.com/containers/podman/v2/pkg/bindings/images"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/domain/utils"
+	"github.com/containers/podman/v2/pkg/errorhandling"
 	utils2 "github.com/containers/podman/v2/utils"
 	"github.com/pkg/errors"
 )
@@ -187,7 +186,7 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 	for _, i := range namesOrIDs {
 		r, err := images.GetImage(ir.ClientCtx, i, options)
 		if err != nil {
-			errModel, ok := err.(entities.ErrorModel)
+			errModel, ok := err.(errorhandling.ErrorModel)
 			if !ok {
 				return nil, nil, err
 			}
