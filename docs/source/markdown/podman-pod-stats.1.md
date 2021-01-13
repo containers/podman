@@ -35,17 +35,18 @@ Pretty-print container statistics to JSON or using a Go template
 
 Valid placeholders for the Go template are listed below:
 
-| **Placeholder** | **Description**   |
-| --------------- | ---------------   |
-| .Pod            | Pod ID      |
-| .CID            | Container ID      |
-| .Name           | Container Name    |
-| .CPU            | CPU percentage    |
-| .MemUsage       | Memory usage      |
-| .Mem            | Memory percentage |
-| .NetIO          | Network IO        |
-| .BlockIO        | Block IO          |
-| .PIDS           | Number of PIDs    |
+| **Placeholder** | **Description**    |
+| --------------- | ------------------ |
+| .Pod            | Pod ID             |
+| .CID            | Container ID       |
+| .Name           | Container Name     |
+| .CPU            | CPU percentage     |
+| .MemUsage       | Memory usage       |
+| .MemUsageBytes  | Memory usage (IEC) |
+| .Mem            | Memory percentage  |
+| .NetIO          | Network IO         |
+| .BlockIO        | Block IO           |
+| .PIDS           | Number of PIDs     |
 
 When using a GO template, you may precede the format with `table` to print headers.
 ## EXAMPLE

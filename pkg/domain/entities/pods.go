@@ -212,15 +212,16 @@ type PodStatsOptions struct {
 
 // PodStatsReport includes pod-resource statistics data.
 type PodStatsReport struct {
-	CPU      string
-	MemUsage string
-	Mem      string
-	NetIO    string
-	BlockIO  string
-	PIDS     string
-	Pod      string
-	CID      string
-	Name     string
+	CPU           string
+	MemUsage      string
+	MemUsageBytes string
+	Mem           string
+	NetIO         string
+	BlockIO       string
+	PIDS          string
+	Pod           string
+	CID           string
+	Name          string
 }
 
 // ValidatePodStatsOptions validates the specified slice and options. Allows
