@@ -196,4 +196,33 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToStringArray()[0]).To(Equal(startTime.OutputToStringArray()[0]))
 		Expect(restartTime.OutputToStringArray()[1]).To(Not(Equal(startTime.OutputToStringArray()[1])))
 	})
+
+	It("Podman restart a container in a pod and hosts shouln't duplicated", func() {
+		// Fixes: https://github.com/containers/podman/issues/8921
+
+		_, ec, _ := podmanTest.CreatePod("foobar99")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("host-restart-test", "foobar99")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		testCmd := []string{"exec", "host-restart-test", "sh", "-c", "wc -l < /etc/hosts"}
+
+		// before restart
+		beforeRestart := podmanTest.Podman(testCmd)
+		beforeRestart.WaitWithDefaultTimeout()
+		Expect(beforeRestart.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"restart", "host-restart-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		afterRestart := podmanTest.Podman(testCmd)
+		afterRestart.WaitWithDefaultTimeout()
+		Expect(afterRestart.ExitCode()).To(Equal(0))
+
+		// line count should be equal
+		Expect(beforeRestart.OutputToString()).To(Equal(afterRestart.OutputToString()))
+	})
 })
