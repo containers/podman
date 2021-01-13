@@ -69,7 +69,7 @@ func isRetryable(err error) bool {
 		}
 		return isRetryable(e.Err)
 	case syscall.Errno:
-		return shouldRestart(e)
+		return isErrnoRetryable(e)
 	case errcode.Errors:
 		// if this error is a group of errors, process them all in turn
 		for i := range e {
@@ -94,10 +94,10 @@ func isRetryable(err error) bool {
 	return false
 }
 
-func shouldRestart(e error) bool {
+func isErrnoRetryable(e error) bool {
 	switch e {
 	case syscall.ECONNREFUSED, syscall.EINTR, syscall.EAGAIN, syscall.EBUSY, syscall.ENETDOWN, syscall.ENETUNREACH, syscall.ENETRESET, syscall.ECONNABORTED, syscall.ECONNRESET, syscall.ETIMEDOUT, syscall.EHOSTDOWN, syscall.EHOSTUNREACH:
 		return true
 	}
-	return shouldRestartPlatform(e)
+	return isErrnoERESTART(e)
 }

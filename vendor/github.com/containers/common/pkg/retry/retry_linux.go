@@ -4,6 +4,6 @@ import (
 	"syscall"
 )
 
-func shouldRestartPlatform(e error) bool {
+func isErrnoERESTART(e error) bool {
 	return e == syscall.ERESTART
 }

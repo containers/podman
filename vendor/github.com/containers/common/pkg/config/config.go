@@ -318,7 +318,7 @@ type EngineConfig struct {
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
-	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroupv2,omitempty"`
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroup,omitempty"`
 
 	// RuntimeSupportsKVM is a list of OCI runtimes that support
 	// KVM separation for containers.
