@@ -44,7 +44,7 @@ const (
 	conmonMinMinorVersion = 0
 
 	// conmonMinPatchVersion is the sub-minor version required for conmon.
-	conmonMinPatchVersion = 1
+	conmonMinPatchVersion = 24
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
