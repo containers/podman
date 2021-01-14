@@ -102,7 +102,7 @@ func (plugin *cniNetworkPlugin) podUnlock(podNetwork PodNetwork) {
 	fullPodName := buildFullPodName(podNetwork)
 	lock, ok := plugin.pods[fullPodName]
 	if !ok {
-		logrus.Warningf("Unbalanced pod lock unref for %s", fullPodName)
+		logrus.Errorf("Cannot find reference in refcount map for %s. Refcount cannot be determined.", fullPodName)
 		return
 	} else if lock.refcount == 0 {
 		// This should never ever happen, but handle it anyway
@@ -121,12 +121,12 @@ func newWatcher(confDir string) (*fsnotify.Watcher, error) {
 	// Ensure plugin directory exists, because the following monitoring logic
 	// relies on that.
 	if err := os.MkdirAll(confDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create %q: %v", confDir, err)
+		return nil, fmt.Errorf("failed to create directory %q: %v", confDir, err)
 	}
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, fmt.Errorf("could not create new watcher %v", err)
+		return nil, fmt.Errorf("failed to create new watcher %v", err)
 	}
 	defer func() {
 		// Close watcher on error
@@ -275,13 +275,13 @@ func loadNetworks(confDir string, cni *libcni.CNIConfig) (map[string]*cniNetwork
 		if strings.HasSuffix(confFile, ".conflist") {
 			confList, err = libcni.ConfListFromFile(confFile)
 			if err != nil {
-				logrus.Warningf("Error loading CNI config list file %s: %v", confFile, err)
+				logrus.Errorf("Error loading CNI config list file %s: %v", confFile, err)
 				continue
 			}
 		} else {
 			conf, err := libcni.ConfFromFile(confFile)
 			if err != nil {
-				logrus.Warningf("Error loading CNI config file %s: %v", confFile, err)
+				logrus.Errorf("Error loading CNI config file %s: %v", confFile, err)
 				continue
 			}
 			if conf.Network.Type == "" {
@@ -290,7 +290,7 @@ func loadNetworks(confDir string, cni *libcni.CNIConfig) (map[string]*cniNetwork
 			}
 			confList, err = libcni.ConfListFromConf(conf)
 			if err != nil {
-				logrus.Warningf("Error converting CNI config file %s to list: %v", confFile, err)
+				logrus.Errorf("Error converting CNI config file %s to list: %v", confFile, err)
 				continue
 			}
 		}
@@ -321,7 +321,7 @@ func loadNetworks(confDir string, cni *libcni.CNIConfig) (map[string]*cniNetwork
 		if _, ok := networks[confList.Name]; !ok {
 			networks[confList.Name] = cniNet
 		} else {
-			logrus.Infof("Ignore CNI network %s (type=%v) at %s because already exists", confList.Name, confList.Plugins[0].Network.Type, confFile)
+			logrus.Infof("Ignored CNI network %s (type=%v) at %s because already exists", confList.Name, confList.Plugins[0].Network.Type, confFile)
 		}
 
 		if defaultNetName == "" {
@@ -348,7 +348,7 @@ func (plugin *cniNetworkPlugin) syncNetworkConfig() error {
 	// Update defaultNetName if it is changeable
 	if plugin.defaultNetName.changeable {
 		plugin.defaultNetName.name = defaultNetName
-		logrus.Infof("Update default CNI network name to %s", defaultNetName)
+		logrus.Infof("Updated default CNI network name to %s", defaultNetName)
 	} else {
 		logrus.Debugf("Default CNI network name %s is unchangeable", plugin.defaultNetName.name)
 	}
@@ -479,8 +479,8 @@ func (plugin *cniNetworkPlugin) forEachNetwork(podNetwork *PodNetwork, fromCache
 			var newRt *libcni.RuntimeConf
 			cniNet, newRt, err = plugin.loadNetworkFromCache(network.Name, rt)
 			if err != nil {
-				logrus.Debugf("error loading cached network config: %v", err)
-				logrus.Debugf("falling back to loading from existing plugins on disk")
+				logrus.Errorf("error loading cached network config: %v", err)
+				logrus.Warningf("falling back to loading from existing plugins on disk")
 			} else {
 				// Use the updated RuntimeConf
 				rt = newRt
@@ -570,7 +570,7 @@ func (plugin *cniNetworkPlugin) getCachedNetworkInfo(containerID string) ([]NetA
 		cacheFile := filepath.Join(dirPath, fname)
 		bytes, err := ioutil.ReadFile(cacheFile)
 		if err != nil {
-			logrus.Warningf("failed to read CNI cache file %s: %v", cacheFile, err)
+			logrus.Errorf("failed to read CNI cache file %s: %v", cacheFile, err)
 			continue
 		}
 
@@ -582,7 +582,7 @@ func (plugin *cniNetworkPlugin) getCachedNetworkInfo(containerID string) ([]NetA
 		}{}
 
 		if err := json.Unmarshal(bytes, &cachedInfo); err != nil {
-			logrus.Warningf("failed to unmarshal CNI cache file %s: %v", cacheFile, err)
+			logrus.Errorf("failed to unmarshal CNI cache file %s: %v", cacheFile, err)
 			continue
 		}
 		if cachedInfo.Kind != libcni.CNICacheV1 {
@@ -632,13 +632,12 @@ func (plugin *cniNetworkPlugin) TearDownPodWithContext(ctx context.Context, podN
 
 	if err := tearDownLoopback(podNetwork.NetNS); err != nil {
 		// ignore error
-		logrus.Errorf("Ignoring error tearing down loopback interface: %v", err)
+		logrus.Warningf("Ignoring error tearing down loopback interface: %v", err)
 	}
 
 	return plugin.forEachNetwork(&podNetwork, true, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
 		if err := network.deleteFromNetwork(ctx, rt, plugin.cniConfig); err != nil {
-			logrus.Errorf("Error while removing pod from CNI network %q: %s", network.name, err)
-			return err
+			return fmt.Errorf("Error while removing pod from CNI network %q: %s", network.name, err)
 		}
 		return nil
 	})
@@ -718,7 +717,7 @@ func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeC
 
 	result, err = cni.GetNetworkListCachedResult(network.config, rt)
 	if err != nil {
-		logrus.Errorf("Error GetNetworkListCachedResult: %v", err)
+		logrus.Errorf("Error getting network list cached result: %v", err)
 		return nil, err
 	} else if result != nil {
 		return result, nil
@@ -771,7 +770,6 @@ func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeC
 func (network *cniNetwork) deleteFromNetwork(ctx context.Context, rt *libcni.RuntimeConf, cni *libcni.CNIConfig) error {
 	logrus.Infof("About to del CNI network %s (type=%v)", network.name, network.config.Plugins[0].Network.Type)
 	if err := cni.DelNetworkList(ctx, network.config, rt); err != nil {
-		logrus.Errorf("Error deleting network: %v", err)
 		return err
 	}
 	return nil
