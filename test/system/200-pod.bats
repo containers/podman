@@ -287,8 +287,16 @@ EOF
        "two containers cannot bind to same port"
 
     # make sure we can ping; failure here might mean that capabilities are wrong
-    run_podman run --rm --pod mypod $IMAGE ping -c1 127.0.0.1
-    run_podman run --rm --pod mypod $IMAGE ping -c1 $hostname
+    # NOTE: this does not work on RHEL, neither root nor rootless, because
+    #   the net.ipv4.ping_group_range sysctl defaults to "1 0". This allows
+    #   users to use /bin/ping, which is setuid, but prevents containers.
+    #   So, disable this test entirely on RHEL. (It's probably cleaner to
+    #   check sysctl here instead of hardcoding a RHEL exception, but this
+    #   is quick & safe enough.)
+    if ! egrep -q 'cpe:.*redhat.*enterprise' /etc/os-release; then
+        run_podman run --rm --pod mypod $IMAGE ping -c1 127.0.0.1
+        run_podman run --rm --pod mypod $IMAGE ping -c1 $hostname
+    fi
 
     # While the container is still running, run 'podman ps' (no --format)
     # and confirm that the output includes the published port
