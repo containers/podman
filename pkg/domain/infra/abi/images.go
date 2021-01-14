@@ -381,7 +381,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		nil)
 	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
 		// Image might be a manifest so attempt a manifest push
-		if manifestErr := ir.ManifestPush(ctx, source, destination, options); manifestErr == nil {
+		if _, manifestErr := ir.ManifestPush(ctx, source, destination, options); manifestErr == nil {
 			return nil
 		}
 	}

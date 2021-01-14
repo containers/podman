@@ -1,6 +1,8 @@
 package manifest
 
 import (
+	"io/ioutil"
+
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
@@ -109,8 +111,15 @@ func push(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		manifestPushOpts.SkipTLSVerify = types.NewOptionalBool(!manifestPushOpts.TLSVerifyCLI)
 	}
-	if err := registry.ImageEngine().ManifestPush(registry.Context(), args[0], args[1], manifestPushOpts.ImagePushOptions); err != nil {
+	digest, err := registry.ImageEngine().ManifestPush(registry.Context(), args[0], args[1], manifestPushOpts.ImagePushOptions)
+	if err != nil {
 		return err
 	}
+	if manifestPushOpts.DigestFile != "" {
+		if err := ioutil.WriteFile(manifestPushOpts.DigestFile, []byte(digest), 0644); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

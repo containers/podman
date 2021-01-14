@@ -5,11 +5,13 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/bindings"
+	"github.com/containers/podman/v2/pkg/bindings/images"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -112,12 +114,12 @@ func Remove(ctx context.Context, name, digest string, options *RemoveOptions) (s
 // Push takes a manifest list and pushes to a destination.  If the destination is not specified,
 // the name will be used instead.  If the optional all boolean is specified, all images specified
 // in the list will be pushed as well.
-func Push(ctx context.Context, name, destination string, options *PushOptions) (string, error) {
+func Push(ctx context.Context, name, destination string, options *images.PushOptions) (string, error) {
 	var (
 		idr handlers.IDResponse
 	)
 	if options == nil {
-		options = new(PushOptions)
+		options = new(images.PushOptions)
 	}
 	if len(destination) < 1 {
 		destination = name
@@ -130,8 +132,15 @@ func Push(ctx context.Context, name, destination string, options *PushOptions) (
 	if err != nil {
 		return "", err
 	}
+	//SkipTLSVerify is special.  We need to delete the param added by
+	//toparams and change the key and flip the bool
+	if options.SkipTLSVerify != nil {
+		params.Del("SkipTLSVerify")
+		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
+	}
 	params.Set("image", name)
 	params.Set("destination", destination)
+	params.Set("format", *options.Format)
 	_, err = conn.DoRequest(nil, http.MethodPost, "/manifests/%s/push", params, nil, name)
 	if err != nil {
 		return "", err
