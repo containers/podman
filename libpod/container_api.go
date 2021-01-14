@@ -210,7 +210,13 @@ func (c *Container) Kill(signal uint) error {
 	}
 
 	// TODO: Is killing a paused container OK?
-	if c.state.State != define.ContainerStateRunning {
+	switch c.state.State {
+	case define.ContainerStateRunning, define.ContainerStateStopping:
+		// Note that killing containers in "stopping" state is okay.
+		// In that state, the Podman is waiting for the runtime to
+		// stop the container and if that is taking too long, a user
+		// may have decided to kill the container after all.
+	default:
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only kill running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
@@ -539,7 +545,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	}
 
 	// Check if state is good
-	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
 	}
 

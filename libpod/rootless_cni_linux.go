@@ -110,6 +110,8 @@ func DeallocRootlessCNI(ctx context.Context, c *Container) error {
 			logrus.Warn(err)
 		}
 		logrus.Debugf("rootless CNI: removing infra container %q", infra.ID())
+		infra.lock.Lock()
+		defer infra.lock.Unlock()
 		if err := c.runtime.removeContainer(ctx, infra, true, false, true); err != nil {
 			return err
 		}
