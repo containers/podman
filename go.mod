@@ -17,7 +17,7 @@ require (
 	github.com/containers/psgo v1.5.2
 	github.com/containers/storage v1.24.5
 	github.com/coreos/go-systemd/v22 v22.1.0
-	github.com/cri-o/ocicni v0.2.1-0.20201125151022-df072ea5421c
+	github.com/cri-o/ocicni v0.2.1-0.20201204103948-b6cbe99b9756
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
