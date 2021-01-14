@@ -489,14 +489,14 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		return errors.Wrapf(err, "error determining work directory for container %q", b.ContainerID)
 	}
 
-	// Figure out which UID and GID to tell the subscritions package to use
+	// Figure out which UID and GID to tell the subscriptions package to use
 	// for files that it creates.
 	rootUID, rootGID, err := util.GetHostRootIDs(spec)
 	if err != nil {
 		return err
 	}
 
-	// Get the list of subscriptionss mounts.
+	// Get the list of subscriptions mounts.
 	secretMounts := subscriptions.MountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, mountPoint, int(rootUID), int(rootGID), unshare.IsRootless(), false)
 
 	// Add temporary copies of the contents of volume locations at the

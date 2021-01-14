@@ -37,7 +37,7 @@ Once you have decided to contribute to Buildah by working on an issue, check our
 backlog of [open issues](https://github.com/containers/buildah/issues) looking
 for any that do not have an "In Progress" label attached to it.  Often issues
 will be assigned to someone, to be worked on at a later time.  If you have the
-time to work on the issue now add yourself as an assignee, and set the
+time to work on the issue now, add yourself as an assignee, and set the
 "In Progress" label if you’re a member of the “Containers” GitHub organization.
 If you can not set the label, just  add a quick comment in the issue asking that
 the “In Progress” label be set and a member will do so for you.

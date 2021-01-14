@@ -51,7 +51,6 @@ type NameSpaceResults struct {
 // BudResults represents the results for Bud flags
 type BudResults struct {
 	Annotation          []string
-	Arch                string
 	Authfile            string
 	BuildArg            []string
 	CacheFrom           string
@@ -68,10 +67,9 @@ type BudResults struct {
 	Label               []string
 	Logfile             string
 	Loglevel            int
+	Manifest            string
 	NoCache             bool
 	Timestamp           int64
-	OS                  string
-	Platform            string
 	Pull                bool
 	PullAlways          bool
 	PullNever           bool
@@ -112,8 +110,6 @@ type FromAndBudResults struct {
 	Isolation      string
 	Memory         string
 	MemorySwap     string
-	OverrideArch   string
-	OverrideOS     string
 	SecurityOpt    []string
 	ShmSize        string
 	Ulimit         []string
@@ -179,7 +175,7 @@ func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 // GetBudFlags returns common bud flags
 func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
-	fs.StringVar(&flags.Arch, "arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
+	fs.String("arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
 	fs.StringArrayVar(&flags.Annotation, "annotation", []string{}, "Set metadata for an image (default [])")
 	fs.StringVar(&flags.Authfile, "authfile", auth.GetDefaultAuthFile(), "path of the authentication file.")
 	fs.StringArrayVar(&flags.BuildArg, "build-arg", []string{}, "`argument=value` to supply to the builder")
@@ -202,9 +198,10 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	if err := fs.MarkHidden("log-rusage"); err != nil {
 		panic(fmt.Sprintf("error marking the log-rusage flag as hidden: %v", err))
 	}
+	fs.StringVar(&flags.Manifest, "manifest", "", "add the image to the specified manifest list. Creates manifest if it does not exist")
 	fs.BoolVar(&flags.NoCache, "no-cache", false, "Do not use existing cached images for the container build. Build from the start with a new set of cached layers.")
-	fs.StringVar(&flags.OS, "os", runtime.GOOS, "set the OS to the provided value instead of the current operating system of the host")
-	fs.StringVar(&flags.Platform, "platform", parse.DefaultPlatform(), "set the OS/ARCH to the provided value instead of the current operating system and architecture of the host (for example `linux/arm`)")
+	fs.String("os", runtime.GOOS, "set the OS to the provided value instead of the current operating system of the host")
+	fs.String("platform", parse.DefaultPlatform(), "set the OS/ARCH to the provided value instead of the current operating system and architecture of the host (for example `linux/arm`)")
 	fs.BoolVar(&flags.Pull, "pull", true, "pull the image from the registry if newer or not present in store, if false, only pull the image if not present")
 	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image even if the named image is present in store")
 	fs.BoolVar(&flags.PullNever, "pull-never", false, "do not pull the image, use the image present in store if available")
@@ -223,6 +220,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
 	fs.Int64Var(&flags.Timestamp, "timestamp", 0, "set created timestamp to the specified epoch seconds to allow for deterministic builds, defaults to current time")
 	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
+	fs.String("variant", "", "override the `variant` of the specified image")
 	return fs
 }
 
@@ -245,6 +243,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["label"] = commonComp.AutocompleteNone
 	flagCompletion["logfile"] = commonComp.AutocompleteDefault
 	flagCompletion["loglevel"] = commonComp.AutocompleteDefault
+	flagCompletion["manifest"] = commonComp.AutocompleteDefault
 	flagCompletion["os"] = commonComp.AutocompleteNone
 	flagCompletion["platform"] = commonComp.AutocompleteNone
 	flagCompletion["runtime-flag"] = commonComp.AutocompleteNone
@@ -253,6 +252,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["tag"] = commonComp.AutocompleteNone
 	flagCompletion["target"] = commonComp.AutocompleteNone
 	flagCompletion["timestamp"] = commonComp.AutocompleteNone
+	flagCompletion["variant"] = commonComp.AutocompleteNone
 	return flagCompletion
 }
 
@@ -286,14 +286,9 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringVar(&flags.Isolation, "isolation", DefaultIsolation(), "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.")
 	fs.StringVarP(&flags.Memory, "memory", "m", "", "memory limit (format: <number>[<unit>], where unit = b, k, m or g)")
 	fs.StringVar(&flags.MemorySwap, "memory-swap", "", "swap limit equal to memory plus swap: '-1' to enable unlimited swap")
-	fs.StringVar(&flags.OverrideOS, "override-os", runtime.GOOS, "prefer `OS` instead of the running OS when pulling images")
-	if err := fs.MarkHidden("override-os"); err != nil {
-		panic(fmt.Sprintf("error marking override-os as hidden: %v", err))
-	}
-	fs.StringVar(&flags.OverrideArch, "override-arch", runtime.GOARCH, "prefer `ARCH` instead of the architecture of the machine when pulling images")
-	if err := fs.MarkHidden("override-arch"); err != nil {
-		panic(fmt.Sprintf("error marking override-arch as hidden: %v", err))
-	}
+	fs.String("arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
+	fs.String("os", runtime.GOOS, "prefer `OS` instead of the running OS when pulling images")
+	fs.String("variant", "", "override the `variant` of the specified image")
 	fs.StringArrayVar(&flags.SecurityOpt, "security-opt", []string{}, "security options (default [])")
 	fs.StringVar(&flags.ShmSize, "shm-size", defaultContainerConfig.Containers.ShmSize, "size of '/dev/shm'. The format is `<number><unit>`.")
 	fs.StringSliceVar(&flags.Ulimit, "ulimit", defaultContainerConfig.Containers.DefaultUlimits, "ulimit options")
@@ -311,6 +306,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 // GetFromAndBudFlagsCompletions returns the FlagCompletions for the from and bud flags
 func GetFromAndBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion := commonComp.FlagCompletions{}
+	flagCompletion["arch"] = commonComp.AutocompleteNone
 	flagCompletion["add-host"] = commonComp.AutocompleteNone
 	flagCompletion["blob-cache"] = commonComp.AutocompleteNone
 	flagCompletion["cap-add"] = commonComp.AutocompleteCapabilities
@@ -329,10 +325,12 @@ func GetFromAndBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["isolation"] = commonComp.AutocompleteNone
 	flagCompletion["memory"] = commonComp.AutocompleteNone
 	flagCompletion["memory-swap"] = commonComp.AutocompleteNone
+	flagCompletion["os"] = commonComp.AutocompleteNone
 	flagCompletion["security-opt"] = commonComp.AutocompleteNone
 	flagCompletion["shm-size"] = commonComp.AutocompleteNone
 	flagCompletion["ulimit"] = commonComp.AutocompleteNone
 	flagCompletion["volume"] = commonComp.AutocompleteDefault
+	flagCompletion["variant"] = commonComp.AutocompleteNone
 
 	// Add in the usernamespace and namespace flag completions
 	userNsComp := GetUserNSFlagsCompletions()
@@ -401,6 +399,12 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 	switch name {
 	case "net":
 		name = "network"
+	case "override-arch":
+		name = "arch"
+	case "override-os":
+		name = "os"
+	case "purge":
+		name = "rm"
 	}
 	return pflag.NormalizedName(name)
 }

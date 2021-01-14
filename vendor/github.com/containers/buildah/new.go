@@ -103,27 +103,27 @@ func newContainerIDMappingOptions(idmapOptions *IDMappingOptions) storage.IDMapp
 	return options
 }
 
-func resolveLocalImage(systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, *storage.Image, error) {
+func resolveLocalImage(systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, string, *storage.Image, error) {
 	candidates, _, _, err := util.ResolveName(options.FromImage, options.Registry, systemContext, store)
 	if err != nil {
-		return nil, "", nil, errors.Wrapf(err, "error resolving local image %q", options.FromImage)
+		return nil, "", "", nil, errors.Wrapf(err, "error resolving local image %q", options.FromImage)
 	}
-	for _, image := range candidates {
-		img, err := store.Image(image)
+	for _, imageName := range candidates {
+		img, err := store.Image(imageName)
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUnknown {
 				continue
 			}
-			return nil, "", nil, err
+			return nil, "", "", nil, err
 		}
 		ref, err := is.Transport.ParseStoreReference(store, img.ID)
 		if err != nil {
-			return nil, "", nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
+			return nil, "", "", nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
 		}
-		return ref, ref.Transport().Name(), img, nil
+		return ref, ref.Transport().Name(), imageName, img, nil
 	}
 
-	return nil, "", nil, nil
+	return nil, "", "", nil, nil
 }
 
 func resolveImage(ctx context.Context, systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, *storage.Image, error) {
@@ -145,7 +145,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		}
 	}
 
-	localImageRef, _, localImage, err := resolveLocalImage(systemContext, store, options)
+	localImageRef, _, localImageName, localImage, err := resolveLocalImage(systemContext, store, options)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -164,6 +164,12 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		if options.PullPolicy == PullNever {
 			return nil, "", nil, errors.Errorf("pull policy is %q but %q could not be found locally", "never", options.FromImage)
 		}
+	}
+
+	// If we found a local image, we must use it's name.
+	// See #2904.
+	if localImageRef != nil {
+		fromImage = localImageName
 	}
 
 	resolved, err := shortnames.Resolve(systemContext, fromImage)

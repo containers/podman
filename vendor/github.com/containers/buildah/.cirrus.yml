@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "master"
+    DEST_BRANCH: "release-1.19"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -196,6 +196,7 @@ gce_instance:
         buildah_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_version'
         buildah_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_info'
         package_versions_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh packages'
+        golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
 
 
 'cirrus-ci/required/in_podman_task':

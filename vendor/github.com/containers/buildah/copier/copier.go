@@ -289,6 +289,7 @@ type PutOptions struct {
 	ChmodFiles           *os.FileMode      // set permissions on newly-created files
 	StripXattrs          bool              // don't bother trying to set extended attributes of items being copied
 	IgnoreXattrErrors    bool              // ignore any errors encountered when attempting to set extended attributes
+	IgnoreDevices        bool              // ignore items which are character or block devices
 	NoOverwriteDirNonDir bool              // instead of quietly overwriting directories with non-directories, return an error
 	Rename               map[string]string // rename items with the specified names, or under the specified names
 }
@@ -364,7 +365,7 @@ func cleanerReldirectory(candidate string) string {
 	return cleaned
 }
 
-// convertToRelSubirectory returns the path of directory, bound and relative to
+// convertToRelSubdirectory returns the path of directory, bound and relative to
 // root, as a relative path, or an error if that path can't be computed or if
 // the two directories are on different volumes
 func convertToRelSubdirectory(root, directory string) (relative string, err error) {
@@ -1402,11 +1403,14 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				}
 			}
 		}()
+		ignoredItems := make(map[string]struct{})
 		tr := tar.NewReader(bulkReader)
 		hdr, err := tr.Next()
 		for err == nil {
+			nameBeforeRenaming := hdr.Name
 			if len(hdr.Name) == 0 {
 				// no name -> ignore the entry
+				ignoredItems[nameBeforeRenaming] = struct{}{}
 				hdr, err = tr.Next()
 				continue
 			}
@@ -1465,6 +1469,11 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				}
 			case tar.TypeLink:
 				var linkTarget string
+				if _, ignoredTarget := ignoredItems[hdr.Linkname]; ignoredTarget {
+					// hard link to an ignored item: skip this, too
+					ignoredItems[nameBeforeRenaming] = struct{}{}
+					goto nextHeader
+				}
 				if req.PutOptions.Rename != nil {
 					hdr.Linkname = handleRename(req.PutOptions.Rename, hdr.Linkname)
 				}
@@ -1497,6 +1506,10 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					}
 				}
 			case tar.TypeChar:
+				if req.PutOptions.IgnoreDevices {
+					ignoredItems[nameBeforeRenaming] = struct{}{}
+					goto nextHeader
+				}
 				if err = mknod(path, chrMode(0600), int(mkdev(devMajor, devMinor))); err != nil && os.IsExist(err) {
 					if req.PutOptions.NoOverwriteDirNonDir {
 						if st, err := os.Lstat(path); err == nil && st.IsDir() {
@@ -1508,6 +1521,10 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					}
 				}
 			case tar.TypeBlock:
+				if req.PutOptions.IgnoreDevices {
+					ignoredItems[nameBeforeRenaming] = struct{}{}
+					goto nextHeader
+				}
 				if err = mknod(path, blkMode(0600), int(mkdev(devMajor, devMinor))); err != nil && os.IsExist(err) {
 					if req.PutOptions.NoOverwriteDirNonDir {
 						if st, err := os.Lstat(path); err == nil && st.IsDir() {

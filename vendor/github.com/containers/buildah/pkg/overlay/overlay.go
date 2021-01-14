@@ -77,6 +77,15 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 		// Read-write overlay mounts want a lower, upper and a work layer.
 		workDir := filepath.Join(contentDir, "work")
 		upperDir := filepath.Join(contentDir, "upper")
+		st, err := os.Stat(dest)
+		if err == nil {
+			if err := os.Chmod(upperDir, st.Mode()); err != nil {
+				return mount, err
+			}
+		}
+		if !os.IsNotExist(err) {
+			return mount, err
+		}
 		overlayOptions = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,private", source, upperDir, workDir)
 	}
 
