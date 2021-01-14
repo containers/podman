@@ -2,10 +2,14 @@ package libpod
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -30,6 +34,17 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	// conmonMinMajorVersion is the major version required for conmon.
+	conmonMinMajorVersion = 2
+
+	// conmonMinMinorVersion is the minor version required for conmon.
+	conmonMinMinorVersion = 0
+
+	// conmonMinPatchVersion is the sub-minor version required for conmon.
+	conmonMinPatchVersion = 1
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -260,7 +275,7 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// Find a working conmon binary
-	cPath, err := runtime.config.FindConmon()
+	cPath, err := findConmon(runtime.config.Engine.ConmonPath)
 	if err != nil {
 		return err
 	}
@@ -527,6 +542,102 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		if err := runtime.migrate(ctx); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// findConmon iterates over conmonPaths and returns the path
+// to the first conmon binary with a new enough version. If none is found,
+// we try to do a path lookup of "conmon".
+func findConmon(conmonPaths []string) (string, error) {
+	foundOutdatedConmon := false
+	for _, path := range conmonPaths {
+		stat, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if stat.IsDir() {
+			continue
+		}
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("Conmon at %s invalid: %v", path, err)
+			foundOutdatedConmon = true
+			continue
+		}
+		logrus.Debugf("Using conmon: %q", path)
+		return path, nil
+	}
+
+	// Search the $PATH as last fallback
+	if path, err := exec.LookPath("conmon"); err == nil {
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
+			foundOutdatedConmon = true
+		} else {
+			logrus.Debugf("Using conmon from $PATH: %q", path)
+			return path, nil
+		}
+	}
+
+	if foundOutdatedConmon {
+		return "", errors.Wrapf(define.ErrConmonOutdated,
+			"please update to v%d.%d.%d or later",
+			conmonMinMajorVersion, conmonMinMinorVersion, conmonMinPatchVersion)
+	}
+
+	return "", errors.Wrapf(define.ErrInvalidArg,
+		"could not find a working conmon binary (configured options: %v)",
+		conmonPaths)
+}
+
+// probeConmon calls conmon --version and verifies it is a new enough version for
+// the runtime expectations the container engine currently has.
+func probeConmon(conmonBinary string) error {
+	cmd := exec.Command(conmonBinary, "--version")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
+
+	matches := r.FindStringSubmatch(out.String())
+	if len(matches) != 4 {
+		return errors.Wrap(err, define.ErrConmonVersionFormat)
+	}
+	major, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return errors.Wrap(err, define.ErrConmonVersionFormat)
+	}
+	if major < conmonMinMajorVersion {
+		return define.ErrConmonOutdated
+	}
+	if major > conmonMinMajorVersion {
+		return nil
+	}
+
+	minor, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return errors.Wrap(err, define.ErrConmonVersionFormat)
+	}
+	if minor < conmonMinMinorVersion {
+		return define.ErrConmonOutdated
+	}
+	if minor > conmonMinMinorVersion {
+		return nil
+	}
+
+	patch, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return errors.Wrap(err, define.ErrConmonVersionFormat)
+	}
+	if patch < conmonMinPatchVersion {
+		return define.ErrConmonOutdated
+	}
+	if patch > conmonMinPatchVersion {
+		return nil
 	}
 
 	return nil

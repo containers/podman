@@ -206,4 +206,8 @@ var (
 	// ErrCanceled indicates that an operation has been cancelled by a user.
 	// Useful for potentially long running tasks.
 	ErrCanceled = errors.New("cancelled by user")
+
+	// ErrConmonVersionFormat is used when the expected versio-format of conmon
+	// has changed.
+	ErrConmonVersionFormat = "conmon version changed format"
 )
