@@ -198,7 +198,7 @@ endif
 podman: bin/podman
 
 .PHONY: bin/podman-remote
-bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum ## Build with podman on remote environment
+bin/podman-remote: .gopathok .generate-bindings $(SOURCES) go.mod go.sum ## Build with podman on remote environment
 	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ ./cmd/podman
 
 .PHONY: bin/podman-remote-static
@@ -268,6 +268,8 @@ clean: ## Clean artifacts
 		libpod/pod_ffjson.go \
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
+		.install.goimports \
+		.generate-bindings \
 		docs/build
 	make -C docs clean
 
@@ -407,7 +409,7 @@ release.txt:
 	# X-RELEASE-INFO format depended upon by automated tooling
 	echo -n "X-RELEASE-INFO:" > "$@"
 	for field in "$(RELEASE_BASENAME)" "$(RELEASE_VERSION)" \
-		         "$(RELEASE_DIST)" "$(RELEASE_DIST_VER)" "$(RELEASE_ARCH)"; do \
+			 "$(RELEASE_DIST)" "$(RELEASE_DIST_VER)" "$(RELEASE_ARCH)"; do \
 		echo -n " $$field"; done >> "$@"
 	echo "" >> "$@"
 
@@ -448,6 +450,21 @@ podman-release:
 podman-remote-%-release:
 	rm -f release.txt
 	$(MAKE) podman-remote-release-$*.zip
+
+BINDINGS_SOURCE = $(wildcard pkg/bindings/**/types.go)
+.generate-bindings: $(BINDINGS_SOURCE)
+ifneq ($(shell uname -s), Darwin)
+	for i in $(BINDINGS_SOURCE); do \
+		dirname=$$(dirname $${i}); \
+		shortname=$$(basename $${dirname}); \
+		pushd $${dirname}>/dev/null;  \
+		echo $${dirname}; \
+		echo $(GO) generate; \
+		$(GO) generate; \
+		popd > /dev/null; \
+	done;
+endif
+	touch .generate-bindings
 
 .PHONY: docker-docs
 docker-docs: docs
@@ -565,12 +582,18 @@ uninstall:
 	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
-install.tools: .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
+install.tools: .install.goimports .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
 
 define go-get
 	env GO111MODULE=off \
 		$(GO) get -u ${1}
 endef
+
+.install.goimports: .gopathok
+	if [ ! -x "$(GOBIN)/goimports" ]; then \
+		$(call go-get,golang.org/x/tools/cmd/goimports); \
+	fi
+	touch .install.goimports
 
 .PHONY: .install.ginkgo
 .install.ginkgo: .gopathok

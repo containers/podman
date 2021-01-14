@@ -12,8 +12,6 @@ import (
 
 /*
 This file is generated automatically by go generate.  Do not edit.
-
-Created 2020-12-18 13:33:20.199081744 -0600 CST m=+0.000270626
 */
 
 // Changed

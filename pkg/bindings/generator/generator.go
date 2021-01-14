@@ -19,13 +19,10 @@ var bodyTmpl = `package {{.PackageName}}
 import (
 {{range $import := .Imports}}	{{$import}}
 {{end}}
-
 )
 
 /*
 This file is generated automatically by go generate.  Do not edit.
-
-Created {{.Date}}
 */
 
 // Changed
@@ -52,6 +49,7 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 		if !o.Changed(fieldName) {
 			continue
 		}
+		fieldName = strings.ToLower(fieldName)
 		f := s.Field(i)
 		if reflect.Ptr == f.Kind() {
 			f = f.Elem()
@@ -239,7 +237,7 @@ func main() {
 				closed = true
 
 				// go fmt file
-				gofmt := exec.Command("gofmt", "-w", "-s", out.Name())
+				gofmt := exec.Command("go", "fmt", out.Name())
 				gofmt.Stderr = os.Stdout
 				if err := gofmt.Run(); err != nil {
 					fmt.Println(err)
