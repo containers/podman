@@ -151,11 +151,6 @@ func (r *MissingRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (boo
 	return false, r.printError()
 }
 
-// ExecContainerCleanup is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainerCleanup(ctr *Container, sessionID string) error {
-	return r.printError()
-}
-
 // CheckpointContainer is not available as the runtime is missing
 func (r *MissingRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) error {
 	return r.printError()

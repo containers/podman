@@ -94,10 +94,6 @@ type OCIRuntime interface {
 	// ExecUpdateStatus checks the status of a given exec session.
 	// Returns true if the session is still running, or false if it exited.
 	ExecUpdateStatus(ctr *Container, sessionID string) (bool, error)
-	// ExecContainerCleanup cleans up after an exec session exits.
-	// It removes any files left by the exec session that are no longer
-	// needed, including the attach socket.
-	ExecContainerCleanup(ctr *Container, sessionID string) error
 
 	// CheckpointContainer checkpoints the given container.
 	// Some OCI runtimes may not support this - if SupportsCheckpoint()

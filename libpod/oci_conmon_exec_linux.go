@@ -284,11 +284,6 @@ func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (b
 	return true, nil
 }
 
-// ExecContainerCleanup cleans up files created when a command is run via ExecContainer.
-func (r *ConmonOCIRuntime) ExecContainerCleanup(ctr *Container, sessionID string) error {
-	return nil
-}
-
 // ExecAttachSocketPath is the path to a container's exec session attach socket.
 func (r *ConmonOCIRuntime) ExecAttachSocketPath(ctr *Container, sessionID string) (string, error) {
 	// We don't even use container, so don't validity check it
