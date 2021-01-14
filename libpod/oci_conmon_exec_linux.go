@@ -284,14 +284,8 @@ func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (b
 	return true, nil
 }
 
-// ExecContainerCleanup cleans up files created when a command is run via
-// ExecContainer. This includes the attach socket for the exec session.
+// ExecContainerCleanup cleans up files created when a command is run via ExecContainer.
 func (r *ConmonOCIRuntime) ExecContainerCleanup(ctr *Container, sessionID string) error {
-	// Clean up the sockets dir. Issue #3962
-	// Also ignore if it doesn't exist for some reason; hence the conditional return below
-	if err := os.RemoveAll(filepath.Join(r.socketsDir, sessionID)); err != nil && !os.IsNotExist(err) {
-		return err
-	}
 	return nil
 }
 
@@ -302,7 +296,7 @@ func (r *ConmonOCIRuntime) ExecAttachSocketPath(ctr *Container, sessionID string
 		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a valid session ID to get attach socket path")
 	}
 
-	return filepath.Join(r.socketsDir, sessionID, "attach"), nil
+	return filepath.Join(ctr.execBundlePath(sessionID), "attach"), nil
 }
 
 // This contains pipes used by the exec API.
