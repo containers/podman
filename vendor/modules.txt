@@ -102,6 +102,8 @@ github.com/containers/common/pkg/report
 github.com/containers/common/pkg/report/camelcase
 github.com/containers/common/pkg/retry
 github.com/containers/common/pkg/seccomp
+github.com/containers/common/pkg/secrets
+github.com/containers/common/pkg/secrets/filedriver
 github.com/containers/common/pkg/subscriptions
 github.com/containers/common/pkg/sysinfo
 github.com/containers/common/pkg/umask

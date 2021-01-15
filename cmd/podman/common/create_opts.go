@@ -93,6 +93,7 @@ type ContainerCLIOpts struct {
 	Replace           bool
 	Rm                bool
 	RootFS            bool
+	Secrets           []string
 	SecurityOpt       []string
 	SdNotifyMode      string
 	ShmSize           string

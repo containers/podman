@@ -62,6 +62,8 @@ type InspectContainerConfig struct {
 	SystemdMode bool `json:"SystemdMode,omitempty"`
 	// Umask is the umask inside the container.
 	Umask string `json:"Umask,omitempty"`
+	// Secrets are the secrets mounted in the container
+	Secrets []*InspectSecret `json:"Secrets,omitempty"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.
@@ -704,4 +706,15 @@ type InspectExecProcess struct {
 type DriverData struct {
 	Name string            `json:"Name"`
 	Data map[string]string `json:"Data"`
+}
+
+// InspectHostPort provides information on a port on the host that a container's
+// port is bound to.
+type InspectSecret struct {
+	// IP on the host we are bound to. "" if not specified (binding to all
+	// IPs).
+	Name string `json:"Name"`
+	// Port on the host we are bound to. No special formatting - just an
+	// integer stuffed into a string.
+	ID string `json:"ID"`
 }

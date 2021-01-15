@@ -89,6 +89,8 @@ Commands
 
 :doc:`search <markdown/podman-search.1>` Search registry for image
 
+:doc:`secret <markdown/podman-secret.1>` Manage podman secrets
+
 :doc:`start <markdown/podman-start.1>` Start one or more containers
 
 :doc:`stats <markdown/podman-stats.1>` Display a live stream of container resource usage statistics

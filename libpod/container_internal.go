@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/cgroups"
@@ -29,6 +30,7 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -2211,4 +2213,26 @@ func (c *Container) hasNamespace(namespace spec.LinuxNamespaceType) bool {
 		}
 	}
 	return false
+}
+
+// extractSecretToStorage copies a secret's data from the secrets manager to the container's static dir
+func (c *Container) extractSecretToCtrStorage(name string) error {
+	manager, err := secrets.NewManager(c.runtime.GetSecretsStorageDir())
+	if err != nil {
+		return err
+	}
+	secr, data, err := manager.LookupSecretData(name)
+	if err != nil {
+		return err
+	}
+	secretFile := filepath.Join(c.config.SecretsPath, secr.Name)
+
+	err = ioutil.WriteFile(secretFile, data, 0644)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create %s", secretFile)
+	}
+	if err := label.Relabel(secretFile, c.config.MountLabel, false); err != nil {
+		return err
+	}
+	return nil
 }

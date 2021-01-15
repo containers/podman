@@ -4,6 +4,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/pkg/namespaces"
 	"github.com/containers/storage"
@@ -146,6 +147,10 @@ type ContainerRootFSConfig struct {
 	// working directory if it does not exist. Some OCI runtimes do this by
 	// default, but others do not.
 	CreateWorkingDir bool `json:"createWorkingDir,omitempty"`
+	// Secrets lists secrets to mount into the container
+	Secrets []*secrets.Secret `json:"secrets,omitempty"`
+	// SecretPath is the secrets location in storage
+	SecretsPath string `json:"secretsPath"`
 }
 
 // ContainerSecurityConfig is an embedded sub-config providing security configuration

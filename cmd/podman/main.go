@@ -14,6 +14,7 @@ import (
 	_ "github.com/containers/podman/v2/cmd/podman/play"
 	_ "github.com/containers/podman/v2/cmd/podman/pods"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	_ "github.com/containers/podman/v2/cmd/podman/secrets"
 	_ "github.com/containers/podman/v2/cmd/podman/system"
 	_ "github.com/containers/podman/v2/cmd/podman/system/connection"
 	_ "github.com/containers/podman/v2/cmd/podman/volumes"

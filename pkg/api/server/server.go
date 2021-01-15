@@ -124,6 +124,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		server.registerPlayHandlers,
 		server.registerPluginsHandlers,
 		server.registerPodsHandlers,
+		server.registerSecretHandlers,
 		server.RegisterSwaggerHandlers,
 		server.registerSwarmHandlers,
 		server.registerSystemHandlers,

@@ -603,6 +603,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(sdnotifyFlagName, AutocompleteSDNotify)
 
+	secretFlagName := "secret"
+	createFlags.StringArrayVar(
+		&cf.Secrets,
+		secretFlagName, []string{},
+		"Add secret to container",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(secretFlagName, AutocompleteSecrets)
+
 	securityOptFlagName := "security-opt"
 	createFlags.StringArrayVar(
 		&cf.SecurityOpt,

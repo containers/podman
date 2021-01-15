@@ -80,6 +80,11 @@
 | [podman-run(1)](https://podman.readthedocs.io/en/latest/markdown/podman-run.1.html)                                   | Run a command in a new container                                           |
 | [podman-save(1)](https://podman.readthedocs.io/en/latest/markdown/podman-save.1.html)                                 | Save an image to a container archive                                       |
 | [podman-search(1)](https://podman.readthedocs.io/en/latest/markdown/podman-search.1.html)                             | Search a registry for an image                                             |
+| [podman-secret(1)](https://podman.readthedocs.io/en/latest/markdown/podman-secret.1.html)                             | Manage podman secrets                                                      |
+| [podman-secret-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-secret-create.1.html)               | Create a new secret                                                        |
+| [podman-secret-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-secret-inspect.1.html)             |  Display detailed information on one or more secrets                       |
+| [podman--secret-ls(1)](https://podman.readthedocs.io/en/latest/markdown/podman-secret-ls.1.html)                      | List all the available secrets                                             |
+| [podman-secret-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-secret-rm.1.html)                       | Remove one or more secrets                                                 |
 | [podman-start(1)](https://podman.readthedocs.io/en/latest/markdown/podman-start.1.html)                               | Start one or more containers                                               |
 | [podman-stats(1)](https://podman.readthedocs.io/en/latest/markdown/podman-stats.1.html)                               | Display a live stream of one or more container's resource usage statistics |
 | [podman-stop(1)](https://podman.readthedocs.io/en/latest/markdown/podman-stop.1.html)                                 | Stops one or more running containers                                       |

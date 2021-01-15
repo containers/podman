@@ -340,6 +340,13 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 
 	ctrConfig.Timezone = c.config.Timezone
 
+	for _, secret := range c.config.Secrets {
+		newSec := define.InspectSecret{}
+		newSec.Name = secret.Name
+		newSec.ID = secret.ID
+		ctrConfig.Secrets = append(ctrConfig.Secrets, &newSec)
+	}
+
 	// Pad Umask to 4 characters
 	if len(c.config.Umask) < 4 {
 		pad := strings.Repeat("0", 4-len(c.config.Umask))

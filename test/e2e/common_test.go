@@ -491,6 +491,21 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 	p.Cleanup()
 }
 
+// CleanupSecret cleans up the temporary store
+func (p *PodmanTestIntegration) CleanupSecrets() {
+	// Remove all containers
+	session := p.Podman([]string{"secret", "rm", "-a"})
+	session.Wait(90)
+
+	// Stop remove service on secret cleanup
+	p.StopRemoteService()
+
+	// Nuke tempdir
+	if err := os.RemoveAll(p.TempDir); err != nil {
+		fmt.Printf("%q\n", err)
+	}
+}
+
 // InspectContainerToJSON takes the session output of an inspect
 // container and returns json
 func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectContainerData {

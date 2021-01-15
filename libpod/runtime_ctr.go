@@ -422,6 +422,18 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		}
 	}()
 
+	ctr.config.SecretsPath = filepath.Join(ctr.config.StaticDir, "secrets")
+	err = os.MkdirAll(ctr.config.SecretsPath, 0644)
+	if err != nil {
+		return nil, err
+	}
+	for _, secr := range ctr.config.Secrets {
+		err = ctr.extractSecretToCtrStorage(secr.Name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if ctr.config.ConmonPidFile == "" {
 		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
 	}
@@ -492,7 +504,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		toLock.lock.Lock()
 		defer toLock.lock.Unlock()
 	}
-
 	// Add the container to the state
 	// TODO: May be worth looking into recovering from name/ID collisions here
 	if ctr.config.Pod != "" {
