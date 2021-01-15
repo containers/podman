@@ -1,11 +1,14 @@
 package manifest
 
 import (
+	"io/ioutil"
+
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
+	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
@@ -15,7 +18,7 @@ import (
 // manifestPushOptsWrapper wraps entities.ManifestPushOptions and prevents leaking
 // CLI-only fields into the API types.
 type manifestPushOptsWrapper struct {
-	entities.ManifestPushOptions
+	entities.ImagePushOptions
 
 	TLSVerifyCLI   bool // CLI only
 	CredentialsCLI string
@@ -41,8 +44,8 @@ func init() {
 		Parent:  manifestCmd,
 	})
 	flags := pushCmd.Flags()
-	flags.BoolVar(&manifestPushOpts.Purge, "purge", false, "remove the manifest list if push succeeds")
-	flags.BoolVar(&manifestPushOpts.All, "all", false, "also push the images in the list")
+	flags.BoolVar(&manifestPushOpts.Rm, "rm", false, "remove the manifest list if push succeeds")
+	flags.BoolVar(&manifestPushOpts.All, "all", true, "also push the images in the list")
 
 	authfileFlagName := "authfile"
 	flags.StringVar(&manifestPushOpts.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -72,6 +75,7 @@ func init() {
 
 	flags.BoolVar(&manifestPushOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	flags.BoolVarP(&manifestPushOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing lists")
+	flags.SetNormalizeFunc(utils.AliasFlags)
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
@@ -107,8 +111,15 @@ func push(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		manifestPushOpts.SkipTLSVerify = types.NewOptionalBool(!manifestPushOpts.TLSVerifyCLI)
 	}
-	if err := registry.ImageEngine().ManifestPush(registry.Context(), args[0], args[1], manifestPushOpts.ManifestPushOptions); err != nil {
+	digest, err := registry.ImageEngine().ManifestPush(registry.Context(), args[0], args[1], manifestPushOpts.ImagePushOptions)
+	if err != nil {
 		return err
 	}
+	if manifestPushOpts.DigestFile != "" {
+		if err := ioutil.WriteFile(manifestPushOpts.DigestFile, []byte(digest), 0644); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
