@@ -17,7 +17,7 @@ var _ = Describe("Podman pod stats", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless("Tests fail with both CGv1/2 + required --cgroup-manager=cgroupfs")
+		SkipIfRootlessCgroupsV1("Tests fail with both CGv1 + required --cgroup-manager=cgroupfs")
 		if isContainerized() {
 			SkipIfCgroupV1("All tests fail Error: unable to load cgroup at ...: cgroup deleted")
 		}
@@ -176,8 +176,7 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on net=host post", func() {
-		// --net=host not supported for rootless pods at present
-		SkipIfRootlessCgroupsV1("Pause stats not supported in cgroups v1")
+		SkipIfRootless("--net=host not supported for rootless pods at present")
 		podName := "testPod"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--net=host", "--name", podName})
 		podCreate.WaitWithDefaultTimeout()
