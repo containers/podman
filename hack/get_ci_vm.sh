@@ -11,6 +11,14 @@
 # there are no guarantees it will remain in-sync with other automation-related
 # scripts.  Therefore it may not always function for everybody in every
 # future scenario without updates/modifications/tweaks.
+#
+# When successful, you will end up connected to a GCP VM with with a clone of
+# the upstream podman repository 'master' branch, using a remote named 'origin'.
+# If you want to customize this behavior, you will want to use a "hook" script.
+# Please use this example carefully, since git setups vary by person, you
+# will probably need to make local edits.
+#
+# https://gist.github.com/cevich/626a0790c0b476d5cd2a5a76fbdae0a1
 
 set -e
 
