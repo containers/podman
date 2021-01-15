@@ -2,6 +2,7 @@ package images
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
@@ -138,12 +140,38 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	entries := make([]string, len(containerFiles))
 	copy(entries, containerFiles)
 	entries = append(entries, options.ContextDirectory)
-	tarfile, err := nTar(entries...)
+
+	excludes := options.Excludes
+	if len(excludes) == 0 {
+		excludes, err = parseDockerignore(options.ContextDirectory)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	tarfile, err := nTar(excludes, entries...)
 	if err != nil {
+		logrus.Errorf("cannot tar container entries %v error: %v", entries, err)
 		return nil, err
 	}
 	defer tarfile.Close()
-	params.Set("dockerfile", filepath.Base(containerFiles[0]))
+
+	containerFile, err := filepath.Abs(entries[0])
+	if err != nil {
+		logrus.Errorf("cannot find absolute path of %v: %v", entries[0], err)
+		return nil, err
+	}
+	contextDir, err := filepath.Abs(entries[1])
+	if err != nil {
+		logrus.Errorf("cannot find absolute path of %v: %v", entries[1], err)
+		return nil, err
+	}
+
+	if strings.HasPrefix(containerFile, contextDir+string(filepath.Separator)) {
+		containerFile = strings.TrimPrefix(containerFile, contextDir+string(filepath.Separator))
+	}
+
+	params.Set("dockerfile", containerFile)
 
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -200,52 +228,116 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	}
 }
 
-func nTar(sources ...string) (io.ReadCloser, error) {
+func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
+	pm, err := fileutils.NewPatternMatcher(excludes)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error processing excludes list %v", excludes)
+	}
+
 	if len(sources) == 0 {
 		return nil, errors.New("No source(s) provided for build")
 	}
 
 	pr, pw := io.Pipe()
-	tw := tar.NewWriter(pw)
+	gw := gzip.NewWriter(pw)
+	tw := tar.NewWriter(gw)
 
 	var merr error
 	go func() {
 		defer pw.Close()
+		defer gw.Close()
 		defer tw.Close()
 
 		for _, src := range sources {
-			s := src
-			err := filepath.Walk(s, func(path string, info os.FileInfo, err error) error {
+			s, err := filepath.Abs(src)
+			if err != nil {
+				logrus.Errorf("cannot stat one of source context: %v", err)
+				merr = multierror.Append(merr, err)
+				return
+			}
+
+			err = filepath.Walk(s, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
 				}
-				if !info.Mode().IsRegular() || path == s {
-					return nil
-				}
 
-				f, lerr := os.Open(path)
-				if lerr != nil {
-					return lerr
+				if path == s {
+					return nil // skip root dir
 				}
 
 				name := strings.TrimPrefix(path, s+string(filepath.Separator))
-				hdr, lerr := tar.FileInfoHeader(info, name)
-				if lerr != nil {
-					f.Close()
-					return lerr
+
+				excluded, err := pm.Matches(filepath.ToSlash(name)) // nolint:staticcheck
+				if err != nil {
+					return errors.Wrapf(err, "error checking if %q is excluded", name)
 				}
-				hdr.Name = name
-				if lerr := tw.WriteHeader(hdr); lerr != nil {
-					f.Close()
-					return lerr
+				if excluded {
+					return nil
 				}
 
-				_, cerr := io.Copy(tw, f)
-				f.Close()
-				return cerr
+				if info.Mode().IsRegular() { // add file item
+					f, lerr := os.Open(path)
+					if lerr != nil {
+						return lerr
+					}
+
+					hdr, lerr := tar.FileInfoHeader(info, name)
+					if lerr != nil {
+						f.Close()
+						return lerr
+					}
+					hdr.Name = name
+					if lerr := tw.WriteHeader(hdr); lerr != nil {
+						f.Close()
+						return lerr
+					}
+
+					_, cerr := io.Copy(tw, f)
+					f.Close()
+					return cerr
+				} else if info.Mode().IsDir() { // add folders
+					hdr, lerr := tar.FileInfoHeader(info, name)
+					if lerr != nil {
+						return lerr
+					}
+					hdr.Name = name
+					if lerr := tw.WriteHeader(hdr); lerr != nil {
+						return lerr
+					}
+				} else if info.Mode()&os.ModeSymlink != 0 { // add symlinks as it, not content
+					link, err := os.Readlink(path)
+					if err != nil {
+						return err
+					}
+					hdr, lerr := tar.FileInfoHeader(info, link)
+					if lerr != nil {
+						return lerr
+					}
+					hdr.Name = name
+					if lerr := tw.WriteHeader(hdr); lerr != nil {
+						return lerr
+					}
+				} //skip other than file,folder and symlinks
+				return nil
 			})
 			merr = multierror.Append(merr, err)
 		}
 	}()
 	return pr, merr
+}
+
+func parseDockerignore(root string) ([]string, error) {
+	ignore, err := ioutil.ReadFile(filepath.Join(root, ".dockerignore"))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, errors.Wrapf(err, "error reading .dockerignore: '%s'", root)
+	}
+	rawexcludes := strings.Split(string(ignore), "\n")
+	excludes := make([]string, 0, len(rawexcludes))
+	for _, e := range rawexcludes {
+		if len(e) == 0 || e[0] == '#' {
+			continue
+		}
+		excludes = append(excludes, e)
+	}
+	return excludes, nil
 }

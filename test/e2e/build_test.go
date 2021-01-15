@@ -234,7 +234,7 @@ RUN printenv http_proxy`
 	})
 
 	It("podman build and check identity", func() {
-		session := podmanTest.Podman([]string{"build", "-f", "Containerfile.path", "--no-cache", "-t", "test", "build/basicalpine"})
+		session := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile.path", "--no-cache", "-t", "test", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -244,4 +244,218 @@ RUN printenv http_proxy`
 		data := inspect.OutputToString()
 		Expect(data).To(ContainSubstring(buildah.Version))
 	})
+
+	It("podman remote test container/docker file is not inside context dir", func() {
+		// Given
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		// Write target and fake files
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		targetSubPath := filepath.Join(targetPath, "subdir")
+		err = os.Mkdir(targetSubPath, 0755)
+		Expect(err).To(BeNil())
+		dummyFile := filepath.Join(targetSubPath, "dummy")
+		err = ioutil.WriteFile(dummyFile, []byte("dummy"), 0644)
+		Expect(err).To(BeNil())
+
+		containerfile := `FROM quay.io/libpod/alpine:latest
+ADD . /test
+RUN find /test`
+
+		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).To(BeNil())
+
+		defer func() {
+			Expect(os.Chdir(cwd)).To(BeNil())
+			Expect(os.RemoveAll(targetPath)).To(BeNil())
+		}()
+
+		// make cwd as context root path
+		Expect(os.Chdir(targetPath)).To(BeNil())
+
+		session := podmanTest.Podman([]string{"build", "-t", "test", "-f", "Containerfile", targetSubPath})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ok, _ := session.GrepString("/test/dummy")
+		Expect(ok).To(BeTrue())
+	})
+
+	It("podman remote test container/docker file is not at root of context dir", func() {
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		} else {
+			Skip("Only valid at remote test")
+		}
+		// Given
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		// Write target and fake files
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		targetSubPath := filepath.Join(targetPath, "subdir")
+		err = os.Mkdir(targetSubPath, 0755)
+		Expect(err).To(BeNil())
+
+		containerfile := `FROM quay.io/libpod/alpine:latest`
+
+		containerfilePath := filepath.Join(targetSubPath, "Containerfile")
+		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).To(BeNil())
+
+		defer func() {
+			Expect(os.Chdir(cwd)).To(BeNil())
+			Expect(os.RemoveAll(targetPath)).To(BeNil())
+		}()
+
+		// make cwd as context root path
+		Expect(os.Chdir(targetPath)).To(BeNil())
+
+		session := podmanTest.Podman([]string{"build", "-t", "test", "-f", "subdir/Containerfile", "."})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman remote test .dockerignore", func() {
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		} else {
+			Skip("Only valid at remote test")
+		}
+		// Given
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		// Write target and fake files
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+
+		containerfile := `FROM quay.io/libpod/alpine:latest
+ADD . /testfilter/
+RUN find /testfilter/`
+
+		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).To(BeNil())
+
+		targetSubPath := filepath.Join(targetPath, "subdir")
+		err = os.Mkdir(targetSubPath, 0755)
+		Expect(err).To(BeNil())
+
+		dummyFile1 := filepath.Join(targetPath, "dummy1")
+		err = ioutil.WriteFile(dummyFile1, []byte("dummy1"), 0644)
+		Expect(err).To(BeNil())
+
+		dummyFile2 := filepath.Join(targetPath, "dummy2")
+		err = ioutil.WriteFile(dummyFile2, []byte("dummy2"), 0644)
+		Expect(err).To(BeNil())
+
+		dummyFile3 := filepath.Join(targetSubPath, "dummy3")
+		err = ioutil.WriteFile(dummyFile3, []byte("dummy3"), 0644)
+		Expect(err).To(BeNil())
+
+		defer func() {
+			Expect(os.Chdir(cwd)).To(BeNil())
+			Expect(os.RemoveAll(targetPath)).To(BeNil())
+		}()
+
+		// make cwd as context root path
+		Expect(os.Chdir(targetPath)).To(BeNil())
+
+		dockerignoreContent := `dummy1
+subdir**`
+		dockerignoreFile := filepath.Join(targetPath, ".dockerignore")
+
+		// test .dockerignore
+		By("Test .dockererignore")
+		err = ioutil.WriteFile(dockerignoreFile, []byte(dockerignoreContent), 0644)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"build", "-t", "test", "."})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ok, _ := session.GrepString("/testfilter/dummy1")
+		Expect(ok).NotTo(BeTrue())
+		ok, _ = session.GrepString("/testfilter/dummy2")
+		Expect(ok).To(BeTrue())
+		ok, _ = session.GrepString("/testfilter/subdir")
+		Expect(ok).NotTo(BeTrue()) //.dockerignore filters both subdir and inside subdir
+		ok, _ = session.GrepString("/testfilter/subdir/dummy3")
+		Expect(ok).NotTo(BeTrue())
+	})
+
+	It("podman remote test context dir contains empty dirs and symlinks", func() {
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		} else {
+			Skip("Only valid at remote test")
+		}
+		// Given
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		// Write target and fake files
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		targetSubPath := filepath.Join(targetPath, "subdir")
+		err = os.Mkdir(targetSubPath, 0755)
+		Expect(err).To(BeNil())
+		dummyFile := filepath.Join(targetSubPath, "dummy")
+		err = ioutil.WriteFile(dummyFile, []byte("dummy"), 0644)
+		Expect(err).To(BeNil())
+
+		emptyDir := filepath.Join(targetSubPath, "emptyDir")
+		err = os.Mkdir(emptyDir, 0755)
+		Expect(err).To(BeNil())
+		Expect(os.Chdir(targetSubPath)).To(BeNil())
+		Expect(os.Symlink("dummy", "dummy-symlink")).To(BeNil())
+
+		containerfile := `FROM quay.io/libpod/alpine:latest
+ADD . /test
+RUN find /test
+RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`
+
+		containerfilePath := filepath.Join(targetSubPath, "Containerfile")
+		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).To(BeNil())
+
+		defer func() {
+			Expect(os.Chdir(cwd)).To(BeNil())
+			Expect(os.RemoveAll(targetPath)).To(BeNil())
+		}()
+
+		// make cwd as context root path
+		Expect(os.Chdir(targetPath)).To(BeNil())
+
+		session := podmanTest.Podman([]string{"build", "-t", "test", targetSubPath})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ok, _ := session.GrepString("/test/dummy")
+		Expect(ok).To(BeTrue())
+		ok, _ = session.GrepString("/test/emptyDir")
+		Expect(ok).To(BeTrue())
+		ok, _ = session.GrepString("/test/dummy-symlink")
+		Expect(ok).To(BeTrue())
+		ok, _ = session.GrepString("SYMLNKOK")
+		Expect(ok).To(BeTrue())
+	})
+
 })
