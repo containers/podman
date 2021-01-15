@@ -1580,8 +1580,18 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 			return nil, err
 		}
 
+		// HACK HACK HACK - copy up into a volume driver is 100% broken
+		// right now.
+		if vol.UsesVolumeDriver() {
+			logrus.Infof("Not copying up into volume %s as it uses a volume driver", vol.Name())
+			return vol, nil
+		}
+
 		// If the volume is not empty, we should not copy up.
-		volMount := vol.MountPoint()
+		volMount, err := vol.MountPoint()
+		if err != nil {
+			return nil, err
+		}
 		contents, err := ioutil.ReadDir(volMount)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
@@ -1619,7 +1629,11 @@ func (c *Container) chownVolume(volumeName string) error {
 		return err
 	}
 
-	if vol.state.NeedsChown {
+	// TODO: For now, I've disabled chowning volumes owned by non-Podman
+	// drivers. This may be safe, but it's really going to be a case-by-case
+	// thing, I think - safest to leave disabled now and reenable later if
+	// there is a demand.
+	if vol.state.NeedsChown && !vol.UsesVolumeDriver() {
 		vol.state.NeedsChown = false
 
 		uid := int(c.config.Spec.Process.User.UID)
@@ -1646,7 +1660,10 @@ func (c *Container) chownVolume(volumeName string) error {
 			return err
 		}
 
-		mountPoint := vol.MountPoint()
+		mountPoint, err := vol.MountPoint()
+		if err != nil {
+			return err
+		}
 
 		if err := os.Lchown(mountPoint, uid, gid); err != nil {
 			return err

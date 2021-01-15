@@ -497,6 +497,21 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 		}
 	}
 
+	// Retrieve volume driver
+	if volume.UsesVolumeDriver() {
+		plugin, err := s.runtime.getVolumePlugin(volume.config.Driver)
+		if err != nil {
+			// We want to fail gracefully here, to ensure that we
+			// can still remove volumes even if their plugin is
+			// missing. Otherwise, we end up with volumes that
+			// cannot even be retrieved from the database and will
+			// cause things like `volume ls` to fail.
+			logrus.Errorf("Volume %s uses volume plugin %s, but it cannot be accessed - some functionality may not be available: %v", volume.Name(), volume.config.Driver, err)
+		} else {
+			volume.plugin = plugin
+		}
+	}
+
 	// Get the lock
 	lock, err := s.runtime.lockManager.RetrieveLock(volume.config.LockID)
 	if err != nil {

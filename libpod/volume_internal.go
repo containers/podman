@@ -22,13 +22,24 @@ func newVolume(runtime *Runtime) *Volume {
 
 // teardownStorage deletes the volume from volumePath
 func (v *Volume) teardownStorage() error {
+	if v.UsesVolumeDriver() {
+		return nil
+	}
+
+	// TODO: Should this be converted to use v.config.MountPoint?
 	return os.RemoveAll(filepath.Join(v.runtime.config.Engine.VolumePath, v.Name()))
 }
 
 // Volumes with options set, or a filesystem type, or a device to mount need to
 // be mounted and unmounted.
 func (v *Volume) needsMount() bool {
-	return len(v.config.Options) > 0 && v.config.Driver == define.VolumeDriverLocal
+	// Non-local driver always needs mount
+	if v.UsesVolumeDriver() {
+		return true
+	}
+
+	// Local driver with options needs mount
+	return len(v.config.Options) > 0
 }
 
 // update() updates the volume state from the DB.

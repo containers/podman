@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/libpod/lock"
+	"github.com/containers/podman/v2/libpod/plugin"
 	"github.com/containers/podman/v2/libpod/shutdown"
 	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/podman/v2/pkg/registries"
@@ -887,4 +888,19 @@ func (r *Runtime) reloadStorageConf() error {
 	storage.ReloadConfigurationFile(configFile, &r.storageConfig)
 	logrus.Infof("applied new storage configuration: %v", r.storageConfig)
 	return nil
+}
+
+// getVolumePlugin gets a specific volume plugin given its name.
+func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
+	// There is no plugin for local.
+	if name == define.VolumeDriverLocal || name == "" {
+		return nil, nil
+	}
+
+	pluginPath, ok := r.config.Engine.VolumePlugins[name]
+	if !ok {
+		return nil, errors.Wrapf(define.ErrMissingPlugin, "no volume plugin with name %s available", name)
+	}
+
+	return plugin.GetVolumePlugin(name, pluginPath)
 }

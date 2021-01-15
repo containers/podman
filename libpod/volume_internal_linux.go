@@ -8,10 +8,16 @@ import (
 
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/rootless"
+	pluginapi "github.com/docker/go-plugins-helpers/volume"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
+
+// This is a pseudo-container ID to use when requesting a mount or unmount from
+// the volume plugins.
+// This is the shas256 of the string "placeholder\n".
+const pseudoCtrID = "2f73349cfc4630255319c6c8dfc1b46a8996ace9d14d8e07563b165915918ec2"
 
 // mount mounts the volume if necessary.
 // A mount is necessary if a volume has any options set.
@@ -20,7 +26,7 @@ import (
 // host. Otherwise, we assume it is already mounted.
 // Must be done while the volume is locked.
 // Is a no-op on volumes that do not require a mount (as defined by
-// volumeNeedsMount())
+// volumeNeedsMount()).
 func (v *Volume) mount() error {
 	if !v.needsMount() {
 		return nil
@@ -41,6 +47,28 @@ func (v *Volume) mount() error {
 	if v.state.MountCount > 0 {
 		v.state.MountCount += 1
 		logrus.Debugf("Volume %s mount count now at %d", v.Name(), v.state.MountCount)
+		return v.save()
+	}
+
+	// Volume plugins implement their own mount counter, based on the ID of
+	// the mounting container. But we already have one, and honestly I trust
+	// ours more. So hardcode container ID to something reasonable, and use
+	// the same one for everything.
+	if v.UsesVolumeDriver() {
+		if v.plugin == nil {
+			return errors.Wrapf(define.ErrMissingPlugin, "volume plugin %s (needed by volume %s) missing", v.Driver(), v.Name())
+		}
+
+		req := new(pluginapi.MountRequest)
+		req.Name = v.Name()
+		req.ID = pseudoCtrID
+		mountPoint, err := v.plugin.MountVolume(req)
+		if err != nil {
+			return err
+		}
+
+		v.state.MountCount += 1
+		v.state.MountPoint = mountPoint
 		return v.save()
 	}
 
@@ -132,6 +160,22 @@ func (v *Volume) unmount(force bool) error {
 	logrus.Debugf("Volume %s mount count now at %d", v.Name(), v.state.MountCount)
 
 	if v.state.MountCount == 0 {
+		if v.UsesVolumeDriver() {
+			if v.plugin == nil {
+				return errors.Wrapf(define.ErrMissingPlugin, "volume plugin %s (needed by volume %s) missing", v.Driver(), v.Name())
+			}
+
+			req := new(pluginapi.UnmountRequest)
+			req.Name = v.Name()
+			req.ID = pseudoCtrID
+			if err := v.plugin.UnmountVolume(req); err != nil {
+				return err
+			}
+
+			v.state.MountPoint = ""
+			return v.save()
+		}
+
 		// Unmount the volume
 		if err := unix.Unmount(v.config.MountPoint, unix.MNT_DETACH); err != nil {
 			if err == unix.EINVAL {

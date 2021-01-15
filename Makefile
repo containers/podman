@@ -180,6 +180,14 @@ gofmt: ## Verify the source code gofmt
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
+.PHONY: test/testvol/testvol
+test/testvol/testvol: .gopathok $(wildcard test/testvol/*.go)
+	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
+
+.PHONY: volume-plugin-test-image
+volume-plugin-test-img:
+	podman build -t quay.io/libpod/volume-plugin-test-img -f Containerfile-testvol .
+
 .PHONY: test/goecho/goecho
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho

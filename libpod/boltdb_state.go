@@ -304,6 +304,7 @@ func (s *BoltState) Refresh() error {
 
 			// Reset mount count to 0
 			oldState.MountCount = 0
+			oldState.MountPoint = ""
 
 			newState, err := json.Marshal(oldState)
 			if err != nil {

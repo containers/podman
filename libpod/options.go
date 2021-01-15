@@ -1549,17 +1549,6 @@ func WithVolumeDriver(driver string) VolumeCreateOption {
 			return define.ErrVolumeFinalized
 		}
 
-		// Uncomment when volume plugins are ready for use.
-		// if driver != define.VolumeDriverLocal {
-		// 	if _, err := plugin.GetVolumePlugin(driver); err != nil {
-		// 		return err
-		// 	}
-		// }
-
-		if driver != define.VolumeDriverLocal {
-			return define.ErrNotImplemented
-		}
-
 		volume.config.Driver = driver
 		return nil
 	}

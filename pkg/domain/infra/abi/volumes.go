@@ -103,25 +103,12 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	}
 	reports := make([]*entities.VolumeInspectReport, 0, len(vols))
 	for _, v := range vols {
-		var uid, gid int
-		uid, err = v.UID()
-		if err != nil {
-			return nil, nil, err
-		}
-		gid, err = v.GID()
+		inspectOut, err := v.Inspect()
 		if err != nil {
 			return nil, nil, err
 		}
 		config := entities.VolumeConfigResponse{
-			Name:       v.Name(),
-			Driver:     v.Driver(),
-			Mountpoint: v.MountPoint(),
-			CreatedAt:  v.CreatedTime(),
-			Labels:     v.Labels(),
-			Scope:      v.Scope(),
-			Options:    v.Options(),
-			UID:        uid,
-			GID:        gid,
+			InspectVolumeData: *inspectOut,
 		}
 		reports = append(reports, &entities.VolumeInspectReport{VolumeConfigResponse: &config})
 	}
@@ -155,25 +142,12 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 	}
 	reports := make([]*entities.VolumeListReport, 0, len(vols))
 	for _, v := range vols {
-		var uid, gid int
-		uid, err = v.UID()
-		if err != nil {
-			return nil, err
-		}
-		gid, err = v.GID()
+		inspectOut, err := v.Inspect()
 		if err != nil {
 			return nil, err
 		}
 		config := entities.VolumeConfigResponse{
-			Name:       v.Name(),
-			Driver:     v.Driver(),
-			Mountpoint: v.MountPoint(),
-			CreatedAt:  v.CreatedTime(),
-			Labels:     v.Labels(),
-			Scope:      v.Scope(),
-			Options:    v.Options(),
-			UID:        uid,
-			GID:        gid,
+			InspectVolumeData: *inspectOut,
 		}
 		reports = append(reports, &entities.VolumeListReport{VolumeConfigResponse: config})
 	}
