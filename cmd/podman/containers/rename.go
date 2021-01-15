@@ -32,14 +32,13 @@ var (
 )
 
 func init() {
-	// TODO: Once bindings are done, add this to TunnelMode
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: renameCommand,
 	})
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerRenameCommand,
 		Parent:  containerCmd,
 	})

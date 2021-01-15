@@ -194,6 +194,13 @@ type InitOptions struct{}
 // ShouldRestartOptions
 type ShouldRestartOptions struct{}
 
+//go:generate go run ../generator/generator.go RenameOptions
+// RenameOptions are options for renaming containers.
+// The Name field is required.
+type RenameOptions struct {
+	Name *string
+}
+
 //go:generate go run ../generator/generator.go ResizeTTYOptions
 // ResizeTTYOptions are optional options for resizing
 // container TTYs
