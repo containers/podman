@@ -247,6 +247,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-ps(1)](podman-ps.1.md)                   | Prints out information about containers.                                    |
 | [podman-pull(1)](podman-pull.1.md)               | Pull an image from a registry.                                              |
 | [podman-push(1)](podman-push.1.md)               | Push an image from local storage to elsewhere.                              |
+| [podman-rename(1)](podman-rename.1.md)           | Rename an existing container.                                               |
 | [podman-restart(1)](podman-restart.1.md)         | Restart one or more containers.                                             |
 | [podman-rm(1)](podman-rm.1.md)                   | Remove one or more containers.                                              |
 | [podman-rmi(1)](podman-rmi.1.md)                 | Removes one or more locally stored images.                                  |
@@ -259,7 +260,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-system(1)](podman-system.1.md)           | Manage podman.                                                              |
 | [podman-tag(1)](podman-tag.1.md)                 | Add an additional name to a local image.                                    |
 | [podman-top(1)](podman-top.1.md)                 | Display the running processes of a container.                               |
-| [podman-unmount(1)](podman-unmount.1.md)           | Unmount a working container's root filesystem.                              |
+| [podman-unmount(1)](podman-unmount.1.md)         | Unmount a working container's root filesystem.                              |
 | [podman-unpause(1)](podman-unpause.1.md)         | Unpause one or more containers.                                             |
 | [podman-unshare(1)](podman-unshare.1.md)         | Run a command inside of a modified user namespace.                          |
 | [podman-untag(1)](podman-untag.1.md)             | Removes one or more names from a locally-stored image.                      |

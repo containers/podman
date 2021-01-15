@@ -71,20 +71,6 @@ A little configuration by an administrator is required before rootless Podman ca
   See [Skopeo](https://github.com/containers/skopeo/) for those tasks.
 * Support for the Kubernetes CRI interface for container management.
   The [CRI-O](https://github.com/cri-o/cri-o) daemon specializes in that.
-* Supporting `docker-compose`.  We believe that Kubernetes is the defacto
-  standard for composing Pods and for orchestrating containers, making
-  Kubernetes YAML a defacto standard file format. Hence, Podman allows the
-  creation and execution of Pods from a Kubernetes YAML file (see
-  [podman-play-kube](https://github.com/containers/podman/blob/master/docs/source/markdown/podman-play-kube.1.md)).
-  Podman can also generate Kubernetes YAML based on a container or Pod (see
-  [podman-generate-kube](https://github.com/containers/podman/blob/master/docs/source/markdown/podman-generate-kube.1.md)),
-  which allows for an easy transition from a local development environment
-  to a production Kubernetes cluster. If Kubernetes does not fit your requirements,
-  there are other third-party tools that support the docker-compose format such as
-  [kompose](https://github.com/kubernetes/kompose/) and
-  [podman-compose](https://github.com/muayyad-alsadi/podman-compose)
-  that might be appropriate for your environment. This situation may change with
-  the addition of the REST API.
 
 ## OCI Projects Plans
 

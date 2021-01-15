@@ -820,3 +820,8 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 func (ic *ContainerEngine) ShouldRestart(_ context.Context, id string) (bool, error) {
 	return containers.ShouldRestart(ic.ClientCtx, id, nil)
 }
+
+// ContainerRename renames the given container.
+func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string, opts entities.ContainerRenameOptions) error {
+	return errors.Errorf("NOT YET IMPLEMENTED")
+}

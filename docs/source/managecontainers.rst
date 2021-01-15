@@ -41,6 +41,8 @@ Manage Containers
 
 :doc:`ps <markdown/podman-ps.1>` List containers
 
+:doc:`rename <markdown/podman-rename.1>` Rename an existing container
+
 :doc:`restart <markdown/podman-restart.1>` Restart one or more containers
 
 :doc:`restore <markdown/podman-container-restore.1>` Restores one or more containers from a checkpoint
