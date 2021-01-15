@@ -612,12 +612,38 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 		ctx.RegistriesDirPath = regConfDir
 	}
 	ctx.DockerRegistryUserAgent = fmt.Sprintf("Buildah/%s", buildah.Version)
-	if os, err := c.Flags().GetString("override-os"); err == nil {
-		ctx.OSChoice = os
+	if c.Flag("os") != nil && c.Flag("os").Changed {
+		if os, err := c.Flags().GetString("os"); err == nil {
+			ctx.OSChoice = os
+		}
 	}
-	if arch, err := c.Flags().GetString("override-arch"); err == nil {
-		ctx.ArchitectureChoice = arch
+	if c.Flag("arch") != nil && c.Flag("arch").Changed {
+		if arch, err := c.Flags().GetString("arch"); err == nil {
+			ctx.ArchitectureChoice = arch
+		}
 	}
+	if c.Flag("variant") != nil && c.Flag("variant").Changed {
+		if variant, err := c.Flags().GetString("variant"); err == nil {
+			ctx.VariantChoice = variant
+		}
+	}
+	if c.Flag("platform") != nil && c.Flag("platform").Changed {
+		if platform, err := c.Flags().GetString("platform"); err == nil {
+			os, arch, variant, err := parsePlatform(platform)
+			if err != nil {
+				return nil, err
+			}
+			if ctx.OSChoice != "" ||
+				ctx.ArchitectureChoice != "" ||
+				ctx.VariantChoice != "" {
+				return nil, errors.Errorf("invalid --platform may not be used with --os, --arch, or --variant")
+			}
+			ctx.OSChoice = os
+			ctx.ArchitectureChoice = arch
+			ctx.VariantChoice = variant
+		}
+	}
+
 	ctx.BigFilesTemporaryDir = GetTempDir()
 	return ctx, nil
 }
@@ -632,23 +658,27 @@ func getAuthFile(authfile string) string {
 // PlatformFromOptions parses the operating system (os) and architecture (arch)
 // from the provided command line options.
 func PlatformFromOptions(c *cobra.Command) (os, arch string, err error) {
-	os = runtime.GOOS
-	arch = runtime.GOARCH
 
-	if selectedOS, err := c.Flags().GetString("os"); err == nil && selectedOS != runtime.GOOS {
-		os = selectedOS
-	}
-	if selectedArch, err := c.Flags().GetString("arch"); err == nil && selectedArch != runtime.GOARCH {
-		arch = selectedArch
-	}
-
-	if pf, err := c.Flags().GetString("platform"); err == nil && pf != DefaultPlatform() {
-		selectedOS, selectedArch, err := parsePlatform(pf)
-		if err != nil {
-			return "", "", errors.Wrap(err, "unable to parse platform")
+	if c.Flag("os").Changed {
+		if selectedOS, err := c.Flags().GetString("os"); err == nil {
+			os = selectedOS
 		}
-		arch = selectedArch
-		os = selectedOS
+	}
+	if c.Flag("arch").Changed {
+		if selectedArch, err := c.Flags().GetString("arch"); err == nil {
+			arch = selectedArch
+		}
+	}
+
+	if c.Flag("platform").Changed {
+		if pf, err := c.Flags().GetString("platform"); err == nil {
+			selectedOS, selectedArch, _, err := parsePlatform(pf)
+			if err != nil {
+				return "", "", errors.Wrap(err, "unable to parse platform")
+			}
+			arch = selectedArch
+			os = selectedOS
+		}
 	}
 
 	return os, arch, nil
@@ -661,12 +691,17 @@ func DefaultPlatform() string {
 	return runtime.GOOS + platformSep + runtime.GOARCH
 }
 
-func parsePlatform(platform string) (os, arch string, err error) {
+func parsePlatform(platform string) (os, arch, variant string, err error) {
 	split := strings.Split(platform, platformSep)
-	if len(split) != 2 {
-		return "", "", errors.Errorf("invalid platform syntax for %q (use OS/ARCH)", platform)
+	if len(split) < 2 {
+		return "", "", "", errors.Errorf("invalid platform syntax for %q (use OS/ARCH)", platform)
 	}
-	return split[0], split[1], nil
+	os = split[0]
+	arch = split[1]
+	if len(split) == 3 {
+		variant = split[2]
+	}
+	return
 }
 
 func parseCreds(creds string) (string, string) {
@@ -938,7 +973,7 @@ func IsolationOption(isolation string) (buildah.Isolation, error) {
 }
 
 // Device parses device mapping string to a src, dest & permissions string
-// Valid values for device looklike:
+// Valid values for device look like:
 //    '/dev/sdc"
 //    '/dev/sdc:/dev/xvdc"
 //    '/dev/sdc:/dev/xvdc:rwm"

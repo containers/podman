@@ -20,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/hashicorp/go-multierror"
+	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -347,12 +348,13 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					_, putErr = io.Copy(hasher, pipeReader)
 				} else {
 					putOptions := copier.PutOptions{
-						UIDMap:     destUIDMap,
-						GIDMap:     destGIDMap,
-						ChownDirs:  nil,
-						ChmodDirs:  nil,
-						ChownFiles: nil,
-						ChmodFiles: nil,
+						UIDMap:        destUIDMap,
+						GIDMap:        destGIDMap,
+						ChownDirs:     nil,
+						ChmodDirs:     nil,
+						ChownFiles:    nil,
+						ChmodFiles:    nil,
+						IgnoreDevices: rsystem.RunningInUserNS(),
 					}
 					putErr = copier.Put(mountPoint, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
 				}
@@ -482,6 +484,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						ChmodDirs:       nil,
 						ChownFiles:      nil,
 						ChmodFiles:      nil,
+						IgnoreDevices:   rsystem.RunningInUserNS(),
 					}
 					putErr = copier.Put(mountPoint, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
 				}

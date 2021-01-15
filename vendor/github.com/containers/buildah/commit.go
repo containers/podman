@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/manifests"
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/docker"
@@ -18,6 +19,7 @@ import (
 	"github.com/containers/image/v5/signature"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
@@ -83,6 +85,8 @@ type CommitOptions struct {
 	OmitTimestamp bool
 	// SignBy is the fingerprint of a GPG key to use for signing the image.
 	SignBy string
+	// Manifest list to add the image to.
+	Manifest string
 	// MaxRetries is the maximum number of attempts we'll make to commit
 	// the image to an external registry if the first attempt fails.
 	MaxRetries int
@@ -220,12 +224,59 @@ func checkRegistrySourcesAllows(forWhat string, dest types.ImageReference) (inse
 	return false, nil
 }
 
+func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpec string) error {
+	var create bool
+	systemContext := &types.SystemContext{}
+	var list manifests.List
+	_, listImage, err := util.FindImage(b.store, "", systemContext, manifestName)
+	if err != nil {
+		create = true
+		list = manifests.Create()
+	} else {
+		_, list, err = manifests.LoadFromImage(b.store, listImage.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	names, err := util.ExpandNames([]string{manifestName}, "", systemContext, b.store)
+	if err != nil {
+		return errors.Wrapf(err, "error encountered while expanding image name %q", manifestName)
+	}
+
+	ref, err := alltransports.ParseImageName(imageSpec)
+	if err != nil {
+		if ref, err = alltransports.ParseImageName(util.DefaultTransport + imageSpec); err != nil {
+			// check if the local image exists
+			if ref, _, err = util.FindImage(b.store, "", systemContext, imageSpec); err != nil {
+				return err
+			}
+		}
+	}
+
+	if _, err = list.Add(ctx, systemContext, ref, true); err != nil {
+		return err
+	}
+	var imageID string
+	if create {
+		imageID, err = list.SaveToImage(b.store, "", names, manifest.DockerV2ListMediaType)
+	} else {
+		imageID, err = list.SaveToImage(b.store, listImage.ID, nil, "")
+	}
+	if err == nil {
+		fmt.Printf("%s\n", imageID)
+	}
+	return err
+}
+
 // Commit writes the contents of the container, along with its updated
 // configuration, to a new image in the specified location, and if we know how,
 // add any additional tags that were specified. Returns the ID of the new image
 // if commit was successful and the image destination was local.
 func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options CommitOptions) (string, reference.Canonical, digest.Digest, error) {
-	var imgID string
+	var (
+		imgID string
+	)
 
 	// If we weren't given a name, build a destination reference using a
 	// temporary name that we'll remove later.  The correct thing to do
@@ -437,6 +488,11 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		}
 	}
 
+	if options.Manifest != "" {
+		if err := b.addManifest(ctx, options.Manifest, imgID); err != nil {
+			return imgID, nil, "", err
+		}
+	}
 	return imgID, ref, manifestDigest, nil
 }
 

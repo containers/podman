@@ -58,6 +58,8 @@ type BuildOptions struct {
 	// IgnoreUnrecognizedInstructions tells us to just log instructions we
 	// don't recognize, and try to keep going.
 	IgnoreUnrecognizedInstructions bool
+	// Manifest Name to which the image will be added.
+	Manifest string
 	// Quiet tells us whether or not to announce steps as we go through them.
 	Quiet bool
 	// Isolation controls how Run() runs things.
