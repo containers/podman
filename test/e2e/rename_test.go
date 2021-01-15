@@ -17,7 +17,6 @@ var _ = Describe("podman rename", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRemote("Rename not yet implemented by podman-remote")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
