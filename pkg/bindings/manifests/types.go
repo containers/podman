@@ -28,9 +28,3 @@ type AddOptions struct {
 // RemoveOptions are optional options for removing manifests
 type RemoveOptions struct {
 }
-
-//go:generate go run ../generator/generator.go PushOptions
-// RemoveOptions are optional options for pushing manifests
-type PushOptions struct {
-	All *bool
-}

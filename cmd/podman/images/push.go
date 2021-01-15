@@ -75,6 +75,8 @@ func init() {
 func pushFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
+	// For now default All flag to true, for pushing of manifest lists
+	pushOptions.All = true
 	authfileFlagName := "authfile"
 	flags.StringVar(&pushOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	_ = cmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)

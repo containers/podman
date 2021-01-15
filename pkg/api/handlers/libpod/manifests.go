@@ -1,17 +1,18 @@
 package libpod
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
-	"github.com/containers/buildah/manifests"
-	copy2 "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/auth"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
@@ -123,15 +124,13 @@ func ManifestRemove(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: newID})
 }
 func ManifestPush(w http.ResponseWriter, r *http.Request) {
-	// FIXME: parameters are missing (tlsVerify, format).
-	// Also, we should use the ABI function to avoid duplicate code.
-	// Also, support for XRegistryAuth headers are missing.
-
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		All         bool   `schema:"all"`
 		Destination string `schema:"destination"`
+		Format      string `schema:"format"`
+		TLSVerify   bool   `schema:"tlsVerify"`
 	}{
 		// Add defaults here once needed.
 	}
@@ -140,35 +139,43 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	name := utils.GetName(r)
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		utils.ImageNotFound(w, name, err)
+	if _, err := utils.ParseDockerReference(query.Destination); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
-	dest, err := alltransports.ParseImageName(query.Destination)
+
+	source := utils.GetName(r)
+	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "invalid destination parameter", http.StatusBadRequest, errors.Errorf("invalid destination parameter %q", query.Destination))
+		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
-	rtc, err := runtime.GetConfig()
+	defer auth.RemoveAuthfile(authfile)
+	var username, password string
+	if authConf != nil {
+		username = authConf.Username
+		password = authConf.Password
+
+	}
+
+	options := entities.ImagePushOptions{
+		Authfile: authfile,
+		Username: username,
+		Password: password,
+		Format:   query.Format,
+		All:      query.All,
+	}
+	if sys := runtime.SystemContext(); sys != nil {
+		options.CertDir = sys.DockerCertPath
+	}
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	digest, err := imageEngine.ManifestPush(context.Background(), source, query.Destination, options)
 	if err != nil {
-		utils.InternalServerError(w, err)
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", query.Destination))
 		return
 	}
-	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
-	opts := manifests.PushOptions{
-		Store:              runtime.GetStore(),
-		ImageListSelection: copy2.CopySpecificImages,
-		SystemContext:      sc,
-	}
-	if query.All {
-		opts.ImageListSelection = copy2.CopyAllImages
-	}
-	newD, err := newImage.PushManifest(dest, opts)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	utils.WriteResponse(w, http.StatusOK, newD.String())
+	utils.WriteResponse(w, http.StatusOK, digest)
 }

@@ -99,6 +99,8 @@ type ImportOptions struct {
 //go:generate go run ../generator/generator.go PushOptions
 // PushOptions are optional options for importing images
 type PushOptions struct {
+	// All indicates whether to push all images related to the image list
+	All *bool
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
 	Authfile *string

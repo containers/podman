@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/image/v5/types"
+	images "github.com/containers/podman/v2/pkg/bindings/images"
 	"github.com/containers/podman/v2/pkg/bindings/manifests"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -73,8 +75,20 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 }
 
 // ManifestPush pushes a manifest list or image index to the destination
-func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ManifestPushOptions) error {
-	options := new(manifests.PushOptions).WithAll(opts.All)
-	_, err := manifests.Push(ir.ClientCtx, name, destination, options)
-	return err
+func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ImagePushOptions) (string, error) {
+	options := new(images.PushOptions)
+	options.WithUsername(opts.Username).WithSignaturePolicy(opts.SignaturePolicy).WithQuiet(opts.Quiet)
+	options.WithPassword(opts.Password).WithCertDir(opts.CertDir).WithAuthfile(opts.Authfile)
+	options.WithCompress(opts.Compress).WithDigestFile(opts.DigestFile).WithFormat(opts.Format)
+	options.WithRemoveSignatures(opts.RemoveSignatures).WithSignBy(opts.SignBy)
+
+	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
+		if s == types.OptionalBoolTrue {
+			options.WithSkipTLSVerify(true)
+		} else {
+			options.WithSkipTLSVerify(false)
+		}
+	}
+	digest, err := manifests.Push(ir.ClientCtx, name, destination, options)
+	return digest, err
 }
