@@ -517,8 +517,8 @@ func AutocompleteRunlabelCommand(cmd *cobra.Command, args []string, toComplete s
 	return nil, cobra.ShellCompDirectiveDefault
 }
 
-// AutocompletePortCommand - Autocomplete podman port command args.
-func AutocompletePortCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+// AutocompleteContainerOneArg - Autocomplete containers as fist arg.
+func AutocompleteContainerOneArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
