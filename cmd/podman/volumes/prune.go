@@ -49,8 +49,9 @@ func init() {
 
 func prune(cmd *cobra.Command, args []string) error {
 	var (
-		pruneOptions = entities.VolumePruneOptions{}
-		listOptions  = entities.VolumeListOptions{}
+		pruneOptions  = entities.VolumePruneOptions{}
+		listOptions   = entities.VolumeListOptions{}
+		unusedOptions = entities.VolumeListOptions{}
 	)
 	// Prompt for confirmation if --force is not set
 	force, err := cmd.Flags().GetBool("force")
@@ -60,15 +61,32 @@ func prune(cmd *cobra.Command, args []string) error {
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all volumes not used by at least one container. The following volumes will be removed:")
+		pruneOptions.Filters, err = filters.ParseFilterArgumentsIntoFilters(filter)
 		listOptions.Filter, err = filters.ParseFilterArgumentsIntoFilters(filter)
 		if err != nil {
 			return err
 		}
+		// filter all the unused (unbound) volumes
+		unusedOptions.Filter = make(map[string][]string, 1)
+		unusedOptions.Filter["unused"] = []string{"true"}
+		if err != nil {
+			return err
+		}
+		unusedVolumes, err := registry.ContainerEngine().VolumeList(context.Background(), unusedOptions)
+		if err != nil {
+			return err
+		}
+		// filter volumes based on user input
 		filteredVolumes, err := registry.ContainerEngine().VolumeList(context.Background(), listOptions)
 		if err != nil {
 			return err
 		}
-		for _, fv := range filteredVolumes {
+		finalVolumes := getUnion(unusedVolumes, filteredVolumes)
+		if len(finalVolumes) < 1 {
+			fmt.Println("No unused volumes found")
+			return nil
+		}
+		for _, fv := range finalVolumes {
 			fmt.Println(fv.Name)
 		}
 		fmt.Print("Are you sure you want to continue? [y/N] ")
@@ -80,13 +98,23 @@ func prune(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 	}
-	pruneOptions.Filters, err = filters.ParseFilterArgumentsIntoFilters(filter)
-	if err != nil {
-		return err
-	}
 	responses, err := registry.ContainerEngine().VolumePrune(context.Background(), pruneOptions)
 	if err != nil {
 		return err
 	}
 	return utils.PrintVolumePruneResults(responses, false)
+}
+
+func getUnion(a, b []*entities.VolumeListReport) []*entities.VolumeListReport {
+	var intersection []*entities.VolumeListReport
+	hash := make(map[string]bool, len(a))
+	for _, aa := range a {
+		hash[aa.Name] = true
+	}
+	for _, bb := range b {
+		if hash[bb.Name] {
+			intersection = append(intersection, bb)
+		}
+	}
+	return intersection
 }
