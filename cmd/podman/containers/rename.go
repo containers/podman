@@ -16,7 +16,7 @@ var (
 		Long:              renameDescription,
 		RunE:              rename,
 		Args:              cobra.ExactArgs(2),
-		ValidArgsFunction: common.AutocompletePortCommand,
+		ValidArgsFunction: common.AutocompleteContainerOneArg,
 		Example:           "podman rename containerA newName",
 	}
 
