@@ -10,6 +10,7 @@ import (
 	cniversion "github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/podman/v2/libpod/network"
 	. "github.com/containers/podman/v2/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -363,6 +364,21 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--opt", "foo=bar", net})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(ExitWithError())
+	})
+
+	It("podman network create with if not exists", func() {
+		SkipIfRemote("--if-not-exists is not supported on remote")
+		net := stringid.GenerateNonCryptoID()
+		nc := podmanTest.Podman([]string{"network", "create", "--if-not-exists", net})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc.OutputToString()).To(ContainSubstring(net))
+
+		nc = podmanTest.Podman([]string{"network", "create", "--if-not-exists", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc.OutputToString()).To(ContainSubstring(net))
 	})
 
 })

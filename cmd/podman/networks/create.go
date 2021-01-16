@@ -48,6 +48,9 @@ func networkCreateFlags(cmd *cobra.Command) {
 	flags.IPVar(&networkCreateOptions.Gateway, gatewayFlagName, nil, "IPv4 or IPv6 gateway for the subnet")
 	_ = cmd.RegisterFlagCompletionFunc(gatewayFlagName, completion.AutocompleteNone)
 
+	if !registry.IsRemote() {
+		flags.BoolVar(&networkCreateOptions.IfNotExists, "if-not-exists", false, "do not error if the network name already exists")
+	}
 	flags.BoolVar(&networkCreateOptions.Internal, "internal", false, "restrict external access from this network")
 
 	ipRangeFlagName := "ip-range"

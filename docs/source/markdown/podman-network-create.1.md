@@ -39,6 +39,12 @@ The `vlan` option assign VLAN tag and enables vlan\_filtering. Defaults to none.
 Define a gateway for the subnet. If you want to provide a gateway address, you must also provide a
 *subnet* option.
 
+#### **--if-not-exists**
+
+Do not error if a network with the given name already exists. Instead do nothing.
+
+This option is not supported on the remote client.
+
 #### **--internal**
 
 Restrict external access of this network

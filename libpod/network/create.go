@@ -10,6 +10,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
@@ -33,7 +34,8 @@ func Create(name string, options entities.NetworkCreateOptions, runtimeConfig *c
 	} else {
 		fileName, err = createBridge(name, options, runtimeConfig)
 	}
-	if err != nil {
+	// do not error if IfNotExists is true and the error cause is ErrNetworkExists
+	if err != nil && !(options.IfNotExists && errors.Cause(err) == define.ErrNetworkExists) {
 		return nil, err
 	}
 	return &entities.NetworkCreateReport{Filename: fileName}, nil
@@ -207,7 +209,8 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 			return "", err
 		}
 		if util.StringInSlice(name, netNames) {
-			return "", errors.Errorf("the network name %s is already used", name)
+			path := filepath.Join(GetCNIConfDir(runtimeConfig), fmt.Sprintf("%s.conflist", name))
+			return path, errors.Wrapf(define.ErrNetworkExists, "the network name %s is already used", name)
 		}
 	} else {
 		// If no name is given, we give the name of the bridge device
@@ -261,7 +264,8 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 			return "", err
 		}
 		if util.StringInSlice(name, netNames) {
-			return "", errors.Errorf("the network name %s is already used", name)
+			path := filepath.Join(GetCNIConfDir(runtimeConfig), fmt.Sprintf("%s.conflist", name))
+			return path, errors.Wrapf(define.ErrNetworkExists, "the network name %s is already used", name)
 		}
 	} else {
 		name, err = GetFreeDeviceName(runtimeConfig)

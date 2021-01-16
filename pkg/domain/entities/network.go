@@ -52,12 +52,14 @@ type NetworkCreateOptions struct {
 	DisableDNS bool
 	Driver     string
 	Gateway    net.IP
-	Internal   bool
-	Labels     map[string]string
-	MacVLAN    string
-	Range      net.IPNet
-	Subnet     net.IPNet
-	IPv6       bool
+	// Do not error if the network name is already used.
+	IfNotExists bool
+	Internal    bool
+	Labels      map[string]string
+	MacVLAN     string
+	Range       net.IPNet
+	Subnet      net.IPNet
+	IPv6        bool
 	// Mapping of driver options and values.
 	Options map[string]string
 }
