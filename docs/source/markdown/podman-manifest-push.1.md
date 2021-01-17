@@ -17,7 +17,7 @@ The list image's ID and the digest of the image's manifest.
 #### **--all**
 
 Push the images mentioned in the manifest list or image index, in addition to
-the list or index itself.
+the list or index itself. (Default true)
 
 #### **--authfile**=*path*
 
@@ -46,13 +46,13 @@ After copying the image, write the digest of the resulting image to the file.
 
 Manifest list type (oci or v2s2) to use when pushing the list (default is oci).
 
-#### **--purge**
-
-Delete the manifest list or image index from local storage if pushing succeeds.
-
 #### **--quiet**, **-q**
 
 When writing the manifest, suppress progress output
+
+#### **--rm**
+
+Delete the manifest list or image index from local storage if pushing succeeds.
 
 #### **--remove-signatures**
 

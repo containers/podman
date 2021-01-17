@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -24,9 +23,8 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/sirupsen/logrus"
-
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ManifestCreate implements logic for creating manifest lists via ImageEngine
@@ -243,14 +241,20 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 }
 
 // ManifestPush pushes a manifest list or image index to the destination
-func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ManifestPushOptions) error {
+func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ImagePushOptions) (string, error) {
 	listImage, err := ir.Libpod.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving local image from image name %s", name)
+		return "", errors.Wrapf(err, "error retrieving local image from image name %s", name)
 	}
 	dest, err := alltransports.ParseImageName(destination)
 	if err != nil {
-		return err
+		oldErr := err
+		// Try adding the images default transport
+		destination2 := libpodImage.DefaultTransport + destination
+		dest, err = alltransports.ParseImageName(destination2)
+		if err != nil {
+			return "", oldErr
+		}
 	}
 
 	var manifestType string
@@ -261,7 +265,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 		case "v2s2", "docker":
 			manifestType = manifest.DockerV2Schema2MediaType
 		default:
-			return errors.Errorf("unknown format %q. Choose one of the supported formats: 'oci' or 'v2s2'", opts.Format)
+			return "", errors.Errorf("unknown format %q. Choose one of the supported formats: 'oci' or 'v2s2'", opts.Format)
 		}
 	}
 
@@ -297,13 +301,8 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 		options.ReportWriter = os.Stderr
 	}
 	manDigest, err := listImage.PushManifest(dest, options)
-	if err == nil && opts.Purge {
+	if err == nil && opts.Rm {
 		_, err = ir.Libpod.GetStore().DeleteImage(listImage.ID(), true)
 	}
-	if opts.DigestFile != "" {
-		if err = ioutil.WriteFile(opts.DigestFile, []byte(manDigest.String()), 0644); err != nil {
-			return buildahUtil.GetFailureCause(err, errors.Wrapf(err, "failed to write digest to file %q", opts.DigestFile))
-		}
-	}
-	return err
+	return manDigest.String(), err
 }

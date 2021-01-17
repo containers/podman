@@ -165,6 +165,8 @@ type ImagePullReport struct {
 
 // ImagePushOptions are the arguments for pushing images.
 type ImagePushOptions struct {
+	// All indicates that all images referenced in an manifest list should be pushed
+	All bool
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
 	Authfile string
@@ -189,6 +191,8 @@ type ImagePushOptions struct {
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet bool
+	// Rm indicates whether to remove the manifest list if push succeeds
+	Rm bool
 	// RemoveSignatures, discard any pre-existing signatures in the image.
 	// Ignored for remote calls.
 	RemoveSignatures bool

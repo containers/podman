@@ -87,6 +87,22 @@ func (o *PushOptions) ToParams() (url.Values, error) {
 	return params, nil
 }
 
+// WithAll
+func (o *PushOptions) WithAll(value bool) *PushOptions {
+	v := &value
+	o.All = v
+	return o
+}
+
+// GetAll
+func (o *PushOptions) GetAll() bool {
+	var all bool
+	if o.All == nil {
+		return all
+	}
+	return *o.All
+}
+
 // WithAuthfile
 func (o *PushOptions) WithAuthfile(value string) *PushOptions {
 	v := &value

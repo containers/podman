@@ -25,7 +25,6 @@ import (
 	utils2 "github.com/containers/podman/v2/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // Commit
@@ -410,6 +409,8 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Destination string `schema:"destination"`
 		TLSVerify   bool   `schema:"tlsVerify"`
+		Format      string `schema:"format"`
+		All         bool   `schema:"all"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -434,45 +435,31 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newImage, err := runtime.ImageRuntime().NewFromLocal(source)
-	if err != nil {
-		utils.ImageNotFound(w, source, errors.Wrapf(err, "failed to find image %s", source))
-		return
-	}
-
-	authConf, authfile, key, err := auth.GetCredentials(r)
+	authconf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
 		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
-	logrus.Errorf("AuthConf: %v", authConf)
+	var username, password string
+	if authconf != nil {
+		username = authconf.Username
+		password = authconf.Password
 
-	dockerRegistryOptions := &image.DockerRegistryOptions{
-		DockerRegistryCreds: authConf,
 	}
-	if sys := runtime.SystemContext(); sys != nil {
-		dockerRegistryOptions.DockerCertPath = sys.DockerCertPath
-		dockerRegistryOptions.RegistriesConfPath = sys.SystemRegistriesConfPath
+	options := entities.ImagePushOptions{
+		Authfile: authfile,
+		Username: username,
+		Password: password,
+		Format:   query.Format,
+		All:      query.All,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
-		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
 
-	err = newImage.PushImageToHeuristicDestination(
-		context.Background(),
-		destination,
-		"", // manifest type
-		authfile,
-		"", // digest file
-		"", // signature policy
-		os.Stderr,
-		false, // force compression
-		image.SigningOptions{},
-		dockerRegistryOptions,
-		nil, // additional tags
-	)
-	if err != nil {
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	if err := imageEngine.Push(context.Background(), source, destination, options); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", destination))
 		return
 	}
