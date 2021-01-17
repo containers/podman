@@ -462,15 +462,7 @@ podman-remote-%-release:
 BINDINGS_SOURCE = $(wildcard pkg/bindings/**/types.go)
 .generate-bindings: $(BINDINGS_SOURCE)
 ifneq ($(shell uname -s), Darwin)
-	for i in $(BINDINGS_SOURCE); do \
-		dirname=$$(dirname $${i}); \
-		shortname=$$(basename $${dirname}); \
-		pushd $${dirname}>/dev/null;  \
-		echo $${dirname}; \
-		echo $(GO) generate; \
-		$(GO) generate; \
-		popd > /dev/null; \
-	done;
+	$(GO) generate -mod=vendor ./pkg/bindings/... ;
 endif
 	touch .generate-bindings
 
