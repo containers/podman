@@ -85,6 +85,31 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 					}
 					return dangling
 				})
+			case "unused":
+				invert := false
+				unusedVal := val
+				switch strings.ToLower(unusedVal) {
+				case "true", "1":
+					// do nth
+				case "false", "0":
+					invert = true
+
+				default:
+					return nil, errors.Errorf("%q is not a valid value for the \"unused\" filter - must be true or false", unusedVal)
+				}
+				vf = append(vf, func(v *libpod.Volume) bool {
+					resp, err := v.VolumeInUse()
+					if err != nil || len(resp) > 0 {
+						if !invert {
+							return false
+						}
+						return true
+					}
+					if !invert {
+						return true
+					}
+					return false
+				})
 			default:
 				return nil, errors.Errorf("%q is in an invalid volume filter", filter)
 			}
