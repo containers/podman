@@ -468,7 +468,7 @@ ifneq ($(shell uname -s), Darwin)
 		pushd $${dirname}>/dev/null;  \
 		echo $${dirname}; \
 		echo $(GO) generate; \
-		$(GO) generate; \
+		$(GO) generate -mod=vendor; \
 		popd > /dev/null; \
 	done;
 endif
