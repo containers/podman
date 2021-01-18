@@ -598,7 +598,7 @@ endef
 .PHONY: .install.ginkgo
 .install.ginkgo: .gopathok
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
-		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo ; \
+		go get -u github.com/onsi/ginkgo/ginkgo@v1.14.2; \
 	fi
 
 .PHONY: .install.gitvalidation
