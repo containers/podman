@@ -249,24 +249,27 @@ const (
 
 const (
 	// wincrypt.h
-	PROV_RSA_FULL                    = 1
-	PROV_RSA_SIG                     = 2
-	PROV_DSS                         = 3
-	PROV_FORTEZZA                    = 4
-	PROV_MS_EXCHANGE                 = 5
-	PROV_SSL                         = 6
-	PROV_RSA_SCHANNEL                = 12
-	PROV_DSS_DH                      = 13
-	PROV_EC_ECDSA_SIG                = 14
-	PROV_EC_ECNRA_SIG                = 15
-	PROV_EC_ECDSA_FULL               = 16
-	PROV_EC_ECNRA_FULL               = 17
-	PROV_DH_SCHANNEL                 = 18
-	PROV_SPYRUS_LYNKS                = 20
-	PROV_RNG                         = 21
-	PROV_INTEL_SEC                   = 22
-	PROV_REPLACE_OWF                 = 23
-	PROV_RSA_AES                     = 24
+	/* certenrolld_begin -- PROV_RSA_*/
+	PROV_RSA_FULL      = 1
+	PROV_RSA_SIG       = 2
+	PROV_DSS           = 3
+	PROV_FORTEZZA      = 4
+	PROV_MS_EXCHANGE   = 5
+	PROV_SSL           = 6
+	PROV_RSA_SCHANNEL  = 12
+	PROV_DSS_DH        = 13
+	PROV_EC_ECDSA_SIG  = 14
+	PROV_EC_ECNRA_SIG  = 15
+	PROV_EC_ECDSA_FULL = 16
+	PROV_EC_ECNRA_FULL = 17
+	PROV_DH_SCHANNEL   = 18
+	PROV_SPYRUS_LYNKS  = 20
+	PROV_RNG           = 21
+	PROV_INTEL_SEC     = 22
+	PROV_REPLACE_OWF   = 23
+	PROV_RSA_AES       = 24
+
+	/* dwFlags definitions for CryptAcquireContext */
 	CRYPT_VERIFYCONTEXT              = 0xF0000000
 	CRYPT_NEWKEYSET                  = 0x00000008
 	CRYPT_DELETEKEYSET               = 0x00000010
@@ -274,6 +277,17 @@ const (
 	CRYPT_SILENT                     = 0x00000040
 	CRYPT_DEFAULT_CONTAINER_OPTIONAL = 0x00000080
 
+	/* Flags for PFXImportCertStore */
+	CRYPT_EXPORTABLE                   = 0x00000001
+	CRYPT_USER_PROTECTED               = 0x00000002
+	CRYPT_USER_KEYSET                  = 0x00001000
+	PKCS12_PREFER_CNG_KSP              = 0x00000100
+	PKCS12_ALWAYS_CNG_KSP              = 0x00000200
+	PKCS12_ALLOW_OVERWRITE_KEY         = 0x00004000
+	PKCS12_NO_PERSIST_KEY              = 0x00008000
+	PKCS12_INCLUDE_EXTENDED_PROPERTIES = 0x00000010
+
+	/* Default usage match type is AND with value zero */
 	USAGE_MATCH_TYPE_AND = 0
 	USAGE_MATCH_TYPE_OR  = 1
 
@@ -408,6 +422,10 @@ const (
 	CERT_CHAIN_POLICY_MICROSOFT_ROOT    = 7
 	CERT_CHAIN_POLICY_EV                = 8
 	CERT_CHAIN_POLICY_SSL_F12           = 9
+
+	/* Certificate Store close flags */
+	CERT_CLOSE_STORE_FORCE_FLAG = 0x00000001
+	CERT_CLOSE_STORE_CHECK_FLAG = 0x00000002
 
 	/* AuthType values for SSLExtraCertChainPolicyPara struct */
 	AUTHTYPE_CLIENT = 1
@@ -1139,6 +1157,11 @@ type CertChainPolicyStatus struct {
 	ExtraPolicyStatus Pointer
 }
 
+type CryptDataBlob struct {
+	Size uint32
+	Data *byte
+}
+
 const (
 	// do not reorder
 	HKEY_CLASSES_ROOT = 0x80000000 + iota
@@ -1819,4 +1842,22 @@ const (
 	LOAD_LIBRARY_SAFE_CURRENT_DIRS            = 0x00002000
 	LOAD_LIBRARY_SEARCH_SYSTEM32_NO_FORWARDER = 0x00004000
 	LOAD_LIBRARY_OS_INTEGRITY_CONTINUITY      = 0x00008000
+)
+
+// RegNotifyChangeKeyValue notifyFilter flags.
+const (
+	// REG_NOTIFY_CHANGE_NAME notifies the caller if a subkey is added or deleted.
+	REG_NOTIFY_CHANGE_NAME = 0x00000001
+
+	// REG_NOTIFY_CHANGE_ATTRIBUTES notifies the caller of changes to the attributes of the key, such as the security descriptor information.
+	REG_NOTIFY_CHANGE_ATTRIBUTES = 0x00000002
+
+	// REG_NOTIFY_CHANGE_LAST_SET notifies the caller of changes to a value of the key. This can include adding or deleting a value, or changing an existing value.
+	REG_NOTIFY_CHANGE_LAST_SET = 0x00000004
+
+	// REG_NOTIFY_CHANGE_SECURITY notifies the caller of changes to the security descriptor of the key.
+	REG_NOTIFY_CHANGE_SECURITY = 0x00000008
+
+	// REG_NOTIFY_THREAD_AGNOSTIC indicates that the lifetime of the registration must not be tied to the lifetime of the thread issuing the RegNotifyChangeKeyValue call. Note: This flag value is only supported in Windows 8 and later.
+	REG_NOTIFY_THREAD_AGNOSTIC = 0x10000000
 )

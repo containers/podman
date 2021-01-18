@@ -435,6 +435,7 @@ func (tail *Tail) sendLine(line string) bool {
 // Cleanup removes inotify watches added by the tail package. This function is
 // meant to be invoked from a process's exit handler. Linux kernel may not
 // automatically remove inotify watches after the process exits.
+// If you plan to re-read a file, don't call Cleanup in between.
 func (tail *Tail) Cleanup() {
 	watch.Cleanup(tail.Filename)
 }
