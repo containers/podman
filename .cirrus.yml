@@ -448,6 +448,7 @@ apiv2_test_task:
 compose_test_task:
     name: "compose test on $DISTRO_NV"
     alias: compose_test
+    only_if: *not_docs
     skip: *tags
     depends_on:
         - validate
