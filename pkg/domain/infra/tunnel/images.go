@@ -22,7 +22,7 @@ import (
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
-	found, err := images.Exists(ir.ClientCtx, nameOrID)
+	found, err := images.Exists(ir.ClientCtx, nameOrID, nil)
 	return &entities.BoolReport{Value: found}, err
 }
 

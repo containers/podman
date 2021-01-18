@@ -18,7 +18,7 @@ import (
 
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a
 // boolean response.
-func Exists(ctx context.Context, nameOrID string) (bool, error) {
+func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err

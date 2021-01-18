@@ -31,7 +31,7 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 }
 
 func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string, options entities.ContainerExistsOptions) (*entities.BoolReport, error) {
-	exists, err := containers.Exists(ic.ClientCtx, nameOrID, options.External)
+	exists, err := containers.Exists(ic.ClientCtx, nameOrID, new(containers.ExistsOptions).WithExternal(options.External))
 	return &entities.BoolReport{Value: exists}, err
 }
 

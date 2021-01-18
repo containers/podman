@@ -193,3 +193,8 @@ type PullOptions struct {
 type BuildOptions struct {
 	imagebuildah.BuildOptions
 }
+
+//go:generate go run ../generator/generator.go ExistsOptions
+// ExistsOptions are optional options for checking if an image exists
+type ExistsOptions struct {
+}
