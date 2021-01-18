@@ -70,3 +70,8 @@ type StatsOptions struct {
 type RemoveOptions struct {
 	Force *bool
 }
+
+//go:generate go run ../generator/generator.go ExistsOptions
+// ExistsOptions are optional options for checking if a pod exists
+type ExistsOptions struct {
+}
