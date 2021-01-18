@@ -157,12 +157,12 @@ var _ = Describe("Podman pods", func() {
 
 	// The test validates if the exists responds
 	It("exists pod", func() {
-		response, err := pods.Exists(bt.conn, "dummyName")
+		response, err := pods.Exists(bt.conn, "dummyName", nil)
 		Expect(err).To(BeNil())
 		Expect(response).To(BeFalse())
 
 		// Should exit with no error and response should be true
-		response, err = pods.Exists(bt.conn, "newpod")
+		response, err = pods.Exists(bt.conn, "newpod", nil)
 		Expect(err).To(BeNil())
 		Expect(response).To(BeTrue())
 	})
@@ -338,7 +338,7 @@ var _ = Describe("Podman pods", func() {
 		_, err := pods.CreatePodFromSpec(bt.conn, &ps, nil)
 		Expect(err).To(BeNil())
 
-		exists, err := pods.Exists(bt.conn, "foobar")
+		exists, err := pods.Exists(bt.conn, "foobar", nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 	})

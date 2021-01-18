@@ -12,7 +12,7 @@ import (
 )
 
 func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
-	exists, err := pods.Exists(ic.ClientCtx, nameOrID)
+	exists, err := pods.Exists(ic.ClientCtx, nameOrID, nil)
 	return &entities.BoolReport{Value: exists}, err
 }
 

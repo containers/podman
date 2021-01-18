@@ -237,3 +237,10 @@ type ExecStartAndAttachOptions struct {
 	// If false, stdout will not be attached
 	AttachInput *bool
 }
+
+//go:generate go run ../generator/generator.go ExistsOptions
+// ExistsOptions are optional options for checking if a container exists
+type ExistsOptions struct {
+	// External checks for containers created outside of Podman
+	External *bool
+}
