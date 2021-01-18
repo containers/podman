@@ -87,6 +87,38 @@ func (o *RemoveOptions) ToParams() (url.Values, error) {
 	return params, nil
 }
 
+// WithAll
+func (o *RemoveOptions) WithAll(value bool) *RemoveOptions {
+	v := &value
+	o.All = v
+	return o
+}
+
+// GetAll
+func (o *RemoveOptions) GetAll() bool {
+	var all bool
+	if o.All == nil {
+		return all
+	}
+	return *o.All
+}
+
+// WithIgnore
+func (o *RemoveOptions) WithIgnore(value bool) *RemoveOptions {
+	v := &value
+	o.Ignore = v
+	return o
+}
+
+// GetIgnore
+func (o *RemoveOptions) GetIgnore() bool {
+	var ignore bool
+	if o.Ignore == nil {
+		return ignore
+	}
+	return *o.Ignore
+}
+
 // WithForce
 func (o *RemoveOptions) WithForce(value bool) *RemoveOptions {
 	v := &value

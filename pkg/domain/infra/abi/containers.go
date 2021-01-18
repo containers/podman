@@ -264,30 +264,30 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	reports := []*entities.RmReport{}
 
 	names := namesOrIds
-	for _, cidFile := range options.CIDFiles {
-		content, err := ioutil.ReadFile(cidFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error reading CIDFile")
-		}
-		id := strings.Split(string(content), "\n")[0]
-		names = append(names, id)
-	}
-
 	// Attempt to remove named containers directly from storage, if container is defined in libpod
 	// this will fail and code will fall through to removing the container from libpod.`
 	tmpNames := []string{}
 	for _, ctr := range names {
 		report := entities.RmReport{Id: ctr}
-		if err := ic.Libpod.RemoveStorageContainer(ctr, options.Force); err != nil {
+		report.Err = ic.Libpod.RemoveStorageContainer(ctr, options.Force)
+		switch errors.Cause(report.Err) {
+		case nil:
 			// remove container names that we successfully deleted
-			tmpNames = append(tmpNames, ctr)
-		} else {
 			reports = append(reports, &report)
+		case define.ErrNoSuchCtr:
+			// There is still a potential this is a libpod container
+			tmpNames = append(tmpNames, ctr)
+		default:
+			if _, err := ic.Libpod.LookupContainer(ctr); errors.Cause(err) == define.ErrNoSuchCtr {
+				// remove container failed, but not a libpod container
+				reports = append(reports, &report)
+				continue
+			}
+			// attempt to remove as a libpod container
+			tmpNames = append(tmpNames, ctr)
 		}
 	}
-	if len(tmpNames) < len(names) {
-		names = tmpNames
-	}
+	names = tmpNames
 
 	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {

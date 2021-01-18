@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -54,6 +55,7 @@ var (
 
 var (
 	rmOptions = entities.RmOptions{}
+	cidFiles  = []string{}
 )
 
 func rmFlags(cmd *cobra.Command) {
@@ -65,7 +67,7 @@ func rmFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&rmOptions.Volumes, "volumes", "v", false, "Remove anonymous volumes associated with the container")
 
 	cidfileFlagName := "cidfile"
-	flags.StringArrayVarP(&rmOptions.CIDFiles, cidfileFlagName, "", nil, "Read the container ID from the file")
+	flags.StringArrayVar(&cidFiles, cidfileFlagName, nil, "Read the container ID from the file")
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	if !registry.IsRemote() {
@@ -92,7 +94,16 @@ func init() {
 	validate.AddLatestFlag(containerRmCommand, &rmOptions.Latest)
 }
 
-func rm(_ *cobra.Command, args []string) error {
+func rm(cmd *cobra.Command, args []string) error {
+	for _, cidFile := range cidFiles {
+		content, err := ioutil.ReadFile(string(cidFile))
+		if err != nil {
+			return errors.Wrap(err, "error reading CIDFile")
+		}
+		id := strings.Split(string(content), "\n")[0]
+		args = append(args, id)
+	}
+
 	return removeContainers(args, rmOptions, true)
 }
 
