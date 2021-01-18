@@ -157,3 +157,21 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusOK, "OK")
 }
+
+// ExistsNetwork check if a network exists
+func ExistsNetwork(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	ic := abi.ContainerEngine{Libpod: runtime}
+	report, err := ic.NetworkExists(r.Context(), name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	if !report.Value {
+		utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
+		return
+	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
+}
