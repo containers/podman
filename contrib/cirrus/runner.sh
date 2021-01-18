@@ -210,7 +210,8 @@ function _run_release() {
     bin/podman info
 
     msg "Checking podman release (or potential release) criteria."
-    dev=$(bin/podman info |& grep -- -dev)
+    # We're running under 'set -eo pipefail'; make sure this statement passes
+    dev=$(bin/podman info |& grep -- -dev || echo -n '')
     if [[ -n "$dev" ]]; then
         die "Releases must never contain '-dev' in output of 'podman info' ($dev)"
     fi
