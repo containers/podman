@@ -128,12 +128,11 @@ type RestartReport struct {
 }
 
 type RmOptions struct {
-	All      bool
-	CIDFiles []string
-	Force    bool
-	Ignore   bool
-	Latest   bool
-	Volumes  bool
+	All     bool
+	Force   bool
+	Ignore  bool
+	Latest  bool
+	Volumes bool
 }
 
 type RmReport struct {
