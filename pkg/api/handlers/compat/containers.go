@@ -14,7 +14,9 @@ import (
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/filters"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/containers/podman/v2/pkg/ps"
 	"github.com/containers/podman/v2/pkg/signal"
 	"github.com/docker/docker/api/types"
@@ -29,9 +31,11 @@ import (
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Force bool `schema:"force"`
-		Vols  bool `schema:"v"`
-		Link  bool `schema:"link"`
+		All     bool `schema:"all"`
+		Force   bool `schema:"force"`
+		Ignore  bool `schema:"ignore"`
+		Link    bool `schema:"link"`
+		Volumes bool `schema:"v"`
 	}{
 		// override any golang type defaults
 	}
@@ -49,34 +53,31 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	// Now use the ABI implementation to prevent us from having duplicate
+	// code.
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	name := utils.GetName(r)
-	con, err := runtime.LookupContainer(name)
-	if err != nil && errors.Cause(err) == define.ErrNoSuchCtr {
-		// Failed to get container. If force is specified, get the container's ID
-		// and evict it
-		if !query.Force {
+	options := entities.RmOptions{
+		All:     query.All,
+		Force:   query.Force,
+		Volumes: query.Volumes,
+		Ignore:  query.Ignore,
+	}
+	report, err := containerEngine.ContainerRm(r.Context(), []string{name}, options)
+	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, name, err)
 			return
 		}
 
-		if _, err := runtime.EvictContainer(r.Context(), name, query.Vols); err != nil {
-			if errors.Cause(err) == define.ErrNoSuchCtr {
-				logrus.Debugf("Ignoring error (--allow-missing): %q", err)
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
-			logrus.Warn(errors.Wrapf(err, "failed to evict container: %q", name))
-			utils.InternalServerError(w, err)
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	if err := runtime.RemoveContainer(r.Context(), con, query.Force, query.Vols); err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
+	if report[0].Err != nil {
+		utils.InternalServerError(w, report[0].Err)
+		return
+	}
+
 	utils.WriteResponse(w, http.StatusNoContent, nil)
 }
 

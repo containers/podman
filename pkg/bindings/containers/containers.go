@@ -71,8 +71,10 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 }
 
 // Remove removes a container from local storage.  The force bool designates
-// that the container should be removed forcibly (example, even it is running).  The volumes
-// bool dictates that a container's volumes should also be removed.
+// that the container should be removed forcibly (example, even it is running).
+// The volumes bool dictates that a container's volumes should also be removed.
+// The All option indicates that all containers should be removed
+// The Ignore option indicates that if a container did not exist, ignore the error
 func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error {
 	if options == nil {
 		options = new(RemoveOptions)
@@ -85,8 +87,14 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error 
 	if v := options.GetVolumes(); options.Changed("Volumes") {
 		params.Set("v", strconv.FormatBool(v))
 	}
+	if all := options.GetAll(); options.Changed("All") {
+		params.Set("all", strconv.FormatBool(all))
+	}
 	if force := options.GetForce(); options.Changed("Force") {
 		params.Set("force", strconv.FormatBool(force))
+	}
+	if ignore := options.GetIgnore(); options.Changed("Ignore") {
+		params.Set("ignore", strconv.FormatBool(ignore))
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/containers/%s", params, nil, nameOrID)
 	if err != nil {
