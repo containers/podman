@@ -456,4 +456,20 @@ var _ = Describe("Podman network", func() {
 		nc.WaitWithDefaultTimeout()
 		Expect(nc.ExitCode()).To(Equal(0))
 	})
+
+	It("podman network exists", func() {
+		net := "net" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"network", "exists", net})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"network", "exists", stringid.GenerateNonCryptoID()})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+	})
 })

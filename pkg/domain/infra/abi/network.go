@@ -140,3 +140,18 @@ func (ic *ContainerEngine) NetworkDisconnect(ctx context.Context, networkname st
 func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname string, options entities.NetworkConnectOptions) error {
 	return ic.Libpod.ConnectContainerToNetwork(options.Container, networkname, options.Aliases)
 }
+
+// NetworkExists checks if the given network exists
+func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string) (*entities.BoolReport, error) {
+	config, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	exists, err := network.Exists(config, networkname)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.BoolReport{
+		Value: exists,
+	}, nil
+}

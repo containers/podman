@@ -167,3 +167,16 @@ func Connect(ctx context.Context, networkName string, ContainerNameOrId string, 
 	}
 	return response.Process(nil)
 }
+
+// Exists returns true if a given network exists
+func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return false, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/%s/exists", nil, nil, nameOrID)
+	if err != nil {
+		return false, err
+	}
+	return response.IsSuccess(), nil
+}
