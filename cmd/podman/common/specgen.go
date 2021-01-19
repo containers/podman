@@ -463,7 +463,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if s.LogConfiguration == nil {
 		s.LogConfiguration = &specgen.LogConfig{}
 	}
-	s.LogConfiguration.Driver = define.KubernetesLogging
+
 	if ld := c.LogDriver; len(ld) > 0 {
 		s.LogConfiguration.Driver = ld
 	}
