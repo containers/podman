@@ -41,5 +41,5 @@ podman system service --timeout 5000
 podman(1), podman-system-service(1), podman-system-connection(1)
 
 ## HISTORY
-January 2020, Originally compiled by Brent Baude<bbaude@redhat.com>
-November 2020, Updated by Jhon Honce <jhonce at redhat.com>
+January 2020, Originally compiled by Brent Baude `<bbaude@redhat.com>`
+November 2020, Updated by Jhon Honce (jhonce at redhat dot com)

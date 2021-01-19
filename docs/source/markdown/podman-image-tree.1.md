@@ -85,4 +85,4 @@ Image Layers
 podman(1)
 
 ## HISTORY
-Feb 2019, Originally compiled by Kunal Kushwaha <kushwaha_kunal_v7@lab.ntt.co.jp>
+Feb 2019, Originally compiled by Kunal Kushwaha `<kushwaha_kunal_v7@lab.ntt.co.jp>`

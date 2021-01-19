@@ -114,10 +114,10 @@ Drop Linux capabilities
 #### **--cgroupns**=*mode*
 
 Set the cgroup namespace mode for the container.
-    **host**: use the host's cgroup namespace inside the container.
-    **container:<NAME|ID>**: join the namespace of the specified container.
-    **ns:<PATH>**: join the namespace at the specified path.
-    **private**: create a new cgroup namespace.
+    **`host`**: use the host's cgroup namespace inside the container.
+    **`container:<NAME|ID>`**: join the namespace of the specified container.
+    **`ns:<PATH>`**: join the namespace at the specified path.
+    **`private`**: create a new cgroup namespace.
 
 If the host uses cgroups v1, the default is set to **host**. On cgroups v2 the default is **private**.
 
@@ -295,7 +295,7 @@ solely for scripting compatibility.
 
 #### **--dns**=*dns*
 
-Set custom DNS servers. Invalid if using **--dns** and **--network** that is set to 'none' or 'container:<name|id>'.
+Set custom DNS servers. Invalid if using **--dns** and **--network** that is set to 'none' or `container:<name|id>`.
 
 This option can be used to override the DNS
 configuration passed to the container. Typically this is necessary when the
@@ -307,11 +307,11 @@ The **/etc/resolv.conf** file in the image will be used without changes.
 
 #### **--dns-opt**=*option*
 
-Set custom DNS options. Invalid if using **--dns-opt** and **--network** that is set to 'none' or 'container:<name|id>'.
+Set custom DNS options. Invalid if using **--dns-opt** and **--network** that is set to 'none' or `container:<name|id>`.
 
 #### **--dns-search**=*domain*
 
-Set custom DNS search domains. Invalid if using **--dns-search** and **--network** that is set to 'none' or 'container:<name|id>'. (Use --dns-search=. if you don't wish to set the search domain)
+Set custom DNS search domains. Invalid if using **--dns-search** and **--network** that is set to 'none' or `container:<name|id>`. (Use --dns-search=. if you don't wish to set the search domain)
 
 #### **--entrypoint**=*"command"* | *'["command", "arg1", ...]'*
 
@@ -453,9 +453,9 @@ The address must be within the CNI network's IP address pool (default **10.88.0.
 #### **--ipc**=*ipc*
 
 Default is to create a private IPC namespace (POSIX SysV IPC) for the container
-		'container:<name|id>': reuses another container shared memory, semaphores and message queues
-		'host': use the host shared memory,semaphores and message queues inside the container. Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
-		'ns:<path>' path to an IPC namespace to join.
+		`container:<name|id>`: reuses another container shared memory, semaphores and message queues
+		`host`: use the host shared memory,semaphores and message queues inside the container. Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
+		`ns:<path>` path to an IPC namespace to join.
 
 #### **--kernel-memory**=*number[unit]*
 
@@ -516,7 +516,7 @@ according to RFC4862.
 
 #### **--memory**, **-m**=*limit*
 
-Memory limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
 
 Allows you to constrain the memory available to a container. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
@@ -526,7 +526,7 @@ system's page size (the value would be very large, that's millions of trillions)
 
 #### **--memory-reservation**=*limit*
 
-Memory soft limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
 
 After setting memory reservation, when the system detects memory contention
 or low memory, containers are forced to restrict their consumption to their
@@ -860,7 +860,7 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 #### **--shm-size**=*size*
 
-Size of `/dev/shm` (format: <number>[<unit>], where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Size of `/dev/shm` (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
 If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
 When size is `0`, there is no limit on the amount of memory used for IPC by the container.
 
@@ -1133,7 +1133,7 @@ Mounting the volume with the nodev option means that no devices on the volume
 will be able to be used by processes within the container. By default volumes
 are mounted with `nodev`.
 
-If the <source-dir> is a mount point, then "dev", "suid", and "exec" options are
+If the `<source-dir>` is a mount point, then "dev", "suid", and "exec" options are
 ignored by the kernel.
 
 Use `df <source-dir>` to figure out the source mount and then use
@@ -1280,13 +1280,13 @@ NOTE: Use the environment variable `TMPDIR` to change the temporary storage loca
 **podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5)**.
 
 ## HISTORY
-October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman <dwalsh@redhat.com>
+October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman `<dwalsh@redhat.com>`
 
-November 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
+November 2014, updated by Sven Dowideit `<SvenDowideit@home.org.au>`
 
-September 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
+September 2014, updated by Sven Dowideit `<SvenDowideit@home.org.au>`
 
-August 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
+August 2014, updated by Sven Dowideit `<SvenDowideit@home.org.au>`
 
 ## FOOTNOTES
 <a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.
