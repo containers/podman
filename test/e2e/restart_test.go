@@ -197,10 +197,10 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToStringArray()[1]).To(Not(Equal(startTime.OutputToStringArray()[1])))
 	})
 
-	It("Podman restart a container in a pod and hosts shouln't duplicated", func() {
+	It("Podman restart a container in a pod and hosts should not duplicated", func() {
 		// Fixes: https://github.com/containers/podman/issues/8921
 
-		_, ec, _ := podmanTest.CreatePod("foobar99")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("host-restart-test", "foobar99")

@@ -41,7 +41,7 @@ var _ = Describe("Podman pod inspect", func() {
 	})
 
 	It("podman inspect a pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)

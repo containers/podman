@@ -43,6 +43,11 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//     $ref: "#/definitions/IdResponse"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
+	//   409:
+	//     description: status conflict
+	//     schema:
+	//       type: string
+	//       description: message describing error
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/create"), s.APIHandler(libpod.PodCreate)).Methods(http.MethodPost)
@@ -149,7 +154,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
 	//   409:
-	//     $ref: "#/responses/ConflictError"
+	//     $ref: "#/responses/PodKillReport"
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/kill"), s.APIHandler(libpod.PodKill)).Methods(http.MethodPost)
@@ -170,6 +175,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/PodPauseReport'
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
+	//   409:
+	//     $ref: '#/responses/PodPauseReport'
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/pause"), s.APIHandler(libpod.PodPause)).Methods(http.MethodPost)
@@ -189,6 +196,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/PodRestartReport'
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
+	//   409:
+	//     $ref: "#/responses/PodRestartReport"
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/restart"), s.APIHandler(libpod.PodRestart)).Methods(http.MethodPost)
@@ -210,6 +219,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/PodAlreadyStartedError"
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
+	//   409:
+	//     $ref: '#/responses/PodStartReport'
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/start"), s.APIHandler(libpod.PodStart)).Methods(http.MethodPost)
@@ -237,6 +248,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/BadParamError"
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
+	//   409:
+	//     $ref: "#/responses/PodStopReport"
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/stop"), s.APIHandler(libpod.PodStop)).Methods(http.MethodPost)
@@ -256,6 +269,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/PodUnpauseReport'
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
+	//   409:
+	//     $ref: '#/responses/PodUnpauseReport'
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/unpause"), s.APIHandler(libpod.PodUnpause)).Methods(http.MethodPost)

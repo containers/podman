@@ -389,7 +389,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman --pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -409,7 +409,7 @@ var _ = Describe("Podman ps", func() {
 
 	It("podman --pod with a non-empty pod name", func() {
 		podName := "testPodName"
-		_, ec, podid := podmanTest.CreatePod(podName)
+		_, ec, podid := podmanTest.CreatePod(map[string][]string{"--name": {podName}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podName)

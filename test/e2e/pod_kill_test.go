@@ -40,7 +40,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill a pod by id", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -58,7 +58,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill a pod by id with TERM", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -72,7 +72,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill a pod by name", func() {
-		_, ec, podid := podmanTest.CreatePod("test1")
+		_, ec, podid := podmanTest.CreatePod(map[string][]string{"--name": {"test1"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -86,7 +86,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill a pod by id with a bogus signal", func() {
-		_, ec, podid := podmanTest.CreatePod("test1")
+		_, ec, podid := podmanTest.CreatePod(map[string][]string{"--name": {"test1"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -100,14 +100,14 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill latest pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, podid2 := podmanTest.CreatePod("")
+		_, ec, podid2 := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid2)
@@ -128,7 +128,7 @@ var _ = Describe("Podman pod kill", func() {
 
 	It("podman pod kill all", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -139,7 +139,7 @@ var _ = Describe("Podman pod kill", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, podid2 := podmanTest.CreatePod("")
+		_, ec, podid2 := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid2)

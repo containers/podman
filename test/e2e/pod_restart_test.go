@@ -39,7 +39,7 @@ var _ = Describe("Podman pod restart", func() {
 	})
 
 	It("podman pod restart single empty pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"pod", "restart", podid})
@@ -48,7 +48,7 @@ var _ = Describe("Podman pod restart", func() {
 	})
 
 	It("podman pod restart single pod by name", func() {
-		_, ec, _ := podmanTest.CreatePod("foobar99")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("test1", "foobar99")
@@ -68,14 +68,14 @@ var _ = Describe("Podman pod restart", func() {
 	})
 
 	It("podman pod restart multiple pods", func() {
-		_, ec, _ := podmanTest.CreatePod("foobar99")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("test1", "foobar99")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, _ = podmanTest.CreatePod("foobar100")
+		_, ec, _ = podmanTest.CreatePod(map[string][]string{"--name": {"foobar100"}})
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.RunTopContainerInPod("test2", "foobar100")
@@ -106,14 +106,14 @@ var _ = Describe("Podman pod restart", func() {
 	})
 
 	It("podman pod restart all pods", func() {
-		_, ec, _ := podmanTest.CreatePod("foobar99")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("test1", "foobar99")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, _ = podmanTest.CreatePod("foobar100")
+		_, ec, _ = podmanTest.CreatePod(map[string][]string{"--name": {"foobar100"}})
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.RunTopContainerInPod("test2", "foobar100")
@@ -134,14 +134,14 @@ var _ = Describe("Podman pod restart", func() {
 	})
 
 	It("podman pod restart latest pod", func() {
-		_, ec, _ := podmanTest.CreatePod("foobar99")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("test1", "foobar99")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, _ = podmanTest.CreatePod("foobar100")
+		_, ec, _ = podmanTest.CreatePod(map[string][]string{"--name": {"foobar100"}})
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.RunTopContainerInPod("test2", "foobar100")
@@ -166,7 +166,7 @@ var _ = Describe("Podman pod restart", func() {
 	})
 
 	It("podman pod restart multiple pods with bogus", func() {
-		_, ec, podid1 := podmanTest.CreatePod("foobar99")
+		_, ec, podid1 := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", "foobar99")

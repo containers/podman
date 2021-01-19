@@ -162,7 +162,7 @@ class TestApi(unittest.TestCase):
         r = requests.post(_url(ctnr("/containers/{}/resize?h=43&w=80")))
         self.assertIn(r.status_code, (200, 409), r.text)
         if r.status_code == 200:
-            self.assertIsNone(r.text)
+            self.assertEqual(r.text, "", r.text)
 
     def test_attach_containers(self):
         self.skipTest("FIXME: Test timeouts")
@@ -359,14 +359,14 @@ class TestApi(unittest.TestCase):
 
         # Had issues with this test hanging when repositories not happy
         def do_search1():
-            payload = {'term': 'alpine'}
+            payload = {"term": "alpine"}
             r = requests.get(url, params=payload, timeout=5)
             self.assertEqual(r.status_code, 200, r.text)
             objs = json.loads(r.text)
             self.assertIn(type(objs), (list,))
 
         def do_search2():
-            payload = {'term': 'alpine', 'limit': 1}
+            payload = {"term": "alpine", "limit": 1}
             r = requests.get(url, params=payload, timeout=5)
             self.assertEqual(r.status_code, 200, r.text)
             objs = json.loads(r.text)
@@ -374,7 +374,7 @@ class TestApi(unittest.TestCase):
             self.assertEqual(len(objs), 1)
 
         def do_search3():
-            payload = {'term': 'alpine', 'filters': '{"is-official":["true"]}'}
+            payload = {"term": "alpine", "filters": '{"is-official":["true"]}'}
             r = requests.get(url, params=payload, timeout=5)
             self.assertEqual(r.status_code, 200, r.text)
             objs = json.loads(r.text)
@@ -383,14 +383,14 @@ class TestApi(unittest.TestCase):
             self.assertEqual(len(objs), 1)
 
         def do_search4():
-            headers = {'X-Registry-Auth': 'null'}
-            payload = {'term': 'alpine'}
+            headers = {"X-Registry-Auth": "null"}
+            payload = {"term": "alpine"}
             r = requests.get(url, params=payload, headers=headers, timeout=5)
             self.assertEqual(r.status_code, 200, r.text)
 
         def do_search5():
-            headers = {'X-Registry-Auth': 'invalid value'}
-            payload = {'term': 'alpine'}
+            headers = {"X-Registry-Auth": "invalid value"}
+            payload = {"term": "alpine"}
             r = requests.get(url, params=payload, headers=headers, timeout=5)
             self.assertEqual(r.status_code, 400, r.text)
 
@@ -620,15 +620,19 @@ class TestApi(unittest.TestCase):
         self.assertIsNotNone(prune_payload["ImagesDeleted"][1]["Deleted"])
 
     def test_status_compat(self):
-        r = requests.post(PODMAN_URL + "/v1.40/containers/create?name=topcontainer",
-                          json={"Cmd": ["top"], "Image": "alpine:latest"})
+        r = requests.post(
+            PODMAN_URL + "/v1.40/containers/create?name=topcontainer",
+            json={"Cmd": ["top"], "Image": "alpine:latest"},
+        )
         self.assertEqual(r.status_code, 201, r.text)
         payload = json.loads(r.text)
         container_id = payload["Id"]
         self.assertIsNotNone(container_id)
 
-        r = requests.get(PODMAN_URL + "/v1.40/containers/json",
-                         params={'all': 'true', 'filters': f'{{"id":["{container_id}"]}}'})
+        r = requests.get(
+            PODMAN_URL + "/v1.40/containers/json",
+            params={"all": "true", "filters": f'{{"id":["{container_id}"]}}'},
+        )
         self.assertEqual(r.status_code, 200, r.text)
         payload = json.loads(r.text)
         self.assertEqual(payload[0]["Status"], "Created")
@@ -636,8 +640,10 @@ class TestApi(unittest.TestCase):
         r = requests.post(PODMAN_URL + f"/v1.40/containers/{container_id}/start")
         self.assertEqual(r.status_code, 204, r.text)
 
-        r = requests.get(PODMAN_URL + "/v1.40/containers/json",
-                         params={'all': 'true', 'filters': f'{{"id":["{container_id}"]}}'})
+        r = requests.get(
+            PODMAN_URL + "/v1.40/containers/json",
+            params={"all": "true", "filters": f'{{"id":["{container_id}"]}}'},
+        )
         self.assertEqual(r.status_code, 200, r.text)
         payload = json.loads(r.text)
         self.assertTrue(str(payload[0]["Status"]).startswith("Up"))
@@ -645,8 +651,10 @@ class TestApi(unittest.TestCase):
         r = requests.post(PODMAN_URL + f"/v1.40/containers/{container_id}/pause")
         self.assertEqual(r.status_code, 204, r.text)
 
-        r = requests.get(PODMAN_URL + "/v1.40/containers/json",
-                         params={'all': 'true', 'filters': f'{{"id":["{container_id}"]}}'})
+        r = requests.get(
+            PODMAN_URL + "/v1.40/containers/json",
+            params={"all": "true", "filters": f'{{"id":["{container_id}"]}}'},
+        )
         self.assertEqual(r.status_code, 200, r.text)
         payload = json.loads(r.text)
         self.assertTrue(str(payload[0]["Status"]).startswith("Up"))
@@ -657,14 +665,70 @@ class TestApi(unittest.TestCase):
         r = requests.post(PODMAN_URL + f"/v1.40/containers/{container_id}/stop")
         self.assertEqual(r.status_code, 204, r.text)
 
-        r = requests.get(PODMAN_URL + "/v1.40/containers/json",
-                         params={'all': 'true', 'filters': f'{{"id":["{container_id}"]}}'})
+        r = requests.get(
+            PODMAN_URL + "/v1.40/containers/json",
+            params={"all": "true", "filters": f'{{"id":["{container_id}"]}}'},
+        )
         self.assertEqual(r.status_code, 200, r.text)
         payload = json.loads(r.text)
         self.assertTrue(str(payload[0]["Status"]).startswith("Exited"))
 
         r = requests.delete(PODMAN_URL + f"/v1.40/containers/{container_id}")
         self.assertEqual(r.status_code, 204, r.text)
+
+    def test_pod_start_conflict(self):
+        """Verify issue #8865"""
+
+        pod_name = list()
+        pod_name.append("Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10)))
+        pod_name.append("Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10)))
+
+        r = requests.post(
+            _url("/pods/create"),
+            json={
+                "name": pod_name[0],
+                "no_infra": False,
+                "portmappings": [{"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}],
+            },
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+        r = requests.post(
+            _url("/containers/create"),
+            json={
+                "pod": pod_name[0],
+                "image": "docker.io/alpine:latest",
+                "command": ["top"],
+            },
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+
+        r = requests.post(
+            _url("/pods/create"),
+            json={
+                "name": pod_name[1],
+                "no_infra": False,
+                "portmappings": [{"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}],
+            },
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+        r = requests.post(
+            _url("/containers/create"),
+            json={
+                "pod": pod_name[1],
+                "image": "docker.io/alpine:latest",
+                "command": ["top"],
+            },
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+
+        r = requests.post(_url(f"/pods/{pod_name[0]}/start"))
+        self.assertEqual(r.status_code, 200, r.text)
+
+        r = requests.post(_url(f"/pods/{pod_name[1]}/start"))
+        self.assertEqual(r.status_code, 409, r.text)
+
+        start = json.loads(r.text)
+        self.assertGreater(len(start["Errs"]), 0, r.text)
 
 
 if __name__ == "__main__":
