@@ -297,7 +297,9 @@ func imageAuthToDockerAuth(authConfig types.DockerAuthConfig) dockerAPITypes.Aut
 func singleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
 	authHeader := r.Header.Get(string(XRegistryAuthHeader))
 	authConfig := dockerAPITypes.AuthConfig{}
-	if len(authHeader) > 0 {
+	// Accept "null" and handle it as empty value for compatibility reason with Docker.
+	// Some java docker clients pass this value, e.g. this one used in Eclipse.
+	if len(authHeader) > 0 && authHeader != "null" {
 		authJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(authHeader))
 		if err := json.NewDecoder(authJSON).Decode(&authConfig); err != nil {
 			return nil, err
@@ -312,7 +314,9 @@ func singleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error
 // The header content is a map[string]DockerAuthConfigs.
 func multiAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
 	authHeader := r.Header.Get(string(XRegistryAuthHeader))
-	if len(authHeader) == 0 {
+	// Accept "null" and handle it as empty value for compatibility reason with Docker.
+	// Some java docker clients pass this value, e.g. this one used in Eclipse.
+	if len(authHeader) == 0 || authHeader == "null" {
 		return nil, nil
 	}
 
