@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/entities/reports"
 	"github.com/containers/podman/v2/pkg/domain/filters"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi/parse"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -199,6 +200,24 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
+}
+
+// ExistsVolume check if a volume exists
+func ExistsVolume(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	ic := abi.ContainerEngine{Libpod: runtime}
+	report, err := ic.VolumeExists(r.Context(), name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	if !report.Value {
+		utils.Error(w, "volume not found", http.StatusNotFound, define.ErrNoSuchVolume)
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")

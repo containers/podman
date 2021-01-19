@@ -80,3 +80,14 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 	options := new(volumes.ListOptions).WithFilters(opts.Filter)
 	return volumes.List(ic.ClientCtx, options)
 }
+
+// VolumeExists checks if the given volume exists
+func (ic *ContainerEngine) VolumeExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	exists, err := volumes.Exists(ic.ClientCtx, nameOrID, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.BoolReport{
+		Value: exists,
+	}, nil
+}

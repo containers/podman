@@ -14,6 +14,7 @@ podman volume is a set of subcommands that manage volumes.
 | Command | Man Page                                               | Description                                                                    |
 | ------- | ------------------------------------------------------ | ------------------------------------------------------------------------------ |
 | create  | [podman-volume-create(1)](podman-volume-create.1.md)   | Create a new volume.                                                           |
+| exists  | [podman-volume-exists(1)](podman-volume-exists.1.md)   | Check if the given volume exists.                                              |
 | inspect | [podman-volume-inspect(1)](podman-volume-inspect.1.md) | Get detailed information on one or more volumes.                               |
 | ls      | [podman-volume-ls(1)](podman-volume-ls.1.md)           | List all the available volumes.                                                |
 | prune   | [podman-volume-prune(1)](podman-volume-prune.1.md)     | Remove all unused volumes.                                                     |
