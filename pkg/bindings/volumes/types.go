@@ -30,3 +30,9 @@ type RemoveOptions struct {
 	// Force removes the volume even if it is being used
 	Force *bool
 }
+
+//go:generate go run ../generator/generator.go ExistsOptions
+// ExistsOptions are optional options for checking
+// if a volume exists
+type ExistsOptions struct {
+}

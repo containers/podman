@@ -28,6 +28,28 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/volumes/create"), s.APIHandler(libpod.CreateVolume)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/volumes/{name}/exists libpod libpodExistsVolume
+	// ---
+	// tags:
+	//  - volumes
+	// summary: Volume exists
+	// description: Check if a volume exists
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the volume
+	// produces:
+	// - application/json
+	// responses:
+	//   204:
+	//     description: volume exists
+	//   404:
+	//     $ref: '#/responses/NoSuchVolume'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/volumes/{name}/exists"), s.APIHandler(libpod.ExistsVolume)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/volumes/json libpod libpodListVolumes
 	// ---
 	// tags:
