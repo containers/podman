@@ -130,20 +130,70 @@ exec_container() {
 }
 
 function _run_swagger() {
+    local upload_filename
+    local upload_bucket
     local download_url
+    local envvarsfile
+    req_env_vars GCPJSON GCPNAME GCPPROJECT CTR_FQIN
+
     # Building this is a PITA, just grab binary for use in automation
     # Ref: https://goswagger.io/install.html#static-binary
     download_url=$(\
         curl -s https://api.github.com/repos/go-swagger/go-swagger/releases/latest | \
         jq -r '.assets[] | select(.name | contains("linux_amd64")) | .browser_download_url')
-    curl -o /usr/local/bin/swagger -L'#' "$download_url"
+
+    # The filename and bucket depend on the automation context
+    #shellcheck disable=SC2154,SC2153
+    if [[ -n "$CIRRUS_PR" ]]; then
+        upload_bucket="libpod-pr-releases"
+        upload_filename="swagger-pr$CIRRUS_PR.yaml"
+    elif [[ -n "$CIRRUS_TAG" ]]; then
+        upload_bucket="libpod-master-releases"
+        upload_filename="swagger-$CIRRUS_TAG.yaml"
+    elif [[ "$CIRRUS_BRANCH" == "master" ]]; then
+        upload_bucket="libpod-master-releases"
+        # readthedocs versioning uses "latest" for "master" (default) branch
+        upload_filename="swagger-latest.yaml"
+    elif [[ -n "$CIRRUS_BRANCH" ]]; then
+        upload_bucket="libpod-master-releases"
+        upload_filename="swagger-$CIRRUS_BRANCH.yaml"
+    else
+        die "Unknown execution context, expected a non-empty value for \$CIRRUS_TAG, \$CIRRUS_BRANCH, or \$CIRRUS_PR"
+    fi
+
+    curl -s -o /usr/local/bin/swagger -L'#' "$download_url"
     chmod +x /usr/local/bin/swagger
+
+    # Swagger validation takes a significant amount of time
+    msg "Pulling \$CTR_FQIN '$CTR_FQIN' (background process)"
+    podman pull --quiet $CTR_FQIN &
 
     cd $GOSRC
     make swagger
 
     # Cirrus-CI Artifact instruction expects file here
-    cp -v $GOSRC/pkg/api/swagger.yaml $GOSRC/
+    cp -v $GOSRC/pkg/api/swagger.yaml ./
+
+    envvarsfile=$(mktemp -p '' .tmp_$(basename $0)_XXXXXXXX)
+    trap "rm -f $envvarsfile" EXIT  # contains secrets
+    # Warning: These values must _not_ be quoted, podman will not remove them.
+    #shellcheck disable=SC2154
+    cat <<eof>>$envvarsfile
+GCPJSON=$GCPJSON
+GCPNAME=$GCPNAME
+GCPPROJECT=$GCPPROJECT
+FROM_FILEPATH=$GOSRC/swagger.yaml
+TO_GCSURI=gs://$upload_bucket/$upload_filename
+eof
+
+    msg "Waiting for backgrounded podman pull to complete..."
+    wait %%
+    podman run -it --rm --security-opt label=disable \
+        --env-file=$envvarsfile \
+        -v $GOSRC:$GOSRC:ro \
+        --workdir $GOSRC \
+        $CTR_FQIN
+    rm -f $envvarsfile
 }
 
 function _run_consistency() {
