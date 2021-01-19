@@ -33,7 +33,7 @@ var _ = Describe("Podman pod prune", func() {
 	})
 
 	It("podman pod prune empty pod", func() {
-		_, ec, _ := podmanTest.CreatePod("")
+		_, ec, _ := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"pod", "prune", "--force"})
@@ -42,7 +42,7 @@ var _ = Describe("Podman pod prune", func() {
 	})
 
 	It("podman pod prune doesn't remove a pod with a running container", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		ec2 := podmanTest.RunTopContainerInPod("", podid)
@@ -59,7 +59,7 @@ var _ = Describe("Podman pod prune", func() {
 	})
 
 	It("podman pod prune removes a pod with a stopped container", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		_, ec2, _ := podmanTest.RunLsContainerInPod("", podid)

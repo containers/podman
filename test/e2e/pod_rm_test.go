@@ -37,7 +37,7 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod rm empty pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"pod", "rm", podid})
@@ -61,10 +61,10 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod rm latest pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
-		_, ec2, podid2 := podmanTest.CreatePod("pod2")
+		_, ec2, podid2 := podmanTest.CreatePod(map[string][]string{"--name": {"pod2"}})
 		Expect(ec2).To(Equal(0))
 
 		latest := "--latest"
@@ -83,7 +83,7 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod rm removes a pod with a container", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		_, ec2, _ := podmanTest.RunLsContainerInPod("", podid)
@@ -99,7 +99,7 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod rm -f does remove a running container", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -117,10 +117,10 @@ var _ = Describe("Podman pod rm", func() {
 
 	It("podman pod rm -a doesn't remove a running container", func() {
 		fmt.Printf("To start, there are %d pods\n", podmanTest.NumberOfPods())
-		_, ec, podid1 := podmanTest.CreatePod("")
+		_, ec, podid1 := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
-		_, ec, _ = podmanTest.CreatePod("")
+		_, ec, _ = podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 		fmt.Printf("Started %d pods\n", podmanTest.NumberOfPods())
 
@@ -154,13 +154,13 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod rm -fa removes everything", func() {
-		_, ec, podid1 := podmanTest.CreatePod("")
+		_, ec, podid1 := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
-		_, ec, podid2 := podmanTest.CreatePod("")
+		_, ec, podid2 := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
-		_, ec, _ = podmanTest.CreatePod("")
+		_, ec, _ = podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid1)
@@ -199,7 +199,7 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman rm bogus pod and a running pod", func() {
-		_, ec, podid1 := podmanTest.CreatePod("")
+		_, ec, podid1 := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("test1", podid1)
@@ -217,7 +217,7 @@ var _ = Describe("Podman pod rm", func() {
 
 	It("podman rm --ignore bogus pod and a running pod", func() {
 
-		_, ec, podid1 := podmanTest.CreatePod("")
+		_, ec, podid1 := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("test1", podid1)

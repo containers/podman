@@ -10,6 +10,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod start", func() {
@@ -43,7 +44,7 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start single empty pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"pod", "start", podid})
@@ -52,7 +53,7 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start single pod by name", func() {
-		_, ec, _ := podmanTest.CreatePod("foobar99")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "ls"})
@@ -65,14 +66,14 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start multiple pods", func() {
-		_, ec, podid1 := podmanTest.CreatePod("foobar99")
+		_, ec, podid1 := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec2, podid2 := podmanTest.CreatePod("foobar100")
+		_, ec2, podid2 := podmanTest.CreatePod(map[string][]string{"--name": {"foobar100"}})
 		Expect(ec2).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"create", "--pod", "foobar100", ALPINE, "top"})
@@ -85,15 +86,45 @@ var _ = Describe("Podman pod start", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
 	})
 
+	It("multiple pods in conflict", func() {
+		podName := []string{"Pod_" + RandomString(10), "Pod_" + RandomString(10)}
+
+		pod, _, podid1 := podmanTest.CreatePod(map[string][]string{
+			"--infra":   {"true"},
+			"--name":    {podName[0]},
+			"--publish": {"127.0.0.1:8080:80"},
+		})
+		Expect(pod).To(Exit(0))
+
+		session := podmanTest.Podman([]string{"create", "--pod", podName[0], ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+
+		pod, _, podid2 := podmanTest.CreatePod(map[string][]string{
+			"--infra":   {"true"},
+			"--name":    {podName[1]},
+			"--publish": {"127.0.0.1:8080:80"},
+		})
+		Expect(pod).To(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", podName[1], ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+
+		session = podmanTest.Podman([]string{"pod", "start", podid1, podid2})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(125))
+	})
+
 	It("podman pod start all pods", func() {
-		_, ec, _ := podmanTest.CreatePod("foobar99")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, _ = podmanTest.CreatePod("foobar100")
+		_, ec, _ = podmanTest.CreatePod(map[string][]string{"--name": {"foobar100"}})
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"create", "--pod", "foobar100", ALPINE, "top"})
@@ -107,14 +138,14 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start latest pod", func() {
-		_, ec, _ := podmanTest.CreatePod("foobar99")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, _ = podmanTest.CreatePod("foobar100")
+		_, ec, _ = podmanTest.CreatePod(map[string][]string{"--name": {"foobar100"}})
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"create", "--pod", "foobar100", ALPINE, "top"})
@@ -132,7 +163,7 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start multiple pods with bogus", func() {
-		_, ec, podid := podmanTest.CreatePod("foobar99")
+		_, ec, podid := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})

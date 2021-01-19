@@ -131,7 +131,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate kube on pod", func() {
-		_, rc, _ := podmanTest.CreatePod("toppod")
+		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {"toppod"}})
 		Expect(rc).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("topcontainer", "toppod")
@@ -221,7 +221,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate service kube on pod", func() {
-		_, rc, _ := podmanTest.CreatePod("toppod")
+		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {"toppod"}})
 		Expect(rc).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("topcontainer", "toppod")
@@ -373,7 +373,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman generate and reimport kube on pod", func() {
 		podName := "toppod"
-		_, rc, _ := podmanTest.CreatePod(podName)
+		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {podName}})
 		Expect(rc).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", podName, "--name", "test1", ALPINE, "top"})
@@ -412,7 +412,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman generate with user and reimport kube on pod", func() {
 		podName := "toppod"
-		_, rc, _ := podmanTest.CreatePod(podName)
+		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {podName}})
 		Expect(rc).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", podName, "--name", "test1", "--user", "100:200", ALPINE, "top"})
