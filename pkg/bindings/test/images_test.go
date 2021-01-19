@@ -194,17 +194,17 @@ var _ = Describe("Podman images", func() {
 
 	It("Image Exists", func() {
 		// exists on bogus image should be false, with no error
-		exists, err := images.Exists(bt.conn, "foobar")
+		exists, err := images.Exists(bt.conn, "foobar", nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 
 		// exists with shortname should be true
-		exists, err = images.Exists(bt.conn, alpine.shortName)
+		exists, err = images.Exists(bt.conn, alpine.shortName, nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 
 		// exists with fqname should be true
-		exists, err = images.Exists(bt.conn, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 	})
@@ -213,7 +213,7 @@ var _ = Describe("Podman images", func() {
 		// load an image
 		_, errs := images.Remove(bt.conn, []string{alpine.name}, nil)
 		Expect(len(errs)).To(BeZero())
-		exists, err := images.Exists(bt.conn, alpine.name)
+		exists, err := images.Exists(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
@@ -222,7 +222,7 @@ var _ = Describe("Podman images", func() {
 		names, err := images.Load(bt.conn, f)
 		Expect(err).To(BeNil())
 		Expect(names.Names[0]).To(Equal(alpine.name))
-		exists, err = images.Exists(bt.conn, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 
@@ -231,7 +231,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 		_, errs = images.Remove(bt.conn, []string{alpine.name}, nil)
 		Expect(len(errs)).To(BeZero())
-		exists, err = images.Exists(bt.conn, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 		names, err = images.Load(bt.conn, f)
@@ -243,7 +243,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 		_, errs = images.Remove(bt.conn, []string{alpine.name}, nil)
 		Expect(len(errs)).To(BeZero())
-		exists, err = images.Exists(bt.conn, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 	})
@@ -266,7 +266,7 @@ var _ = Describe("Podman images", func() {
 		// load an image
 		_, errs := images.Remove(bt.conn, []string{alpine.name}, nil)
 		Expect(len(errs)).To(BeZero())
-		exists, err := images.Exists(bt.conn, alpine.name)
+		exists, err := images.Exists(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
@@ -277,7 +277,7 @@ var _ = Describe("Podman images", func() {
 		options := new(images.ImportOptions).WithMessage(testMessage).WithChanges(changes).WithReference(alpine.name)
 		_, err = images.Import(bt.conn, f, options)
 		Expect(err).To(BeNil())
-		exists, err = images.Exists(bt.conn, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 		data, err := images.GetImage(bt.conn, alpine.name, nil)
@@ -357,7 +357,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pulledImages)).To(Equal(1))
 
-		exists, err := images.Exists(bt.conn, rawImage)
+		exists, err := images.Exists(bt.conn, rawImage, nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(exists).To(BeTrue())
 
