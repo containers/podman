@@ -146,9 +146,11 @@ function _run_swagger() {
     cp -v $GOSRC/pkg/api/swagger.yaml $GOSRC/
 }
 
-function _run_vendor() {
+function _run_consistency() {
     make vendor
-    ./hack/tree_status.sh
+    SUGGESTION="run 'make vendor' and commit all changes" ./hack/tree_status.sh
+    make generate-bindings
+    SUGGESTION="run 'make generate-bindings' and commit all changes" ./hack/tree_status.sh
 }
 
 function _run_build() {
