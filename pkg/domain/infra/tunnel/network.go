@@ -78,3 +78,14 @@ func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname strin
 	options := new(network.ConnectOptions).WithAliases(opts.Aliases)
 	return network.Connect(ic.ClientCtx, networkname, opts.Container, options)
 }
+
+// NetworkExists checks if the given network exists
+func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string) (*entities.BoolReport, error) {
+	exists, err := network.Exists(ic.ClientCtx, networkname, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.BoolReport{
+		Value: exists,
+	}, nil
+}

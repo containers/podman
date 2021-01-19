@@ -226,6 +226,28 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}/json"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/networks/{name}/exists libpod libpodExistsNetwork
+	// ---
+	// tags:
+	//  - networks
+	// summary: Network exists
+	// description: Check if network exists
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the network
+	// produces:
+	// - application/json
+	// responses:
+	//   204:
+	//     description: network exists
+	//   404:
+	//     $ref: '#/responses/NoSuchNetwork'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/networks/{name}/exists"), s.APIHandler(libpod.ExistsNetwork)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/networks/json libpod libpodListNetwork
 	// ---
 	// tags:

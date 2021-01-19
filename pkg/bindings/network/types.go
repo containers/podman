@@ -68,3 +68,9 @@ type ConnectOptions struct {
 	// when using the dns plugin
 	Aliases *[]string
 }
+
+//go:generate go run ../generator/generator.go ExistsOptions
+// ExistsOptions are optional options for checking
+// if a network exists
+type ExistsOptions struct {
+}

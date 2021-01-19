@@ -60,6 +60,7 @@ type ContainerEngine interface {
 	NetworkConnect(ctx context.Context, networkname string, options NetworkConnectOptions) error
 	NetworkCreate(ctx context.Context, name string, options NetworkCreateOptions) (*NetworkCreateReport, error)
 	NetworkDisconnect(ctx context.Context, networkname string, options NetworkDisconnectOptions) error
+	NetworkExists(ctx context.Context, networkname string) (*BoolReport, error)
 	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]NetworkInspectReport, []error, error)
 	NetworkList(ctx context.Context, options NetworkListOptions) ([]*NetworkListReport, error)
 	NetworkReload(ctx context.Context, names []string, options NetworkReloadOptions) ([]*NetworkReloadReport, error)
