@@ -326,6 +326,11 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		state.Running = true
 	}
 
+	// docker calls the configured state "created"
+	if state.Status == define.ContainerStateConfigured.String() {
+		state.Status = define.ContainerStateCreated.String()
+	}
+
 	formatCapabilities(inspect.HostConfig.CapDrop)
 	formatCapabilities(inspect.HostConfig.CapAdd)
 
@@ -336,6 +341,11 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	hc := container.HostConfig{}
 	if err := json.Unmarshal(h, &hc); err != nil {
 		return nil, err
+	}
+
+	// k8s-file == json-file
+	if hc.LogConfig.Type == define.KubernetesLogging {
+		hc.LogConfig.Type = define.JSONLogging
 	}
 	g, err := json.Marshal(inspect.GraphDriver)
 	if err != nil {
