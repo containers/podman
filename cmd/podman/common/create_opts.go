@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"net"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -383,8 +384,29 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	}
 
 	// volumes
-	if volumes := cc.HostConfig.Binds; len(volumes) > 0 {
-		cliOpts.Volume = volumes
+	volDestinations := make(map[string]bool)
+	for _, vol := range cc.HostConfig.Binds {
+		cliOpts.Volume = append(cliOpts.Volume, vol)
+		// Extract the destination so we don't add duplicate mounts in
+		// the volumes phase.
+		splitVol := strings.SplitN(vol, ":", 3)
+		switch len(splitVol) {
+		case 1:
+			volDestinations[vol] = true
+		default:
+			volDestinations[splitVol[1]] = true
+		}
+	}
+	// Anonymous volumes are added differently from other volumes, in their
+	// own special field, for reasons known only to Docker. Still use the
+	// format of `-v` so we can just append them in there.
+	// Unfortunately, these may be duplicates of existing mounts in Binds.
+	// So... We need to catch that.
+	for vol := range cc.Volumes {
+		if _, ok := volDestinations[filepath.Clean(vol)]; ok {
+			continue
+		}
+		cliOpts.Volume = append(cliOpts.Volume, vol)
 	}
 	if len(cc.HostConfig.BlkioWeightDevice) > 0 {
 		devices := make([]string, 0, len(cc.HostConfig.BlkioWeightDevice))
