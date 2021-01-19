@@ -394,7 +394,7 @@ Name of the manifest list to which the image will be added. Creates the manifest
 if it does not exist. This option is useful for building multi architecture images.
 
 #### **--memory**, **-m**=*LIMIT*
-Memory limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes),
+Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes),
 m (megabytes), or g (gigabytes))
 
 Allows you to constrain the memory available to a container. If the host
@@ -944,11 +944,11 @@ useradd to stop creating the lastlog file.
 podman(1), buildah(1), containers-registries.conf(5), crun(8), runc(8), useradd(8), podman-ps(1), podman-rm(1)
 
 ## HISTORY
-Aug 2020, Additional options and .dockerignore added by Dan Walsh <dwalsh@redhat.com>
+Aug 2020, Additional options and .dockerignore added by Dan Walsh `<dwalsh@redhat.com>`
 
-May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
+May 2018, Minor revisions added by Joe Doss `<joe@solidadmin.com>`
 
-December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>
+December 2017, Originally compiled by Tom Sweeney `<tsweeney@redhat.com>`
 
 ## FOOTNOTES
 <a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a

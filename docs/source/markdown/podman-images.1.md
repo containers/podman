@@ -36,7 +36,7 @@ Filter output based on conditions provided
     Filter on images created before the given IMAGE (name or tag).
 
   **dangling=true|false**
-    Show dangling images. Dangling images are a file system layer that was used in a previous build of an image and is no longer referenced by any active images. They are denoted with the <none> tag, consume disk space and serve no active purpose.
+    Show dangling images. Dangling images are a file system layer that was used in a previous build of an image and is no longer referenced by any active images. They are denoted with the `<none>` tag, consume disk space and serve no active purpose.
 
   **label**
     Filter by images labels key and/or value.
@@ -191,4 +191,4 @@ docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41 MB
 podman(1), containers-storage.conf(5)
 
 ## HISTORY
-March 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>
+March 2017, Originally compiled by Dan Walsh `<dwalsh@redhat.com>`

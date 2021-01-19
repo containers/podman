@@ -1632,15 +1632,15 @@ NOTE: Use the environment variable `TMPDIR` to change the temporary storage loca
 **podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5)**.
 
 ## HISTORY
-September 2018, updated by Kunal Kushwaha <kushwaha_kunal_v7@lab.ntt.co.jp>
+September 2018, updated by Kunal Kushwaha `<kushwaha_kunal_v7@lab.ntt.co.jp>`
 
-October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman <dwalsh@redhat.com>
+October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman `<dwalsh@redhat.com>`
 
-November 2015, updated by Sally O'Malley <somalley@redhat.com>
+November 2015, updated by Sally O'Malley `<somalley@redhat.com>`
 
-June 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
+June 2014, updated by Sven Dowideit `<SvenDowideit@home.org.au>`
 
-April 2014, Originally compiled by William Henry <whenry@redhat.com> based on docker.com source material and internal work.
+April 2014, Originally compiled by William Henry `<whenry@redhat.com>` based on docker.com source material and internal work.
 
 ## FOOTNOTES
 <a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.
