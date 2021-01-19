@@ -208,7 +208,7 @@ endif
 podman: bin/podman
 
 .PHONY: bin/podman-remote
-bin/podman-remote: .gopathok .generate-bindings $(SOURCES) go.mod go.sum ## Build with podman on remote environment
+bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum ## Build with podman on remote environment
 	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ ./cmd/podman
 
 .PHONY: bin/podman-remote-static
@@ -279,7 +279,6 @@ clean: ## Clean artifacts
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
 		.install.goimports \
-		.generate-bindings \
 		docs/build
 	make -C docs clean
 
@@ -461,12 +460,10 @@ podman-remote-%-release:
 	rm -f release.txt
 	$(MAKE) podman-remote-release-$*.zip
 
-BINDINGS_SOURCE = $(wildcard pkg/bindings/**/types.go)
-.generate-bindings: $(BINDINGS_SOURCE)
+generate-bindings:
 ifneq ($(shell uname -s), Darwin)
 	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
 endif
-	touch .generate-bindings
 
 .PHONY: docker-docs
 docker-docs: docs
