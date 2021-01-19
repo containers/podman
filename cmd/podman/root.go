@@ -247,11 +247,28 @@ func loggingHook() {
 		os.Exit(1)
 	}
 
+	if logLevel == "debug" {
+		logrus.SetReportCaller(true)
+
+	}
+	logrus.SetFormatter(&logrus.TextFormatter{
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			s := strings.Split(f.Function, ".")
+			funcname := s[len(s)-1]
+			_, filename := path.Split(f.File)
+			return funcname, filename
+		},
+		ForceColors:            true,
+		PadLevelText:           true,
+		DisableLevelTruncation: true,
+	})
+
 	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
 	}
+
 	logrus.SetLevel(level)
 
 	if logrus.IsLevelEnabled(logrus.InfoLevel) {
