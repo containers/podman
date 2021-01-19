@@ -209,8 +209,16 @@ function _run_altbuild() {
 }
 
 function _run_release() {
-    if bin/podman info |& grep -Eq -- '-dev'; then
-        die "Releases must never contain '-dev' in output of 'podman info'"
+    # TODO: These tests should come from code external to the podman repo.
+    # to allow test-changes (and re-runs) in the case of a correctible test
+    # flaw or flake at release tag-push time.  For now, the test is here
+    # given it's simplicity.
+
+    msg "Checking podman release (or potential release) criteria."
+    info_output=$(bin/podman info 2>&1)
+    if grep -q -- '-dev'<<<"$info_output"; then
+        die "Releases must never contain '-dev' in output of 'podman info':
+$info_output"
     fi
 }
 
