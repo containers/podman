@@ -86,7 +86,7 @@ PODMAN_SERVER_LOG ?=
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
-export GOPATH := $(CURDIR)/_output
+export GOPATH := $(HOME)/go
 unexport GOBIN
 endif
 FIRST_GOPATH := $(firstword $(subst :, ,$(GOPATH)))
@@ -97,6 +97,8 @@ GOBIN := $(shell $(GO) env GOBIN)
 ifeq ($(GOBIN),)
 GOBIN := $(FIRST_GOPATH)/bin
 endif
+
+export PATH := $(PATH):$(GOBIN)
 
 GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
 
@@ -462,7 +464,7 @@ podman-remote-%-release:
 BINDINGS_SOURCE = $(wildcard pkg/bindings/**/types.go)
 .generate-bindings: $(BINDINGS_SOURCE)
 ifneq ($(shell uname -s), Darwin)
-	$(GO) generate -mod=vendor ./pkg/bindings/... ;
+	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
 endif
 	touch .generate-bindings
 
