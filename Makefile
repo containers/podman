@@ -460,6 +460,7 @@ podman-remote-%-release:
 	rm -f release.txt
 	$(MAKE) podman-remote-release-$*.zip
 
+.PHONY: generate-bindings
 generate-bindings:
 ifneq ($(shell uname -s), Darwin)
 	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
