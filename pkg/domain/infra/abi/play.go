@@ -1,6 +1,7 @@
 package abi
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -29,9 +30,34 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 		kubeObject v1.ObjectReference
 	)
 
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
+	var content []byte
+	var err error
+
+	if path == "-" {
+		fi, err := os.Stdin.Stat()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to read from stdin")
+		}
+
+		if fi.Mode()&os.ModeNamedPipe == 0 {
+			return nil, errors.New("No data is supplied by a shell pipe but '-' was used as filename")
+		}
+
+		reader := bufio.NewReader(os.Stdin)
+
+		for {
+			input, err := reader.ReadByte()
+			if err != nil && err == io.EOF {
+				break
+			}
+			content = append(content, input)
+		}
+
+	} else {
+		content, err = ioutil.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if err := yaml.Unmarshal(content, &kubeObject); err != nil {

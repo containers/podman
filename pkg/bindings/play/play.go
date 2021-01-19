@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/bindings"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 )
 
 func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.PlayKubeReport, error) {
@@ -21,11 +22,27 @@ func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.Pla
 		return nil, err
 	}
 
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
+	var f *os.File
+
+	if path == "-" {
+		fi, err := os.Stdin.Stat()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to read from stdin")
+		}
+
+		if fi.Mode()&os.ModeNamedPipe == 0 {
+			return nil, errors.New("No data is supplied by a shell pipe but '-' was used as filename")
+		}
+
+		f = os.Stdin
+
+	} else {
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
 	}
-	defer f.Close()
 
 	params, err := options.ToParams()
 	if err != nil {
