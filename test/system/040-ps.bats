@@ -111,8 +111,11 @@ EOF
     run_podman ps --storage -a
     is "${#lines[@]}" "2" "podman ps -a --storage sees buildah container"
 
-    # This is what deletes the container
-    # FIXME: why doesn't "podman rm --storage $cid" do anything?
+    # We can't rm it without -f, but podman should issue a helpful message
+    run_podman 2 rm "$cid"
+    is "$output" "Error: container .* is mounted and cannot be removed without using force: container state improper" "podman rm <buildah container> without -f"
+
+    # With -f, we can remove it.
     run_podman rm -f "$cid"
 
     run_podman ps --storage -a
