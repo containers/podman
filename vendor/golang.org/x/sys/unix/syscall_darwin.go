@@ -119,16 +119,13 @@ type attrList struct {
 	Forkattr    uint32
 }
 
-//sysnb pipe(p *[2]int32) (err error)
+//sysnb pipe() (r int, w int, err error)
 
 func Pipe(p []int) (err error) {
 	if len(p) != 2 {
 		return EINVAL
 	}
-	var x [2]int32
-	err = pipe(&x)
-	p[0] = int(x[0])
-	p[1] = int(x[1])
+	p[0], p[1], err = pipe()
 	return
 }
 

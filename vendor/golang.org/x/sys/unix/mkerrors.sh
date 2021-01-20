@@ -204,7 +204,6 @@ struct ltchars {
 #include <linux/devlink.h>
 #include <linux/dm-ioctl.h>
 #include <linux/errqueue.h>
-#include <linux/ethtool_netlink.h>
 #include <linux/falloc.h>
 #include <linux/fanotify.h>
 #include <linux/filter.h>
@@ -562,9 +561,7 @@ ccflags="$@"
 		$2 ~ /^(HDIO|WIN|SMART)_/ ||
 		$2 ~ /^CRYPTO_/ ||
 		$2 ~ /^TIPC_/ ||
-		$2 !~  "DEVLINK_RELOAD_LIMITS_VALID_MASK" &&
 		$2 ~ /^DEVLINK_/ ||
-		$2 ~ /^ETHTOOL_/ ||
 		$2 ~ /^LWTUNNEL_IP/ ||
 		$2 !~ "WMESGLEN" &&
 		$2 ~ /^W[A-Z0-9]+$/ ||
