@@ -1,6 +1,10 @@
 package network
 
 import (
+	"os"
+	"path/filepath"
+
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage"
 )
 
@@ -8,8 +12,13 @@ import (
 // delete cases to avoid unwanted collisions in network names.
 // TODO this uses a file lock and should be converted to shared memory
 // when we have a more general shared memory lock in libpod
-func acquireCNILock(lockPath string) (*CNILock, error) {
-	l, err := storage.GetLockfile(lockPath)
+func acquireCNILock(config *config.Config) (*CNILock, error) {
+	cniDir := GetCNIConfDir(config)
+	err := os.MkdirAll(cniDir, 0755)
+	if err != nil {
+		return nil, err
+	}
+	l, err := storage.GetLockfile(filepath.Join(cniDir, LockFileName))
 	if err != nil {
 		return nil, err
 	}
