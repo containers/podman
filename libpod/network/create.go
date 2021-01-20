@@ -23,7 +23,7 @@ func Create(name string, options entities.NetworkCreateOptions, runtimeConfig *c
 		return nil, err
 	}
 	// Acquire a lock for CNI
-	l, err := acquireCNILock(filepath.Join(runtimeConfig.Engine.TmpDir, LockFileName))
+	l, err := acquireCNILock(runtimeConfig)
 	if err != nil {
 		return nil, err
 	}
