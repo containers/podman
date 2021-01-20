@@ -104,37 +104,14 @@ type PushOptions struct {
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
 	Authfile *string
-	// CertDir is the path to certificate directories.  Ignored for remote
-	// calls.
-	CertDir *string
-	// Compress tarball image layers when pushing to a directory using the 'dir'
-	// transport. Default is same compression type as source. Ignored for remote
-	// calls.
+	// Compress tarball image layers when pushing to a directory using the 'dir' transport.
 	Compress *bool
-	// Username for authenticating against the registry.
-	Username *string
 	// Password for authenticating against the registry.
 	Password *string
-	// DigestFile, after copying the image, write the digest of the resulting
-	// image to the file.  Ignored for remote calls.
-	DigestFile *string
-	// Format is the Manifest type (oci, v2s1, or v2s2) to use when pushing an
-	// image using the 'dir' transport. Default is manifest type of source.
-	// Ignored for remote calls.
-	Format *string
-	// Quiet can be specified to suppress pull progress when pulling.  Ignored
-	// for remote calls.
-	Quiet *bool
-	// RemoveSignatures, discard any pre-existing signatures in the image.
-	// Ignored for remote calls.
-	RemoveSignatures *bool
-	// SignaturePolicy to use when pulling.  Ignored for remote calls.
-	SignaturePolicy *string
-	// SignBy adds a signature at the destination using the specified key.
-	// Ignored for remote calls.
-	SignBy *string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify *bool
+	// Username for authenticating against the registry.
+	Username *string
 }
 
 //go:generate go run ../generator/generator.go SearchOptions

@@ -86,10 +86,8 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 // ManifestPush pushes a manifest list or image index to the destination
 func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ImagePushOptions) (string, error) {
 	options := new(images.PushOptions)
-	options.WithUsername(opts.Username).WithSignaturePolicy(opts.SignaturePolicy).WithQuiet(opts.Quiet)
-	options.WithPassword(opts.Password).WithCertDir(opts.CertDir).WithAuthfile(opts.Authfile)
-	options.WithCompress(opts.Compress).WithDigestFile(opts.DigestFile).WithFormat(opts.Format)
-	options.WithRemoveSignatures(opts.RemoveSignatures).WithSignBy(opts.SignBy)
+	options.WithUsername(opts.Username).WithPassword(opts.Password).WithAuthfile(opts.Authfile)
+	options.WithAll(opts.All)
 
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {

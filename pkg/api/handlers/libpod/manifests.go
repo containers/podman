@@ -147,7 +147,6 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		All         bool   `schema:"all"`
 		Destination string `schema:"destination"`
-		Format      string `schema:"format"`
 		TLSVerify   bool   `schema:"tlsVerify"`
 	}{
 		// Add defaults here once needed.
@@ -163,24 +162,21 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	source := utils.GetName(r)
-	authConf, authfile, key, err := auth.GetCredentials(r)
+	authconf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
 		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
 	var username, password string
-	if authConf != nil {
-		username = authConf.Username
-		password = authConf.Password
-
+	if authconf != nil {
+		username = authconf.Username
+		password = authconf.Password
 	}
-
 	options := entities.ImagePushOptions{
 		Authfile: authfile,
 		Username: username,
 		Password: password,
-		Format:   query.Format,
 		All:      query.All,
 	}
 	if sys := runtime.SystemContext(); sys != nil {

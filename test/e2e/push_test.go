@@ -54,10 +54,16 @@ var _ = Describe("Podman push", func() {
 			fmt.Sprintf("dir:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		bbdir = filepath.Join(podmanTest.TempDir, "busybox")
+		session = podmanTest.Podman([]string{"push", "--format", "oci", ALPINE,
+			fmt.Sprintf("dir:%s", bbdir)})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to local registry", func() {
-		SkipIfRemote("FIXME: This should work")
+		SkipIfRemote("Remote does not support --digestfile or --remove-sginatures")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -74,7 +80,7 @@ var _ = Describe("Podman push", func() {
 			Skip("Cannot start docker registry.")
 		}
 
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -88,7 +94,6 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry with authorization", func() {
-		SkipIfRemote("FIXME: This does not seem to be returning an error")
 		SkipIfRootless("FIXME: Creating content in certs.d we use directories in homedir")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
@@ -155,9 +160,12 @@ var _ = Describe("Podman push", func() {
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
 
-		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5000/certdirtest"})
-		push.WaitWithDefaultTimeout()
-		Expect(push).To(ExitWithError())
+		if !IsRemote() {
+			// remote does not support --cert-dir
+			push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5000/certdirtest"})
+			push.WaitWithDefaultTimeout()
+			Expect(push).To(ExitWithError())
+		}
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/defaultflags"})
 		push.WaitWithDefaultTimeout()
