@@ -837,13 +837,16 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     name: url
 	//     description: Load image from the specified URL
 	//     type: string
-	//   - in: formData
+	//   - in: body
 	//     name: upload
-	//     type: file
 	//     required: true
 	//     description: tarball for imported image
+	//     schema:
+	//       type: "string"
 	// produces:
 	// - application/json
+	// consumes:
+	// - application/x-tar
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsLibpodImagesImportResponse"
