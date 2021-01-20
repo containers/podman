@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -139,14 +138,6 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 }
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	names := namesOrIds
-	for _, cidFile := range options.CIDFiles {
-		content, err := ioutil.ReadFile(cidFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error reading CIDFile")
-		}
-		id := strings.Split(string(content), "\n")[0]
-		names = append(names, id)
-	}
 	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
@@ -202,14 +193,6 @@ func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {
-	for _, cidFile := range options.CIDFiles {
-		content, err := ioutil.ReadFile(cidFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error reading CIDFile")
-		}
-		id := strings.Split(string(content), "\n")[0]
-		namesOrIds = append(namesOrIds, id)
-	}
 	sig, err := signal.ParseSignalNameOrNumber(options.Signal)
 	if err != nil {
 		return nil, err

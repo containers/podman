@@ -443,7 +443,7 @@ var _ = Describe("Podman containers ", func() {
 
 	It("podman kill bogus container", func() {
 		// Killing bogus container should return 404
-		err := containers.Kill(bt.conn, "foobar", "SIGTERM", nil)
+		err := containers.Kill(bt.conn, "foobar", new(containers.KillOptions).WithSignal("SIGTERM"))
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -454,7 +454,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, name, "SIGINT", nil)
+		err = containers.Kill(bt.conn, name, new(containers.KillOptions).WithSignal("SIGINT"))
 		Expect(err).To(BeNil())
 		_, err = containers.Exists(bt.conn, name, nil)
 		Expect(err).To(BeNil())
@@ -465,7 +465,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, cid, "SIGTERM", nil)
+		err = containers.Kill(bt.conn, cid, new(containers.KillOptions).WithSignal("SIGTERM"))
 		Expect(err).To(BeNil())
 		_, err = containers.Exists(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
@@ -476,7 +476,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, cid, "SIGKILL", nil)
+		err = containers.Kill(bt.conn, cid, new(containers.KillOptions).WithSignal("SIGKILL"))
 		Expect(err).To(BeNil())
 	})
 
@@ -485,7 +485,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, cid, "foobar", nil)
+		err = containers.Kill(bt.conn, cid, new(containers.KillOptions).WithSignal("foobar"))
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -501,7 +501,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		containerLatestList, err := containers.List(bt.conn, new(containers.ListOptions).WithLast(1))
 		Expect(err).To(BeNil())
-		err = containers.Kill(bt.conn, containerLatestList[0].Names[0], "SIGTERM", nil)
+		err = containers.Kill(bt.conn, containerLatestList[0].Names[0], new(containers.KillOptions).WithSignal("SIGTERM"))
 		Expect(err).To(BeNil())
 	})
 

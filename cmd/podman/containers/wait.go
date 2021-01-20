@@ -50,7 +50,7 @@ func waitFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	intervalFlagName := "interval"
-	flags.StringVarP(&waitInterval, intervalFlagName, "i", "250ns", "Time Interval to wait before polling for completion")
+	flags.StringVarP(&waitInterval, intervalFlagName, "i", "250ms", "Time Interval to wait before polling for completion")
 	_ = cmd.RegisterFlagCompletionFunc(intervalFlagName, completion.AutocompleteNone)
 
 	conditionFlagName := "condition"
