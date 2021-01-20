@@ -235,6 +235,18 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: tag
 	//    type: string
 	//    description: The tag to associate with the image on the registry.
+	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    description: All indicates whether to push all images related to the image list
+	//  - in: query
+	//    name: compress
+	//    type: boolean
+	//    description: use compression on image
+	//  - in: query
+	//    name: destination
+	//    type: string
+	//    description: destination name for the image being pushed
 	//  - in: header
 	//    name: X-Registry-Auth
 	//    type: string

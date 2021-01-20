@@ -236,10 +236,7 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, opts entities.ImagePushOptions) error {
 	options := new(images.PushOptions)
-	options.WithUsername(opts.Username).WithSignaturePolicy(opts.SignaturePolicy).WithQuiet(opts.Quiet)
-	options.WithPassword(opts.Password).WithCertDir(opts.CertDir).WithAuthfile(opts.Authfile)
-	options.WithCompress(opts.Compress).WithDigestFile(opts.DigestFile).WithFormat(opts.Format)
-	options.WithRemoveSignatures(opts.RemoveSignatures).WithSignBy(opts.SignBy)
+	options.WithAll(opts.All).WithCompress(opts.Compress).WithUsername(opts.Username).WithPassword(opts.Password).WithAuthfile(opts.Authfile)
 
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {

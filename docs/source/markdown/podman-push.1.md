@@ -91,7 +91,7 @@ solely for scripting compatibility.
 #### **--format**, **-f**=*format*
 
 Manifest Type (oci, v2s1, or v2s2) to use when pushing an image to a directory using the 'dir:' transport (default is manifest type of source)
-Note: This flag can only be set when using the **dir** transport
+Note: This flag can only be set when using the **dir** transport. (Not available for remote commands)
 
 #### **--quiet**, **-q**
 
@@ -99,11 +99,11 @@ When writing the output image, suppress progress output
 
 #### **--remove-signatures**
 
-Discard any pre-existing signatures in the image
+Discard any pre-existing signatures in the image. (Not available for remote commands)
 
 #### **--sign-by**=*key*
 
-Add a signature at the destination using the specified key
+Add a signature at the destination using the specified key. (Not available for remote commands)
 
 #### **--tls-verify**=*true|false*
 

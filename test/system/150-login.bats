@@ -197,6 +197,7 @@ EOF
     destname=ok-$(random_string 10 | tr A-Z a-z)-ok
     # Use command-line credentials
     run_podman push --tls-verify=false \
+               --format docker \
                --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
                $IMAGE localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
