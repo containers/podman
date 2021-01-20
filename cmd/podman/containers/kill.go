@@ -2,8 +2,9 @@ package containers
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"io/ioutil"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
@@ -12,6 +13,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/signal"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -59,7 +61,7 @@ func killFlags(cmd *cobra.Command) {
 	flags.StringVarP(&killOptions.Signal, signalFlagName, "s", "KILL", "Signal to send to the container")
 	_ = cmd.RegisterFlagCompletionFunc(signalFlagName, common.AutocompleteStopSignal)
 	cidfileFlagName := "cidfile"
-	flags.StringArrayVar(&killOptions.CIDFiles, cidfileFlagName, []string{}, "Read the container ID from the file")
+	flags.StringArrayVar(&cidFiles, cidfileFlagName, []string{}, "Read the container ID from the file")
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 }
 
@@ -94,6 +96,15 @@ func kill(_ *cobra.Command, args []string) error {
 	if sig < 1 || sig > 64 {
 		return errors.New("valid signals are 1 through 64")
 	}
+	for _, cidFile := range cidFiles {
+		content, err := ioutil.ReadFile(string(cidFile))
+		if err != nil {
+			return errors.Wrap(err, "error reading CIDFile")
+		}
+		id := strings.Split(string(content), "\n")[0]
+		args = append(args, id)
+	}
+
 	responses, err := registry.ContainerEngine().ContainerKill(context.Background(), args, killOptions)
 	if err != nil {
 		return err

@@ -103,3 +103,19 @@ func (o *WaitOptions) GetCondition() define.ContainerStatus {
 	}
 	return *o.Condition
 }
+
+// WithInterval
+func (o *WaitOptions) WithInterval(value string) *WaitOptions {
+	v := &value
+	o.Interval = v
+	return o
+}
+
+// GetInterval
+func (o *WaitOptions) GetInterval() string {
+	var interval string
+	if o.Interval == nil {
+		return interval
+	}
+	return *o.Interval
+}

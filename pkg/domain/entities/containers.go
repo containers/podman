@@ -81,11 +81,10 @@ type PauseUnpauseReport struct {
 }
 
 type StopOptions struct {
-	All      bool
-	CIDFiles []string
-	Ignore   bool
-	Latest   bool
-	Timeout  *uint
+	All     bool
+	Ignore  bool
+	Latest  bool
+	Timeout *uint
 }
 
 type StopReport struct {
@@ -104,10 +103,9 @@ type TopOptions struct {
 }
 
 type KillOptions struct {
-	All      bool
-	Latest   bool
-	Signal   string
-	CIDFiles []string
+	All    bool
+	Latest bool
+	Signal string
 }
 
 type KillReport struct {

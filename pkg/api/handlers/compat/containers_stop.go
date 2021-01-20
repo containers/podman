@@ -6,6 +6,8 @@ import (
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -13,10 +15,15 @@ import (
 func StopContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	// Now use the ABI implementation to prevent us from having duplicate
+	// code.
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
 	// /{version}/containers/(name)/stop
 	query := struct {
-		Timeout int `schema:"t"`
+		Ignore        bool `schema:"ignore"`
+		DockerTimeout uint `schema:"t"`
+		LibpodTimeout uint `schema:"timeout"`
 	}{
 		// override any golang type defaults
 	}
@@ -27,31 +34,46 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := utils.GetName(r)
+
+	options := entities.StopOptions{
+		Ignore: query.Ignore,
+	}
+	if utils.IsLibpodRequest(r) {
+		if query.LibpodTimeout > 0 {
+			options.Timeout = &query.LibpodTimeout
+		}
+	} else {
+		if query.DockerTimeout > 0 {
+			options.Timeout = &query.DockerTimeout
+		}
+	}
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-
 	state, err := con.State()
 	if err != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "unable to get state for Container %s", name))
+		utils.InternalServerError(w, err)
 		return
 	}
-	// If the Container is stopped already, send a 304
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
 		utils.WriteResponse(w, http.StatusNotModified, nil)
 		return
 	}
+	report, err := containerEngine.ContainerStop(r.Context(), []string{name}, options)
+	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			utils.ContainerNotFound(w, name, err)
+			return
+		}
 
-	var stopError error
-	if query.Timeout > 0 {
-		stopError = con.StopWithTimeout(uint(query.Timeout))
-	} else {
-		stopError = con.Stop()
+		utils.InternalServerError(w, err)
+		return
 	}
-	if stopError != nil {
-		utils.InternalServerError(w, errors.Wrapf(stopError, "failed to stop %s", name))
+
+	if len(report) > 0 && report[0].Err != nil {
+		utils.InternalServerError(w, report[0].Err)
 		return
 	}
 
