@@ -72,23 +72,23 @@ type podInfo struct {
 	ExecStopPost string
 }
 
-const podTemplate = headerTemplate + `Requires={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
-Before={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
+const podTemplate = headerTemplate + `Requires={{{{- range $index, $value := .RequiredServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
+Before={{{{- range $index, $value := .RequiredServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
 
 [Service]
-Environment={{.EnvVariable}}=%n
-Restart={{.RestartPolicy}}
-TimeoutStopSec={{.TimeoutStopSec}}
-{{- if .ExecStartPre1}}
-ExecStartPre={{.ExecStartPre1}}
-{{- end}}
-{{- if .ExecStartPre2}}
-ExecStartPre={{.ExecStartPre2}}
-{{- end}}
-ExecStart={{.ExecStart}}
-ExecStop={{.ExecStop}}
-ExecStopPost={{.ExecStopPost}}
-PIDFile={{.PIDFile}}
+Environment={{{{.EnvVariable}}}}=%n
+Restart={{{{.RestartPolicy}}}}
+TimeoutStopSec={{{{.TimeoutStopSec}}}}
+{{{{- if .ExecStartPre1}}}}
+ExecStartPre={{{{.ExecStartPre1}}}}
+{{{{- end}}}}
+{{{{- if .ExecStartPre2}}}}
+ExecStartPre={{{{.ExecStartPre2}}}}
+{{{{- end}}}}
+ExecStart={{{{.ExecStart}}}}
+ExecStop={{{{.ExecStop}}}}
+ExecStopPost={{{{.ExecStopPost}}}}
+PIDFile={{{{.PIDFile}}}}
 Type=forking
 
 [Install]
@@ -236,9 +236,9 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	}
 
 	info.EnvVariable = EnvVariable
-	info.ExecStart = "{{.Executable}} start {{.InfraNameOrID}}"
-	info.ExecStop = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.InfraNameOrID}}"
-	info.ExecStopPost = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.InfraNameOrID}}"
+	info.ExecStart = "{{{{.Executable}}}} start {{{{.InfraNameOrID}}}}"
+	info.ExecStop = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.InfraNameOrID}}}}"
+	info.ExecStopPost = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.InfraNameOrID}}}}"
 
 	// Assemble the ExecStart command when creating a new pod.
 	//
@@ -278,8 +278,8 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		startCommand = append(startCommand, podRootArgs...)
 		startCommand = append(startCommand,
 			[]string{"pod", "create",
-				"--infra-conmon-pidfile", "{{.PIDFile}}",
-				"--pod-id-file", "{{.PodIDFile}}"}...)
+				"--infra-conmon-pidfile", "{{{{.PIDFile}}}}",
+				"--pod-id-file", "{{{{.PodIDFile}}}}"}...)
 
 		// Presence check for certain flags/options.
 		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
@@ -308,11 +308,11 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		startCommand = append(startCommand, podCreateArgs...)
 		startCommand = quoteArguments(startCommand)
 
-		info.ExecStartPre1 = "/bin/rm -f {{.PIDFile}} {{.PodIDFile}}"
+		info.ExecStartPre1 = "/bin/rm -f {{{{.PIDFile}}}} {{{{.PodIDFile}}}}"
 		info.ExecStartPre2 = strings.Join(startCommand, " ")
-		info.ExecStart = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}pod start --pod-id-file {{.PodIDFile}}"
-		info.ExecStop = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}pod stop --ignore --pod-id-file {{.PodIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
-		info.ExecStopPost = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}pod rm --ignore -f --pod-id-file {{.PodIDFile}}"
+		info.ExecStart = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod start --pod-id-file {{{{.PodIDFile}}}}"
+		info.ExecStop = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod stop --ignore --pod-id-file {{{{.PodIDFile}}}} {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}}"
+		info.ExecStopPost = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod rm --ignore -f --pod-id-file {{{{.PodIDFile}}}}"
 	}
 	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
 
@@ -334,7 +334,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	// generation.  That's especially needed for embedding the PID and ID
 	// files in other fields which will eventually get replaced in the 2nd
 	// template execution.
-	templ, err := template.New("pod_template").Parse(podTemplate)
+	templ, err := template.New("pod_template").Delims("{{{{", "}}}}").Parse(podTemplate)
 	if err != nil {
 		return "", errors.Wrap(err, "error parsing systemd service template")
 	}
@@ -345,7 +345,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	}
 
 	// Now parse the generated template (i.e., buf) and execute it.
-	templ, err = template.New("pod_template").Parse(buf.String())
+	templ, err = template.New("pod_template").Delims("{{{{", "}}}}").Parse(buf.String())
 	if err != nil {
 		return "", errors.Wrap(err, "error parsing systemd service template")
 	}
