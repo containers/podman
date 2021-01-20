@@ -1,9 +1,4 @@
-# Version v1.4.6
-
-* Document the usage of Cleanup when re-reading a file (thanks to @lesovsky) for issue #18.
-* Add example directories with example and tests for issues.
-
-# Version v1.4.4-v1.4.5
+# Version v1.4.4
 
 * Fix of checksum problem because of forced tag. No changes to the code.
 
