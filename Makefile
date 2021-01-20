@@ -407,6 +407,10 @@ man-page-check:
 swagger-check:
 	hack/swagger-check
 
+.PHONY: tests-included
+tests-included:
+	contrib/cirrus/pr-should-include-tests
+
 .PHONY: codespell
 codespell:
 	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
@@ -644,7 +648,7 @@ validate.completions:
 	if [ -x /bin/fish ]; then /bin/fish completions/fish/podman.fish; fi
 
 .PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check
+validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included
 
 .PHONY: build-all-new-commits
 build-all-new-commits:

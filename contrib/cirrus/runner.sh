@@ -31,7 +31,11 @@ function _run_smoke() {
     # $CIRRUS_TAG is only non-empty when executing due to a tag-push
     # shellcheck disable=SC2154
     if [[ -z "$CIRRUS_TAG" ]]; then
+        # If PR consists of multiple commits, test that each compiles cleanly
         make .gitvalidation
+
+        # PRs should include some way to test.
+        $SCRIPT_BASE/pr-should-include-tests
     fi
 }
 
