@@ -257,6 +257,14 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
+	if s.LogConfiguration == nil {
+		s.LogConfiguration = &specgen.LogConfig{}
+	}
+	// set log-driver from common if not already set
+	if len(s.LogConfiguration.Driver) < 1 {
+		s.LogConfiguration.Driver = rtc.Containers.LogDriver
+	}
+
 	warnings, err := verifyContainerResources(s)
 	if err != nil {
 		return warnings, err

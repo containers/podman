@@ -402,7 +402,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	logDriverFlagName := "log-driver"
 	createFlags.StringVar(
 		&cf.LogDriver,
-		logDriverFlagName, "",
+		logDriverFlagName, logDriver(),
 		"Logging driver for the container",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(logDriverFlagName, AutocompleteLogDriver)
