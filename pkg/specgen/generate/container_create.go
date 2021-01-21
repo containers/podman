@@ -272,10 +272,18 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.Entrypoint != nil {
 		options = append(options, libpod.WithEntrypoint(s.Entrypoint))
 	}
-	// If the user did not set an workdir but the image did, ensure it is
-	// created.
+	// If the user did not specify a workdir on the CLI, let's extract it
+	// from the image.
 	if s.WorkDir == "" && img != nil {
 		options = append(options, libpod.WithCreateWorkingDir())
+		wd, err := img.WorkingDir(ctx)
+		if err != nil {
+			return nil, err
+		}
+		s.WorkDir = wd
+	}
+	if s.WorkDir == "" {
+		s.WorkDir = "/"
 	}
 	if s.StopSignal != nil {
 		options = append(options, libpod.WithStopSignal(*s.StopSignal))
