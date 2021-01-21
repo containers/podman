@@ -10,7 +10,6 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/docker/docker/oci/caps"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -220,7 +219,6 @@ func (c *Container) Kill(signal uint) error {
 // Otherwise, the exit code will be the exit code of the executed call inside of the container.
 // TODO investigate allowing exec without attaching
 func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []string, user, workDir string, streams *AttachStreams, preserveFDs uint, resize chan remotecommand.TerminalSize, detachKeys string) (int, error) {
-	var capList []string
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -232,10 +230,6 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 
 	if c.state.State != define.ContainerStateRunning {
 		return define.ExecErrorCodeCannotInvoke, errors.Wrapf(define.ErrCtrStateInvalid, "cannot exec into container that is not running")
-	}
-
-	if privileged || c.config.Privileged {
-		capList = caps.GetAllCapabilities()
 	}
 
 	// Generate exec session ID
@@ -270,7 +264,6 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 
 	opts := new(ExecOptions)
 	opts.Cmd = cmd
-	opts.CapAdd = capList
 	opts.Env = env
 	opts.Terminal = tty
 	opts.Cwd = workDir
@@ -279,6 +272,10 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	opts.PreserveFDs = preserveFDs
 	opts.Resize = resize
 	opts.DetachKeys = detachKeys
+
+	if privileged || c.config.Privileged {
+		opts.Privileged = true
+	}
 
 	pid, attachChan, err := c.ociRuntime.ExecContainer(c, sessionID, opts)
 	if err != nil {
