@@ -80,10 +80,19 @@ CIRRUS_CI="${CIRRUS_CI:-false}"
 DEST_BRANCH="${DEST_BRANCH:-master}"
 CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-podman}
-# N/B: CIRRUS_BASE_SHA is empty on branch and tag push.
-CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-${CIRRUS_LAST_GREEN_CHANGE:-YOU_FOUND_A_BUG}}
-CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
-
+# Cirrus only sets $CIRRUS_BASE_SHA properly for PRs, but $EPOCH_TEST_COMMIT
+# needs to be set from this value in order for `make validate` to run properly.
+# When running get_ci_vm.sh, most $CIRRUS_xyz variables are empty. Attempt
+# to accomidate both branch and get_ci_vm.sh testing by discovering the base
+# branch SHA value.
+# shellcheck disable=SC2154
+if [[ -z "$CIRRUS_BASE_SHA" ]] && [[ -z "$CIRRUS_TAG" ]]
+then  # Operating on a branch, or under `get_ci_vm.sh`
+    CIRRUS_BASE_SHA=$(git rev-parse ${UPSTREAM_REMOTE:-origin}/$DEST_BRANCH)
+elif [[ -z "$CIRRUS_BASE_SHA" ]]
+then  # Operating on a tag
+    CIRRUS_BASE_SHA=$(git rev-parse HEAD)
+fi
 # The starting place for linting and code validation
 EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 

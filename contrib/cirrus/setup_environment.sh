@@ -173,7 +173,6 @@ esac
 # shellcheck disable=SC2154
 case "$TEST_FLAVOR" in
     ext_svc) ;;
-    smoke) ;&
     validate)
         # For some reason, this is also needed for validation
         make .install.pre-commit

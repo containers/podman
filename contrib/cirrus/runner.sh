@@ -23,18 +23,6 @@ function _run_ext_svc() {
     $SCRIPT_BASE/ext_svc_check.sh
 }
 
-function _run_smoke() {
-    make gofmt
-
-    # There is little value to validating commits after tag-push
-    # and it's very difficult to automatically determine a starting commit.
-    # $CIRRUS_TAG is only non-empty when executing due to a tag-push
-    # shellcheck disable=SC2154
-    if [[ -z "$CIRRUS_TAG" ]]; then
-        make .gitvalidation
-    fi
-}
-
 function _run_automation() {
     $SCRIPT_BASE/cirrus_yaml_test.py
 
@@ -47,11 +35,14 @@ function _run_automation() {
 }
 
 function _run_validate() {
-    # Confirm compile via prior task + cache
-    bin/podman --version
-    bin/podman-remote --version
+    # git-validation tool fails if $EPOCH_TEST_COMMIT is empty
+    # shellcheck disable=SC2154
+    if [[ -n "$EPOCH_TEST_COMMIT" ]]; then
+        make validate
+    else
+        warn "Skipping git-validation since \$EPOCH_TEST_COMMIT is empty"
+    fi
 
-    make validate  # Some items require a build
 }
 
 function _run_unit() {
