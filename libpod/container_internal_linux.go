@@ -1735,7 +1735,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		nameservers = resolvconf.GetNameservers(resolv.Content)
 		// slirp4netns has a built in DNS server.
 		if c.config.NetMode.IsSlirp4netns() {
-			nameservers = append([]string{"10.0.2.3"}, nameservers...)
+			nameservers = append([]string{slirp4netnsDNS}, nameservers...)
 		}
 	}
 
@@ -1815,7 +1815,7 @@ func (c *Container) getHosts() string {
 	if c.Hostname() != "" {
 		if c.config.NetMode.IsSlirp4netns() {
 			// When using slirp4netns, the interface gets a static IP
-			hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", "10.0.2.100", c.Hostname(), c.config.Name)
+			hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", slirp4netnsIP, c.Hostname(), c.config.Name)
 		} else {
 			hasNetNS := false
 			netNone := false
