@@ -693,14 +693,17 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, rawInputs, err := getContainersAndInputByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
 	// There can only be one container if attach was used
 	for i := range ctrs {
 		ctr := ctrs[i]
-		rawInput := rawInputs[i]
+		rawInput := ctr.ID()
+		if !options.All {
+			rawInput = rawInputs[i]
+		}
 		ctrState, err := ctr.State()
 		if err != nil {
 			return nil, err

@@ -506,7 +506,7 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, err := getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -514,9 +514,13 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 	// There can only be one container if attach was used
 	for i, ctr := range ctrs {
 		name := ctr.ID
+		rawInput := ctr.ID
+		if !options.All {
+			rawInput = namesOrIds[i]
+		}
 		report := entities.ContainerStartReport{
 			Id:       name,
-			RawInput: namesOrIds[i],
+			RawInput: rawInput,
 			ExitCode: exitCode,
 		}
 		ctrRunning := ctr.State == define.ContainerStateRunning.String()

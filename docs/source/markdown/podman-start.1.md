@@ -38,6 +38,10 @@ to run containers such as CRI-O, the last started container could be from either
 
 Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true* when attaching, *false* otherwise.
 
+#### **\-\-all**
+
+Start all the containers created by Podman, default is only running containers.
+
 ## EXAMPLE
 
 podman start mywebserver
