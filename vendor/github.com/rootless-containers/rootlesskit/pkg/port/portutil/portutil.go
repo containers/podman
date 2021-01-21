@@ -2,8 +2,8 @@ package portutil
 
 import (
 	"net"
-	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -11,28 +11,54 @@ import (
 )
 
 // ParsePortSpec parses a Docker-like representation of PortSpec.
-// e.g. "127.0.0.1:8080:80/tcp"
+// e.g. "127.0.0.1:8080:80/tcp", or "127.0.0.1:8080:10.0.2.100:80/tcp"
 func ParsePortSpec(s string) (*port.Spec, error) {
-	r := regexp.MustCompile("^([0-9a-f\\.]+):([0-9]+):([0-9]+)/([a-z]+)$")
-	g := r.FindStringSubmatch(s)
-	if len(g) != 5 {
+	splitBySlash := strings.SplitN(s, "/", 2)
+	if len(splitBySlash) != 2 {
 		return nil, errors.Errorf("unexpected PortSpec string: %q", s)
 	}
-	parentIP := g[1]
-	parentPort, err := strconv.Atoi(g[2])
+	proto := splitBySlash[1]
+	switch proto {
+	case "tcp", "udp", "sctp":
+	default:
+		return nil, errors.Errorf("unexpected Proto in PortSpec string: %q", s)
+	}
+
+	splitByColon := strings.SplitN(splitBySlash[0], ":", 4)
+	switch len(splitByColon) {
+	case 3, 4:
+	default:
+		return nil, errors.Errorf("unexpected PortSpec string: %q", s)
+	}
+
+	parentIP := splitByColon[0]
+	if net.IP(parentIP) == nil {
+		return nil, errors.Errorf("unexpected ParentIP in PortSpec string: %q", s)
+	}
+
+	parentPort, err := strconv.Atoi(splitByColon[1])
 	if err != nil {
 		return nil, errors.Wrapf(err, "unexpected ParentPort in PortSpec string: %q", s)
 	}
-	childPort, err := strconv.Atoi(g[3])
+
+	var childIP string
+	if len(splitByColon) == 4 {
+		childIP = splitByColon[2]
+		if net.IP(childIP) == nil {
+			return nil, errors.Errorf("unexpected ChildIP in PortSpec string: %q", s)
+		}
+	}
+
+	childPort, err := strconv.Atoi(splitByColon[len(splitByColon)-1])
 	if err != nil {
 		return nil, errors.Wrapf(err, "unexpected ChildPort in PortSpec string: %q", s)
 	}
-	proto := g[4]
-	// validation is up to the caller (as json.Unmarshal doesn't validate values)
+
 	return &port.Spec{
 		Proto:      proto,
 		ParentIP:   parentIP,
 		ParentPort: parentPort,
+		ChildIP:    childIP,
 		ChildPort:  childPort,
 	}, nil
 }
