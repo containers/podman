@@ -189,6 +189,8 @@ Create and enable systemd unit files for a pod using the above examples as refer
 
 Since systemctl defaults to using the root user, all the changes using the systemctl can be seen by appending sudo to the podman cli commands. To perform `systemctl` actions as a non-root user use the `--user` flag when interacting with `systemctl`.
 
+Note: If the previously created containers or pods are using shared resources, such as ports, make sure to remove them before starting the generated systemd units.
+
 ```
 $ systemctl --user start pod-systemd-pod.service
 $ podman pod ps
