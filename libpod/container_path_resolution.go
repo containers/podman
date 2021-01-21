@@ -13,6 +13,11 @@ import (
 // resolveContainerPaths resolves the container's mount point and the container
 // path as specified by the user.  Both may resolve to paths outside of the
 // container's mount point when the container path hits a volume or bind mount.
+//
+// It returns a bool, indicating whether containerPath resolves outside of
+// mountPoint (e.g., via a mount or volume), the resolved root (e.g., container
+// mount, bind mount or volume) and the resolved path on the root (absolute to
+// the host).
 func (container *Container) resolvePath(mountPoint string, containerPath string) (string, string, error) {
 	// Let's first make sure we have a path relative to the mount point.
 	pathRelativeToContainerMountPoint := containerPath
@@ -97,8 +102,8 @@ func (container *Container) resolvePath(mountPoint string, containerPath string)
 	return mountPoint, resolvedPathOnTheContainerMountPoint, nil
 }
 
-// findVolume checks if the specified container path matches a volume inside
-// the container.  It returns a matching volume or nil.
+// findVolume checks if the specified containerPath matches the destination
+// path of a Volume.  Returns a matching Volume or nil.
 func findVolume(c *Container, containerPath string) (*Volume, error) {
 	runtime := c.Runtime()
 	cleanedContainerPath := filepath.Clean(containerPath)
@@ -110,8 +115,25 @@ func findVolume(c *Container, containerPath string) (*Volume, error) {
 	return nil, nil
 }
 
-// findBindMount checks if the specified container path matches a bind mount
-// inside the container.  It returns a matching mount or nil.
+// isPathOnVolume returns true if the specified containerPath is a subdir of any
+// Volume's destination.
+func isPathOnVolume(c *Container, containerPath string) bool {
+	cleanedContainerPath := filepath.Clean(containerPath)
+	for _, vol := range c.Config().NamedVolumes {
+		if cleanedContainerPath == filepath.Clean(vol.Dest) {
+			return true
+		}
+		for dest := vol.Dest; dest != "/"; dest = filepath.Dir(dest) {
+			if cleanedContainerPath == dest {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// findBindMounts checks if the specified containerPath matches the destination
+// path of a Mount.  Returns a matching Mount or nil.
 func findBindMount(c *Container, containerPath string) *specs.Mount {
 	cleanedPath := filepath.Clean(containerPath)
 	for _, m := range c.Config().Spec.Mounts {
@@ -124,4 +146,21 @@ func findBindMount(c *Container, containerPath string) *specs.Mount {
 		}
 	}
 	return nil
+}
+
+/// isPathOnBindMount returns true if the specified containerPath is a subdir of any
+// Mount's destination.
+func isPathOnBindMount(c *Container, containerPath string) bool {
+	cleanedContainerPath := filepath.Clean(containerPath)
+	for _, m := range c.Config().Spec.Mounts {
+		if cleanedContainerPath == filepath.Clean(m.Destination) {
+			return true
+		}
+		for dest := m.Destination; dest != "/"; dest = filepath.Dir(dest) {
+			if cleanedContainerPath == dest {
+				return true
+			}
+		}
+	}
+	return false
 }
