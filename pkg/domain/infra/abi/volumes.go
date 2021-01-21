@@ -153,3 +153,12 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 	}
 	return reports, nil
 }
+
+// VolumeExists check if a given volume name exists
+func (ic *ContainerEngine) VolumeExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	exists, err := ic.Libpod.HasVolume(nameOrID)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.BoolReport{Value: exists}, nil
+}

@@ -86,6 +86,7 @@ type ContainerEngine interface {
 	Unshare(ctx context.Context, args []string) error
 	Version(ctx context.Context) (*SystemVersionReport, error)
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IDOrNameResponse, error)
+	VolumeExists(ctx context.Context, namesOrId string) (*BoolReport, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts InspectOptions) ([]*VolumeInspectReport, []error, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)
 	VolumePrune(ctx context.Context, options VolumePruneOptions) ([]*reports.PruneReport, error)

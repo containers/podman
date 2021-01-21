@@ -114,3 +114,16 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error 
 	}
 	return response.Process(nil)
 }
+
+// Exists returns true if a given volume exists
+func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return false, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/volumes/%s/exists", nil, nil, nameOrID)
+	if err != nil {
+		return false, err
+	}
+	return response.IsSuccess(), nil
+}
