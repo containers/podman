@@ -517,3 +517,10 @@ func volumes() []string {
 	}
 	return nil
 }
+
+func logDriver() string {
+	if !registry.IsRemote() {
+		return containerConfig.Containers.LogDriver
+	}
+	return ""
+}
