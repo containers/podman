@@ -108,7 +108,7 @@ automation_task:
 smoke_task:
     alias: 'smoke'
     name: "Smoke Test"
-    skip: *tags
+    skip: *branches_and_tags
     container: &bigcontainer
         image: ${CTR_FQIN}
         # Leave some resources for smallcontainer
