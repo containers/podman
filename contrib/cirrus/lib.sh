@@ -80,12 +80,26 @@ CIRRUS_CI="${CIRRUS_CI:-false}"
 DEST_BRANCH="${DEST_BRANCH:-master}"
 CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-podman}
-# N/B: CIRRUS_BASE_SHA is empty on branch and tag push.
-CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-${CIRRUS_LAST_GREEN_CHANGE:-YOU_FOUND_A_BUG}}
-CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
-
+# N/B: Cirrus sets $CIRRUS_BASE_SHA properly for PRs, empty otherwise.
+# Discover the value when running on a branch or in get_ci_vm.sh
+# shellcheck disable=SC2154
+if [[ -z "$CIRRUS_BASE_SHA" ]] && [[ -z "$CIRRUS_TAG" ]]
+then
+    if git remote show | grep -q upstream; then
+        _remote="upstream"
+    else
+        _remote="origin"
+    fi
+    CIRRUS_BASE_SHA=$(git rev-parse $_remote/$CIRRUS_BRANCH)
+    unset _remote  # running under set -a
+elif [[ -z "$CIRRUS_BASE_SHA" ]]; then
+    # No way to reliably determine this for tag
+    CIRRUS_BASE_SHA=$(git rev-parse HEAD)
+fi
 # The starting place for linting and code validation
 EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
+
+CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
 
 # Regex defining all CI-related env. vars. necessary for all possible
 # testing operations on all platforms and versions.  This is necessary
