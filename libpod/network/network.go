@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net"
 	"os"
-	"path/filepath"
 
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
@@ -172,7 +171,7 @@ func ValidateUserNetworkIsAvailable(config *config.Config, userNet *net.IPNet) e
 // RemoveNetwork removes a given network by name.  If the network has container associated with it, that
 // must be handled outside the context of this.
 func RemoveNetwork(config *config.Config, name string) error {
-	l, err := acquireCNILock(filepath.Join(config.Engine.TmpDir, LockFileName))
+	l, err := acquireCNILock(config)
 	if err != nil {
 		return err
 	}
