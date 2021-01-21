@@ -157,11 +157,14 @@ parse_args(){
 
     VM_IMAGE_NAME="$1"
 
-    # Word-splitting is desirable in this case
-    # shellcheck disable=SC2207
+    # Word-splitting is desirable in this case.
+    # Values are used literally (with '=') as args to future `env` command.
+    # get_env_vars() will take care of properly quoting it's output.
+    # shellcheck disable=SC2207,SC2191
     ENVS=(
         $(get_env_vars)
-        "VM_IMAGE_NAME=$VM_IMAGE_NAME"
+        VM_IMAGE_NAME="$VM_IMAGE_NAME"
+        UPSTREAM_REMOTE="upstream"
     )
 
     VMNAME="${VMNAME:-${USER}-${VM_IMAGE_NAME}}"
@@ -263,7 +266,7 @@ echo -e "Note: Script can be re-used in another terminal if needed."
 echo -e "${RED}(option to delete VM presented upon exiting).${NOR}"
 # TODO: This is fairly fragile, specifically the quoting for the remote command.
 echo '#!/bin/bash' > $TMPDIR/ssh
-echo "$SSH_CMD -- -t 'cd $GOSRC && exec env \"${ENVS[*]}\" bash -il'" >> $TMPDIR/ssh
+echo "$SSH_CMD -- -t 'cd $GOSRC && exec env ${ENVS[*]} bash -il'" >> $TMPDIR/ssh
 chmod +x $TMPDIR/ssh
 
 showrun $TMPDIR/ssh
