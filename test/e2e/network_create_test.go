@@ -375,4 +375,21 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(ExitWithError())
 	})
 
+	It("podman network create with internal should not have dnsname", func() {
+		net := "internal-test" + stringid.GenerateNonCryptoID()
+		nc := podmanTest.Podman([]string{"network", "create", "--internal", net})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(nc.ExitCode()).To(BeZero())
+		// Not performing this check on remote tests because it is a logrus error which does
+		// not come back via stderr on the remote client.
+		if !IsRemote() {
+			Expect(nc.ErrorToString()).To(ContainSubstring("dnsname and --internal networks are incompatible"))
+		}
+		nc = podmanTest.Podman([]string{"network", "inspect", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc.OutputToString()).ToNot(ContainSubstring("dnsname"))
+	})
+
 })

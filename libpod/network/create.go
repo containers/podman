@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Create the CNI network
@@ -226,8 +227,12 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 	// if we find the dnsname plugin or are rootless, we add configuration for it
 	// the rootless-cni-infra container has the dnsname plugin always installed
 	if (HasDNSNamePlugin(runtimeConfig.Network.CNIPluginDirs) || rootless.IsRootless()) && !options.DisableDNS {
-		// Note: in the future we might like to allow for dynamic domain names
-		plugins = append(plugins, NewDNSNamePlugin(DefaultPodmanDomainName))
+		if options.Internal {
+			logrus.Warnf("dnsname and --internal networks are incompatible.  dnsname plugin not configured for network %s", name)
+		} else {
+			// Note: in the future we might like to allow for dynamic domain names
+			plugins = append(plugins, NewDNSNamePlugin(DefaultPodmanDomainName))
+		}
 	}
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")
