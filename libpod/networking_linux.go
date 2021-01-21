@@ -547,6 +547,7 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 		ExitFD:    3,
 		ReadyFD:   4,
 		TmpDir:    ctr.runtime.config.Engine.TmpDir,
+		ChildIP:   "10.0.2.100",
 	}
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {

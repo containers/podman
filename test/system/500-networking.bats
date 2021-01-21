@@ -65,8 +65,13 @@ load helpers
     myport=54321
 
     # Container will exit as soon as 'nc' receives input
+    # We use '-n -v' to give us log messages showing an incoming connection
+    # and its IP address; the purpose of that is guaranteeing that the
+    # remote IP is not 127.0.0.1 (podman PR #9052).
+    # We could get more parseable output by using $NCAT_REMOTE_ADDR,
+    # but busybox nc doesn't support that.
     run_podman run -d --userns=keep-id -p 127.0.0.1:$myport:$myport \
-               $IMAGE nc -l -p $myport
+               $IMAGE nc -l -n -v -p $myport
     cid="$output"
 
     # emit random string, and check it
@@ -74,7 +79,17 @@ load helpers
     echo "$teststring" | nc 127.0.0.1 $myport
 
     run_podman logs $cid
-    is "$output" "$teststring" "test string received on container"
+    # Sigh. We can't check line-by-line, because 'nc' output order is
+    # unreliable. We usually get the 'connect to' line before the random
+    # string, but sometimes we get it after. So, just do substring checks.
+    is "$output" ".*listening on \[::\]:$myport .*" "nc -v shows right port"
+
+    # This is the truly important check: make sure the remote IP is
+    # in the 10.X range, not 127.X.
+    is "$output" \
+       ".*connect to \[::ffff:10\..*\]:$myport from \[::ffff:10\..*\]:.*" \
+       "nc -v shows remote IP address in 10.X space (not 127.0.0.1)"
+    is "$output" ".*${teststring}.*" "test string received on container"
 
     # Clean up
     run_podman rm $cid
