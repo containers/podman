@@ -1,25 +1,30 @@
 package compat
 
 import (
+	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/auth"
-	"github.com/docker/docker/api/types/registry"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
 
 func SearchImages(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Term      string              `json:"term"`
 		Limit     int                 `json:"limit"`
+		NoTrunc   bool                `json:"noTrunc"`
 		Filters   map[string][]string `json:"filters"`
 		TLSVerify bool                `json:"tlsVerify"`
+		ListTags  bool                `json:"listTags"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -29,67 +34,40 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := image.SearchFilter{}
-	if len(query.Filters) > 0 {
-		if len(query.Filters["stars"]) > 0 {
-			stars, err := strconv.Atoi(query.Filters["stars"][0])
-			if err != nil {
-				utils.InternalServerError(w, err)
-				return
-			}
-			filter.Stars = stars
-		}
-		if len(query.Filters["is-official"]) > 0 {
-			isOfficial, err := strconv.ParseBool(query.Filters["is-official"][0])
-			if err != nil {
-				utils.InternalServerError(w, err)
-				return
-			}
-			filter.IsOfficial = types.NewOptionalBool(isOfficial)
-		}
-		if len(query.Filters["is-automated"]) > 0 {
-			isAutomated, err := strconv.ParseBool(query.Filters["is-automated"][0])
-			if err != nil {
-				utils.InternalServerError(w, err)
-				return
-			}
-			filter.IsAutomated = types.NewOptionalBool(isAutomated)
-		}
-	}
-	options := image.SearchOptions{
-		Filter: filter,
-		Limit:  query.Limit,
-	}
-
-	if _, found := r.URL.Query()["tlsVerify"]; found {
-		options.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
-	}
-
 	_, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
 		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
-	options.Authfile = authfile
 
-	results, err := image.SearchImages(query.Term, options)
+	filters := []string{}
+	for key, val := range query.Filters {
+		filters = append(filters, fmt.Sprintf("%s=%s", key, val[0]))
+	}
+
+	options := entities.ImageSearchOptions{
+		Authfile: authfile,
+		Limit:    query.Limit,
+		NoTrunc:  query.NoTrunc,
+		ListTags: query.ListTags,
+		Filters:  filters,
+	}
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+	ir := abi.ImageEngine{Libpod: runtime}
+	reports, err := ir.Search(r.Context(), query.Term, options)
 	if err != nil {
-		utils.BadRequest(w, "term", query.Term, err)
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-
-	compatResults := make([]registry.SearchResult, 0, len(results))
-	for _, result := range results {
-		compatResult := registry.SearchResult{
-			Name:        result.Name,
-			Description: result.Description,
-			StarCount:   result.Stars,
-			IsAutomated: result.Automated == "[OK]",
-			IsOfficial:  result.Official == "[OK]",
+	if !utils.IsLibpodRequest(r) {
+		if len(reports) == 0 {
+			utils.ImageNotFound(w, query.Term, define.ErrNoSuchImage)
+			return
 		}
-		compatResults = append(compatResults, compatResult)
 	}
 
-	utils.WriteResponse(w, http.StatusOK, compatResults)
+	utils.WriteResponse(w, http.StatusOK, reports)
 }
