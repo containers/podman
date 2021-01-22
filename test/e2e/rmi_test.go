@@ -181,7 +181,6 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi with cached images", func() {
-		SkipIfRemote("FIXME This should work on podman-remote, problem is with podman-remote build")
 		podmanTest.AddImageToRWStore(cirros)
 		dockerfile := `FROM quay.io/libpod/cirros:latest
 		RUN mkdir hello
