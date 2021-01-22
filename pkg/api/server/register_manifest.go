@@ -38,6 +38,26 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/manifests/create"), s.APIHandler(libpod.ManifestCreate)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/manifests/{name}/exists manifests Exists
+	// ---
+	// summary: Exists
+	// description: Check if manifest list exists
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the manifest list
+	// produces:
+	// - application/json
+	// responses:
+	//   204:
+	//     description: manifest list exists
+	//   404:
+	//     $ref: '#/responses/NoSuchManifest'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/manifests/{name}/exists"), s.APIHandler(libpod.ExistsManifest)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/manifests/{name:.*}/json manifests Inspect
 	// ---
 	// summary: Inspect

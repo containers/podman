@@ -46,6 +46,15 @@ func (i *Image) InspectManifest() (*manifest.Schema2List, error) {
 	return list.Docker(), nil
 }
 
+// ExistsManifest checks if a manifest list exists
+func (i *Image) ExistsManifest() (bool, error) {
+	_, err := i.getManifestList()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // RemoveManifest removes the given digest from the manifest list.
 func (i *Image) RemoveManifest(d digest.Digest) (string, error) {
 	list, err := i.getManifestList()

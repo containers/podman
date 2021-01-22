@@ -32,6 +32,7 @@ type ImageEngine interface {
 	Unmount(ctx context.Context, images []string, options ImageUnmountOptions) ([]*ImageUnmountReport, error)
 	Untag(ctx context.Context, nameOrID string, tags []string, options ImageUntagOptions) error
 	ManifestCreate(ctx context.Context, names, images []string, opts ManifestCreateOptions) (string, error)
+	ManifestExists(ctx context.Context, name string) (*BoolReport, error)
 	ManifestInspect(ctx context.Context, name string) ([]byte, error)
 	ManifestAdd(ctx context.Context, opts ManifestAddOptions) (string, error)
 	ManifestAnnotate(ctx context.Context, names []string, opts ManifestAnnotateOptions) (string, error)

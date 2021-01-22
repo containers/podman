@@ -7,6 +7,8 @@ Create and manipulate manifest lists and image indexes
 
 :doc:`create <markdown/podman-manifest-create.1>` Create a manifest list or image index
 
+:doc:`exists <markdown/podman-manifest-exists.1>` Check if the given manifest list exists in local storage
+
 :doc:`inspect <markdown/podman-manifest-inspect.1>` Display a manifest list or image index
 
 :doc:`push <markdown/podman-manifest-push.1>` Push a manifest list or image index to a registry
