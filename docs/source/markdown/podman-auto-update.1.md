@@ -58,6 +58,11 @@ $ podman generate systemd --new --files bc219740a210455fa27deacc96d50a9e20516492
 # Load the new systemd unit and start it
 $ mv ./container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service ~/.config/systemd/user
 $ systemctl --user daemon-reload
+
+# If the previously created containers or pods are using shared resources, such as ports, make sure to remove them before starting the generated systemd units.
+$ podman stop bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
+$ podman rm bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
+
 $ systemctl --user start container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service
 
 # Auto-update the container
