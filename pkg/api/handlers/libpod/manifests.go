@@ -48,6 +48,24 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: manID})
 }
 
+// ExistsManifest check if a manifest list exists
+func ExistsManifest(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	ic := abi.ImageEngine{Libpod: runtime}
+	report, err := ic.ManifestExists(r.Context(), name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	if !report.Value {
+		utils.Error(w, "manifest not found", http.StatusNotFound, errors.New("manifest not found"))
+		return
+	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
+}
+
 func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)

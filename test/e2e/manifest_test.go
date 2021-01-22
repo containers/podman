@@ -251,4 +251,19 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
+
+	It("podman manifest exists", func() {
+		manifestList := "manifest-list"
+		session := podmanTest.Podman([]string{"manifest", "create", manifestList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = podmanTest.Podman([]string{"manifest", "exists", manifestList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"manifest", "exists", "no-manifest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+	})
 })

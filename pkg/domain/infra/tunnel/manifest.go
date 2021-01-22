@@ -23,6 +23,15 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, names, images []strin
 	return imageID, err
 }
 
+// ManifestExists checks if a manifest list with the given name exists
+func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entities.BoolReport, error) {
+	exists, err := manifests.Exists(ir.ClientCtx, name, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.BoolReport{Value: exists}, nil
+}
+
 // ManifestInspect returns contents of manifest list with given name
 func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte, error) {
 	list, err := manifests.Inspect(ir.ClientCtx, name, nil)
