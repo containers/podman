@@ -88,7 +88,6 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman image prune skip cache images", func() {
-		SkipIfRemote("FIXME: podman-remote build is not working the same as local build")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 
 		none := podmanTest.Podman([]string{"images", "-a"})
@@ -110,7 +109,6 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman image prune dangling images", func() {
-		SkipIfRemote("FIXME: podman-remote build is not working the same as local build")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 
