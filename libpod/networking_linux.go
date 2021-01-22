@@ -550,13 +550,25 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 		}
 	}
 
+	childIP := slirp4netnsIP
+outer:
+	for _, r := range ctr.state.NetworkStatus {
+		for _, i := range r.IPs {
+			ipv4 := i.Address.IP.To4()
+			if ipv4 != nil {
+				childIP = ipv4.String()
+				break outer
+			}
+		}
+	}
+
 	cfg := rootlessport.Config{
 		Mappings:  ctr.config.PortMappings,
 		NetNSPath: netnsPath,
 		ExitFD:    3,
 		ReadyFD:   4,
 		TmpDir:    ctr.runtime.config.Engine.TmpDir,
-		ChildIP:   slirp4netnsIP,
+		ChildIP:   childIP,
 	}
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
