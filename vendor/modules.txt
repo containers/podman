@@ -502,7 +502,7 @@ github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
-# github.com/rootless-containers/rootlesskit v0.11.1
+# github.com/rootless-containers/rootlesskit v0.12.0
 github.com/rootless-containers/rootlesskit/pkg/msgutil
 github.com/rootless-containers/rootlesskit/pkg/port
 github.com/rootless-containers/rootlesskit/pkg/port/builtin
@@ -613,7 +613,7 @@ golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
+# golang.org/x/net v0.0.0-20210119194325-5f4716e94777
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -631,7 +631,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3
+# golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
