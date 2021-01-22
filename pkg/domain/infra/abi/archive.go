@@ -26,13 +26,18 @@ func (ic *ContainerEngine) ContainerCopyFromArchive(ctx context.Context, nameOrI
 		return nil, err
 	}
 
+	containerMountPoint, err := container.Mount()
+	if err != nil {
+		return nil, err
+	}
+
 	unmount := func() {
 		if err := container.Unmount(false); err != nil {
 			logrus.Errorf("Error unmounting container: %v", err)
 		}
 	}
 
-	_, resolvedRoot, resolvedContainerPath, err := ic.containerStat(container, containerPath)
+	_, resolvedRoot, resolvedContainerPath, err := ic.containerStat(container, containerMountPoint, containerPath)
 	if err != nil {
 		unmount()
 		return nil, err
@@ -71,6 +76,11 @@ func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID 
 		return nil, err
 	}
 
+	containerMountPoint, err := container.Mount()
+	if err != nil {
+		return nil, err
+	}
+
 	unmount := func() {
 		if err := container.Unmount(false); err != nil {
 			logrus.Errorf("Error unmounting container: %v", err)
@@ -83,7 +93,7 @@ func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID 
 		containerPath = "/."
 	}
 
-	_, resolvedRoot, resolvedContainerPath, err := ic.containerStat(container, containerPath)
+	_, resolvedRoot, resolvedContainerPath, err := ic.containerStat(container, containerMountPoint, containerPath)
 	if err != nil {
 		unmount()
 		return nil, err
