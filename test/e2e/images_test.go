@@ -319,7 +319,6 @@ WORKDIR /test
 	})
 
 	It("podman images --all flag", func() {
-		SkipIfRemote("FIXME This should work on podman-remote, problem is with podman-remote build")
 		dockerfile := `FROM quay.io/libpod/alpine:latest
 RUN mkdir hello
 RUN touch test.txt
@@ -350,7 +349,6 @@ LABEL "com.example.vendor"="Example Vendor"
 	})
 
 	It("podman with images with no layers", func() {
-		SkipIfRemote("FIXME This should work on podman-remote, problem is with podman-remote build")
 		dockerfile := strings.Join([]string{
 			`FROM scratch`,
 			`LABEL org.opencontainers.image.authors="<somefolks@example.org>"`,
