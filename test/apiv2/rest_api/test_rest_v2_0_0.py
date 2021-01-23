@@ -374,13 +374,13 @@ class TestApi(unittest.TestCase):
             self.assertEqual(len(objs), 1)
 
         def do_search3():
-            payload = {'term': 'alpine', 'filters': {'is-official': True}}
+            payload = {'term': 'alpine', 'filters': '{"is-official":["true"]}'}
             r = requests.get(url, params=payload, timeout=5)
             self.assertEqual(r.status_code, 200, r.text)
             objs = json.loads(r.text)
             self.assertIn(type(objs), (list,))
-# TODO: Request should return only one item, but it returns more. For now this check is commented out.
-#            self.assertEqual(len(objs), 1)
+            # There should be only one offical image
+            self.assertEqual(len(objs), 1)
 
         def do_search4():
             headers = {'X-Registry-Auth': 'null'}
@@ -400,19 +400,6 @@ class TestApi(unittest.TestCase):
             search.start()
             search.join(timeout=10)
             self.assertFalse(search.is_alive(), "/images/search took too long")
-
-    def test_search_compat_with_(self):
-        # Had issues with this test hanging when repositories not happy
-        def do_search():
-            r = requests.get(PODMAN_URL + "/v1.40/images/search?term=alpine", timeout=5)
-            self.assertEqual(r.status_code, 200, r.text)
-            objs = json.loads(r.text)
-            self.assertIn(type(objs), (list,))
-
-        search = Process(target=do_search)
-        search.start()
-        search.join(timeout=10)
-        self.assertFalse(search.is_alive(), "/images/search took too long")
 
     def test_ping(self):
         required_headers = (
