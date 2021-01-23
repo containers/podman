@@ -11,6 +11,12 @@ type CreateOptions struct {
 	All *bool
 }
 
+//go:generate go run ../generator/generator.go ExistsOptions
+// ExistsOptions are optional options for checking
+// if a manifest list exists
+type ExistsOptions struct {
+}
+
 //go:generate go run ../generator/generator.go AddOptions
 // AddOptions are optional options for adding manifests
 type AddOptions struct {

@@ -49,6 +49,19 @@ func Create(ctx context.Context, names, images []string, options *CreateOptions)
 	return idr.ID, response.Process(&idr)
 }
 
+// Exists returns true if a given maifest list exists
+func Exists(ctx context.Context, name string, options *ExistsOptions) (bool, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return false, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/manifests/%s/exists", nil, nil, name)
+	if err != nil {
+		return false, err
+	}
+	return response.IsSuccess(), nil
+}
+
 // Inspect returns a manifest list for a given name.
 func Inspect(ctx context.Context, name string, options *InspectOptions) (*manifest.Schema2List, error) {
 	var list manifest.Schema2List

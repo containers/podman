@@ -40,6 +40,18 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, names, images []strin
 	return imageID, err
 }
 
+// ManifestExists checks if a manifest list with the given name exists in local storage
+func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entities.BoolReport, error) {
+	if image, err := ir.Libpod.ImageRuntime().NewFromLocal(name); err == nil {
+		exists, err := image.ExistsManifest()
+		if err != nil && errors.Cause(err) != buildahManifests.ErrManifestTypeNotSupported {
+			return nil, err
+		}
+		return &entities.BoolReport{Value: exists}, nil
+	}
+	return &entities.BoolReport{Value: false}, nil
+}
+
 // ManifestInspect returns the content of a manifest list or image
 func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte, error) {
 	if newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(name); err == nil {
