@@ -98,6 +98,7 @@ load helpers
 # "network create" now works rootless, with the help of a special container
 @test "podman network create" {
     skip_if_remote "FIXME: pending #7808"
+    myport=54322
 
     local mynetname=testnet-$(random_string 10)
     local mysubnet=$(random_rfc1918_subnet)
@@ -114,6 +115,27 @@ load helpers
     run_podman run --rm --network $mynetname $IMAGE ip a
     is "$output" ".* inet ${mysubnet}\.2/24 brd ${mysubnet}\.255 " \
        "sdfsdf"
+
+    run_podman run --rm -d --network $mynetname -p 127.0.0.1:$myport:$myport \
+               $IMAGE nc -l -n -v -p $myport
+    cid="$output"
+
+    # emit random string, and check it
+    teststring=$(random_string 30)
+    echo "$teststring" | nc 127.0.0.1 $myport
+
+    run_podman logs $cid
+    # Sigh. We can't check line-by-line, because 'nc' output order is
+    # unreliable. We usually get the 'connect to' line before the random
+    # string, but sometimes we get it after. So, just do substring checks.
+    is "$output" ".*listening on \[::\]:$myport .*" "nc -v shows right port"
+
+    # This is the truly important check: make sure the remote IP is
+    # in the 172.X range, not 127.X.
+    is "$output" \
+       ".*connect to \[::ffff:172\..*\]:$myport from \[::ffff:172\..*\]:.*" \
+       "nc -v shows remote IP address in 172.X space (not 127.0.0.1)"
+    is "$output" ".*${teststring}.*" "test string received on container"
 
     # Cannot create network with the same name
     run_podman 125 network create $mynetname
