@@ -10,7 +10,7 @@ end
 function __podman_remote_perform_completion
     __podman_remote_debug "Starting __podman_remote_perform_completion"
 
-    set args (string split -- " " (commandline -c))
+    set args (string split -- " " (string trim -l (commandline -c)))
     set lastArg "$args[-1]"
 
     __podman_remote_debug "args: $args"
@@ -23,16 +23,13 @@ function __podman_remote_perform_completion
     end
     __podman_remote_debug "emptyArg: $emptyArg"
 
-    if not type -q "$args[1]"
-        # This can happen when "complete --do-complete podman-remote" is called when running this script.
-        __podman_remote_debug "Cannot find $args[1]. No completions."
-        return
-    end
-
     set requestComp "$args[1] __complete $args[2..-1] $emptyArg"
     __podman_remote_debug "Calling $requestComp"
 
-    set results (eval $requestComp 2> /dev/null)
+    # Call the command as a sub-shell so that we can redirect any errors
+    # For example, if $requestComp has an unmatched quote
+    # https://github.com/spf13/cobra/issues/1214
+    set results (fish -c "$requestComp" 2> /dev/null)
     set comps $results[1..-2]
     set directiveLine $results[-1]
 
@@ -81,8 +78,6 @@ function __podman_remote_prepare_completions
     set shellCompDirectiveNoFileComp 4
     set shellCompDirectiveFilterFileExt 8
     set shellCompDirectiveFilterDirs 16
-    set shellCompDirectiveLegacyCustomComp 32
-    set shellCompDirectiveLegacyCustomArgsComp 64
 
     if test -z "$directive"
         set directive 0
@@ -92,15 +87,6 @@ function __podman_remote_prepare_completions
     if test $compErr -eq 1
         __podman_remote_debug "Received error directive: aborting."
         # Might as well do file completion, in case it helps
-        return 1
-    end
-
-    set legacyCustom (math (math --scale 0 $directive / $shellCompDirectiveLegacyCustomComp) % 2)
-    set legacyCustomArgs (math (math --scale 0 $directive / $shellCompDirectiveLegacyCustomArgsComp) % 2)
-    if test $legacyCustom -eq 1; or test $legacyCustomArgs -eq 1
-        __podman_remote_debug "Legacy bash custom completion not applicable to fish"
-        # Do full file completion instead
-        set --global __podman_remote_comp_do_file_comp 1
         return 1
     end
 
@@ -121,14 +107,14 @@ function __podman_remote_prepare_completions
     # we need to count the number of valid completions.
     # To do so, we will filter on prefix as the completions we have received
     # may not already be filtered so as to allow fish to match on different
-    # criteria than prefix.
+    # criteria than the prefix.
     if test $nospace -ne 0; or test $nofiles -eq 0
         set prefix (commandline -t)
         __podman_remote_debug "prefix: $prefix"
 
         set completions
         for comp in $__podman_remote_comp_results
-            if test (string match -e -r "^$prefix" "$comp")
+            if test (string match -e -r -- "^$prefix" "$comp")
                 set -a completions $comp
             end
         end
@@ -166,7 +152,7 @@ end
 
 # Since Fish completions are only loaded once the user triggers them, we trigger them ourselves
 # so we can properly delete any completions provided by another script.
-# The space after the the program name is essential to trigger completion for the program
+# The space after the program name is essential to trigger completion for the program
 # and not completion of the program name itself.
 complete --do-complete "podman-remote " > /dev/null 2>&1
 # Using '> /dev/null 2>&1' since '&>' is not supported in older versions of fish.
