@@ -977,7 +977,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	if c.state.NetNS == nil {
 		// We still want to make dummy configurations for each CNI net
 		// the container joined.
-		if len(networks) > 0 && !isDefault {
+		if len(networks) > 0 {
 			settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
 			for _, net := range networks {
 				cniNet := new(define.InspectAdditionalNetwork)
@@ -998,7 +998,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	// If we have CNI networks - handle that here
-	if len(networks) > 0 && !isDefault {
+	if len(networks) > 0 {
 		if len(networks) != len(c.state.NetworkStatus) {
 			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI network(s) %v, but have information on %d network(s)", len(networks), networks, len(c.state.NetworkStatus))
 		}
@@ -1028,7 +1028,9 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 			settings.Networks[name] = addedNet
 		}
 
-		return settings, nil
+		if !isDefault {
+			return settings, nil
+		}
 	}
 
 	// If not joining networks, we should have at most 1 result
