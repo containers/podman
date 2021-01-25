@@ -34,7 +34,7 @@ Sometimes we can find a publicly available container image for the exact workloa
 
 Container Images aren’t actually images, they’re repositories often made up of multiple layers. These layers can easily be added, saved, and shared with others by using a Containerfile (Dockerfile). This single file often contains all the instructions needed to build the new and can easily be shared with others publicly using tools like GitHub.
 
-Here's an example of how to build an Nginx web server on top of a Debian base image using the Dockerfile maintained by Nginx and published in GitHub::
+Here's an example of how to build a Nginx web server on top of a Debian base image using the Dockerfile maintained by Nginx and published in GitHub::
 
     podman build -t nginx https://git.io/Jf8ol
 
@@ -62,7 +62,7 @@ Input::
     Password: ********
     Login Succeeded!
 
-Nex, tag the image so that we can push it into our user account::
+Next, tag the image so that we can push it into our user account::
 
     podman tag localhost/nginx quay.io/USERNAME/nginx
 
