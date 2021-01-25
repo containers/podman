@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -11,9 +10,7 @@ import (
 
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/pkg/inspect"
-	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/docker/docker/daemon/caps"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -263,8 +260,6 @@ func (c *Container) Kill(signal uint) error {
 // TODO allow specifying streams to attach to
 // TODO investigate allowing exec without attaching
 func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir string) error {
-	var capList []string
-
 	locked := false
 	if !c.batched {
 		locked = true
@@ -287,22 +282,8 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	if conState != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot exec into container that is not running")
 	}
-	if privileged || c.config.Privileged {
-		capList = caps.GetAllCapabilities()
-	}
 
-	// If user was set, look it up in the container to get a UID to use on
-	// the host
-	hostUser := ""
-	if user != "" {
-		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, nil)
-		if err != nil {
-			return err
-		}
-
-		// runc expects user formatted as uid:gid
-		hostUser = fmt.Sprintf("%d:%d", execUser.Uid, execUser.Gid)
-	}
+	isPrivileged := privileged || c.config.Privileged
 
 	// Generate exec session ID
 	// Ensure we don't conflict with an existing session ID
@@ -324,10 +305,11 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	logrus.Debugf("Creating new exec session in container %s with session id %s", c.ID(), sessionID)
 
-	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, hostUser, sessionID)
+	execCmd, processFile, err := c.runtime.ociRuntime.execContainer(c, cmd, env, tty, workDir, user, sessionID, isPrivileged)
 	if err != nil {
 		return errors.Wrapf(err, "error exec %s", c.ID())
 	}
+	defer os.Remove(processFile)
 	chWait := make(chan error)
 	go func() {
 		chWait <- execCmd.Wait()

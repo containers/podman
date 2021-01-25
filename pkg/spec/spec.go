@@ -325,6 +325,14 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 	} else {
 		g.SetupPrivileged(true)
+		if config.User != "" {
+			user := strings.SplitN(config.User, ":", 2)[0]
+			if user != "root" && user != "0" {
+				g.Spec().Process.Capabilities.Effective = []string{}
+				g.Spec().Process.Capabilities.Permitted = []string{}
+				g.Spec().Process.Capabilities.Ambient = []string{}
+			}
+		}
 	}
 
 	// HANDLE SECCOMP
