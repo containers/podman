@@ -126,6 +126,23 @@ EOF
     label_name=l$(random_string 8)
     label_value=$(random_string 12)
 
+    # #8679: Create a secrets directory, and mount it in the container
+    # (can only test locally; podman-remote has no --default-mounts-file opt)
+    MOUNTS_CONF=
+    secret_contents="ceci nest pas un secret"
+    CAT_SECRET="echo $secret_contents"
+    if ! is_remote; then
+        mkdir $tmpdir/secrets
+        echo  $tmpdir/secrets:/run/secrets > $tmpdir/mounts.conf
+
+        secret_filename=secretfile-$(random_string 20)
+        secret_contents=shhh-$(random_string 30)-shhh
+        echo $secret_contents >$tmpdir/secrets/$secret_filename
+
+        MOUNTS_CONF=--default-mounts-file=$tmpdir/mounts.conf
+        CAT_SECRET="cat /run/secrets/$secret_filename"
+    fi
+
     # Command to run on container startup with no args
     cat >$tmpdir/mycmd <<EOF
 #!/bin/sh
@@ -133,6 +150,7 @@ PATH=/usr/bin:/bin
 pwd
 echo "\$1"
 printenv | grep MYENV | sort | sed -e 's/^MYENV.=//'
+$CAT_SECRET
 EOF
 
     # For overriding with --env-file; using multiple files confirms that
@@ -169,14 +187,22 @@ ENV ftp_proxy  ftp-proxy-in-image
 ADD mycmd /bin/mydefaultcmd
 RUN chmod 755 /bin/mydefaultcmd
 RUN chown 2:3 /bin/mydefaultcmd
+
+#FIXME FIXME FIXME: enable if/when 'podman build' passes mounts.conf to buildah
+#RUN $CAT_SECRET
+
 CMD ["/bin/mydefaultcmd","$s_echo"]
 EOF
 
     # cd to the dir, so we test relative paths (important for podman-remote)
     cd $PODMAN_TMPDIR
-    run_podman build -t build_test -f build-test/Containerfile build-test
+    run_podman ${MOUNTS_CONF} build \
+               -t build_test -f build-test/Containerfile build-test
     local iid="${lines[-1]}"
 
+    # Make sure 'podman build' had the secret mounted
+    #FIXME FIXME: enable if/when 'podman build' passes mounts.conf to buildah
+    #is "$output" ".*$secret_contents.*" "podman build has /run/secrets mounted"
 
     if is_remote; then
         ENVHOST=""
@@ -187,7 +213,7 @@ EOF
     # Run without args - should run the above script. Verify its output.
     export MYENV2="$s_env2"
     export MYENV3="env-file-should-override-env-host!"
-    run_podman run --rm \
+    run_podman ${MOUNTS_CONF} run --rm \
                --env-file=$PODMAN_TMPDIR/env-file1 \
                --env-file=$PODMAN_TMPDIR/env-file2 \
                ${ENVHOST} \
@@ -206,6 +232,9 @@ EOF
 
     is "${lines[4]}" "$s_env3"  "container default command: env3 (from envfile)"
     is "${lines[5]}" "$s_env4"  "container default command: env4 (from cmdline)"
+
+    is "${lines[6]}" "$secret_contents" \
+       "Contents of /run/secrets/$secret_filename in container"
 
     # Proxies - environment should override container, but not env-file
     http_proxy=http-proxy-from-env  ftp_proxy=ftp-proxy-from-env \

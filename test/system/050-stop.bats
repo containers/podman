@@ -30,6 +30,49 @@ load helpers
     run_podman rm $cid
 }
 
+# #9051 : podman stop --all was not working with podman-remote
+@test "podman stop --all" {
+    # Start three containers, create (without running) a fourth
+    run_podman run -d --name c1 $IMAGE sleep 20
+    run_podman run -d --name c2 $IMAGE sleep 40
+    run_podman run -d --name c3 $IMAGE sleep 60
+    run_podman create --name c4 $IMAGE sleep 80
+
+    # podman ps (without -a) should show the three running containers
+    run_podman ps --sort names --format '{{.Names}}--{{.Status}}'
+    is "${#lines[*]}" "3"        "podman ps shows exactly three containers"
+    is "${lines[0]}" "c1--Up.*"  "podman ps shows running container (1)"
+    is "${lines[1]}" "c2--Up.*"  "podman ps shows running container (2)"
+    is "${lines[2]}" "c3--Up.*"  "podman ps shows running container (3)"
+
+    # Stop -a
+    run_podman stop -a -t 1
+
+    # Now podman ps (without -a) should show nothing.
+    run_podman ps --format '{{.Names}}'
+    is "$output" "" "podman ps, after stop -a, shows no running containers"
+
+    # ...but with -a, containers are shown
+    run_podman ps -a --sort names --format '{{.Names}}--{{.Status}}'
+    is "${#lines[*]}" "4"        "podman ps -a shows exactly four containers"
+    is "${lines[0]}" "c1--Exited.*"  "ps -a, first stopped container"
+    is "${lines[1]}" "c2--Exited.*"  "ps -a, second stopped container"
+    is "${lines[2]}" "c3--Exited.*"  "ps -a, third stopped container"
+    is "${lines[3]}" "c4--Created.*" "ps -a, created container (unaffected)"
+}
+
+# #9051 : podman stop --ignore was not working with podman-remote
+@test "podman stop --ignore" {
+    name=thiscontainerdoesnotexist
+    run_podman 125 stop $name
+    is "$output" \
+       "Error: no container with name or ID $name found: no such container" \
+       "podman stop nonexistent container"
+
+    run_podman stop --ignore $name
+    is "$output" "" "podman stop nonexistent container, with --ignore"
+}
+
 
 # Test fallback
 
