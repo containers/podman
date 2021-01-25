@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/domain/infra/abi"
-	"github.com/containers/podman/v2/pkg/ps"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -63,6 +62,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		All       bool                `schema:"all"`
+		External  bool                `schema:"external"`
 		Filters   map[string][]string `schema:"filters"`
 		Last      int                 `schema:"last"` // alias for limit
 		Limit     int                 `schema:"limit"`
@@ -90,17 +90,22 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	// Now use the ABI implementation to prevent us from having duplicate
+	// code.
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	opts := entities.ContainerListOptions{
 		All:       query.All,
+		External:  query.External,
 		Filters:   query.Filters,
 		Last:      limit,
-		Size:      query.Size,
-		Sort:      "",
 		Namespace: query.Namespace,
-		Pod:       true,
-		Sync:      query.Sync,
+		// Always return Pod, should not be part of the API.
+		// https://github.com/containers/podman/pull/7223
+		Pod:  true,
+		Size: query.Size,
+		Sync: query.Sync,
 	}
-	pss, err := ps.GetContainerLists(runtime, opts)
+	pss, err := containerEngine.ContainerList(r.Context(), opts)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

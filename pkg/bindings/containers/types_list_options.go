@@ -103,6 +103,22 @@ func (o *ListOptions) GetAll() bool {
 	return *o.All
 }
 
+// WithExternal
+func (o *ListOptions) WithExternal(value bool) *ListOptions {
+	v := &value
+	o.External = v
+	return o
+}
+
+// GetExternal
+func (o *ListOptions) GetExternal() bool {
+	var external bool
+	if o.External == nil {
+		return external
+	}
+	return *o.External
+}
+
 // WithFilters
 func (o *ListOptions) WithFilters(value map[string][]string) *ListOptions {
 	v := value

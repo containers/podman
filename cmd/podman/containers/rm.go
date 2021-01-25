@@ -140,6 +140,10 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 }
 
 func setExitCode(err error) {
+	// If error is set to no such container, do not reset
+	if registry.GetExitCode() == 1 {
+		return
+	}
 	cause := errors.Cause(err)
 	switch {
 	case cause == define.ErrNoSuchCtr:

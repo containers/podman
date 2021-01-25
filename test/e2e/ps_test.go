@@ -396,11 +396,14 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"ps", "--pod", "--no-trunc"})
-
+		session = podmanTest.Podman([]string{"ps", "--no-trunc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(podid)))
 
+		session = podmanTest.Podman([]string{"ps", "--pod", "--no-trunc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid))
 	})
 

@@ -297,8 +297,8 @@ type ContainerListOptions struct {
 	Pod       bool
 	Quiet     bool
 	Size      bool
+	External  bool
 	Sort      string
-	Storage   bool
 	Sync      bool
 	Watch     uint
 }

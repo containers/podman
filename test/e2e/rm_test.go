@@ -132,7 +132,7 @@ var _ = Describe("Podman rm", func() {
 
 		latest := "-l"
 		if IsRemote() {
-			latest = "test1"
+			latest = cid
 		}
 		result := podmanTest.Podman([]string{"rm", latest})
 		result.WaitWithDefaultTimeout()

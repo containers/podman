@@ -82,11 +82,10 @@ load helpers
     run_podman rm -a
 }
 
-@test "podman ps -a --storage" {
-    skip_if_remote "ps --storage does not work over remote"
+@test "podman ps -a --external" {
 
     # Setup: ensure that we have no hidden storage containers
-    run_podman ps --storage -a
+    run_podman ps --external -a
     is "${#lines[@]}" "1" "setup check: no storage containers at start of test"
 
     # Force a buildah timeout; this leaves a buildah container behind
@@ -98,18 +97,18 @@ EOF
     run_podman ps -a
     is "${#lines[@]}" "1" "podman ps -a does not see buildah container"
 
-    run_podman ps --storage -a
-    is "${#lines[@]}" "2" "podman ps -a --storage sees buildah container"
+    run_podman ps --external -a
+    is "${#lines[@]}" "2" "podman ps -a --external sees buildah container"
     is "${lines[1]}" \
        "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds ago .* storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
-       "podman ps --storage"
+       "podman ps --external"
 
     cid="${lines[1]:0:12}"
 
     # 'rm -a' should be a NOP
     run_podman rm -a
-    run_podman ps --storage -a
-    is "${#lines[@]}" "2" "podman ps -a --storage sees buildah container"
+    run_podman ps --external -a
+    is "${#lines[@]}" "2" "podman ps -a --external sees buildah container"
 
     # We can't rm it without -f, but podman should issue a helpful message
     run_podman 2 rm "$cid"
@@ -118,7 +117,7 @@ EOF
     # With -f, we can remove it.
     run_podman rm -f "$cid"
 
-    run_podman ps --storage -a
+    run_podman ps --external -a
     is "${#lines[@]}" "1" "storage container has been removed"
 }
 
