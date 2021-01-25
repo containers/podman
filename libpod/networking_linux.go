@@ -973,6 +973,13 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		return nil, err
 	}
 
+	// If this a container with a netns and on the default network
+	if c.state.NetNS != nil && isDefault {
+		settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
+		cniNet := new(define.InspectAdditionalNetwork)
+		cniNet.NetworkID = c.runtime.netPlugin.GetDefaultNetworkName()
+		settings.Networks[c.runtime.netPlugin.GetDefaultNetworkName()] = cniNet
+	}
 	// We can't do more if the network is down.
 	if c.state.NetNS == nil {
 		// We still want to make dummy configurations for each CNI net
@@ -998,7 +1005,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	// If we have CNI networks - handle that here
-	if len(networks) > 0 && !isDefault {
+	if len(networks) > 0 {
 		if len(networks) != len(c.state.NetworkStatus) {
 			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI network(s) %v, but have information on %d network(s)", len(networks), networks, len(c.state.NetworkStatus))
 		}

@@ -443,4 +443,16 @@ var _ = Describe("Podman inspect", func() {
 		Expect(inspect.OutputToString()).To(Equal(`"{"80/tcp":[{"HostIp":"","HostPort":"8080"}]}"`))
 	})
 
+	It("Verify container inspect has default network", func() {
+		session := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		cid := session.OutputToString()
+		inspect := podmanTest.Podman([]string{"inspect", cid})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data[0].NetworkSettings.Networks)).To(BeNumerically(">", 0))
+	})
+
 })
