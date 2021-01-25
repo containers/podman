@@ -179,13 +179,13 @@ func setupSystemd() {
 func (s *APIServer) Serve() error {
 	setupSystemd()
 
-	// Start the shutdown signal handler.
-	if err := shutdown.Start(); err != nil {
-		return err
-	}
 	if err := shutdown.Register("server", func(sig os.Signal) error {
 		return s.Shutdown()
 	}); err != nil {
+		return err
+	}
+	// Start the shutdown signal handler.
+	if err := shutdown.Start(); err != nil {
 		return err
 	}
 
