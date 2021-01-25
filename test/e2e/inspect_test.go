@@ -443,4 +443,27 @@ var _ = Describe("Podman inspect", func() {
 		Expect(inspect.OutputToString()).To(Equal(`"{"80/tcp":[{"HostIp":"","HostPort":"8080"}]}"`))
 	})
 
+	It("Verify container inspect has default network", func() {
+		SkipIfRootless("Requires root CNI networking")
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		inspect := podmanTest.InspectContainer(ctrName)
+		Expect(len(inspect)).To(Equal(1))
+		Expect(len(inspect[0].NetworkSettings.Networks)).To(Equal(1))
+	})
+
+	It("Verify stopped container still has default network in inspect", func() {
+		SkipIfRootless("Requires root CNI networking")
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		inspect := podmanTest.InspectContainer(ctrName)
+		Expect(len(inspect)).To(Equal(1))
+		Expect(len(inspect[0].NetworkSettings.Networks)).To(Equal(1))
+	})
 })
