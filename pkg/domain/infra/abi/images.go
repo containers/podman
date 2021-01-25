@@ -241,9 +241,9 @@ func pull(ctx context.Context, runtime *image.Runtime, rawImage string, options 
 	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds:         registryCreds,
 		DockerCertPath:              options.CertDir,
-		OSChoice:                    options.OverrideOS,
-		ArchitectureChoice:          options.OverrideArch,
-		VariantChoice:               options.OverrideVariant,
+		OSChoice:                    options.OS,
+		ArchitectureChoice:          options.Arch,
+		VariantChoice:               options.Variant,
 		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
 	}
 

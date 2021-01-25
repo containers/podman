@@ -171,13 +171,13 @@ type PullOptions struct {
 	Username *string
 	// Password for authenticating against the registry.
 	Password *string
-	// OverrideArch will overwrite the local architecture for image pulls.
-	OverrideArch *string
-	// OverrideOS will overwrite the local operating system (OS) for image
+	// Arch will overwrite the local architecture for image pulls.
+	Arch *string
+	// OS will overwrite the local operating system (OS) for image
 	// pulls.
-	OverrideOS *string
-	// OverrideVariant will overwrite the local variant for image pulls.
-	OverrideVariant *string
+	OS *string
+	// Variant will overwrite the local variant for image pulls.
+	Variant *string
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet *bool

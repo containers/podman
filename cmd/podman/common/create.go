@@ -474,29 +474,29 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(oomScoreAdjFlagName, completion.AutocompleteNone)
 
-	overrideArchFlagName := "override-arch"
+	archFlagName := "arch"
 	createFlags.StringVar(
-		&cf.OverrideArch,
-		overrideArchFlagName, "",
+		&cf.Arch,
+		archFlagName, "",
 		"use `ARCH` instead of the architecture of the machine for choosing images",
 	)
-	_ = cmd.RegisterFlagCompletionFunc(overrideArchFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteArch)
 
-	overrideOSFlagName := "override-os"
+	osFlagName := "os"
 	createFlags.StringVar(
-		&cf.OverrideOS,
-		overrideOSFlagName, "",
+		&cf.OS,
+		osFlagName, "",
 		"use `OS` instead of the running OS for choosing images",
 	)
-	_ = cmd.RegisterFlagCompletionFunc(overrideOSFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteOS)
 
-	overrideVariantFlagName := "override-variant"
+	variantFlagName := "variant"
 	createFlags.StringVar(
-		&cf.OverrideVariant,
-		overrideVariantFlagName, "",
+		&cf.Variant,
+		variantFlagName, "",
 		"Use _VARIANT_ instead of the running architecture variant for choosing images",
 	)
-	_ = cmd.RegisterFlagCompletionFunc(overrideVariantFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
 
 	pidFlagName := "pid"
 	createFlags.String(
@@ -516,7 +516,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	createFlags.StringVar(
 		&cf.Platform,
 		platformFlagName, "",
-		"Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)",
+		"Specify the platform for selecting the image.  (Conflicts with --arch and --os)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(platformFlagName, completion.AutocompleteNone)
 

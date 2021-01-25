@@ -282,7 +282,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create using image list by tag", func() {
-		session := podmanTest.Podman([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINELISTTAG})
+		session := podmanTest.Podman([]string{"create", "--pull=always", "--arch=arm64", "--name=foo", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To((Equal(0)))
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Image}}", "foo"})
@@ -296,7 +296,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create using image list by digest", func() {
-		session := podmanTest.Podman([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINELISTDIGEST})
+		session := podmanTest.Podman([]string{"create", "--pull=always", "--arch=arm64", "--name=foo", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To((Equal(0)))
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Image}}", "foo"})
@@ -310,7 +310,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create using image list instance by digest", func() {
-		session := podmanTest.Podman([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINEARM64DIGEST})
+		session := podmanTest.Podman([]string{"create", "--pull=always", "--arch=arm64", "--name=foo", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To((Equal(0)))
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Image}}", "foo"})
@@ -324,7 +324,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create using cross-arch image list instance by digest", func() {
-		session := podmanTest.Podman([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINEARM64DIGEST})
+		session := podmanTest.Podman([]string{"create", "--pull=always", "--arch=arm64", "--name=foo", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To((Equal(0)))
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Image}}", "foo"})
@@ -652,10 +652,10 @@ var _ = Describe("Podman create", func() {
 		expectedError := "no image found in manifest list for architecture bogus"
 		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 
-		session = podmanTest.Podman([]string{"create", "--platform=linux/arm64", "--override-os", "windows", ALPINE})
+		session = podmanTest.Podman([]string{"create", "--platform=linux/arm64", "--os", "windows", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
-		expectedError = "--platform option can not be specified with --override-arch or --override-os"
+		expectedError = "--platform option can not be specified with --arch or --os"
 		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 
 		session = podmanTest.Podman([]string{"create", "-q", "--platform=linux/arm64", ALPINE})

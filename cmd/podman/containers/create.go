@@ -237,17 +237,20 @@ func pullImage(imageName string) (string, error) {
 		imageMissing = !br.Value
 	}
 
-	if cliVals.Platform != "" {
-		if cliVals.OverrideArch != "" || cliVals.OverrideOS != "" {
-			return "", errors.Errorf("--platform option can not be specified with --override-arch or --override-os")
+	if cliVals.Platform != "" || cliVals.Arch != "" || cliVals.OS != "" {
+		if cliVals.Platform != "" {
+			if cliVals.Arch != "" || cliVals.OS != "" {
+				return "", errors.Errorf("--platform option can not be specified with --arch or --os")
+			}
+			split := strings.SplitN(cliVals.Platform, "/", 2)
+			cliVals.OS = split[0]
+			if len(split) > 1 {
+				cliVals.Arch = split[1]
+			}
 		}
-		split := strings.SplitN(cliVals.Platform, "/", 2)
-		cliVals.OverrideOS = split[0]
-		if len(split) > 1 {
-			cliVals.OverrideArch = split[1]
-		}
+
 		if pullPolicy != config.PullImageAlways {
-			logrus.Info("--platform causes the pull policy to be \"always\"")
+			logrus.Info("--platform --arch and --os causes the pull policy to be \"always\"")
 			pullPolicy = config.PullImageAlways
 		}
 	}
@@ -259,9 +262,9 @@ func pullImage(imageName string) (string, error) {
 		pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
 			Authfile:        cliVals.Authfile,
 			Quiet:           cliVals.Quiet,
-			OverrideArch:    cliVals.OverrideArch,
-			OverrideOS:      cliVals.OverrideOS,
-			OverrideVariant: cliVals.OverrideVariant,
+			Arch:            cliVals.Arch,
+			OS:              cliVals.OS,
+			Variant:         cliVals.Variant,
 			SignaturePolicy: cliVals.SignaturePolicy,
 			PullPolicy:      pullPolicy,
 		})

@@ -84,20 +84,20 @@ func pullFlags(cmd *cobra.Command) {
 	flags.StringVar(&pullOptions.CredentialsCLI, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	_ = cmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
 
-	overrideArchFlagName := "override-arch"
-	flags.StringVar(&pullOptions.OverrideArch, overrideArchFlagName, "", "Use `ARCH` instead of the architecture of the machine for choosing images")
-	_ = cmd.RegisterFlagCompletionFunc(overrideArchFlagName, completion.AutocompleteNone)
+	archFlagName := "arch"
+	flags.StringVar(&pullOptions.Arch, archFlagName, "", "Use `ARCH` instead of the architecture of the machine for choosing images")
+	_ = cmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteArch)
 
-	overrideOsFlagName := "override-os"
-	flags.StringVar(&pullOptions.OverrideOS, overrideOsFlagName, "", "Use `OS` instead of the running OS for choosing images")
-	_ = cmd.RegisterFlagCompletionFunc(overrideOsFlagName, completion.AutocompleteNone)
+	osFlagName := "os"
+	flags.StringVar(&pullOptions.OS, osFlagName, "", "Use `OS` instead of the running OS for choosing images")
+	_ = cmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteOS)
 
-	overrideVariantFlagName := "override-variant"
-	flags.StringVar(&pullOptions.OverrideVariant, overrideVariantFlagName, "", " use VARIANT instead of the running architecture variant for choosing images")
-	_ = cmd.RegisterFlagCompletionFunc(overrideVariantFlagName, completion.AutocompleteNone)
+	variantFlagName := "variant"
+	flags.StringVar(&pullOptions.Variant, variantFlagName, "", " use VARIANT instead of the running architecture variant for choosing images")
+	_ = cmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
 
 	platformFlagName := "platform"
-	flags.String(platformFlagName, "", "Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)")
+	flags.String(platformFlagName, "", "Specify the platform for selecting the image.  (Conflicts with arch and os)")
 	_ = cmd.RegisterFlagCompletionFunc(platformFlagName, completion.AutocompleteNone)
 
 	flags.Bool("disable-content-trust", false, "This is a Docker specific option and is a NOOP")
@@ -138,13 +138,13 @@ func imagePull(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if platform != "" {
-		if pullOptions.OverrideArch != "" || pullOptions.OverrideOS != "" {
-			return errors.Errorf("--platform option can not be specified with --override-arch or --override-os")
+		if pullOptions.Arch != "" || pullOptions.OS != "" {
+			return errors.Errorf("--platform option can not be specified with --arch or --os")
 		}
 		split := strings.SplitN(platform, "/", 2)
-		pullOptions.OverrideOS = split[0]
+		pullOptions.OS = split[0]
 		if len(split) > 1 {
-			pullOptions.OverrideArch = split[1]
+			pullOptions.Arch = split[1]
 		}
 	}
 

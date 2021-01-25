@@ -52,7 +52,7 @@ func init() {
 
 	archFlagName := "arch"
 	flags.StringVar(&manifestAddOpts.Arch, archFlagName, "", "override the `architecture` of the specified image")
-	_ = addCmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteNone)
+	_ = addCmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteArch)
 
 	authfileFlagName := "authfile"
 	flags.StringVar(&manifestAddOpts.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -72,7 +72,7 @@ func init() {
 
 	osFlagName := "os"
 	flags.StringVar(&manifestAddOpts.OS, osFlagName, "", "override the `OS` of the specified image")
-	_ = addCmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteNone)
+	_ = addCmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteOS)
 
 	osVersionFlagName := "os-version"
 	flags.StringVar(&manifestAddOpts.OSVersion, osVersionFlagName, "", "override the OS `version` of the specified image")
