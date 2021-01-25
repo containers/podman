@@ -157,19 +157,32 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, opts entities.RmOptions) ([]*entities.RmReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
-	if err != nil {
-		return nil, err
-	}
 	// TODO there is no endpoint for container eviction.  Need to discuss
-	reports := make([]*entities.RmReport, 0, len(ctrs))
-	options := new(containers.RemoveOptions).WithForce(opts.Force).WithVolumes(opts.Volumes)
-	for _, c := range ctrs {
+	options := new(containers.RemoveOptions).WithForce(opts.Force).WithVolumes(opts.Volumes).WithIgnore(opts.Ignore)
+
+	if opts.All {
+		ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
+		if err != nil {
+			return nil, err
+		}
+		reports := make([]*entities.RmReport, 0, len(ctrs))
+		for _, c := range ctrs {
+			reports = append(reports, &entities.RmReport{
+				Id:  c.ID,
+				Err: containers.Remove(ic.ClientCtx, c.ID, options),
+			})
+		}
+		return reports, nil
+	}
+
+	reports := make([]*entities.RmReport, 0, len(namesOrIds))
+	for _, name := range namesOrIds {
 		reports = append(reports, &entities.RmReport{
-			Id:  c.ID,
-			Err: containers.Remove(ic.ClientCtx, c.ID, options),
+			Id:  name,
+			Err: containers.Remove(ic.ClientCtx, name, options),
 		})
 	}
+
 	return reports, nil
 }
 
@@ -585,7 +598,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 
 func (ic *ContainerEngine) ContainerList(ctx context.Context, opts entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	options := new(containers.ListOptions).WithFilters(opts.Filters).WithAll(opts.All).WithLast(opts.Last)
-	options.WithNamespace(opts.Namespace).WithSize(opts.Size).WithSync(opts.Sync)
+	options.WithNamespace(opts.Namespace).WithSize(opts.Size).WithSync(opts.Sync).WithExternal(opts.External)
 	return containers.List(ic.ClientCtx, options)
 }
 

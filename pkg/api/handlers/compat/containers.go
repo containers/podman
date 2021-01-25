@@ -77,7 +77,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	if report[0].Err != nil {
+	if len(report) > 0 && report[0].Err != nil {
 		utils.InternalServerError(w, report[0].Err)
 		return
 	}
