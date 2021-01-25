@@ -180,19 +180,19 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 		}
 	}
 
+	if err := shutdown.Register("libpod", func(sig os.Signal) error {
+		os.Exit(1)
+		return nil
+	}); err != nil && errors.Cause(err) != shutdown.ErrHandlerExists {
+		logrus.Errorf("Error registering shutdown handler for libpod: %v", err)
+	}
+
 	if err := shutdown.Start(); err != nil {
 		return nil, errors.Wrapf(err, "error starting shutdown signal handler")
 	}
 
 	if err := makeRuntime(ctx, runtime); err != nil {
 		return nil, err
-	}
-
-	if err := shutdown.Register("libpod", func(sig os.Signal) error {
-		os.Exit(1)
-		return nil
-	}); err != nil && errors.Cause(err) != shutdown.ErrHandlerExists {
-		logrus.Errorf("Error registering shutdown handler for libpod: %v", err)
 	}
 
 	return runtime, nil

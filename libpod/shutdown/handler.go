@@ -18,6 +18,8 @@ var (
 	stopped    bool
 	sigChan    chan os.Signal
 	cancelChan chan bool
+	// Syncronize accesses to the map
+	handlerLock sync.Mutex
 	// Definitions of all on-shutdown handlers
 	handlers map[string]func(os.Signal) error
 	// Ordering that on-shutdown handlers will be invoked.
@@ -50,6 +52,7 @@ func Start() error {
 		case sig := <-sigChan:
 			logrus.Infof("Received shutdown signal %v, terminating!", sig)
 			shutdownInhibit.Lock()
+			handlerLock.Lock()
 			for _, name := range handlerOrder {
 				handler, ok := handlers[name]
 				if !ok {
@@ -61,6 +64,7 @@ func Start() error {
 					logrus.Errorf("Error running shutdown handler %s: %v", name, err)
 				}
 			}
+			handlerLock.Unlock()
 			shutdownInhibit.Unlock()
 			return
 		}
@@ -97,6 +101,9 @@ func Uninhibit() {
 // by a signal. Handlers are invoked LIFO - the last handler registered is the
 // first run.
 func Register(name string, handler func(os.Signal) error) error {
+	handlerLock.Lock()
+	defer handlerLock.Unlock()
+
 	if handlers == nil {
 		handlers = make(map[string]func(os.Signal) error)
 	}
@@ -113,6 +120,9 @@ func Register(name string, handler func(os.Signal) error) error {
 
 // Unregister un-registers a given shutdown handler.
 func Unregister(name string) error {
+	handlerLock.Lock()
+	defer handlerLock.Unlock()
+
 	if handlers == nil {
 		return nil
 	}
