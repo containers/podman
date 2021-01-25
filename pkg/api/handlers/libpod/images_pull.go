@@ -30,12 +30,12 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Reference       string `schema:"reference"`
-		OverrideOS      string `schema:"overrideOS"`
-		OverrideArch    string `schema:"overrideArch"`
-		OverrideVariant string `schema:"overrideVariant"`
-		TLSVerify       bool   `schema:"tlsVerify"`
-		AllTags         bool   `schema:"allTags"`
+		Reference string `schema:"reference"`
+		OS        string `schema:"OS"`
+		Arch      string `schema:"Arch"`
+		Variant   string `schema:"Variant"`
+		TLSVerify bool   `schema:"tlsVerify"`
+		AllTags   bool   `schema:"allTags"`
 	}{
 		TLSVerify: true,
 	}
@@ -83,9 +83,9 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	// Setup the registry options
 	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds: authConf,
-		OSChoice:            query.OverrideOS,
-		ArchitectureChoice:  query.OverrideArch,
-		VariantChoice:       query.OverrideVariant,
+		OSChoice:            query.OS,
+		ArchitectureChoice:  query.Arch,
+		VariantChoice:       query.Variant,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)

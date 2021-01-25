@@ -39,7 +39,7 @@ func init() {
 
 	archFlagName := "arch"
 	flags.StringVar(&manifestAnnotateOpts.Arch, archFlagName, "", "override the `architecture` of the specified image")
-	_ = annotateCmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteNone)
+	_ = annotateCmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteArch)
 
 	featuresFlagName := "features"
 	flags.StringSliceVar(&manifestAnnotateOpts.Features, featuresFlagName, nil, "override the `features` of the specified image")
@@ -47,7 +47,7 @@ func init() {
 
 	osFlagName := "os"
 	flags.StringVar(&manifestAnnotateOpts.OS, osFlagName, "", "override the `OS` of the specified image")
-	_ = annotateCmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteNone)
+	_ = annotateCmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteOS)
 
 	osFeaturesFlagName := "os-features"
 	flags.StringSliceVar(&manifestAnnotateOpts.OSFeatures, osFeaturesFlagName, nil, "override the OS `features` of the specified image")
