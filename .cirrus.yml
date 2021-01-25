@@ -344,14 +344,13 @@ static_alt_build_task:
         ALT_NAME: 'Static build'
         # Do not use 'latest', fixed-version tag for runtime stability.
         CTR_FQIN: "docker.io/nixos/nix:2.3.6"
-    # This is critical, it helps to avoid a very lengthy process of
-    # statically building every dependency needed to build podman.
-    # Assuming the dependency and build description hasn't changed,
-    # this cache ensures only the static podman binary is built.
-    nix_cache:
-        folder: '/var/cache/nix'
-        # Cirrus will calculate/use sha of this output as the cache key
-        fingerprint_script: echo "${IMAGE_SUFFIX}" && cat nix/*
+        # Authentication token for pushing the build cache to cachix.
+        # This is critical, it helps to avoid a very lengthy process of
+        # statically building every dependency needed to build podman.
+        # Assuming the pinned nix dependencies in nix/nixpkgs.json have not
+        # changed, this cache will ensure that only the static podman binary is
+        # built.
+        CACHIX_AUTH_TOKEN: ENCRYPTED[df0d4d0a67474e8ea49cc503221dcb912b7e2ba45c8ec4bf2e5fd9c49a18ac21c24bacee59b5393355ed9e4358d2baef]
     setup_script: *setup
     main_script: *main
     always: *binary_artifacts
