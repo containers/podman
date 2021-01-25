@@ -171,4 +171,15 @@ function check_label() {
     run_podman pod rm myselinuxpod
 }
 
+# #8946 - better diagnostics for nonexistent attributes
+@test "podman with nonexistent labels" {
+    skip_if_no_selinux
+
+    # The '.*' in the error below is for dealing with podman-remote, which
+    # includes "error preparing container <sha> for attach" in output.
+    run_podman 126 run --security-opt label=type:foo.bar $IMAGE true
+    is "$output" "Error.*: \`/proc/thread-self/attr/exec\`: OCI runtime error: unable to assign security attribute" "useful diagnostic"
+}
+
+
 # vim: filetype=sh
