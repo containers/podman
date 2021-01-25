@@ -106,8 +106,8 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 
 func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.ImagePullOptions) (*entities.ImagePullReport, error) {
 	options := new(images.PullOptions)
-	options.WithAllTags(opts.AllTags).WithAuthfile(opts.Authfile).WithCertDir(opts.CertDir).WithOverrideArch(opts.OverrideArch).WithOverrideOS(opts.OverrideOS)
-	options.WithOverrideVariant(opts.OverrideVariant).WithPassword(opts.Password).WithPullPolicy(opts.PullPolicy)
+	options.WithAllTags(opts.AllTags).WithAuthfile(opts.Authfile).WithCertDir(opts.CertDir).WithArch(opts.Arch).WithOS(opts.OS)
+	options.WithVariant(opts.Variant).WithPassword(opts.Password).WithPullPolicy(opts.PullPolicy)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
 			options.WithSkipTLSVerify(true)

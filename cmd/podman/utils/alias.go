@@ -25,6 +25,12 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "external"
 	case "purge":
 		name = "rm"
+	case "override-arch":
+		name = "arch"
+	case "override-os":
+		name = "os"
+	case "override-variant":
+		name = "variant"
 	}
 	return pflag.NormalizedName(name)
 }

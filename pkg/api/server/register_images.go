@@ -930,15 +930,15 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     description: "username:password for the registry"
 	//     type: string
 	//   - in: query
-	//     name: overrideArch
+	//     name: Arch
 	//     description: Pull image for the specified architecture.
 	//     type: string
 	//   - in: query
-	//     name: overrideOS
+	//     name: OS
 	//     description: Pull image for the specified operating system.
 	//     type: string
 	//   - in: query
-	//     name: overrideVariant
+	//     name: Variant
 	//     description: Pull image for the specified variant.
 	//     type: string
 	//   - in: query

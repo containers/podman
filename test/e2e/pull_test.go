@@ -92,7 +92,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull by digest (image list)", func() {
-		session := podmanTest.Podman([]string{"pull", "--override-arch=arm64", ALPINELISTDIGEST})
+		session := podmanTest.Podman([]string{"pull", "--arch=arm64", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		// inspect using the digest of the list
@@ -135,7 +135,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull by instance digest (image list)", func() {
-		session := podmanTest.Podman([]string{"pull", "--override-arch=arm64", ALPINEARM64DIGEST})
+		session := podmanTest.Podman([]string{"pull", "--arch=arm64", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		// inspect using the digest of the list
@@ -175,7 +175,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull by tag (image list)", func() {
-		session := podmanTest.Podman([]string{"pull", "--override-arch=arm64", ALPINELISTTAG})
+		session := podmanTest.Podman([]string{"pull", "--arch=arm64", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		// inspect using the tag we used for pulling
@@ -503,10 +503,10 @@ var _ = Describe("Podman pull", func() {
 		expectedError := "no image found in manifest list for architecture bogus"
 		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 
-		session = podmanTest.Podman([]string{"pull", "--platform=linux/arm64", "--override-os", "windows", ALPINE})
+		session = podmanTest.Podman([]string{"pull", "--platform=linux/arm64", "--os", "windows", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
-		expectedError = "--platform option can not be specified with --override-arch or --override-os"
+		expectedError = "--platform option can not be specified with --arch or --os"
 		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 
 		session = podmanTest.Podman([]string{"pull", "-q", "--platform=linux/arm64", ALPINE})

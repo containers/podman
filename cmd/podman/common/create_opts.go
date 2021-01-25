@@ -74,9 +74,9 @@ type ContainerCLIOpts struct {
 	NoHealthCheck     bool
 	OOMKillDisable    bool
 	OOMScoreAdj       int
-	OverrideArch      string
-	OverrideOS        string
-	OverrideVariant   string
+	Arch              string
+	OS                string
+	Variant           string
 	PID               string
 	PIDsLimit         *int64
 	Platform          string
@@ -347,9 +347,9 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		LogOptions:       stringMaptoArray(cc.HostConfig.LogConfig.Config),
 		Name:             cc.Name,
 		OOMScoreAdj:      cc.HostConfig.OomScoreAdj,
-		OverrideArch:     "",
-		OverrideOS:       "",
-		OverrideVariant:  "",
+		Arch:             "",
+		OS:               "",
+		Variant:          "",
 		PID:              string(cc.HostConfig.PidMode),
 		PIDsLimit:        cc.HostConfig.PidsLimit,
 		Privileged:       cc.HostConfig.Privileged,

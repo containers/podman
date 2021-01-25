@@ -93,6 +93,9 @@ This option can be set multiple times.
 Add an annotation to the container.
 This option can be set multiple times.
 
+#### **--arch**=*ARCH*
+Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
+
 #### **--attach**, **-a**=**stdin**|**stdout**|**stderr**
 
 Attach to STDIN, STDOUT or STDERR.
@@ -705,14 +708,8 @@ Whether to disable OOM Killer for the container or not.
 
 Tune the host's OOM preferences for containers (accepts values from **-1000** to **1000**).
 
-#### **--override-arch**=*ARCH*
-Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
-
-#### **--override-os**=*OS*
+#### **--os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
-
-#### **--override-variant**=*VARIANT*
-Use _VARIANT_ instead of the default architecture variant of the container image. Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
 #### **--pid**=*mode*
 
@@ -730,7 +727,7 @@ Tune the container's pids limit. Set to **0** to have unlimited pids for the con
 
 #### **--platform**=*OS/ARCH*
 
-Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)
+Specify the platform for selecting the image.  (Conflicts with --arch and --os)
 The `--platform` option can be used to override the current architecture and operating system.
 
 #### **--pod**=*name*
@@ -1082,6 +1079,9 @@ Set the UTS namespace mode for the container. The following values are supported
 - **private**: create a new namespace for the container (default).
 - **ns:[path]**: run the container in the given existing UTS namespace.
 - **container:[container]**: join the UTS namespace of the specified container.
+
+#### **--variant**=*VARIANT*
+Use _VARIANT_ instead of the default architecture variant of the container image. Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
 #### **--volume**, **-v**[=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
 

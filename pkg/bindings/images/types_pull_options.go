@@ -168,52 +168,52 @@ func (o *PullOptions) GetPassword() string {
 	return *o.Password
 }
 
-// WithOverrideArch
-func (o *PullOptions) WithOverrideArch(value string) *PullOptions {
+// WithArch
+func (o *PullOptions) WithArch(value string) *PullOptions {
 	v := &value
-	o.OverrideArch = v
+	o.Arch = v
 	return o
 }
 
-// GetOverrideArch
-func (o *PullOptions) GetOverrideArch() string {
-	var overrideArch string
-	if o.OverrideArch == nil {
-		return overrideArch
+// GetArch
+func (o *PullOptions) GetArch() string {
+	var arch string
+	if o.Arch == nil {
+		return arch
 	}
-	return *o.OverrideArch
+	return *o.Arch
 }
 
-// WithOverrideOS
-func (o *PullOptions) WithOverrideOS(value string) *PullOptions {
+// WithOS
+func (o *PullOptions) WithOS(value string) *PullOptions {
 	v := &value
-	o.OverrideOS = v
+	o.OS = v
 	return o
 }
 
-// GetOverrideOS
-func (o *PullOptions) GetOverrideOS() string {
-	var overrideOS string
-	if o.OverrideOS == nil {
-		return overrideOS
+// GetOS
+func (o *PullOptions) GetOS() string {
+	var oS string
+	if o.OS == nil {
+		return oS
 	}
-	return *o.OverrideOS
+	return *o.OS
 }
 
-// WithOverrideVariant
-func (o *PullOptions) WithOverrideVariant(value string) *PullOptions {
+// WithVariant
+func (o *PullOptions) WithVariant(value string) *PullOptions {
 	v := &value
-	o.OverrideVariant = v
+	o.Variant = v
 	return o
 }
 
-// GetOverrideVariant
-func (o *PullOptions) GetOverrideVariant() string {
-	var overrideVariant string
-	if o.OverrideVariant == nil {
-		return overrideVariant
+// GetVariant
+func (o *PullOptions) GetVariant() string {
+	var variant string
+	if o.Variant == nil {
+		return variant
 	}
-	return *o.OverrideVariant
+	return *o.Variant
 }
 
 // WithQuiet
