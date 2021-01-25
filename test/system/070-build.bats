@@ -188,8 +188,7 @@ ADD mycmd /bin/mydefaultcmd
 RUN chmod 755 /bin/mydefaultcmd
 RUN chown 2:3 /bin/mydefaultcmd
 
-#FIXME FIXME FIXME: enable if/when 'podman build' passes mounts.conf to buildah
-#RUN $CAT_SECRET
+RUN $CAT_SECRET
 
 CMD ["/bin/mydefaultcmd","$s_echo"]
 EOF
@@ -201,8 +200,7 @@ EOF
     local iid="${lines[-1]}"
 
     # Make sure 'podman build' had the secret mounted
-    #FIXME FIXME: enable if/when 'podman build' passes mounts.conf to buildah
-    #is "$output" ".*$secret_contents.*" "podman build has /run/secrets mounted"
+    is "$output" ".*$secret_contents.*" "podman build has /run/secrets mounted"
 
     if is_remote; then
         ENVHOST=""

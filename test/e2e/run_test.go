@@ -669,7 +669,7 @@ USER bin`
 	})
 
 	It("podman run with secrets", func() {
-		SkipIfRemote("--default-mount-file option is not supported in podman-remote")
+		SkipIfRemote("--default-mounts-file option is not supported in podman-remote")
 		containersDir := filepath.Join(podmanTest.TempDir, "containers")
 		err := os.MkdirAll(containersDir, 0755)
 		Expect(err).To(BeNil())
