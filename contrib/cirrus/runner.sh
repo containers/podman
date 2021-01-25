@@ -191,15 +191,14 @@ function _run_altbuild() {
             req_env_vars CTR_FQIN
             [[ "$UID" -eq 0 ]] || \
                 die "Static build must execute nixos container as root on host"
-            mkdir -p /var/cache/nix
-            podman run -i --rm -v /var/cache/nix:/mnt/nix:Z \
-                $CTR_FQIN cp -rfT /nix /mnt/nix
-            podman run -i --rm -v /var/cache/nix:/nix:Z \
-                -v $PWD:$PWD:Z -w $PWD $CTR_FQIN \
-                nix --print-build-logs --option cores 4 --option max-jobs 4 \
-                    build --file ./nix/
-            # result symlink is absolute from container perspective :(
-            cp /var/cache/$(readlink result)/bin/podman ./  # for cirrus-ci artifact
+            podman run -i --rm \
+                -e CACHIX_AUTH_TOKEN \
+                -v $PWD:$PWD:Z -w $PWD $CTR_FQIN sh -c \
+                "nix-env -iA cachix -f https://cachix.org/api/v1/install && \
+                 cachix use podman && \
+                 nix-build nix && \
+                 nix-store -qR --include-outputs \$(nix-instantiate nix/default.nix) | grep -v podman | cachix push podman && \
+                 cp -R result/bin ."
             rm result  # makes cirrus puke
             ;;
         *)
