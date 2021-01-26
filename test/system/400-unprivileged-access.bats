@@ -132,7 +132,11 @@ EOF
     # Run 'stat' on all the files, plus /dev/null. Get path, file type,
     # number of links, major, and minor (see below for why). Do it all
     # in one go, to avoid multiple podman-runs
-    run_podman run --rm $IMAGE stat -c'%n:%F:%h:%T:%t' /dev/null ${subset[@]}
+    run_podman '?' run --rm $IMAGE stat -c'%n:%F:%h:%T:%t' /dev/null ${subset[@]}
+    if [[ $status -gt 1 ]]; then
+        die "Unexpected exit status $status: expected 0 or 1"
+    fi
+
     local devnull=
     for result in "${lines[@]}"; do
         # e.g. /proc/acpi:character special file:1:3:1
@@ -161,6 +165,11 @@ EOF
             # If you can think of a better way to do this check,
             # please feel free to fix it.
             is "$nlinks" "2" "$path: directory link count"
+        elif [[ $result =~ stat:.*No.such.file.or.directory ]]; then
+            # No matter what the path is, this is OK. It has to do with #8949
+            # and RHEL8 and rootless and cgroups v1. Bottom line, what we care
+            # about is that the path not be available inside the container.
+            :
         else
             die "$path: Unknown file type '$type'"
         fi
