@@ -235,20 +235,16 @@ func checkDependencyContainer(depCtr, ctr *Container) error {
 	return nil
 }
 
-// hijackWriteErrorAndClose writes an error to a hijacked HTTP session and
-// closes it. Intended to HTTPAttach function.
-// If error is nil, it will not be written; we'll only close the connection.
-func hijackWriteErrorAndClose(toWrite error, cid string, terminal bool, httpCon io.Closer, httpBuf *bufio.ReadWriter) {
+// hijackWriteError writes an error to a hijacked HTTP session.
+func hijackWriteError(toWrite error, cid string, terminal bool, httpBuf *bufio.ReadWriter) {
 	if toWrite != nil {
-		errString := []byte(fmt.Sprintf("%v\n", toWrite))
+		errString := []byte(fmt.Sprintf("Error: %v\n", toWrite))
 		if !terminal {
 			// We need a header.
 			header := makeHTTPAttachHeader(2, uint32(len(errString)))
 			if _, err := httpBuf.Write(header); err != nil {
 				logrus.Errorf("Error writing header for container %s attach connection error: %v", cid, err)
 			}
-			// TODO: May want to return immediately here to avoid
-			// writing garbage to the socket?
 		}
 		if _, err := httpBuf.Write(errString); err != nil {
 			logrus.Errorf("Error writing error to container %s HTTP attach connection: %v", cid, err)
@@ -257,6 +253,13 @@ func hijackWriteErrorAndClose(toWrite error, cid string, terminal bool, httpCon 
 			logrus.Errorf("Error flushing HTTP buffer for container %s HTTP attach connection: %v", cid, err)
 		}
 	}
+}
+
+// hijackWriteErrorAndClose writes an error to a hijacked HTTP session and
+// closes it. Intended to HTTPAttach function.
+// If error is nil, it will not be written; we'll only close the connection.
+func hijackWriteErrorAndClose(toWrite error, cid string, terminal bool, httpCon io.Closer, httpBuf *bufio.ReadWriter) {
+	hijackWriteError(toWrite, cid, terminal, httpBuf)
 
 	if err := httpCon.Close(); err != nil {
 		logrus.Errorf("Error closing container %s HTTP attach connection: %v", cid, err)
