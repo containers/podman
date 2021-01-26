@@ -3,4 +3,4 @@
 Reference
 =========
 
-The documentation for Podman's system service can be found at `RESTful API documentation <./api-static.html>`_
+The documentation for Podman's system service can be found at `RESTful API documentation <./_static/api-static.html>`_
