@@ -202,7 +202,6 @@ case "$TEST_FLAVOR" in
     int) ;&
     sys) ;&
     bindings) ;&
-    swagger) ;&
     endpoint)
         # Use existing host bits when testing is to happen inside a container
         # since this script will run again in that environment.
@@ -214,6 +213,7 @@ case "$TEST_FLAVOR" in
 
         install_test_configs
         ;;
+    swagger) ;&  # use next item
     consistency) make clean ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
