@@ -50,6 +50,7 @@ func init() {
 func prune(cmd *cobra.Command, args []string) error {
 	var (
 		pruneOptions = entities.VolumePruneOptions{}
+		listOptions  = entities.VolumeListOptions{}
 	)
 	// Prompt for confirmation if --force is not set
 	force, err := cmd.Flags().GetBool("force")
@@ -58,7 +59,18 @@ func prune(cmd *cobra.Command, args []string) error {
 	}
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("WARNING! This will remove all volumes not used by at least one container.")
+		fmt.Println("WARNING! This will remove all volumes not used by at least one container. The following volumes will be removed:")
+		listOptions.Filter, err = filters.ParseFilterArgumentsIntoFilters(filter)
+		if err != nil {
+			return err
+		}
+		filteredVolumes, err := registry.ContainerEngine().VolumeList(context.Background(), listOptions)
+		if err != nil {
+			return err
+		}
+		for _, fv := range filteredVolumes {
+			fmt.Println(fv.Name)
+		}
 		fmt.Print("Are you sure you want to continue? [y/N] ")
 		answer, err := reader.ReadString('\n')
 		if err != nil {
