@@ -102,8 +102,8 @@ func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
 	searchImageInRegistryHelper := func(index int, registry string) {
 		defer sem.Release(1)
 		defer wg.Done()
-		searchOutput := searchImageInRegistry(term, registry, options)
-		data[index] = searchOutputData{data: searchOutput}
+		searchOutput, err := searchImageInRegistry(term, registry, options)
+		data[index] = searchOutputData{data: searchOutput, err: err}
 	}
 
 	ctx := context.Background()
@@ -116,13 +116,21 @@ func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
 
 	wg.Wait()
 	results := []SearchResult{}
+	var lastError error
 	for _, d := range data {
 		if d.err != nil {
-			return nil, d.err
+			if lastError != nil {
+				logrus.Errorf("%v", lastError)
+			}
+			lastError = d.err
+			continue
 		}
 		results = append(results, d.data...)
 	}
-	return results, nil
+	if len(results) > 0 {
+		return results, nil
+	}
+	return results, lastError
 }
 
 // getRegistries returns the list of registries to search, depending on an optional registry specification
@@ -140,7 +148,7 @@ func getRegistries(registry string) ([]string, error) {
 	return registries, nil
 }
 
-func searchImageInRegistry(term string, registry string, options SearchOptions) []SearchResult {
+func searchImageInRegistry(term string, registry string, options SearchOptions) ([]SearchResult, error) {
 	// Max number of queries by default is 25
 	limit := maxQueries
 	if options.Limit > 0 {
@@ -156,16 +164,14 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 	if options.ListTags {
 		results, err := searchRepositoryTags(registry, term, sc, options)
 		if err != nil {
-			logrus.Errorf("error listing registry tags %q: %v", registry, err)
-			return []SearchResult{}
+			return []SearchResult{}, err
 		}
-		return results
+		return results, nil
 	}
 
 	results, err := docker.SearchRegistry(context.TODO(), sc, registry, term, limit)
 	if err != nil {
-		logrus.Errorf("error searching registry %q: %v", registry, err)
-		return []SearchResult{}
+		return []SearchResult{}, err
 	}
 	index := registry
 	arr := strings.Split(registry, ".")
@@ -219,7 +225,7 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 		}
 		paramsArr = append(paramsArr, params)
 	}
-	return paramsArr
+	return paramsArr, nil
 }
 
 func searchRepositoryTags(registry, term string, sc *types.SystemContext, options SearchOptions) ([]SearchResult, error) {

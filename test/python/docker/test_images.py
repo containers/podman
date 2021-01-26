@@ -82,8 +82,16 @@ class TestImages(unittest.TestCase):
 
     def test_search_image(self):
         """Search for image"""
-        for r in self.client.images.search("libpod/alpine"):
-            self.assertIn("quay.io/libpod/alpine", r["Name"])
+        for r in self.client.images.search("alpine"):
+            self.assertIn("alpine", r["Name"])
+
+    def test_search_bogus_image(self):
+        """Search for bogus image should throw exception"""
+        try:
+            r = self.client.images.search("bogus/bogus")
+        except:
+            return
+        self.assertTrue(len(r)==0)
 
     def test_remove_image(self):
         """Remove image"""

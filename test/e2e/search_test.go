@@ -299,7 +299,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if force secure is true", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -324,15 +323,11 @@ registries = ['{{.Host}}:{{.Port}}']`
 		registryFileTmpl.Execute(&buffer, registryEndpoints[5])
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry5.conf", tempdir), buffer.Bytes(), 0644)
-		if IsRemote() {
-			podmanTest.RestartRemoteService()
-			defer podmanTest.RestartRemoteService()
-		}
 
 		search := podmanTest.Podman([]string{"search", image, "--tls-verify=true"})
 		search.WaitWithDefaultTimeout()
 
-		Expect(search.ExitCode()).To(Equal(0))
+		Expect(search.ExitCode()).To(Equal(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
 		match, _ := search.ErrorGrepString("error")
 		Expect(match).Should(BeTrue())
@@ -342,7 +337,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if registry is not listed as insecure", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -376,7 +370,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", image})
 		search.WaitWithDefaultTimeout()
 
-		Expect(search.ExitCode()).To(Equal(0))
+		Expect(search.ExitCode()).To(Equal(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
 		match, _ := search.ErrorGrepString("error")
 		Expect(match).Should(BeTrue())
@@ -386,7 +380,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
-		SkipIfRemote("FIXME This should work on podman-remote")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -431,7 +424,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", "my-alpine"})
 		search.WaitWithDefaultTimeout()
 
-		Expect(search.ExitCode()).To(Equal(0))
+		Expect(search.ExitCode()).To(Equal(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
 		match, _ := search.ErrorGrepString("error")
 		Expect(match).Should(BeTrue())
