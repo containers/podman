@@ -41,7 +41,8 @@ Define a gateway for the subnet. If you want to provide a gateway address, you m
 
 #### **--internal**
 
-Restrict external access of this network
+Restrict external access of this network. Note when using this option, the dnsname plugin will be
+automatically disabled.
 
 #### **--ip-range**
 
