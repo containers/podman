@@ -163,10 +163,12 @@ EOF
 https_proxy=https-proxy-in-env-file
 EOF
 
+    # NOTE: it's important to not create the workdir.
+    # Podman will make sure to create a missing workdir
+    # if needed. See #9040.
     cat >$tmpdir/Containerfile <<EOF
 FROM $IMAGE
 LABEL $label_name=$label_value
-RUN mkdir $workdir
 WORKDIR $workdir
 
 # Test for #7094 - chowning of invalid symlinks
