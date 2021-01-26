@@ -433,7 +433,6 @@ apiv2_test_task:
             path: ./*.html
             type: text/html
         package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
-        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
         df_script: '$SCRIPT_BASE/logcollector.sh df'
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
@@ -478,7 +477,11 @@ local_integration_test_task: &local_integration_test_task
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *logs_artifacts
+    always: &int_logs_artifacts
+        <<: *logs_artifacts
+        ginkgo_node_logs_artifacts:
+            path: ./test/e2e/ginkgo-node-*.log
+            type: text/plain
 
 
 # Nearly identical to `local_integration_test` except all operations
@@ -521,7 +524,7 @@ container_integration_test_task:
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *logs_artifacts
+    always: *int_logs_artifacts
 
 
 # Execute most integration tests as a regular (non-root) user.
@@ -542,7 +545,7 @@ rootless_integration_test_task:
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *logs_artifacts
+    always: *int_logs_artifacts
 
 
 # Always run subsequent to integration tests.  While parallelism is lost
