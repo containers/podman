@@ -126,20 +126,25 @@ func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, o
 	}()
 
 	attachChan := make(chan error)
+	conmonPipeDataChan := make(chan conmonPipeData)
 	go func() {
 		// attachToExec is responsible for closing pipes
-		attachChan <- attachExecHTTP(ctr, sessionID, req, w, streams, pipes, detachKeys, options.Terminal, cancel, hijackDone, holdConnOpen)
+		attachChan <- attachExecHTTP(ctr, sessionID, req, w, streams, pipes, detachKeys, options.Terminal, cancel, hijackDone, holdConnOpen, execCmd, conmonPipeDataChan, ociLog)
 		close(attachChan)
 	}()
 
-	// Wait for conmon to succeed, when return.
-	if err := execCmd.Wait(); err != nil {
-		return -1, nil, errors.Wrapf(err, "cannot run conmon")
-	}
+	// NOTE: the channel is needed to communicate conmon's data.  In case
+	// of an error, the error will be written on the hijacked http
+	// connection such that remote clients will receive the error.
+	pipeData := <-conmonPipeDataChan
 
-	pid, err := readConmonPipeData(pipes.syncPipe, ociLog)
+	return pipeData.pid, attachChan, pipeData.err
+}
 
-	return pid, attachChan, err
+// conmonPipeData contains the data when reading from conmon's pipe.
+type conmonPipeData struct {
+	pid int
+	err error
 }
 
 // ExecContainerDetached executes a command in a running container, but does
@@ -488,9 +493,16 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 }
 
 // Attach to a container over HTTP
-func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool) (deferredErr error) {
+func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, execCmd *exec.Cmd, conmonPipeDataChan chan<- conmonPipeData, ociLog string) (deferredErr error) {
+	// NOTE: As you may notice, the attach code is quite complex.
+	// Many things happen concurrently and yet are interdependent.
+	// If you ever change this function, make sure to write to the
+	// conmonPipeDataChan in case of an error.
+
 	if pipes == nil || pipes.startPipe == nil || pipes.attachPipe == nil {
-		return errors.Wrapf(define.ErrInvalidArg, "must provide a start and attach pipe to finish an exec attach")
+		err := errors.Wrapf(define.ErrInvalidArg, "must provide a start and attach pipe to finish an exec attach")
+		conmonPipeDataChan <- conmonPipeData{-1, err}
+		return err
 	}
 
 	defer func() {
@@ -509,17 +521,20 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	// set up the socket path, such that it is the correct length and location for exec
 	sockPath, err := c.execAttachSocketPath(sessionID)
 	if err != nil {
+		conmonPipeDataChan <- conmonPipeData{-1, err}
 		return err
 	}
 
 	// 2: read from attachFd that the parent process has set up the console socket
 	if _, err := readConmonPipeData(pipes.attachPipe, ""); err != nil {
+		conmonPipeDataChan <- conmonPipeData{-1, err}
 		return err
 	}
 
 	// 2: then attach
 	conn, err := openUnixSocket(sockPath)
 	if err != nil {
+		conmonPipeDataChan <- conmonPipeData{-1, err}
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", sockPath)
 	}
 	defer func() {
@@ -540,11 +555,13 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	// Perform hijack
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
+		conmonPipeDataChan <- conmonPipeData{-1, err}
 		return errors.Errorf("unable to hijack connection")
 	}
 
 	httpCon, httpBuf, err := hijacker.Hijack()
 	if err != nil {
+		conmonPipeDataChan <- conmonPipeData{-1, err}
 		return errors.Wrapf(err, "error hijacking connection")
 	}
 
@@ -555,10 +572,23 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
+		conmonPipeDataChan <- conmonPipeData{-1, err}
 		return errors.Wrapf(err, "error flushing HTTP hijack header")
 	}
 
 	go func() {
+		// Wait for conmon to succeed, when return.
+		if err := execCmd.Wait(); err != nil {
+			conmonPipeDataChan <- conmonPipeData{-1, err}
+		} else {
+			pid, err := readConmonPipeData(pipes.syncPipe, ociLog)
+			if err != nil {
+				hijackWriteError(err, c.ID(), isTerminal, httpBuf)
+				conmonPipeDataChan <- conmonPipeData{pid, err}
+			} else {
+				conmonPipeDataChan <- conmonPipeData{pid, err}
+			}
+		}
 		// We need to hold the connection open until the complete exec
 		// function has finished. This channel will be closed in a defer
 		// in that function, so we can wait for it here.
