@@ -24,6 +24,7 @@ var (
 	ErrCgroupDeleted = errors.New("cgroup deleted")
 	// ErrCgroupV1Rootless means the cgroup v1 were attempted to be used in rootless environment
 	ErrCgroupV1Rootless = errors.New("no support for CGroups V1 in rootless environments")
+	ErrStatCgroup       = errors.New("no cgroup available for gathering user statistics")
 )
 
 // CgroupControl controls a cgroup hierarchy
@@ -525,10 +526,19 @@ func (c *CgroupControl) AddPid(pid int) error {
 // Stat returns usage statistics for the cgroup
 func (c *CgroupControl) Stat() (*Metrics, error) {
 	m := Metrics{}
+	found := false
 	for _, h := range handlers {
 		if err := h.Stat(c, &m); err != nil {
-			return nil, err
+			if !os.IsNotExist(errors.Cause(err)) {
+				return nil, err
+			}
+			logrus.Warningf("Failed to retrieve cgroup stats: %v", err)
+			continue
 		}
+		found = true
+	}
+	if !found {
+		return nil, ErrStatCgroup
 	}
 	return &m, nil
 }
