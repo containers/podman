@@ -65,6 +65,23 @@ var _ = Describe("Podman history", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+
+		session = podmanTest.Podman([]string{"history", "--no-trunc", "--format", "{{.ID}}", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		lines := session.OutputToStringArray()
+		Expect(len(lines)).To(BeNumerically(">", 0))
+		// the image id must be 64 chars long
+		Expect(len(lines[0])).To(BeNumerically("==", 64))
+
+		session = podmanTest.Podman([]string{"history", "--no-trunc", "--format", "{{.CreatedBy}}", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		lines = session.OutputToStringArray()
+		Expect(len(lines)).To(BeNumerically(">", 0))
+		Expect(session.OutputToString()).ToNot(ContainSubstring("..."))
+		// the second line in the alpine history contains a command longer than 45 chars
+		Expect(len(lines[1])).To(BeNumerically(">", 45))
 	})
 
 	It("podman history with json flag", func() {
