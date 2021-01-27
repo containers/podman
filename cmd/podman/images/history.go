@@ -162,7 +162,7 @@ func (h historyReporter) Size() string {
 }
 
 func (h historyReporter) CreatedBy() string {
-	if len(h.ImageHistoryLayer.CreatedBy) > 45 {
+	if !opts.noTrunc && len(h.ImageHistoryLayer.CreatedBy) > 45 {
 		return h.ImageHistoryLayer.CreatedBy[:45-3] + "..."
 	}
 	return h.ImageHistoryLayer.CreatedBy
