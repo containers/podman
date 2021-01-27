@@ -14,6 +14,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	// - networks (compat)
 	// Summary: Delete unused networks
+	// operationId: NetworkPrune
 	// description: Not supported
 	// produces:
 	// - application/json
@@ -27,6 +28,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: Remove a network
+	// operationId: NetworkDelete
 	// description: Remove a network
 	// parameters:
 	//  - in: path
@@ -50,6 +52,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: Inspect a network
+	// operationId: NetworkInspect
 	// description: Display low level configuration network
 	// parameters:
 	//  - in: path
@@ -73,6 +76,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: List networks
+	// operationId: NetworkList
 	// description: Display summary of network configurations
 	// parameters:
 	//  - in: query
@@ -98,6 +102,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: Create network
+	// operationId: NetworkCreate
 	// description: Create a network configuration
 	// produces:
 	// - application/json
@@ -121,6 +126,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: Connect container to network
+	// operationId: NetworkConnect
 	// description: Connect a container to a network.  This endpoint is current a no-op
 	// produces:
 	// - application/json
@@ -149,6 +155,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: Disconnect container from network
+	// operationId: NetworkDisconnect
 	// description: Disconnect a container from a network.  This endpoint is current a no-op
 	// produces:
 	// - application/json

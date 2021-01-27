@@ -11,6 +11,7 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	// swagger:operation PUT /containers/{name}/archive compat putArchive
 	// ---
 	//  summary: Put files into a container
+	//  operationId: PutContainerArchive
 	//  description: Put a tar archive of files into a container
 	//  tags:
 	//   - containers (compat)
@@ -55,6 +56,7 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	// swagger:operation GET /containers/{name}/archive compat getArchive
 	// ---
 	//  summary: Get files from a container
+	//  operationId: ContainerArchive
 	//  description: Get a tar archive of files from a container
 	//  tags:
 	//   - containers (compat)
