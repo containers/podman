@@ -49,6 +49,7 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 	}
 
 	extraHost := make([]v1.HostAlias, 0)
+	hostNetwork := false
 	if p.HasInfraContainer() {
 		infraContainer, err := p.getInfraContainer()
 		if err != nil {
@@ -69,9 +70,9 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 			return nil, servicePorts, err
 		}
 		servicePorts = containerPortsToServicePorts(ports)
-
+		hostNetwork = p.config.InfraContainer.HostNetwork
 	}
-	pod, err := p.podWithContainers(allContainers, ports)
+	pod, err := p.podWithContainers(allContainers, ports, hostNetwork)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -167,7 +168,7 @@ func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 	return sps
 }
 
-func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort, hostNetwork bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -220,10 +221,10 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 		podVolumes = append(podVolumes, *vol)
 	}
 
-	return addContainersAndVolumesToPodObject(podContainers, podVolumes, p.Name(), &dnsInfo), nil
+	return addContainersAndVolumesToPodObject(podContainers, podVolumes, p.Name(), &dnsInfo, hostNetwork), nil
 }
 
-func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.Volume, podName string, dnsOptions *v1.PodDNSConfig) *v1.Pod {
+func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.Volume, podName string, dnsOptions *v1.PodDNSConfig, hostNetwork bool) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -242,8 +243,9 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 		CreationTimestamp: v12.Now(),
 	}
 	ps := v1.PodSpec{
-		Containers: containers,
-		Volumes:    volumes,
+		Containers:  containers,
+		Volumes:     volumes,
+		HostNetwork: hostNetwork,
 	}
 	if dnsOptions != nil {
 		ps.DNSConfig = dnsOptions
@@ -261,8 +263,12 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeVolumes := make([]v1.Volume, 0)
+	hostNetwork := true
 	podDNS := v1.PodDNSConfig{}
 	for _, ctr := range ctrs {
+		if !ctr.HostNetwork() {
+			hostNetwork = false
+		}
 		kubeCtr, kubeVols, ctrDNS, err := containerToV1Container(ctr)
 		if err != nil {
 			return nil, err
@@ -303,7 +309,7 @@ func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 			}
 		} // end if ctrDNS
 	}
-	return addContainersAndVolumesToPodObject(kubeCtrs, kubeVolumes, strings.ReplaceAll(ctrs[0].Name(), "_", ""), &podDNS), nil
+	return addContainersAndVolumesToPodObject(kubeCtrs, kubeVolumes, strings.ReplaceAll(ctrs[0].Name(), "_", ""), &podDNS, hostNetwork), nil
 }
 
 // containerToV1Container converts information we know about a libpod container
