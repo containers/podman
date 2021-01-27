@@ -284,6 +284,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
+	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    default: false
+	//    description: Pause all containers.
 	// produces:
 	// - application/json
 	// responses:
@@ -451,6 +456,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
+	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    default: false
+	//    description: Unpause all containers.
 	// produces:
 	// - application/json
 	// responses:

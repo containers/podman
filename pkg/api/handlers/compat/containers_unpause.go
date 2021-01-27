@@ -2,25 +2,48 @@ package compat
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
+	"github.com/gorilla/schema"
+	"github.com/pkg/errors"
 )
 
 func UnpauseContainer(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	query := struct {
+		All bool `schema:"all"`
+	}{}
+
+	err := decoder.Decode(&query, r.URL.Query())
+	if err != nil {
+		utils.Error(w, "Bad Request.", http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
+		return
+	}
 
 	// /{version}/containers/(name)/unpause
 	name := utils.GetName(r)
-	con, err := runtime.LookupContainer(name)
-	if err != nil {
+	options := entities.PauseUnPauseOptions{
+		All: query.All,
+	}
+	reports, err := containerEngine.ContainerUnpause(r.Context(), []string{name}, options)
+
+	if errors.Cause(err) == define.ErrNoSuchCtr || os.IsNotExist(err) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
 
-	if err := con.Unpause(); err != nil {
-		utils.InternalServerError(w, err)
-		return
+	for _, r := range reports {
+		if r.Err != nil {
+			utils.InternalServerError(w, r.Err)
+			return
+		}
 	}
 
 	// Success
