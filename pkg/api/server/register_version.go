@@ -11,6 +11,7 @@ func (s *APIServer) registerVersionHandlers(r *mux.Router) error {
 	// swagger:operation GET /version compat CompatSystemVersion
 	// ---
 	// summary: Component Version information
+	// operationId: SystemVersion
 	// tags:
 	// - system (compat)
 	// produces:

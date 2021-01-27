@@ -12,6 +12,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// swagger:operation POST /containers/create compat createContainer
 	// ---
 	//   summary: Create a container
+	//   operationId: ContainerCreate
 	//   tags:
 	//    - containers (compat)
 	//   produces:
@@ -40,6 +41,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//  - containers (compat)
 	// summary: List containers
+	// operationId: ContainerList
 	// description: Returns a list of containers
 	// parameters:
 	//  - in: query
@@ -97,6 +99,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Delete stopped containers
+	// operationId: ContainerPrune
 	// description: Remove containers not in use
 	// parameters:
 	//  - in: query
@@ -121,6 +124,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//  - containers (compat)
 	// summary: Remove a container
+	// operationId: ContainerDelete
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -162,6 +166,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//  - containers (compat)
 	// summary: Inspect container
+	// operationId: ContainerInspect
 	// description: Return low-level information about a container.
 	// parameters:
 	//  - in: path
@@ -191,6 +196,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Kill container
+	// operationId: ContainerKill
 	// description: Signal to send to the container as an integer or string (e.g. SIGINT)
 	// parameters:
 	//  - in: path
@@ -228,6 +234,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Get container logs
+	// operationId: ContainerLogs
 	// description: Get stdout and stderr logs from a container.
 	// parameters:
 	//  - in: path
@@ -282,6 +289,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Pause container
+	// operationId: ContainerPause
 	// description: Use the cgroups freezer to suspend all processes in a container.
 	// parameters:
 	//  - in: path
@@ -306,6 +314,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Restart container
+	// operationId: ContainerRestart
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -333,6 +342,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Start a container
+	// operationId: ContainerStart
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -363,6 +373,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Get stats for a container
+	// operationId: ContainerStats
 	// description: This returns a live stream of a container’s resource usage statistics.
 	// parameters:
 	//  - in: path
@@ -392,6 +403,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Stop a container
+	// operationId: ContainerStop
 	// description: Stop a container
 	// parameters:
 	//  - in: path
@@ -422,6 +434,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: List processes running inside a container
+	// operationId: ContainerTop
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -449,6 +462,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Unpause container
+	// operationId: ContainerUnpause
 	// description: Resume a paused container
 	// parameters:
 	//  - in: path
@@ -473,6 +487,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Wait on a container
+	// operationId: ContainerWait
 	// description: Block until a container stops or given condition is met.
 	// parameters:
 	//  - in: path
@@ -513,6 +528,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Attach to a container
+	// operationId: ContainerAttach
 	// description: Hijacks the connection to forward the container's standard streams to the client.
 	// parameters:
 	//  - in: path
@@ -570,6 +586,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//  - containers (compat)
 	// summary: Resize a container's TTY
+	// operationId: ContainerResize
 	// description: Resize the terminal attached to a container (for use with Attach).
 	// parameters:
 	//  - in: path
@@ -609,6 +626,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Export a container
+	// operationId: ContainerExport
 	// description: Export the contents of a container as a tarball.
 	// parameters:
 	//  - in: path
@@ -632,6 +650,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Rename an existing container
+	// operationId: ContainerRename
 	// description: Change the name of an existing container.
 	// parameters:
 	//  - in: path
@@ -1475,6 +1494,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   - containers
 	//   - containers (compat)
 	// summary: Report on changes to container's filesystem; adds, deletes or modifications.
+	// operationId: ContainerChanges
 	// description: |
 	//   Returns which files in a container's filesystem have been added, deleted, or modified. The Kind of modification can be one of:
 	//

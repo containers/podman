@@ -13,6 +13,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec (compat)
 	// summary: Create an exec instance
+	// operationId: ContainerExec
 	// description: Create an exec session to run a command inside a running container. Exec sessions will be automatically removed 5 minutes after they exit.
 	// parameters:
 	//  - in: path
@@ -82,6 +83,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec (compat)
 	// summary: Start an exec instance
+	// operationId: ExecStart
 	// description: Starts a previously set up exec instance. If detach is true, this endpoint returns immediately after starting the command. Otherwise, it sets up an interactive session with the command.
 	// parameters:
 	//  - in: path
@@ -120,6 +122,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec (compat)
 	// summary: Resize an exec instance
+	// operationId: ExecResize
 	// description: |
 	//  Resize the TTY session used by an exec instance. This endpoint only works if tty was specified as part of creating and starting the exec instance.
 	// parameters:
@@ -158,6 +161,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec (compat)
 	// summary: Inspect an exec instance
+	// operationId: ExecInspect
 	// description: Return low-level information about an exec instance.
 	// parameters:
 	//  - in: path

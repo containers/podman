@@ -18,6 +18,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Create an image
+	// operationId: ImageCreate
 	// description: Create an image by either pulling it from a registry or importing it.
 	// produces:
 	// - application/json
@@ -61,6 +62,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: List Images
+	// operationId: ImageList
 	// description: Returns a list of images on the server. Note that it uses a different, smaller representation of an image than inspecting a single image.
 	// parameters:
 	//   - name: all
@@ -98,6 +100,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Import image
+	// operationId: ImageLoad
 	// description: Load a set of images and tags into a repository.
 	// parameters:
 	//  - in: query
@@ -124,6 +127,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Prune unused images
+	// operationId: ImagePrune
 	// description: Remove images from local storage that are not being used by a container
 	// parameters:
 	//  - in: query
@@ -151,6 +155,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Search images
+	// operationId: ImageSearch
 	// description: Search registries for an image
 	// parameters:
 	//  - in: query
@@ -190,6 +195,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Remove Image
+	// operationId: ImageDelete
 	// description: Delete an image from local storage
 	// parameters:
 	//  - in: path
@@ -224,6 +230,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Push Image
+	// operationId: ImagePush
 	// description: Push an image to a container registry
 	// parameters:
 	//  - in: path
@@ -271,6 +278,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Export an image
+	// operationId: ImageGet
 	// description: Export an image in tarball format
 	// parameters:
 	//  - in: path
@@ -296,6 +304,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Export several images
+	// operationId: ImageGetAll
 	// description: Get a tarball containing all images and metadata for several image repositories
 	// parameters:
 	//  - in:  query
@@ -321,6 +330,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: History of an image
+	// operationId: ImageHistory
 	// description: Return parent layers of an image.
 	// parameters:
 	//  - in: path
@@ -345,6 +355,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Inspect an image
+	// operationId: ImageInspect
 	// description: Return low-level information about an image.
 	// parameters:
 	//  - in: path
@@ -369,6 +380,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Tag an image
+	// operationId: ImageTag
 	// description: Tag an image so that it becomes part of a repository.
 	// parameters:
 	//  - in: path
@@ -405,6 +417,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - containers (compat)
 	// summary: New Image
+	// operationId: ImageCommit
 	// description: Create a new image from a container
 	// parameters:
 	//  - in: query
@@ -453,6 +466,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images (compat)
 	// summary: Create image
+	// operationId: ImageBuild
 	// description: Build an image from the given Dockerfile(s)
 	// parameters:
 	//  - in: query
