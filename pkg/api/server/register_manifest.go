@@ -30,7 +30,8 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   description: add all contents if given list
 	// responses:
 	//   200:
-	//     $ref: "#/definitions/IDResponse"
+	//     schema:
+	//       $ref: "#/definitions/IDResponse"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   404:
@@ -96,7 +97,8 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//      $ref: "#/definitions/ManifestAddOpts"
 	// responses:
 	//   200:
-	//     $ref: "#/definitions/IDResponse"
+	//     schema:
+	//       $ref: "#/definitions/IDResponse"
 	//   404:
 	//     $ref: "#/responses/NoSuchManifest"
 	//   409:
@@ -122,7 +124,8 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    description: image digest to be removed
 	// responses:
 	//   200:
-	//     $ref: "#/definitions/IDResponse"
+	//     schema:
+	//       $ref: "#/definitions/IDResponse"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   404:
@@ -153,7 +156,8 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    type: boolean
 	// responses:
 	//   200:
-	//     $ref: "#/definitions/IDResponse"
+	//     schema:
+	//       $ref: "#/definitions/IDResponse"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   404:

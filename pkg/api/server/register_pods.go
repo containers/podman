@@ -40,7 +40,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//     $ref: "#/definitions/PodSpecGenerator"
 	// responses:
 	//   200:
-	//     $ref: "#/definitions/IdResponse"
+	//     schema:
+	//       $ref: "#/definitions/IdResponse"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   409:
