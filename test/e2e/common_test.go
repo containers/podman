@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -84,6 +85,7 @@ type testResultsSortedLength struct{ testResultsSorted }
 func (a testResultsSorted) Less(i, j int) bool { return a[i].length < a[j].length }
 
 var testResults []testResult
+var testResultsMutex sync.Mutex
 
 func TestMain(m *testing.M) {
 	if reexec.Init() {
@@ -349,7 +351,9 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 
 func processTestResult(f GinkgoTestDescription) {
 	tr := testResult{length: f.Duration.Seconds(), name: f.TestText}
+	testResultsMutex.Lock()
 	testResults = append(testResults, tr)
+	testResultsMutex.Unlock()
 }
 
 func GetPortLock(port string) storage.Locker {
