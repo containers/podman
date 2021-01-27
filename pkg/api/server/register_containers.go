@@ -48,6 +48,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    default: false
 	//    description: Return all containers. By default, only running containers are shown
 	//  - in: query
+	//    name: external
+	//    type: boolean
+	//    default: false
+	//    description: Return containers in storage not controlled by Podman
+	//  - in: query
 	//    name: limit
 	//    description: Return this number of most recently created containers, including non-running ones.
 	//    type: integer

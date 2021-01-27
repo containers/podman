@@ -106,6 +106,7 @@ type MountedContainerPathsOptions struct{}
 // ListOptions are optional options for listing containers
 type ListOptions struct {
 	All       *bool
+	External  *bool
 	Filters   map[string][]string
 	Last      *int
 	Namespace *bool
