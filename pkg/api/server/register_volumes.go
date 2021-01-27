@@ -153,6 +153,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// tags:
 	//  - volumes (compat)
 	// summary: List volumes
+	// operationId: VolumeList
 	// description: Returns a list of volume
 	// produces:
 	// - application/json
@@ -181,6 +182,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// tags:
 	//  - volumes (compat)
 	// summary: Create a volume
+	// operationId: VolumeCreate
 	// parameters:
 	//  - in: body
 	//    name: create
@@ -204,6 +206,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// tags:
 	//  - volumes (compat)
 	// summary: Inspect volume
+	// operationId: VolumeInspect
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -227,6 +230,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// tags:
 	//  - volumes (compat)
 	// summary: Remove volume
+	// operationId: VolumeDelete
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -259,6 +263,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// tags:
 	//  - volumes (compat)
 	// summary: Prune volumes
+	// operationId: VolumePrune
 	// produces:
 	// - application/json
 	// parameters:
