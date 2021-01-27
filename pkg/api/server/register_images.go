@@ -31,18 +31,31 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: string
 	//    description: needs description
 	//  - in: query
+	//    name: repo
+	//    description: the repository name for the created image
+	//    type: string
+	//  - in: query
 	//    name: tag
 	//    type: string
 	//    description: needs description
+	//  - in: query
+	//    name: message
+	//    description: commit message
+	//    type: string
 	//  - in: header
 	//    name: X-Registry-Auth
 	//    type: string
 	//    description: A base64-encoded auth configuration.
 	//  - in: body
-	//    name: request
+	//    name: inputImage
 	//    schema:
 	//      type: string
 	//    description: Image content if fromSrc parameter was used
+	//  - in: query
+	//    name: platform
+	//    description: Platform in the format os[/arch[/variant]]
+	//    type: string
+	//    default: ""
 	// responses:
 	//   200:
 	//     $ref: "#/responses/ok"
@@ -423,6 +436,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: changes
 	//    type: string
 	//    description: instructions to apply while committing in Dockerfile format
+	//  - in: body
+	//    name: containerConfig
+	//    description: The container configuration
+	//    schema:
+	//      $ref: "#/definitions/ContainerConfig"
 	// produces:
 	// - application/json
 	// responses:
@@ -624,6 +642,21 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      output configuration TBD
 	//      (As of version 1.xx)
+	//  - name: inputStream
+	//    in: body
+	//    description: "A tar archive compressed with one of the following algorithms: identity (no compression), gzip, bzip2, xz."
+	//    schema:
+	//      type: string
+	//      format: binary
+	//  - name: Content-type
+	//    in: header
+	//    type: string
+	//    enum:
+	//      - application/x-tar
+	//    default: application/x-tar
+	//  - name: X-Registry-Config
+	//    in: header
+	//    type: string
 	// produces:
 	// - application/json
 	// responses:

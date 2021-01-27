@@ -21,6 +21,19 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//      name: name
 	//      type: string
 	//      description: container name
+	//    - in: body
+	//      name: body
+	//      description: Container to create
+	//      schema:
+	//        allOf:
+	//          - $ref: "#/definitions/ContainerConfig"
+	//          - type: object
+	//            properties:
+	//              HostConfig:
+	//                $ref: "#/definitions/HostConfig"
+	//              NetworkingConfig:
+	//                $ref: "#/definitions/NetworkingConfig"
+	//      required: true
 	//   responses:
 	//     201:
 	//       $ref: "#/responses/ContainerCreateResponse"
@@ -365,6 +378,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: true
 	//    description: Stream the output
+	//  - in: query
+	//    name: one-shot
+	//    type: boolean
+	//    default: false
 	// produces:
 	// - application/json
 	// responses:
