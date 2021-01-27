@@ -2,7 +2,6 @@ package images
 
 import (
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/common/pkg/config"
 )
 
 //go:generate go run ../generator/generator.go RemoveOptions
@@ -138,32 +137,25 @@ type PullOptions struct {
 	// AllTags can be specified to pull all tags of an image. Note
 	// that this only works if the image does not include a tag.
 	AllTags *bool
+	// Arch will overwrite the local architecture for image pulls.
+	Arch *string
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
 	Authfile *string
-	// CertDir is the path to certificate directories.  Ignored for remote
-	// calls.
-	CertDir *string
-	// Username for authenticating against the registry.
-	Username *string
-	// Password for authenticating against the registry.
-	Password *string
-	// Arch will overwrite the local architecture for image pulls.
-	Arch *string
 	// OS will overwrite the local operating system (OS) for image
 	// pulls.
 	OS *string
-	// Variant will overwrite the local variant for image pulls.
-	Variant *string
+	// Password for authenticating against the registry.
+	Password *string
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet *bool
-	// SignaturePolicy to use when pulling.  Ignored for remote calls.
-	SignaturePolicy *string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify *bool
-	// PullPolicy whether to pull new image
-	PullPolicy *config.PullPolicy
+	// Username for authenticating against the registry.
+	Username *string
+	// Variant will overwrite the local variant for image pulls.
+	Variant *string
 }
 
 //BuildOptions are optional options for building images

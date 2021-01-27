@@ -522,4 +522,31 @@ var _ = Describe("Podman pull", func() {
 		Expect(data[0].Os).To(Equal(runtime.GOOS))
 		Expect(data[0].Architecture).To(Equal("arm64"))
 	})
+
+	It("podman pull --arch", func() {
+		session := podmanTest.Podman([]string{"pull", "--arch=bogus", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		expectedError := "no image found in manifest list for architecture bogus"
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
+
+		session = podmanTest.Podman([]string{"pull", "--arch=arm64", "--os", "windows", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		expectedError = "no image found in manifest list for architecture"
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
+
+		session = podmanTest.Podman([]string{"pull", "-q", "--arch=arm64", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		setup := podmanTest.Podman([]string{"image", "inspect", session.OutputToString()})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		data := setup.InspectImageJSON() // returns []inspect.ImageData
+		Expect(len(data)).To(Equal(1))
+		Expect(data[0].Os).To(Equal(runtime.GOOS))
+		Expect(data[0].Architecture).To(Equal("arm64"))
+	})
 })
