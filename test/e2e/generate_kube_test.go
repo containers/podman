@@ -60,6 +60,7 @@ var _ = Describe("Podman generate kube", func() {
 		pod := new(v1.Pod)
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(false))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -144,12 +145,47 @@ var _ = Describe("Podman generate kube", func() {
 		pod := new(v1.Pod)
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(false))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
 			numContainers = numContainers + 1
 		}
 		Expect(numContainers).To(Equal(1))
+	})
+
+	It("podman generate kube on pod with host network", func() {
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", "testHostNetwork", "--network", "host"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"create", "--name", "topcontainer", "--pod", "testHostNetwork", "--network", "host", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testHostNetwork"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(true))
+	})
+
+	It("podman generate kube on container with host network", func() {
+		session := podmanTest.RunTopContainerWithArgs("topcontainer", []string{"--network", "host"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "topcontainer"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(true))
 	})
 
 	It("podman generate kube on pod with hostAliases", func() {
