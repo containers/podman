@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/config"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
@@ -104,70 +103,6 @@ func (o *PullOptions) GetAllTags() bool {
 	return *o.AllTags
 }
 
-// WithAuthfile
-func (o *PullOptions) WithAuthfile(value string) *PullOptions {
-	v := &value
-	o.Authfile = v
-	return o
-}
-
-// GetAuthfile
-func (o *PullOptions) GetAuthfile() string {
-	var authfile string
-	if o.Authfile == nil {
-		return authfile
-	}
-	return *o.Authfile
-}
-
-// WithCertDir
-func (o *PullOptions) WithCertDir(value string) *PullOptions {
-	v := &value
-	o.CertDir = v
-	return o
-}
-
-// GetCertDir
-func (o *PullOptions) GetCertDir() string {
-	var certDir string
-	if o.CertDir == nil {
-		return certDir
-	}
-	return *o.CertDir
-}
-
-// WithUsername
-func (o *PullOptions) WithUsername(value string) *PullOptions {
-	v := &value
-	o.Username = v
-	return o
-}
-
-// GetUsername
-func (o *PullOptions) GetUsername() string {
-	var username string
-	if o.Username == nil {
-		return username
-	}
-	return *o.Username
-}
-
-// WithPassword
-func (o *PullOptions) WithPassword(value string) *PullOptions {
-	v := &value
-	o.Password = v
-	return o
-}
-
-// GetPassword
-func (o *PullOptions) GetPassword() string {
-	var password string
-	if o.Password == nil {
-		return password
-	}
-	return *o.Password
-}
-
 // WithArch
 func (o *PullOptions) WithArch(value string) *PullOptions {
 	v := &value
@@ -182,6 +117,22 @@ func (o *PullOptions) GetArch() string {
 		return arch
 	}
 	return *o.Arch
+}
+
+// WithAuthfile
+func (o *PullOptions) WithAuthfile(value string) *PullOptions {
+	v := &value
+	o.Authfile = v
+	return o
+}
+
+// GetAuthfile
+func (o *PullOptions) GetAuthfile() string {
+	var authfile string
+	if o.Authfile == nil {
+		return authfile
+	}
+	return *o.Authfile
 }
 
 // WithOS
@@ -200,20 +151,20 @@ func (o *PullOptions) GetOS() string {
 	return *o.OS
 }
 
-// WithVariant
-func (o *PullOptions) WithVariant(value string) *PullOptions {
+// WithPassword
+func (o *PullOptions) WithPassword(value string) *PullOptions {
 	v := &value
-	o.Variant = v
+	o.Password = v
 	return o
 }
 
-// GetVariant
-func (o *PullOptions) GetVariant() string {
-	var variant string
-	if o.Variant == nil {
-		return variant
+// GetPassword
+func (o *PullOptions) GetPassword() string {
+	var password string
+	if o.Password == nil {
+		return password
 	}
-	return *o.Variant
+	return *o.Password
 }
 
 // WithQuiet
@@ -232,22 +183,6 @@ func (o *PullOptions) GetQuiet() bool {
 	return *o.Quiet
 }
 
-// WithSignaturePolicy
-func (o *PullOptions) WithSignaturePolicy(value string) *PullOptions {
-	v := &value
-	o.SignaturePolicy = v
-	return o
-}
-
-// GetSignaturePolicy
-func (o *PullOptions) GetSignaturePolicy() string {
-	var signaturePolicy string
-	if o.SignaturePolicy == nil {
-		return signaturePolicy
-	}
-	return *o.SignaturePolicy
-}
-
 // WithSkipTLSVerify
 func (o *PullOptions) WithSkipTLSVerify(value bool) *PullOptions {
 	v := &value
@@ -264,18 +199,34 @@ func (o *PullOptions) GetSkipTLSVerify() bool {
 	return *o.SkipTLSVerify
 }
 
-// WithPullPolicy
-func (o *PullOptions) WithPullPolicy(value config.PullPolicy) *PullOptions {
+// WithUsername
+func (o *PullOptions) WithUsername(value string) *PullOptions {
 	v := &value
-	o.PullPolicy = v
+	o.Username = v
 	return o
 }
 
-// GetPullPolicy
-func (o *PullOptions) GetPullPolicy() config.PullPolicy {
-	var pullPolicy config.PullPolicy
-	if o.PullPolicy == nil {
-		return pullPolicy
+// GetUsername
+func (o *PullOptions) GetUsername() string {
+	var username string
+	if o.Username == nil {
+		return username
 	}
-	return *o.PullPolicy
+	return *o.Username
+}
+
+// WithVariant
+func (o *PullOptions) WithVariant(value string) *PullOptions {
+	v := &value
+	o.Variant = v
+	return o
+}
+
+// GetVariant
+func (o *PullOptions) GetVariant() string {
+	var variant string
+	if o.Variant == nil {
+		return variant
+	}
+	return *o.Variant
 }
