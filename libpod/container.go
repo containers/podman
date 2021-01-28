@@ -126,6 +126,8 @@ type Container struct {
 
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
+
+	slirp4netnsSubnet *net.IPNet
 }
 
 // ContainerState contains the current state of the container
