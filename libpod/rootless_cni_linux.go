@@ -25,7 +25,7 @@ import (
 
 // Built from ../contrib/rootless-cni-infra.
 var rootlessCNIInfraImage = map[string]string{
-	"amd64": "quay.io/libpod/rootless-cni-infra@sha256:304742d5d221211df4ec672807a5842ff11e3729c50bc424ea0cea858f69d7b7", // 3-amd64
+	"amd64": "quay.io/libpod/rootless-cni-infra@sha256:adf352454666f7ce9ca3e1098448b5ee18f89c4516471ec99447ec9ece917f36", // 5-amd64
 }
 
 const (
@@ -58,9 +58,33 @@ func AllocRootlessCNI(ctx context.Context, c *Container) (ns.NetNS, []*cnitypes.
 		return nil, nil, err
 	}
 	k8sPodName := getCNIPodName(c) // passed to CNI as K8S_POD_NAME
+	ip := ""
+	if c.config.StaticIP != nil {
+		ip = c.config.StaticIP.String()
+	}
+	mac := ""
+	if c.config.StaticMAC != nil {
+		mac = c.config.StaticMAC.String()
+	}
+	aliases, err := c.runtime.state.GetAllNetworkAliases(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	capArgs := ""
+	// add network aliases json encoded as capabilityArgs for cni
+	if len(aliases) > 0 {
+		capabilityArgs := make(map[string]interface{})
+		capabilityArgs["aliases"] = aliases
+		b, err := json.Marshal(capabilityArgs)
+		if err != nil {
+			return nil, nil, err
+		}
+		capArgs = string(b)
+	}
+
 	cniResults := make([]*cnitypes.Result, len(networks))
 	for i, nw := range networks {
-		cniRes, err := rootlessCNIInfraCallAlloc(infra, c.ID(), nw, k8sPodName)
+		cniRes, err := rootlessCNIInfraCallAlloc(infra, c.ID(), nw, k8sPodName, ip, mac, capArgs)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -137,11 +161,11 @@ func getCNIPodName(c *Container) string {
 	return c.Name()
 }
 
-func rootlessCNIInfraCallAlloc(infra *Container, id, nw, k8sPodName string) (*cnitypes.Result, error) {
-	logrus.Debugf("rootless CNI: alloc %q, %q, %q", id, nw, k8sPodName)
+func rootlessCNIInfraCallAlloc(infra *Container, id, nw, k8sPodName, ip, mac, capArgs string) (*cnitypes.Result, error) {
+	logrus.Debugf("rootless CNI: alloc %q, %q, %q, %q, %q, %q", id, nw, k8sPodName, ip, mac, capArgs)
 	var err error
 
-	_, err = rootlessCNIInfraExec(infra, "alloc", id, nw, k8sPodName)
+	_, err = rootlessCNIInfraExec(infra, "alloc", id, nw, k8sPodName, ip, mac, capArgs)
 	if err != nil {
 		return nil, err
 	}

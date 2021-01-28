@@ -56,11 +56,7 @@ var _ = Describe("Podman run with --mac-address flag", func() {
 
 		result := podmanTest.Podman([]string{"run", "--network", net, "--mac-address", "92:d0:c6:00:29:34", ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		if rootless.IsRootless() {
-			Expect(result.ExitCode()).To(Equal(125))
-		} else {
-			Expect(result.ExitCode()).To(Equal(0))
-			Expect(result.OutputToString()).To(ContainSubstring("92:d0:c6:00:29:34"))
-		}
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring("92:d0:c6:00:29:34"))
 	})
 })
