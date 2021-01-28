@@ -29,29 +29,6 @@ EOF
     run_podman rmi -f build_test
 }
 
-@test "podman build - basic test with --pull" {
-    rand_filename=$(random_string 20)
-    rand_content=$(random_string 50)
-
-    run_podman tag $IMAGE localhost/localonly
-
-    tmpdir=$PODMAN_TMPDIR/build-test
-    mkdir -p $tmpdir
-    dockerfile=$tmpdir/Dockerfile
-    cat >$dockerfile <<EOF
-FROM localhost/localonly
-RUN echo $rand_content > /$rand_filename
-EOF
-    # With --pull, Podman would try to pull a newer image but use the local one
-    # if present. See #9111.
-    run_podman build --pull -t build_test $tmpdir
-
-    run_podman run --rm build_test cat /$rand_filename
-    is "$output"   "$rand_content"   "reading generated file in image"
-
-    run_podman rmi -f build_test localhost/localonly
-}
-
 @test "podman build - global runtime flags test" {
     skip_if_remote "--runtime-flag flag not supported for remote"
 
