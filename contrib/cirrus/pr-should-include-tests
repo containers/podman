@@ -39,6 +39,7 @@ filtered_changes=$(git diff --name-status $base $head |
                        egrep -v  '^contrib/'          |
                        egrep -v  '^docs/'             |
                        egrep -v  '^hack/'             |
+                       egrep -v  '^nix/'              |
                        egrep -v  '^vendor/'           |
                        egrep -v  '^version/')
 if [[ -z "$filtered_changes" ]]; then
