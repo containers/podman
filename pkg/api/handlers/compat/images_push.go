@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/auth"
@@ -27,8 +28,9 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		All         bool   `schema:"all"`
 		Compress    bool   `schema:"compress"`
 		Destination string `schema:"destination"`
-		Tag         string `schema:"tag"`
+		Format      string `schema:"format"`
 		TLSVerify   bool   `schema:"tlsVerify"`
+		Tag         string `schema:"tag"`
 	}{
 		// This is where you can override the golang default value for one of fields
 		TLSVerify: true,
@@ -67,8 +69,12 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		All:      query.All,
 		Authfile: authfile,
 		Compress: query.Compress,
-		Username: username,
+		Format:   query.Format,
 		Password: password,
+		Username: username,
+	}
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
 	if err := imageEngine.Push(context.Background(), imageName, query.Destination, options); err != nil {
 		if errors.Cause(err) != storage.ErrImageUnknown {

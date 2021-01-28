@@ -90,8 +90,7 @@ solely for scripting compatibility.
 
 #### **--format**, **-f**=*format*
 
-Manifest Type (oci, v2s1, or v2s2) to use when pushing an image to a directory using the 'dir:' transport (default is manifest type of source)
-Note: This flag can only be set when using the **dir** transport. (Not available for remote commands)
+Manifest Type (oci, v2s2, or v2s1) to use when pushing an image.
 
 #### **--quiet**, **-q**
 

@@ -135,6 +135,22 @@ func (o *PushOptions) GetCompress() bool {
 	return *o.Compress
 }
 
+// WithFormat
+func (o *PushOptions) WithFormat(value string) *PushOptions {
+	v := &value
+	o.Format = v
+	return o
+}
+
+// GetFormat
+func (o *PushOptions) GetFormat() string {
+	var format string
+	if o.Format == nil {
+		return format
+	}
+	return *o.Format
+}
+
 // WithPassword
 func (o *PushOptions) WithPassword(value string) *PushOptions {
 	v := &value
