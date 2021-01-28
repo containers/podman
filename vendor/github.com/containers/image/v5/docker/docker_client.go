@@ -23,6 +23,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/pkg/tlsclientconfig"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/image/v5/version"
 	"github.com/containers/storage/pkg/homedir"
 	clientLib "github.com/docker/distribution/registry/client"
 	"github.com/docker/go-connections/tlsconfig"
@@ -65,6 +66,8 @@ var (
 		{path: "/etc/containers/certs.d", absolute: true},
 		{path: "/etc/docker/certs.d", absolute: true},
 	}
+
+	defaultUserAgent = "containers/" + version.Version + " (github.com/containers/image)"
 )
 
 // extensionSignature and extensionSignatureList come from github.com/openshift/origin/pkg/dockerregistry/server/signaturedispatcher.go:
@@ -92,8 +95,9 @@ type bearerToken struct {
 // dockerClient is configuration for dealing with a single Docker registry.
 type dockerClient struct {
 	// The following members are set by newDockerClient and do not change afterwards.
-	sys      *types.SystemContext
-	registry string
+	sys       *types.SystemContext
+	registry  string
+	userAgent string
 
 	// tlsClientConfig is setup by newDockerClient and will be used and updated
 	// by detectProperties(). Callers can edit tlsClientConfig.InsecureSkipVerify in the meantime.
@@ -200,9 +204,7 @@ func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
 			logrus.Debugf("error accessing certs directory due to permissions: %v", err)
 			continue
 		}
-		if err != nil {
-			return "", err
-		}
+		return "", err
 	}
 	return fullCertDirPath, nil
 }
@@ -277,9 +279,15 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 	}
 	tlsClientConfig.InsecureSkipVerify = skipVerify
 
+	userAgent := defaultUserAgent
+	if sys != nil && sys.DockerRegistryUserAgent != "" {
+		userAgent = sys.DockerRegistryUserAgent
+	}
+
 	return &dockerClient{
 		sys:             sys,
 		registry:        registry,
+		userAgent:       userAgent,
 		tlsClientConfig: tlsClientConfig,
 	}, nil
 }
@@ -529,9 +537,7 @@ func (c *dockerClient) makeRequestToResolvedURLOnce(ctx context.Context, method,
 			req.Header.Add(n, hh)
 		}
 	}
-	if c.sys != nil && c.sys.DockerRegistryUserAgent != "" {
-		req.Header.Add("User-Agent", c.sys.DockerRegistryUserAgent)
-	}
+	req.Header.Add("User-Agent", c.userAgent)
 	if auth == v2Auth {
 		if err := c.setupRequestAuth(req, extraScope); err != nil {
 			return nil, err
@@ -637,9 +643,7 @@ func (c *dockerClient) getBearerTokenOAuth2(ctx context.Context, challenge chall
 	params.Add("client_id", "containers/image")
 
 	authReq.Body = ioutil.NopCloser(bytes.NewBufferString(params.Encode()))
-	if c.sys != nil && c.sys.DockerRegistryUserAgent != "" {
-		authReq.Header.Add("User-Agent", c.sys.DockerRegistryUserAgent)
-	}
+	authReq.Header.Add("User-Agent", c.userAgent)
 	authReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	logrus.Debugf("%s %s", authReq.Method, authReq.URL.String())
 	res, err := c.client.Do(authReq)
@@ -692,9 +696,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge,
 	if c.auth.Username != "" && c.auth.Password != "" {
 		authReq.SetBasicAuth(c.auth.Username, c.auth.Password)
 	}
-	if c.sys != nil && c.sys.DockerRegistryUserAgent != "" {
-		authReq.Header.Add("User-Agent", c.sys.DockerRegistryUserAgent)
-	}
+	authReq.Header.Add("User-Agent", c.userAgent)
 
 	logrus.Debugf("%s %s", authReq.Method, authReq.URL.String())
 	res, err := c.client.Do(authReq)

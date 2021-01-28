@@ -126,14 +126,18 @@ type BlobInfo struct {
 	Annotations map[string]string
 	MediaType   string
 	// CompressionOperation is used in Image.UpdateLayerInfos to instruct
-	// whether the original layer should be preserved or (de)compressed. The
-	// field defaults to preserve the original layer.
+	// whether the original layer's "compressed or not" should be preserved,
+	// possibly while changing the compression algorithm from one to another,
+	// or if it should be compressed or decompressed.  The field defaults to
+	// preserve the original layer's compressedness.
 	// TODO: To remove together with CryptoOperation in re-design to remove
 	// field out out of BlobInfo.
 	CompressionOperation LayerCompression
 	// CompressionAlgorithm is used in Image.UpdateLayerInfos to set the correct
 	// MIME type for compressed layers (e.g., gzip or zstd). This field MUST be
-	// set when `CompressionOperation == Compress`.
+	// set when `CompressionOperation == Compress` and MAY be set when
+	// `CompressionOperation == PreserveOriginal` and the compression type is
+	// being changed for an already-compressed layer.
 	CompressionAlgorithm *compression.Algorithm
 	// CryptoOperation is used in Image.UpdateLayerInfos to instruct
 	// whether the original layer was encrypted/decrypted
@@ -194,6 +198,9 @@ type BICReplacementCandidate struct {
 //
 // None of the methods return an error indication: errors when neither reading from, nor writing to, the cache, should be fatal;
 // users of the cache should just fall back to copying the blobs the usual way.
+//
+// The BlobInfoCache interface is deprecated.  Consumers of this library should use one of the implementations provided by
+// subpackages of the library's "pkg/blobinfocache" package in preference to implementing the interface on their own.
 type BlobInfoCache interface {
 	// UncompressedDigest returns an uncompressed digest corresponding to anyDigest.
 	// May return anyDigest if it is known to be uncompressed.
@@ -306,7 +313,9 @@ type ImageDestination interface {
 	// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 	// info.Digest must not be empty.
 	// If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
-	// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size.
+	// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size, and may
+	// include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
+	// reflected in the manifest that will be written.
 	// If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 	// May use and/or update cache.
 	TryReusingBlob(ctx context.Context, info BlobInfo, cache BlobInfoCache, canSubstitute bool) (bool, BlobInfo, error)
@@ -397,6 +406,12 @@ type Image interface {
 	// UpdatedImage returns a types.Image modified according to options.
 	// Everything in options.InformationOnly should be provided, other fields should be set only if a modification is desired.
 	// This does not change the state of the original Image object.
+	// The returned error will be a manifest.ManifestLayerCompressionIncompatibilityError if
+	// manifests of type options.ManifestMIMEType can not include layers that are compressed
+	// in accordance with the CompressionOperation and CompressionAlgorithm specified in one
+	// or more options.LayerInfos items, though retrying with a different
+	// options.ManifestMIMEType or with different CompressionOperation+CompressionAlgorithm
+	// values might succeed.
 	UpdatedImage(ctx context.Context, options ManifestUpdateOptions) (Image, error)
 	// SupportsEncryption returns an indicator that the image supports encryption
 	//
@@ -600,6 +615,8 @@ type SystemContext struct {
 	DockerDisableV1Ping bool
 	// If true, dockerImageDestination.SupportedManifestMIMETypes will omit the Schema1 media types from the supported list
 	DockerDisableDestSchema1MIMETypes bool
+	// If true, the physical pull source of docker transport images logged as info level
+	DockerLogMirrorChoice bool
 	// Directory to use for OSTree temporary files
 	OSTreeTmpDirPath string
 

@@ -2,6 +2,7 @@
 package none
 
 import (
+	"github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 )
@@ -16,7 +17,7 @@ type noCache struct {
 // Manifest.Inspect, because configs only have one representation.
 // Any use of BlobInfoCache with blobs should usually use at least a
 // short-lived cache, ideally blobinfocache.DefaultCache.
-var NoCache types.BlobInfoCache = noCache{}
+var NoCache blobinfocache.BlobInfoCache2 = blobinfocache.FromBlobInfoCache(&noCache{})
 
 // UncompressedDigest returns an uncompressed digest corresponding to anyDigest.
 // May return anyDigest if it is known to be uncompressed.

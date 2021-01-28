@@ -149,9 +149,9 @@ const (
 func (r *Resolved) Description() string {
 	switch r.rationale {
 	case rationaleAlias:
-		return fmt.Sprintf("Resolved short name %q to a recorded short-name alias (origin: %s)", r.userInput, r.originDescription)
+		return fmt.Sprintf("Resolved %q as an alias (%s)", r.userInput, r.originDescription)
 	case rationaleUSR:
-		return fmt.Sprintf("Completed short name %q with unqualified-search registries (origin: %s)", r.userInput, r.originDescription)
+		return fmt.Sprintf("Resolving %q using unqualified-search registries (%s)", r.userInput, r.originDescription)
 	case rationaleUserSelection, rationaleNone:
 		fallthrough
 	default:
@@ -240,14 +240,14 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 
 	// Create a copy of the system context to make it usable beyond this
 	// function call.
-	var sys *types.SystemContext
 	if ctx != nil {
-		sys = &(*ctx)
+		copy := *ctx
+		ctx = &copy
 	}
 	resolved.systemContext = ctx
 
 	// Detect which mode we're running in.
-	mode, err := sysregistriesv2.GetShortNameMode(sys)
+	mode, err := sysregistriesv2.GetShortNameMode(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	resolved.userInput = shortNameRepo
 
 	// If there's already an alias, use it.
-	namedAlias, aliasOriginDescription, err := sysregistriesv2.ResolveShortNameAlias(sys, shortNameRepo.String())
+	namedAlias, aliasOriginDescription, err := sysregistriesv2.ResolveShortNameAlias(ctx, shortNameRepo.String())
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	resolved.rationale = rationaleUSR
 
 	// Query the registry for unqualified-search registries.
-	unqualifiedSearchRegistries, usrConfig, err := sysregistriesv2.UnqualifiedSearchRegistriesWithOrigin(sys)
+	unqualifiedSearchRegistries, usrConfig, err := sysregistriesv2.UnqualifiedSearchRegistriesWithOrigin(ctx)
 	if err != nil {
 		return nil, err
 	}

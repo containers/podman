@@ -96,10 +96,16 @@ func SignatureStorageBaseURL(sys *types.SystemContext, ref types.ImageReference,
 
 // registriesDirPath returns a path to registries.d
 func registriesDirPath(sys *types.SystemContext) string {
+	return registriesDirPathWithHomeDir(sys, homedir.Get())
+}
+
+// registriesDirPathWithHomeDir is an internal implementation detail of registriesDirPath,
+// it exists only to allow testing it with an artificial home directory.
+func registriesDirPathWithHomeDir(sys *types.SystemContext, homeDir string) string {
 	if sys != nil && sys.RegistriesDirPath != "" {
 		return sys.RegistriesDirPath
 	}
-	userRegistriesDirPath := filepath.Join(homedir.Get(), userRegistriesDir)
+	userRegistriesDirPath := filepath.Join(homeDir, userRegistriesDir)
 	if _, err := os.Stat(userRegistriesDirPath); err == nil {
 		return userRegistriesDirPath
 	}
