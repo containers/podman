@@ -353,6 +353,10 @@ func getBindMount(args []string) (spec.Mount, error) {
 			default:
 				return newMount, errors.Wrapf(util.ErrBadMntOption, "%s mount option must be 'private' or 'shared'", kv[0])
 			}
+		case "consistency":
+			// Often used on MACs and mistakenly on Linux platforms.
+			// Since Docker ignores this option so shall we.
+			continue
 		default:
 			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
 		}
@@ -437,6 +441,10 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 			}
 			newMount.Destination = filepath.Clean(kv[1])
 			setDest = true
+		case "consistency":
+			// Often used on MACs and mistakenly on Linux platforms.
+			// Since Docker ignores this option so shall we.
+			continue
 		default:
 			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
 		}
@@ -534,6 +542,10 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 			}
 			newVolume.Dest = filepath.Clean(kv[1])
 			setDest = true
+		case "consistency":
+			// Often used on MACs and mistakenly on Linux platforms.
+			// Since Docker ignores this option so shall we.
+			continue
 		default:
 			return nil, errors.Wrapf(util.ErrBadMntOption, kv[0])
 		}
@@ -581,6 +593,10 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 			default:
 				return nil, errors.Wrapf(util.ErrBadMntOption, "invalid rw value %q", kv[1])
 			}
+		case "consistency":
+			// Often used on MACs and mistakenly on Linux platforms.
+			// Since Docker ignores this option so shall we.
+			continue
 		default:
 			return nil, errors.Wrapf(util.ErrBadMntOption, kv[0])
 		}
