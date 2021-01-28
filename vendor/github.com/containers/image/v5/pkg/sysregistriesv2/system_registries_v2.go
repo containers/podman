@@ -405,9 +405,15 @@ type configWrapper struct {
 
 // newConfigWrapper returns a configWrapper for the specified SystemContext.
 func newConfigWrapper(ctx *types.SystemContext) configWrapper {
+	return newConfigWrapperWithHomeDir(ctx, homedir.Get())
+}
+
+// newConfigWrapperWithHomeDir is an internal implementation detail of newConfigWrapper,
+// it exists only to allow testing it with an artificial home directory.
+func newConfigWrapperWithHomeDir(ctx *types.SystemContext, homeDir string) configWrapper {
 	var wrapper configWrapper
-	userRegistriesFilePath := filepath.Join(homedir.Get(), userRegistriesFile)
-	userRegistriesDirPath := filepath.Join(homedir.Get(), userRegistriesDir)
+	userRegistriesFilePath := filepath.Join(homeDir, userRegistriesFile)
+	userRegistriesDirPath := filepath.Join(homeDir, userRegistriesDir)
 
 	// decide configPath using per-user path or system file
 	if ctx != nil && ctx.SystemRegistriesConfPath != "" {

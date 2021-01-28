@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"sync"
 	"time"
@@ -40,7 +41,6 @@ type pState struct {
 	pMatrix          map[int][]chan int
 	aMatrix          map[int][]chan int
 	barShutdownQueue []*Bar
-	barPopQueue      []*Bar
 
 	// following are provided/overrided by user
 	idCount          int
@@ -179,7 +179,7 @@ func (p *Progress) BarCount() int {
 	}
 }
 
-// Wait waits far all bars to complete and finally shutdowns container.
+// Wait waits for all bars to complete and finally shutdowns container.
 // After this method has been called, there is no way to reuse *Progress
 // instance.
 func (p *Progress) Wait() {
@@ -301,26 +301,17 @@ func (s *pState) flush(cw *cwriter.Writer) error {
 			delete(s.parkedBars, b)
 			b.toDrop = true
 		}
+		if s.popCompleted && !b.noPop {
+			lineCount -= b.extendedLines + 1
+			b.toDrop = true
+		}
 		if b.toDrop {
 			delete(bm, b)
 			s.heapUpdated = true
-		} else if s.popCompleted {
-			if b := b; !b.noPop {
-				defer func() {
-					s.barPopQueue = append(s.barPopQueue, b)
-				}()
-			}
 		}
 		b.cancel()
 	}
 	s.barShutdownQueue = s.barShutdownQueue[0:0]
-
-	for _, b := range s.barPopQueue {
-		delete(bm, b)
-		s.heapUpdated = true
-		lineCount -= b.extendedLines + 1
-	}
-	s.barPopQueue = s.barPopQueue[0:0]
 
 	for b := range bm {
 		heap.Push(&s.bHeap, b)
@@ -370,7 +361,7 @@ func (s *pState) makeBarState(total int64, filler BarFiller, options ...BarOptio
 	}
 
 	if s.popCompleted && !bs.noPop {
-		bs.priority = -1
+		bs.priority = -(math.MaxInt32 - s.idCount)
 	}
 
 	bs.bufP = bytes.NewBuffer(make([]byte, 0, 128))
@@ -382,17 +373,18 @@ func (s *pState) makeBarState(total int64, filler BarFiller, options ...BarOptio
 
 func syncWidth(matrix map[int][]chan int) {
 	for _, column := range matrix {
-		column := column
-		go func() {
-			var maxWidth int
-			for _, ch := range column {
-				if w := <-ch; w > maxWidth {
-					maxWidth = w
-				}
-			}
-			for _, ch := range column {
-				ch <- maxWidth
-			}
-		}()
+		go maxWidthDistributor(column)
+	}
+}
+
+var maxWidthDistributor = func(column []chan int) {
+	var maxWidth int
+	for _, ch := range column {
+		if w := <-ch; w > maxWidth {
+			maxWidth = w
+		}
+	}
+	for _, ch := range column {
+		ch <- maxWidth
 	}
 }

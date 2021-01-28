@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
+	internalblobinfocache "github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/internal/pkg/platform"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache"
@@ -47,7 +48,7 @@ var (
 
 	// maxParallelDownloads is used to limit the maxmimum number of parallel
 	// downloads.  Let's follow Firefox by limiting it to 6.
-	maxParallelDownloads = 6
+	maxParallelDownloads = uint(6)
 )
 
 // compressionBufferSize is the buffer size used to compress a blob
@@ -107,18 +108,19 @@ func (d *digestingReader) Read(p []byte) (int, error) {
 // copier allows us to keep track of diffID values for blobs, and other
 // data shared across one or more images in a possible manifest list.
 type copier struct {
-	dest              types.ImageDestination
-	rawSource         types.ImageSource
-	reportWriter      io.Writer
-	progressOutput    io.Writer
-	progressInterval  time.Duration
-	progress          chan types.ProgressProperties
-	blobInfoCache     types.BlobInfoCache
-	copyInParallel    bool
-	compressionFormat compression.Algorithm
-	compressionLevel  *int
-	ociDecryptConfig  *encconfig.DecryptConfig
-	ociEncryptConfig  *encconfig.EncryptConfig
+	dest                 types.ImageDestination
+	rawSource            types.ImageSource
+	reportWriter         io.Writer
+	progressOutput       io.Writer
+	progressInterval     time.Duration
+	progress             chan types.ProgressProperties
+	blobInfoCache        internalblobinfocache.BlobInfoCache2
+	copyInParallel       bool
+	compressionFormat    compression.Algorithm
+	compressionLevel     *int
+	ociDecryptConfig     *encconfig.DecryptConfig
+	ociEncryptConfig     *encconfig.EncryptConfig
+	maxParallelDownloads uint
 }
 
 // imageCopier tracks state specific to a single image (possibly an item of a manifest list)
@@ -190,6 +192,8 @@ type Options struct {
 	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
+	// MaxParallelDownloads indicates the maximum layers to pull at the same time.  A reasonable default is used if this is left as 0.
+	MaxParallelDownloads uint
 }
 
 // validateImageListSelection returns an error if the passed-in value is not one that we recognize as a valid ImageListSelection value
@@ -265,9 +269,10 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		// FIXME? The cache is used for sources and destinations equally, but we only have a SourceCtx and DestinationCtx.
 		// For now, use DestinationCtx (because blob reuse changes the behavior of the destination side more); eventually
 		// we might want to add a separate CommonCtx — or would that be too confusing?
-		blobInfoCache:    blobinfocache.DefaultCache(options.DestinationCtx),
-		ociDecryptConfig: options.OciDecryptConfig,
-		ociEncryptConfig: options.OciEncryptConfig,
+		blobInfoCache:        internalblobinfocache.FromBlobInfoCache(blobinfocache.DefaultCache(options.DestinationCtx)),
+		ociDecryptConfig:     options.OciDecryptConfig,
+		ociEncryptConfig:     options.OciEncryptConfig,
+		maxParallelDownloads: options.MaxParallelDownloads,
 	}
 	// Default to using gzip compression unless specified otherwise.
 	if options.DestinationCtx == nil || options.DestinationCtx.CompressionFormat == nil {
@@ -648,13 +653,19 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 	// With docker/distribution registries we do not know whether the registry accepts schema2 or schema1 only;
 	// and at least with the OpenShift registry "acceptschema2" option, there is no way to detect the support
 	// without actually trying to upload something and getting a types.ManifestTypeRejectedError.
-	// So, try the preferred manifest MIME type. If the process succeeds, fine…
+	// So, try the preferred manifest MIME type with possibly-updated blob digests, media types, and sizes if
+	// we're altering how they're compressed.  If the process succeeds, fine…
 	manifestBytes, retManifestDigest, err := ic.copyUpdatedConfigAndManifest(ctx, targetInstance)
 	retManifestType = preferredManifestMIMEType
 	if err != nil {
 		logrus.Debugf("Writing manifest using preferred type %s failed: %v", preferredManifestMIMEType, err)
-		// … if it fails, _and_ the failure is because the manifest is rejected, we may have other options.
-		if _, isManifestRejected := errors.Cause(err).(types.ManifestTypeRejectedError); !isManifestRejected || len(otherManifestMIMETypeCandidates) == 0 {
+		// … if it fails, and the failure is either because the manifest is rejected by the registry, or
+		// because we failed to create a manifest of the specified type because the specific manifest type
+		// doesn't support the type of compression we're trying to use (e.g. docker v2s2 and zstd), we may
+		// have other options available that could still succeed.
+		_, isManifestRejected := errors.Cause(err).(types.ManifestTypeRejectedError)
+		_, isCompressionIncompatible := errors.Cause(err).(manifest.ManifestLayerCompressionIncompatibilityError)
+		if (!isManifestRejected && !isCompressionIncompatible) || len(otherManifestMIMETypeCandidates) == 0 {
 			// We don’t have other options.
 			// In principle the code below would handle this as well, but the resulting  error message is fairly ugly.
 			// Don’t bother the user with MIME types if we have no choice.
@@ -809,7 +820,11 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 	// avoid malicious images causing troubles and to be nice to servers.
 	var copySemaphore *semaphore.Weighted
 	if ic.c.copyInParallel {
-		copySemaphore = semaphore.NewWeighted(int64(maxParallelDownloads))
+		max := ic.c.maxParallelDownloads
+		if max == 0 {
+			max = maxParallelDownloads
+		}
+		copySemaphore = semaphore.NewWeighted(int64(max))
 	} else {
 		copySemaphore = semaphore.NewWeighted(int64(1))
 	}
@@ -896,7 +911,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 	return nil
 }
 
-// layerDigestsDiffer return true iff the digests in a and b differ (ignoring sizes and possible other fields)
+// layerDigestsDiffer returns true iff the digests in a and b differ (ignoring sizes and possible other fields)
 func layerDigestsDiffer(a, b []types.BlobInfo) bool {
 	if len(a) != len(b) {
 		return true
@@ -951,7 +966,7 @@ func (ic *imageCopier) copyUpdatedConfigAndManifest(ctx context.Context, instanc
 		instanceDigest = &manifestDigest
 	}
 	if err := ic.c.dest.PutManifest(ctx, man, instanceDigest); err != nil {
-		return nil, "", errors.Wrap(err, "Error writing manifest")
+		return nil, "", errors.Wrapf(err, "Error writing manifest %q", string(man))
 	}
 	return man, manifestDigest, nil
 }
@@ -1049,7 +1064,7 @@ type diffIDResult struct {
 	err    error
 }
 
-// copyLayer copies a layer with srcInfo (with known Digest and Annotations and possibly known Size) in src to dest, perhaps compressing it if canCompress,
+// copyLayer copies a layer with srcInfo (with known Digest and Annotations and possibly known Size) in src to dest, perhaps (de/re/)compressing it,
 // and returns a complete blobInfo of the copied layer, and a value for LayerDiffIDs if diffIDIsNeeded
 func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, toEncrypt bool, pool *mpb.Progress) (types.BlobInfo, digest.Digest, error) {
 	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
@@ -1058,6 +1073,12 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 
 	// If we already have the blob, and we don't need to compute the diffID, then we don't need to read it from the source.
 	if !diffIDIsNeeded {
+		// TODO: at this point we don't know whether or not a blob we end up reusing is compressed using an algorithm
+		// that is acceptable for use on layers in the manifest that we'll be writing later, so if we end up reusing
+		// a blob that's compressed with e.g. zstd, but we're only allowed to write a v2s2 manifest, this will cause
+		// a failure when we eventually try to update the manifest with the digest and MIME type of the reused blob.
+		// Fixing that will probably require passing more information to TryReusingBlob() than the current version of
+		// the ImageDestination interface lets us pass in.
 		reused, blobInfo, err := ic.c.dest.TryReusingBlob(ctx, srcInfo, ic.c.blobInfoCache, ic.canSubstituteBlobs)
 		if err != nil {
 			return types.BlobInfo{}, "", errors.Wrapf(err, "Error trying to reuse blob %s at destination", srcInfo.Digest)
@@ -1115,7 +1136,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 
 // copyLayerFromStream is an implementation detail of copyLayer; mostly providing a separate “defer” scope.
 // it copies a blob with srcInfo (with known Digest and Annotations and possibly known Size) from srcStream to dest,
-// perhaps compressing the stream if canCompress,
+// perhaps (de/re/)compressing the stream,
 // and returns a complete blobInfo of the copied blob and perhaps a <-chan diffIDResult if diffIDIsNeeded, to be read by the caller.
 func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo,
 	diffIDIsNeeded bool, toEncrypt bool, bar *mpb.Bar) (types.BlobInfo, <-chan diffIDResult, error) {
@@ -1191,11 +1212,15 @@ func (r errorAnnotationReader) Read(b []byte) (n int, err error) {
 
 // copyBlobFromStream copies a blob with srcInfo (with known Digest and Annotations and possibly known Size) from srcStream to dest,
 // perhaps sending a copy to an io.Writer if getOriginalLayerCopyWriter != nil,
-// perhaps compressing it if canCompress,
+// perhaps (de/re/)compressing it if canModifyBlob,
 // and returns a complete blobInfo of the copied blob.
 func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo,
 	getOriginalLayerCopyWriter func(decompressor compression.DecompressorFunc) io.Writer,
 	canModifyBlob bool, isConfig bool, toEncrypt bool, bar *mpb.Bar) (types.BlobInfo, error) {
+	if isConfig { // This is guaranteed by the caller, but set it here to be explicit.
+		canModifyBlob = false
+	}
+
 	// The copying happens through a pipeline of connected io.Readers.
 	// === Input: srcStream
 
@@ -1253,16 +1278,23 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		originalLayerReader = destStream
 	}
 
-	desiredCompressionFormat := c.compressionFormat
-
 	// === Deal with layer compression/decompression if necessary
 	var inputInfo types.BlobInfo
 	var compressionOperation types.LayerCompression
+	uploadCompressionFormat := &c.compressionFormat
+	srcCompressorName := internalblobinfocache.Uncompressed
+	if isCompressed {
+		srcCompressorName = compressionFormat.Name()
+	}
+	var uploadCompressorName string
 	if canModifyBlob && isOciEncrypted(srcInfo.MediaType) {
 		// PreserveOriginal due to any compression not being able to be done on an encrypted blob unless decrypted
 		logrus.Debugf("Using original blob without modification for encrypted blob")
 		compressionOperation = types.PreserveOriginal
 		inputInfo = srcInfo
+		srcCompressorName = internalblobinfocache.UnknownCompression
+		uploadCompressorName = internalblobinfocache.UnknownCompression
+		uploadCompressionFormat = nil
 	} else if canModifyBlob && c.dest.DesiredLayerCompression() == types.Compress && !isCompressed {
 		logrus.Debugf("Compressing blob on the fly")
 		compressionOperation = types.Compress
@@ -1272,11 +1304,12 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		// If this fails while writing data, it will do pipeWriter.CloseWithError(); if it fails otherwise,
 		// e.g. because we have exited and due to pipeReader.Close() above further writing to the pipe has failed,
 		// we don’t care.
-		go c.compressGoroutine(pipeWriter, destStream, desiredCompressionFormat) // Closes pipeWriter
+		go c.compressGoroutine(pipeWriter, destStream, *uploadCompressionFormat) // Closes pipeWriter
 		destStream = pipeReader
 		inputInfo.Digest = ""
 		inputInfo.Size = -1
-	} else if canModifyBlob && c.dest.DesiredLayerCompression() == types.Compress && isCompressed && desiredCompressionFormat.Name() != compressionFormat.Name() {
+		uploadCompressorName = uploadCompressionFormat.Name()
+	} else if canModifyBlob && c.dest.DesiredLayerCompression() == types.Compress && isCompressed && uploadCompressionFormat.Name() != compressionFormat.Name() {
 		// When the blob is compressed, but the desired format is different, it first needs to be decompressed and finally
 		// re-compressed using the desired format.
 		logrus.Debugf("Blob will be converted")
@@ -1291,11 +1324,12 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		pipeReader, pipeWriter := io.Pipe()
 		defer pipeReader.Close()
 
-		go c.compressGoroutine(pipeWriter, s, desiredCompressionFormat) // Closes pipeWriter
+		go c.compressGoroutine(pipeWriter, s, *uploadCompressionFormat) // Closes pipeWriter
 
 		destStream = pipeReader
 		inputInfo.Digest = ""
 		inputInfo.Size = -1
+		uploadCompressorName = uploadCompressionFormat.Name()
 	} else if canModifyBlob && c.dest.DesiredLayerCompression() == types.Decompress && isCompressed {
 		logrus.Debugf("Blob will be decompressed")
 		compressionOperation = types.Decompress
@@ -1307,11 +1341,15 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		destStream = s
 		inputInfo.Digest = ""
 		inputInfo.Size = -1
+		uploadCompressorName = internalblobinfocache.Uncompressed
+		uploadCompressionFormat = nil
 	} else {
 		// PreserveOriginal might also need to recompress the original blob if the desired compression format is different.
 		logrus.Debugf("Using original blob without modification")
 		compressionOperation = types.PreserveOriginal
 		inputInfo = srcInfo
+		uploadCompressorName = srcCompressorName
+		uploadCompressionFormat = nil
 	}
 
 	// Perform image encryption for valid mediatypes if ociEncryptConfig provided
@@ -1371,9 +1409,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 
 	uploadedInfo.CompressionOperation = compressionOperation
 	// If we can modify the layer's blob, set the desired algorithm for it to be set in the manifest.
-	if canModifyBlob && !isConfig {
-		uploadedInfo.CompressionAlgorithm = &desiredCompressionFormat
-	}
+	uploadedInfo.CompressionAlgorithm = uploadCompressionFormat
 	if decrypted {
 		uploadedInfo.CryptoOperation = types.Decrypt
 	} else if encrypted {
@@ -1390,7 +1426,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		}
 	}
 
-	// This is fairly horrible: the writer from getOriginalLayerCopyWriter wants to consumer
+	// This is fairly horrible: the writer from getOriginalLayerCopyWriter wants to consume
 	// all of the input (to compute DiffIDs), even if dest.PutBlob does not need it.
 	// So, read everything from originalLayerReader, which will cause the rest to be
 	// sent there if we are not already at EOF.
@@ -1422,6 +1458,12 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 			c.blobInfoCache.RecordDigestUncompressedPair(srcInfo.Digest, uploadedInfo.Digest)
 		default:
 			return types.BlobInfo{}, errors.Errorf("Internal error: Unexpected compressionOperation value %#v", compressionOperation)
+		}
+		if uploadCompressorName != "" && uploadCompressorName != internalblobinfocache.UnknownCompression {
+			c.blobInfoCache.RecordDigestCompressorName(uploadedInfo.Digest, uploadCompressorName)
+		}
+		if srcInfo.Digest != "" && srcCompressorName != "" && srcCompressorName != internalblobinfocache.UnknownCompression {
+			c.blobInfoCache.RecordDigestCompressorName(srcInfo.Digest, srcCompressorName)
 		}
 	}
 	return uploadedInfo, nil
