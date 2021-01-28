@@ -455,9 +455,8 @@ not required for Buildah as it supports only Linux.
 
 #### **--pull**
 
-When the option is specified or set to "true", pull the image from the first
-registry it is found in as listed in registries.conf.  Raise an error if not
-found in the registries, even if the image is present locally.
+When the option is specified or set to "true", pull the image.  Raise an error
+if the image could not be pulled, even if the image is present locally.
 
 If the option is disabled (with *--pull=false*) or not specified, pull the
 image from the registry only if the image is not present locally. Raise an
