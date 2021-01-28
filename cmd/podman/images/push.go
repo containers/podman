@@ -114,7 +114,11 @@ func pushFlags(cmd *cobra.Command) {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
+		_ = flags.MarkHidden("digestfile")
+		_ = flags.MarkHidden("format")
 		_ = flags.MarkHidden("quiet")
+		_ = flags.MarkHidden("remove-signatures")
+		_ = flags.MarkHidden("sign-by")
 	}
 	_ = flags.MarkHidden("signature-policy")
 }

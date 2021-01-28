@@ -3,13 +3,14 @@ package compat
 import (
 	"context"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/containers/podman/v2/libpod"
-	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/auth"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
+	"github.com/containers/storage"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -18,11 +19,19 @@ import (
 func PushImage(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	// Now use the ABI implementation to prevent us from having duplicate
+	// code.
+	imageEngine := abi.ImageEngine{Libpod: runtime}
 
 	query := struct {
-		Tag string `schema:"tag"`
+		All         bool   `schema:"all"`
+		Compress    bool   `schema:"compress"`
+		Destination string `schema:"destination"`
+		Tag         string `schema:"tag"`
+		TLSVerify   bool   `schema:"tlsVerify"`
 	}{
 		// This is where you can override the golang default value for one of fields
+		TLSVerify: true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -43,39 +52,30 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newImage, err := runtime.ImageRuntime().NewFromLocal(imageName)
-	if err != nil {
-		utils.ImageNotFound(w, imageName, errors.Wrapf(err, "failed to find image %s", imageName))
-		return
-	}
-
-	authConf, authfile, key, err := auth.GetCredentials(r)
+	authconf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
-
-	dockerRegistryOptions := &image.DockerRegistryOptions{DockerRegistryCreds: authConf}
-	if sys := runtime.SystemContext(); sys != nil {
-		dockerRegistryOptions.DockerCertPath = sys.DockerCertPath
-		dockerRegistryOptions.RegistriesConfPath = sys.SystemRegistriesConfPath
+	var username, password string
+	if authconf != nil {
+		username = authconf.Username
+		password = authconf.Password
 	}
+	options := entities.ImagePushOptions{
+		All:      query.All,
+		Authfile: authfile,
+		Compress: query.Compress,
+		Username: username,
+		Password: password,
+	}
+	if err := imageEngine.Push(context.Background(), imageName, query.Destination, options); err != nil {
+		if errors.Cause(err) != storage.ErrImageUnknown {
+			utils.ImageNotFound(w, imageName, errors.Wrapf(err, "failed to find image %s", imageName))
+			return
+		}
 
-	err = newImage.PushImageToHeuristicDestination(
-		context.Background(),
-		imageName,
-		"", // manifest type
-		authfile,
-		"", // digest file
-		"", // signature policy
-		os.Stderr,
-		false, // force compression
-		image.SigningOptions{},
-		dockerRegistryOptions,
-		nil, // additional tags
-	)
-	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", imageName))
 		return
 	}

@@ -119,22 +119,6 @@ func (o *PushOptions) GetAuthfile() string {
 	return *o.Authfile
 }
 
-// WithCertDir
-func (o *PushOptions) WithCertDir(value string) *PushOptions {
-	v := &value
-	o.CertDir = v
-	return o
-}
-
-// GetCertDir
-func (o *PushOptions) GetCertDir() string {
-	var certDir string
-	if o.CertDir == nil {
-		return certDir
-	}
-	return *o.CertDir
-}
-
 // WithCompress
 func (o *PushOptions) WithCompress(value bool) *PushOptions {
 	v := &value
@@ -149,22 +133,6 @@ func (o *PushOptions) GetCompress() bool {
 		return compress
 	}
 	return *o.Compress
-}
-
-// WithUsername
-func (o *PushOptions) WithUsername(value string) *PushOptions {
-	v := &value
-	o.Username = v
-	return o
-}
-
-// GetUsername
-func (o *PushOptions) GetUsername() string {
-	var username string
-	if o.Username == nil {
-		return username
-	}
-	return *o.Username
 }
 
 // WithPassword
@@ -183,102 +151,6 @@ func (o *PushOptions) GetPassword() string {
 	return *o.Password
 }
 
-// WithDigestFile
-func (o *PushOptions) WithDigestFile(value string) *PushOptions {
-	v := &value
-	o.DigestFile = v
-	return o
-}
-
-// GetDigestFile
-func (o *PushOptions) GetDigestFile() string {
-	var digestFile string
-	if o.DigestFile == nil {
-		return digestFile
-	}
-	return *o.DigestFile
-}
-
-// WithFormat
-func (o *PushOptions) WithFormat(value string) *PushOptions {
-	v := &value
-	o.Format = v
-	return o
-}
-
-// GetFormat
-func (o *PushOptions) GetFormat() string {
-	var format string
-	if o.Format == nil {
-		return format
-	}
-	return *o.Format
-}
-
-// WithQuiet
-func (o *PushOptions) WithQuiet(value bool) *PushOptions {
-	v := &value
-	o.Quiet = v
-	return o
-}
-
-// GetQuiet
-func (o *PushOptions) GetQuiet() bool {
-	var quiet bool
-	if o.Quiet == nil {
-		return quiet
-	}
-	return *o.Quiet
-}
-
-// WithRemoveSignatures
-func (o *PushOptions) WithRemoveSignatures(value bool) *PushOptions {
-	v := &value
-	o.RemoveSignatures = v
-	return o
-}
-
-// GetRemoveSignatures
-func (o *PushOptions) GetRemoveSignatures() bool {
-	var removeSignatures bool
-	if o.RemoveSignatures == nil {
-		return removeSignatures
-	}
-	return *o.RemoveSignatures
-}
-
-// WithSignaturePolicy
-func (o *PushOptions) WithSignaturePolicy(value string) *PushOptions {
-	v := &value
-	o.SignaturePolicy = v
-	return o
-}
-
-// GetSignaturePolicy
-func (o *PushOptions) GetSignaturePolicy() string {
-	var signaturePolicy string
-	if o.SignaturePolicy == nil {
-		return signaturePolicy
-	}
-	return *o.SignaturePolicy
-}
-
-// WithSignBy
-func (o *PushOptions) WithSignBy(value string) *PushOptions {
-	v := &value
-	o.SignBy = v
-	return o
-}
-
-// GetSignBy
-func (o *PushOptions) GetSignBy() string {
-	var signBy string
-	if o.SignBy == nil {
-		return signBy
-	}
-	return *o.SignBy
-}
-
 // WithSkipTLSVerify
 func (o *PushOptions) WithSkipTLSVerify(value bool) *PushOptions {
 	v := &value
@@ -293,4 +165,20 @@ func (o *PushOptions) GetSkipTLSVerify() bool {
 		return skipTLSVerify
 	}
 	return *o.SkipTLSVerify
+}
+
+// WithUsername
+func (o *PushOptions) WithUsername(value string) *PushOptions {
+	v := &value
+	o.Username = v
+	return o
+}
+
+// GetUsername
+func (o *PushOptions) GetUsername() string {
+	var username string
+	if o.Username == nil {
+		return username
+	}
+	return *o.Username
 }
