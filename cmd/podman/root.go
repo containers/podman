@@ -258,7 +258,6 @@ func loggingHook() {
 			_, filename := path.Split(f.File)
 			return funcname, filename
 		},
-		ForceColors:            true,
 		PadLevelText:           true,
 		DisableLevelTruncation: true,
 	})
