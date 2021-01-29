@@ -342,7 +342,7 @@ static_alt_build_task:
         - build
     # Community-maintained task, may fail on occasion.  If so, uncomment
     # the next line and file an issue with details about the failure.
-    allow_failures: $CI == $CI
+    # allow_failures: $CI == $CI
     gce_instance: *bigvm
     env:
         <<: *stdenvars

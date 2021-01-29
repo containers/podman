@@ -49,9 +49,11 @@ let
     buildPhase = ''
       patchShebangs .
       make bin/podman
+      make bin/podman-remote
     '';
     installPhase = ''
       install -Dm755 bin/podman $out/bin/podman
+      install -Dm755 bin/podman-remote $out/bin/podman-remote
     '';
   };
 in self
