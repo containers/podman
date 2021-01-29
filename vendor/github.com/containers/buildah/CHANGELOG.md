@@ -2,6 +2,24 @@
 
 # Changelog
 
+## v1.19.3 (2021-01-28)
+    [ci:docs] Fix man page for buildah push
+    Vendor in containers/image v5.10.1
+    Rebuild layer if a change in ARG is detected
+    Bump golang.org/x/crypto to latest rel-1.19
+    local image lookup by digest
+    Use build-arg ENV val from local environment if set
+    Pick default OCI Runtime from containers.conf
+
+## v1.19.2 (2021-01-15)
+    If overlay mount point destination does not exists, do not throw error
+    Vendor in containers/common
+
+## v1.19.1 (2021-01-14)
+    Cherry pick localhost fix and update CI configuration for release-1.19
+    use local image name for pull policy checks
+    Vendor in common 0.33.1
+
 ## v1.19.0 (2021-01-08)
     Update vendor of containers/storage and containers/common
     Buildah inspect should be able to inspect manifests

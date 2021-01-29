@@ -6,7 +6,7 @@ require (
 	github.com/containerd/containerd v1.4.1 // indirect
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 	github.com/containers/common v0.33.1
-	github.com/containers/image/v5 v5.9.0
+	github.com/containers/image/v5 v5.10.1
 	github.com/containers/ocicrypt v1.0.3
 	github.com/containers/storage v1.24.5
 	github.com/docker/distribution v2.7.1+incompatible
@@ -33,12 +33,12 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3
+	golang.org/x/sys v0.0.0-20201218084310-7d0127a74742
 	gotest.tools/v3 v3.0.3 // indirect
 	k8s.io/klog v1.0.0 // indirect
 )
