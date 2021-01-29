@@ -105,6 +105,8 @@ type PushOptions struct {
 	Authfile *string
 	// Compress tarball image layers when pushing to a directory using the 'dir' transport.
 	Compress *bool
+	// Manifest type of the pushed image
+	Format *string
 	// Password for authenticating against the registry.
 	Password *string
 	// SkipTLSVerify to skip HTTPS and certificate verification.

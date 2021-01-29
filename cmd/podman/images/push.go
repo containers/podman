@@ -98,7 +98,7 @@ func pushFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(digestfileFlagName, completion.AutocompleteDefault)
 
 	formatFlagName := "format"
-	flags.StringVarP(&pushOptions.Format, formatFlagName, "f", "", "Manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir' transport (default is manifest type of source)")
+	flags.StringVarP(&pushOptions.Format, formatFlagName, "f", "", "Manifest type (oci, v2s2, or v2s1) to use when pushing an image using the 'dir' transport (default is manifest type of source)")
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteManifestFormat)
 
 	flags.BoolVarP(&pushOptions.Quiet, "quiet", "q", false, "Suppress output information when pushing images")
@@ -115,7 +115,6 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("digestfile")
-		_ = flags.MarkHidden("format")
 		_ = flags.MarkHidden("quiet")
 		_ = flags.MarkHidden("remove-signatures")
 		_ = flags.MarkHidden("sign-by")
