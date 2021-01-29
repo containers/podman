@@ -540,4 +540,67 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).ToNot(Equal(0))
 	})
+
+	It("podman generate kube on a container with dns options", func() {
+		top := podmanTest.Podman([]string{"run", "-dt", "--name", "top", "--dns", "8.8.8.8", "--dns-search", "foobar.com", "--dns-opt", "color:blue", ALPINE, "top"})
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(BeZero())
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "top"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
+		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
+		Expect(pod.Spec.DNSConfig.Options[0].Name).To(Equal("color"))
+		Expect(*pod.Spec.DNSConfig.Options[0].Value).To(Equal("blue"))
+	})
+
+	It("podman generate kube multiple contianer dns servers and options are cumulative", func() {
+		top1 := podmanTest.Podman([]string{"run", "-dt", "--name", "top1", "--dns", "8.8.8.8", "--dns-search", "foobar.com", ALPINE, "top"})
+		top1.WaitWithDefaultTimeout()
+		Expect(top1.ExitCode()).To(BeZero())
+
+		top2 := podmanTest.Podman([]string{"run", "-dt", "--name", "top2", "--dns", "8.7.7.7", "--dns-search", "homer.com", ALPINE, "top"})
+		top2.WaitWithDefaultTimeout()
+		Expect(top2.ExitCode()).To(BeZero())
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "top1", "top2"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
+		Expect(StringInSlice("8.7.7.7", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
+		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(StringInSlice("homer.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+	})
+
+	It("podman generate kube on a pod with dns options", func() {
+		top := podmanTest.Podman([]string{"run", "--pod", "new:pod1", "-dt", "--name", "top", "--dns", "8.8.8.8", "--dns-search", "foobar.com", "--dns-opt", "color:blue", ALPINE, "top"})
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(BeZero())
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "pod1"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
+		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
+		Expect(pod.Spec.DNSConfig.Options[0].Name).To(Equal("color"))
+		Expect(*pod.Spec.DNSConfig.Options[0].Value).To(Equal("blue"))
+	})
 })

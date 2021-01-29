@@ -3,6 +3,7 @@ package kube
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
@@ -44,6 +45,31 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 	podPorts := getPodPorts(podYAML.Spec.Containers)
 	p.PortMappings = podPorts
 
+	if dnsConfig := podYAML.Spec.DNSConfig; dnsConfig != nil {
+		// name servers
+		if dnsServers := dnsConfig.Nameservers; len(dnsServers) > 0 {
+			servers := make([]net.IP, 0)
+			for _, server := range dnsServers {
+				servers = append(servers, net.ParseIP(server))
+			}
+			p.DNSServer = servers
+		}
+		// search domans
+		if domains := dnsConfig.Searches; len(domains) > 0 {
+			p.DNSSearch = domains
+		}
+		// dns options
+		if options := dnsConfig.Options; len(options) > 0 {
+			dnsOptions := make([]string, 0)
+			for _, opts := range options {
+				d := opts.Name
+				if opts.Value != nil {
+					d += ":" + *opts.Value
+				}
+				dnsOptions = append(dnsOptions, d)
+			}
+		}
+	}
 	return p, nil
 }
 
