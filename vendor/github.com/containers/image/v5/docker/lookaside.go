@@ -21,7 +21,7 @@ import (
 
 // systemRegistriesDirPath is the path to registries.d, used for locating lookaside Docker signature storage.
 // You can override this at build time with
-// -ldflags '-X github.com/containers/image/docker.systemRegistriesDirPath=$your_path'
+// -ldflags '-X github.com/containers/image/v5/docker.systemRegistriesDirPath=$your_path'
 var systemRegistriesDirPath = builtinRegistriesDirPath
 
 // builtinRegistriesDirPath is the path to registries.d.

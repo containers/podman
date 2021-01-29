@@ -30,7 +30,7 @@ import (
 
 // systemDefaultPolicyPath is the policy path used for DefaultPolicy().
 // You can override this at build time with
-// -ldflags '-X github.com/containers/image/signature.systemDefaultPolicyPath=$your_path'
+// -ldflags '-X github.com/containers/image/v5/signature.systemDefaultPolicyPath=$your_path'
 var systemDefaultPolicyPath = builtinDefaultPolicyPath
 
 // builtinDefaultPolicyPath is the policy path used for DefaultPolicy().
