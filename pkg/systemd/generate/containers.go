@@ -72,22 +72,22 @@ type containerInfo struct {
 }
 
 const containerTemplate = headerTemplate + `
-{{- if .BoundToServices}}
-BindsTo={{- range $index, $value := .BoundToServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
-After={{- range $index, $value := .BoundToServices -}}{{if $index}} {{end}}{{ $value }}.service{{end}}
-{{- end}}
+{{{{- if .BoundToServices}}}}
+BindsTo={{{{- range $index, $value := .BoundToServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
+After={{{{- range $index, $value := .BoundToServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
+{{{{- end}}}}
 
 [Service]
-Environment={{.EnvVariable}}=%n
-Restart={{.RestartPolicy}}
-TimeoutStopSec={{.TimeoutStopSec}}
-{{- if .ExecStartPre}}
-ExecStartPre={{.ExecStartPre}}
-{{- end}}
-ExecStart={{.ExecStart}}
-ExecStop={{.ExecStop}}
-ExecStopPost={{.ExecStopPost}}
-PIDFile={{.PIDFile}}
+Environment={{{{.EnvVariable}}}}=%n
+Restart={{{{.RestartPolicy}}}}
+TimeoutStopSec={{{{.TimeoutStopSec}}}}
+{{{{- if .ExecStartPre}}}}
+ExecStartPre={{{{.ExecStartPre}}}}
+{{{{- end}}}}
+ExecStart={{{{.ExecStart}}}}
+ExecStop={{{{.ExecStop}}}}
+ExecStopPost={{{{.ExecStopPost}}}}
+PIDFile={{{{.PIDFile}}}}
 Type=forking
 
 [Install]
@@ -173,9 +173,9 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	}
 
 	info.EnvVariable = EnvVariable
-	info.ExecStart = "{{.Executable}} start {{.ContainerNameOrID}}"
-	info.ExecStop = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.ContainerNameOrID}}"
-	info.ExecStopPost = "{{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.ContainerNameOrID}}"
+	info.ExecStart = "{{{{.Executable}}}} start {{{{.ContainerNameOrID}}}}"
+	info.ExecStop = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
+	info.ExecStopPost = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
 
 	// Assemble the ExecStart command when creating a new container.
 	//
@@ -209,8 +209,8 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 		startCommand = append(startCommand,
 			"run",
-			"--conmon-pidfile", "{{.PIDFile}}",
-			"--cidfile", "{{.ContainerIDFile}}",
+			"--conmon-pidfile", "{{{{.PIDFile}}}}",
+			"--cidfile", "{{{{.ContainerIDFile}}}}",
 			"--cgroups=no-conmon",
 		)
 		// If the container is in a pod, make sure that the
@@ -281,10 +281,10 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		startCommand = append(startCommand, remainingCmd...)
 		startCommand = quoteArguments(startCommand)
 
-		info.ExecStartPre = "/bin/rm -f {{.PIDFile}} {{.ContainerIDFile}}"
+		info.ExecStartPre = "/bin/rm -f {{{{.PIDFile}}}} {{{{.ContainerIDFile}}}}"
 		info.ExecStart = strings.Join(startCommand, " ")
-		info.ExecStop = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}stop --ignore --cidfile {{.ContainerIDFile}} {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}"
-		info.ExecStopPost = "{{.Executable}} {{if .RootFlags}}{{ .RootFlags}} {{end}}rm --ignore -f --cidfile {{.ContainerIDFile}}"
+		info.ExecStop = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}stop --ignore --cidfile {{{{.ContainerIDFile}}}} {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}}"
+		info.ExecStopPost = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}rm --ignore -f --cidfile {{{{.ContainerIDFile}}}}"
 	}
 
 	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
@@ -307,7 +307,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	// generation.  That's especially needed for embedding the PID and ID
 	// files in other fields which will eventually get replaced in the 2nd
 	// template execution.
-	templ, err := template.New("container_template").Parse(containerTemplate)
+	templ, err := template.New("container_template").Delims("{{{{", "}}}}").Parse(containerTemplate)
 	if err != nil {
 		return "", errors.Wrap(err, "error parsing systemd service template")
 	}
@@ -318,7 +318,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	}
 
 	// Now parse the generated template (i.e., buf) and execute it.
-	templ, err = template.New("container_template").Parse(buf.String())
+	templ, err = template.New("container_template").Delims("{{{{", "}}}}").Parse(buf.String())
 	if err != nil {
 		return "", errors.Wrap(err, "error parsing systemd service template")
 	}

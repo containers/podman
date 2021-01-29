@@ -237,3 +237,12 @@ t GET containers/$cid/json 200 \
 t DELETE containers/$cid 204
 t DELETE images/${MultiTagName}?force=true 200
 # vim: filetype=sh
+
+# Test Volumes field adds an anonymous volume
+t POST containers/create '"Image":"'$IMAGE'","Volumes":{"/test":{}}' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Mounts[0].Destination="/test"
+
+t DELETE containers/$cid?v=true 204

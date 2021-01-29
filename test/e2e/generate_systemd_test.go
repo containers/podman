@@ -355,4 +355,25 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 	})
+
+	It("podman generate systemd --new create command with double curly braces", func() {
+		// Regression test for #9034
+		session := podmanTest.Podman([]string{"create", "--name", "foo", "--log-driver=journald", "--log-opt=tag={{.Name}}", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--new", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(" --log-opt=tag={{.Name}} "))
+
+		session = podmanTest.Podman([]string{"pod", "create", "--name", "pod", "--label", "key={{someval}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--new", "pod"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(" --label key={{someval}}"))
+	})
 })

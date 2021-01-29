@@ -86,7 +86,7 @@ PODMAN_SERVER_LOG ?=
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
-export GOPATH := $(CURDIR)/_output
+export GOPATH := $(HOME)/go
 unexport GOBIN
 endif
 FIRST_GOPATH := $(firstword $(subst :, ,$(GOPATH)))
@@ -97,6 +97,8 @@ GOBIN := $(shell $(GO) env GOBIN)
 ifeq ($(GOBIN),)
 GOBIN := $(FIRST_GOPATH)/bin
 endif
+
+export PATH := $(PATH):$(GOBIN)
 
 GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
 
@@ -206,7 +208,7 @@ endif
 podman: bin/podman
 
 .PHONY: bin/podman-remote
-bin/podman-remote: .gopathok .generate-bindings $(SOURCES) go.mod go.sum ## Build with podman on remote environment
+bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum ## Build with podman on remote environment
 	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ ./cmd/podman
 
 .PHONY: bin/podman-remote-static
@@ -277,7 +279,6 @@ clean: ## Clean artifacts
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
 		.install.goimports \
-		.generate-bindings \
 		docs/build
 	make -C docs clean
 
@@ -459,20 +460,11 @@ podman-remote-%-release:
 	rm -f release.txt
 	$(MAKE) podman-remote-release-$*.zip
 
-BINDINGS_SOURCE = $(wildcard pkg/bindings/**/types.go)
-.generate-bindings: $(BINDINGS_SOURCE)
+.PHONY: generate-bindings
+generate-bindings:
 ifneq ($(shell uname -s), Darwin)
-	for i in $(BINDINGS_SOURCE); do \
-		dirname=$$(dirname $${i}); \
-		shortname=$$(basename $${dirname}); \
-		pushd $${dirname}>/dev/null;  \
-		echo $${dirname}; \
-		echo $(GO) generate; \
-		$(GO) generate; \
-		popd > /dev/null; \
-	done;
+	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
 endif
-	touch .generate-bindings
 
 .PHONY: docker-docs
 docker-docs: docs

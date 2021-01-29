@@ -589,4 +589,25 @@ json-file | f
     is "${lines[1]}" "$rand" "Container runs successfully despite warning"
 }
 
+@test "podman run - check workdir" {
+    # Workdirs specified via the CLI are not created on the root FS.
+    run_podman 126 run --rm --workdir /i/do/not/exist $IMAGE pwd
+    # Note: remote error prepends an attach error.
+    is "$output" "Error: .*workdir \"/i/do/not/exist\" does not exist on container.*"
+
+    testdir=$PODMAN_TMPDIR/volume
+    mkdir -p $testdir
+    randomcontent=$(random_string 10)
+    echo "$randomcontent" > $testdir/content
+
+    # Workdir does not exist on the image but is volume mounted.
+    run_podman run --rm --workdir /IamNotOnTheImage -v $testdir:/IamNotOnTheImage $IMAGE cat content
+    is "$output" "$randomcontent" "cat random content"
+
+    # Workdir does not exist on the image but is created by the runtime as it's
+    # a subdir of a volume.
+    run_podman run --rm --workdir /IamNotOntheImage -v $testdir/content:/IamNotOntheImage/foo $IMAGE cat foo
+    is "$output" "$randomcontent" "cat random content"
+}
+
 # vim: filetype=sh

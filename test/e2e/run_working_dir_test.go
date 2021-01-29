@@ -2,7 +2,6 @@ package integration
 
 import (
 	"os"
-	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -41,12 +40,9 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container using non existing --workdir", func() {
-		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
-			Skip("Test only works on crun")
-		}
 		session := podmanTest.Podman([]string{"run", "--workdir", "/home/foobar", ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(127))
+		Expect(session.ExitCode()).To(Equal(126))
 	})
 
 	It("podman run a container on an image with a workdir", func() {

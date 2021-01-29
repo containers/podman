@@ -214,7 +214,7 @@ case "$TEST_FLAVOR" in
 
         install_test_configs
         ;;
-    vendor) make clean ;;
+    consistency) make clean ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
 esac

@@ -174,25 +174,60 @@ func (c *Container) prepare() error {
 		return err
 	}
 
-	// Ensure container entrypoint is created (if required)
-	if c.config.CreateWorkingDir {
-		workdir, err := securejoin.SecureJoin(c.state.Mountpoint, c.WorkingDir())
-		if err != nil {
-			return errors.Wrapf(err, "error creating path to container %s working dir", c.ID())
-		}
-		rootUID := c.RootUID()
-		rootGID := c.RootGID()
+	// Make sure the workdir exists
+	if err := c.resolveWorkDir(); err != nil {
+		return err
+	}
 
-		if err := os.MkdirAll(workdir, 0755); err != nil {
-			if os.IsExist(err) {
-				return nil
+	return nil
+}
+
+// resolveWorkDir resolves the container's workdir and, depending on the
+// configuration, will create it, or error out if it does not exist.
+// Note that the container must be mounted before.
+func (c *Container) resolveWorkDir() error {
+	workdir := c.WorkingDir()
+
+	// If the specified workdir is a subdir of a volume or mount,
+	// we don't need to do anything.  The runtime is taking care of
+	// that.
+	if isPathOnVolume(c, workdir) || isPathOnBindMount(c, workdir) {
+		logrus.Debugf("Workdir %q resolved to a volume or mount", workdir)
+		return nil
+	}
+
+	_, resolvedWorkdir, err := c.resolvePath(c.state.Mountpoint, workdir)
+	if err != nil {
+		return err
+	}
+	logrus.Debugf("Workdir %q resolved to host path %q", workdir, resolvedWorkdir)
+
+	// No need to create it (e.g., `--workdir=/foo`), so let's make sure
+	// the path exists on the container.
+	if !c.config.CreateWorkingDir {
+		if _, err := os.Stat(resolvedWorkdir); err != nil {
+			if os.IsNotExist(err) {
+				return errors.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
 			}
-			return errors.Wrapf(err, "error creating container %s working dir", c.ID())
+			// This might be a serious error (e.g., permission), so
+			// we need to return the full error.
+			return errors.Wrapf(err, "error detecting workdir %q on container %s", workdir, c.ID())
 		}
+	}
 
-		if err := os.Chown(workdir, rootUID, rootGID); err != nil {
-			return errors.Wrapf(err, "error chowning container %s working directory to container root", c.ID())
+	// Ensure container entrypoint is created (if required).
+	rootUID := c.RootUID()
+	rootGID := c.RootGID()
+
+	if err := os.MkdirAll(resolvedWorkdir, 0755); err != nil {
+		if os.IsExist(err) {
+			return nil
 		}
+		return errors.Wrapf(err, "error creating container %s workdir", c.ID())
+	}
+
+	if err := os.Chown(resolvedWorkdir, rootUID, rootGID); err != nil {
+		return errors.Wrapf(err, "error chowning container %s workdir to container root", c.ID())
 	}
 
 	return nil
