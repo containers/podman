@@ -408,7 +408,6 @@ var _ = Describe("Podman network", func() {
 		Expect(lines[1]).To(Equal(netName2))
 	})
 	It("podman network with multiple aliases", func() {
-		Skip("Until DNSName is updated on our CI images")
 		var worked bool
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
