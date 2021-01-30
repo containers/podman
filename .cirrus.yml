@@ -46,7 +46,7 @@ env:
     #### Control variables that determine what to run and how to run it.
     #### N/B: Required ALL of these are set for every single task.
     ####
-    TEST_FLAVOR:             # int, sys, ext_svc, smoke, automation, etc.
+    TEST_FLAVOR:             # int, sys, ext_svc, validate, automation, etc.
     TEST_ENVIRON: host       # 'host' or 'container'
     PODBIN_NAME: podman      # 'podman' or 'remote'
     PRIV_NAME: root          # 'root' or 'rootless'
@@ -78,6 +78,25 @@ ext_svc_check_task:
     env:
         TEST_FLAVOR: ext_svc
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+    # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
+    #       environment expectations in contrib/cirrus/lib.sh.  Specifically
+    #       the 'origin' remote must be defined, and all remote branches/tags
+    #       must be available for reference from CI scripts.
+    clone_script: &full_clone |
+          cd /
+          rm -rf $CIRRUS_WORKING_DIR
+          mkdir -p $CIRRUS_WORKING_DIR
+          git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
+          cd $CIRRUS_WORKING_DIR
+          git remote update origin
+          if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
+              git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
+              git checkout pull/$CIRRUS_PR
+          else
+              git reset --hard $CIRRUS_CHANGE_IN_REPO
+          fi
+          make install.tools
+
     setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
     main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
     always: &runner_stats
@@ -97,43 +116,7 @@ automation_task:
         TEST_FLAVOR: automation
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_ENVIRON: container
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
-
-
-# This task use to be called 'gating', however that name is being
-# used downstream for release testing.  Renamed this to avoid confusion.
-# All it does is run basic golang formatting and commit validation checks.
-smoke_task:
-    alias: 'smoke'
-    name: "Smoke Test"
-    skip: *branches_and_tags
-    container: &bigcontainer
-        image: ${CTR_FQIN}
-        # Leave some resources for smallcontainer
-        cpu: 6
-        memory: 22
-    env:
-        TEST_FLAVOR: 'smoke'
-        CTR_FQIN: "${FEDORA_CONTAINER_FQIN}"
-        TEST_ENVIRON: container
-    # This clone script is also used to initially populate gopath_cache (below)
-    clone_script: &full_clone |
-        cd /
-        rm -rf $CIRRUS_WORKING_DIR
-        mkdir -p $CIRRUS_WORKING_DIR
-        git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
-        cd $CIRRUS_WORKING_DIR
-        git remote update origin
-        if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
-            git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
-            git checkout pull/$CIRRUS_PR
-        else
-            git reset --hard $CIRRUS_CHANGE_IN_REPO
-        fi
-        cd $CIRRUS_WORKING_DIR
-        make install.tools
+    clone_script: *full_clone
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -211,11 +194,15 @@ build_task:
 validate_task:
     name: "Validate $DISTRO_NV Build"
     alias: validate
-    skip: *tags
+    # This task is primarily intended to catch human-errors early on, in a
+    # PR.  Skip it for branch-push, branch-create, and tag-push to improve
+    # automation reliability/speed in those contexts.  Any missed errors due
+    # to nonsequential PR merging practices, will be caught on a future PR,
+    # build or test task failures.
+    skip: *branches_and_tags
     depends_on:
         - ext_svc_check
         - automation
-        - smoke
         - build
     # golangci-lint is a very, very hungry beast.
     gce_instance: &bigvm
@@ -645,7 +632,6 @@ success_task:
     depends_on:
         - ext_svc_check
         - automation
-        - smoke
         - build
         - validate
         - bindings
