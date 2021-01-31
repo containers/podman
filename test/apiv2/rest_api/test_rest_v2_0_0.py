@@ -1,7 +1,6 @@
 import json
 import os
 import random
-import shutil
 import string
 import subprocess
 import sys
@@ -585,6 +584,53 @@ class TestApi(unittest.TestCase):
         # TODO should handler be recursive when deleting images?
         # self.assertIn(img["Id"], prune_payload["ImagesDeleted"][1]["Deleted"])
         self.assertIsNotNone(prune_payload["ImagesDeleted"][1]["Deleted"])
+
+    def test_status_compat(self):
+        r = requests.post(PODMAN_URL + "/v1.40/containers/create?name=topcontainer",
+                          json={"Cmd": ["top"], "Image": "alpine:latest"})
+        self.assertEqual(r.status_code, 201, r.text)
+        payload = json.loads(r.text)
+        container_id = payload["Id"]
+        self.assertIsNotNone(container_id)
+
+        r = requests.get(PODMAN_URL + "/v1.40/containers/json",
+                         params={'all': 'true', 'filters': f'{{"id":["{container_id}"]}}'})
+        self.assertEqual(r.status_code, 200, r.text)
+        payload = json.loads(r.text)
+        self.assertEqual(payload[0]["Status"], "Created")
+
+        r = requests.post(PODMAN_URL + f"/v1.40/containers/{container_id}/start")
+        self.assertEqual(r.status_code, 204, r.text)
+
+        r = requests.get(PODMAN_URL + "/v1.40/containers/json",
+                         params={'all': 'true', 'filters': f'{{"id":["{container_id}"]}}'})
+        self.assertEqual(r.status_code, 200, r.text)
+        payload = json.loads(r.text)
+        self.assertTrue(str(payload[0]["Status"]).startswith("Up"))
+
+        r = requests.post(PODMAN_URL + f"/v1.40/containers/{container_id}/pause")
+        self.assertEqual(r.status_code, 204, r.text)
+
+        r = requests.get(PODMAN_URL + "/v1.40/containers/json",
+                         params={'all': 'true', 'filters': f'{{"id":["{container_id}"]}}'})
+        self.assertEqual(r.status_code, 200, r.text)
+        payload = json.loads(r.text)
+        self.assertTrue(str(payload[0]["Status"]).startswith("Up"))
+        self.assertTrue(str(payload[0]["Status"]).endswith("(Paused)"))
+
+        r = requests.post(PODMAN_URL + f"/v1.40/containers/{container_id}/unpause")
+        self.assertEqual(r.status_code, 204, r.text)
+        r = requests.post(PODMAN_URL + f"/v1.40/containers/{container_id}/stop")
+        self.assertEqual(r.status_code, 204, r.text)
+
+        r = requests.get(PODMAN_URL + "/v1.40/containers/json",
+                         params={'all': 'true', 'filters': f'{{"id":["{container_id}"]}}'})
+        self.assertEqual(r.status_code, 200, r.text)
+        payload = json.loads(r.text)
+        self.assertTrue(str(payload[0]["Status"]).startswith("Exited"))
+
+        r = requests.delete(PODMAN_URL + f"/v1.40/containers/{container_id}")
+        self.assertEqual(r.status_code, 204, r.text)
 
 
 if __name__ == "__main__":

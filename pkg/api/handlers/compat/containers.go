@@ -20,6 +20,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
+	"github.com/docker/go-units"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -263,6 +264,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		sizeRootFs int64
 		sizeRW     int64
 		state      define.ContainerStatus
+		status     string
 	)
 
 	if state, err = l.State(); err != nil {
@@ -271,6 +273,35 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	stateStr := state.String()
 	if stateStr == "configured" {
 		stateStr = "created"
+	}
+
+	if state == define.ContainerStateConfigured || state == define.ContainerStateCreated {
+		status = "Created"
+	} else if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+		exitCode, _, err := l.ExitCode()
+		if err != nil {
+			return nil, err
+		}
+		finishedTime, err := l.FinishedTime()
+		if err != nil {
+			return nil, err
+		}
+		status = fmt.Sprintf("Exited (%d) %s ago", exitCode, units.HumanDuration(time.Since(finishedTime)))
+	} else if state == define.ContainerStateRunning || state == define.ContainerStatePaused {
+		startedTime, err := l.StartedTime()
+		if err != nil {
+			return nil, err
+		}
+		status = fmt.Sprintf("Up %s", units.HumanDuration(time.Since(startedTime)))
+		if state == define.ContainerStatePaused {
+			status += " (Paused)"
+		}
+	} else if state == define.ContainerStateRemoving {
+		status = "Removal In Progress"
+	} else if state == define.ContainerStateStopping {
+		status = "Stopping"
+	} else {
+		status = "Unknown"
 	}
 
 	if sz {
@@ -294,7 +325,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		SizeRootFs: sizeRootFs,
 		Labels:     l.Labels(),
 		State:      stateStr,
-		Status:     "",
+		Status:     status,
 		HostConfig: struct {
 			NetworkMode string `json:",omitempty"`
 		}{
