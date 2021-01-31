@@ -476,4 +476,21 @@ entrypoint ["/fromimage"]
 		Expect(status3.ExitCode()).To(Equal(0))
 		Expect(strings.Contains(status3.OutputToString(), "Degraded")).To(BeTrue())
 	})
+
+	It("podman create with unsupported network options", func() {
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--network", "none"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(125))
+		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode none"))
+
+		podCreate = podmanTest.Podman([]string{"pod", "create", "--network", "container:doesnotmatter"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(125))
+		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode container"))
+
+		podCreate = podmanTest.Podman([]string{"pod", "create", "--network", "ns:/does/not/matter"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(125))
+		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode path"))
+	})
 })
