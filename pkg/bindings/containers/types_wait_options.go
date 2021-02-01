@@ -76,19 +76,19 @@ func (o *WaitOptions) ToParams() (url.Values, error) {
 }
 
 // WithCondition
-func (o *WaitOptions) WithCondition(value define.ContainerStatus) *WaitOptions {
-	v := &value
+func (o *WaitOptions) WithCondition(value []define.ContainerStatus) *WaitOptions {
+	v := value
 	o.Condition = v
 	return o
 }
 
 // GetCondition
-func (o *WaitOptions) GetCondition() define.ContainerStatus {
-	var condition define.ContainerStatus
+func (o *WaitOptions) GetCondition() []define.ContainerStatus {
+	var condition []define.ContainerStatus
 	if o.Condition == nil {
 		return condition
 	}
-	return *o.Condition
+	return o.Condition
 }
 
 // WithInterval

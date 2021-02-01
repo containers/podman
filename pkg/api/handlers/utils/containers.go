@@ -23,8 +23,8 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Interval  string                 `schema:"interval"`
-		Condition define.ContainerStatus `schema:"condition"`
+		Interval  string                   `schema:"interval"`
+		Condition []define.ContainerStatus `schema:"condition"`
 	}{
 		// Override golang default values for types
 	}
@@ -33,7 +33,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 		return 0, err
 	}
 	options := entities.WaitOptions{
-		Condition: define.ContainerStateStopped,
+		Condition: []define.ContainerStatus{define.ContainerStateStopped},
 	}
 	name := GetName(r)
 	if _, found := r.URL.Query()["interval"]; found {
