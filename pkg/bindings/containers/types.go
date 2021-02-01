@@ -176,7 +176,7 @@ type UnpauseOptions struct{}
 //go:generate go run ../generator/generator.go WaitOptions
 // WaitOptions are optional options for waiting on containers
 type WaitOptions struct {
-	Condition *define.ContainerStatus
+	Condition []define.ContainerStatus
 	Interval  *string
 }
 

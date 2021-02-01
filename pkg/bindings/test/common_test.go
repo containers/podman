@@ -207,7 +207,7 @@ func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, po
 		return "", err
 	}
 	wait := define.ContainerStateRunning
-	_, err = containers.Wait(b.conn, ctr.ID, new(containers.WaitOptions).WithCondition(wait))
+	_, err = containers.Wait(b.conn, ctr.ID, new(containers.WaitOptions).WithCondition([]define.ContainerStatus{wait}))
 	return ctr.ID, err
 }
 
