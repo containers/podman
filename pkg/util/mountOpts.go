@@ -86,6 +86,10 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 				return nil, errors.Wrapf(ErrDupeMntOption, "the 'tmpcopyup' or 'notmpcopyup' option can only be set once")
 			}
 			foundCopyUp = true
+		case "consistency":
+			// Often used on MACs and mistakenly on Linux platforms.
+			// Since Docker ignores this option so shall we.
+			continue
 		case "notmpcopyup":
 			if !isTmpfs {
 				return nil, errors.Wrapf(ErrBadMntOption, "the 'notmpcopyup' option is only allowed with tmpfs mounts")
