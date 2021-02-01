@@ -18,11 +18,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// DefaultNetworkDriver is the default network type used
-var DefaultNetworkDriver = "bridge"
+var (
+	// BridgeNetworkDriver defines the bridge cni driver
+	BridgeNetworkDriver = "bridge"
+	// DefaultNetworkDriver is the default network type used
+	DefaultNetworkDriver = BridgeNetworkDriver
+	// MacVLANNetworkDriver defines the macvlan cni driver
+	MacVLANNetworkDriver = "macvlan"
+)
 
 // SupportedNetworkDrivers describes the list of supported drivers
-var SupportedNetworkDrivers = []string{DefaultNetworkDriver}
+var SupportedNetworkDrivers = []string{BridgeNetworkDriver, MacVLANNetworkDriver}
 
 // isSupportedDriver checks if the user provided driver is supported
 func isSupportedDriver(driver string) error {

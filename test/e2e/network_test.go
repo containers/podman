@@ -456,4 +456,45 @@ var _ = Describe("Podman network", func() {
 		nc.WaitWithDefaultTimeout()
 		Expect(nc.ExitCode()).To(Equal(0))
 	})
+
+	It("podman network create/remove macvlan as driver (-d) no device name", func() {
+		net := "macvlan" + stringid.GenerateNonCryptoID()
+		nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", net})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(nc.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"network", "inspect", net})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+
+		out, err := inspect.jq(".[0].plugins[0].master")
+		Expect(err).To(BeNil())
+		Expect(out).To(Equal("\"\""))
+
+		nc = podmanTest.Podman([]string{"network", "rm", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(Equal(0))
+	})
+
+	It("podman network create/remove macvlan as driver (-d) with device name", func() {
+		net := "macvlan" + stringid.GenerateNonCryptoID()
+		nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", "-o", "parent=lo", net})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(nc.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"network", "inspect", net})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+		fmt.Println(inspect.OutputToString())
+
+		out, err := inspect.jq(".[0].plugins[0].master")
+		Expect(err).To(BeNil())
+		Expect(out).To(Equal("\"lo\""))
+
+		nc = podmanTest.Podman([]string{"network", "rm", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(Equal(0))
+	})
 })
