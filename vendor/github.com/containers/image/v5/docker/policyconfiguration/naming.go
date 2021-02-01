@@ -52,5 +52,26 @@ func DockerReferenceNamespaces(ref reference.Named) []string {
 		}
 		name = name[:lastSlash]
 	}
+
+	// Strip port number if any, before appending to res slice.
+	// Currently, the most compatible behavior is to return
+	// example.com:8443/ns, example.com:8443, *.com.
+	// If a port number is not specified, the expected behavior would be
+	// example.com/ns, example.com, *.com
+	portNumColon := strings.Index(name, ":")
+	if portNumColon != -1 {
+		name = name[:portNumColon]
+	}
+
+	// Append wildcarded domains to res slice
+	for {
+		firstDot := strings.Index(name, ".")
+		if firstDot == -1 {
+			break
+		}
+		name = name[firstDot+1:]
+
+		res = append(res, "*."+name)
+	}
 	return res
 }

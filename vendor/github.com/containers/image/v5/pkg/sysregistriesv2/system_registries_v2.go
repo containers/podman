@@ -20,7 +20,7 @@ import (
 // systemRegistriesConfPath is the path to the system-wide registry
 // configuration file and is used to add/subtract potential registries for
 // obtaining images.  You can override this at build time with
-// -ldflags '-X github.com/containers/image/sysregistries.systemRegistriesConfPath=$your_path'
+// -ldflags '-X github.com/containers/image/v5/sysregistries.systemRegistriesConfPath=$your_path'
 var systemRegistriesConfPath = builtinRegistriesConfPath
 
 // builtinRegistriesConfPath is the path to the registry configuration file.
@@ -30,7 +30,7 @@ const builtinRegistriesConfPath = "/etc/containers/registries.conf"
 // systemRegistriesConfDirPath is the path to the system-wide registry
 // configuration directory and is used to add/subtract potential registries for
 // obtaining images.  You can override this at build time with
-// -ldflags '-X github.com/containers/image/sysregistries.systemRegistriesConfDirecotyPath=$your_path'
+// -ldflags '-X github.com/containers/image/v5/sysregistries.systemRegistriesConfDirecotyPath=$your_path'
 var systemRegistriesConfDirPath = builtinRegistriesConfDirPath
 
 // builtinRegistriesConfDirPath is the path to the registry configuration directory.
@@ -405,9 +405,15 @@ type configWrapper struct {
 
 // newConfigWrapper returns a configWrapper for the specified SystemContext.
 func newConfigWrapper(ctx *types.SystemContext) configWrapper {
+	return newConfigWrapperWithHomeDir(ctx, homedir.Get())
+}
+
+// newConfigWrapperWithHomeDir is an internal implementation detail of newConfigWrapper,
+// it exists only to allow testing it with an artificial home directory.
+func newConfigWrapperWithHomeDir(ctx *types.SystemContext, homeDir string) configWrapper {
 	var wrapper configWrapper
-	userRegistriesFilePath := filepath.Join(homedir.Get(), userRegistriesFile)
-	userRegistriesDirPath := filepath.Join(homedir.Get(), userRegistriesDir)
+	userRegistriesFilePath := filepath.Join(homeDir, userRegistriesFile)
+	userRegistriesDirPath := filepath.Join(homeDir, userRegistriesDir)
 
 	// decide configPath using per-user path or system file
 	if ctx != nil && ctx.SystemRegistriesConfPath != "" {

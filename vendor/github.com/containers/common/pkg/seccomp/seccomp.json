@@ -89,6 +89,7 @@
 				"epoll_ctl",
 				"epoll_ctl_old",
 				"epoll_pwait",
+				"epoll_pwait2",
 				"epoll_wait",
 				"epoll_wait_old",
 				"eventfd",
@@ -117,7 +118,11 @@
 				"flock",
 				"fork",
 				"fremovexattr",
+				"fsconfig",
 				"fsetxattr",
+				"fsmount",
+				"fsopen",
+				"fspick",
 				"fstat",
 				"fstat64",
 				"fstatat64",
@@ -204,6 +209,7 @@
 				"mmap",
 				"mmap2",
 				"mount",
+				"move_mount",
 				"mprotect",
 				"mq_getsetattr",
 				"mq_notify",
@@ -226,6 +232,7 @@
 				"open",
 				"openat",
 				"openat2",
+				"open_tree",
 				"pause",
 				"pidfd_getfd",
 				"pidfd_open",
@@ -728,6 +735,7 @@
 		{
 			"names": [
 				"kcmp",
+				"process_madvise",
 				"process_vm_readv",
 				"process_vm_writev",
 				"ptrace"
