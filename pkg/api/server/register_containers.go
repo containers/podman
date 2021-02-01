@@ -199,6 +199,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    default: false
+	//    description: Send kill signal to all containers
+	//  - in: query
 	//    name: signal
 	//    type: string
 	//    default: TERM
@@ -486,6 +491,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//        - paused
 	//        - running
 	//        - stopped
+	//  - in: query
+	//    name: interval
+	//    type: string
+	//    default: "250ms"
+	//    description: Time Interval to wait before polling for completion.
 	// produces:
 	// - application/json
 	// responses:
@@ -1219,9 +1229,20 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
-	//    name: t
+	//    name: all
+	//    type: boolean
+	//    default: false
+	//    description: Stop all containers
+	//  - in: query
+	//    name: timeout
 	//    type: integer
+	//    default: 10
 	//    description: number of seconds to wait before killing container
+	//  - in: query
+	//    name: Ignore
+	//    type: boolean
+	//    default: false
+	//    description: do not return error if container is already stopped
 	// produces:
 	// - application/json
 	// responses:

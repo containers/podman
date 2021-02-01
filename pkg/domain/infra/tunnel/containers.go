@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -41,7 +40,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 		return nil, err
 	}
 	responses := make([]entities.WaitReport, 0, len(cons))
-	options := new(containers.WaitOptions).WithCondition(opts.Condition)
+	options := new(containers.WaitOptions).WithCondition(opts.Condition).WithInterval(opts.Interval.String())
 	for _, c := range cons {
 		response := entities.WaitReport{Id: c.ID}
 		exitCode, err := containers.Wait(ic.ClientCtx, c.ID, options)
@@ -83,19 +82,11 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, opts entities.StopOptions) ([]*entities.StopReport, error) {
 	reports := []*entities.StopReport{}
-	for _, cidFile := range opts.CIDFiles {
-		content, err := ioutil.ReadFile(cidFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error reading CIDFile")
-		}
-		id := strings.Split(string(content), "\n")[0]
-		namesOrIds = append(namesOrIds, id)
-	}
 	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
-	options := new(containers.StopOptions)
+	options := new(containers.StopOptions).WithIgnore(opts.Ignore)
 	if to := opts.Timeout; to != nil {
 		options.WithTimeout(*to)
 	}
@@ -126,23 +117,16 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, opts entities.KillOptions) ([]*entities.KillReport, error) {
-	for _, cidFile := range opts.CIDFiles {
-		content, err := ioutil.ReadFile(cidFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error reading CIDFile")
-		}
-		id := strings.Split(string(content), "\n")[0]
-		namesOrIds = append(namesOrIds, id)
-	}
 	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
+	options := new(containers.KillOptions).WithSignal(opts.Signal)
 	reports := make([]*entities.KillReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		reports = append(reports, &entities.KillReport{
 			Id:  c.ID,
-			Err: containers.Kill(ic.ClientCtx, c.ID, opts.Signal, nil),
+			Err: containers.Kill(ic.ClientCtx, c.ID, options),
 		})
 	}
 	return reports, nil

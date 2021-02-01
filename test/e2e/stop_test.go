@@ -164,13 +164,14 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop container --timeout", func() {
-		session := podmanTest.RunTopContainer("test5")
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "test5", ALPINE, "sleep", "100"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid1 := session.OutputToString()
-
 		session = podmanTest.Podman([]string{"stop", "--timeout", "1", "test5"})
-		session.WaitWithDefaultTimeout()
+		// Without timeout container stops in 10 seconds
+		// If not stopped in 5 seconds, then --timeout did not work
+		session.Wait(5)
 		Expect(session.ExitCode()).To(Equal(0))
 		output := session.OutputToString()
 		Expect(output).To(ContainSubstring(cid1))
@@ -306,5 +307,39 @@ var _ = Describe("Podman stop", func() {
 		result = podmanTest.Podman([]string{"stop", "--latest", "--all"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(125))
+	})
+
+	It("podman stop --all", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+
+		session = podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+
+		session = podmanTest.Podman([]string{"stop", "--all"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
+	It("podman stop --ignore", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+
+		session = podmanTest.Podman([]string{"stop", "bogus", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+
+		session = podmanTest.Podman([]string{"stop", "--ignore", "bogus", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 })

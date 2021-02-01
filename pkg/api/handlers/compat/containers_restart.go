@@ -4,7 +4,10 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -12,31 +15,46 @@ import (
 func RestartContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	// Now use the ABI implementation to prevent us from having duplicate
+	// code.
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+
 	// /{version}/containers/(name)/restart
 	query := struct {
-		Timeout int `schema:"t"`
+		All           bool `schema:"all"`
+		DockerTimeout uint `schema:"t"`
+		LibpodTimeout uint `schema:"timeout"`
 	}{
-		// Override golang default values for types
+		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.BadRequest(w, "url", r.URL.String(), errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := utils.GetName(r)
-	con, err := runtime.LookupContainer(name)
+
+	options := entities.RestartOptions{
+		All:     query.All,
+		Timeout: &query.DockerTimeout,
+	}
+	if utils.IsLibpodRequest(r) {
+		options.Timeout = &query.LibpodTimeout
+	}
+	report, err := containerEngine.ContainerRestart(r.Context(), []string{name}, options)
 	if err != nil {
-		utils.ContainerNotFound(w, name, err)
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			utils.ContainerNotFound(w, name, err)
+			return
+		}
+
+		utils.InternalServerError(w, err)
 		return
 	}
 
-	timeout := con.StopTimeout()
-	if _, found := r.URL.Query()["t"]; found {
-		timeout = uint(query.Timeout)
-	}
-
-	if err := con.RestartWithTimeout(r.Context(), timeout); err != nil {
-		utils.InternalServerError(w, err)
+	if len(report) > 0 && report[0].Err != nil {
+		utils.InternalServerError(w, report[0].Err)
 		return
 	}
 
