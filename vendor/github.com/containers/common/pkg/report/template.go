@@ -1,6 +1,8 @@
 package report
 
 import (
+	"bytes"
+	"encoding/json"
 	"reflect"
 	"strings"
 	"text/template"
@@ -21,15 +23,31 @@ type FuncMap template.FuncMap
 var tableReplacer = strings.NewReplacer(
 	"table ", "",
 	`\t`, "\t",
-	`\n`, "\n",
 	" ", "\t",
 )
 
 // escapedReplacer will clean up escaped characters from CLI
 var escapedReplacer = strings.NewReplacer(
 	`\t`, "\t",
-	`\n`, "\n",
 )
+
+var DefaultFuncs = FuncMap{
+	"join": strings.Join,
+	"json": func(v interface{}) string {
+		buf := &bytes.Buffer{}
+		enc := json.NewEncoder(buf)
+		enc.SetEscapeHTML(false)
+		enc.Encode(v)
+		// Remove the trailing new line added by the encoder
+		return strings.TrimSpace(buf.String())
+	},
+	"lower":    strings.ToLower,
+	"pad":      padWithSpace,
+	"split":    strings.Split,
+	"title":    strings.Title,
+	"truncate": truncateWithLength,
+	"upper":    strings.ToUpper,
+}
 
 // NormalizeFormat reads given go template format provided by CLI and munges it into what we need
 func NormalizeFormat(format string) string {
@@ -45,6 +63,22 @@ func NormalizeFormat(format string) string {
 		f += "\n"
 	}
 	return f
+}
+
+// padWithSpace adds spaces*prefix and spaces*suffix to the input when it is non-empty
+func padWithSpace(source string, prefix, suffix int) string {
+	if source == "" {
+		return source
+	}
+	return strings.Repeat(" ", prefix) + source + strings.Repeat(" ", suffix)
+}
+
+// truncateWithLength truncates the source string up to the length provided by the input
+func truncateWithLength(source string, length int) string {
+	if len(source) < length {
+		return source
+	}
+	return source[:length]
 }
 
 // Headers queries the interface for field names.
@@ -88,7 +122,7 @@ func Headers(object interface{}, overrides map[string]string) []map[string]strin
 
 // NewTemplate creates a new template object
 func NewTemplate(name string) *Template {
-	return &Template{template.New(name), false}
+	return &Template{Template: template.New(name).Funcs(template.FuncMap(DefaultFuncs))}
 }
 
 // Parse parses text as a template body for t
@@ -100,13 +134,21 @@ func (t *Template) Parse(text string) (*Template, error) {
 		text = NormalizeFormat(text)
 	}
 
-	tt, err := t.Template.Parse(text)
+	tt, err := t.Template.Funcs(template.FuncMap(DefaultFuncs)).Parse(text)
 	return &Template{tt, t.isTable}, err
 }
 
-// Funcs adds the elements of the argument map to the template's function map
+// Funcs adds the elements of the argument map to the template's function map.
+// A default template function will be replace if there is a key collision.
 func (t *Template) Funcs(funcMap FuncMap) *Template {
-	return &Template{t.Template.Funcs(template.FuncMap(funcMap)), t.isTable}
+	m := make(FuncMap)
+	for k, v := range DefaultFuncs {
+		m[k] = v
+	}
+	for k, v := range funcMap {
+		m[k] = v
+	}
+	return &Template{Template: t.Template.Funcs(template.FuncMap(m)), isTable: t.isTable}
 }
 
 // IsTable returns true if format string defines a "table"

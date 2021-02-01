@@ -25,6 +25,17 @@ func getRuntimeDir() (string, error) {
 
 	rootlessRuntimeDirOnce.Do(func() {
 		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+		if runtimeDir != "" {
+			st, err := os.Stat(runtimeDir)
+			if err != nil {
+				rootlessRuntimeDirError = err
+				return
+			}
+			if int(st.Sys().(*syscall.Stat_t).Uid) != os.Geteuid() {
+				rootlessRuntimeDirError = fmt.Errorf("XDG_RUNTIME_DIR directory %q is not owned by the current user", runtimeDir)
+				return
+			}
+		}
 		uid := fmt.Sprintf("%d", unshare.GetRootlessUID())
 		if runtimeDir == "" {
 			tmpDir := filepath.Join("/run", "user", uid)
