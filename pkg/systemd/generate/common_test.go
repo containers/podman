@@ -29,7 +29,7 @@ func TestFilterPodFlags(t *testing.T) {
 	}
 }
 
-func TestQuoteArguments(t *testing.T) {
+func TestEscapeSystemdArguments(t *testing.T) {
 	tests := []struct {
 		input  []string
 		output []string
@@ -46,10 +46,46 @@ func TestQuoteArguments(t *testing.T) {
 			[]string{"foo", "bar=\"arg with\ttab\""},
 			[]string{"foo", "\"bar=\\\"arg with\\ttab\\\"\""},
 		},
+		{
+			[]string{"$"},
+			[]string{"$$"},
+		},
+		{
+			[]string{"foo", "command with dollar sign $"},
+			[]string{"foo", "\"command with dollar sign $$\""},
+		},
+		{
+			[]string{"foo", "command with two dollar signs $$"},
+			[]string{"foo", "\"command with two dollar signs $$$$\""},
+		},
+		{
+			[]string{"%"},
+			[]string{"%%"},
+		},
+		{
+			[]string{"foo", "command with percent sign %"},
+			[]string{"foo", "\"command with percent sign %%\""},
+		},
+		{
+			[]string{"foo", "command with two percent signs %%"},
+			[]string{"foo", "\"command with two percent signs %%%%\""},
+		},
+		{
+			[]string{`\`},
+			[]string{`\\`},
+		},
+		{
+			[]string{"foo", `command with backslash \`},
+			[]string{"foo", `"command with backslash \\"`},
+		},
+		{
+			[]string{"foo", `command with two backslashs \\`},
+			[]string{"foo", `"command with two backslashs \\\\"`},
+		},
 	}
 
 	for _, test := range tests {
-		quoted := quoteArguments(test.input)
+		quoted := escapeSystemdArguments(test.input)
 		assert.Equal(t, test.output, quoted)
 	}
 }
