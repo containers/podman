@@ -100,7 +100,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	responses := make([]entities.WaitReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		response := entities.WaitReport{Id: c.ID()}
-		exitCode, err := c.WaitForConditionWithInterval(options.Interval, options.Condition)
+		exitCode, err := c.WaitForConditionWithInterval(ctx, options.Interval, options.Condition)
 		if err != nil {
 			response.Error = err
 		} else {
@@ -728,7 +728,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				return reports, errors.Wrapf(err, "unable to start container %s", ctr.ID())
 			}
 
-			if ecode, err := ctr.Wait(); err != nil {
+			if ecode, err := ctr.Wait(ctx); err != nil {
 				if errors.Cause(err) == define.ErrNoSuchCtr {
 					// Check events
 					event, err := ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
@@ -867,7 +867,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		return &report, err
 	}
 
-	if ecode, err := ctr.Wait(); err != nil {
+	if ecode, err := ctr.Wait(ctx); err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			// Check events
 			event, err := ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
