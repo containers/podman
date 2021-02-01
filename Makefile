@@ -639,6 +639,18 @@ install.libseccomp.sudo:
 	cd ../../seccomp/libseccomp && git checkout --detach $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
 
 
+.PHONY: completions
+completions: podman podman-remote
+	# key = shell, value = completion filename
+	declare -A outfiles=([bash]=%s [zsh]=_%s [fish]=%s.fish);\
+	for shell in $${!outfiles[*]}; do \
+	    for remote in "" "-remote"; do \
+	        podman="podman$$remote"; \
+	        outfile=$$(printf "completions/$$shell/$${outfiles[$$shell]}" $$podman); \
+	        ./bin/$$podman completion $$shell >| $$outfile; \
+	    done;\
+	done
+
 .PHONY: validate.completions
 validate.completions: SHELL:=/usr/bin/env bash # Set shell to bash for this target
 validate.completions:
