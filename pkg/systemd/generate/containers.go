@@ -204,7 +204,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		startCommand := []string{info.Executable}
 		if index > 2 {
 			// include root flags
-			info.RootFlags = strings.Join(quoteArguments(info.CreateCommand[1:index-1]), " ")
+			info.RootFlags = strings.Join(escapeSystemdArguments(info.CreateCommand[1:index-1]), " ")
 			startCommand = append(startCommand, info.CreateCommand[1:index-1]...)
 		}
 		startCommand = append(startCommand,
@@ -279,7 +279,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			}
 		}
 		startCommand = append(startCommand, remainingCmd...)
-		startCommand = quoteArguments(startCommand)
+		startCommand = escapeSystemdArguments(startCommand)
 
 		info.ExecStartPre = "/bin/rm -f {{{{.PIDFile}}}} {{{{.ContainerIDFile}}}}"
 		info.ExecStart = strings.Join(startCommand, " ")
