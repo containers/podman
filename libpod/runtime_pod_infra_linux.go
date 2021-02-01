@@ -94,8 +94,16 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 			}
 		}
 
-		// Since user namespace sharing is not implemented, we only need to check if it's rootless
-		if !p.config.InfraContainer.HostNetwork {
+		switch {
+		case p.config.InfraContainer.HostNetwork:
+			if err := g.RemoveLinuxNamespace(string(spec.NetworkNamespace)); err != nil {
+				return nil, errors.Wrapf(err, "error removing network namespace from pod %s infra container", p.ID())
+			}
+		case p.config.InfraContainer.NoNetwork:
+			// Do nothing - we have a network namespace by default,
+			// but should not configure slirp.
+		default:
+			// Since user namespace sharing is not implemented, we only need to check if it's rootless
 			netmode := "bridge"
 			if isRootless || p.config.InfraContainer.Slirp4netns {
 				netmode = "slirp4netns"
@@ -106,8 +114,6 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 			// PostConfigureNetNS should not be set since user namespace sharing is not implemented
 			// and rootless networking no longer supports post configuration setup
 			options = append(options, WithNetNS(p.config.InfraContainer.PortBindings, false, netmode, p.config.InfraContainer.Networks))
-		} else if err := g.RemoveLinuxNamespace(string(spec.NetworkNamespace)); err != nil {
-			return nil, errors.Wrapf(err, "error removing network namespace from pod %s infra container", p.ID())
 		}
 
 		// For each option in InfraContainerConfig - if set, pass into

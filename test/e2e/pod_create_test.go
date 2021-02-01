@@ -478,12 +478,7 @@ entrypoint ["/fromimage"]
 	})
 
 	It("podman create with unsupported network options", func() {
-		podCreate := podmanTest.Podman([]string{"pod", "create", "--network", "none"})
-		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate.ExitCode()).To(Equal(125))
-		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode none"))
-
-		podCreate = podmanTest.Podman([]string{"pod", "create", "--network", "container:doesnotmatter"})
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--network", "container:doesnotmatter"})
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate.ExitCode()).To(Equal(125))
 		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode container"))
@@ -492,5 +487,18 @@ entrypoint ["/fromimage"]
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate.ExitCode()).To(Equal(125))
 		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode path"))
+	})
+
+	It("podman pod create with --net=none", func() {
+		podName := "testPod"
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--network", "none", "--name", podName})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "ip", "-o", "-4", "addr"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("inet 127.0.0.1/8 scope host lo"))
+		Expect(len(session.OutputToStringArray())).To(Equal(1))
 	})
 })
