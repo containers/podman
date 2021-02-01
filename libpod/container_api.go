@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/containers/podman/v2/libpod/define"
@@ -478,13 +479,15 @@ func (c *Container) RemoveArtifact(name string) error {
 }
 
 // Wait blocks until the container exits and returns its exit code.
-func (c *Container) Wait() (int32, error) {
-	return c.WaitWithInterval(DefaultWaitInterval)
+func (c *Container) Wait(ctx context.Context) (int32, error) {
+	return c.WaitWithInterval(ctx, DefaultWaitInterval)
 }
+
+var errWaitingCanceled = errors.New("waiting was canceled")
 
 // WaitWithInterval blocks until the container to exit and returns its exit
 // code. The argument is the interval at which checks the container's status.
-func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
+func (c *Container) WaitWithInterval(ctx context.Context, waitTimeout time.Duration) (int32, error) {
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
@@ -495,41 +498,111 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 	}
 	chWait := make(chan error, 1)
 
-	defer close(chWait)
+	go func() {
+		<-ctx.Done()
+		chWait <- errWaitingCanceled
+	}()
 
 	for {
-		// ignore errors here, it is only used to avoid waiting
+		// ignore errors here (with exception of cancellation), it is only used to avoid waiting
 		// too long.
-		_, _ = WaitForFile(exitFile, chWait, waitTimeout)
+		_, e := WaitForFile(exitFile, chWait, waitTimeout)
+		if e == errWaitingCanceled {
+			return -1, errWaitingCanceled
+		}
 
-		stopped, err := c.isStopped()
+		stopped, code, err := c.isStopped()
 		if err != nil {
 			return -1, err
 		}
 		if stopped {
-			return c.state.ExitCode, nil
+			return code, nil
 		}
 	}
 }
 
-func (c *Container) WaitForConditionWithInterval(waitTimeout time.Duration, condition define.ContainerStatus) (int32, error) {
+type waitResult struct {
+	code int32
+	err  error
+}
+
+func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeout time.Duration, conditions ...define.ContainerStatus) (int32, error) {
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
-	if condition == define.ContainerStateStopped || condition == define.ContainerStateExited {
-		return c.WaitWithInterval(waitTimeout)
+
+	if len(conditions) == 0 {
+		panic("at least one condition should be passed")
 	}
-	for {
-		state, err := c.State()
-		if err != nil {
-			return -1, err
+
+	ctx, cancelFn := context.WithCancel(ctx)
+	defer cancelFn()
+
+	resultChan := make(chan waitResult)
+	waitForExit := false
+	wantedStates := make(map[define.ContainerStatus]bool, len(conditions))
+
+	for _, condition := range conditions {
+		if condition == define.ContainerStateStopped || condition == define.ContainerStateExited {
+			waitForExit = true
+			continue
 		}
-		if state == condition {
-			break
-		}
-		time.Sleep(waitTimeout)
+		wantedStates[condition] = true
 	}
-	return -1, nil
+
+	trySend := func(code int32, err error) {
+		select {
+		case resultChan <- waitResult{code, err}:
+		case <-ctx.Done():
+		}
+	}
+
+	var wg sync.WaitGroup
+
+	if waitForExit {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			code, err := c.WaitWithInterval(ctx, waitTimeout)
+			trySend(code, err)
+		}()
+	}
+
+	if len(wantedStates) > 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for {
+				state, err := c.State()
+				if err != nil {
+					trySend(-1, err)
+					return
+				}
+				if _, found := wantedStates[state]; found {
+					trySend(-1, nil)
+					return
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(waitTimeout):
+					continue
+				}
+			}
+		}()
+	}
+
+	var result waitResult
+	select {
+	case result = <-resultChan:
+		cancelFn()
+	case <-ctx.Done():
+		result = waitResult{-1, errWaitingCanceled}
+	}
+	wg.Wait()
+	return result.code, result.err
 }
 
 // Cleanup unmounts all mount points in container and cleans up container storage
