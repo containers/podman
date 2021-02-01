@@ -187,10 +187,6 @@ type ContainersConfig struct {
 
 // EngineConfig contains configuration options used to set up a engine runtime
 type EngineConfig struct {
-	// ImageBuildFormat indicates the default image format to building
-	// container images.  Valid values are "oci" (default) or "docker".
-	ImageBuildFormat string `toml:"image_build_format,omitempty"`
-
 	// CgroupCheck indicates the configuration has been rewritten after an
 	// upgrade to Fedora 31 to change the default OCI runtime for cgroupv2v2.
 	CgroupCheck bool `toml:"cgroup_check,omitempty"`
@@ -235,9 +231,24 @@ type EngineConfig struct {
 	// this slice takes precedence.
 	HooksDir []string `toml:"hooks_dir,omitempty"`
 
+	// ImageBuildFormat (DEPRECATED) indicates the default image format to
+	// building container images. Should use ImageDefaultFormat
+	ImageBuildFormat string `toml:"image_build_format,omitempty"`
+
 	// ImageDefaultTransport is the default transport method used to fetch
 	// images.
 	ImageDefaultTransport string `toml:"image_default_transport,omitempty"`
+
+	// ImageParallelCopies indicates the maximum number of image layers
+	// to be copied simultaneously. If this is zero, container engines
+	// will fall back to containers/image defaults.
+	ImageParallelCopies uint `toml:"image_parallel_copies,omitempty"`
+
+	// ImageDefaultFormat sepecified the manifest Type (oci, v2s2, or v2s1)
+	// to use when pulling, pushing, building container images. By default
+	// image pulled and pushed match the format of the source image.
+	// Building/committing defaults to OCI.
+	ImageDefaultFormat string `toml:"image_default_format,omitempty"`
 
 	// InfraCommand is the command run to start up a pod infra container.
 	InfraCommand string `toml:"infra_command,omitempty"`
