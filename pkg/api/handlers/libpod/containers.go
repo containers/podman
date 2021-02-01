@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
@@ -146,17 +145,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
-	exitCode, err := utils.WaitContainer(w, r)
-	if err != nil {
-		name := utils.GetName(r)
-		if errors.Cause(err) == define.ErrNoSuchCtr {
-			utils.ContainerNotFound(w, name, err)
-			return
-		}
-		logrus.Warnf("failed to wait on container %q: %v", name, err)
-		return
-	}
-	utils.WriteResponse(w, http.StatusOK, strconv.Itoa(int(exitCode)))
+	utils.WaitContainerLibpod(w, r)
 }
 
 func UnmountContainer(w http.ResponseWriter, r *http.Request) {
