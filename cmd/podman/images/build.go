@@ -106,7 +106,9 @@ func buildFlags(cmd *cobra.Command) {
 		logrus.Errorf("unable to set --pull to true: %v", err)
 	}
 	flag.DefValue = "true"
+	flag.Usage = "Always attempt to pull the image (errors are fatal)"
 	flags.AddFlagSet(&budFlags)
+
 	// Add the completion functions
 	budCompletions := buildahCLI.GetBudFlagsCompletions()
 	completion.CompleteCommandFlags(cmd, budCompletions)
