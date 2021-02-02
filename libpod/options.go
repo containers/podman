@@ -2190,13 +2190,37 @@ func WithPodNetworks(networks []string) PodCreateOption {
 	}
 }
 
+// WithPodNoNetwork tells the pod to disable external networking.
+func WithPodNoNetwork() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot disable pod networking as no infra container is being created")
+		}
+
+		if len(pod.config.InfraContainer.PortBindings) > 0 ||
+			pod.config.InfraContainer.StaticIP != nil ||
+			pod.config.InfraContainer.StaticMAC != nil ||
+			len(pod.config.InfraContainer.Networks) > 0 ||
+			pod.config.InfraContainer.HostNetwork {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot disable pod network if network-related configuration is specified")
+		}
+
+		pod.config.InfraContainer.NoNetwork = true
+
+		return nil
+	}
+}
+
 // WithPodHostNetwork tells the pod to use the host's network namespace.
 func WithPodHostNetwork() PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized
 		}
-
 		if !pod.config.InfraContainer.HasInfraContainer {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod host networking as no infra container is being created")
 		}
@@ -2204,7 +2228,8 @@ func WithPodHostNetwork() PodCreateOption {
 		if len(pod.config.InfraContainer.PortBindings) > 0 ||
 			pod.config.InfraContainer.StaticIP != nil ||
 			pod.config.InfraContainer.StaticMAC != nil ||
-			len(pod.config.InfraContainer.Networks) > 0 {
+			len(pod.config.InfraContainer.Networks) > 0 ||
+			pod.config.InfraContainer.NoNetwork {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot set host network if network-related configuration is specified")
 		}
 
