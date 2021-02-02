@@ -610,4 +610,43 @@ json-file | f
     is "$output" "$randomcontent" "cat random content"
 }
 
+# https://github.com/containers/podman/issues/9096
+# podman exec may truncate stdout/stderr; actually a bug in conmon:
+# https://github.com/containers/conmon/issues/236
+@test "podman run - does not truncate or hang with big output" {
+    # Size, in bytes, to dd and to expect in return
+    char_count=700000
+
+    # Container name; primarily needed when running podman-remote
+    cname=mybigdatacontainer
+
+    # This is one of those cases where BATS is not the best test framework.
+    # We can't do any output redirection, because 'run' overrides it so
+    # as to preserve $output. We can't _not_ do redirection, because BATS
+    # doesn't like NULs in $output (and neither would humans who might
+    # have to read them in an error log).
+    # Workaround: write to a log file, and don't attach stdout.
+    run_podman run --name $cname --attach stderr --log-driver k8s-file \
+               $IMAGE dd if=/dev/zero count=$char_count bs=1
+    is "${lines[0]}" "$char_count+0 records in"  "dd: number of records in"
+    is "${lines[1]}" "$char_count+0 records out" "dd: number of records out"
+
+    # We don't have many tests for '-l'. This is as good a place as any
+    if ! is_remote; then
+        cname=-l
+    fi
+
+    # Now find that log file, and count the NULs in it.
+    # The log file is of the form '<timestamp> <P|F> <data>', where P|F
+    # is Partial/Full; I think that's called "kubernetes log format"?
+    run_podman inspect $cname --format '{{.HostConfig.LogConfig.Path}}'
+    logfile="$output"
+
+    count_zero=$(tr -cd '\0' <$logfile | wc -c)
+    is "$count_zero" "$char_count" "count of NULL characters in log"
+
+    # Clean up
+    run_podman rm $cname
+}
+
 # vim: filetype=sh
