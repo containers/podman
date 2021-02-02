@@ -282,16 +282,16 @@ func setupSecurityContext(s *specgen.SpecGenerator, containerYAML v1.Container) 
 
 	if seopt := containerYAML.SecurityContext.SELinuxOptions; seopt != nil {
 		if seopt.User != "" {
-			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("role:%s", seopt.User))
+			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("user:%s", seopt.User))
 		}
 		if seopt.Role != "" {
 			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("role:%s", seopt.Role))
 		}
 		if seopt.Type != "" {
-			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("role:%s", seopt.Type))
+			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("type:%s", seopt.Type))
 		}
 		if seopt.Level != "" {
-			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("role:%s", seopt.Level))
+			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("level:%s", seopt.Level))
 		}
 	}
 	if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
