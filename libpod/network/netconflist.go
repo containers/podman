@@ -177,8 +177,12 @@ func NewMacVLANPlugin(device string) MacVLANConfig {
 
 	m := MacVLANConfig{
 		PluginType: "macvlan",
-		Master:     device,
 		IPAM:       i,
+	}
+	// CNI is supposed to use the default route if a
+	// parent device is not provided
+	if len(device) > 0 {
+		m.Master = device
 	}
 	return m
 }
