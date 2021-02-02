@@ -1,7 +1,6 @@
 package pods
 
 import (
-	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
@@ -69,8 +68,6 @@ func (o *StatsOptions) ToParams() (url.Values, error) {
 			}
 
 			params.Set(fieldName, s)
-		default:
-			panic(fmt.Sprintf("don't known how to handle %s", f.Type().String()))
 		}
 
 	}
