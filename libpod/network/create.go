@@ -29,7 +29,7 @@ func Create(name string, options entities.NetworkCreateOptions, runtimeConfig *c
 		return nil, err
 	}
 	defer l.releaseCNILock()
-	if len(options.MacVLAN) > 0 {
+	if len(options.MacVLAN) > 0 || options.Driver == MacVLANNetworkDriver {
 		fileName, err = createMacVLAN(name, options, runtimeConfig)
 	} else {
 		fileName, err = createBridge(name, options, runtimeConfig)
@@ -256,9 +256,17 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 		return "", err
 	}
 
-	// Make sure the host-device exists
-	if !util.StringInSlice(options.MacVLAN, liveNetNames) {
-		return "", errors.Errorf("failed to find network interface %q", options.MacVLAN)
+	// The parent can be defined with --macvlan or as an option (-o parent:device)
+	parentNetworkDevice := options.MacVLAN
+	if len(parentNetworkDevice) < 1 {
+		if parent, ok := options.Options["parent"]; ok {
+			parentNetworkDevice = parent
+		}
+	}
+
+	// Make sure the host-device exists if provided
+	if len(parentNetworkDevice) > 0 && !util.StringInSlice(parentNetworkDevice, liveNetNames) {
+		return "", errors.Errorf("failed to find network interface %q", parentNetworkDevice)
 	}
 	if len(name) > 0 {
 		netNames, err := GetNetworkNamesFromFileSystem(runtimeConfig)
@@ -275,7 +283,7 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 		}
 	}
 	ncList := NewNcList(name, version.Current(), options.Labels)
-	macvlan := NewMacVLANPlugin(options.MacVLAN)
+	macvlan := NewMacVLANPlugin(parentNetworkDevice)
 	plugins = append(plugins, macvlan)
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")

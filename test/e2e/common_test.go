@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -793,4 +794,13 @@ func (p *PodmanTestIntegration) removeCNINetwork(name string) {
 	session := p.Podman([]string{"network", "rm", "-f", name})
 	session.WaitWithDefaultTimeout()
 	Expect(session.ExitCode()).To(BeNumerically("<=", 1))
+}
+
+func (p *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
+	var out bytes.Buffer
+	cmd := exec.Command("jq", jqCommand)
+	cmd.Stdin = strings.NewReader(p.OutputToString())
+	cmd.Stdout = &out
+	err := cmd.Run()
+	return strings.TrimRight(out.String(), "\n"), err
 }
