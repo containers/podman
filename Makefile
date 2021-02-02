@@ -303,13 +303,17 @@ localunit: test/goecho/goecho
 .PHONY: test
 test: localunit localintegration remoteintegration localsystem remotesystem  ## Run unit, integration, and system tests.
 
+.PHONY: ginkgo-run
+ginkgo-run:
+	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. $(HACK)
+
 .PHONY: ginkgo
 ginkgo:
-	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. hack/.
+	$(MAKE) ginkgo-run TAGS="$(BUILDTAGS)" HACK=hack/.
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
-	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(REMOTETAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS)" HACK=
 
 .PHONY: localintegration
 localintegration: test-binaries ginkgo
