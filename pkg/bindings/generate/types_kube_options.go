@@ -2,7 +2,6 @@ package generate
 
 import (
 	"errors"
-	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
@@ -69,8 +68,6 @@ func (o *KubeOptions) ToParams() (url.Values, error) {
 			}
 
 			params.Set(fieldName, s)
-		default:
-			panic(fmt.Sprintf("don't known how to handle %s", f.Type().String()))
 		}
 
 	}
