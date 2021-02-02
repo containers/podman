@@ -38,7 +38,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
-	github.com/onsi/ginkgo v1.14.2
+	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.4
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6

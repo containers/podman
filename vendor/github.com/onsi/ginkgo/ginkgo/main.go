@@ -111,6 +111,11 @@ will output an executable file named `package.test`.  This can be run directly o
 
 	ginkgo <path-to-package.test>
 
+
+To print an outline of Ginkgo specs and containers in a file:
+
+	gingko outline <filename>
+
 To print out Ginkgo's version:
 
 	ginkgo version
@@ -172,6 +177,7 @@ func init() {
 	Commands = append(Commands, BuildUnfocusCommand())
 	Commands = append(Commands, BuildVersionCommand())
 	Commands = append(Commands, BuildHelpCommand())
+	Commands = append(Commands, BuildOutlineCommand())
 }
 
 func main() {
