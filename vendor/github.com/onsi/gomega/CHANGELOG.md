@@ -1,3 +1,10 @@
+## 1.10.5
+
+### Fixes
+- fix: collections matchers should display type of expectation (#408) [6b4eb5a]
+- fix(ContainElements): consistently flatten expected values [073b880]
+- fix(ConsistOf): consistently flatten expected values [7266efe]
+
 ## 1.10.4
 
 ### Fixes
