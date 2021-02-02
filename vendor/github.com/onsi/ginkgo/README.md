@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/onsi/ginkgo.svg?branch=master)](https://travis-ci.org/onsi/ginkgo)
 
-Jump to the [docs](https://onsi.github.io/ginkgo/) to learn more.  To start rolling your Ginkgo tests *now* [keep reading](#set-me-up)!
+Jump to the [docs](https://onsi.github.io/ginkgo/) | [中文文档](https://ke-chain.github.io/ginkgodoc) to learn more.  To start rolling your Ginkgo tests *now* [keep reading](#set-me-up)!
 
 If you have a question, comment, bug report, feature request, etc. please open a GitHub issue, or visit the [Ginkgo Slack channel](https://app.slack.com/client/T029RQSE6/CQQ50BBNW).
 

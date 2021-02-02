@@ -399,7 +399,7 @@ github.com/nxadm/tail/ratelimiter
 github.com/nxadm/tail/util
 github.com/nxadm/tail/watch
 github.com/nxadm/tail/winfile
-# github.com/onsi/ginkgo v1.14.2
+# github.com/onsi/ginkgo v1.15.0
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/extensions/table
@@ -407,6 +407,7 @@ github.com/onsi/ginkgo/ginkgo
 github.com/onsi/ginkgo/ginkgo/convert
 github.com/onsi/ginkgo/ginkgo/interrupthandler
 github.com/onsi/ginkgo/ginkgo/nodot
+github.com/onsi/ginkgo/ginkgo/outline
 github.com/onsi/ginkgo/ginkgo/testrunner
 github.com/onsi/ginkgo/ginkgo/testsuite
 github.com/onsi/ginkgo/ginkgo/watch
@@ -663,6 +664,8 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 golang.org/x/time/rate
+# golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e
+golang.org/x/tools/go/ast/inspector
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
