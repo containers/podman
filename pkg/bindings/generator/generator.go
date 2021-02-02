@@ -54,7 +54,7 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 		if reflect.Ptr == f.Kind() {
 			f = f.Elem()
 		}
-				switch {
+		switch {
 		case util.IsSimpleType(f):
 			params.Set(fieldName, util.SimpleTypeToParam(f))
 		case f.Kind() == reflect.Slice:
