@@ -35,7 +35,11 @@ PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
 
-SOURCES = $(shell find . -path './.*' -prune -o -name "*.go")
+# This isn't what we actually build; it's a superset, used for target
+# dependencies. Basically: all *.go files, except *_test.go, and except
+# anything in a dot subdirectory. If any of these files is newer than
+# our target (bin/podman{,-remote}), a rebuild is triggered.
+SOURCES = $(shell find . -path './.*' -prune -o \( -name '*.go' -a ! -name '*_test.go' \) -print)
 
 BUILDFLAGS := -mod=vendor $(BUILDFLAGS)
 
@@ -195,7 +199,6 @@ test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
 
 
-.PHONY: bin/podman
 bin/podman: .gopathok $(SOURCES) go.mod go.sum ## Build with podman
 # Make sure to warn in case we're building without the systemd buildtag.
 ifeq (,$(findstring systemd,$(BUILDTAGS)))
@@ -207,7 +210,6 @@ endif
 .PHONY: podman
 podman: bin/podman
 
-.PHONY: bin/podman-remote
 bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum ## Build with podman on remote environment
 	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ ./cmd/podman
 
@@ -390,7 +392,7 @@ MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 $(MANPAGES): %: %.md .install.md2man docdir
 	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' -e 's;<\(/\)\?\(a[^>]*\|sup\)>;;g' $<  | $(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
 
-.PHONY: docs
+.PHONY: docdir
 docdir:
 	mkdir -p docs/build/man
 
@@ -404,7 +406,7 @@ install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
 	docs/remote-docs.sh $* docs/build/remote/$* $(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
 .PHONY: man-page-check
-man-page-check:
+man-page-check: bin/podman
 	hack/man-page-checker
 	hack/xref-helpmsgs-manpages
 
