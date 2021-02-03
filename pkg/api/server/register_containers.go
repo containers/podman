@@ -9,10 +9,9 @@ import (
 )
 
 func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
-	// swagger:operation POST /containers/create compat createContainer
+	// swagger:operation POST /containers/create compat ContainerCreate
 	// ---
 	//   summary: Create a container
-	//   operationId: ContainerCreate
 	//   tags:
 	//    - containers (compat)
 	//   produces:
@@ -36,12 +35,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/create"), s.APIHandler(compat.CreateContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/create", s.APIHandler(compat.CreateContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/json compat listContainers
+	// swagger:operation GET /containers/json compat ContainerList
 	// ---
 	// tags:
 	//  - containers (compat)
 	// summary: List containers
-	// operationId: ContainerList
 	// description: Returns a list of containers
 	// parameters:
 	//  - in: query
@@ -94,12 +92,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/json"), s.APIHandler(compat.ListContainers)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/json", s.APIHandler(compat.ListContainers)).Methods(http.MethodGet)
-	// swagger:operation POST  /containers/prune compat pruneContainers
+	// swagger:operation POST  /containers/prune compat ContainerPrune
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Delete stopped containers
-	// operationId: ContainerPrune
 	// description: Remove containers not in use
 	// parameters:
 	//  - in: query
@@ -119,12 +116,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/prune"), s.APIHandler(compat.PruneContainers)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/prune", s.APIHandler(compat.PruneContainers)).Methods(http.MethodPost)
-	// swagger:operation DELETE /containers/{name} compat removeContainer
+	// swagger:operation DELETE /containers/{name} compat ContainerDelete
 	// ---
 	// tags:
 	//  - containers (compat)
 	// summary: Remove a container
-	// operationId: ContainerDelete
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -161,12 +157,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}"), s.APIHandler(compat.RemoveContainer)).Methods(http.MethodDelete)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}", s.APIHandler(compat.RemoveContainer)).Methods(http.MethodDelete)
-	// swagger:operation GET /containers/{name}/json compat getContainer
+	// swagger:operation GET /containers/{name}/json compat ContainerInspect
 	// ---
 	// tags:
 	//  - containers (compat)
 	// summary: Inspect container
-	// operationId: ContainerInspect
 	// description: Return low-level information about a container.
 	// parameters:
 	//  - in: path
@@ -191,12 +186,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/json"), s.APIHandler(compat.GetContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/json", s.APIHandler(compat.GetContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/kill compat killContainer
+	// swagger:operation POST /containers/{name}/kill compat ContainerKill
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Kill container
-	// operationId: ContainerKill
 	// description: Signal to send to the container as an integer or string (e.g. SIGINT)
 	// parameters:
 	//  - in: path
@@ -229,12 +223,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/kill"), s.APIHandler(compat.KillContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/kill", s.APIHandler(compat.KillContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/logs compat logsFromContainer
+	// swagger:operation GET /containers/{name}/logs compat ContainerLogs
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Get container logs
-	// operationId: ContainerLogs
 	// description: Get stdout and stderr logs from a container.
 	// parameters:
 	//  - in: path
@@ -284,12 +277,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/logs"), s.APIHandler(compat.LogsFromContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/logs", s.APIHandler(compat.LogsFromContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/pause compat pauseContainer
+	// swagger:operation POST /containers/{name}/pause compat ContainerPause
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Pause container
-	// operationId: ContainerPause
 	// description: Use the cgroups freezer to suspend all processes in a container.
 	// parameters:
 	//  - in: path
@@ -309,12 +301,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/pause"), s.APIHandler(compat.PauseContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/pause", s.APIHandler(compat.PauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/restart compat restartContainer
+	// swagger:operation POST /containers/{name}/restart compat ContainerRestart
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Restart container
-	// operationId: ContainerRestart
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -337,12 +328,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/restart"), s.APIHandler(compat.RestartContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/restart", s.APIHandler(compat.RestartContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/start compat startContainer
+	// swagger:operation POST /containers/{name}/start compat ContainerStart
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Start a container
-	// operationId: ContainerStart
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -368,12 +358,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/start"), s.APIHandler(compat.StartContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/start", s.APIHandler(compat.StartContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/stats compat statsContainer
+	// swagger:operation GET /containers/{name}/stats compat ContainerStats
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Get stats for a container
-	// operationId: ContainerStats
 	// description: This returns a live stream of a container’s resource usage statistics.
 	// parameters:
 	//  - in: path
@@ -398,12 +387,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/stats"), s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/stats", s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/stop compat stopContainer
+	// swagger:operation POST /containers/{name}/stop compat ContainerStop
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Stop a container
-	// operationId: ContainerStop
 	// description: Stop a container
 	// parameters:
 	//  - in: path
@@ -429,12 +417,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/stop"), s.APIHandler(compat.StopContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/stop", s.APIHandler(compat.StopContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/top compat topContainer
+	// swagger:operation GET /containers/{name}/top compat ContainerTop
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: List processes running inside a container
-	// operationId: ContainerTop
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -457,12 +444,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/top"), s.APIHandler(compat.TopContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/top", s.APIHandler(compat.TopContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/unpause compat unpauseContainer
+	// swagger:operation POST /containers/{name}/unpause compat ContainerUnpause
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Unpause container
-	// operationId: ContainerUnpause
 	// description: Resume a paused container
 	// parameters:
 	//  - in: path
@@ -482,12 +468,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/unpause"), s.APIHandler(compat.UnpauseContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/unpause", s.APIHandler(compat.UnpauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/wait compat waitContainer
+	// swagger:operation POST /containers/{name}/wait compat ContainerWait
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Wait on a container
-	// operationId: ContainerWait
 	// description: Block until a container stops or given condition is met.
 	// parameters:
 	//  - in: path
@@ -523,12 +508,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/wait"), s.APIHandler(compat.WaitContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/wait", s.APIHandler(compat.WaitContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/attach compat attachContainer
+	// swagger:operation POST /containers/{name}/attach compat ContainerAttach
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Attach to a container
-	// operationId: ContainerAttach
 	// description: Hijacks the connection to forward the container's standard streams to the client.
 	// parameters:
 	//  - in: path
@@ -581,12 +565,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/attach"), s.APIHandler(compat.AttachContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/attach", s.APIHandler(compat.AttachContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/resize compat resizeContainer
+	// swagger:operation POST /containers/{name}/resize compat ContainerResize
 	// ---
 	// tags:
 	//  - containers (compat)
 	// summary: Resize a container's TTY
-	// operationId: ContainerResize
 	// description: Resize the terminal attached to a container (for use with Attach).
 	// parameters:
 	//  - in: path
@@ -621,12 +604,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/resize", s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/export compat exportContainer
+	// swagger:operation GET /containers/{name}/export compat ContainerExport
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Export a container
-	// operationId: ContainerExport
 	// description: Export the contents of a container as a tarball.
 	// parameters:
 	//  - in: path
@@ -645,12 +627,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/export"), s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
 	r.HandleFunc("/containers/{name}/export", s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/rename compat renameContainer
+	// swagger:operation POST /containers/{name}/rename compat ContainerRename
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Rename an existing container
-	// operationId: ContainerRename
 	// description: Change the name of an existing container.
 	// parameters:
 	//  - in: path
@@ -1487,14 +1468,13 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restore"), s.APIHandler(libpod.Restore)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/changes libpod libpodChangesContainer
+	// swagger:operation GET /containers/{name}/changes libpod ContainerChanges
 	// swagger:operation GET /libpod/containers/{name}/changes compat changesContainer
 	// ---
 	// tags:
 	//   - containers
 	//   - containers (compat)
 	// summary: Report on changes to container's filesystem; adds, deletes or modifications.
-	// operationId: ContainerChanges
 	// description: |
 	//   Returns which files in a container's filesystem have been added, deleted, or modified. The Kind of modification can be one of:
 	//

@@ -9,12 +9,11 @@ import (
 )
 
 func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
-	// swagger:operation GET /info compat getInfo
+	// swagger:operation GET /info compat SystemInfo
 	// ---
 	// tags:
 	//  - system (compat)
 	// summary: Get info
-	// operationId: SystemInfo
 	// description: Returns information on the system and libpod configuration
 	// produces:
 	// - application/json

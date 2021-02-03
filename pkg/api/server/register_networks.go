@@ -9,12 +9,11 @@ import (
 )
 
 func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
-	// swagger:operation POST /networks/prune compat compatPruneNetwork
+	// swagger:operation POST /networks/prune compat NetworkPrune
 	// ---
 	// tags:
 	// - networks (compat)
 	// Summary: Delete unused networks
-	// operationId: NetworkPrune
 	// description: Not supported
 	// produces:
 	// - application/json
@@ -23,12 +22,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchNetwork"
 	r.HandleFunc(VersionedPath("/networks/prune"), compat.UnsupportedHandler).Methods(http.MethodPost)
 	r.HandleFunc("/networks/prune", compat.UnsupportedHandler).Methods(http.MethodPost)
-	// swagger:operation DELETE /networks/{name} compat compatRemoveNetwork
+	// swagger:operation DELETE /networks/{name} compat NetworkDelete
 	// ---
 	// tags:
 	//  - networks (compat)
 	// summary: Remove a network
-	// operationId: NetworkDelete
 	// description: Remove a network
 	// parameters:
 	//  - in: path
@@ -47,12 +45,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks/{name}"), s.APIHandler(compat.RemoveNetwork)).Methods(http.MethodDelete)
 	r.HandleFunc("/networks/{name}", s.APIHandler(compat.RemoveNetwork)).Methods(http.MethodDelete)
-	// swagger:operation GET /networks/{name} compat compatInspectNetwork
+	// swagger:operation GET /networks/{name} compat NetworkInspect
 	// ---
 	// tags:
 	//  - networks (compat)
 	// summary: Inspect a network
-	// operationId: NetworkInspect
 	// description: Display low level configuration network
 	// parameters:
 	//  - in: path
@@ -71,12 +68,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks/{name}"), s.APIHandler(compat.InspectNetwork)).Methods(http.MethodGet)
 	r.HandleFunc("/networks/{name}", s.APIHandler(compat.InspectNetwork)).Methods(http.MethodGet)
-	// swagger:operation GET /networks compat compatListNetwork
+	// swagger:operation GET /networks compat NetworkList
 	// ---
 	// tags:
 	//  - networks (compat)
 	// summary: List networks
-	// operationId: NetworkList
 	// description: Display summary of network configurations
 	// parameters:
 	//  - in: query
@@ -97,12 +93,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks"), s.APIHandler(compat.ListNetworks)).Methods(http.MethodGet)
 	r.HandleFunc("/networks", s.APIHandler(compat.ListNetworks)).Methods(http.MethodGet)
-	// swagger:operation POST /networks/create compat compatCreateNetwork
+	// swagger:operation POST /networks/create compat NetworkCreate
 	// ---
 	// tags:
 	//  - networks (compat)
 	// summary: Create network
-	// operationId: NetworkCreate
 	// description: Create a network configuration
 	// produces:
 	// - application/json
@@ -121,12 +116,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks/create"), s.APIHandler(compat.CreateNetwork)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/create", s.APIHandler(compat.CreateNetwork)).Methods(http.MethodPost)
-	// swagger:operation POST /networks/{name}/connect compat compatConnectNetwork
+	// swagger:operation POST /networks/{name}/connect compat NetworkConnect
 	// ---
 	// tags:
 	//  - networks (compat)
 	// summary: Connect container to network
-	// operationId: NetworkConnect
 	// description: Connect a container to a network.  This endpoint is current a no-op
 	// produces:
 	// - application/json
@@ -150,12 +144,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks/{name}/connect"), s.APIHandler(compat.Connect)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/{name}/connect", s.APIHandler(compat.Connect)).Methods(http.MethodPost)
-	// swagger:operation POST /networks/{name}/disconnect compat compatDisconnectNetwork
+	// swagger:operation POST /networks/{name}/disconnect compat NetworkDisconnect
 	// ---
 	// tags:
 	//  - networks (compat)
 	// summary: Disconnect container from network
-	// operationId: NetworkDisconnect
 	// description: Disconnect a container from a network.  This endpoint is current a no-op
 	// produces:
 	// - application/json

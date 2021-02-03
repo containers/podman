@@ -8,12 +8,11 @@ import (
 )
 
 func (s *APIServer) registerEventsHandlers(r *mux.Router) error {
-	// swagger:operation GET /events system getEvents
+	// swagger:operation GET /events system SystemEvents
 	// ---
 	// tags:
 	//   - system (compat)
 	// summary: Get events
-	// operationId: SystemEvents
 	// description: Returns events filtered on query parameters
 	// produces:
 	// - application/json

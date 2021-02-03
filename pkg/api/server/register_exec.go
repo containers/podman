@@ -8,12 +8,11 @@ import (
 )
 
 func (s *APIServer) registerExecHandlers(r *mux.Router) error {
-	// swagger:operation POST /containers/{name}/exec compat createExec
+	// swagger:operation POST /containers/{name}/exec compat ContainerExec
 	// ---
 	// tags:
 	//   - exec (compat)
 	// summary: Create an exec instance
-	// operationId: ContainerExec
 	// description: Create an exec session to run a command inside a running container. Exec sessions will be automatically removed 5 minutes after they exit.
 	// parameters:
 	//  - in: path
@@ -78,12 +77,11 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/containers/{name}/exec"), s.APIHandler(compat.ExecCreateHandler)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/containers/{name}/exec", s.APIHandler(compat.ExecCreateHandler)).Methods(http.MethodPost)
-	// swagger:operation POST /exec/{id}/start compat startExec
+	// swagger:operation POST /exec/{id}/start compat ExecStart
 	// ---
 	// tags:
 	//   - exec (compat)
 	// summary: Start an exec instance
-	// operationId: ExecStart
 	// description: Starts a previously set up exec instance. If detach is true, this endpoint returns immediately after starting the command. Otherwise, it sets up an interactive session with the command.
 	// parameters:
 	//  - in: path
@@ -117,12 +115,11 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/exec/{id}/start"), s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/exec/{id}/start", s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
-	// swagger:operation POST /exec/{id}/resize compat resizeExec
+	// swagger:operation POST /exec/{id}/resize compat ExecResize
 	// ---
 	// tags:
 	//   - exec (compat)
 	// summary: Resize an exec instance
-	// operationId: ExecResize
 	// description: |
 	//  Resize the TTY session used by an exec instance. This endpoint only works if tty was specified as part of creating and starting the exec instance.
 	// parameters:
@@ -156,12 +153,11 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/exec/{id}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/exec/{id}/resize", s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
-	// swagger:operation GET /exec/{id}/json compat inspectExec
+	// swagger:operation GET /exec/{id}/json compat ExecInspect
 	// ---
 	// tags:
 	//   - exec (compat)
 	// summary: Inspect an exec instance
-	// operationId: ExecInspect
 	// description: Return low-level information about an exec instance.
 	// parameters:
 	//  - in: path

@@ -140,12 +140,11 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	 * Docker compatibility endpoints
 	 */
 
-	// swagger:operation GET /volumes compat listVolumes
+	// swagger:operation GET /volumes compat VolumeList
 	// ---
 	// tags:
 	//  - volumes (compat)
 	// summary: List volumes
-	// operationId: VolumeList
 	// description: Returns a list of volume
 	// produces:
 	// - application/json
@@ -169,12 +168,11 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/volumes"), s.APIHandler(compat.ListVolumes)).Methods(http.MethodGet)
 	r.Handle("/volumes", s.APIHandler(compat.ListVolumes)).Methods(http.MethodGet)
 
-	// swagger:operation POST /volumes/create compat createVolume
+	// swagger:operation POST /volumes/create compat VolumeCreate
 	// ---
 	// tags:
 	//  - volumes (compat)
 	// summary: Create a volume
-	// operationId: VolumeCreate
 	// parameters:
 	//  - in: body
 	//    name: create
@@ -193,12 +191,11 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/volumes/create"), s.APIHandler(compat.CreateVolume)).Methods(http.MethodPost)
 	r.Handle("/volumes/create", s.APIHandler(compat.CreateVolume)).Methods(http.MethodPost)
 
-	// swagger:operation GET /volumes/{name} compat inspectVolume
+	// swagger:operation GET /volumes/{name} compat VolumeInspect
 	// ---
 	// tags:
 	//  - volumes (compat)
 	// summary: Inspect volume
-	// operationId: VolumeInspect
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -217,12 +214,11 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/volumes/{name}"), s.APIHandler(compat.InspectVolume)).Methods(http.MethodGet)
 	r.Handle("/volumes/{name}", s.APIHandler(compat.InspectVolume)).Methods(http.MethodGet)
 
-	// swagger:operation DELETE /volumes/{name} compat removeVolume
+	// swagger:operation DELETE /volumes/{name} compat VolumeDelete
 	// ---
 	// tags:
 	//  - volumes (compat)
 	// summary: Remove volume
-	// operationId: VolumeDelete
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -250,12 +246,11 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/volumes/{name}"), s.APIHandler(compat.RemoveVolume)).Methods(http.MethodDelete)
 	r.Handle("/volumes/{name}", s.APIHandler(compat.RemoveVolume)).Methods(http.MethodDelete)
 
-	// swagger:operation POST /volumes/prune compat pruneVolumes
+	// swagger:operation POST /volumes/prune compat VolumePrune
 	// ---
 	// tags:
 	//  - volumes (compat)
 	// summary: Prune volumes
-	// operationId: VolumePrune
 	// produces:
 	// - application/json
 	// parameters:
