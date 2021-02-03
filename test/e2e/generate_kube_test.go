@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -638,5 +639,64 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
 		Expect(pod.Spec.DNSConfig.Options[0].Name).To(Equal("color"))
 		Expect(*pod.Spec.DNSConfig.Options[0].Value).To(Equal("blue"))
+	})
+
+	It("podman generate kube - set entrypoint as command", func() {
+		session := podmanTest.Podman([]string{"create", "--pod", "new:testpod", "--entrypoint", "/bin/sleep", ALPINE, "10s"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		// Now make sure that the container's command is set to the
+		// entrypoint and it's arguments to "10s".
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		containers := pod.Spec.Containers
+		Expect(len(containers)).To(Equal(1))
+
+		Expect(containers[0].Command).To(Equal([]string{"/bin/sleep"}))
+		Expect(containers[0].Args).To(Equal([]string{"10s"}))
+	})
+
+	It("podman generate kube - use entrypoint from image", func() {
+		// Build an image with an entrypoint.
+		containerfile := `FROM quay.io/libpod/alpine:latest
+ENTRYPOINT /bin/sleep`
+
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).To(BeNil())
+
+		image := "generatekube:test"
+		session := podmanTest.Podman([]string{"build", "-f", containerfilePath, "-t", image})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", "new:testpod", image, "10s"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		// Now make sure that the container's command is set to the
+		// entrypoint and it's arguments to "10s".
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		containers := pod.Spec.Containers
+		Expect(len(containers)).To(Equal(1))
+
+		Expect(containers[0].Command).To(Equal([]string{"/bin/sh", "-c", "/bin/sleep"}))
+		Expect(containers[0].Args).To(Equal([]string{"10s"}))
 	})
 })
