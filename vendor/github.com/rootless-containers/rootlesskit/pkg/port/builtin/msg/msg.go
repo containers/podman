@@ -20,6 +20,7 @@ const (
 type Request struct {
 	Type  string // "init" or "connect"
 	Proto string // "tcp" or "udp"
+	IP    string
 	Port  int
 }
 
@@ -53,6 +54,7 @@ func ConnectToChild(c *net.UnixConn, spec port.Spec) (int, error) {
 		Type:  RequestTypeConnect,
 		Proto: spec.Proto,
 		Port:  spec.ChildPort,
+		IP:    spec.ChildIP,
 	}
 	if _, err := msgutil.MarshalToWriter(c, &req); err != nil {
 		return 0, err
