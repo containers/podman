@@ -249,6 +249,7 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 
 func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
 	var (
+		mtu     int
 		plugins []CNIPlugins
 	)
 	liveNetNames, err := GetLiveNetworkNames()
@@ -283,7 +284,19 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 		}
 	}
 	ncList := NewNcList(name, version.Current(), options.Labels)
-	macvlan := NewMacVLANPlugin(parentNetworkDevice)
+	if val, ok := options.Options["mtu"]; ok {
+		intVal, err := strconv.Atoi(val)
+		if err != nil {
+			return "", err
+		}
+		if intVal > 0 {
+			mtu = intVal
+		}
+	}
+	macvlan, err := NewMacVLANPlugin(parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
+	if err != nil {
+		return "", err
+	}
 	plugins = append(plugins, macvlan)
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")

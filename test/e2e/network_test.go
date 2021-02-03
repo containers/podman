@@ -487,7 +487,6 @@ var _ = Describe("Podman network", func() {
 		inspect := podmanTest.Podman([]string{"network", "inspect", net})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(BeZero())
-		fmt.Println(inspect.OutputToString())
 
 		out, err := inspect.jq(".[0].plugins[0].master")
 		Expect(err).To(BeNil())
@@ -512,5 +511,33 @@ var _ = Describe("Podman network", func() {
 		session = podmanTest.Podman([]string{"network", "exists", stringid.GenerateNonCryptoID()})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))
+	})
+
+	It("podman network create macvlan with network info and options", func() {
+		net := "macvlan" + stringid.GenerateNonCryptoID()
+		nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", "-o", "parent=lo", "-o", "mtu=1500", "--gateway", "192.168.1.254", "--subnet", "192.168.1.0/24", net})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(nc.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"network", "inspect", net})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+
+		mtu, err := inspect.jq(".[0].plugins[0].mtu")
+		Expect(err).To(BeNil())
+		Expect(mtu).To(Equal("1500"))
+
+		gw, err := inspect.jq(".[0].plugins[0].ipam.ranges[0][0].gateway")
+		Expect(err).To(BeNil())
+		Expect(gw).To(Equal("\"192.168.1.254\""))
+
+		subnet, err := inspect.jq(".[0].plugins[0].ipam.ranges[0][0].subnet")
+		Expect(err).To(BeNil())
+		Expect(subnet).To(Equal("\"192.168.1.0/24\""))
+
+		nc = podmanTest.Podman([]string{"network", "rm", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).To(Equal(0))
 	})
 })

@@ -172,19 +172,31 @@ func HasDNSNamePlugin(paths []string) bool {
 }
 
 // NewMacVLANPlugin creates a macvlanconfig with a given device name
-func NewMacVLANPlugin(device string) MacVLANConfig {
+func NewMacVLANPlugin(device string, gateway net.IP, ipRange *net.IPNet, subnet *net.IPNet, mtu int) (MacVLANConfig, error) {
 	i := IPAMDHCP{DHCP: "dhcp"}
+	if gateway != nil || ipRange != nil || subnet != nil {
+		ipam, err := NewIPAMLocalHostRange(subnet, ipRange, gateway)
+		if err != nil {
+			return MacVLANConfig{}, err
+		}
+		ranges := make([][]IPAMLocalHostRangeConf, 0)
+		ranges = append(ranges, ipam)
+		i.Ranges = ranges
+	}
 
 	m := MacVLANConfig{
 		PluginType: "macvlan",
 		IPAM:       i,
+	}
+	if mtu > 0 {
+		m.MTU = mtu
 	}
 	// CNI is supposed to use the default route if a
 	// parent device is not provided
 	if len(device) > 0 {
 		m.Master = device
 	}
-	return m
+	return m, nil
 }
 
 // IfPassesFilter filters NetworkListReport and returns true if the filter match the given config

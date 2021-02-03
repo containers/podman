@@ -103,7 +103,9 @@ func (p PortMapConfig) Bytes() ([]byte, error) {
 
 // IPAMDHCP describes the ipamdhcp config
 type IPAMDHCP struct {
-	DHCP string `json:"type"`
+	DHCP   string                     `json:"type"`
+	Routes []IPAMRoute                `json:"routes,omitempty"`
+	Ranges [][]IPAMLocalHostRangeConf `json:"ranges,omitempty"`
 }
 
 // MacVLANConfig describes the macvlan config
@@ -111,6 +113,7 @@ type MacVLANConfig struct {
 	PluginType string   `json:"type"`
 	Master     string   `json:"master"`
 	IPAM       IPAMDHCP `json:"ipam"`
+	MTU        int      `json:"mtu,omitempty"`
 }
 
 // Bytes outputs the configuration as []byte
