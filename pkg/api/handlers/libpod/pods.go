@@ -139,19 +139,20 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 			logrus.Errorf("Error cleaning up pod %s container %s: %v", pod.ID(), id, err)
 		}
 	}
-	var errs []error //nolint
+
+	report := entities.PodStopReport{Id: pod.ID()}
 	for id, err := range responses {
-		errs = append(errs, errors.Wrapf(err, "error stopping container %s", id))
+		report.Errs = append(report.Errs, errors.Wrapf(err, "error stopping container %s", id))
 	}
-	report := entities.PodStopReport{
-		Errs: errs,
-		Id:   pod.ID(),
+
+	code := http.StatusOK
+	if len(report.Errs) > 0 {
+		code = http.StatusConflict
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	utils.WriteResponse(w, code, report)
 }
 
 func PodStart(w http.ResponseWriter, r *http.Request) {
-	var errs []error //nolint
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -168,19 +169,23 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 		utils.WriteResponse(w, http.StatusNotModified, "")
 		return
 	}
+
 	responses, err := pod.Start(r.Context())
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, "Something went wrong", http.StatusConflict, err)
 		return
 	}
+
+	report := entities.PodStartReport{Id: pod.ID()}
 	for id, err := range responses {
-		errs = append(errs, errors.Wrapf(err, "error starting container %s", id))
+		report.Errs = append(report.Errs, errors.Wrapf(err, "error starting container "+id))
 	}
-	report := entities.PodStartReport{
-		Errs: errs,
-		Id:   pod.ID(),
+
+	code := http.StatusOK
+	if len(report.Errs) > 0 {
+		code = http.StatusConflict
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	utils.WriteResponse(w, code, report)
 }
 
 func PodDelete(w http.ResponseWriter, r *http.Request) {
@@ -209,14 +214,11 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	report := entities.PodRmReport{
-		Id: pod.ID(),
-	}
+	report := entities.PodRmReport{Id: pod.ID()}
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
 func PodRestart(w http.ResponseWriter, r *http.Request) {
-	var errs []error //nolint
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -229,14 +231,17 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
+
+	report := entities.PodRestartReport{Id: pod.ID()}
 	for id, err := range responses {
-		errs = append(errs, errors.Wrapf(err, "error restarting container %s", id))
+		report.Errs = append(report.Errs, errors.Wrapf(err, "error restarting container %s", id))
 	}
-	report := entities.PodRestartReport{
-		Errs: errs,
-		Id:   pod.ID(),
+
+	code := http.StatusOK
+	if len(report.Errs) > 0 {
+		code = http.StatusConflict
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	utils.WriteResponse(w, code, report)
 }
 
 func PodPrune(w http.ResponseWriter, r *http.Request) {
@@ -267,7 +272,6 @@ func PodPruneHelper(r *http.Request) ([]*entities.PodPruneReport, error) {
 }
 
 func PodPause(w http.ResponseWriter, r *http.Request) {
-	var errs []error //nolint
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -280,18 +284,20 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
+
+	report := entities.PodPauseReport{Id: pod.ID()}
 	for id, v := range responses {
-		errs = append(errs, errors.Wrapf(v, "error pausing container %s", id))
+		report.Errs = append(report.Errs, errors.Wrapf(v, "error pausing container %s", id))
 	}
-	report := entities.PodPauseReport{
-		Errs: errs,
-		Id:   pod.ID(),
+
+	code := http.StatusOK
+	if len(report.Errs) > 0 {
+		code = http.StatusConflict
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	utils.WriteResponse(w, code, report)
 }
 
 func PodUnpause(w http.ResponseWriter, r *http.Request) {
-	var errs []error //nolint
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
@@ -304,14 +310,17 @@ func PodUnpause(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "failed to pause pod", http.StatusInternalServerError, err)
 		return
 	}
+
+	report := entities.PodUnpauseReport{Id: pod.ID()}
 	for id, v := range responses {
-		errs = append(errs, errors.Wrapf(v, "error unpausing container %s", id))
+		report.Errs = append(report.Errs, errors.Wrapf(v, "error unpausing container %s", id))
 	}
-	report := entities.PodUnpauseReport{
-		Errs: errs,
-		Id:   pod.ID(),
+
+	code := http.StatusOK
+	if len(report.Errs) > 0 {
+		code = http.StatusConflict
 	}
-	utils.WriteResponse(w, http.StatusOK, &report)
+	utils.WriteResponse(w, code, &report)
 }
 
 func PodTop(w http.ResponseWriter, r *http.Request) {
@@ -361,7 +370,6 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
 		signal  = "SIGKILL"
-		errs    []error //nolint
 	)
 	query := struct {
 		Signal string `schema:"signal"`
@@ -413,16 +421,18 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	report := &entities.PodKillReport{Id: pod.ID()}
 	for _, v := range responses {
 		if v != nil {
-			errs = append(errs, v)
+			report.Errs = append(report.Errs, v)
 		}
 	}
-	report := &entities.PodKillReport{
-		Errs: errs,
-		Id:   pod.ID(),
+
+	code := http.StatusOK
+	if len(report.Errs) > 0 {
+		code = http.StatusConflict
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	utils.WriteResponse(w, code, report)
 }
 
 func PodExists(w http.ResponseWriter, r *http.Request) {

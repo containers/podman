@@ -83,7 +83,7 @@ var _ = Describe("Podman image|container exists", func() {
 	})
 
 	It("podman pod exists in local storage by name", func() {
-		setup, _, _ := podmanTest.CreatePod("foobar")
+		setup, _, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar"}})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 
@@ -92,7 +92,7 @@ var _ = Describe("Podman image|container exists", func() {
 		Expect(session).Should(Exit(0))
 	})
 	It("podman pod exists in local storage by container ID", func() {
-		setup, _, podID := podmanTest.CreatePod("")
+		setup, _, podID := podmanTest.CreatePod(nil)
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 
@@ -101,7 +101,7 @@ var _ = Describe("Podman image|container exists", func() {
 		Expect(session).Should(Exit(0))
 	})
 	It("podman pod exists in local storage by short container ID", func() {
-		setup, _, podID := podmanTest.CreatePod("")
+		setup, _, podID := podmanTest.CreatePod(nil)
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 

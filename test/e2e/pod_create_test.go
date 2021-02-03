@@ -38,7 +38,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod", func() {
-		_, ec, podID := podmanTest.CreatePod("")
+		_, ec, podID := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
@@ -50,7 +50,7 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with name", func() {
 		name := "test"
-		_, ec, _ := podmanTest.CreatePod(name)
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {name}})
 		Expect(ec).To(Equal(0))
 
 		check := podmanTest.Podman([]string{"pod", "ps", "--no-trunc"})
@@ -61,10 +61,10 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with doubled name", func() {
 		name := "test"
-		_, ec, _ := podmanTest.CreatePod(name)
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {name}})
 		Expect(ec).To(Equal(0))
 
-		_, ec2, _ := podmanTest.CreatePod(name)
+		_, ec2, _ := podmanTest.CreatePod(map[string][]string{"--name": {name}})
 		Expect(ec2).To(Not(Equal(0)))
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
@@ -78,7 +78,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		_, ec, _ := podmanTest.CreatePod(name)
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {name}})
 		Expect(ec).To(Not(Equal(0)))
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})

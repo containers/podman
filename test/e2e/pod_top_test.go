@@ -47,7 +47,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman pod top on non-running pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"top", podid})
@@ -56,7 +56,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman pod top on pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top", "-d", "2"})
@@ -73,7 +73,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman pod top with options", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top", "-d", "2"})
@@ -87,7 +87,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman pod top on pod invalid options", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top", "-d", "2"})
@@ -104,7 +104,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman pod top on pod with containers in same pid namespace", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top", "-d", "2"})
@@ -123,7 +123,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman pod top on pod with containers in different namespace", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top", "-d", "2"})

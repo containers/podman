@@ -467,11 +467,14 @@ func Containerized() bool {
 	return false
 }
 
+func init() {
+	rand.Seed(GinkgoRandomSeed())
+}
+
 var randomLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // RandomString returns a string of given length composed of random characters
 func RandomString(n int) string {
-	rand.Seed(GinkgoRandomSeed())
 
 	b := make([]rune, n)
 	for i := range b {

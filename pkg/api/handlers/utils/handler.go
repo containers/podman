@@ -1,16 +1,17 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"unsafe"
 
 	"github.com/blang/semver"
 	"github.com/gorilla/mux"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -144,6 +145,50 @@ func WriteResponse(w http.ResponseWriter, code int, value interface{}) {
 	}
 }
 
+func init() {
+	jsoniter.RegisterTypeEncoderFunc("error", MarshalErrorJSON, MarshalErrorJSONIsEmpty)
+	jsoniter.RegisterTypeEncoderFunc("[]error", MarshalErrorSliceJSON, MarshalErrorSliceJSONIsEmpty)
+}
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+// MarshalErrorJSON writes error to stream as string
+func MarshalErrorJSON(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+	p := *((*error)(ptr))
+	if p == nil {
+		stream.WriteNil()
+	} else {
+		stream.WriteString(p.Error())
+	}
+}
+
+// MarshalErrorSliceJSON writes []error to stream as []string JSON blob
+func MarshalErrorSliceJSON(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+	a := *((*[]error)(ptr))
+	switch {
+	case len(a) == 0:
+		stream.WriteNil()
+	default:
+		stream.WriteArrayStart()
+		for i, e := range a {
+			if i > 0 {
+				stream.WriteMore()
+			}
+			stream.WriteString(e.Error())
+		}
+		stream.WriteArrayEnd()
+	}
+}
+
+func MarshalErrorJSONIsEmpty(_ unsafe.Pointer) bool {
+	return false
+}
+
+func MarshalErrorSliceJSONIsEmpty(_ unsafe.Pointer) bool {
+	return false
+}
+
+// WriteJSON writes an interface value encoded as JSON to w
 func WriteJSON(w http.ResponseWriter, code int, value interface{}) {
 	// FIXME: we don't need to write the header in all/some circumstances.
 	w.Header().Set("Content-Type", "application/json")
