@@ -13,12 +13,11 @@ import (
 // * /images/create is missing the "message" and "platform" parameters
 
 func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
-	// swagger:operation POST /images/create compat createImage
+	// swagger:operation POST /images/create compat ImageCreate
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Create an image
-	// operationId: ImageCreate
 	// description: Create an image by either pulling it from a registry or importing it.
 	// produces:
 	// - application/json
@@ -57,12 +56,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/create"), s.APIHandler(compat.CreateImageFromSrc)).Methods(http.MethodPost).Queries("fromSrc", "{fromSrc}")
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/create", s.APIHandler(compat.CreateImageFromSrc)).Methods(http.MethodPost).Queries("fromSrc", "{fromSrc}")
-	// swagger:operation GET /images/json compat listImages
+	// swagger:operation GET /images/json compat ImageList
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: List Images
-	// operationId: ImageList
 	// description: Returns a list of images on the server. Note that it uses a different, smaller representation of an image than inspecting a single image.
 	// parameters:
 	//   - name: all
@@ -95,12 +93,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/json"), s.APIHandler(compat.GetImages)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/json", s.APIHandler(compat.GetImages)).Methods(http.MethodGet)
-	// swagger:operation POST /images/load compat importImage
+	// swagger:operation POST /images/load compat ImageLoad
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Import image
-	// operationId: ImageLoad
 	// description: Load a set of images and tags into a repository.
 	// parameters:
 	//  - in: query
@@ -122,12 +119,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/load"), s.APIHandler(compat.LoadImages)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/load", s.APIHandler(compat.LoadImages)).Methods(http.MethodPost)
-	// swagger:operation POST /images/prune compat pruneImages
+	// swagger:operation POST /images/prune compat ImagePrune
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Prune unused images
-	// operationId: ImagePrune
 	// description: Remove images from local storage that are not being used by a container
 	// parameters:
 	//  - in: query
@@ -150,12 +146,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/prune"), s.APIHandler(compat.PruneImages)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/prune", s.APIHandler(compat.PruneImages)).Methods(http.MethodPost)
-	// swagger:operation GET /images/search compat searchImages
+	// swagger:operation GET /images/search compat ImageSearch
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Search images
-	// operationId: ImageSearch
 	// description: Search registries for an image
 	// parameters:
 	//  - in: query
@@ -190,12 +185,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/search"), s.APIHandler(compat.SearchImages)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/search", s.APIHandler(compat.SearchImages)).Methods(http.MethodGet)
-	// swagger:operation DELETE /images/{name:.*} compat removeImage
+	// swagger:operation DELETE /images/{name:.*} compat ImageDelete
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Remove Image
-	// operationId: ImageDelete
 	// description: Delete an image from local storage
 	// parameters:
 	//  - in: path
@@ -225,12 +219,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}"), s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}", s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
-	// swagger:operation POST /images/{name:.*}/push compat pushImage
+	// swagger:operation POST /images/{name:.*}/push compat ImagePush
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Push Image
-	// operationId: ImagePush
 	// description: Push an image to a container registry
 	// parameters:
 	//  - in: path
@@ -273,12 +266,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/push"), s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/push", s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
-	// swagger:operation GET /images/{name:.*}/get compat exportImage
+	// swagger:operation GET /images/{name:.*}/get compat ImageGet
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Export an image
-	// operationId: ImageGet
 	// description: Export an image in tarball format
 	// parameters:
 	//  - in: path
@@ -299,12 +291,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/get"), s.APIHandler(compat.ExportImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/get", s.APIHandler(compat.ExportImage)).Methods(http.MethodGet)
-	// swagger:operation GET /images/get compat get
+	// swagger:operation GET /images/get compat ImageGetAll
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Export several images
-	// operationId: ImageGetAll
 	// description: Get a tarball containing all images and metadata for several image repositories
 	// parameters:
 	//  - in:  query
@@ -325,12 +316,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/get"), s.APIHandler(compat.ExportImages)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/get", s.APIHandler(compat.ExportImages)).Methods(http.MethodGet)
-	// swagger:operation GET /images/{name:.*}/history compat imageHistory
+	// swagger:operation GET /images/{name:.*}/history compat ImageHistory
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: History of an image
-	// operationId: ImageHistory
 	// description: Return parent layers of an image.
 	// parameters:
 	//  - in: path
@@ -350,12 +340,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/history"), s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/history", s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
-	// swagger:operation GET /images/{name:.*}/json compat inspectImage
+	// swagger:operation GET /images/{name:.*}/json compat ImageInspect
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Inspect an image
-	// operationId: ImageInspect
 	// description: Return low-level information about an image.
 	// parameters:
 	//  - in: path
@@ -375,12 +364,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/json"), s.APIHandler(compat.GetImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/json", s.APIHandler(compat.GetImage)).Methods(http.MethodGet)
-	// swagger:operation POST /images/{name:.*}/tag compat tagImage
+	// swagger:operation POST /images/{name:.*}/tag compat ImageTag
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Tag an image
-	// operationId: ImageTag
 	// description: Tag an image so that it becomes part of a repository.
 	// parameters:
 	//  - in: path
@@ -412,12 +400,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/tag"), s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/tag", s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
-	// swagger:operation POST /commit compat commitContainer
+	// swagger:operation POST /commit compat ImageCommit
 	// ---
 	// tags:
 	//  - containers (compat)
 	// summary: New Image
-	// operationId: ImageCommit
 	// description: Create a new image from a container
 	// parameters:
 	//  - in: query
@@ -461,12 +448,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/commit", s.APIHandler(compat.CommitContainer)).Methods(http.MethodPost)
 
-	// swagger:operation POST /build compat buildImage
+	// swagger:operation POST /build compat ImageBuild
 	// ---
 	// tags:
 	//  - images (compat)
 	// summary: Create image
-	// operationId: ImageBuild
 	// description: Build an image from the given Dockerfile(s)
 	// parameters:
 	//  - in: query
