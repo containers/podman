@@ -10,6 +10,7 @@ import (
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
@@ -241,6 +242,12 @@ func (d *Driver) Put(id string) error {
 	// The vfs driver has no runtime resources (e.g. mounts)
 	// to clean up, so we don't need anything here
 	return nil
+}
+
+// ReadWriteDiskUsage returns the disk usage of the writable directory for the ID.
+// For VFS, it queries the directory for this ID.
+func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
+	return directory.Usage(d.dir(id))
 }
 
 // Exists checks to see if the directory exists for the given id.

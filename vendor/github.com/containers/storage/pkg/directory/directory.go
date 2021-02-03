@@ -6,9 +6,15 @@ import (
 	"path/filepath"
 )
 
+// DiskUsage is a structure that describes the disk usage (size and inode count)
+// of a particular directory.
+type DiskUsage struct {
+	Size       int64
+	InodeCount int64
+}
+
 // MoveToSubdir moves all contents of a directory to a subdirectory underneath the original path
 func MoveToSubdir(oldpath, subdir string) error {
-
 	infos, err := ioutil.ReadDir(oldpath)
 	if err != nil {
 		return err
