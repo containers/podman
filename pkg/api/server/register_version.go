@@ -8,10 +8,9 @@ import (
 )
 
 func (s *APIServer) registerVersionHandlers(r *mux.Router) error {
-	// swagger:operation GET /version compat CompatSystemVersion
+	// swagger:operation GET /version compat SystemVersion
 	// ---
 	// summary: Component Version information
-	// operationId: SystemVersion
 	// tags:
 	// - system (compat)
 	// produces:
