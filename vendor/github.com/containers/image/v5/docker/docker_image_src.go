@@ -64,6 +64,11 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerRef
 	}
 	attempts := []attempt{}
 	for _, pullSource := range pullSources {
+		if sys != nil && sys.DockerLogMirrorChoice {
+			logrus.Infof("Trying to access %q", pullSource.Reference)
+		} else {
+			logrus.Debugf("Trying to access %q", pullSource.Reference)
+		}
 		logrus.Debugf("Trying to access %q", pullSource.Reference)
 		s, err := newImageSourceAttempt(ctx, sys, ref, pullSource)
 		if err == nil {

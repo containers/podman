@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/containers/image/v5/types"
+	"github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -17,8 +17,8 @@ const replacementAttempts = 5
 
 // CandidateWithTime is the input to types.BICReplacementCandidate prioritization.
 type CandidateWithTime struct {
-	Candidate types.BICReplacementCandidate // The replacement candidate
-	LastSeen  time.Time                     // Time the candidate was last known to exist (either read or written)
+	Candidate blobinfocache.BICReplacementCandidate2 // The replacement candidate
+	LastSeen  time.Time                              // Time the candidate was last known to exist (either read or written)
 }
 
 // candidateSortState is a local state implementing sort.Interface on candidates to prioritize,
@@ -79,7 +79,7 @@ func (css *candidateSortState) Swap(i, j int) {
 
 // destructivelyPrioritizeReplacementCandidatesWithMax is destructivelyPrioritizeReplacementCandidates with a parameter for the
 // number of entries to limit, only to make testing simpler.
-func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime, primaryDigest, uncompressedDigest digest.Digest, maxCandidates int) []types.BICReplacementCandidate {
+func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime, primaryDigest, uncompressedDigest digest.Digest, maxCandidates int) []blobinfocache.BICReplacementCandidate2 {
 	// We don't need to use sort.Stable() because nanosecond timestamps are (presumably?) unique, so no two elements should
 	// compare equal.
 	sort.Sort(&candidateSortState{
@@ -92,7 +92,7 @@ func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime,
 	if resLength > maxCandidates {
 		resLength = maxCandidates
 	}
-	res := make([]types.BICReplacementCandidate, resLength)
+	res := make([]blobinfocache.BICReplacementCandidate2, resLength)
 	for i := range res {
 		res[i] = cs[i].Candidate
 	}
@@ -105,6 +105,6 @@ func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime,
 //
 // WARNING: The array of candidates is destructively modified. (The implementation of this function could of course
 // make a copy, but all CandidateLocations implementations build the slice of candidates only for the single purpose of calling this function anyway.)
-func DestructivelyPrioritizeReplacementCandidates(cs []CandidateWithTime, primaryDigest, uncompressedDigest digest.Digest) []types.BICReplacementCandidate {
+func DestructivelyPrioritizeReplacementCandidates(cs []CandidateWithTime, primaryDigest, uncompressedDigest digest.Digest) []blobinfocache.BICReplacementCandidate2 {
 	return destructivelyPrioritizeReplacementCandidatesWithMax(cs, primaryDigest, uncompressedDigest, replacementAttempts)
 }

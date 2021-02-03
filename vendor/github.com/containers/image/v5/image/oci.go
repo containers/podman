@@ -134,6 +134,10 @@ func (m *manifestOCI1) UpdatedImageNeedsLayerDiffIDs(options types.ManifestUpdat
 
 // UpdatedImage returns a types.Image modified according to options.
 // This does not change the state of the original Image object.
+// The returned error will be a manifest.ManifestLayerCompressionIncompatibilityError
+// if the combination of CompressionOperation and CompressionAlgorithm specified
+// in one or more options.LayerInfos items indicates that a layer is compressed using
+// an algorithm that is not allowed in OCI.
 func (m *manifestOCI1) UpdatedImage(ctx context.Context, options types.ManifestUpdateOptions) (types.Image, error) {
 	copy := manifestOCI1{ // NOTE: This is not a deep copy, it still shares slices etc.
 		src:        m.src,

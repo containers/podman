@@ -196,6 +196,8 @@ const (
 	PPPIOCXFERUNIT                   = 0x744e
 	PROT_BTI                         = 0x10
 	PR_SET_PTRACER_ANY               = 0xffffffffffffffff
+	PTRACE_PEEKMTETAGS               = 0x21
+	PTRACE_POKEMTETAGS               = 0x22
 	PTRACE_SYSEMU                    = 0x1f
 	PTRACE_SYSEMU_SINGLESTEP         = 0x20
 	RLIMIT_AS                        = 0x9

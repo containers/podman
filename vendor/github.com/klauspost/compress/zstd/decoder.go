@@ -5,7 +5,6 @@
 package zstd
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"sync"
@@ -179,11 +178,13 @@ func (d *Decoder) Reset(r io.Reader) error {
 	}
 
 	// If bytes buffer and < 1MB, do sync decoding anyway.
-	if bb, ok := r.(*bytes.Buffer); ok && bb.Len() < 1<<20 {
+	if bb, ok := r.(byter); ok && bb.Len() < 1<<20 {
+		var bb2 byter
+		bb2 = bb
 		if debug {
 			println("*bytes.Buffer detected, doing sync decode, len:", bb.Len())
 		}
-		b := bb.Bytes()
+		b := bb2.Bytes()
 		var dst []byte
 		if cap(d.current.b) > 0 {
 			dst = d.current.b

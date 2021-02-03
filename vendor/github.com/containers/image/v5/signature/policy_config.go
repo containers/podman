@@ -30,7 +30,7 @@ import (
 
 // systemDefaultPolicyPath is the policy path used for DefaultPolicy().
 // You can override this at build time with
-// -ldflags '-X github.com/containers/image/signature.systemDefaultPolicyPath=$your_path'
+// -ldflags '-X github.com/containers/image/v5/signature.systemDefaultPolicyPath=$your_path'
 var systemDefaultPolicyPath = builtinDefaultPolicyPath
 
 // builtinDefaultPolicyPath is the policy path used for DefaultPolicy().
@@ -59,10 +59,16 @@ func DefaultPolicy(sys *types.SystemContext) (*Policy, error) {
 
 // defaultPolicyPath returns a path to the default policy of the system.
 func defaultPolicyPath(sys *types.SystemContext) string {
+	return defaultPolicyPathWithHomeDir(sys, homedir.Get())
+}
+
+// defaultPolicyPathWithHomeDir is an internal implementation detail of defaultPolicyPath,
+// it exists only to allow testing it with an artificial home directory.
+func defaultPolicyPathWithHomeDir(sys *types.SystemContext, homeDir string) string {
 	if sys != nil && sys.SignaturePolicyPath != "" {
 		return sys.SignaturePolicyPath
 	}
-	userPolicyFilePath := filepath.Join(homedir.Get(), userPolicyFile)
+	userPolicyFilePath := filepath.Join(homeDir, userPolicyFile)
 	if _, err := os.Stat(userPolicyFilePath); err == nil {
 		return userPolicyFilePath
 	}

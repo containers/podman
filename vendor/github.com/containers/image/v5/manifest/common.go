@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,6 +53,12 @@ const mtsUnsupportedMIMEType = "" // A value in compressionMIMETypeSet that mean
 
 // compressionVariantMIMEType returns a variant of mimeType for the specified algorithm (which may be nil
 // to mean "no compression"), based on variantTable.
+// The returned error will be a ManifestLayerCompressionIncompatibilityError if mimeType has variants
+// that differ only in what type of compression is applied, but it can't be combined with this
+// algorithm to produce an updated MIME type that complies with the standard that defines mimeType.
+// If the compression algorithm is unrecognized, or mimeType is not known to have variants that
+// differ from it only in what type of compression has been applied, the returned error will not be
+// a ManifestLayerCompressionIncompatibilityError.
 func compressionVariantMIMEType(variantTable []compressionMIMETypeSet, mimeType string, algorithm *compression.Algorithm) (string, error) {
 	if mimeType == mtsUnsupportedMIMEType { // Prevent matching against the {algo:mtsUnsupportedMIMEType} entries
 		return "", fmt.Errorf("cannot update unknown MIME type")
@@ -70,15 +75,15 @@ func compressionVariantMIMEType(variantTable []compressionMIMETypeSet, mimeType 
 						return res, nil
 					}
 					if name != mtsUncompressed {
-						return "", fmt.Errorf("%s compression is not supported", name)
+						return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("%s compression is not supported for type %q", name, mt)}
 					}
-					return "", errors.New("uncompressed variant is not supported")
+					return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("uncompressed variant is not supported for type %q", mt)}
 				}
 				if name != mtsUncompressed {
-					return "", fmt.Errorf("unknown compression algorithm %s", name)
+					return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("unknown compressed with algorithm %s variant for type %s", name, mt)}
 				}
 				// We can't very well say “the idea of no compression is unknown”
-				return "", errors.New("uncompressed variant is not supported")
+				return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("uncompressed variant is not supported for type %q", mt)}
 			}
 		}
 	}
@@ -89,7 +94,11 @@ func compressionVariantMIMEType(variantTable []compressionMIMETypeSet, mimeType 
 }
 
 // updatedMIMEType returns the result of applying edits in updated (MediaType, CompressionOperation) to
-// mimeType, based on variantTable. It may use updated.Digest for error messages.
+// mimeType, based on variantTable.  It may use updated.Digest for error messages.
+// The returned error will be a ManifestLayerCompressionIncompatibilityError if mimeType has variants
+// that differ only in what type of compression is applied, but applying updated.CompressionOperation
+// and updated.CompressionAlgorithm to it won't produce an updated MIME type that complies with the
+// standard that defines mimeType.
 func updatedMIMEType(variantTable []compressionMIMETypeSet, mimeType string, updated types.BlobInfo) (string, error) {
 	// Note that manifests in containers-storage might be reporting the
 	// wrong media type since the original manifests are stored while layers
@@ -99,6 +108,12 @@ func updatedMIMEType(variantTable []compressionMIMETypeSet, mimeType string, upd
 	// {de}compressed.
 	switch updated.CompressionOperation {
 	case types.PreserveOriginal:
+		// Force a change to the media type if we're being told to use a particular compressor,
+		// since it might be different from the one associated with the media type.  Otherwise,
+		// try to keep the original media type.
+		if updated.CompressionAlgorithm != nil {
+			return compressionVariantMIMEType(variantTable, mimeType, updated.CompressionAlgorithm)
+		}
 		// Keep the original media type.
 		return mimeType, nil
 
@@ -115,4 +130,15 @@ func updatedMIMEType(variantTable []compressionMIMETypeSet, mimeType string, upd
 	default:
 		return "", fmt.Errorf("unknown compression operation (%d)", updated.CompressionOperation)
 	}
+}
+
+// ManifestLayerCompressionIncompatibilityError indicates that a specified compression algorithm
+// could not be applied to a layer MIME type.  A caller that receives this should either retry
+// the call with a different compression algorithm, or attempt to use a different manifest type.
+type ManifestLayerCompressionIncompatibilityError struct {
+	text string
+}
+
+func (m ManifestLayerCompressionIncompatibilityError) Error() string {
+	return m.text
 }

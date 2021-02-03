@@ -194,7 +194,9 @@ func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inp
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
 // If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
-// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size.
+// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size, and may
+// include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
+// reflected in the manifest that will be written.
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 // May use and/or update cache.
 func (d *dirImageDestination) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
@@ -210,7 +212,6 @@ func (d *dirImageDestination) TryReusingBlob(ctx context.Context, info types.Blo
 		return false, types.BlobInfo{}, err
 	}
 	return true, types.BlobInfo{Digest: info.Digest, Size: finfo.Size()}, nil
-
 }
 
 // PutManifest writes manifest to the destination.
@@ -251,7 +252,7 @@ func pathExists(path string) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-	if err != nil && os.IsNotExist(err) {
+	if os.IsNotExist(err) {
 		return false, nil
 	}
 	return false, err
