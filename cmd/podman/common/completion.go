@@ -817,6 +817,7 @@ func AutocompleteNetworkFlag(cmd *cobra.Command, args []string, toComplete strin
 				"allow_host_loopback=": getBoolCompletion,
 				"cidr=":                nil,
 				"enable_ipv6=":         getBoolCompletion,
+				"mtu=":                 nil,
 				"outbound_addr=":       nil,
 				"outbound_addr6=":      nil,
 				"port_handler=": func(_ string) ([]string, cobra.ShellCompDirective) {
