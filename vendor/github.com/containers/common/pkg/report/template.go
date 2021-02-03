@@ -31,6 +31,14 @@ var escapedReplacer = strings.NewReplacer(
 	`\n`, "\n",
 )
 
+var defaultFuncs = FuncMap{
+	"join":  strings.Join,
+	"lower": strings.ToLower,
+	"split": strings.Split,
+	"title": strings.Title,
+	"upper": strings.ToUpper,
+}
+
 // NormalizeFormat reads given go template format provided by CLI and munges it into what we need
 func NormalizeFormat(format string) string {
 	var f string
@@ -88,7 +96,7 @@ func Headers(object interface{}, overrides map[string]string) []map[string]strin
 
 // NewTemplate creates a new template object
 func NewTemplate(name string) *Template {
-	return &Template{template.New(name), false}
+	return &Template{Template: template.New(name).Funcs(template.FuncMap(defaultFuncs))}
 }
 
 // Parse parses text as a template body for t
@@ -100,13 +108,21 @@ func (t *Template) Parse(text string) (*Template, error) {
 		text = NormalizeFormat(text)
 	}
 
-	tt, err := t.Template.Parse(text)
+	tt, err := t.Template.Funcs(template.FuncMap(defaultFuncs)).Parse(text)
 	return &Template{tt, t.isTable}, err
 }
 
-// Funcs adds the elements of the argument map to the template's function map
+// Funcs adds the elements of the argument map to the template's function map.
+// A default template function will be replace if there is a key collision.
 func (t *Template) Funcs(funcMap FuncMap) *Template {
-	return &Template{t.Template.Funcs(template.FuncMap(funcMap)), t.isTable}
+	m := make(FuncMap)
+	for k, v := range defaultFuncs {
+		m[k] = v
+	}
+	for k, v := range funcMap {
+		m[k] = v
+	}
+	return &Template{Template: t.Template.Funcs(template.FuncMap(m)), isTable: t.isTable}
 }
 
 // IsTable returns true if format string defines a "table"
