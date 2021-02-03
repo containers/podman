@@ -348,7 +348,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 				resizeErr = ResizeContainerTTY(ctx, id, new(ResizeTTYOptions).WithHeight(h).WithWidth(w))
 			}
 			if resizeErr != nil {
-				logrus.Warnf("failed to resize TTY: %v", err)
+				logrus.Warnf("failed to resize TTY: %v", resizeErr)
 			}
 		}
 	}
