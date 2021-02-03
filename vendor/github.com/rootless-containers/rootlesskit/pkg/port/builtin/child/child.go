@@ -106,7 +106,21 @@ func (d *childDriver) handleConnectRequest(c *net.UnixConn, req *msg.Request) er
 		return errors.Errorf("unknown proto: %q", req.Proto)
 	}
 	var dialer net.Dialer
-	targetConn, err := dialer.Dial(req.Proto, fmt.Sprintf("127.0.0.1:%d", req.Port))
+	ip := req.IP
+	if ip == "" {
+		ip = "127.0.0.1"
+	} else {
+		p := net.ParseIP(ip)
+		if p == nil {
+			return errors.Errorf("invalid IP: %q", ip)
+		}
+		p = p.To4()
+		if p == nil {
+			return errors.Errorf("unsupported IP (v6?): %s", ip)
+		}
+		ip = p.String()
+	}
+	targetConn, err := dialer.Dial(req.Proto, fmt.Sprintf("%s:%d", ip, req.Port))
 	if err != nil {
 		return err
 	}
