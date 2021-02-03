@@ -233,8 +233,8 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if sig == 0 || syscall.Signal(sig) == syscall.SIGKILL {
-			var opts entities.WaitOptions
-			if _, err := containerEngine.ContainerWait(r.Context(), []string{name}, opts); err != nil {
+			if _, err := utils.WaitContainer(w, r); err != nil {
+
 				utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 				return
 			}
