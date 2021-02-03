@@ -34,6 +34,15 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const (
+	// slirp4netnsIP is the IP used by slirp4netns to configure the tap device
+	// inside the network namespace.
+	slirp4netnsIP = "10.0.2.100"
+
+	// slirp4netnsDNS is the IP for the built-in DNS server in the slirp network
+	slirp4netnsDNS = "10.0.2.3"
+)
+
 // Get an OCICNI network config
 func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP, staticMAC net.HardwareAddr, netDescriptions ContainerNetworkDescriptions) ocicni.PodNetwork {
 	var networkKey string
@@ -544,6 +553,7 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 		ExitFD:    3,
 		ReadyFD:   4,
 		TmpDir:    ctr.runtime.config.Engine.TmpDir,
+		ChildIP:   slirp4netnsIP,
 	}
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {

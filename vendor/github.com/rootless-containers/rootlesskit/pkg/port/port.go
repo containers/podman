@@ -10,6 +10,12 @@ type Spec struct {
 	ParentIP   string `json:"parentIP,omitempty"` // IPv4 address. can be empty (0.0.0.0).
 	ParentPort int    `json:"parentPort,omitempty"`
 	ChildPort  int    `json:"childPort,omitempty"`
+	// ChildIP is an IPv4 address.
+	// Default values:
+	// - builtin     driver: 127.0.0.1
+	// - socat       driver: 127.0.0.1
+	// - slirp4netns driver: slirp4netns's child IP, e.g., 10.0.2.100
+	ChildIP string `json:"childIP,omitempty"`
 }
 
 type Status struct {

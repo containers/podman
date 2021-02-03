@@ -48,6 +48,7 @@ type Config struct {
 	ExitFD    int
 	ReadyFD   int
 	TmpDir    string
+	ChildIP   string
 }
 
 func init() {
@@ -227,7 +228,7 @@ outer:
 
 	// let parent expose ports
 	logrus.Infof("exposing ports %v", cfg.Mappings)
-	if err := exposePorts(driver, cfg.Mappings); err != nil {
+	if err := exposePorts(driver, cfg.Mappings, cfg.ChildIP); err != nil {
 		return err
 	}
 
@@ -248,7 +249,7 @@ outer:
 	return nil
 }
 
-func exposePorts(pm rkport.Manager, portMappings []ocicni.PortMapping) error {
+func exposePorts(pm rkport.Manager, portMappings []ocicni.PortMapping, childIP string) error {
 	ctx := context.TODO()
 	for _, i := range portMappings {
 		hostIP := i.HostIP
@@ -260,6 +261,7 @@ func exposePorts(pm rkport.Manager, portMappings []ocicni.PortMapping) error {
 			ParentIP:   hostIP,
 			ParentPort: int(i.HostPort),
 			ChildPort:  int(i.ContainerPort),
+			ChildIP:    childIP,
 		}
 		if err := rkportutil.ValidatePortSpec(spec, nil); err != nil {
 			return err
