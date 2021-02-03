@@ -34,7 +34,7 @@ var _ = Describe("Podman wait", func() {
 
 	It("podman wait on bogus container", func() {
 		session := podmanTest.Podman([]string{"wait", "1234"})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 
 	})
@@ -45,7 +45,7 @@ var _ = Describe("Podman wait", func() {
 		cid := session.OutputToString()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"wait", cid})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
