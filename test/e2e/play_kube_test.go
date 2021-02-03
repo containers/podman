@@ -858,7 +858,7 @@ var _ = Describe("Podman play kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		label := inspect.OutputToString()
 
-		Expect(label).To(ContainSubstring("nconfined_u:system_r:spc_t:s0"))
+		Expect(label).To(ContainSubstring("unconfined_u:system_r:spc_t:s0"))
 	})
 
 	It("podman play kube fail with nonexistent authfile", func() {
