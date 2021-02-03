@@ -353,22 +353,21 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, *v1.PodDNS
 		return kubeContainer, kubeVolumes, nil, err
 	}
 
-	containerCommands := c.Command()
-	kubeContainer.Name = removeUnderscores(c.Name())
+	// Handle command and arguments.
+	if ep := c.Entrypoint(); len(ep) > 0 {
+		// If we have an entrypoint, set the container's command as
+		// arguments.
+		kubeContainer.Command = ep
+		kubeContainer.Args = c.Command()
+	} else {
+		kubeContainer.Command = c.Command()
+	}
 
+	kubeContainer.Name = removeUnderscores(c.Name())
 	_, image := c.Image()
 	kubeContainer.Image = image
 	kubeContainer.Stdin = c.Stdin()
 
-	// prepend the entrypoint of the container to command
-	if ep := c.Entrypoint(); len(c.Entrypoint()) > 0 {
-		ep = append(ep, containerCommands...)
-		containerCommands = ep
-	}
-	kubeContainer.Command = containerCommands
-	// TODO need to figure out how we handle command vs entry point.  Kube appears to prefer entrypoint.
-	// right now we just take the container's command
-	//container.Args = args
 	kubeContainer.WorkingDir = c.WorkingDir()
 	kubeContainer.Ports = ports
 	// This should not be applicable
