@@ -11,6 +11,7 @@ import (
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/devicemapper"
+	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/locker"
 	"github.com/containers/storage/pkg/mount"
@@ -249,6 +250,14 @@ func (d *Driver) Put(id string) error {
 	}
 
 	return err
+}
+
+// ReadWriteDiskUsage returns the disk usage of the writable directory for the ID.
+// For devmapper, it queries the mnt path for this ID.
+func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
+	d.locker.Lock(id)
+	defer d.locker.Unlock(id)
+	return directory.Usage(path.Join(d.home, "mnt", id))
 }
 
 // Exists checks to see if the device exists.

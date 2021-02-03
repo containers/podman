@@ -27,6 +27,7 @@ import (
 	"unsafe"
 
 	graphdriver "github.com/containers/storage/drivers"
+	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
@@ -685,6 +686,12 @@ func (d *Driver) Put(id string) error {
 	// Get() creates no runtime resources (like e.g. mounts)
 	// so this doesn't need to do anything.
 	return nil
+}
+
+// ReadWriteDiskUsage returns the disk usage of the writable directory for the ID.
+// For BTRFS, it queries the subvolumes path for this ID.
+func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
+	return directory.Usage(d.subvolumesDirID(id))
 }
 
 // Exists checks if the id exists in the filesystem.

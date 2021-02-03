@@ -56,6 +56,7 @@ import (
 	"path/filepath"
 	"unsafe"
 
+	"github.com/containers/storage/pkg/directory"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -196,17 +197,37 @@ func setProjectQuota(backingFsBlockDev string, projectID uint32, quota Quota) er
 
 // GetQuota - get the quota limits of a directory that was configured with SetQuota
 func (q *Control) GetQuota(targetPath string, quota *Quota) error {
+	d, err := q.fsDiskQuotaFromPath(targetPath)
+	if err != nil {
+		return err
+	}
+	quota.Size = uint64(d.d_blk_hardlimit) * 512
+	return nil
+}
+
+// GetDiskUsage - get the current disk usage of a directory that was configured with SetQuota
+func (q *Control) GetDiskUsage(targetPath string, usage *directory.DiskUsage) error {
+	d, err := q.fsDiskQuotaFromPath(targetPath)
+	if err != nil {
+		return err
+	}
+	usage.Size = int64(d.d_bcount) * 512
+	usage.InodeCount = int64(d.d_icount)
+
+	return nil
+}
+
+func (q *Control) fsDiskQuotaFromPath(targetPath string) (C.fs_disk_quota_t, error) {
+	var d C.fs_disk_quota_t
 
 	projectID, ok := q.quotas[targetPath]
 	if !ok {
-		return fmt.Errorf("quota not found for path : %s", targetPath)
+		return d, fmt.Errorf("quota not found for path : %s", targetPath)
 	}
 
 	//
 	// get the quota limit for the container's project id
 	//
-	var d C.fs_disk_quota_t
-
 	var cs = C.CString(q.backingFsBlockDev)
 	defer C.free(unsafe.Pointer(cs))
 
@@ -214,12 +235,11 @@ func (q *Control) GetQuota(targetPath string, quota *Quota) error {
 		uintptr(unsafe.Pointer(cs)), uintptr(C.__u32(projectID)),
 		uintptr(unsafe.Pointer(&d)), 0, 0)
 	if errno != 0 {
-		return fmt.Errorf("Failed to get quota limit for projid %d on %s: %v",
+		return d, fmt.Errorf("Failed to get quota limit for projid %d on %s: %v",
 			projectID, q.backingFsBlockDev, errno.Error())
 	}
-	quota.Size = uint64(d.d_blk_hardlimit) * 512
 
-	return nil
+	return d, nil
 }
 
 // getProjectID - get the project id of path on xfs

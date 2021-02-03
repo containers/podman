@@ -396,6 +396,22 @@ func (j *Layer) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		}
 		buf.WriteByte(',')
 	}
+	if len(j.BigDataNames) != 0 {
+		buf.WriteString(`"big-data-names":`)
+		if j.BigDataNames != nil {
+			buf.WriteString(`[`)
+			for i, v := range j.BigDataNames {
+				if i != 0 {
+					buf.WriteString(`,`)
+				}
+				fflib.WriteJsonString(buf, string(v))
+			}
+			buf.WriteString(`]`)
+		} else {
+			buf.WriteString(`null`)
+		}
+		buf.WriteByte(',')
+	}
 	buf.Rewind(1)
 	buf.WriteByte('}')
 	return nil
@@ -436,6 +452,8 @@ const (
 	ffjtLayerUIDMap
 
 	ffjtLayerGIDMap
+
+	ffjtLayerBigDataNames
 )
 
 var ffjKeyLayerID = []byte("id")
@@ -469,6 +487,8 @@ var ffjKeyLayerFlags = []byte("flags")
 var ffjKeyLayerUIDMap = []byte("uidmap")
 
 var ffjKeyLayerGIDMap = []byte("gidmap")
+
+var ffjKeyLayerBigDataNames = []byte("big-data-names")
 
 // UnmarshalJSON umarshall json - template of ffjson
 func (j *Layer) UnmarshalJSON(input []byte) error {
@@ -530,6 +550,14 @@ mainparse:
 				goto mainparse
 			} else {
 				switch kn[0] {
+
+				case 'b':
+
+					if bytes.Equal(ffjKeyLayerBigDataNames, kn) {
+						currentKey = ffjtLayerBigDataNames
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
 
 				case 'c':
 
@@ -638,6 +666,12 @@ mainparse:
 						goto mainparse
 					}
 
+				}
+
+				if fflib.EqualFoldRight(ffjKeyLayerBigDataNames, kn) {
+					currentKey = ffjtLayerBigDataNames
+					state = fflib.FFParse_want_colon
+					goto mainparse
 				}
 
 				if fflib.SimpleLetterEqualFold(ffjKeyLayerGIDMap, kn) {
@@ -800,6 +834,9 @@ mainparse:
 
 				case ffjtLayerGIDMap:
 					goto handle_GIDMap
+
+				case ffjtLayerBigDataNames:
+					goto handle_BigDataNames
 
 				case ffjtLayernosuchkey:
 					err = fs.SkipField(tok)
@@ -1542,6 +1579,80 @@ handle_GIDMap:
 				}
 
 				j.GIDMap = append(j.GIDMap, tmpJGIDMap)
+
+				wantVal = false
+			}
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_BigDataNames:
+
+	/* handler: j.BigDataNames type=[]string kind=slice quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_left_brace && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for ", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+			j.BigDataNames = nil
+		} else {
+
+			j.BigDataNames = []string{}
+
+			wantVal := true
+
+			for {
+
+				var tmpJBigDataNames string
+
+				tok = fs.Scan()
+				if tok == fflib.FFTok_error {
+					goto tokerror
+				}
+				if tok == fflib.FFTok_right_brace {
+					break
+				}
+
+				if tok == fflib.FFTok_comma {
+					if wantVal == true {
+						// TODO(pquerna): this isn't an ideal error message, this handles
+						// things like [,,,] as an array value.
+						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+					}
+					continue
+				} else {
+					wantVal = true
+				}
+
+				/* handler: tmpJBigDataNames type=string kind=string quoted=false*/
+
+				{
+
+					{
+						if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+							return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+						}
+					}
+
+					if tok == fflib.FFTok_null {
+
+					} else {
+
+						outBuf := fs.Output.Bytes()
+
+						tmpJBigDataNames = string(string(outBuf))
+
+					}
+				}
+
+				j.BigDataNames = append(j.BigDataNames, tmpJBigDataNames)
 
 				wantVal = false
 			}

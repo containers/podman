@@ -10,24 +10,28 @@ import (
 
 // Size walks a directory tree and returns its total size in bytes.
 func Size(dir string) (size int64, err error) {
+	usage, err := Usage(dir)
+	if err != nil {
+		return 0, err
+	}
+	return usage.Size, nil
+}
+
+// Usage walks a directory tree and returns its total size in bytes and the number of inodes.
+func Usage(dir string) (usage *DiskUsage, err error) {
+	usage = &DiskUsage{}
 	data := make(map[uint64]struct{})
 	err = filepath.Walk(dir, func(d string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
-			// if dir does not exist, Size() returns the error.
-			// if dir/x disappeared while walking, Size() ignores dir/x.
+			// if dir does not exist, Usage() returns the error.
+			// if dir/x disappeared while walking, Usage() ignores dir/x.
 			if os.IsNotExist(err) && d != dir {
 				return nil
 			}
 			return err
 		}
 
-		// Ignore directory sizes
 		if fileInfo == nil {
-			return nil
-		}
-
-		s := fileInfo.Size()
-		if fileInfo.IsDir() || s == 0 {
 			return nil
 		}
 
@@ -37,10 +41,19 @@ func Size(dir string) (size int64, err error) {
 		if _, exists := data[uint64(inode)]; exists {
 			return nil
 		}
+
 		// inode is not a uint64 on all platforms. Cast it to avoid issues.
 		data[uint64(inode)] = struct{}{}
 
-		size += s
+		// Count the unique inode
+		usage.InodeCount++
+
+		// Ignore directory sizes
+		if fileInfo.IsDir() {
+			return nil
+		}
+
+		usage.Size += fileInfo.Size()
 
 		return nil
 	})

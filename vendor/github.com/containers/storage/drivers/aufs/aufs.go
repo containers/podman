@@ -482,6 +482,21 @@ func (a *Driver) Put(id string) error {
 	return err
 }
 
+// ReadWriteDiskUsage returns the disk usage of the writable directory for the ID.
+// For AUFS, it queries the mountpoint for this ID.
+func (a *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
+	a.locker.Lock(id)
+	defer a.locker.Unlock(id)
+	a.pathCacheLock.Lock()
+	m, exists := a.pathCache[id]
+	if !exists {
+		m = a.getMountpoint(id)
+		a.pathCache[id] = m
+	}
+	a.pathCacheLock.Unlock()
+	return directory.Usage(m)
+}
+
 // isParent returns if the passed in parent is the direct parent of the passed in layer
 func (a *Driver) isParent(id, parent string) bool {
 	parents, _ := getParentIDs(a.rootPath(), id)

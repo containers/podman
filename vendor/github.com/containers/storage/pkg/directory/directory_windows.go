@@ -7,8 +7,18 @@ import (
 	"path/filepath"
 )
 
-// Size walks a directory tree and returns its total size in bytes.
+// Size walks a directory tree and returns its total size in bytes
 func Size(dir string) (size int64, err error) {
+	usage, err := Usage(dir)
+	if err != nil {
+		return 0, nil
+	}
+	return usage.Size, nil
+}
+
+// Usage walks a directory tree and returns its total size in bytes and the number of inodes.
+func Usage(dir string) (usage *DiskUsage, err error) {
+	usage = &DiskUsage{}
 	err = filepath.Walk(dir, func(d string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
 			// if dir does not exist, Size() returns the error.
@@ -29,7 +39,8 @@ func Size(dir string) (size int64, err error) {
 			return nil
 		}
 
-		size += s
+		usage.Size += s
+		usage.InodeCount++
 
 		return nil
 	})
