@@ -95,6 +95,15 @@ class TestContainers(unittest.TestCase):
         top.reload()
         self.assertIn(top.status, ("stopped", "exited"))
 
+    def test_kill_container(self):
+        top = self.client.containers.get(TestContainers.topContainerId)
+        self.assertEqual(top.status, "running")
+
+        # Kill a running container and validate the state
+        top.kill()
+        top.reload()
+        self.assertIn(top.status, ("stopped", "exited"))
+
     def test_restart_container(self):
         # Validate the container state
         top = self.client.containers.get(TestContainers.topContainerId)
