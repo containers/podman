@@ -74,6 +74,11 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).To(BeZero())
 
+		inspect := podmanTest.Podman([]string{"container", "inspect", "test", "--format", "{{len .NetworkSettings.Networks}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+		Expect(inspect.OutputToString()).To(Equal("0"))
+
 		exec = podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth0"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec.ExitCode()).ToNot(BeZero())
@@ -146,6 +151,11 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		connect.WaitWithDefaultTimeout()
 		Expect(connect.ExitCode()).To(BeZero())
 
+		inspect := podmanTest.Podman([]string{"container", "inspect", "test", "--format", "{{len .NetworkSettings.Networks}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+		Expect(inspect.OutputToString()).To(Equal("2"))
+
 		exec = podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth1"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec.ExitCode()).To(BeZero())
@@ -166,6 +176,11 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis := podmanTest.Podman([]string{"network", "connect", netName, "test"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).To(BeZero())
+
+		inspect := podmanTest.Podman([]string{"container", "inspect", "test", "--format", "{{len .NetworkSettings.Networks}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+		Expect(inspect.OutputToString()).To(Equal("2"))
 
 		start := podmanTest.Podman([]string{"start", "test"})
 		start.WaitWithDefaultTimeout()
@@ -201,6 +216,11 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis := podmanTest.Podman([]string{"network", "disconnect", netName1, "test"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).To(BeZero())
+
+		inspect := podmanTest.Podman([]string{"container", "inspect", "test", "--format", "{{len .NetworkSettings.Networks}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+		Expect(inspect.OutputToString()).To(Equal("1"))
 
 		start := podmanTest.Podman([]string{"start", "test"})
 		start.WaitWithDefaultTimeout()
