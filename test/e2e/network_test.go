@@ -540,4 +540,54 @@ var _ = Describe("Podman network", func() {
 		nc.WaitWithDefaultTimeout()
 		Expect(nc.ExitCode()).To(Equal(0))
 	})
+
+	It("podman network prune", func() {
+		// Create two networks
+		// Check they are there
+		// Run a container on one of them
+		// Network Prune
+		// Check that one has been pruned, other remains
+		net := "macvlan" + stringid.GenerateNonCryptoID()
+		net1 := net + "1"
+		net2 := net + "2"
+		nc := podmanTest.Podman([]string{"network", "create", net1})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net1)
+		Expect(nc.ExitCode()).To(Equal(0))
+
+		nc2 := podmanTest.Podman([]string{"network", "create", net2})
+		nc2.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net2)
+		Expect(nc2.ExitCode()).To(Equal(0))
+
+		list := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
+		list.WaitWithDefaultTimeout()
+		Expect(list.ExitCode()).To(BeZero())
+
+		Expect(StringInSlice(net1, list.OutputToStringArray())).To(BeTrue())
+		Expect(StringInSlice(net2, list.OutputToStringArray())).To(BeTrue())
+		if !isRootless() {
+			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
+		}
+
+		session := podmanTest.Podman([]string{"run", "-dt", "--net", net2, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		prune := podmanTest.Podman([]string{"network", "prune", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune.ExitCode()).To(BeZero())
+
+		listAgain := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
+		listAgain.WaitWithDefaultTimeout()
+		Expect(listAgain.ExitCode()).To(BeZero())
+
+		Expect(StringInSlice(net1, listAgain.OutputToStringArray())).To(BeFalse())
+		Expect(StringInSlice(net2, listAgain.OutputToStringArray())).To(BeTrue())
+		// Make sure default network 'podman' still exists
+		if !isRootless() {
+			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
+		}
+
+	})
 })

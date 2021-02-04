@@ -484,7 +484,7 @@ class TestApi(unittest.TestCase):
         self.assertEqual(inspect.status_code, 404, inspect.content)
 
         prune = requests.post(PODMAN_URL + "/v1.40/networks/prune")
-        self.assertEqual(prune.status_code, 404, prune.content)
+        self.assertEqual(prune.status_code, 200, prune.content)
 
     def test_volumes_compat(self):
         name = "Volume_" + "".join(random.choice(string.ascii_letters) for i in range(10))

@@ -155,3 +155,28 @@ func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string
 		Value: exists,
 	}, nil
 }
+
+// Network prune removes unused cni networks
+func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.NetworkPruneOptions) ([]*entities.NetworkPruneReport, error) {
+	runtimeConfig, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	cons, err := ic.Libpod.GetAllContainers()
+	if err != nil {
+		return nil, err
+	}
+	// Gather up all the non-default networks that the
+	// containers want
+	usedNetworks := make(map[string]bool)
+	for _, c := range cons {
+		nets, _, err := c.Networks()
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range nets {
+			usedNetworks[n] = true
+		}
+	}
+	return network.PruneNetworks(runtimeConfig, usedNetworks)
+}
