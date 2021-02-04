@@ -483,8 +483,6 @@ func (c *Container) Wait(ctx context.Context) (int32, error) {
 	return c.WaitWithInterval(ctx, DefaultWaitInterval)
 }
 
-var errWaitingCanceled = errors.New("waiting was canceled")
-
 // WaitWithInterval blocks until the container to exit and returns its exit
 // code. The argument is the interval at which checks the container's status.
 func (c *Container) WaitWithInterval(ctx context.Context, waitTimeout time.Duration) (int32, error) {
@@ -500,15 +498,15 @@ func (c *Container) WaitWithInterval(ctx context.Context, waitTimeout time.Durat
 
 	go func() {
 		<-ctx.Done()
-		chWait <- errWaitingCanceled
+		chWait <- define.ErrCanceled
 	}()
 
 	for {
 		// ignore errors here (with exception of cancellation), it is only used to avoid waiting
 		// too long.
 		_, e := WaitForFile(exitFile, chWait, waitTimeout)
-		if e == errWaitingCanceled {
-			return -1, errWaitingCanceled
+		if e == define.ErrCanceled {
+			return -1, define.ErrCanceled
 		}
 
 		stopped, code, err := c.isStopped()
@@ -599,7 +597,7 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 	case result = <-resultChan:
 		cancelFn()
 	case <-ctx.Done():
-		result = waitResult{-1, errWaitingCanceled}
+		result = waitResult{-1, define.ErrCanceled}
 	}
 	wg.Wait()
 	return result.code, result.err
