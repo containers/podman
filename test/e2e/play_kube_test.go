@@ -13,6 +13,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/selinux/go-selinux"
 )
 
 var unknownKindYaml = `
@@ -847,6 +848,9 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube fail with custom selinux label", func() {
+		if !selinux.GetEnabled() {
+			Skip("SELinux not enabled")
+		}
 		err := writeYaml(selinuxLabelPodYaml, kubeYaml)
 		Expect(err).To(BeNil())
 
