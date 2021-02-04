@@ -198,4 +198,8 @@ var (
 	// ErrSecurityAttribute indicates that an error processing security attributes
 	// for the container
 	ErrSecurityAttribute = fmt.Errorf("%w: unable to process security attribute", ErrOCIRuntime)
+
+	// ErrCanceled indicates that an operation has been cancelled by a user.
+	// Useful for potentially long running tasks.
+	ErrCanceled = errors.New("cancelled by user")
 )
