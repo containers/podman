@@ -31,7 +31,6 @@ case $1 in
         esac
         ;;
     df) showrun df -lhTx tmpfs ;;
-    ginkgo) showrun cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log ;;
     journal) showrun journalctl -b ;;
     podman) showrun ./bin/podman system info ;;
     server)
