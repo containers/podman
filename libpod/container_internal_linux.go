@@ -213,6 +213,7 @@ func (c *Container) resolveWorkDir() error {
 			// we need to return the full error.
 			return errors.Wrapf(err, "error detecting workdir %q on container %s", workdir, c.ID())
 		}
+		return nil
 	}
 
 	// Ensure container entrypoint is created (if required).
