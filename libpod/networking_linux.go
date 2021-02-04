@@ -1168,7 +1168,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	// update network status if container is not running
 	networkStatus := c.state.NetworkStatus
 	// clip out the index of the network
-	tmpNetworkStatus := make([]*cnitypes.Result, len(networkStatus)-1)
+	tmpNetworkStatus := make([]*cnitypes.Result, 0, len(networkStatus)-1)
 	for k, v := range networkStatus {
 		if index != k {
 			tmpNetworkStatus = append(tmpNetworkStatus, v)
