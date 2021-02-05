@@ -269,7 +269,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 				return "", errors.Errorf("pod does not appear to be created via `podman pod create`: %v", info.CreateCommand)
 			}
 			podRootArgs = info.CreateCommand[1 : podCreateIndex-1]
-			info.RootFlags = strings.Join(quoteArguments(podRootArgs), " ")
+			info.RootFlags = strings.Join(escapeSystemdArguments(podRootArgs), " ")
 			podCreateArgs = filterPodFlags(info.CreateCommand[podCreateIndex+1:])
 		}
 		// We're hard-coding the first five arguments and append the
@@ -306,7 +306,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		}
 
 		startCommand = append(startCommand, podCreateArgs...)
-		startCommand = quoteArguments(startCommand)
+		startCommand = escapeSystemdArguments(startCommand)
 
 		info.ExecStartPre1 = "/bin/rm -f {{{{.PIDFile}}}} {{{{.PodIDFile}}}}"
 		info.ExecStartPre2 = strings.Join(startCommand, " ")

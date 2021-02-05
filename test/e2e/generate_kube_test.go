@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -60,6 +61,7 @@ var _ = Describe("Podman generate kube", func() {
 		pod := new(v1.Pod)
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(false))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -130,7 +132,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate kube on pod", func() {
-		_, rc, _ := podmanTest.CreatePod("toppod")
+		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {"toppod"}})
 		Expect(rc).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("topcontainer", "toppod")
@@ -144,12 +146,47 @@ var _ = Describe("Podman generate kube", func() {
 		pod := new(v1.Pod)
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(false))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
 			numContainers = numContainers + 1
 		}
 		Expect(numContainers).To(Equal(1))
+	})
+
+	It("podman generate kube on pod with host network", func() {
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", "testHostNetwork", "--network", "host"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"create", "--name", "topcontainer", "--pod", "testHostNetwork", "--network", "host", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testHostNetwork"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(true))
+	})
+
+	It("podman generate kube on container with host network", func() {
+		session := podmanTest.RunTopContainerWithArgs("topcontainer", []string{"--network", "host"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "topcontainer"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(true))
 	})
 
 	It("podman generate kube on pod with hostAliases", func() {
@@ -185,7 +222,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate service kube on pod", func() {
-		_, rc, _ := podmanTest.CreatePod("toppod")
+		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {"toppod"}})
 		Expect(rc).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("topcontainer", "toppod")
@@ -337,7 +374,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman generate and reimport kube on pod", func() {
 		podName := "toppod"
-		_, rc, _ := podmanTest.CreatePod(podName)
+		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {podName}})
 		Expect(rc).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", podName, "--name", "test1", ALPINE, "top"})
@@ -376,7 +413,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman generate with user and reimport kube on pod", func() {
 		podName := "toppod"
-		_, rc, _ := podmanTest.CreatePod(podName)
+		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {podName}})
 		Expect(rc).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", podName, "--name", "test1", "--user", "100:200", ALPINE, "top"})
@@ -539,5 +576,127 @@ var _ = Describe("Podman generate kube", func() {
 		kube := podmanTest.Podman([]string{"generate", "kube", "pod1", "pod2"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).ToNot(Equal(0))
+	})
+
+	It("podman generate kube on a container with dns options", func() {
+		top := podmanTest.Podman([]string{"run", "-dt", "--name", "top", "--dns", "8.8.8.8", "--dns-search", "foobar.com", "--dns-opt", "color:blue", ALPINE, "top"})
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(BeZero())
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "top"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
+		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
+		Expect(pod.Spec.DNSConfig.Options[0].Name).To(Equal("color"))
+		Expect(*pod.Spec.DNSConfig.Options[0].Value).To(Equal("blue"))
+	})
+
+	It("podman generate kube multiple contianer dns servers and options are cumulative", func() {
+		top1 := podmanTest.Podman([]string{"run", "-dt", "--name", "top1", "--dns", "8.8.8.8", "--dns-search", "foobar.com", ALPINE, "top"})
+		top1.WaitWithDefaultTimeout()
+		Expect(top1.ExitCode()).To(BeZero())
+
+		top2 := podmanTest.Podman([]string{"run", "-dt", "--name", "top2", "--dns", "8.7.7.7", "--dns-search", "homer.com", ALPINE, "top"})
+		top2.WaitWithDefaultTimeout()
+		Expect(top2.ExitCode()).To(BeZero())
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "top1", "top2"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
+		Expect(StringInSlice("8.7.7.7", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
+		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(StringInSlice("homer.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+	})
+
+	It("podman generate kube on a pod with dns options", func() {
+		top := podmanTest.Podman([]string{"run", "--pod", "new:pod1", "-dt", "--name", "top", "--dns", "8.8.8.8", "--dns-search", "foobar.com", "--dns-opt", "color:blue", ALPINE, "top"})
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(BeZero())
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "pod1"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
+		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
+		Expect(pod.Spec.DNSConfig.Options[0].Name).To(Equal("color"))
+		Expect(*pod.Spec.DNSConfig.Options[0].Value).To(Equal("blue"))
+	})
+
+	It("podman generate kube - set entrypoint as command", func() {
+		session := podmanTest.Podman([]string{"create", "--pod", "new:testpod", "--entrypoint", "/bin/sleep", ALPINE, "10s"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		// Now make sure that the container's command is set to the
+		// entrypoint and it's arguments to "10s".
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		containers := pod.Spec.Containers
+		Expect(len(containers)).To(Equal(1))
+
+		Expect(containers[0].Command).To(Equal([]string{"/bin/sleep"}))
+		Expect(containers[0].Args).To(Equal([]string{"10s"}))
+	})
+
+	It("podman generate kube - use entrypoint from image", func() {
+		// Build an image with an entrypoint.
+		containerfile := `FROM quay.io/libpod/alpine:latest
+ENTRYPOINT /bin/sleep`
+
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).To(BeNil())
+
+		image := "generatekube:test"
+		session := podmanTest.Podman([]string{"build", "-f", containerfilePath, "-t", image})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", "new:testpod", image, "10s"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		// Now make sure that the container's command is set to the
+		// entrypoint and it's arguments to "10s".
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		containers := pod.Spec.Containers
+		Expect(len(containers)).To(Equal(1))
+
+		Expect(containers[0].Command).To(Equal([]string{"/bin/sh", "-c", "/bin/sleep"}))
+		Expect(containers[0].Args).To(Equal([]string{"10s"}))
 	})
 })

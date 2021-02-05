@@ -30,7 +30,7 @@ func setConsoleMode(handle windows.Handle, flags uint32) error {
 	if err := windows.SetConsoleMode(handle, mode|flags); err != nil {
 		// In similar code, it is not considered an error if we cannot set the
 		// console mode.  Following same line of thinking here.
-		logrus.WithError(err).Error("Failed to set console mode for cli")
+		logrus.WithError(err).Debug("Failed to set console mode for cli")
 	}
 
 	return nil

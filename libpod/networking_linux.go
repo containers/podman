@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -42,6 +43,9 @@ const (
 
 	// slirp4netnsDNS is the IP for the built-in DNS server in the slirp network
 	slirp4netnsDNS = "10.0.2.3"
+
+	// slirp4netnsMTU the default MTU override
+	slirp4netnsMTU = 65520
 )
 
 // Get an OCICNI network config
@@ -282,6 +286,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	enableIPv6 := false
 	outboundAddr := ""
 	outboundAddr6 := ""
+	mtu := slirp4netnsMTU
 
 	if ctr.config.NetworkOptions != nil {
 		slirpOptions = append(slirpOptions, ctr.config.NetworkOptions["slirp4netns"]...)
@@ -345,6 +350,11 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 				}
 			}
 			outboundAddr6 = value
+		case "mtu":
+			mtu, err = strconv.Atoi(value)
+			if mtu < 68 || err != nil {
+				return errors.Errorf("invalid mtu %q", value)
+			}
 		default:
 			return errors.Errorf("unknown option for slirp4netns: %q", o)
 		}
@@ -358,8 +368,8 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	if disableHostLoopback && slirpFeatures.HasDisableHostLoopback {
 		cmdArgs = append(cmdArgs, "--disable-host-loopback")
 	}
-	if slirpFeatures.HasMTU {
-		cmdArgs = append(cmdArgs, "--mtu", "65520")
+	if mtu > -1 && slirpFeatures.HasMTU {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--mtu=%d", mtu))
 	}
 	if !noPivotRoot && slirpFeatures.HasEnableSandbox {
 		cmdArgs = append(cmdArgs, "--enable-sandbox")
@@ -1158,7 +1168,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	// update network status if container is not running
 	networkStatus := c.state.NetworkStatus
 	// clip out the index of the network
-	tmpNetworkStatus := make([]*cnitypes.Result, len(networkStatus)-1)
+	tmpNetworkStatus := make([]*cnitypes.Result, 0, len(networkStatus)-1)
 	for k, v := range networkStatus {
 		if index != k {
 			tmpNetworkStatus = append(tmpNetworkStatus, v)

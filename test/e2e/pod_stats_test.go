@@ -50,7 +50,7 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on a specific running pod", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -67,7 +67,7 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on a specific running pod with shortID", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -84,7 +84,7 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on a specific running pod with name", func() {
-		_, ec, podid := podmanTest.CreatePod("test")
+		_, ec, podid := podmanTest.CreatePod(map[string][]string{"--name": {"test"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -101,7 +101,7 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on running pods", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -118,7 +118,7 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on all pods", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -135,7 +135,7 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats with json output", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -152,7 +152,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats.IsJSONOutputValid()).To(BeTrue())
 	})
 	It("podman stats with GO template", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -164,7 +164,7 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats with invalid GO template", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)

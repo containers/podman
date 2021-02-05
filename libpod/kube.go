@@ -49,6 +49,7 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 	}
 
 	extraHost := make([]v1.HostAlias, 0)
+	hostNetwork := false
 	if p.HasInfraContainer() {
 		infraContainer, err := p.getInfraContainer()
 		if err != nil {
@@ -69,9 +70,9 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 			return nil, servicePorts, err
 		}
 		servicePorts = containerPortsToServicePorts(ports)
-
+		hostNetwork = p.config.InfraContainer.HostNetwork
 	}
-	pod, err := p.podWithContainers(allContainers, ports)
+	pod, err := p.podWithContainers(allContainers, ports, hostNetwork)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -167,13 +168,14 @@ func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 	return sps
 }
 
-func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort, hostNetwork bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
+	dnsInfo := v1.PodDNSConfig{}
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
-			ctr, volumes, err := containerToV1Container(ctr)
+			ctr, volumes, _, err := containerToV1Container(ctr)
 			if err != nil {
 				return nil, err
 			}
@@ -196,6 +198,22 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 				vol := vol
 				deDupPodVolumes[vol.Name] = &vol
 			}
+		} else {
+			_, _, infraDNS, err := containerToV1Container(ctr)
+			if err != nil {
+				return nil, err
+			}
+			if infraDNS != nil {
+				if servers := infraDNS.Nameservers; len(servers) > 0 {
+					dnsInfo.Nameservers = servers
+				}
+				if searches := infraDNS.Searches; len(searches) > 0 {
+					dnsInfo.Searches = searches
+				}
+				if options := infraDNS.Options; len(options) > 0 {
+					dnsInfo.Options = options
+				}
+			}
 		}
 	}
 	podVolumes := make([]v1.Volume, 0, len(deDupPodVolumes))
@@ -203,10 +221,10 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 		podVolumes = append(podVolumes, *vol)
 	}
 
-	return addContainersAndVolumesToPodObject(podContainers, podVolumes, p.Name()), nil
+	return addContainersAndVolumesToPodObject(podContainers, podVolumes, p.Name(), &dnsInfo, hostNetwork), nil
 }
 
-func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.Volume, podName string) *v1.Pod {
+func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.Volume, podName string, dnsOptions *v1.PodDNSConfig, hostNetwork bool) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -225,8 +243,12 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 		CreationTimestamp: v12.Now(),
 	}
 	ps := v1.PodSpec{
-		Containers: containers,
-		Volumes:    volumes,
+		Containers:  containers,
+		Volumes:     volumes,
+		HostNetwork: hostNetwork,
+	}
+	if dnsOptions != nil {
+		ps.DNSConfig = dnsOptions
 	}
 	p := v1.Pod{
 		TypeMeta:   tm,
@@ -241,32 +263,69 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeVolumes := make([]v1.Volume, 0)
+	hostNetwork := true
+	podDNS := v1.PodDNSConfig{}
 	for _, ctr := range ctrs {
-		kubeCtr, kubeVols, err := containerToV1Container(ctr)
+		if !ctr.HostNetwork() {
+			hostNetwork = false
+		}
+		kubeCtr, kubeVols, ctrDNS, err := containerToV1Container(ctr)
 		if err != nil {
 			return nil, err
 		}
 		kubeCtrs = append(kubeCtrs, kubeCtr)
 		kubeVolumes = append(kubeVolumes, kubeVols...)
-	}
-	return addContainersAndVolumesToPodObject(kubeCtrs, kubeVolumes, strings.ReplaceAll(ctrs[0].Name(), "_", "")), nil
 
+		// Combine DNS information in sum'd structure
+		if ctrDNS != nil {
+			// nameservers
+			if servers := ctrDNS.Nameservers; servers != nil {
+				if podDNS.Nameservers == nil {
+					podDNS.Nameservers = make([]string, 0)
+				}
+				for _, s := range servers {
+					if !util.StringInSlice(s, podDNS.Nameservers) { // only append if it does not exist
+						podDNS.Nameservers = append(podDNS.Nameservers, s)
+					}
+				}
+			}
+			// search domains
+			if domains := ctrDNS.Searches; domains != nil {
+				if podDNS.Searches == nil {
+					podDNS.Searches = make([]string, 0)
+				}
+				for _, d := range domains {
+					if !util.StringInSlice(d, podDNS.Searches) { // only append if it does not exist
+						podDNS.Searches = append(podDNS.Searches, d)
+					}
+				}
+			}
+			// dns options
+			if options := ctrDNS.Options; options != nil {
+				if podDNS.Options == nil {
+					podDNS.Options = make([]v1.PodDNSConfigOption, 0)
+				}
+				podDNS.Options = append(podDNS.Options, options...)
+			}
+		} // end if ctrDNS
+	}
+	return addContainersAndVolumesToPodObject(kubeCtrs, kubeVolumes, strings.ReplaceAll(ctrs[0].Name(), "_", ""), &podDNS, hostNetwork), nil
 }
 
 // containerToV1Container converts information we know about a libpod container
 // to a V1.Container specification.
-func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
+func containerToV1Container(c *Container) (v1.Container, []v1.Volume, *v1.PodDNSConfig, error) {
 	kubeContainer := v1.Container{}
 	kubeVolumes := []v1.Volume{}
 	kubeSec, err := generateKubeSecurityContext(c)
 	if err != nil {
-		return kubeContainer, kubeVolumes, err
+		return kubeContainer, kubeVolumes, nil, err
 	}
 
 	if len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.Spec().Linux.Devices)
-		return kubeContainer, kubeVolumes, errors.Wrapf(define.ErrNotImplemented, "linux devices")
+		return kubeContainer, kubeVolumes, nil, errors.Wrapf(define.ErrNotImplemented, "linux devices")
 	}
 
 	if len(c.config.UserVolumes) > 0 {
@@ -274,7 +333,7 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 		// Volume names need to be coordinated "globally" in the kube files.
 		volumeMounts, volumes, err := libpodMountsToKubeVolumeMounts(c)
 		if err != nil {
-			return kubeContainer, kubeVolumes, err
+			return kubeContainer, kubeVolumes, nil, err
 		}
 		kubeContainer.VolumeMounts = volumeMounts
 		kubeVolumes = append(kubeVolumes, volumes...)
@@ -282,34 +341,33 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
 	if err != nil {
-		return kubeContainer, kubeVolumes, err
+		return kubeContainer, kubeVolumes, nil, err
 	}
 
 	portmappings, err := c.PortMappings()
 	if err != nil {
-		return kubeContainer, kubeVolumes, err
+		return kubeContainer, kubeVolumes, nil, err
 	}
 	ports, err := ocicniPortMappingToContainerPort(portmappings)
 	if err != nil {
-		return kubeContainer, kubeVolumes, err
+		return kubeContainer, kubeVolumes, nil, err
 	}
 
-	containerCommands := c.Command()
-	kubeContainer.Name = removeUnderscores(c.Name())
+	// Handle command and arguments.
+	if ep := c.Entrypoint(); len(ep) > 0 {
+		// If we have an entrypoint, set the container's command as
+		// arguments.
+		kubeContainer.Command = ep
+		kubeContainer.Args = c.Command()
+	} else {
+		kubeContainer.Command = c.Command()
+	}
 
+	kubeContainer.Name = removeUnderscores(c.Name())
 	_, image := c.Image()
 	kubeContainer.Image = image
 	kubeContainer.Stdin = c.Stdin()
 
-	// prepend the entrypoint of the container to command
-	if ep := c.Entrypoint(); len(c.Entrypoint()) > 0 {
-		ep = append(ep, containerCommands...)
-		containerCommands = ep
-	}
-	kubeContainer.Command = containerCommands
-	// TODO need to figure out how we handle command vs entry point.  Kube appears to prefer entrypoint.
-	// right now we just take the container's command
-	//container.Args = args
 	kubeContainer.WorkingDir = c.WorkingDir()
 	kubeContainer.Ports = ports
 	// This should not be applicable
@@ -355,7 +413,38 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 		}
 	}
 
-	return kubeContainer, kubeVolumes, nil
+	// Obtain the DNS entries from the container
+	dns := v1.PodDNSConfig{}
+
+	// DNS servers
+	if servers := c.config.DNSServer; len(servers) > 0 {
+		dnsServers := make([]string, 0)
+		for _, server := range servers {
+			dnsServers = append(dnsServers, server.String())
+		}
+		dns.Nameservers = dnsServers
+	}
+
+	// DNS search domains
+	if searches := c.config.DNSSearch; len(searches) > 0 {
+		dns.Searches = searches
+	}
+
+	// DNS options
+	if options := c.config.DNSOption; len(options) > 0 {
+		dnsOptions := make([]v1.PodDNSConfigOption, 0)
+		for _, option := range options {
+			// the option can be "k:v" or just "k", no delimiter is required
+			opts := strings.SplitN(option, ":", 2)
+			dnsOpt := v1.PodDNSConfigOption{
+				Name:  opts[0],
+				Value: &opts[1],
+			}
+			dnsOptions = append(dnsOptions, dnsOpt)
+		}
+		dns.Options = dnsOptions
+	}
+	return kubeContainer, kubeVolumes, &dns, nil
 }
 
 // ocicniPortMappingToContainerPort takes an ocicni portmapping and converts

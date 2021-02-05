@@ -376,6 +376,13 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run slirp4netns network with mtu", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:mtu=9000", ALPINE, "ip", "addr"})
+		session.Wait(30)
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("mtu 9000"))
+	})
+
 	It("podman run slirp4netns network with different cidr", func() {
 		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
 		Expect(slirp4netnsHelp.ExitCode()).To(Equal(0))

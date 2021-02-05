@@ -60,13 +60,21 @@ func filterPodFlags(command []string) []string {
 	return processed
 }
 
-// quoteArguments makes sure that all arguments with at least one whitespace
+// escapeSystemdArguments makes sure that all arguments with at least one whitespace
 // are quoted to make sure those are interpreted as one argument instead of
-// multiple ones.
-func quoteArguments(command []string) []string {
+// multiple ones. Also make sure to escape all characters which have a special
+// meaning to systemd -> $,% and \
+// see: https://www.freedesktop.org/software/systemd/man/systemd.service.html#Command%20lines
+func escapeSystemdArguments(command []string) []string {
 	for i := range command {
+		command[i] = strings.ReplaceAll(command[i], "$", "$$")
+		command[i] = strings.ReplaceAll(command[i], "%", "%%")
 		if strings.ContainsAny(command[i], " \t") {
 			command[i] = strconv.Quote(command[i])
+		} else if strings.Contains(command[i], `\`) {
+			// strconv.Quote also escapes backslashes so
+			// we should replace only if strconv.Quote was not used
+			command[i] = strings.ReplaceAll(command[i], `\`, `\\`)
 		}
 	}
 	return command

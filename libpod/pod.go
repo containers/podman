@@ -93,6 +93,7 @@ type podState struct {
 type InfraContainerConfig struct {
 	ConmonPidFile      string               `json:"conmonPidFile"`
 	HasInfraContainer  bool                 `json:"makeInfraContainer"`
+	NoNetwork          bool                 `json:"noNetwork,omitempty"`
 	HostNetwork        bool                 `json:"infraHostNetwork,omitempty"`
 	PortBindings       []ocicni.PortMapping `json:"infraPortBindings"`
 	StaticIP           net.IP               `json:"staticIP,omitempty"`

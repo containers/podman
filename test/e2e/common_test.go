@@ -514,27 +514,15 @@ func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData
 
 // CreatePod creates a pod with no infra container
 // it optionally takes a pod name
-func (p *PodmanTestIntegration) CreatePod(name string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"pod", "create", "--infra=false", "--share", ""}
-	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
+func (p *PodmanTestIntegration) CreatePod(options map[string][]string) (*PodmanSessionIntegration, int, string) {
+	var args = []string{"pod", "create", "--infra=false", "--share", ""}
+	for k, values := range options {
+		for _, v := range values {
+			args = append(args, k+"="+v)
+		}
 	}
-	session := p.Podman(podmanArgs)
-	session.WaitWithDefaultTimeout()
-	return session, session.ExitCode(), session.OutputToString()
-}
 
-// CreatePod creates a pod with no infra container and some labels.
-// it optionally takes a pod name
-func (p *PodmanTestIntegration) CreatePodWithLabels(name string, labels map[string]string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"pod", "create", "--infra=false", "--share", ""}
-	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
-	}
-	for labelKey, labelValue := range labels {
-		podmanArgs = append(podmanArgs, "--label", fmt.Sprintf("%s=%s", labelKey, labelValue))
-	}
-	session := p.Podman(podmanArgs)
+	session := p.Podman(args)
 	session.WaitWithDefaultTimeout()
 	return session, session.ExitCode(), session.OutputToString()
 }

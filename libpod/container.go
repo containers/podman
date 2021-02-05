@@ -1073,6 +1073,18 @@ func networkDisabled(c *Container) (bool, error) {
 	return false, nil
 }
 
+func (c *Container) HostNetwork() bool {
+	if c.config.CreateNetNS || c.config.NetNsCtr != "" {
+		return false
+	}
+	for _, ns := range c.config.Spec.Linux.Namespaces {
+		if ns.Type == spec.NetworkNamespace {
+			return false
+		}
+	}
+	return true
+}
+
 // ContainerState returns containerstate struct
 func (c *Container) ContainerState() (*ContainerState, error) {
 	if !c.batched {

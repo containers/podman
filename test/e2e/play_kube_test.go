@@ -13,6 +13,7 @@ import (
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/selinux/go-selinux"
 )
 
 var unknownKindYaml = `
@@ -24,6 +25,49 @@ metadata:
   name: unknown
 spec:
   hostname: unknown
+`
+
+var selinuxLabelPodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2021-02-02T22:18:20Z"
+  labels:
+    app: label-pod
+  name: label-pod
+spec:
+  containers:
+  - command:
+    - top
+    - -d
+    - "1.5"
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    - name: HOSTNAME
+      value: label-pod
+    image: quay.io/libpod/alpine:latest
+    name: test
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities:
+        drop:
+        - CAP_MKNOD
+        - CAP_NET_RAW
+        - CAP_AUDIT_WRITE
+      privileged: false
+      readOnlyRootFilesystem: false
+      seLinuxOptions:
+        user: unconfined_u
+        role: system_r
+        type: spc_t
+        level: s0
+    workingDir: /
+status: {}
 `
 
 var configMapYamlTemplate = `
@@ -801,6 +845,24 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Not(Equal(0)))
 
+	})
+
+	It("podman play kube fail with custom selinux label", func() {
+		if !selinux.GetEnabled() {
+			Skip("SELinux not enabled")
+		}
+		err := writeYaml(selinuxLabelPodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "label-pod-test", "--format", "'{{ .ProcessLabel }}'"})
+		inspect.WaitWithDefaultTimeout()
+		label := inspect.OutputToString()
+
+		Expect(label).To(ContainSubstring("unconfined_u:system_r:spc_t:s0"))
 	})
 
 	It("podman play kube fail with nonexistent authfile", func() {

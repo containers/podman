@@ -48,7 +48,7 @@ var _ = Describe("Podman pod pause", func() {
 	})
 
 	It("podman pod pause a created pod by id", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"pod", "pause", podid})
@@ -57,7 +57,7 @@ var _ = Describe("Podman pod pause", func() {
 	})
 
 	It("podman pod pause a running pod by id", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -78,7 +78,7 @@ var _ = Describe("Podman pod pause", func() {
 	})
 
 	It("podman unpause a running pod by id", func() {
-		_, ec, podid := podmanTest.CreatePod("")
+		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", podid)
@@ -93,7 +93,7 @@ var _ = Describe("Podman pod pause", func() {
 	})
 
 	It("podman pod pause a running pod by name", func() {
-		_, ec, _ := podmanTest.CreatePod("test1")
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"test1"}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.RunTopContainerInPod("", "test1")

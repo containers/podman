@@ -84,5 +84,5 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 		// reasons.
 		status = http.StatusCreated
 	}
-	utils.WriteResponse(w, status, "")
+	w.WriteHeader(status)
 }
