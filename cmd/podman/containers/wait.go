@@ -95,10 +95,11 @@ func wait(cmd *cobra.Command, args []string) error {
 		return errors.New("--latest and containers cannot be used together")
 	}
 
-	waitOptions.Condition, err = define.StringToContainerStatus(waitCondition)
+	cond, err := define.StringToContainerStatus(waitCondition)
 	if err != nil {
 		return err
 	}
+	waitOptions.Condition = []define.ContainerStatus{cond}
 
 	responses, err := registry.ContainerEngine().ContainerWait(context.Background(), args, waitOptions)
 	if err != nil {

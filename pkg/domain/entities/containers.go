@@ -51,7 +51,7 @@ type ContainerRunlabelReport struct {
 }
 
 type WaitOptions struct {
-	Condition define.ContainerStatus
+	Condition []define.ContainerStatus
 	Interval  time.Duration
 	Latest    bool
 }

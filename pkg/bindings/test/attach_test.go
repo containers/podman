@@ -75,7 +75,7 @@ var _ = Describe("Podman containers attach", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		wait := define.ContainerStateRunning
-		_, err = containers.Wait(bt.conn, ctnr.ID, new(containers.WaitOptions).WithCondition(wait))
+		_, err = containers.Wait(bt.conn, ctnr.ID, new(containers.WaitOptions).WithCondition([]define.ContainerStatus{wait}))
 		Expect(err).ShouldNot(HaveOccurred())
 
 		tickTock := time.NewTimer(2 * time.Second)

@@ -281,7 +281,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err := bt.RunTopContainer(&name, nil, nil)
 		Expect(err).To(BeNil())
 		go func() {
-			exitCode, err = containers.Wait(bt.conn, name, new(containers.WaitOptions).WithCondition(pause))
+			exitCode, err = containers.Wait(bt.conn, name, new(containers.WaitOptions).WithCondition([]define.ContainerStatus{pause}))
 			errChan <- err
 			close(errChan)
 		}()
@@ -295,7 +295,7 @@ var _ = Describe("Podman containers ", func() {
 		go func() {
 			defer GinkgoRecover()
 
-			_, waitErr := containers.Wait(bt.conn, name, new(containers.WaitOptions).WithCondition(running))
+			_, waitErr := containers.Wait(bt.conn, name, new(containers.WaitOptions).WithCondition([]define.ContainerStatus{running}))
 			unpauseErrChan <- waitErr
 			close(unpauseErrChan)
 		}()
