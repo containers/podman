@@ -47,6 +47,29 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run check /run/.containerenv", func() {
+		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/run/.containerenv"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(""))
+
+		session = podmanTest.Podman([]string{"run", "--privileged", "--name=test1", ALPINE, "cat", "/run/.containerenv"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("name=\"test1\""))
+		Expect(session.OutputToString()).To(ContainSubstring("image=\"" + ALPINE + "\""))
+
+		session = podmanTest.Podman([]string{"run", "-v", "/:/host", ALPINE, "cat", "/run/.containerenv"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("graphRootMounted=1"))
+
+		session = podmanTest.Podman([]string{"run", "-v", "/:/host", "--privileged", ALPINE, "cat", "/run/.containerenv"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("graphRootMounted=1"))
+	})
+
 	It("podman run a container based on a complex local image name", func() {
 		imageName := strings.TrimPrefix(nginx, "quay.io/")
 		session := podmanTest.Podman([]string{"run", imageName, "ls"})
