@@ -1626,7 +1626,7 @@ func (c *Container) makeBindMounts() error {
 
 	// Make .containerenv if it does not exist
 	if _, ok := c.state.BindMounts["/run/.containerenv"]; !ok {
-		var containerenv string
+		containerenv := c.runtime.graphRootMountedFlag(c.config.Spec.Mounts)
 		isRootless := 0
 		if rootless.IsRootless() {
 			isRootless = 1
@@ -1641,7 +1641,7 @@ id=%q
 image=%q
 imageid=%q
 rootless=%d
-`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless)
+%s`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless, containerenv)
 		}
 		containerenvPath, err := c.writeStringToRundir(".containerenv", containerenv)
 		if err != nil {
