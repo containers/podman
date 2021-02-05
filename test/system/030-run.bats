@@ -608,6 +608,19 @@ json-file | f
     # a subdir of a volume.
     run_podman run --rm --workdir /IamNotOntheImage -v $testdir/content:/IamNotOntheImage/foo $IMAGE cat foo
     is "$output" "$randomcontent" "cat random content"
+
+    # Make sure that running on a read-only rootfs works (#9230).
+    if ! is_rootless && ! is_remote; then
+        # image mount is hard to test as a rootless user
+        # and does not work remotely
+        run_podman image mount $IMAGE
+        romount="$output"
+
+        run_podman run --rm --rootfs $romount echo "Hello world"
+        is "$output" "Hello world"
+
+        run_podman image unmount $IMAGE
+    fi
 }
 
 # https://github.com/containers/podman/issues/9096
