@@ -72,6 +72,7 @@
 - Fixed a bug where the `podman play kube` command did not properly print errors that occurred when starting containers.
 - Fixed a bug where the `podman play kube` command errored when `hostNetwork` was used ([#8790](https://github.com/containers/podman/issues/8790)).
 - Fixed a bug where the `podman play kube` command would always pull images when the `:latest` tag was specified, even if the image was available locally ([#7838](https://github.com/containers/podman/issues/7838)).
+- Fixed a bug where the `podman play kube` command did not properly handle SELinux configuration, rending YAML with custom SELinux configuration unusable ([#8710](https://github.com/containers/podman/issues/8710)).
 - Fixed a bug where the `podman generate kube` command incorrectly populated the `args` and `command` fields of generated YAML ([#9211](https://github.com/containers/podman/issues/9211)).
 - Fixed a bug where containers in a pod would create a duplicate entry in the pod's shared `/etc/hosts` file every time the container restarted ([#8921](https://github.com/containers/podman/issues/8921)).
 - Fixed a bug where the `podman search --list-tags` command did not support the `--format` option ([#8740](https://github.com/containers/podman/issues/8740)).
@@ -109,8 +110,11 @@
 - Fixed a bug where the `podman stats` command would fail if the system did not support one or more of the cgroup controllers Podman supports ([#8588](https://github.com/containers/podman/issues/8588)).
 - Fixed a bug where the `--mount` option to `podman create` and `podman run` did not ignore the `consistency` mount option.
 - Fixed a bug where failures during the resizing of a container's TTY would print the wrong error.
+- Fixed a bug where the `podman network disconnect` command could cause the `podman inspect` command to fail for a container until it was restarted ([#9234](https://github.com/containers/podman/issues/9234)).
+- Fixed a bug where containers created from a read-only rootfs (using the `--rootfs` option to `podman create` and `podman run`) would fail ([#9230](https://github.com/containers/podman/issues/9230)).
 
 ### API
+- Libpod API version has been bumped to v3.0.0.
 - All Libpod Pod APIs have been modified to properly report errors with individual containers. Cases where the operation as a whole succeeded but individual containers failed now report an HTTP 409 error ([#8865](https://github.com/containers/podman/issues/8865)).
 - The Compat API for Containers now supports the Rename and Copy APIs.
 - Fixed a bug where the Compat Prune APIs (for volumes, containers, and images) did not return the amount of space reclaimed in their responses.
@@ -134,7 +138,7 @@
 ### Misc
 - Updated Buildah to v1.19.2
 - Updated the containers/storage library to v1.24.5
-- Updated the containers/common library to v0.33.1
+- Updated the containers/common library to v0.33.4
 
 ## v2.2.1
 ### Changes
