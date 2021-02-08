@@ -84,7 +84,9 @@ function like() {
 
     if expr "$actual" : "$expect" &>/dev/null; then
         # On success, include expected value; this helps readers understand
-        _show_ok 1 "$testname ('$actual') ~ $expect"
+        # (but don't show enormous multi-line output like 'generate kube')
+        blurb=$(head -n1 <<<"$actual")
+        _show_ok 1 "$testname ('$blurb') ~ $expect"
         return
     fi
     _show_ok 0 "$testname" "~ $expect" "$actual"
@@ -231,14 +233,17 @@ function t() {
     if [[ $content_type =~ /octet ]]; then
         output="[$(file --brief $WORKDIR/curl.result.out)]"
         echo "$output" >>$LOG
-    else
+    elif [[ -e $WORKDIR/curl.result.out ]]; then
         output=$(< $WORKDIR/curl.result.out)
 
-        if [[ $content_type =~ application/json ]]; then
+        if [[ $content_type =~ application/json ]] && [[ $method != "HEAD" ]]; then
             jq . <<<"$output" >>$LOG
         else
             echo "$output" >>$LOG
         fi
+    else
+        output=
+        echo "[no output]" >>$LOG
     fi
 
     # Test return code
@@ -305,10 +310,20 @@ function start_service() {
         &> $WORKDIR/server.log &
     service_pid=$!
 
+    wait_for_port $HOST $PORT
+}
+
+###################
+#  wait_for_port  #  Returns once port is available on host
+###################
+function wait_for_port() {
+    local host=$1                      # Probably "localhost"
+    local port=$2                      # Numeric port
+    local timeout=${3:-5}              # Optional; default to 5 seconds
+
     # Wait
-    local _timeout=5
-    while [ $_timeout -gt 0 ]; do
-        { exec 3<> /dev/tcp/$HOST/$PORT; } &>/dev/null && return
+    while [ $timeout -gt 0 ]; do
+        { exec 3<> /dev/tcp/$host/$port; } &>/dev/null && return
         sleep 1
         _timeout=$(( $_timeout - 1 ))
     done
@@ -385,6 +400,12 @@ done
 # Clean up
 
 if [ -n "$service_pid" ]; then
+    # Remove any containers and images; this prevents the following warning:
+    #  'rm: cannot remove '/.../overlay': Device or resource busy
+    podman rm -a
+    podman rmi -af
+
+    # Stop the server
     kill $service_pid
     wait $service_pid
 fi
