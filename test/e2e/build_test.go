@@ -489,7 +489,7 @@ RUN grep CapEff /proc/self/status`
 			To(ContainElement("0000000000000400"))
 	})
 
-	It("podman build --arch", func() {
+	It("podman build --isolation && --arch", func() {
 		targetPath, err := CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
 
@@ -502,11 +502,34 @@ RUN grep CapEff /proc/self/status`
 
 		// When
 		session := podmanTest.Podman([]string{
-			"build", "--arch", "arm64", targetPath,
+			"build", "--isolation", "oci", "--arch", "arm64", targetPath,
 		})
 		session.WaitWithDefaultTimeout()
-
 		// Then
 		Expect(session.ExitCode()).To(Equal(0))
+
+		// When
+		session = podmanTest.Podman([]string{
+			"build", "--isolation", "chroot", "--arch", "arm64", targetPath,
+		})
+		session.WaitWithDefaultTimeout()
+		// Then
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// When
+		session = podmanTest.Podman([]string{
+			"build", "--isolation", "rootless", "--arch", "arm64", targetPath,
+		})
+		session.WaitWithDefaultTimeout()
+		// Then
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// When
+		session = podmanTest.Podman([]string{
+			"build", "--isolation", "bogus", "--arch", "arm64", targetPath,
+		})
+		session.WaitWithDefaultTimeout()
+		// Then
+		Expect(session.ExitCode()).To(Equal(125))
 	})
 })
