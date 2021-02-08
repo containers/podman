@@ -580,12 +580,21 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 	// without having to pass all local data around.
 	deleteImage := func(img *image.Image) error {
 		results, err := ir.Libpod.RemoveImage(ctx, img, opts.Force)
-		if err != nil {
+		switch errors.Cause(err) {
+		case nil:
+			// Removal worked, so let's report it.
+			report.Deleted = append(report.Deleted, results.Deleted)
+			report.Untagged = append(report.Untagged, results.Untagged...)
+			return nil
+		case storage.ErrImageUnknown:
+			// The image must have been removed already (see #6510).
+			report.Deleted = append(report.Deleted, img.ID())
+			report.Untagged = append(report.Untagged, img.ID())
+			return nil
+		default:
+			// Fatal error.
 			return err
 		}
-		report.Deleted = append(report.Deleted, results.Deleted)
-		report.Untagged = append(report.Untagged, results.Untagged...)
-		return nil
 	}
 
 	// Delete all images from the local storage.
