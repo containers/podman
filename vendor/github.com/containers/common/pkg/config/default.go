@@ -518,3 +518,9 @@ func (c *Config) TZ() string {
 func (c *Config) Umask() string {
 	return c.Containers.Umask
 }
+
+// LogDriver returns the logging driver to be used
+// currently k8s-file or journald
+func (c *Config) LogDriver() string {
+	return c.Containers.LogDriver
+}
