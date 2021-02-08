@@ -42,7 +42,7 @@ func GetVersion() (Version, error) {
 		}
 	}
 	return Version{
-		APIVersion: podmanVersion.APIVersion.String(),
+		APIVersion: strconv.Itoa(int(podmanVersion.APIVersion.Major)),
 		Version:    podmanVersion.Version.String(),
 		GoVersion:  runtime.Version(),
 		GitCommit:  gitCommit,

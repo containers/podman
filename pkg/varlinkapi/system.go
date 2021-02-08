@@ -20,12 +20,12 @@ import (
 func (i *VarlinkAPI) GetVersion(call iopodman.VarlinkCall) error {
 	versionInfo, err := define.GetVersion()
 	if err != nil {
-		return err
+		return call.ReplyErrorOccurred(err.Error())
 	}
 
 	int64APIVersion, err := strconv.ParseInt(versionInfo.APIVersion, 10, 64)
 	if err != nil {
-		return err
+		return call.ReplyErrorOccurred(err.Error())
 	}
 
 	return call.ReplyGetVersion(
