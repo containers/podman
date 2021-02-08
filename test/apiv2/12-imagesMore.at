@@ -24,13 +24,10 @@ t GET libpod/images/$IMAGE/json 200 \
 
 # Run registry container
 podman run -d --name registry -p 5000:5000 quay.io/libpod/registry:2.6 /entrypoint.sh /etc/docker/registry/config.yml
+sleep 2
 
 # Push to local registry
-# FIXME: this is failing:
-#   "cause": "received unexpected HTTP status: 500 Internal Server Error",
-#   "message": "error pushing image \"localhost:5000/myrepo:mytag\": error copying image to the remote destination: Error writing blob: Error initiating layer upload to /v2/myrepo/blobs/uploads/ in localhost:5000: received unexpected HTTP status: 500 Internal Server Error",
-#   "response": 400
-#t POST libpod/images/localhost:5000/myrepo:mytag/push\?tlsVerify\=false '' 200
+t POST "images/localhost:5000/myrepo/push?tlsVerify=false&tag=mytag" '' 200
 
 # Untag the image
 t POST "libpod/images/$iid/untag?repo=localhost:5000/myrepo&tag=mytag" '' 201
