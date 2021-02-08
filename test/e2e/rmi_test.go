@@ -1,7 +1,9 @@
 package integration
 
 import (
+	"fmt"
 	"os"
+	"sync"
 
 	. "github.com/containers/podman/v2/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -274,5 +276,33 @@ RUN find $LOCAL
 		Expect(session).Should(Exit(125))
 		match, _ := session.ErrorGrepString("image name or ID must be specified")
 		Expect(match).To(BeTrue())
+	})
+
+	It("podman image rm - concurrent with shared layers", func() {
+		// #6510 has shown a fairly simple reproducer to force storage
+		// errors during parallel image removal.  Since it's subject to
+		// a race, we may not hit the condition a 100 percent of times
+		// but ocal reproducers hit it all the time.
+
+		var wg sync.WaitGroup
+
+		buildAndRemove := func(i int) {
+			defer GinkgoRecover()
+			defer wg.Done()
+			imageName := fmt.Sprintf("rmtest:%d", i)
+			containerfile := `FROM quay.io/libpod/cirros:latest
+RUN ` + fmt.Sprintf("touch %s", imageName)
+
+			podmanTest.BuildImage(containerfile, imageName, "false")
+			session := podmanTest.Podman([]string{"rmi", "-f", imageName})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}
+
+		wg.Add(10)
+		for i := 0; i < 10; i++ {
+			go buildAndRemove(i)
+		}
+		wg.Wait()
 	})
 })
