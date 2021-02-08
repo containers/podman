@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -101,7 +100,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	responses := make([]entities.WaitReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		response := entities.WaitReport{Id: c.ID()}
-		exitCode, err := c.WaitForConditionWithInterval(options.Interval, options.Condition)
+		exitCode, err := c.WaitForConditionWithInterval(ctx, options.Interval, options.Condition...)
 		if err != nil {
 			response.Error = err
 		} else {
@@ -139,14 +138,6 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 }
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	names := namesOrIds
-	for _, cidFile := range options.CIDFiles {
-		content, err := ioutil.ReadFile(cidFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error reading CIDFile")
-		}
-		id := strings.Split(string(content), "\n")[0]
-		names = append(names, id)
-	}
 	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
@@ -202,14 +193,6 @@ func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {
-	for _, cidFile := range options.CIDFiles {
-		content, err := ioutil.ReadFile(cidFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error reading CIDFile")
-		}
-		id := strings.Split(string(content), "\n")[0]
-		namesOrIds = append(namesOrIds, id)
-	}
 	sig, err := signal.ParseSignalNameOrNumber(options.Signal)
 	if err != nil {
 		return nil, err
@@ -264,30 +247,30 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	reports := []*entities.RmReport{}
 
 	names := namesOrIds
-	for _, cidFile := range options.CIDFiles {
-		content, err := ioutil.ReadFile(cidFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error reading CIDFile")
-		}
-		id := strings.Split(string(content), "\n")[0]
-		names = append(names, id)
-	}
-
 	// Attempt to remove named containers directly from storage, if container is defined in libpod
 	// this will fail and code will fall through to removing the container from libpod.`
 	tmpNames := []string{}
 	for _, ctr := range names {
 		report := entities.RmReport{Id: ctr}
-		if err := ic.Libpod.RemoveStorageContainer(ctr, options.Force); err != nil {
+		report.Err = ic.Libpod.RemoveStorageContainer(ctr, options.Force)
+		switch errors.Cause(report.Err) {
+		case nil:
 			// remove container names that we successfully deleted
-			tmpNames = append(tmpNames, ctr)
-		} else {
 			reports = append(reports, &report)
+		case define.ErrNoSuchCtr:
+			// There is still a potential this is a libpod container
+			tmpNames = append(tmpNames, ctr)
+		default:
+			if _, err := ic.Libpod.LookupContainer(ctr); errors.Cause(err) == define.ErrNoSuchCtr {
+				// remove container failed, but not a libpod container
+				reports = append(reports, &report)
+				continue
+			}
+			// attempt to remove as a libpod container
+			tmpNames = append(tmpNames, ctr)
 		}
 	}
-	if len(tmpNames) < len(names) {
-		names = tmpNames
-	}
+	names = tmpNames
 
 	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
@@ -745,7 +728,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				return reports, errors.Wrapf(err, "unable to start container %s", ctr.ID())
 			}
 
-			if ecode, err := ctr.Wait(); err != nil {
+			if ecode, err := ctr.Wait(ctx); err != nil {
 				if errors.Cause(err) == define.ErrNoSuchCtr {
 					// Check events
 					event, err := ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
@@ -884,7 +867,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		return &report, err
 	}
 
-	if ecode, err := ctr.Wait(); err != nil {
+	if ecode, err := ctr.Wait(ctx); err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			// Check events
 			event, err := ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)

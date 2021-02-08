@@ -2,7 +2,6 @@ package images
 
 import (
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/common/pkg/config"
 )
 
 //go:generate go run ../generator/generator.go RemoveOptions
@@ -104,37 +103,14 @@ type PushOptions struct {
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
 	Authfile *string
-	// CertDir is the path to certificate directories.  Ignored for remote
-	// calls.
-	CertDir *string
-	// Compress tarball image layers when pushing to a directory using the 'dir'
-	// transport. Default is same compression type as source. Ignored for remote
-	// calls.
+	// Compress tarball image layers when pushing to a directory using the 'dir' transport.
 	Compress *bool
-	// Username for authenticating against the registry.
-	Username *string
 	// Password for authenticating against the registry.
 	Password *string
-	// DigestFile, after copying the image, write the digest of the resulting
-	// image to the file.  Ignored for remote calls.
-	DigestFile *string
-	// Format is the Manifest type (oci, v2s1, or v2s2) to use when pushing an
-	// image using the 'dir' transport. Default is manifest type of source.
-	// Ignored for remote calls.
-	Format *string
-	// Quiet can be specified to suppress pull progress when pulling.  Ignored
-	// for remote calls.
-	Quiet *bool
-	// RemoveSignatures, discard any pre-existing signatures in the image.
-	// Ignored for remote calls.
-	RemoveSignatures *bool
-	// SignaturePolicy to use when pulling.  Ignored for remote calls.
-	SignaturePolicy *string
-	// SignBy adds a signature at the destination using the specified key.
-	// Ignored for remote calls.
-	SignBy *string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify *bool
+	// Username for authenticating against the registry.
+	Username *string
 }
 
 //go:generate go run ../generator/generator.go SearchOptions
@@ -161,32 +137,25 @@ type PullOptions struct {
 	// AllTags can be specified to pull all tags of an image. Note
 	// that this only works if the image does not include a tag.
 	AllTags *bool
+	// Arch will overwrite the local architecture for image pulls.
+	Arch *string
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
 	Authfile *string
-	// CertDir is the path to certificate directories.  Ignored for remote
-	// calls.
-	CertDir *string
-	// Username for authenticating against the registry.
-	Username *string
+	// OS will overwrite the local operating system (OS) for image
+	// pulls.
+	OS *string
 	// Password for authenticating against the registry.
 	Password *string
-	// OverrideArch will overwrite the local architecture for image pulls.
-	OverrideArch *string
-	// OverrideOS will overwrite the local operating system (OS) for image
-	// pulls.
-	OverrideOS *string
-	// OverrideVariant will overwrite the local variant for image pulls.
-	OverrideVariant *string
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet *bool
-	// SignaturePolicy to use when pulling.  Ignored for remote calls.
-	SignaturePolicy *string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify *bool
-	// PullPolicy whether to pull new image
-	PullPolicy *config.PullPolicy
+	// Username for authenticating against the registry.
+	Username *string
+	// Variant will overwrite the local variant for image pulls.
+	Variant *string
 }
 
 //BuildOptions are optional options for building images

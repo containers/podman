@@ -3,10 +3,9 @@ package images
 import (
 	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v2/pkg/bindings/util"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
@@ -44,33 +43,19 @@ func (o *PullOptions) ToParams() (url.Values, error) {
 		if reflect.Ptr == f.Kind() {
 			f = f.Elem()
 		}
-		switch f.Kind() {
-		case reflect.Bool:
-			params.Set(fieldName, strconv.FormatBool(f.Bool()))
-		case reflect.String:
-			params.Set(fieldName, f.String())
-		case reflect.Int, reflect.Int64:
-			// f.Int() is always an int64
-			params.Set(fieldName, strconv.FormatInt(f.Int(), 10))
-		case reflect.Uint, reflect.Uint64:
-			// f.Uint() is always an uint64
-			params.Set(fieldName, strconv.FormatUint(f.Uint(), 10))
-		case reflect.Slice:
-			typ := reflect.TypeOf(f.Interface()).Elem()
-			switch typ.Kind() {
-			case reflect.String:
-				sl := f.Slice(0, f.Len())
-				s, ok := sl.Interface().([]string)
-				if !ok {
-					return nil, errors.New("failed to convert to string slice")
+		switch {
+		case util.IsSimpleType(f):
+			params.Set(fieldName, util.SimpleTypeToParam(f))
+		case f.Kind() == reflect.Slice:
+			for i := 0; i < f.Len(); i++ {
+				elem := f.Index(i)
+				if util.IsSimpleType(elem) {
+					params.Add(fieldName, util.SimpleTypeToParam(elem))
+				} else {
+					return nil, errors.New("slices must contain only simple types")
 				}
-				for _, val := range s {
-					params.Add(fieldName, val)
-				}
-			default:
-				return nil, errors.Errorf("unknown slice type %s", f.Kind().String())
 			}
-		case reflect.Map:
+		case f.Kind() == reflect.Map:
 			lowerCaseKeys := make(map[string][]string)
 			iter := f.MapRange()
 			for iter.Next() {
@@ -84,6 +69,7 @@ func (o *PullOptions) ToParams() (url.Values, error) {
 
 			params.Set(fieldName, s)
 		}
+
 	}
 	return params, nil
 }
@@ -104,6 +90,22 @@ func (o *PullOptions) GetAllTags() bool {
 	return *o.AllTags
 }
 
+// WithArch
+func (o *PullOptions) WithArch(value string) *PullOptions {
+	v := &value
+	o.Arch = v
+	return o
+}
+
+// GetArch
+func (o *PullOptions) GetArch() string {
+	var arch string
+	if o.Arch == nil {
+		return arch
+	}
+	return *o.Arch
+}
+
 // WithAuthfile
 func (o *PullOptions) WithAuthfile(value string) *PullOptions {
 	v := &value
@@ -120,36 +122,20 @@ func (o *PullOptions) GetAuthfile() string {
 	return *o.Authfile
 }
 
-// WithCertDir
-func (o *PullOptions) WithCertDir(value string) *PullOptions {
+// WithOS
+func (o *PullOptions) WithOS(value string) *PullOptions {
 	v := &value
-	o.CertDir = v
+	o.OS = v
 	return o
 }
 
-// GetCertDir
-func (o *PullOptions) GetCertDir() string {
-	var certDir string
-	if o.CertDir == nil {
-		return certDir
+// GetOS
+func (o *PullOptions) GetOS() string {
+	var oS string
+	if o.OS == nil {
+		return oS
 	}
-	return *o.CertDir
-}
-
-// WithUsername
-func (o *PullOptions) WithUsername(value string) *PullOptions {
-	v := &value
-	o.Username = v
-	return o
-}
-
-// GetUsername
-func (o *PullOptions) GetUsername() string {
-	var username string
-	if o.Username == nil {
-		return username
-	}
-	return *o.Username
+	return *o.OS
 }
 
 // WithPassword
@@ -168,54 +154,6 @@ func (o *PullOptions) GetPassword() string {
 	return *o.Password
 }
 
-// WithOverrideArch
-func (o *PullOptions) WithOverrideArch(value string) *PullOptions {
-	v := &value
-	o.OverrideArch = v
-	return o
-}
-
-// GetOverrideArch
-func (o *PullOptions) GetOverrideArch() string {
-	var overrideArch string
-	if o.OverrideArch == nil {
-		return overrideArch
-	}
-	return *o.OverrideArch
-}
-
-// WithOverrideOS
-func (o *PullOptions) WithOverrideOS(value string) *PullOptions {
-	v := &value
-	o.OverrideOS = v
-	return o
-}
-
-// GetOverrideOS
-func (o *PullOptions) GetOverrideOS() string {
-	var overrideOS string
-	if o.OverrideOS == nil {
-		return overrideOS
-	}
-	return *o.OverrideOS
-}
-
-// WithOverrideVariant
-func (o *PullOptions) WithOverrideVariant(value string) *PullOptions {
-	v := &value
-	o.OverrideVariant = v
-	return o
-}
-
-// GetOverrideVariant
-func (o *PullOptions) GetOverrideVariant() string {
-	var overrideVariant string
-	if o.OverrideVariant == nil {
-		return overrideVariant
-	}
-	return *o.OverrideVariant
-}
-
 // WithQuiet
 func (o *PullOptions) WithQuiet(value bool) *PullOptions {
 	v := &value
@@ -230,22 +168,6 @@ func (o *PullOptions) GetQuiet() bool {
 		return quiet
 	}
 	return *o.Quiet
-}
-
-// WithSignaturePolicy
-func (o *PullOptions) WithSignaturePolicy(value string) *PullOptions {
-	v := &value
-	o.SignaturePolicy = v
-	return o
-}
-
-// GetSignaturePolicy
-func (o *PullOptions) GetSignaturePolicy() string {
-	var signaturePolicy string
-	if o.SignaturePolicy == nil {
-		return signaturePolicy
-	}
-	return *o.SignaturePolicy
 }
 
 // WithSkipTLSVerify
@@ -264,18 +186,34 @@ func (o *PullOptions) GetSkipTLSVerify() bool {
 	return *o.SkipTLSVerify
 }
 
-// WithPullPolicy
-func (o *PullOptions) WithPullPolicy(value config.PullPolicy) *PullOptions {
+// WithUsername
+func (o *PullOptions) WithUsername(value string) *PullOptions {
 	v := &value
-	o.PullPolicy = v
+	o.Username = v
 	return o
 }
 
-// GetPullPolicy
-func (o *PullOptions) GetPullPolicy() config.PullPolicy {
-	var pullPolicy config.PullPolicy
-	if o.PullPolicy == nil {
-		return pullPolicy
+// GetUsername
+func (o *PullOptions) GetUsername() string {
+	var username string
+	if o.Username == nil {
+		return username
 	}
-	return *o.PullPolicy
+	return *o.Username
+}
+
+// WithVariant
+func (o *PullOptions) WithVariant(value string) *PullOptions {
+	v := &value
+	o.Variant = v
+	return o
+}
+
+// GetVariant
+func (o *PullOptions) GetVariant() string {
+	var variant string
+	if o.Variant == nil {
+		return variant
+	}
+	return *o.Variant
 }

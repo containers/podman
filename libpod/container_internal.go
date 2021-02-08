@@ -754,17 +754,17 @@ func (c *Container) getArtifactPath(name string) string {
 }
 
 // Used with Wait() to determine if a container has exited
-func (c *Container) isStopped() (bool, error) {
+func (c *Container) isStopped() (bool, int32, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 	}
 	err := c.syncContainer()
 	if err != nil {
-		return true, err
+		return true, -1, err
 	}
 
-	return !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopping), nil
+	return !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopping), c.state.ExitCode, nil
 }
 
 // save container state to the database

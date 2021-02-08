@@ -71,6 +71,9 @@ All tagged images in the repository will be pulled.
 
 Note: When using the all-tags flag, Podman will not iterate over the search registries in the containers-registries.conf(5) but will always use docker.io for unqualified image names.
 
+#### **--arch**=*ARCH*
+Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
+
 #### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
@@ -96,19 +99,16 @@ This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
 solely for scripting compatibility.
 
-#### **--override-arch**=*ARCH*
-Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
+#### **--help**, **-h**
 
-#### **--override-os**=*OS*
+Print usage statement
+
+#### **--os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
-
-#### **--override-variant**=*VARIANT*
-
-Use _VARIANT_ instead of the default architecture variant of the container image.  Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
 #### **--platform**=*OS/ARCH*
 
-Specify the platform for selecting the image.  (Conflicts with override-arch and override-os)
+Specify the platform for selecting the image.  (Conflicts with --arch and --os)
 The `--platform` option can be used to override the current architecture and operating system.
 
 #### **--quiet**, **-q**
@@ -121,9 +121,9 @@ Require HTTPS and verify certificates when contacting registries (default: true)
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
-#### **--help**, **-h**
+#### **--variant**=*VARIANT*
 
-Print usage statement
+Use _VARIANT_ instead of the default architecture variant of the container image.  Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
 ## EXAMPLES
 
@@ -189,7 +189,7 @@ Storing signatures
 ```
 
 ```
-$ podman pull --override-arch=arm arm32v7/debian:stretch
+$ podman pull --arch=arm arm32v7/debian:stretch
 Trying to pull docker.io/arm32v7/debian:stretch...
 Getting image source signatures
 Copying blob b531ae4a3925 done

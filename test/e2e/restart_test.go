@@ -225,4 +225,26 @@ var _ = Describe("Podman restart", func() {
 		// line count should be equal
 		Expect(beforeRestart.OutputToString()).To(Equal(afterRestart.OutputToString()))
 	})
+
+	It("podman restart --all", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+
+		session = podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+
+		session = podmanTest.Podman([]string{"stop", "--all"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"restart", "--all"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+	})
 })

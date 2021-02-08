@@ -167,4 +167,20 @@ var _ = Describe("Podman kill", func() {
 		Expect(wait.ExitCode()).To(BeZero())
 	})
 
+	It("podman stop --all", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+
+		session = podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+
+		session = podmanTest.Podman([]string{"kill", "--all"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
 })

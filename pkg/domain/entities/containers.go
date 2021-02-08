@@ -51,7 +51,7 @@ type ContainerRunlabelReport struct {
 }
 
 type WaitOptions struct {
-	Condition define.ContainerStatus
+	Condition []define.ContainerStatus
 	Interval  time.Duration
 	Latest    bool
 }
@@ -81,11 +81,10 @@ type PauseUnpauseReport struct {
 }
 
 type StopOptions struct {
-	All      bool
-	CIDFiles []string
-	Ignore   bool
-	Latest   bool
-	Timeout  *uint
+	All     bool
+	Ignore  bool
+	Latest  bool
+	Timeout *uint
 }
 
 type StopReport struct {
@@ -104,10 +103,9 @@ type TopOptions struct {
 }
 
 type KillOptions struct {
-	All      bool
-	Latest   bool
-	Signal   string
-	CIDFiles []string
+	All    bool
+	Latest bool
+	Signal string
 }
 
 type KillReport struct {
@@ -128,12 +126,11 @@ type RestartReport struct {
 }
 
 type RmOptions struct {
-	All      bool
-	CIDFiles []string
-	Force    bool
-	Ignore   bool
-	Latest   bool
-	Volumes  bool
+	All     bool
+	Force   bool
+	Ignore  bool
+	Latest  bool
+	Volumes bool
 }
 
 type RmReport struct {
@@ -298,8 +295,8 @@ type ContainerListOptions struct {
 	Pod       bool
 	Quiet     bool
 	Size      bool
+	External  bool
 	Sort      string
-	Storage   bool
 	Sync      bool
 	Watch     uint
 }

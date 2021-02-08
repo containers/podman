@@ -69,7 +69,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 		pss = append(pss, listCon)
 	}
 
-	if options.All && options.Storage {
+	if options.All && options.External {
 		externCons, err := runtime.StorageContainers()
 		if err != nil {
 			return nil, err

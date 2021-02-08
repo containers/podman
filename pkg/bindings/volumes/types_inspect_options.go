@@ -3,9 +3,9 @@ package volumes
 import (
 	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v2/pkg/bindings/util"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
@@ -43,33 +43,19 @@ func (o *InspectOptions) ToParams() (url.Values, error) {
 		if reflect.Ptr == f.Kind() {
 			f = f.Elem()
 		}
-		switch f.Kind() {
-		case reflect.Bool:
-			params.Set(fieldName, strconv.FormatBool(f.Bool()))
-		case reflect.String:
-			params.Set(fieldName, f.String())
-		case reflect.Int, reflect.Int64:
-			// f.Int() is always an int64
-			params.Set(fieldName, strconv.FormatInt(f.Int(), 10))
-		case reflect.Uint, reflect.Uint64:
-			// f.Uint() is always an uint64
-			params.Set(fieldName, strconv.FormatUint(f.Uint(), 10))
-		case reflect.Slice:
-			typ := reflect.TypeOf(f.Interface()).Elem()
-			switch typ.Kind() {
-			case reflect.String:
-				sl := f.Slice(0, f.Len())
-				s, ok := sl.Interface().([]string)
-				if !ok {
-					return nil, errors.New("failed to convert to string slice")
+		switch {
+		case util.IsSimpleType(f):
+			params.Set(fieldName, util.SimpleTypeToParam(f))
+		case f.Kind() == reflect.Slice:
+			for i := 0; i < f.Len(); i++ {
+				elem := f.Index(i)
+				if util.IsSimpleType(elem) {
+					params.Add(fieldName, util.SimpleTypeToParam(elem))
+				} else {
+					return nil, errors.New("slices must contain only simple types")
 				}
-				for _, val := range s {
-					params.Add(fieldName, val)
-				}
-			default:
-				return nil, errors.Errorf("unknown slice type %s", f.Kind().String())
 			}
-		case reflect.Map:
+		case f.Kind() == reflect.Map:
 			lowerCaseKeys := make(map[string][]string)
 			iter := f.MapRange()
 			for iter.Next() {
@@ -83,6 +69,7 @@ func (o *InspectOptions) ToParams() (url.Values, error) {
 
 			params.Set(fieldName, s)
 		}
+
 	}
 	return params, nil
 }

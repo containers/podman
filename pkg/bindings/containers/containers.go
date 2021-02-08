@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/containers/podman/v2/libpod/define"
@@ -71,8 +70,10 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 }
 
 // Remove removes a container from local storage.  The force bool designates
-// that the container should be removed forcibly (example, even it is running).  The volumes
-// bool dictates that a container's volumes should also be removed.
+// that the container should be removed forcibly (example, even it is running).
+// The volumes bool dictates that a container's volumes should also be removed.
+// The All option indicates that all containers should be removed
+// The Ignore option indicates that if a container did not exist, ignore the error
 func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error {
 	if options == nil {
 		options = new(RemoveOptions)
@@ -81,12 +82,9 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error 
 	if err != nil {
 		return err
 	}
-	params := url.Values{}
-	if v := options.GetVolumes(); options.Changed("Volumes") {
-		params.Set("v", strconv.FormatBool(v))
-	}
-	if force := options.GetForce(); options.Changed("Force") {
-		params.Set("force", strconv.FormatBool(force))
+	params, err := options.ToParams()
+	if err != nil {
+		return err
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/containers/%s", params, nil, nameOrID)
 	if err != nil {
@@ -122,7 +120,7 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*de
 // Kill sends a given signal to a given container.  The signal should be the string
 // representation of a signal like 'SIGKILL'. The nameOrID can be a container name
 // or a partial/full ID
-func Kill(ctx context.Context, nameOrID string, sig string, options *KillOptions) error {
+func Kill(ctx context.Context, nameOrID string, options *KillOptions) error {
 	if options == nil {
 		options = new(KillOptions)
 	}
@@ -134,7 +132,6 @@ func Kill(ctx context.Context, nameOrID string, sig string, options *KillOptions
 	if err != nil {
 		return err
 	}
-	params.Set("signal", sig)
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/kill", params, nil, nameOrID)
 	if err != nil {
 		return err
@@ -172,9 +169,9 @@ func Restart(ctx context.Context, nameOrID string, options *RestartOptions) erro
 	if err != nil {
 		return err
 	}
-	params := url.Values{}
-	if options.Changed("Timeout") {
-		params.Set("t", strconv.Itoa(options.GetTimeout()))
+	params, err := options.ToParams()
+	if err != nil {
+		return err
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restart", params, nil, nameOrID)
 	if err != nil {
@@ -327,9 +324,9 @@ func Wait(ctx context.Context, nameOrID string, options *WaitOptions) (int32, er
 	if err != nil {
 		return exitCode, err
 	}
-	params := url.Values{}
-	if options.Changed("Condition") {
-		params.Set("condition", options.GetCondition().String())
+	params, err := options.ToParams()
+	if err != nil {
+		return exitCode, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/wait", params, nil, nameOrID)
 	if err != nil {

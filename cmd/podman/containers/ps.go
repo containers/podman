@@ -78,7 +78,7 @@ func listFlagSet(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	flags.BoolVarP(&listOpts.All, "all", "a", false, "Show all the containers, default is only running containers")
-	flags.BoolVar(&listOpts.Storage, "external", false, "Show containers in storage not controlled by Podman")
+	flags.BoolVar(&listOpts.External, "external", false, "Show containers in storage not controlled by Podman")
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
@@ -132,10 +132,10 @@ func checkFlags(c *cobra.Command) error {
 	}
 	cfg := registry.PodmanConfig()
 	if cfg.Engine.Namespace != "" {
-		if c.Flag("storage").Changed && listOpts.Storage {
-			return errors.New("--namespace and --storage flags can not both be set")
+		if c.Flag("storage").Changed && listOpts.External {
+			return errors.New("--namespace and --external flags can not both be set")
 		}
-		listOpts.Storage = false
+		listOpts.External = false
 	}
 
 	return nil

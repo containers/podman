@@ -3,6 +3,8 @@ package containers
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v2/cmd/podman/common"
@@ -10,6 +12,7 @@ import (
 	"github.com/containers/podman/v2/cmd/podman/utils"
 	"github.com/containers/podman/v2/cmd/podman/validate"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +61,7 @@ func stopFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 
 	cidfileFlagName := "cidfile"
-	flags.StringArrayVarP(&stopOptions.CIDFiles, cidfileFlagName, "", nil, "Read the container ID from the file")
+	flags.StringArrayVar(&cidFiles, cidfileFlagName, nil, "Read the container ID from the file")
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	timeFlagName := "time"
@@ -95,6 +98,15 @@ func stop(cmd *cobra.Command, args []string) error {
 	)
 	if cmd.Flag("time").Changed {
 		stopOptions.Timeout = &stopTimeout
+	}
+
+	for _, cidFile := range cidFiles {
+		content, err := ioutil.ReadFile(string(cidFile))
+		if err != nil {
+			return errors.Wrap(err, "error reading CIDFile")
+		}
+		id := strings.Split(string(content), "\n")[0]
+		args = append(args, id)
 	}
 
 	responses, err := registry.ContainerEngine().ContainerStop(context.Background(), args, stopOptions)

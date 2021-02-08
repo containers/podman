@@ -50,7 +50,7 @@ func waitFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	intervalFlagName := "interval"
-	flags.StringVarP(&waitInterval, intervalFlagName, "i", "250ns", "Time Interval to wait before polling for completion")
+	flags.StringVarP(&waitInterval, intervalFlagName, "i", "250ms", "Time Interval to wait before polling for completion")
 	_ = cmd.RegisterFlagCompletionFunc(intervalFlagName, completion.AutocompleteNone)
 
 	conditionFlagName := "condition"
@@ -95,10 +95,11 @@ func wait(cmd *cobra.Command, args []string) error {
 		return errors.New("--latest and containers cannot be used together")
 	}
 
-	waitOptions.Condition, err = define.StringToContainerStatus(waitCondition)
+	cond, err := define.StringToContainerStatus(waitCondition)
 	if err != nil {
 		return err
 	}
+	waitOptions.Condition = []define.ContainerStatus{cond}
 
 	responses, err := registry.ContainerEngine().ContainerWait(context.Background(), args, waitOptions)
 	if err != nil {

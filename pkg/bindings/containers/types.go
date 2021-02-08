@@ -106,6 +106,7 @@ type MountedContainerPathsOptions struct{}
 // ListOptions are optional options for listing containers
 type ListOptions struct {
 	All       *bool
+	External  *bool
 	Filters   map[string][]string
 	Last      *int
 	Namespace *bool
@@ -122,6 +123,7 @@ type PruneOptions struct {
 //go:generate go run ../generator/generator.go RemoveOptions
 // RemoveOptions are optional options for removing containers
 type RemoveOptions struct {
+	Ignore  *bool
 	Force   *bool
 	Volumes *bool
 }
@@ -135,6 +137,7 @@ type InspectOptions struct {
 //go:generate go run ../generator/generator.go KillOptions
 // KillOptions are optional options for killing containers
 type KillOptions struct {
+	Signal *string
 }
 
 //go:generate go run ../generator/generator.go PauseOptions
@@ -173,12 +176,14 @@ type UnpauseOptions struct{}
 //go:generate go run ../generator/generator.go WaitOptions
 // WaitOptions are optional options for waiting on containers
 type WaitOptions struct {
-	Condition *define.ContainerStatus
+	Condition []define.ContainerStatus
+	Interval  *string
 }
 
 //go:generate go run ../generator/generator.go StopOptions
 // StopOptions are optional options for stopping containers
 type StopOptions struct {
+	Ignore  *bool
 	Timeout *uint
 }
 

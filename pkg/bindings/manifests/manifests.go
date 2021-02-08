@@ -140,7 +140,6 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 	}
 	params.Set("image", name)
 	params.Set("destination", destination)
-	params.Set("format", *options.Format)
 	_, err = conn.DoRequest(nil, http.MethodPost, "/manifests/%s/push", params, nil, name)
 	if err != nil {
 		return "", err
