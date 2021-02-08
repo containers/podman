@@ -426,6 +426,12 @@ func AutocompleteCreateRun(cmd *cobra.Command, args []string, toComplete string)
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) < 1 {
+		// check if the rootfs flag is set
+		// if it is set to true provide directory completion
+		rootfs, err := cmd.Flags().GetBool("rootfs")
+		if err == nil && rootfs {
+			return nil, cobra.ShellCompDirectiveFilterDirs
+		}
 		return getImages(cmd, toComplete)
 	}
 	// TODO: add path completion for files in the image
