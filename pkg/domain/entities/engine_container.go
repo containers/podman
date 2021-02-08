@@ -63,6 +63,7 @@ type ContainerEngine interface {
 	NetworkExists(ctx context.Context, networkname string) (*BoolReport, error)
 	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]NetworkInspectReport, []error, error)
 	NetworkList(ctx context.Context, options NetworkListOptions) ([]*NetworkListReport, error)
+	NetworkPrune(ctx context.Context, options NetworkPruneOptions) ([]*NetworkPruneReport, error)
 	NetworkReload(ctx context.Context, names []string, options NetworkReloadOptions) ([]*NetworkReloadReport, error)
 	NetworkRm(ctx context.Context, namesOrIds []string, options NetworkRmOptions) ([]*NetworkRmReport, error)
 	PlayKube(ctx context.Context, path string, opts PlayKubeOptions) (*PlayKubeReport, error)

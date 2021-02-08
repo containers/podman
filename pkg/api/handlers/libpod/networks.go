@@ -175,3 +175,17 @@ func ExistsNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
+
+// Prune removes unused networks
+func Prune(w http.ResponseWriter, r *http.Request) {
+	// TODO Filters are not implemented
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	ic := abi.ContainerEngine{Libpod: runtime}
+	pruneOptions := entities.NetworkPruneOptions{}
+	pruneReports, err := ic.NetworkPrune(r.Context(), pruneOptions)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, pruneReports)
+}

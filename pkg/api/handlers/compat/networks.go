@@ -388,3 +388,25 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusOK, "OK")
 }
+
+// Prune removes unused networks
+func Prune(w http.ResponseWriter, r *http.Request) {
+	// TODO Filters are not implemented
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	ic := abi.ContainerEngine{Libpod: runtime}
+	pruneOptions := entities.NetworkPruneOptions{}
+	pruneReports, err := ic.NetworkPrune(r.Context(), pruneOptions)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	var prunedNetworks []string //nolint
+	for _, pr := range pruneReports {
+		if pr.Error != nil {
+			logrus.Error(pr.Error)
+			continue
+		}
+		prunedNetworks = append(prunedNetworks, pr.Name)
+	}
+	utils.WriteResponse(w, http.StatusOK, prunedNetworks)
+}

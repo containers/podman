@@ -11,6 +11,7 @@ import (
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v2/pkg/domain/entities"
 	"github.com/containers/podman/v2/pkg/rootless"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/pkg/errors"
@@ -174,14 +175,9 @@ func ValidateUserNetworkIsAvailable(config *config.Config, userNet *net.IPNet) e
 	return nil
 }
 
-// RemoveNetwork removes a given network by name.  If the network has container associated with it, that
-// must be handled outside the context of this.
-func RemoveNetwork(config *config.Config, name string) error {
-	l, err := acquireCNILock(config)
-	if err != nil {
-		return err
-	}
-	defer l.releaseCNILock()
+// removeNetwork is removes a cni network without a lock and should only be called
+// when a lock was otherwise acquired.
+func removeNetwork(config *config.Config, name string) error {
 	cniPath, err := GetCNIConfigPathByNameOrID(config, name)
 	if err != nil {
 		return err
@@ -213,6 +209,17 @@ func RemoveNetwork(config *config.Config, name string) error {
 	return nil
 }
 
+// RemoveNetwork removes a given network by name.  If the network has container associated with it, that
+// must be handled outside the context of this.
+func RemoveNetwork(config *config.Config, name string) error {
+	l, err := acquireCNILock(config)
+	if err != nil {
+		return err
+	}
+	defer l.releaseCNILock()
+	return removeNetwork(config, name)
+}
+
 // InspectNetwork reads a CNI config and returns its configuration
 func InspectNetwork(config *config.Config, name string) (map[string]interface{}, error) {
 	b, err := ReadRawCNIConfByName(config, name)
@@ -242,4 +249,31 @@ func Exists(config *config.Config, name string) (bool, error) {
 func GetNetworkID(name string) string {
 	hash := sha256.Sum256([]byte(name))
 	return hex.EncodeToString(hash[:])
+}
+
+// PruneNetworks removes networks that are not being used and that is not the default
+// network.  To keep proper fencing for imports, you must provide the used networks
+// to this function as a map.  the key is meaningful in the map, the book is a no-op
+func PruneNetworks(rtc *config.Config, usedNetworks map[string]bool) ([]*entities.NetworkPruneReport, error) {
+	var reports []*entities.NetworkPruneReport
+	lock, err := acquireCNILock(rtc)
+	if err != nil {
+		return nil, err
+	}
+	defer lock.releaseCNILock()
+	nets, err := GetNetworkNamesFromFileSystem(rtc)
+	if err != nil {
+		return nil, err
+	}
+	for _, n := range nets {
+		_, found := usedNetworks[n]
+		// Remove is not default network and not found in the used list
+		if n != rtc.Network.DefaultNetwork && !found {
+			reports = append(reports, &entities.NetworkPruneReport{
+				Name:  n,
+				Error: removeNetwork(rtc, n),
+			})
+		}
+	}
+	return reports, nil
 }

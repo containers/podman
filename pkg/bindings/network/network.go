@@ -180,3 +180,21 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	}
 	return response.IsSuccess(), nil
 }
+
+// Prune removes unused CNI networks
+func Prune(ctx context.Context, options *PruneOptions) ([]*entities.NetworkPruneReport, error) {
+	// TODO Filters is not implemented
+	var (
+		prunedNetworks []*entities.NetworkPruneReport
+	)
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(nil, http.MethodPost, "/networks/prune", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return prunedNetworks, response.Process(&prunedNetworks)
+}

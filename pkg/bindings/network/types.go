@@ -74,3 +74,9 @@ type ConnectOptions struct {
 // if a network exists
 type ExistsOptions struct {
 }
+
+//go:generate go run ../generator/generator.go PruneOptions
+// PruneOptions are optional options for removing unused
+// CNI networks
+type PruneOptions struct {
+}

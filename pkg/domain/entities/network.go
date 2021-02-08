@@ -80,3 +80,15 @@ type NetworkConnectOptions struct {
 	Aliases   []string
 	Container string
 }
+
+// NetworkPruneReport containers the name of network and an error
+// associated in its pruning (removal)
+// swagger:model NetworkPruneReport
+type NetworkPruneReport struct {
+	Name  string
+	Error error
+}
+
+// NetworkPruneOptions describes options for pruning
+// unused cni networks
+type NetworkPruneOptions struct{}
