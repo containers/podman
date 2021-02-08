@@ -31,36 +31,31 @@ import (
 func Build(ctx context.Context, containerFiles []string, options entities.BuildOptions) (*entities.BuildReport, error) {
 	params := url.Values{}
 
-	if t := options.Output; len(t) > 0 {
-		params.Set("t", t)
+	if caps := options.AddCapabilities; len(caps) > 0 {
+		c, err := jsoniter.MarshalToString(caps)
+		if err != nil {
+			return nil, err
+		}
+		params.Add("addcaps", c)
 	}
+
+	if annotations := options.Annotations; len(annotations) > 0 {
+		l, err := jsoniter.MarshalToString(annotations)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("annotations", l)
+	}
+	params.Add("t", options.Output)
 	for _, tag := range options.AdditionalTags {
 		params.Add("t", tag)
 	}
-	if options.Quiet {
-		params.Set("q", "1")
-	}
-	if options.NoCache {
-		params.Set("nocache", "1")
-	}
-	if options.Layers {
-		params.Set("layers", "1")
-	}
-	//	 TODO cachefrom
-	if options.PullPolicy == buildah.PullAlways {
-		params.Set("pull", "1")
-	}
-	if options.RemoveIntermediateCtrs {
-		params.Set("rm", "1")
-	}
-	if options.ForceRmIntermediateCtrs {
-		params.Set("forcerm", "1")
-	}
-	if mem := options.CommonBuildOpts.Memory; mem > 0 {
-		params.Set("memory", strconv.Itoa(int(mem)))
-	}
-	if memSwap := options.CommonBuildOpts.MemorySwap; memSwap > 0 {
-		params.Set("memswap", strconv.Itoa(int(memSwap)))
+	if buildArgs := options.Args; len(buildArgs) > 0 {
+		bArgs, err := jsoniter.MarshalToString(buildArgs)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("buildargs", bArgs)
 	}
 	if cpuShares := options.CommonBuildOpts.CPUShares; cpuShares > 0 {
 		params.Set("cpushares", strconv.Itoa(int(cpuShares)))
@@ -74,12 +69,95 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if cpuQuota := options.CommonBuildOpts.CPUQuota; cpuQuota > 0 {
 		params.Set("cpuquota", strconv.Itoa(int(cpuQuota)))
 	}
-	if buildArgs := options.Args; len(buildArgs) > 0 {
-		bArgs, err := jsoniter.MarshalToString(buildArgs)
+	params.Set("networkmode", strconv.Itoa(int(options.ConfigureNetwork)))
+	params.Set("outputformat", options.OutputFormat)
+
+	if devices := options.Devices; len(devices) > 0 {
+		d, err := jsoniter.MarshalToString(devices)
 		if err != nil {
 			return nil, err
 		}
-		params.Set("buildargs", bArgs)
+		params.Add("devices", d)
+	}
+
+	if caps := options.DropCapabilities; len(caps) > 0 {
+		c, err := jsoniter.MarshalToString(caps)
+		if err != nil {
+			return nil, err
+		}
+		params.Add("dropcaps", c)
+	}
+
+	if options.ForceRmIntermediateCtrs {
+		params.Set("forcerm", "1")
+	}
+	if len(options.From) > 0 {
+		params.Set("from", options.From)
+	}
+
+	params.Set("isolation", strconv.Itoa(int(options.Isolation)))
+	if options.CommonBuildOpts.HTTPProxy {
+		params.Set("httpproxy", "1")
+	}
+	if options.Jobs != nil {
+		params.Set("jobs", strconv.FormatUint(uint64(*options.Jobs), 10))
+	}
+	if labels := options.Labels; len(labels) > 0 {
+		l, err := jsoniter.MarshalToString(labels)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("labels", l)
+	}
+	if options.Layers {
+		params.Set("layers", "1")
+	}
+	if options.LogRusage {
+		params.Set("rusage", "1")
+	}
+	if len(options.Manifest) > 0 {
+		params.Set("manifest", options.Manifest)
+	}
+	if memSwap := options.CommonBuildOpts.MemorySwap; memSwap > 0 {
+		params.Set("memswap", strconv.Itoa(int(memSwap)))
+	}
+	if mem := options.CommonBuildOpts.Memory; mem > 0 {
+		params.Set("memory", strconv.Itoa(int(mem)))
+	}
+	if options.NoCache {
+		params.Set("nocache", "1")
+	}
+	if t := options.Output; len(t) > 0 {
+		params.Set("output", t)
+	}
+	var platform string
+	if len(options.OS) > 0 {
+		platform = options.OS
+	}
+	if len(options.Architecture) > 0 {
+		if len(platform) == 0 {
+			platform = "linux"
+		}
+		platform += "/" + options.Architecture
+	}
+	if len(platform) > 0 {
+		params.Set("platform", platform)
+	}
+	if options.PullPolicy == buildah.PullAlways {
+		params.Set("pull", "1")
+	}
+	if options.Quiet {
+		params.Set("q", "1")
+	}
+	if options.RemoveIntermediateCtrs {
+		params.Set("rm", "1")
+	}
+	if hosts := options.CommonBuildOpts.AddHost; len(hosts) > 0 {
+		h, err := jsoniter.MarshalToString(hosts)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("extrahosts", h)
 	}
 	if shmSize := options.CommonBuildOpts.ShmSize; len(shmSize) > 0 {
 		shmBytes, err := units.RAMInBytes(shmSize)
@@ -91,17 +169,6 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if options.Squash {
 		params.Set("squash", "1")
 	}
-	if labels := options.Labels; len(labels) > 0 {
-		l, err := jsoniter.MarshalToString(labels)
-		if err != nil {
-			return nil, err
-		}
-		params.Set("labels", l)
-	}
-	if options.CommonBuildOpts.HTTPProxy {
-		params.Set("httpproxy", "1")
-	}
-
 	var (
 		headers map[string]string
 		err     error
@@ -122,19 +189,6 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	stdout := io.Writer(os.Stdout)
 	if options.Out != nil {
 		stdout = options.Out
-	}
-
-	// TODO network?
-
-	var platform string
-	if OS := options.OS; len(OS) > 0 {
-		platform += OS
-	}
-	if arch := options.Architecture; len(arch) > 0 {
-		platform += "/" + arch
-	}
-	if len(platform) > 0 {
-		params.Set("platform", platform)
 	}
 
 	entries := make([]string, len(containerFiles))

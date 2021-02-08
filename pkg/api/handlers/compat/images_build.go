@@ -60,29 +60,39 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	query := struct {
-		BuildArgs   string   `schema:"buildargs"`
-		CacheFrom   string   `schema:"cachefrom"`
-		CpuPeriod   uint64   `schema:"cpuperiod"`  // nolint
-		CpuQuota    int64    `schema:"cpuquota"`   // nolint
-		CpuSetCpus  string   `schema:"cpusetcpus"` // nolint
-		CpuShares   uint64   `schema:"cpushares"`  // nolint
-		Dockerfile  string   `schema:"dockerfile"`
-		ExtraHosts  string   `schema:"extrahosts"`
-		ForceRm     bool     `schema:"forcerm"`
-		HTTPProxy   bool     `schema:"httpproxy"`
-		Labels      string   `schema:"labels"`
-		Layers      bool     `schema:"layers"`
-		MemSwap     int64    `schema:"memswap"`
-		Memory      int64    `schema:"memory"`
-		NetworkMode string   `schema:"networkmode"`
-		NoCache     bool     `schema:"nocache"`
-		Outputs     string   `schema:"outputs"`
-		Platform    string   `schema:"platform"`
-		Pull        bool     `schema:"pull"`
-		Quiet       bool     `schema:"q"`
-		Registry    string   `schema:"registry"`
-		Remote      string   `schema:"remote"`
-		Rm          bool     `schema:"rm"`
+		AddHosts               string `schema:"extrahosts"`
+		AdditionalCapabilities string `schema:"addcaps"`
+		Annotations            string `schema:"annotations"`
+		BuildArgs              string `schema:"buildargs"`
+		CacheFrom              string `schema:"cachefrom"`
+		ConfigureNetwork       int64  `schema:"networkmode"`
+		CpuPeriod              uint64 `schema:"cpuperiod"`  // nolint
+		CpuQuota               int64  `schema:"cpuquota"`   // nolint
+		CpuSetCpus             string `schema:"cpusetcpus"` // nolint
+		CpuShares              uint64 `schema:"cpushares"`  // nolint
+		Devices                string `schema:"devices"`
+		Dockerfile             string `schema:"dockerfile"`
+		DropCapabilities       string `schema:"dropcaps"`
+		ForceRm                bool   `schema:"forcerm"`
+		From                   string `schema:"from"`
+		HTTPProxy              bool   `schema:"httpproxy"`
+		Isolation              int64  `schema:"isolation"`
+		Jobs                   uint64 `schema:"jobs"` // nolint
+		Labels                 string `schema:"labels"`
+		Layers                 bool   `schema:"layers"`
+		LogRusage              bool   `schema:"rusage"`
+		Manifest               string `schema:"manifest"`
+		MemSwap                int64  `schema:"memswap"`
+		Memory                 int64  `schema:"memory"`
+		NoCache                bool   `schema:"nocache"`
+		OutputFormat           string `schema:"outputformat"`
+		Platform               string `schema:"platform"`
+		Pull                   bool   `schema:"pull"`
+		Quiet                  bool   `schema:"q"`
+		Registry               string `schema:"registry"`
+		Rm                     bool   `schema:"rm"`
+		//FIXME SecurityOpt in remote API is not handled
+		SecurityOpt string   `schema:"securityopt"`
 		ShmSize     int      `schema:"shmsize"`
 		Squash      bool     `schema:"squash"`
 		Tag         []string `schema:"t"`
@@ -101,14 +111,57 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// convert label formats
+	var addCaps = []string{}
+	if _, found := r.URL.Query()["addcaps"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.AdditionalCapabilities), &m); err != nil {
+			utils.BadRequest(w, "addcaps", query.AdditionalCapabilities, err)
+			return
+		}
+		addCaps = m
+	}
+	addhosts := []string{}
+	if _, found := r.URL.Query()["extrahosts"]; found {
+		if err := json.Unmarshal([]byte(query.AddHosts), &addhosts); err != nil {
+			utils.BadRequest(w, "extrahosts", query.AddHosts, err)
+			return
+		}
+	}
+
+	// convert label formats
+	var dropCaps = []string{}
+	if _, found := r.URL.Query()["dropcaps"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.DropCapabilities), &m); err != nil {
+			utils.BadRequest(w, "dropcaps", query.DropCapabilities, err)
+			return
+		}
+		dropCaps = m
+	}
+
+	// convert label formats
+	var devices = []string{}
+	if _, found := r.URL.Query()["devices"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.DropCapabilities), &m); err != nil {
+			utils.BadRequest(w, "devices", query.DropCapabilities, err)
+			return
+		}
+		devices = m
+	}
+
 	var output string
 	if len(query.Tag) > 0 {
 		output = query.Tag[0]
 	}
-
-	var additionalNames []string
+	format := buildah.Dockerv2ImageManifest
+	if utils.IsLibpodRequest(r) {
+		format = query.OutputFormat
+	}
+	var additionalTags []string
 	if len(query.Tag) > 1 {
-		additionalNames = query.Tag[1:]
+		additionalTags = query.Tag[1:]
 	}
 
 	var buildArgs = map[string]string{}
@@ -120,16 +173,20 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// convert label formats
-	var labels = []string{}
-	if _, found := r.URL.Query()["labels"]; found {
-		var m = map[string]string{}
-		if err := json.Unmarshal([]byte(query.Labels), &m); err != nil {
-			utils.BadRequest(w, "labels", query.Labels, err)
+	var annotations = []string{}
+	if _, found := r.URL.Query()["annotations"]; found {
+		if err := json.Unmarshal([]byte(query.Annotations), &annotations); err != nil {
+			utils.BadRequest(w, "annotations", query.Annotations, err)
 			return
 		}
+	}
 
-		for k, v := range m {
-			labels = append(labels, k+"="+v)
+	// convert label formats
+	var labels = []string{}
+	if _, found := r.URL.Query()["labels"]; found {
+		if err := json.Unmarshal([]byte(query.Labels), &labels); err != nil {
+			utils.BadRequest(w, "labels", query.Labels, err)
+			return
 		}
 	}
 
@@ -160,27 +217,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	reporter := channel.NewWriter(make(chan []byte, 1))
 	defer reporter.Close()
+
 	buildOptions := imagebuildah.BuildOptions{
-		ContextDirectory:               contextDirectory,
-		PullPolicy:                     pullPolicy,
-		Registry:                       query.Registry,
-		IgnoreUnrecognizedInstructions: true,
-		Quiet:                          query.Quiet,
-		Layers:                         query.Layers,
-		Isolation:                      buildah.IsolationChroot,
-		Compression:                    archive.Gzip,
-		Args:                           buildArgs,
-		Output:                         output,
-		AdditionalTags:                 additionalNames,
-		Out:                            stdout,
-		Err:                            auxout,
-		ReportWriter:                   reporter,
-		OutputFormat:                   buildah.Dockerv2ImageManifest,
-		SystemContext: &types.SystemContext{
-			AuthFilePath:     authfile,
-			DockerAuthConfig: creds,
-		},
+		AddCapabilities: addCaps,
+		AdditionalTags:  additionalTags,
+		Annotations:     annotations,
+		Args:            buildArgs,
 		CommonBuildOpts: &buildah.CommonBuildOptions{
+			AddHost:    addhosts,
 			CPUPeriod:  query.CpuPeriod,
 			CPUQuota:   query.CpuQuota,
 			CPUShares:  query.CpuShares,
@@ -190,12 +234,37 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			MemorySwap: query.MemSwap,
 			ShmSize:    strconv.Itoa(query.ShmSize),
 		},
-		Squash:                  query.Squash,
-		Labels:                  labels,
-		NoCache:                 query.NoCache,
-		RemoveIntermediateCtrs:  query.Rm,
-		ForceRmIntermediateCtrs: query.ForceRm,
-		Target:                  query.Target,
+		Compression:                    archive.Gzip,
+		ConfigureNetwork:               buildah.NetworkConfigurationPolicy(query.ConfigureNetwork),
+		ContextDirectory:               contextDirectory,
+		Devices:                        devices,
+		DropCapabilities:               dropCaps,
+		Err:                            auxout,
+		ForceRmIntermediateCtrs:        query.ForceRm,
+		From:                           query.From,
+		IgnoreUnrecognizedInstructions: true,
+		// FIXME, This is very broken.  Buildah will only work with chroot
+		//		Isolation:                      buildah.Isolation(query.Isolation),
+		Isolation: buildah.IsolationChroot,
+
+		Labels:                 labels,
+		Layers:                 query.Layers,
+		Manifest:               query.Manifest,
+		NoCache:                query.NoCache,
+		Out:                    stdout,
+		Output:                 output,
+		OutputFormat:           format,
+		PullPolicy:             pullPolicy,
+		Quiet:                  query.Quiet,
+		Registry:               query.Registry,
+		RemoveIntermediateCtrs: query.Rm,
+		ReportWriter:           reporter,
+		Squash:                 query.Squash,
+		SystemContext: &types.SystemContext{
+			AuthFilePath:     authfile,
+			DockerAuthConfig: creds,
+		},
+		Target: query.Target,
 	}
 
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)

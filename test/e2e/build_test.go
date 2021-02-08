@@ -458,4 +458,55 @@ RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`
 		Expect(ok).To(BeTrue())
 	})
 
+	It("podman build --from, --add-host, --cap-drop, --cap-add", func() {
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+
+		containerFile := filepath.Join(targetPath, "Containerfile")
+		content := `FROM scratch
+RUN cat /etc/hosts
+RUN grep CapEff /proc/self/status`
+
+		Expect(ioutil.WriteFile(containerFile, []byte(content), 0755)).To(BeNil())
+
+		defer func() {
+			Expect(os.RemoveAll(containerFile)).To(BeNil())
+		}()
+
+		// When
+		session := podmanTest.Podman([]string{
+			"build", "--cap-drop=all", "--cap-add=net_bind_service", "--add-host", "testhost:1.2.3.4", "--from", "alpine", targetPath,
+		})
+		session.WaitWithDefaultTimeout()
+
+		// Then
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(strings.Fields(session.OutputToString())).
+			To(ContainElement("alpine"))
+		Expect(strings.Fields(session.OutputToString())).
+			To(ContainElement("testhost"))
+		Expect(strings.Fields(session.OutputToString())).
+			To(ContainElement("0000000000000400"))
+	})
+
+	It("podman build --arch", func() {
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+
+		containerFile := filepath.Join(targetPath, "Containerfile")
+		Expect(ioutil.WriteFile(containerFile, []byte("FROM alpine"), 0755)).To(BeNil())
+
+		defer func() {
+			Expect(os.RemoveAll(containerFile)).To(BeNil())
+		}()
+
+		// When
+		session := podmanTest.Podman([]string{
+			"build", "--arch", "arm64", targetPath,
+		})
+		session.WaitWithDefaultTimeout()
+
+		// Then
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
