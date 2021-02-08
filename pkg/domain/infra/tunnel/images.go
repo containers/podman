@@ -349,17 +349,6 @@ func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts en
 	if err != nil {
 		return nil, err
 	}
-	// For remote clients, if the option for writing to a file was
-	// selected, we need to write to the *client's* filesystem.
-	if len(opts.IIDFile) > 0 {
-		f, err := os.Create(opts.IIDFile)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := f.WriteString(report.ID); err != nil {
-			return nil, err
-		}
-	}
 	return report, nil
 }
 
