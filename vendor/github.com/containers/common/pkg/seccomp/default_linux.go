@@ -5,8 +5,6 @@
 package seccomp
 
 import (
-	"syscall"
-
 	"golang.org/x/sys/unix"
 )
 
@@ -45,7 +43,7 @@ func arches() []Architecture {
 
 // DefaultProfile defines the allowlist for the default seccomp profile.
 func DefaultProfile() *Seccomp {
-	einval := uint(syscall.EINVAL)
+	einval := uint(unix.EINVAL)
 
 	syscalls := []*Syscall{
 		{
@@ -87,6 +85,7 @@ func DefaultProfile() *Seccomp {
 				"epoll_ctl",
 				"epoll_ctl_old",
 				"epoll_pwait",
+				"epoll_pwait2",
 				"epoll_wait",
 				"epoll_wait_old",
 				"eventfd",
@@ -115,7 +114,11 @@ func DefaultProfile() *Seccomp {
 				"flock",
 				"fork",
 				"fremovexattr",
+				"fsconfig",
 				"fsetxattr",
+				"fsmount",
+				"fsopen",
+				"fspick",
 				"fstat",
 				"fstat64",
 				"fstatat64",
@@ -203,6 +206,7 @@ func DefaultProfile() *Seccomp {
 				"mmap",
 				"mmap2",
 				"mount",
+				"move_mount",
 				"mprotect",
 				"mq_getsetattr",
 				"mq_notify",
@@ -225,6 +229,7 @@ func DefaultProfile() *Seccomp {
 				"open",
 				"openat",
 				"openat2",
+				"open_tree",
 				"pause",
 				"pidfd_getfd",
 				"pidfd_open",
@@ -331,7 +336,6 @@ func DefaultProfile() *Seccomp {
 				"signalfd",
 				"signalfd4",
 				"sigreturn",
-				"socket",
 				"socketcall",
 				"socketpair",
 				"splice",
@@ -512,73 +516,18 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"bpf",
-				"clone",
 				"fanotify_init",
 				"lookup_dcookie",
-				"mount",
-				"name_to_handle_at",
 				"perf_event_open",
 				"quotactl",
 				"setdomainname",
 				"sethostname",
 				"setns",
-				"umount",
-				"umount2",
-				"unshare",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
 			Includes: Filter{
 				Caps: []string{"CAP_SYS_ADMIN"},
-			},
-		},
-		{
-			Names: []string{
-				"clone",
-			},
-			Action: ActAllow,
-			Args: []*Arg{
-				{
-					Index:    0,
-					Value:    unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWUSER | unix.CLONE_NEWPID | unix.CLONE_NEWNET,
-					ValueTwo: 0,
-					Op:       OpMaskedEqual,
-				},
-			},
-			Excludes: Filter{
-				Caps:   []string{"CAP_SYS_ADMIN"},
-				Arches: []string{"s390", "s390x"},
-			},
-		},
-		{
-			Names: []string{
-				"clone",
-			},
-			Action: ActAllow,
-			Args: []*Arg{
-				{
-					Index:    1,
-					Value:    unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWUSER | unix.CLONE_NEWPID | unix.CLONE_NEWNET,
-					ValueTwo: 0,
-					Op:       OpMaskedEqual,
-				},
-			},
-			Comment: "s390 parameter ordering for clone is different",
-			Includes: Filter{
-				Arches: []string{"s390", "s390x"},
-			},
-			Excludes: Filter{
-				Caps: []string{"CAP_SYS_ADMIN"},
-			},
-		},
-		{
-			Names: []string{
-				"reboot",
-			},
-			Action: ActAllow,
-			Args:   []*Arg{},
-			Includes: Filter{
-				Caps: []string{"CAP_SYS_BOOT"},
 			},
 		},
 		{
@@ -608,7 +557,6 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"get_mempolicy",
 				"mbind",
-				"name_to_handle_at",
 				"set_mempolicy",
 			},
 			Action: ActAllow,
@@ -630,6 +578,7 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"kcmp",
+				"process_madvise",
 				"process_vm_readv",
 				"process_vm_writev",
 				"ptrace",
@@ -683,12 +632,12 @@ func DefaultProfile() *Seccomp {
 			Args: []*Arg{
 				{
 					Index: 0,
-					Value: syscall.AF_NETLINK,
+					Value: unix.AF_NETLINK,
 					Op:    OpEqualTo,
 				},
 				{
 					Index: 2,
-					Value: syscall.NETLINK_AUDIT,
+					Value: unix.NETLINK_AUDIT,
 					Op:    OpEqualTo,
 				},
 			},
@@ -704,7 +653,7 @@ func DefaultProfile() *Seccomp {
 			Args: []*Arg{
 				{
 					Index: 2,
-					Value: syscall.NETLINK_AUDIT,
+					Value: unix.NETLINK_AUDIT,
 					Op:    OpNotEqual,
 				},
 			},
@@ -720,7 +669,7 @@ func DefaultProfile() *Seccomp {
 			Args: []*Arg{
 				{
 					Index: 0,
-					Value: syscall.AF_NETLINK,
+					Value: unix.AF_NETLINK,
 					Op:    OpNotEqual,
 				},
 			},
@@ -736,7 +685,7 @@ func DefaultProfile() *Seccomp {
 			Args: []*Arg{
 				{
 					Index: 2,
-					Value: syscall.NETLINK_AUDIT,
+					Value: unix.NETLINK_AUDIT,
 					Op:    OpNotEqual,
 				},
 			},

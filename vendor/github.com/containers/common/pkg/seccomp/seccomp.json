@@ -89,6 +89,7 @@
 				"epoll_ctl",
 				"epoll_ctl_old",
 				"epoll_pwait",
+				"epoll_pwait2",
 				"epoll_wait",
 				"epoll_wait_old",
 				"eventfd",
@@ -117,7 +118,11 @@
 				"flock",
 				"fork",
 				"fremovexattr",
+				"fsconfig",
 				"fsetxattr",
+				"fsmount",
+				"fsopen",
+				"fspick",
 				"fstat",
 				"fstat64",
 				"fstatat64",
@@ -177,6 +182,7 @@
 				"ioprio_get",
 				"ioprio_set",
 				"ipc",
+				"keyctl",
 				"kill",
 				"lchown",
 				"lchown32",
@@ -204,6 +210,7 @@
 				"mmap",
 				"mmap2",
 				"mount",
+				"move_mount",
 				"mprotect",
 				"mq_getsetattr",
 				"mq_notify",
@@ -226,6 +233,7 @@
 				"open",
 				"openat",
 				"openat2",
+				"open_tree",
 				"pause",
 				"pidfd_getfd",
 				"pidfd_open",
@@ -574,19 +582,13 @@
 		{
 			"names": [
 				"bpf",
-				"clone",
 				"fanotify_init",
 				"lookup_dcookie",
-				"mount",
-				"name_to_handle_at",
 				"perf_event_open",
 				"quotactl",
 				"setdomainname",
 				"sethostname",
-				"setns",
-				"umount",
-				"umount2",
-				"unshare"
+				"setns"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [],
@@ -594,71 +596,6 @@
 			"includes": {
 				"caps": [
 					"CAP_SYS_ADMIN"
-				]
-			},
-			"excludes": {}
-		},
-		{
-			"names": [
-				"clone"
-			],
-			"action": "SCMP_ACT_ALLOW",
-			"args": [
-				{
-					"index": 0,
-					"value": 2080505856,
-					"valueTwo": 0,
-					"op": "SCMP_CMP_MASKED_EQ"
-				}
-			],
-			"comment": "",
-			"includes": {},
-			"excludes": {
-				"caps": [
-					"CAP_SYS_ADMIN"
-				],
-				"arches": [
-					"s390",
-					"s390x"
-				]
-			}
-		},
-		{
-			"names": [
-				"clone"
-			],
-			"action": "SCMP_ACT_ALLOW",
-			"args": [
-				{
-					"index": 1,
-					"value": 2080505856,
-					"valueTwo": 0,
-					"op": "SCMP_CMP_MASKED_EQ"
-				}
-			],
-			"comment": "s390 parameter ordering for clone is different",
-			"includes": {
-				"arches": [
-					"s390",
-					"s390x"
-				]
-			},
-			"excludes": {
-				"caps": [
-					"CAP_SYS_ADMIN"
-				]
-			}
-		},
-		{
-			"names": [
-				"reboot"
-			],
-			"action": "SCMP_ACT_ALLOW",
-			"args": [],
-			"comment": "",
-			"includes": {
-				"caps": [
-					"CAP_SYS_BOOT"
 				]
 			},
 			"excludes": {}
@@ -698,7 +635,6 @@
 			"names": [
 				"get_mempolicy",
 				"mbind",
-				"name_to_handle_at",
 				"set_mempolicy"
 			],
 			"action": "SCMP_ACT_ALLOW",
@@ -728,6 +664,7 @@
 		{
 			"names": [
 				"kcmp",
+				"process_madvise",
 				"process_vm_readv",
 				"process_vm_writev",
 				"ptrace"

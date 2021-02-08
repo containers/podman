@@ -101,6 +101,8 @@ github.com/containers/buildah v1.19.3 h1:U0E1UKzqW5C11W7giHhLZI06xkZiV40ZKDK/c1j
 github.com/containers/buildah v1.19.3/go.mod h1:uZb6GuE36tmRSOcIXGfiYqdpr+GPXWmlUIJSk5sn19w=
 github.com/containers/common v0.33.1 h1:XpDiq8Cta8+u1s4kpYSEWdB140ZmqgyIXfWkLqKx3z0=
 github.com/containers/common v0.33.1/go.mod h1:mjDo/NKeweL/onaspLhZ38WnHXaYmrELHclIdvSnYpY=
+github.com/containers/common v0.34.3-0.20210208115708-8668c76dd577 h1:tUJcLouJ1bC3w9gdqgKqZBsj2uCuM8D8jSR592lxbhE=
+github.com/containers/common v0.34.3-0.20210208115708-8668c76dd577/go.mod h1:mwZ9H8sK4+dtWxsnVLyWcjxK/gEQClrLsXsqLvbEKbI=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.9.0 h1:dRmUtcluQcmasNo3DpnRoZjfU0rOu1qZeL6wlDJr10Q=
