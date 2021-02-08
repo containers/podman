@@ -264,7 +264,18 @@ func build(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	_, err = registry.ImageEngine().Build(registry.GetContext(), containerFiles, *apiBuildOpts)
+	report, err := registry.ImageEngine().Build(registry.GetContext(), containerFiles, *apiBuildOpts)
+
+	if cmd.Flag("iidfile").Changed {
+		f, err := os.Create(buildOpts.Iidfile)
+		if err != nil {
+			return err
+		}
+		if _, err := f.WriteString("sha256:" + report.ID); err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 
@@ -468,7 +479,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		ForceRmIntermediateCtrs: flags.ForceRm,
 		From:                    flags.From,
 		IDMappingOptions:        idmappingOptions,
-		IIDFile:                 flags.Iidfile,
 		In:                      stdin,
 		Isolation:               isolation,
 		Jobs:                    &flags.Jobs,

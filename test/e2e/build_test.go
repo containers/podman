@@ -194,7 +194,7 @@ var _ = Describe("Podman build", func() {
 		inspect := podmanTest.Podman([]string{"inspect", string(id)})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectImageJSON()
-		Expect(data[0].ID).To(Equal(string(id)))
+		Expect("sha256:" + data[0].ID).To(Equal(string(id)))
 	})
 
 	It("podman Test PATH in built image", func() {
