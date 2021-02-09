@@ -74,6 +74,10 @@ function _run_upgrade_test() {
     bats test/upgrade |& logformatter
 }
 
+function _run_bud() {
+    ./test/buildah-bud/run-buildah-bud-tests |& logformatter
+}
+
 function _run_bindings() {
     # shellcheck disable=SC2155
     export PATH=$PATH:$GOSRC/hack
