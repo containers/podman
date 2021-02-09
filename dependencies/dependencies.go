@@ -1,3 +1,5 @@
+// +build !linter
+
 package dependencies
 
 import (

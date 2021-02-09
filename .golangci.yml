@@ -4,6 +4,7 @@ run:
   deadline: 5m
   skip-dirs-use-default: true
   skip-dirs:
+    - dependencies
     - contrib
     - dependencies
     - test
@@ -17,6 +18,34 @@ linters:
   enable-all: true
   disable:
     # All these break for one reason or another
+    - nolintlint
+    - gocognit
+    - stylecheck
+    - testpackage
+    - goerr113
+    - exhaustivestruct
+    - errorlint
+    - wrapcheck
+    - paralleltest
+    - wsl
+    - godox
+    - tparallel
+    - gomnd
+    - nlreturn
+    - noctx
+    - nestif
+    - predeclared
+    - thelper
+    - ifshort
+    - staticcheck
+    - forbidigo
+    - exhaustive
+    - whitespace
+    - unparam
+    - gofumpt
+    - gci
+    - godot
+    - makezero
     - dupl
     - funlen
     - gochecknoglobals
