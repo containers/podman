@@ -46,6 +46,9 @@ length=1 \
 # invalid filter filters={"dangling":["1"]}
 t GET networks?filters=%7B%22dangling%22%3A%5B%221%22%5D%7D 500 \
 .cause='invalid filter "dangling"'
+# (#9293 with no networks the endpoint should return empty array instead of null)
+t GET networks?filters=%7B%22name%22%3A%5B%22doesnotexists%22%5D%7D 200 \
+"[]"
 
 # network inspect docker
 t GET networks/a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1 200 \

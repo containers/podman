@@ -196,7 +196,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var reports []*types.NetworkResource
+	reports := []*types.NetworkResource{}
 	logrus.Debugf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
 		report, err := getNetworkResourceByNameOrID(name, runtime, query.Filters)
