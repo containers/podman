@@ -13,13 +13,10 @@ podman rm -a -f &>/dev/null
 
 CTR="ArchiveTestingCtr"
 
-TMPD=$(mktemp -d)
-pushd "${TMPD}"
-echo "Hello" > "hello.txt"
-tar --format=posix -cvf "hello.tar" "hello.txt" &> /dev/null
-popd
-
+TMPD=$(mktemp -d podman-apiv2-test.archive.XXXXXXXX)
 HELLO_TAR="${TMPD}/hello.tar"
+echo "Hello" > $TMPD/hello.txt
+tar --format=posix -C $TMPD -cvf ${HELLO_TAR} hello.txt &> /dev/null
 
 podman run -d --name "${CTR}" "${IMAGE}" top
 
