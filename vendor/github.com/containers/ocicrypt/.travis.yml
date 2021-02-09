@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 language: go
 
 os:
@@ -11,10 +11,16 @@ matrix:
   include:
     - os: linux
 
+addons:
+  apt:
+    packages:
+    - gnutls-bin
+    - softhsm2
+
 go_import_path: github.com/containers/ocicrypt
 
 install:
-  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.19.1
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.30.0
 
 script:
   - make

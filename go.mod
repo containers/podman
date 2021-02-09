@@ -14,7 +14,7 @@ require (
 	github.com/containers/common v0.34.3-0.20210208115708-8668c76dd577
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.10.1
-	github.com/containers/ocicrypt v1.0.3
+	github.com/containers/ocicrypt v1.1.0
 	github.com/containers/psgo v1.5.2
 	github.com/containers/storage v1.25.0
 	github.com/coreos/go-systemd/v22 v22.1.0
@@ -66,7 +66,6 @@ require (
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
 	google.golang.org/appengine v1.6.6 // indirect
-	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.20.2

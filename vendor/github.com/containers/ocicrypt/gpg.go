@@ -180,13 +180,13 @@ func (gc *gpgv2Client) getKeyDetails(option string, keyid uint64) ([]byte, bool,
 	return keydata, err == nil, err
 }
 
-// GetSecretKeyDetails retrives the secret key details of key with keyid.
+// GetSecretKeyDetails retrieves the secret key details of key with keyid.
 // returns a byte array of the details and a bool if the key exists
 func (gc *gpgv2Client) GetSecretKeyDetails(keyid uint64) ([]byte, bool, error) {
 	return gc.getKeyDetails("-K", keyid)
 }
 
-// GetKeyDetails retrives the public key details of key with keyid.
+// GetKeyDetails retrieves the public key details of key with keyid.
 // returns a byte array of the details and a bool if the key exists
 func (gc *gpgv2Client) GetKeyDetails(keyid uint64) ([]byte, bool, error) {
 	return gc.getKeyDetails("-k", keyid)
@@ -240,13 +240,13 @@ func (gc *gpgv1Client) getKeyDetails(option string, keyid uint64) ([]byte, bool,
 	return keydata, err == nil, err
 }
 
-// GetSecretKeyDetails retrives the secret key details of key with keyid.
+// GetSecretKeyDetails retrieves the secret key details of key with keyid.
 // returns a byte array of the details and a bool if the key exists
 func (gc *gpgv1Client) GetSecretKeyDetails(keyid uint64) ([]byte, bool, error) {
 	return gc.getKeyDetails("-K", keyid)
 }
 
-// GetKeyDetails retrives the public key details of key with keyid.
+// GetKeyDetails retrieves the public key details of key with keyid.
 // returns a byte array of the details and a bool if the key exists
 func (gc *gpgv1Client) GetKeyDetails(keyid uint64) ([]byte, bool, error) {
 	return gc.getKeyDetails("-k", keyid)
