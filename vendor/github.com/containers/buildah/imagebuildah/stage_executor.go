@@ -838,7 +838,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		// we need to call ib.Run() to correctly put the args together before
 		// determining if a cached layer with the same build args already exists
 		// and that is done in the if block below.
-		if checkForLayers && s.builder.Args == nil {
+		if checkForLayers && len(s.builder.Args) == 0 {
 			cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
 			if err != nil {
 				return "", nil, errors.Wrap(err, "error checking if cached image exists from a previous build")
@@ -1276,6 +1276,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		MaxRetries:            s.executor.maxPullPushRetries,
 		RetryDelay:            s.executor.retryPullPushDelay,
 		HistoryTimestamp:      s.executor.timestamp,
+		Manifest:              s.executor.manifest,
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {

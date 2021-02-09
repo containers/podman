@@ -224,7 +224,7 @@ func checkRegistrySourcesAllows(forWhat string, dest types.ImageReference) (inse
 	return false, nil
 }
 
-func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpec string) error {
+func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpec string) (string, error) {
 	var create bool
 	systemContext := &types.SystemContext{}
 	var list manifests.List
@@ -235,13 +235,13 @@ func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpe
 	} else {
 		_, list, err = manifests.LoadFromImage(b.store, listImage.ID)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	names, err := util.ExpandNames([]string{manifestName}, "", systemContext, b.store)
 	if err != nil {
-		return errors.Wrapf(err, "error encountered while expanding image name %q", manifestName)
+		return "", errors.Wrapf(err, "error encountered while expanding image name %q", manifestName)
 	}
 
 	ref, err := alltransports.ParseImageName(imageSpec)
@@ -249,13 +249,13 @@ func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpe
 		if ref, err = alltransports.ParseImageName(util.DefaultTransport + imageSpec); err != nil {
 			// check if the local image exists
 			if ref, _, err = util.FindImage(b.store, "", systemContext, imageSpec); err != nil {
-				return err
+				return "", err
 			}
 		}
 	}
 
 	if _, err = list.Add(ctx, systemContext, ref, true); err != nil {
-		return err
+		return "", err
 	}
 	var imageID string
 	if create {
@@ -263,10 +263,7 @@ func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpe
 	} else {
 		imageID, err = list.SaveToImage(b.store, listImage.ID, nil, "")
 	}
-	if err == nil {
-		fmt.Printf("%s\n", imageID)
-	}
-	return err
+	return imageID, err
 }
 
 // Commit writes the contents of the container, along with its updated
@@ -469,7 +466,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 			dest = dest2
 		}
 		if options.IIDFile != "" {
-			if err = ioutil.WriteFile(options.IIDFile, []byte(img.ID), 0644); err != nil {
+			if err = ioutil.WriteFile(options.IIDFile, []byte("sha256:"+img.ID), 0644); err != nil {
 				return imgID, nil, "", err
 			}
 		}
@@ -489,9 +486,12 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	}
 
 	if options.Manifest != "" {
-		if err := b.addManifest(ctx, options.Manifest, imgID); err != nil {
+		manifestID, err := b.addManifest(ctx, options.Manifest, imgID)
+		if err != nil {
 			return imgID, nil, "", err
 		}
+		logrus.Debugf("added imgID %s to manifestID %s", imgID, manifestID)
+
 	}
 	return imgID, ref, manifestDigest, nil
 }

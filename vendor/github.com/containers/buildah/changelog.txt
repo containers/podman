@@ -1,3 +1,11 @@
+- Changelog for v1.19.4 (2021-02-06)
+  * run: fix check for host pid namespace
+  * bump containernetworking/cni library to v0.8.1 - fix for CVE-2021-20206
+  * Finish plumbing for buildah bud --manifest
+  * buildah manifest add localimage should work
+  * Fix build arg check
+  * --iidfile: print hash prefix
+
 - Changelog for v1.19.3 (2021-01-28)
   * [ci:docs] Fix man page for buildah push
   * Vendor in containers/image v5.10.1
