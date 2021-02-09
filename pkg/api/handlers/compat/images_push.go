@@ -1,6 +1,8 @@
 package compat
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -19,6 +21,14 @@ import (
 func PushImage(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	digestFile, err := ioutil.TempFile("", "digest.txt")
+	if err != nil {
+		utils.Error(w, "unable to create digest tempfile", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		return
+	}
+	defer digestFile.Close()
+
 	// Now use the ABI implementation to prevent us from having duplicate
 	// code.
 	imageEngine := abi.ImageEngine{Libpod: runtime}
@@ -65,12 +75,13 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		password = authconf.Password
 	}
 	options := entities.ImagePushOptions{
-		All:      query.All,
-		Authfile: authfile,
-		Compress: query.Compress,
-		Format:   query.Format,
-		Password: password,
-		Username: username,
+		All:        query.All,
+		Authfile:   authfile,
+		Compress:   query.Compress,
+		Format:     query.Format,
+		Password:   password,
+		Username:   username,
+		DigestFile: digestFile.Name(),
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
@@ -93,5 +104,21 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteResponse(w, http.StatusOK, "")
+	digestBytes, err := ioutil.ReadAll(digestFile)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read digest tmp file"))
+		return
+	}
+
+	tag := query.Tag
+	if tag == "" {
+		tag = "latest"
+	}
+	respData := struct {
+		Status string `json:"status"`
+	}{
+		Status: fmt.Sprintf("%s: digest: %s size: null", tag, string(digestBytes)),
+	}
+
+	utils.WriteJSON(w, http.StatusOK, &respData)
 }
