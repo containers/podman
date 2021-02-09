@@ -25,6 +25,7 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/subscriptions"
+	"github.com/containers/common/pkg/umask"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/containers/podman/v2/pkg/annotations"
@@ -1643,14 +1644,30 @@ rootless=%d
 		c.state.BindMounts["/run/.containerenv"] = containerenvPath
 	}
 
-	// Add Secret Mounts
-	secretMounts := subscriptions.MountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.Containers.DefaultMountsFile, c.state.Mountpoint, c.RootUID(), c.RootGID(), rootless.IsRootless(), false)
-	for _, mount := range secretMounts {
+	// Add Subscription Mounts
+	subscriptionMounts := subscriptions.MountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.Containers.DefaultMountsFile, c.state.Mountpoint, c.RootUID(), c.RootGID(), rootless.IsRootless(), false)
+	for _, mount := range subscriptionMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
 		}
 	}
 
+	// Secrets are mounted by getting the secret data from the secrets manager,
+	// copying the data into the container's static dir,
+	// then mounting the copied dir into /run/secrets.
+	// The secrets mounting must come after subscription mounts, since subscription mounts
+	// creates the /run/secrets dir in the container where we mount as well.
+	if len(c.Secrets()) > 0 {
+		// create /run/secrets if subscriptions did not create
+		if err := c.createSecretMountDir(); err != nil {
+			return errors.Wrapf(err, "error creating secrets mount")
+		}
+		for _, secret := range c.Secrets() {
+			src := filepath.Join(c.config.SecretsPath, secret.Name)
+			dest := filepath.Join("/run/secrets", secret.Name)
+			c.state.BindMounts[dest] = src
+		}
+	}
 	return nil
 }
 
@@ -2367,4 +2384,28 @@ func (c *Container) checkFileExistsInRootfs(file string) (bool, error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+// Creates and mounts an empty dir to mount secrets into, if it does not already exist
+func (c *Container) createSecretMountDir() error {
+	src := filepath.Join(c.state.RunDir, "/run/secrets")
+	_, err := os.Stat(src)
+	if os.IsNotExist(err) {
+		oldUmask := umask.Set(0)
+		defer umask.Set(oldUmask)
+
+		if err := os.MkdirAll(src, 0644); err != nil {
+			return err
+		}
+		if err := label.Relabel(src, c.config.MountLabel, false); err != nil {
+			return err
+		}
+		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
+			return err
+		}
+		c.state.BindMounts["/run/secrets"] = src
+		return nil
+	}
+
+	return err
 }

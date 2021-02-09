@@ -10,6 +10,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/lock"
@@ -1131,6 +1132,11 @@ func (c *Container) Timezone() string {
 // Umask returns the Umask bits configured inside the container.
 func (c *Container) Umask() string {
 	return c.config.Umask
+}
+
+//Secrets return the secrets in the container
+func (c *Container) Secrets() []*secrets.Secret {
+	return c.config.Secrets
 }
 
 // Networks gets all the networks this container is connected to.

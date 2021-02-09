@@ -904,3 +904,8 @@ func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
 
 	return plugin.GetVolumePlugin(name, pluginPath)
 }
+
+// GetSecretsStoreageDir returns the directory that the secrets manager should take
+func (r *Runtime) GetSecretsStorageDir() string {
+	return filepath.Join(r.store.GraphRoot(), "secrets")
+}

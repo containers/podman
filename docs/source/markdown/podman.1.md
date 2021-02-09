@@ -254,6 +254,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-run(1)](podman-run.1.md)                 | Run a command in a new container.                                           |
 | [podman-save(1)](podman-save.1.md)               | Save image(s) to an archive.                                                |
 | [podman-search(1)](podman-search.1.md)           | Search a registry for an image.                                             |
+| [podman-secret(1)](podman-secret.1.md)           | Manage podman secrets.                                                      |
 | [podman-start(1)](podman-start.1.md)             | Start one or more containers.                                               |
 | [podman-stats(1)](podman-stats.1.md)             | Display a live stream of one or more container's resource usage statistics. |
 | [podman-stop(1)](podman-stop.1.md)               | Stop one or more running containers.                                        |

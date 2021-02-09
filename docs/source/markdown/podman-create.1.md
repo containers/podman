@@ -825,6 +825,16 @@ Specify the policy to select the seccomp profile. If set to *image*, Podman will
 
 Note that this feature is experimental and may change in the future.
 
+#### **--secret**=*secret*
+
+Give the container access to a secret. Can be specified multiple times.
+
+A secret is a blob of sensitive data which a container needs at runtime but
+should not be stored in the image or in source control, such as usernames and passwords,
+TLS certificates and keys, SSH keys or other important generic strings or binary content (up to 500 kb in size).
+
+Secrets are managed using the `podman secret` command.
+
 #### **--security-opt**=*option*
 
 Security Options
@@ -1277,7 +1287,7 @@ b
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-**podman**(1), **podman-save**(1), **podman-ps**(1), **podman-attach**(1), **podman-pod-create**(1), **podman-port**(1), **podman-kill**(1), **podman-stop**(1),
+**podman**(1), **podman-secret**(1), **podman-save**(1), **podman-ps**(1), **podman-attach**(1), **podman-pod-create**(1), **podman-port**(1), **podman-kill**(1), **podman-stop**(1),
 **podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5)**.
 
 ## HISTORY

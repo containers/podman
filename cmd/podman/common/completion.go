@@ -212,6 +212,28 @@ func getImages(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellComp
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
+func getSecrets(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
+	suggestions := []string{}
+
+	engine, err := setupContainerEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	secrets, err := engine.SecretList(registry.GetContext())
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	for _, s := range secrets {
+		if strings.HasPrefix(s.Spec.Name, toComplete) {
+			suggestions = append(suggestions, s.Spec.Name)
+		}
+	}
+	return suggestions, cobra.ShellCompDirectiveNoFileComp
+}
+
 func getRegistries() ([]string, cobra.ShellCompDirective) {
 	regs, err := registries.GetRegistries()
 	if err != nil {
@@ -410,6 +432,21 @@ func AutocompleteVolumes(cmd *cobra.Command, args []string, toComplete string) (
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getVolumes(cmd, toComplete)
+}
+
+// AutocompleteSecrets - Autocomplete secrets.
+func AutocompleteSecrets(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return getSecrets(cmd, toComplete)
+}
+
+func AutocompleteSecretCreate(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 1 {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteImages - Autocomplete images.

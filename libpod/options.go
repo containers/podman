@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v2/libpod/define"
@@ -1683,6 +1684,28 @@ func WithUmask(umask string) CtrCreateOption {
 			return errors.Wrapf(define.ErrInvalidArg, "Invalid umask string %s", umask)
 		}
 		ctr.config.Umask = umask
+		return nil
+	}
+}
+
+// WithSecrets adds secrets to the container
+func WithSecrets(secretNames []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		manager, err := secrets.NewManager(ctr.runtime.GetSecretsStorageDir())
+		if err != nil {
+			return err
+		}
+		for _, name := range secretNames {
+			secr, err := manager.Lookup(name)
+			if err != nil {
+				return err
+			}
+			ctr.config.Secrets = append(ctr.config.Secrets, secr)
+		}
+
 		return nil
 	}
 }

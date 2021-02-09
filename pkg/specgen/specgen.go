@@ -237,6 +237,9 @@ type ContainerStorageConfig struct {
 	// If not set, the default of rslave will be used.
 	// Optional.
 	RootfsPropagation string `json:"rootfs_propagation,omitempty"`
+	// Secrets are the secrets that will be added to the container
+	// Optional.
+	Secrets []string `json:"secrets,omitempty"`
 }
 
 // ContainerSecurityConfig is a container's security features, including

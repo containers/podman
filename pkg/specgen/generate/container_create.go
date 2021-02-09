@@ -359,6 +359,10 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		options = append(options, libpod.WithHealthCheck(s.ContainerHealthCheckConfig.HealthConfig))
 		logrus.Debugf("New container has a health check")
 	}
+
+	if len(s.Secrets) != 0 {
+		options = append(options, libpod.WithSecrets(s.Secrets))
+	}
 	return options, nil
 }
 

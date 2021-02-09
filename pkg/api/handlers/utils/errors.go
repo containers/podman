@@ -80,6 +80,14 @@ func SessionNotFound(w http.ResponseWriter, name string, err error) {
 	Error(w, msg, http.StatusNotFound, err)
 }
 
+func SecretNotFound(w http.ResponseWriter, nameOrID string, err error) {
+	if errors.Cause(err).Error() != "no such secret" {
+		InternalServerError(w, err)
+	}
+	msg := fmt.Sprintf("No such secret: %s", nameOrID)
+	Error(w, msg, http.StatusNotFound, err)
+}
+
 func ContainerNotRunning(w http.ResponseWriter, containerID string, err error) {
 	msg := fmt.Sprintf("Container %s is not running", containerID)
 	Error(w, msg, http.StatusConflict, err)

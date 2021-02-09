@@ -877,6 +877,16 @@ Specify the policy to select the seccomp profile. If set to *image*, Podman will
 
 Note that this feature is experimental and may change in the future.
 
+#### **--secret**=*secret*
+
+Give the container access to a secret. Can be specified multiple times.
+
+A secret is a blob of sensitive data which a container needs at runtime but
+should not be stored in the image or in source control, such as usernames and passwords,
+TLS certificates and keys, SSH keys or other important generic strings or binary content (up to 500 kb in size).
+
+Secrets are managed using the `podman secret` command
+
 #### **--security-opt**=*option*
 
 Security Options
