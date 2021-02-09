@@ -1,7 +1,6 @@
 package compat
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -76,7 +75,15 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
-	if err := imageEngine.Push(context.Background(), imageName, query.Destination, options); err != nil {
+
+	var destination string
+	if _, found := r.URL.Query()["destination"]; found {
+		destination = query.Destination
+	} else {
+		destination = imageName
+	}
+
+	if err := imageEngine.Push(r.Context(), imageName, destination, options); err != nil {
 		if errors.Cause(err) != storage.ErrImageUnknown {
 			utils.ImageNotFound(w, imageName, errors.Wrapf(err, "failed to find image %s", imageName))
 			return
