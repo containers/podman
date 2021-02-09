@@ -11,7 +11,7 @@ Consumers of OCIcrypt:
 
 ## Usage
 
-There are various levels of usage for this library. The main consumers of these would be runtime/buil tools, and a more specific use would be in the ability to extend cryptographic function.
+There are various levels of usage for this library. The main consumers of these would be runtime/build tools, and a more specific use would be in the ability to extend cryptographic function.
 
 ### Runtime/Build tool usage
 
@@ -23,12 +23,12 @@ func EncryptLayer(ec *config.EncryptConfig, encOrPlainLayerReader io.Reader, des
 func DecryptLayer(dc *config.DecryptConfig, encLayerReader io.Reader, desc ocispec.Descriptor, unwrapOnly bool) (io.Reader, digest.Digest, error)
 ```
 
-The settings/parameters to these functions can be specified via creation of an encryption config with the `github.com/containers/ocicrypt/config` package. We note that because setting of annotations and other fields of the layer descriptor is done through various means in different runtimes/build tools, it is the resposibility of the caller to still ensure that the layer descriptor follows the OCI specification (i.e. encoding, setting annotations, etc.).
+The settings/parameters to these functions can be specified via creation of an encryption config with the `github.com/containers/ocicrypt/config` package. We note that because setting of annotations and other fields of the layer descriptor is done through various means in different runtimes/build tools, it is the responsibility of the caller to still ensure that the layer descriptor follows the OCI specification (i.e. encoding, setting annotations, etc.).
 
 
 ### Crypto Agility and Extensibility
 
-The implementation for both symmetric and assymetric encryption used in this library are behind 2 main interfaces, which users can extend if need be. These are in the following packages:
+The implementation for both symmetric and asymmetric encryption used in this library are behind 2 main interfaces, which users can extend if need be. These are in the following packages:
 - github.com/containers/ocicrypt/blockcipher - LayerBlockCipher interface for block ciphers
 - github.com/containers/ocicrypt/keywrap - KeyWrapper interface for key wrapping
 
@@ -37,3 +37,8 @@ We note that adding interfaces here is risky outside the OCI spec is not recomme
 ## Security Issues
 
 We consider security issues related to this library critical. Please report and security related issues by emailing maintainers in the [MAINTAINERS](MAINTAINERS) file.
+
+
+## Ocicrypt Pkcs11 Support
+
+Ocicrypt Pkcs11 support is currently experiemental. For more details, please refer to the [this document](docs/pkcs11.md).

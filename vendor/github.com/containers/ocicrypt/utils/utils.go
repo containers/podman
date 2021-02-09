@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/ocicrypt/crypto/pkcs11"
+
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/openpgp"
 	json "gopkg.in/square/go-jose.v2"
@@ -53,6 +55,18 @@ func parseJWKPublicKey(privKey []byte, prefix string) (interface{}, error) {
 		return nil, fmt.Errorf("%s: JWK is not a public key", prefix)
 	}
 	return &jwk, nil
+}
+
+// parsePkcs11PrivateKeyYaml parses the input byte array as pkcs11 key file yaml format)
+func parsePkcs11PrivateKeyYaml(yaml []byte, prefix string) (*pkcs11.Pkcs11KeyFileObject, error) {
+	// if the URI does not have enough attributes, we will throw an error when decrypting
+	return pkcs11.ParsePkcs11KeyFile(yaml)
+}
+
+// parsePkcs11URIPublicKey parses the input byte array as a pkcs11 key file yaml
+func parsePkcs11PublicKeyYaml(yaml []byte, prefix string) (*pkcs11.Pkcs11KeyFileObject, error) {
+	// if the URI does not have enough attributes, we will throw an error when decrypting
+	return pkcs11.ParsePkcs11KeyFile(yaml)
 }
 
 // IsPasswordError checks whether an error is related to a missing or wrong
@@ -102,6 +116,9 @@ func ParsePrivateKey(privKey, privKeyPassword []byte, prefix string) (interface{
 			}
 		} else {
 			key, err = parseJWKPrivateKey(privKey, prefix)
+			if err != nil {
+				key, err = parsePkcs11PrivateKeyYaml(privKey, prefix)
+			}
 		}
 	}
 	return key, err
@@ -112,6 +129,11 @@ func ParsePrivateKey(privKey, privKeyPassword []byte, prefix string) (interface{
 func IsPrivateKey(data []byte, password []byte) (bool, error) {
 	_, err := ParsePrivateKey(data, password, "")
 	return err == nil, err
+}
+
+// IsPkcs11PrivateKey returns true in case the given byte array represents a pkcs11 private key
+func IsPkcs11PrivateKey(data []byte) bool {
+	return pkcs11.IsPkcs11PrivateKey(data)
 }
 
 // ParsePublicKey tries to parse a public key in DER format first and
@@ -127,6 +149,9 @@ func ParsePublicKey(pubKey []byte, prefix string) (interface{}, error) {
 			}
 		} else {
 			key, err = parseJWKPublicKey(pubKey, prefix)
+			if err != nil {
+				key, err = parsePkcs11PublicKeyYaml(pubKey, prefix)
+			}
 		}
 	}
 	return key, err
@@ -136,6 +161,11 @@ func ParsePublicKey(pubKey []byte, prefix string) (interface{}, error) {
 func IsPublicKey(data []byte) bool {
 	_, err := ParsePublicKey(data, "")
 	return err == nil
+}
+
+// IsPkcs11PublicKey returns true in case the given byte array represents a pkcs11 public key
+func IsPkcs11PublicKey(data []byte) bool {
+	return pkcs11.IsPkcs11PublicKey(data)
 }
 
 // ParseCertificate tries to parse a public key in DER format first and
