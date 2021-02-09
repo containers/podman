@@ -7,6 +7,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/rootless"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
@@ -27,12 +28,24 @@ func shortNameAliasesConfPath(ctx *types.SystemContext) (string, error) {
 		return ctx.UserShortNameAliasConfPath, nil
 	}
 
-	configHome, err := homedir.GetConfigHome()
-	if err != nil {
-		return "", err
+	if rootless.GetRootlessEUID() == 0 {
+		// Root user or in a non-conforming user NS
+		return filepath.Join("/var/cache", userShortNamesFile), nil
 	}
 
-	return filepath.Join(configHome, userShortNamesFile), nil
+	// Rootless user
+	var cacheRoot string
+	if xdgCache := os.Getenv("XDG_CACHE_HOME"); xdgCache != "" {
+		cacheRoot = xdgCache
+	} else {
+		configHome, err := homedir.GetConfigHome()
+		if err != nil {
+			return "", err
+		}
+		cacheRoot = filepath.Join(configHome, ".cache")
+	}
+
+	return filepath.Join(cacheRoot, userShortNamesFile), nil
 }
 
 // shortNameAliasConf is a subset of the `V2RegistriesConf` format.  It's used in the
