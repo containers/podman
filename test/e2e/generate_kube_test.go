@@ -699,4 +699,39 @@ ENTRYPOINT /bin/sleep`
 		Expect(containers[0].Command).To(Equal([]string{"/bin/sh", "-c", "/bin/sleep"}))
 		Expect(containers[0].Args).To(Equal([]string{"10s"}))
 	})
+
+	It("podman generate kube - --privileged container", func() {
+		session := podmanTest.Podman([]string{"create", "--pod", "new:testpod", "--privileged", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		// Now make sure that the capabilities aren't set.
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		containers := pod.Spec.Containers
+		Expect(len(containers)).To(Equal(1))
+		Expect(containers[0].SecurityContext.Capabilities).To(BeNil())
+
+		// Now make sure we can also `play` it.
+		kubeFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
+
+		kube = podmanTest.Podman([]string{"generate", "kube", "testpod", "-f", kubeFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		// Remove the pod so play can recreate it.
+		kube = podmanTest.Podman([]string{"pod", "rm", "-f", "testpod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		kube = podmanTest.Podman([]string{"play", "kube", kubeFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+	})
 })

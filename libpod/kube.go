@@ -322,7 +322,8 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, *v1.PodDNS
 		return kubeContainer, kubeVolumes, nil, err
 	}
 
-	if len(c.config.Spec.Linux.Devices) > 0 {
+	// NOTE: a privileged container mounts all of /dev/*.
+	if !c.Privileged() && len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.Spec().Linux.Devices)
 		return kubeContainer, kubeVolumes, nil, errors.Wrapf(define.ErrNotImplemented, "linux devices")
@@ -625,13 +626,18 @@ func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
 
 // generateKubeSecurityContext generates a securityContext based on the existing container
 func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
-	priv := c.Privileged()
+	privileged := c.Privileged()
 	ro := c.IsReadOnly()
 	allowPrivEscalation := !c.config.Spec.Process.NoNewPrivileges
 
-	newCaps, err := capAddDrop(c.config.Spec.Process.Capabilities)
-	if err != nil {
-		return nil, err
+	var capabilities *v1.Capabilities
+	if !privileged {
+		// Running privileged adds all caps.
+		newCaps, err := capAddDrop(c.config.Spec.Process.Capabilities)
+		if err != nil {
+			return nil, err
+		}
+		capabilities = newCaps
 	}
 
 	var selinuxOpts v1.SELinuxOptions
@@ -651,8 +657,8 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 	}
 
 	sc := v1.SecurityContext{
-		Capabilities:   newCaps,
-		Privileged:     &priv,
+		Capabilities:   capabilities,
+		Privileged:     &privileged,
 		SELinuxOptions: &selinuxOpts,
 		// RunAsNonRoot is an optional parameter; our first implementations should be root only; however
 		// I'm leaving this as a bread-crumb for later
