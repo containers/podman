@@ -320,4 +320,15 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(Equal("0022"))
 	})
 
+	It("podman run containers.conf annotations test", func() {
+		//containers.conf is set to   "run.oci.keep_original_groups=1"
+		session := podmanTest.Podman([]string{"create", "--rm", "--name", "test", fedoraMinimal})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{ .Config.Annotations }}", "test"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(ContainSubstring("run.oci.keep_original_groups:1"))
+	})
+
 })

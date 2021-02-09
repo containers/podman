@@ -332,6 +332,9 @@ var _ = Describe("Podman run", func() {
 	It("podman run user capabilities test", func() {
 		// We need to ignore the containers.conf on the test distribution for this test
 		os.Setenv("CONTAINERS_CONF", "/dev/null")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 		session := podmanTest.Podman([]string{"run", "--rm", "--user", "bin", ALPINE, "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -424,6 +427,9 @@ var _ = Describe("Podman run", func() {
 	It("podman run user capabilities test with image", func() {
 		// We need to ignore the containers.conf on the test distribution for this test
 		os.Setenv("CONTAINERS_CONF", "/dev/null")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 		dockerfile := `FROM busybox
 USER bin`
 		podmanTest.BuildImage(dockerfile, "test", "false")
