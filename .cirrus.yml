@@ -229,7 +229,7 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
     skip: *branches_and_tags
     depends_on:
         - build
@@ -590,7 +590,7 @@ buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
     skip: *tags
-    only_if: *not_docs
+#    only_if: *not_docs
     depends_on:
       - local_integration_test
     env:
@@ -601,7 +601,11 @@ buildah_bud_test_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         # ID for re-use of build output
         _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        PODBIN_NAME: podman
+    matrix:
+        - env:
+            PODBIN_NAME: podman
+        - env:
+            PODBIN_NAME: remote
     gce_instance: *standardvm
     timeout_in: 45m
     clone_script: *noop

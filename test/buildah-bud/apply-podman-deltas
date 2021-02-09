@@ -56,20 +56,29 @@ function errmsg() {
     done
 }
 
-# skip: used to add a 'skip' to one specific test
-function skip() {
+# _skip: used to add a 'skip' or 'skip_if_remote' to one specific test
+function _skip() {
+    local skip=$1;   shift
     local reason=$1; shift
 
     # All further arguments are test names
     for t in "$@"; do
         if fgrep -qx "@test \"$t\" {" $BUD; then
-            $ECHO "@test \"$t\" : skip \"$reason\""
+            $ECHO "@test \"$t\" : $skip \"$reason\""
             t=${t//\//\\/}
-            sed -i -e "/^\@test \"$t\" {/ a \ \ skip \"$reason\"" $BUD
+            sed -i -e "/^\@test \"$t\" {/ a \ \ $skip \"$reason\"" $BUD
         else
-            warn "[skip] Did not find test \"$t\" in $BUD"
+            warn "[$skip] Did not find test \"$t\" in $BUD"
         fi
     done
+}
+
+function skip() {
+    _skip "skip" "$@"
+}
+
+function skip_if_remote() {
+    _skip "skip_if_remote" "$@"
 }
 
 # END   handlers
@@ -79,14 +88,14 @@ function skip() {
 # These are the hand-maintained exceptions. This is what you want to edit
 # or update as needed.
 #
-# There are two directives you can use below:
+# There are three directives you can use below:
 #
 #    errmsg "old-message" "new-message" "test name" ["test name"...]
 #
 # This replaced "old-message" with "new-message" in @test "test name".
 # It is used when a podman error message differs from buildah's.
 #
-#    skip "reason" "test name" ["test name"...]
+#    [skip | skip_if_remote] "reason" "test name" ["test name"...]
 #
 # This adds a 'skip' statement as the first line of @test "test name".
 # It is used when a test does not work in podman, either for permanent
@@ -126,6 +135,7 @@ errmsg "no such file or directory" \
 
 ###############################################################################
 # BEGIN tests that don't make sense under podman due to fundamental differences
+
 skip "N/A under podman" \
      "bud-flags-order-verification"
 
@@ -147,13 +157,13 @@ skip "Too much effort to spin up a local registry" \
 skip "FIXME FIXME FIXME: argument-order incompatible with podman" \
      "bud-squash-hardlinks"
 
-skip "FIXME FIXME FIXME we'll figure these out later" \
-     "bud-multi-stage-nocache-nocommit" \
-     "bud with --cgroup-parent"
+skip "FIXME FIXME FIXME: this passes on Ed's laptop, fails in CI??" \
+     "bud-multi-stage-nocache-nocommit"
 
-# see https://github.com/containers/podman/pull/10147#issuecomment-832503633
-skip "FIXME FIXME FIXME podman save/load has been fixed (but not yet used in Buildah CI)" \
-     "bud with --layers and --no-cache flags"
+# This will probably never work: buildah and podman have incompatible defaults
+# Documented in https://github.com/containers/podman/issues/10412
+skip "buildah runs with --cgroup-manager=cgroupfs, podman with systemd" \
+     "bud with --cgroup-parent"
 
 # see https://github.com/containers/podman/pull/10829
 skip "FIXME FIXME FIXME - requires updated CI images (#10829)" \
@@ -162,6 +172,43 @@ skip "FIXME FIXME FIXME - requires updated CI images (#10829)" \
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman bugs.
 
+
+###############################################################################
+# BEGIN tests which are skipped because they make no sense under podman-remote
+
+skip_if_remote "--target does not work with podman-remote" \
+               "bud-target"
+
+skip_if_remote "--runtime not meaningful under podman-remote" \
+               "bud with --runtime and --runtime-flag"
+
+skip_if_remote "secret files not implemented under podman-remote" \
+               "bud with containerfile secret" \
+               "bud with containerfile secret accessed on second RUN" \
+               "bud with containerfile secret options"
+
+skip_if_remote "volumes don't work with podman-remote" \
+               "buildah bud --volume" \
+               "buildah-bud-policy"
+
+# See podman #9890 for discussion
+skip_if_remote "--stdin option will not be implemented in podman-remote" \
+               "bud test no --stdin"
+
+###############################################################################
+# BEGIN tests which are skipped due to actual podman-remote bugs.
+
+#skip_if_remote "FIXME: podman #10907 (complicated .dockerignore file)" \
+#               "bud with .dockerignore"
+#
+#skip_if_remote "FIXME: podman #10908 (.containerignore + .dockerignore)" \
+#               "bud with .containerignore"
+
+# Warning messages go to server, not client
+# FIXME FIXME FIXME: this is now buildah #3285, which merged 2021-06-15.
+# FIXME FIXME FIXME: remove this once we vendor in a buildah > v1.21.1
+skip_if_remote "FIXME: podman #10616 - cpp stderr shown on server end" \
+               "bud with preprocessor error"
 
 ###############################################################################
 # Done.

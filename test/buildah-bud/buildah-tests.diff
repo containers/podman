@@ -1,23 +1,75 @@
-From a00508656599b24776982996fdb44d4874338fd4 Mon Sep 17 00:00:00 2001
+From dc44d1c82c87bf49183b23a99dc61272f934d6d6 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 28 +++++++++++++++++++++++++---
- 1 file changed, 25 insertions(+), 3 deletions(-)
+ tests/helpers.bash | 71 +++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 67 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index 11deb367..08e73954 100644
+index 11deb367..44c71dad 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -164,15 +164,37 @@ function run_buildah() {
+@@ -34,6 +34,23 @@ function setup() {
+     ROOTDIR_OPTS="--root ${TESTDIR}/root --runroot ${TESTDIR}/runroot --storage-driver ${STORAGE_DRIVER}"
+     BUILDAH_REGISTRY_OPTS="--registries-conf ${TESTSDIR}/registries.conf --registries-conf-dir ${TESTDIR}/registries.d --short-name-alias-conf ${TESTDIR}/cache/shortnames.conf"
+     PODMAN_REGISTRY_OPTS="--registries-conf ${TESTSDIR}/registries.conf"
++
++    PODMAN_SERVER_PID=
++    PODMAN_NATIVE="${PODMAN_BINARY} ${ROOTDIR_OPTS} ${PODMAN_REGISTRY_OPTS}"
++    if [[ -n "$REMOTE" ]]; then
++        PODMAN_NATIVE="${PODMAN_BINARY%%-remote} ${ROOTDIR_OPTS} ${PODMAN_REGISTRY_OPTS}"
++        # static CONTAINERS_CONF needed for capabilities test. As of 2021-07-01
++        # no tests in bud.bats override this; if at some point any test does
++        # so, it will probably need to be skip_if_remote()d.
++        env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} $PODMAN_NATIVE system service --timeout=0  &
++        PODMAN_SERVER_PID=$!
++        local timeout=10
++        while ((timeout > 0)); do
++            test -S /run/podman/podman.sock && return
++            sleep 0.2
++        done
++        die "podman server never came up"
++    fi
+ }
+ 
+ function starthttpd() {
+@@ -57,6 +74,12 @@ function stophttpd() {
+ function teardown() {
+     stophttpd
+ 
++    if [[ -n "$PODMAN_SERVER_PID" ]]; then
++        kill $PODMAN_SERVER_PID
++        wait $PODMAN_SERVER_PID
++        rm -f /run/podman/podman.sock
++    fi
++
+     # Workaround for #1991 - buildah + overlayfs leaks mount points.
+     # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
+     # let's find those and clean them up, otherwise 'rm -rf' fails.
+@@ -129,7 +152,13 @@ function copy() {
+ }
+ 
+ function podman() {
+-    command podman ${PODMAN_REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
++    echo "# ... podman $*" >&3
++    ${PODMAN_BINARY} ${PODMAN_REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
++}
++
++function podman-remote() {
++    echo "# ... podman-remote $*" >&3
++    ${PODMAN_BINARY} ${ROOTDIR_OPTS} "$@"
+ }
+ 
+ #################
+@@ -164,15 +193,40 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
-
+ 
 +    local podman_or_buildah=${BUILDAH_BINARY}
-+    local registry_opts=${BUILDAH_REGISTRY_OPTS}
++    local _opts="${ROOTDIR_OPTS} ${BUILDAH_REGISTRY_OPTS}"
 +    if [[ $1 == "bud" || $1 == "build-using-dockerfile" ]]; then
 +        shift
 +        # podman defaults to --layers=true; buildah to --false.
@@ -29,7 +81,10 @@ index 11deb367..08e73954 100644
 +            set "build" "--force-rm=false" "--layers=false" "$@"
 +        fi
 +        podman_or_buildah=${PODMAN_BINARY}
-+        registry_opts=${PODMAN_REGISTRY_OPTS}
++        _opts="${ROOTDIR_OPTS} ${PODMAN_REGISTRY_OPTS}"
++        if [[ -n "$REMOTE" ]]; then
++            _opts=
++        fi
 +
 +        # podman always exits 125 where buildah exits 1 or 2
 +        case $expected_rc in
@@ -41,17 +96,31 @@ index 11deb367..08e73954 100644
      # Remember command args, for possible use in later diagnostic messages
 -    MOST_RECENT_BUILDAH_COMMAND="buildah $*"
 +    MOST_RECENT_BUILDAH_COMMAND="$cmd_basename $*"
-
+ 
      while [ $retry -gt 0 ]; do
          retry=$(( retry - 1 ))
-
+ 
          # stdout is only emitted upon error; this echo is to help a debugger
 -        echo "\$ $BUILDAH_BINARY $*"
 -        run env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${BUILDAH_BINARY} ${BUILDAH_REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
 +        echo "\$ $cmd_basename $*"
-+        run env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${podman_or_buildah} ${registry_opts} ${ROOTDIR_OPTS} "$@"
++        run env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${podman_or_buildah} ${_opts} "$@"
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
---
+@@ -396,3 +450,12 @@ function skip_if_no_docker() {
+     skip "this test needs actual docker, not podman-docker"
+   fi
+ }
++
++####################
++#  skip_if_remote  #  (only applicable for podman)
++####################
++function skip_if_remote() {
++    if [[ -n "$REMOTE" ]]; then
++        skip "${1:-test does not work with podman-remote}"
++    fi
++}
+-- 
 2.31.1
+
