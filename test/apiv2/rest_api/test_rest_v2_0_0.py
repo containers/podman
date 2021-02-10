@@ -483,8 +483,16 @@ class TestApi(unittest.TestCase):
         inspect = requests.get(PODMAN_URL + f"/v1.40/networks/{ident}")
         self.assertEqual(inspect.status_code, 404, inspect.content)
 
+        # network prune
+        prune_name = "Network_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        prune_create = requests.post(PODMAN_URL + "/v1.40/networks/create", json={"Name": prune_name})
+        self.assertEqual(create.status_code, 201, prune_create.content)
+
         prune = requests.post(PODMAN_URL + "/v1.40/networks/prune")
         self.assertEqual(prune.status_code, 200, prune.content)
+        obj = json.loads(prune.content)
+        self.assertTrue(prune_name in obj["NetworksDeleted"])
+
 
     def test_volumes_compat(self):
         name = "Volume_" + "".join(random.choice(string.ascii_letters) for i in range(10))
