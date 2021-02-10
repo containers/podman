@@ -157,7 +157,17 @@ function check_shell_completion() {
                     # resume
                     ;;&
 
-                *PATH* | *CONTEXT* | *KUBEFILE* | *COMMAND* | *ARG...* | *URI*)
+                *SECRET*)
+                    run_completion "$@" $cmd "${extra_args[@]}" ""
+                    is "$output" ".*$random_secret_name${nl}" \
+                       "$* $cmd: actual secret listed in suggestions"
+                    _check_completion_end NoFileComp
+
+                    match=true
+                    # resume
+                    ;;&
+
+                *PATH* | *CONTEXT* | *FILE* | *COMMAND* | *ARG...* | *URI*)
                     # default shell completion should be done for everything which accepts a path
                     run_completion "$@" $cmd "${extra_args[@]}" ""
 
@@ -232,6 +242,11 @@ function _check_completion_end() {
     random_image_tag=$(random_string 5)
     random_network_name=$(random_string 30)
     random_volume_name=$(random_string 30)
+    random_secret_name=$(random_string 30)
+    random_secret_content=$(random_string 30)
+    secret_file=$PODMAN_TMPDIR/$(random_string 10)
+
+    echo $random_secret_content > $secret_file
 
     # create a container for each state since some commands are only suggesting running container for example
     run_podman create --name created-$random_container_name $IMAGE
@@ -263,6 +278,8 @@ function _check_completion_end() {
     # create volume
     run_podman volume create $random_volume_name
 
+    # create secret
+    run_podman secret create $random_secret_name $secret_file
 
     # $PODMAN may be a space-separated string, e.g. if we include a --url.
     local -a podman_as_array=($PODMAN)
@@ -274,6 +291,9 @@ function _check_completion_end() {
     check_shell_completion
 
     # cleanup
+    run_podman secret rm $random_secret_name
+    rm -f $secret_file
+
     run_podman volume rm $random_volume_name
 
     run_podman network rm $random_network_name

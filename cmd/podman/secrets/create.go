@@ -16,7 +16,7 @@ import (
 
 var (
 	createCmd = &cobra.Command{
-		Use:   "create [options] SECRET FILE|-",
+		Use:   "create [options] NAME FILE|-",
 		Short: "Create a new secret",
 		Long:  "Create a secret. Input can be a path to a file or \"-\" (read from stdin). Default driver is file (unencrypted).",
 		RunE:  create,
