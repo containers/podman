@@ -66,7 +66,7 @@ type DisconnectOptions struct {
 type ConnectOptions struct {
 	// Aliases are names the container will be known as
 	// when using the dns plugin
-	Aliases *[]string
+	Aliases []string
 }
 
 //go:generate go run ../generator/generator.go ExistsOptions

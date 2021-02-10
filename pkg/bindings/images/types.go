@@ -1,9 +1,5 @@
 package images
 
-import (
-	"github.com/containers/buildah/imagebuildah"
-)
-
 //go:generate go run ../generator/generator.go RemoveOptions
 // RemoveOptions are optional options for image removal
 type RemoveOptions struct {
@@ -86,7 +82,7 @@ type UntagOptions struct {
 // ImportOptions are optional options for importing images
 type ImportOptions struct {
 	// Changes to be applied to the image
-	Changes *[]string
+	Changes []string
 	// Message to be applied to the image
 	Message *string
 	// Reference is a tag to be applied to the image
@@ -158,11 +154,6 @@ type PullOptions struct {
 	Username *string
 	// Variant will overwrite the local variant for image pulls.
 	Variant *string
-}
-
-//BuildOptions are optional options for building images
-type BuildOptions struct {
-	imagebuildah.BuildOptions
 }
 
 //go:generate go run ../generator/generator.go ExistsOptions

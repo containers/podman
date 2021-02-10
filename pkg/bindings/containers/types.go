@@ -166,7 +166,7 @@ type StatsOptions struct {
 // TopOptions are optional options for getting running
 // processes in containers
 type TopOptions struct {
-	Descriptors *[]string
+	Descriptors []string
 }
 
 //go:generate go run ../generator/generator.go UnpauseOptions

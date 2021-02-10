@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/importer"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -35,73 +37,37 @@ func (o *{{.StructName}}) Changed(fieldName string) bool {
 // ToParams
 func (o *{{.StructName}}) ToParams() (url.Values, error) {
 	params := url.Values{}
+
 	if o == nil {
 		return params, nil
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	s := reflect.ValueOf(o)
-	if reflect.Ptr == s.Kind() {
-		s = s.Elem()
+
+	{{range $field := .Fields}}
+	if o.{{$field.Name}} != nil {
+		{{$field.Stmt}}
 	}
-	sType := s.Type()
-	for i := 0; i < s.NumField(); i++ {
-		fieldName := sType.Field(i).Name
-		if !o.Changed(fieldName) {
-			continue
-		}
-		fieldName = strings.ToLower(fieldName)
-		f := s.Field(i)
-		if reflect.Ptr == f.Kind() {
-			f = f.Elem()
-		}
-		switch {
-		case util.IsSimpleType(f):
-			params.Set(fieldName, util.SimpleTypeToParam(f))
-		case f.Kind() == reflect.Slice:
-			for i := 0; i < f.Len(); i++ {
-				elem := f.Index(i)
-				if util.IsSimpleType(elem) {
-					params.Add(fieldName, util.SimpleTypeToParam(elem))
-				} else {
-					return nil, errors.New("slices must contain only simple types")
-				}
-			}
-		case f.Kind() == reflect.Map:
-			lowerCaseKeys := make(map[string][]string)
-			iter := f.MapRange()
-			for iter.Next() {
-				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
+	{{end}}
 
-			}
-			s, err := json.MarshalToString(lowerCaseKeys)
-			if err != nil {
-				return nil, err
-			}
-
-			params.Set(fieldName, s)
-		}
-
-	}
 	return params, nil
 }
-`
 
-var fieldTmpl = `
+{{range $field := .Fields}}
 // With{{.Name}}
-func(o *{{.StructName}}) With{{.Name}}(value {{.Type}}) *{{.StructName}} {
-	v := {{.TypedValue}}
-	o.{{.Name}} = v
+func(o *{{$field.StructName}}) With{{$field.Name}}(value {{$field.Type}}) *{{$field.StructName}} {
+	v := {{$field.TypedValue}}
+	o.{{$field.Name}} = v
 	return o
 }
 
 // Get{{.Name}}
-func(o *{{.StructName}}) Get{{.Name}}() {{.Type}} {
-	var {{.ZeroName}} {{.Type}}
-	if o.{{.Name}} == nil {
-		return {{.ZeroName}}
+func(o *{{$field.StructName}}) Get{{$field.Name}}() {{$field.Type}} {
+	var {{$field.ZeroName}} {{$field.Type}}
+	if o.{{$field.Name}} == nil {
+		return {{$field.ZeroName}}
 	}
-	return {{.TypedName}}
+	return {{$field.TypedName}}
 }
+{{end}}
 `
 
 type fieldStruct struct {
@@ -111,6 +77,7 @@ type fieldStruct struct {
 	TypedName  string
 	TypedValue string
 	ZeroName   string
+	Stmt       string
 }
 
 func main() {
@@ -121,6 +88,11 @@ func main() {
 	srcFile := os.Getenv("GOFILE")
 	pkg := os.Getenv("GOPACKAGE")
 	inputStructName := os.Args[1]
+
+	fmt.Println("srcFile: ", srcFile)
+	fmt.Println("pkg: ", pkg)
+	fmt.Println("inputStructName: ", inputStructName)
+
 	b, err := ioutil.ReadFile(srcFile)
 	if err != nil {
 		panic(err)
@@ -131,7 +103,7 @@ func main() {
 		panic(err)
 	}
 	// always add reflect
-	imports := []string{"\"reflect\"", "\"github.com/containers/podman/v2/pkg/bindings/util\""}
+	var imports = make([]string, 0, len(f.Imports))
 	for _, imp := range f.Imports {
 		imports = append(imports, imp.Path.Value)
 	}
@@ -145,20 +117,25 @@ func main() {
 			out.Close()
 		}
 	}()
-	bodyStruct := struct {
-		PackageName string
-		Imports     []string
-		Date        string
-		StructName  string
-	}{
-		PackageName: pkg,
-		Imports:     imports,
-		Date:        time.Now().String(),
-		StructName:  inputStructName,
+
+	srcImporter := importer.ForCompiler(fset, "source", nil)
+	conf := types.Config{Importer: srcImporter, IgnoreFuncBodies: true}
+	info := &types.Info{
+		Defs:  make(map[*ast.Ident]types.Object),
+		Uses:  make(map[*ast.Ident]types.Object),
+		Types: make(map[ast.Expr]types.TypeAndValue),
+	}
+	_, err = conf.Check("", fset, []*ast.File{f}, info)
+	if err != nil {
+		panic(err)
 	}
 
-	body := template.Must(template.New("body").Parse(bodyTmpl))
-	fields := template.Must(template.New("fields").Parse(fieldTmpl))
+	typeExpr2TypeName := func(typeExpr ast.Expr) string {
+		start := typeExpr.Pos() - 1
+		end := typeExpr.End() - 1
+		return strings.Replace(string(b[start:end]), "*", "", 1)
+	}
+
 	ast.Inspect(f, func(n ast.Node) bool {
 		ref, refOK := n.(*ast.TypeSpec)
 		if refOK {
@@ -166,7 +143,7 @@ func main() {
 				x := ref.Type.(*ast.StructType)
 				for _, field := range x.Fields.List {
 					var (
-						name, zeroName, typedName, typedValue string
+						name, zeroName, typedName, typedValue, stmt string
 					)
 					if len(field.Names) > 0 {
 						name = field.Names[0].Name
@@ -178,19 +155,107 @@ func main() {
 						zeroName = strings.ToLower(string(v)) + name[k+1:]
 						break
 					}
+					stmt = "panic(\"*** GENERATOR DOESN'T IMPLEMENT THIS YET ***\")"
 					//sub := "*"
 					typeExpr := field.Type
 					switch field.Type.(type) {
 					case *ast.MapType, *ast.StructType, *ast.ArrayType:
 						typedName = "o." + name
 						typedValue = "value"
+
+						switch field.Type.(type) {
+						case *ast.ArrayType:
+
+							elt := info.Types[typeExpr.(*ast.ArrayType).Elt]
+							typ := elt.Type.Underlying()
+
+							var valExpr string
+							switch typ := typ.(type) {
+							case *types.Basic:
+								switch {
+								case typ.Kind() == types.String:
+									valExpr = "val"
+								case (typ.Info() & types.IsInteger) != 0:
+									valExpr = "strconv.FormatInt(int64(val), 10)"
+								case (typ.Info() & types.IsUnsigned) != 0:
+									valExpr = "strconv.FormatUint(uint64(val), 10)"
+								case typ.Kind() == types.Bool:
+									valExpr = "strconv.FormatBool(val)"
+								}
+							default:
+							}
+							if valExpr != "" {
+								fmtStr := `for _, val := range %s { params.Add("%s", %s) }`
+								stmt = fmt.Sprintf(fmtStr, typedName, strings.ToLower(name), valExpr)
+							}
+						case *ast.MapType:
+							keyType := info.TypeOf(typeExpr.(*ast.MapType).Key).Underlying()
+							valType := info.TypeOf(typeExpr.(*ast.MapType).Value).Underlying()
+
+							// key must be string
+							keyTypeOK := false
+							if t, ok := keyType.(*types.Basic); ok {
+								if t.Kind() == types.String {
+									keyTypeOK = true
+								}
+							}
+
+							// value must be slice of strings
+							valTypeOK := false
+							if t, ok := valType.(*types.Slice); ok {
+								if t, ok := t.Elem().(*types.Basic); ok {
+									if t.Kind() == types.String {
+										valTypeOK = true
+									}
+								}
+							}
+
+							// to be done -- assert that the map is in fact of type map[string][]string
+							fmtstr := `lower := make(map[string][]string, len(%s))
+	for key, val := range %s {
+		lower[strings.ToLower(key)] = val
+	}
+	s, err := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(lower)
+	if err != nil {
+		return nil, err
+	}
+	params.Set("%s", s)`
+							if keyTypeOK && valTypeOK {
+								stmt = fmt.Sprintf(fmtstr, typedName, typedName, strings.ToLower(name))
+							}
+
+						}
+
 					default:
 						typedName = "*o." + name
 						typedValue = "&value"
+
+						t := info.Types[typeExpr]
+
+						ptrType, ok := t.Type.(*types.Pointer)
+						if !ok {
+							panic("must be a pointer type")
+						}
+
+						typ := ptrType.Elem().Underlying()
+
+						switch typ := typ.(type) {
+						case *types.Basic:
+							switch {
+							case typ.Kind() == types.String:
+								stmt = fmt.Sprintf("params.Set(\"%s\", %s)", strings.ToLower(name), typedName)
+							case (typ.Info() & types.IsInteger) != 0:
+								stmt = fmt.Sprintf("params.Set(\"%s\", strconv.FormatInt(int64(%s), 10))", strings.ToLower(name), typedName)
+							case (typ.Info() & types.IsUnsigned) != 0:
+								stmt = fmt.Sprintf("params.Set(\"%s\", strconv.FormatUint(uint64(%s), 10))", strings.ToLower(name), typedName)
+							case typ.Kind() == types.Bool:
+								stmt = fmt.Sprintf("params.Set(\"%s\", strconv.FormatBool(%s))", strings.ToLower(name), typedName)
+							}
+						default:
+						}
 					}
-					start := typeExpr.Pos() - 1
-					end := typeExpr.End() - 1
-					fieldType := strings.Replace(string(b[start:end]), "*", "", 1)
+
+					fieldType := typeExpr2TypeName(typeExpr)
 					fStruct := fieldStruct{
 						Name:       name,
 						StructName: inputStructName,
@@ -198,22 +263,31 @@ func main() {
 						TypedName:  typedName,
 						TypedValue: typedValue,
 						ZeroName:   zeroName,
+						Stmt:       stmt,
 					}
 					fieldStructs = append(fieldStructs, fStruct)
 				} // for
+
+				bodyStruct := struct {
+					PackageName string
+					Imports     []string
+					Date        string
+					StructName  string
+					Fields      []fieldStruct
+				}{
+					PackageName: pkg,
+					Imports:     imports,
+					Date:        time.Now().String(),
+					StructName:  inputStructName,
+					Fields:      fieldStructs,
+				}
+
+				body := template.Must(template.New("body").Parse(bodyTmpl))
 
 				// create the body
 				if err := body.Execute(out, bodyStruct); err != nil {
 					fmt.Println(err)
 					os.Exit(1)
-				}
-
-				// create with func from the struct fields
-				for _, fs := range fieldStructs {
-					if err := fields.Execute(out, fs); err != nil {
-						fmt.Println(err)
-						os.Exit(1)
-					}
 				}
 
 				// close out file

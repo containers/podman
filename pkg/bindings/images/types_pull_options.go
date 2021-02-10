@@ -3,11 +3,7 @@ package images
 import (
 	"net/url"
 	"reflect"
-	"strings"
-
-	"github.com/containers/podman/v2/pkg/bindings/util"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
+	"strconv"
 )
 
 /*
@@ -24,53 +20,47 @@ func (o *PullOptions) Changed(fieldName string) bool {
 // ToParams
 func (o *PullOptions) ToParams() (url.Values, error) {
 	params := url.Values{}
+
 	if o == nil {
 		return params, nil
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	s := reflect.ValueOf(o)
-	if reflect.Ptr == s.Kind() {
-		s = s.Elem()
+
+	if o.AllTags != nil {
+		params.Set("alltags", strconv.FormatBool(*o.AllTags))
 	}
-	sType := s.Type()
-	for i := 0; i < s.NumField(); i++ {
-		fieldName := sType.Field(i).Name
-		if !o.Changed(fieldName) {
-			continue
-		}
-		fieldName = strings.ToLower(fieldName)
-		f := s.Field(i)
-		if reflect.Ptr == f.Kind() {
-			f = f.Elem()
-		}
-		switch {
-		case util.IsSimpleType(f):
-			params.Set(fieldName, util.SimpleTypeToParam(f))
-		case f.Kind() == reflect.Slice:
-			for i := 0; i < f.Len(); i++ {
-				elem := f.Index(i)
-				if util.IsSimpleType(elem) {
-					params.Add(fieldName, util.SimpleTypeToParam(elem))
-				} else {
-					return nil, errors.New("slices must contain only simple types")
-				}
-			}
-		case f.Kind() == reflect.Map:
-			lowerCaseKeys := make(map[string][]string)
-			iter := f.MapRange()
-			for iter.Next() {
-				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
 
-			}
-			s, err := json.MarshalToString(lowerCaseKeys)
-			if err != nil {
-				return nil, err
-			}
-
-			params.Set(fieldName, s)
-		}
-
+	if o.Arch != nil {
+		params.Set("arch", *o.Arch)
 	}
+
+	if o.Authfile != nil {
+		params.Set("authfile", *o.Authfile)
+	}
+
+	if o.OS != nil {
+		params.Set("os", *o.OS)
+	}
+
+	if o.Password != nil {
+		params.Set("password", *o.Password)
+	}
+
+	if o.Quiet != nil {
+		params.Set("quiet", strconv.FormatBool(*o.Quiet))
+	}
+
+	if o.SkipTLSVerify != nil {
+		params.Set("skiptlsverify", strconv.FormatBool(*o.SkipTLSVerify))
+	}
+
+	if o.Username != nil {
+		params.Set("username", *o.Username)
+	}
+
+	if o.Variant != nil {
+		params.Set("variant", *o.Variant)
+	}
+
 	return params, nil
 }
 

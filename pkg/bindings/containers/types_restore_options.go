@@ -3,11 +3,7 @@ package containers
 import (
 	"net/url"
 	"reflect"
-	"strings"
-
-	"github.com/containers/podman/v2/pkg/bindings/util"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
+	"strconv"
 )
 
 /*
@@ -24,53 +20,39 @@ func (o *RestoreOptions) Changed(fieldName string) bool {
 // ToParams
 func (o *RestoreOptions) ToParams() (url.Values, error) {
 	params := url.Values{}
+
 	if o == nil {
 		return params, nil
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	s := reflect.ValueOf(o)
-	if reflect.Ptr == s.Kind() {
-		s = s.Elem()
+
+	if o.IgnoreRootfs != nil {
+		params.Set("ignorerootfs", strconv.FormatBool(*o.IgnoreRootfs))
 	}
-	sType := s.Type()
-	for i := 0; i < s.NumField(); i++ {
-		fieldName := sType.Field(i).Name
-		if !o.Changed(fieldName) {
-			continue
-		}
-		fieldName = strings.ToLower(fieldName)
-		f := s.Field(i)
-		if reflect.Ptr == f.Kind() {
-			f = f.Elem()
-		}
-		switch {
-		case util.IsSimpleType(f):
-			params.Set(fieldName, util.SimpleTypeToParam(f))
-		case f.Kind() == reflect.Slice:
-			for i := 0; i < f.Len(); i++ {
-				elem := f.Index(i)
-				if util.IsSimpleType(elem) {
-					params.Add(fieldName, util.SimpleTypeToParam(elem))
-				} else {
-					return nil, errors.New("slices must contain only simple types")
-				}
-			}
-		case f.Kind() == reflect.Map:
-			lowerCaseKeys := make(map[string][]string)
-			iter := f.MapRange()
-			for iter.Next() {
-				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
 
-			}
-			s, err := json.MarshalToString(lowerCaseKeys)
-			if err != nil {
-				return nil, err
-			}
-
-			params.Set(fieldName, s)
-		}
-
+	if o.IgnoreStaticIP != nil {
+		params.Set("ignorestaticip", strconv.FormatBool(*o.IgnoreStaticIP))
 	}
+
+	if o.IgnoreStaticMAC != nil {
+		params.Set("ignorestaticmac", strconv.FormatBool(*o.IgnoreStaticMAC))
+	}
+
+	if o.ImportAchive != nil {
+		params.Set("importachive", *o.ImportAchive)
+	}
+
+	if o.Keep != nil {
+		params.Set("keep", strconv.FormatBool(*o.Keep))
+	}
+
+	if o.Name != nil {
+		params.Set("name", *o.Name)
+	}
+
+	if o.TCPEstablished != nil {
+		params.Set("tcpestablished", strconv.FormatBool(*o.TCPEstablished))
+	}
+
 	return params, nil
 }
 

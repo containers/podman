@@ -1,13 +1,9 @@
 package play
 
 import (
-	"errors"
 	"net/url"
 	"reflect"
-	"strings"
-
-	"github.com/containers/podman/v2/pkg/bindings/util"
-	jsoniter "github.com/json-iterator/go"
+	"strconv"
 )
 
 /*
@@ -24,53 +20,61 @@ func (o *KubeOptions) Changed(fieldName string) bool {
 // ToParams
 func (o *KubeOptions) ToParams() (url.Values, error) {
 	params := url.Values{}
+
 	if o == nil {
 		return params, nil
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	s := reflect.ValueOf(o)
-	if reflect.Ptr == s.Kind() {
-		s = s.Elem()
+
+	if o.Authfile != nil {
+		params.Set("authfile", *o.Authfile)
 	}
-	sType := s.Type()
-	for i := 0; i < s.NumField(); i++ {
-		fieldName := sType.Field(i).Name
-		if !o.Changed(fieldName) {
-			continue
-		}
-		fieldName = strings.ToLower(fieldName)
-		f := s.Field(i)
-		if reflect.Ptr == f.Kind() {
-			f = f.Elem()
-		}
-		switch {
-		case util.IsSimpleType(f):
-			params.Set(fieldName, util.SimpleTypeToParam(f))
-		case f.Kind() == reflect.Slice:
-			for i := 0; i < f.Len(); i++ {
-				elem := f.Index(i)
-				if util.IsSimpleType(elem) {
-					params.Add(fieldName, util.SimpleTypeToParam(elem))
-				} else {
-					return nil, errors.New("slices must contain only simple types")
-				}
-			}
-		case f.Kind() == reflect.Map:
-			lowerCaseKeys := make(map[string][]string)
-			iter := f.MapRange()
-			for iter.Next() {
-				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
 
-			}
-			s, err := json.MarshalToString(lowerCaseKeys)
-			if err != nil {
-				return nil, err
-			}
-
-			params.Set(fieldName, s)
-		}
-
+	if o.CertDir != nil {
+		params.Set("certdir", *o.CertDir)
 	}
+
+	if o.Username != nil {
+		params.Set("username", *o.Username)
+	}
+
+	if o.Password != nil {
+		params.Set("password", *o.Password)
+	}
+
+	if o.Network != nil {
+		params.Set("network", *o.Network)
+	}
+
+	if o.Quiet != nil {
+		params.Set("quiet", strconv.FormatBool(*o.Quiet))
+	}
+
+	if o.SignaturePolicy != nil {
+		params.Set("signaturepolicy", *o.SignaturePolicy)
+	}
+
+	if o.SkipTLSVerify != nil {
+		params.Set("skiptlsverify", strconv.FormatBool(*o.SkipTLSVerify))
+	}
+
+	if o.SeccompProfileRoot != nil {
+		params.Set("seccompprofileroot", *o.SeccompProfileRoot)
+	}
+
+	if o.ConfigMaps != nil {
+		for _, val := range o.ConfigMaps {
+			params.Add("configmaps", val)
+		}
+	}
+
+	if o.LogDriver != nil {
+		params.Set("logdriver", *o.LogDriver)
+	}
+
+	if o.Start != nil {
+		params.Set("start", strconv.FormatBool(*o.Start))
+	}
+
 	return params, nil
 }
 
@@ -220,7 +224,7 @@ func (o *KubeOptions) GetSeccompProfileRoot() string {
 
 // WithConfigMaps
 func (o *KubeOptions) WithConfigMaps(value []string) *KubeOptions {
-	v := &value
+	v := value
 	o.ConfigMaps = v
 	return o
 }
@@ -231,7 +235,7 @@ func (o *KubeOptions) GetConfigMaps() []string {
 	if o.ConfigMaps == nil {
 		return configMaps
 	}
-	return *o.ConfigMaps
+	return o.ConfigMaps
 }
 
 // WithLogDriver

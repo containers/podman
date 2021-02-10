@@ -3,11 +3,6 @@ package images
 import (
 	"net/url"
 	"reflect"
-	"strings"
-
-	"github.com/containers/podman/v2/pkg/bindings/util"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 )
 
 /*
@@ -24,59 +19,35 @@ func (o *ImportOptions) Changed(fieldName string) bool {
 // ToParams
 func (o *ImportOptions) ToParams() (url.Values, error) {
 	params := url.Values{}
+
 	if o == nil {
 		return params, nil
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	s := reflect.ValueOf(o)
-	if reflect.Ptr == s.Kind() {
-		s = s.Elem()
+
+	if o.Changes != nil {
+		for _, val := range o.Changes {
+			params.Add("changes", val)
+		}
 	}
-	sType := s.Type()
-	for i := 0; i < s.NumField(); i++ {
-		fieldName := sType.Field(i).Name
-		if !o.Changed(fieldName) {
-			continue
-		}
-		fieldName = strings.ToLower(fieldName)
-		f := s.Field(i)
-		if reflect.Ptr == f.Kind() {
-			f = f.Elem()
-		}
-		switch {
-		case util.IsSimpleType(f):
-			params.Set(fieldName, util.SimpleTypeToParam(f))
-		case f.Kind() == reflect.Slice:
-			for i := 0; i < f.Len(); i++ {
-				elem := f.Index(i)
-				if util.IsSimpleType(elem) {
-					params.Add(fieldName, util.SimpleTypeToParam(elem))
-				} else {
-					return nil, errors.New("slices must contain only simple types")
-				}
-			}
-		case f.Kind() == reflect.Map:
-			lowerCaseKeys := make(map[string][]string)
-			iter := f.MapRange()
-			for iter.Next() {
-				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
 
-			}
-			s, err := json.MarshalToString(lowerCaseKeys)
-			if err != nil {
-				return nil, err
-			}
-
-			params.Set(fieldName, s)
-		}
-
+	if o.Message != nil {
+		params.Set("message", *o.Message)
 	}
+
+	if o.Reference != nil {
+		params.Set("reference", *o.Reference)
+	}
+
+	if o.URL != nil {
+		params.Set("url", *o.URL)
+	}
+
 	return params, nil
 }
 
 // WithChanges
 func (o *ImportOptions) WithChanges(value []string) *ImportOptions {
-	v := &value
+	v := value
 	o.Changes = v
 	return o
 }
@@ -87,7 +58,7 @@ func (o *ImportOptions) GetChanges() []string {
 	if o.Changes == nil {
 		return changes
 	}
-	return *o.Changes
+	return o.Changes
 }
 
 // WithMessage

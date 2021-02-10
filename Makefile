@@ -473,7 +473,7 @@ podman-remote-%-release:
 .PHONY: generate-bindings
 generate-bindings:
 ifneq ($(shell uname -s), Darwin)
-	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
+	GO111MODULE=on $(GO) generate ./pkg/bindings/... ;
 endif
 
 .PHONY: docker-docs

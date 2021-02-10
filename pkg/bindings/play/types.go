@@ -24,7 +24,7 @@ type KubeOptions struct {
 	// profiles.
 	SeccompProfileRoot *string
 	// ConfigMaps - slice of pathnames to kubernetes configmap YAMLs.
-	ConfigMaps *[]string
+	ConfigMaps []string
 	// LogDriver for the container. For example: journald
 	LogDriver *string
 	// Start - don't start the pod if false
