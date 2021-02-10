@@ -3,6 +3,9 @@
 # Tests for more image-related endpoints
 #
 
+red='\e[31m'
+nc='\e[0m'
+
 podman pull -q $IMAGE
 
 t GET libpod/images/json 200 \
@@ -26,6 +29,17 @@ t GET libpod/images/$IMAGE/json 200 \
 podman run -d --name registry -p 5000:5000 quay.io/libpod/registry:2.6 /entrypoint.sh /etc/docker/registry/config.yml
 wait_for_port localhost 5000
 
+# Push to local registry and check output
+while read -r LINE
+do
+  if echo "${LINE}" | jq --exit-status 'select( .status != null) | select ( .status | contains("digest: sha256:"))' &>/dev/null; then
+    GOT_DIGEST="1"
+  fi
+done < <(curl -sL "http://$HOST:$PORT/images/localhost:5000/myrepo/push?tlsVerify=false&tag=mytag" -XPOST)
+if [ -z "${GOT_DIGEST}" ] ; then
+  echo -e "${red}not ok: did not found digest in output${nc}"  1>&2;
+fi
+
 # Push to local registry
 t POST "images/localhost:5000/myrepo/push?tlsVerify=false&tag=mytag" '' 200
 
@@ -43,3 +57,7 @@ t DELETE libpod/images/$IMAGE 200 \
   .ExitCode=0
 t DELETE libpod/images/quay.io/libpod/registry:2.6 200 \
   .ExitCode=0
+
+if [ -z "${GOT_DIGEST}" ] ; then
+  exit 1;
+fi
