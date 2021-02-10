@@ -265,12 +265,12 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	// Success
 	utils.WriteResponse(w, http.StatusOK, struct {
 		Status         string            `json:"status"`
-		Error          string            `json:"error"`
+		Error          string            `json:"error,omitempty"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
 		Id             string            `json:"id"` // nolint
 	}{
-		Status:         fmt.Sprintf("pulling image (%s) from %s", img.Tag, strings.Join(img.Names(), ", ")),
+		Status:         fmt.Sprintf("pulling image (%s) from %s (Download complete)", img.Tag, strings.Join(img.Names(), ", ")),
 		ProgressDetail: map[string]string{},
 		Id:             img.ID(),
 	})
