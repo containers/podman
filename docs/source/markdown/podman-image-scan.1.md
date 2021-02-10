@@ -1,24 +1,63 @@
 % podman-image-scan(1)
 
 ## NAME
-podman\-image\-scan - Scan an image's root filesystem for known vulnerabilities
+podman\-image\-scan - Scan an image's contents for problems
 
 ## SYNOPSIS
-**podman image scan** [*options*] [*image* ...] [*scanner options*]
+**podman image scan** [*options*] *name*[:*tag*] -- [*scanner options*]
 
 ## DESCRIPTION
-Mounts the specified images' root file system and scans the contents accessible from
-the mount point for known vulnerabilities.
+Scans the contents of an image with a pluggable scanner tool. All stdout and stderr from the scanner tool is written to
+stderr and stdout of **podman image scan**. The tool exits with a non-zero code if the scan fails.
+
+The target image being scanned is presented to the scanner tool container as a volume mount in one of the following formats:
+**oci-archive, oci-dir** (directory with oci manifest type), **docker-archive, docker-dir** (directory with v2s2 manifest type), 
+or **squash** (a squashed representation of the image filesystem). The default format option is **squash**.
+
+Any arguments after `--` are provided to the scanner tool. Templating is performed against the scanner tool arguments
+to allow for providing the mount point of the target image to be scanned to the scanner tool. Specifically all references
+of `{{ .Mountpoint }}` are replaced with what the user provided with `--mount-point`/`-m`, or if not provided, the
+auto-generated mount-point is provided.
+
+**podman image scan [OPTIONS] NAME[:TAG] -- [SCANNER OPTIONS]**
 
 ## RETURN VALUE
 The scanner tool report.
 
 ## OPTIONS
 
+#### **--env**, **-e**=*env*
+
+Set environment variables within the scanner tool container.
+
+This option allows arbitrary environment variables that are available for the process to be launched inside of the container.
+If an environment variable is specified without a value, Podman will check the host environment for a value and set the variable
+only if it is set on the host. If an environment variable ending in __*__ is specified, Podman will search the host environment
+for variables starting with the prefix and will add those variables to the container. If an environment variable with a
+trailing ***** is specified, then a value must be supplied.
+
+#### **--format**, **-f** [*format*]
+
+The image format to present to the scanner tool container. The options are **oci-archive, oci-dir** (directory with
+oci manifest type), **docker-archive, docker-dir** (directory with v2s2 manifest type), or **squash** (a squashed 
+representation of the image filesystem). The default option is **squash**.
+```
+--format squash
+--format docker-archive
+--format oci-archive
+--format oci-dir
+--format docker-dir
+```
+
+#### **--mount-point**, **-m** [*path*]
+
+The volume mount path of the target image as presented to the scanner tool container.
+
+
 #### **--scanner**, **-s** [*image*]
 
-A container image with the scanner tool installed and configured as the entrypoint and 
-reads the PODMAN_SCAN_MOUNT environment variable to determine where to scan.
+A container image with the scanner tool installed and configured as the entrypoint. The scanner tool should exit with
+a non-zero code to indicate a failing scan.
 
 ## EXAMPLE
 
@@ -36,7 +75,12 @@ podman image scan --scanner anchore/grype:latest alpine:latest
 
 Pass arguments to the scanner:
 ```
-podman image scan alpine:latest -- -o json -vv
+podman image scan alpine:latest -- 'dir:{{ .Mountpoint }}' -o json -vv
+```
+
+Change the image format presented to the scanner:
+```
+podman image scan --format docker-archive alpine:latest -- 'docker-archive:{{ .Mountpoint }}' -o json -vv
 ```
 
 ## SEE ALSO
