@@ -376,5 +376,13 @@ type ImageUnmountReport struct {
 }
 
 type ImageScanOptions struct {
+	// ScannerImage is the scanner tool image to use to scan the target image
 	ScannerImage string
+	// MountPoint is the path of the volume mount of the target image within the scanner container
+	MountPoint string
+	// Format of saving the image: oci-archive, oci-dir (directory with oci
+	// manifest type), docker-archive, docker-dir (directory with v2s2
+	// manifest type), or "squash" (the squashed representation of the image file tree)
+	Format string
+	Env    []string
 }

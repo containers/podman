@@ -1,8 +1,15 @@
 package images
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v2/cmd/podman/parse"
+	"io/ioutil"
 	"os"
+	"strings"
+	"text/template"
 
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
@@ -13,11 +20,11 @@ import (
 )
 
 var (
-	imageScanCommand     = &cobra.Command{
+	imageScanCommand = &cobra.Command{
 		Use:     "scan [run-options] IMAGE [scanner-options]",
 		Short:   "Scan a container image for known vulnerabilities",
 		Long:    `Scan a container image for known vulnerabilities. The image name or digest can be used.`,
-		Args: cobra.MinimumNArgs(1),
+		Args:    cobra.MinimumNArgs(1),
 		RunE:    scan,
 		Example: `podman image scan centos:latest`,
 	}
@@ -25,13 +32,42 @@ var (
 	scanOptions entities.ImageScanOptions
 )
 
-
 func scanFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	// TODO: derive default from containers.conf configuration
-	scannerFlagName := "scanner"
-	flags.StringVar(&scanOptions.ScannerImage, scannerFlagName, "docker.io/anchore/grype:latest", "The vulnerability scanner container image to use")
+	flagName := "scanner"
+	flags.StringVarP(
+		&scanOptions.ScannerImage,
+		flagName, "s", "docker.io/anchore/syft:latest",
+		"The vulnerability scanner container image to use",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(flagName, completion.AutocompleteNone)
+
+	flagName = "mount-point"
+	flags.StringVarP(
+		&scanOptions.MountPoint,
+		flagName, "m", "/podman-scan-image-mount",
+		"Mount-point of the target image to be scanned",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(flagName, completion.AutocompleteNone)
+
+	flagName = "format"
+	flags.StringVarP(
+		&scanOptions.Format,
+		flagName, "f", "squash",
+		"The image format of the target image to be scanned (options: oci-dir, oci-archive, docker-dir, docker-archive, squash)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(flagName, completion.AutocompleteNone)
+
+	flagName = "env"
+	flags.StringSliceVarP(
+		&scanOptions.Env,
+		flagName, "e", nil,
+		"Set environment variables in scanner tool container",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(flagName, completion.AutocompleteNone)
+
 }
 
 func init() {
@@ -43,46 +79,117 @@ func init() {
 	scanFlags(imageScanCommand)
 }
 
+func prepareImageMount(image string) (func(), string, error) {
+	var location string
+	var mountOptions string
+	var cleanupFn func()
+
+	switch {
+	case strings.HasSuffix(scanOptions.Format, "-archive"):
+		file, err := ioutil.TempFile("", "podman-scan-image-archive")
+		if err != nil {
+			return nil, "", fmt.Errorf("unable to create temporary image archive: %w", err)
+		}
+		cleanupFn = func() {
+			os.Remove(file.Name())
+		}
+		location = file.Name()
+		mountOptions = fmt.Sprintf("type=bind,source=%s,target=%s,ro=true", location, scanOptions.MountPoint)
+	case strings.HasSuffix(scanOptions.Format, "-dir"):
+		dir, err := ioutil.TempDir("dir", "podman-scan-image-dir")
+		if err != nil {
+			return nil, "", fmt.Errorf("unable to create temporary image archive: %w", err)
+		}
+		cleanupFn = func() {
+			os.RemoveAll(dir)
+		}
+		location = dir
+		mountOptions = fmt.Sprintf("type=bind,source=%s,target=%s,ro=true", location, scanOptions.MountPoint)
+	case scanOptions.Format == "squash":
+		mountOptions = fmt.Sprintf("type=image,src=%s,target=%s,readwrite=false", image, scanOptions.MountPoint)
+		return nil, mountOptions, nil
+	default:
+		return nil, "", fmt.Errorf("unknown image save format: %q", scanOptions.Format)
+	}
+
+	if err := parse.ValidateFileName(location); err != nil {
+		return cleanupFn, "", err
+	}
+
+	tempSaveOpts := entities.ImageSaveOptions{
+		Format: scanOptions.Format,
+		Output: location,
+	}
+
+	return cleanupFn, mountOptions, registry.ImageEngine().Save(context.Background(), image, nil, tempSaveOpts)
+
+}
+
 func scan(cmd *cobra.Command, args []string) error {
 	imageToScan := args[0]
-	mountTarget := "/podman-scan-image-mount"
-	// allow parsing to continue with the first arg being the scanner image (not the image to scan)
-	args[0] = scanOptions.ScannerImage
+
+	// render all scanner args with the mount-point (if necessary)
+	type ScanTemplate struct {
+		MountPoint string
+	}
+	values := ScanTemplate{MountPoint: scanOptions.MountPoint}
+	tpl := template.New("podman-scan")
+
+	scannerArgs := append([]string{scanOptions.ScannerImage}, args[1:]...)
+	for i, arg := range scannerArgs {
+		parsedTpl, err := tpl.Parse(arg)
+		if err != nil {
+			continue
+		}
+
+		buf := bytes.NewBufferString("")
+		if err = parsedTpl.Execute(buf, values); err != nil {
+			continue
+		}
+		scannerArgs[i] = buf.String()
+	}
+
+	// save the image (if necessary)
+	cleanupFn, mountOptions, err := prepareImageMount(imageToScan)
+	if cleanupFn != nil {
+		defer cleanupFn()
+	}
+	if err != nil {
+		return err
+	}
 
 	ctrConfig := registry.PodmanConfig()
 
 	ctrOpts := common.ContainerCLIOpts{
-		Mount: []string{fmt.Sprintf("type=image,src=%s,target=%s,readwrite=false", imageToScan, mountTarget)},
-		ImageVolume: common.DefaultImageVolume,
-		HealthInterval: common.DefaultHealthCheckInterval,
-		HealthRetries: common.DefaultHealthCheckRetries,
+		Mount:             []string{mountOptions},
+		ImageVolume:       common.DefaultImageVolume,
+		HealthInterval:    common.DefaultHealthCheckInterval,
+		HealthRetries:     common.DefaultHealthCheckRetries,
 		HealthStartPeriod: common.DefaultHealthCheckStartPeriod,
-		HealthTimeout: common.DefaultHealthCheckTimeout,
-		HTTPProxy: true,
-		MemorySwappiness: -1,
+		HealthTimeout:     common.DefaultHealthCheckTimeout,
+		HTTPProxy:         true,
+		MemorySwappiness:  -1,
 		// TODO: scanners may need these options to be made available to the user, yes?
-		Net:          &entities.NetOptions{},
-		CGroupsMode:  ctrConfig.Cgroups(),
-		Devices:      ctrConfig.Devices(),
-		Env:          ctrConfig.Env(),
-		Ulimit:       ctrConfig.Ulimits(),
-		InitPath:     ctrConfig.InitPath(),
-		Pull:         ctrConfig.Engine.PullPolicy,
-		SdNotifyMode: define.SdNotifyModeContainer,
-		ShmSize:      ctrConfig.ShmSize(),
-		StopTimeout:  ctrConfig.Engine.StopTimeout,
-		Systemd:  "true",
-		Timezone: ctrConfig.TZ(),
-		Umask:    ctrConfig.Umask(),
-		UserNS:   os.Getenv("PODMAN_USERNS"),
-		Volume:   ctrConfig.Volumes(),
+		Net:           &entities.NetOptions{},
+		CGroupsMode:   ctrConfig.Cgroups(),
+		Devices:       ctrConfig.Devices(),
+		Env:           scanOptions.Env,
+		Ulimit:        ctrConfig.Ulimits(),
+		InitPath:      ctrConfig.InitPath(),
+		Pull:          ctrConfig.Engine.PullPolicy,
+		SdNotifyMode:  define.SdNotifyModeContainer,
+		ShmSize:       ctrConfig.ShmSize(),
+		StopTimeout:   ctrConfig.Engine.StopTimeout,
+		Systemd:       "true",
+		Timezone:      ctrConfig.TZ(),
+		Umask:         ctrConfig.Umask(),
+		UserNS:        os.Getenv("PODMAN_USERNS"),
+		Volume:        ctrConfig.Volumes(),
 		SeccompPolicy: "default",
 	}
 
-	ctrOpts.Env = append(ctrOpts.Env, fmt.Sprintf("PODMAN_SCAN_MOUNT=%s", mountTarget))
-
 	s := specgen.NewSpecGenerator(scanOptions.ScannerImage, false)
-	if err := common.FillOutSpecGen(s, &ctrOpts, args); err != nil {
+	if err := common.FillOutSpecGen(s, &ctrOpts, scannerArgs); err != nil {
 		return err
 	}
 

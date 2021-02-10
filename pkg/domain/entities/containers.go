@@ -437,4 +437,3 @@ type ContainerRenameOptions struct {
 	// NewName is the new name that will be given to the container.
 	NewName string
 }
-
