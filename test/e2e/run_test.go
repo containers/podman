@@ -1191,6 +1191,37 @@ USER mail`
 		Expect(found).To(BeTrue())
 	})
 
+	It("podman run with cgroups=split", func() {
+		SkipIfNotSystemd(podmanTest.CgroupManager, "do not test --cgroups=split if not running on systemd")
+		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
+		SkipIfRemote("--cgroups=split cannot be used in remote mode")
+
+		container := podmanTest.Podman([]string{"run", "--rm", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
+		container.WaitWithDefaultTimeout()
+		Expect(container.ExitCode()).To(Equal(0))
+		lines := container.OutputToStringArray()
+
+		cgroup := ""
+		for _, line := range lines {
+			parts := strings.SplitN(line, ":", 3)
+			if !CGROUPSV2 {
+				// ignore unified on cgroup v1
+				// both runc and crun do not set it.
+				if parts[1] == "" {
+					continue
+				}
+			}
+			if parts[2] == "/" {
+				continue
+			}
+			if cgroup == "" {
+				cgroup = parts[2]
+				continue
+			}
+			Expect(cgroup).To(Equal(parts[2]))
+		}
+	})
+
 	It("podman run with cgroups=disabled runs without cgroups", func() {
 		SkipIfRootless("FIXME:  I believe this should work but need to fix this test")
 		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
