@@ -864,8 +864,8 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		for _, limit := range ctrSpec.Process.Rlimits {
 			newLimit := define.InspectUlimit{}
 			newLimit.Name = limit.Type
-			newLimit.Soft = limit.Soft
-			newLimit.Hard = limit.Hard
+			newLimit.Soft = int64(limit.Soft)
+			newLimit.Hard = int64(limit.Hard)
 			hostConfig.Ulimits = append(hostConfig.Ulimits, newLimit)
 		}
 	}
