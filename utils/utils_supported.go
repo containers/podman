@@ -183,6 +183,9 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 				return err
 			}
 			for _, pid := range bytes.Split(processesData, []byte("\n")) {
+				if len(pid) == 0 {
+					continue
+				}
 				if _, err := f.Write(pid); err != nil {
 					logrus.Warnf("Cannot move process %s to cgroup %q", string(pid), newCgroup)
 				}
