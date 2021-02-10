@@ -26,6 +26,7 @@ import (
 	"github.com/containers/libpod/utils"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/coreos/go-systemd/activation"
+	"github.com/docker/docker/oci/caps"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -523,7 +524,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 		finalEnv = append(finalEnv, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	processFile, err := prepareProcessExec(c, options.Cmd, finalEnv, options.Terminal, options.Cwd, options.User, sessionID)
+	processFile, err := prepareProcessExec(c, options.Cmd, finalEnv, options.Terminal, options.Cwd, options.User, sessionID, options.Privileged)
 	if err != nil {
 		return -1, nil, err
 	}
@@ -536,10 +537,6 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 	if options.PreserveFDs > 0 {
 		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
-	}
-
-	for _, capability := range options.CapAdd {
-		args = append(args, formatRuntimeOpts("--cap", capability)...)
 	}
 
 	if options.Terminal {
@@ -1041,12 +1038,15 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible to close the returned *os.File if needed.
-func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, sessionID string) (*os.File, error) {
+func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, sessionID string, privileged bool) (*os.File, error) {
 	f, err := ioutil.TempFile(c.execBundlePath(sessionID), "exec-process-")
 	if err != nil {
 		return nil, err
 	}
-	pspec := c.config.Spec.Process
+	pspec := new(spec.Process)
+	if err := JSONDeepCopy(c.config.Spec.Process, pspec); err != nil {
+		return nil, err
+	}
 	pspec.SelinuxLabel = c.config.ProcessLabel
 	pspec.Args = cmd
 	// We need to default this to false else it will inherit terminal as true
@@ -1101,6 +1101,23 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 		}
 
 		pspec.User = processUser
+	}
+
+	allCaps := caps.GetAllCapabilities()
+	pspec.Capabilities.Effective = []string{}
+	if privileged {
+		pspec.Capabilities.Bounding = allCaps
+	} else {
+		pspec.Capabilities.Bounding = []string{}
+	}
+	pspec.Capabilities.Inheritable = pspec.Capabilities.Bounding
+	if execUser.Uid == 0 {
+		pspec.Capabilities.Effective = pspec.Capabilities.Bounding
+		pspec.Capabilities.Permitted = pspec.Capabilities.Bounding
+		pspec.Capabilities.Ambient = pspec.Capabilities.Bounding
+	} else {
+		pspec.Capabilities.Permitted = pspec.Capabilities.Effective
+		pspec.Capabilities.Ambient = pspec.Capabilities.Effective
 	}
 
 	hasHomeSet := false

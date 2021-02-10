@@ -105,8 +105,6 @@ type OCIRuntime interface {
 type ExecOptions struct {
 	// Cmd is the command to execute.
 	Cmd []string
-	// CapAdd is a set of capabilities to add to the executed command.
-	CapAdd []string
 	// Env is a set of environment variables to add to the container.
 	Env map[string]string
 	// Terminal is whether to create a new TTY for the exec session.
@@ -129,4 +127,6 @@ type ExecOptions struct {
 	// DetachKeys is a set of keys that, when pressed in sequence, will
 	// detach from the container.
 	DetachKeys string
+	// Privileged is whether the exec session is privileged.
+	Privileged bool
 }
