@@ -122,9 +122,9 @@ type InspectUlimit struct {
 	// Name is the name (type) of the ulimit.
 	Name string `json:"Name"`
 	// Soft is the soft limit that will be applied.
-	Soft uint64 `json:"Soft"`
+	Soft int64 `json:"Soft"`
 	// Hard is the hard limit that will be applied.
-	Hard uint64 `json:"Hard"`
+	Hard int64 `json:"Hard"`
 }
 
 // InspectDevice is a single device that will be mounted into the container.

@@ -466,4 +466,28 @@ var _ = Describe("Podman inspect", func() {
 		Expect(len(inspect)).To(Equal(1))
 		Expect(len(inspect[0].NetworkSettings.Networks)).To(Equal(1))
 	})
+
+	It("Container inspect with unlimited uilimits should be -1", func() {
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"run", "-d", "--ulimit", "core=-1:-1", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(BeZero())
+
+		data := inspect.InspectContainerToJSON()
+		ulimits := data[0].HostConfig.Ulimits
+		Expect(len(ulimits)).To(BeNumerically(">", 0))
+		found := false
+		for _, ulimit := range ulimits {
+			if ulimit.Name == "RLIMIT_CORE" {
+				found = true
+				Expect(ulimit.Soft).To(BeNumerically("==", -1))
+				Expect(ulimit.Hard).To(BeNumerically("==", -1))
+			}
+		}
+		Expect(found).To(BeTrue())
+	})
 })
