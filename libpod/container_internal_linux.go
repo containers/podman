@@ -2278,23 +2278,6 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 	return passwdPath, groupPath, nil
 }
 
-func (c *Container) copyOwnerAndPerms(source, dest string) error {
-	info, err := os.Stat(source)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	if err := os.Chmod(dest, info.Mode()); err != nil {
-		return err
-	}
-	if err := os.Chown(dest, int(info.Sys().(*syscall.Stat_t).Uid), int(info.Sys().(*syscall.Stat_t).Gid)); err != nil {
-		return err
-	}
-	return nil
-}
-
 // Get cgroup path in a format suitable for the OCI spec
 func (c *Container) getOCICgroupPath() (string, error) {
 	unified, err := cgroups.IsCgroup2UnifiedMode()

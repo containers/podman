@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/copier"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/events"
@@ -1582,18 +1583,8 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 			return nil, err
 		}
 
-		// HACK HACK HACK - copy up into a volume driver is 100% broken
-		// right now.
-		if vol.UsesVolumeDriver() {
-			logrus.Infof("Not copying up into volume %s as it uses a volume driver", vol.Name())
-			return vol, nil
-		}
-
 		// If the volume is not empty, we should not copy up.
-		volMount, err := vol.MountPoint()
-		if err != nil {
-			return nil, err
-		}
+		volMount := vol.mountPoint()
 		contents, err := ioutil.ReadDir(volMount)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
@@ -1609,8 +1600,55 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
 		}
-		if err := c.copyWithTarFromImage(srcDir, volMount); err != nil && !os.IsNotExist(err) {
-			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
+		// Do a manual stat on the source directory to verify existence.
+		// Skip the rest if it exists.
+		// TODO: Should this be stat or lstat? I'm using lstat because I
+		// think copy-up doesn't happen when the source is a link.
+		srcStat, err := os.Lstat(srcDir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				// Source does not exist, don't bother copying
+				// up.
+				return vol, nil
+			}
+			return nil, errors.Wrapf(err, "error identifying source directory for copy up into volume %s", vol.Name())
+		}
+		// If it's not a directory we're mounting over it.
+		if !srcStat.IsDir() {
+			return vol, nil
+		}
+
+		// Buildah Copier accepts a reader, so we'll need a pipe.
+		reader, writer := io.Pipe()
+		defer reader.Close()
+
+		errChan := make(chan error, 1)
+
+		logrus.Infof("About to copy up into volume %s", vol.Name())
+
+		// Copy, container side: get a tar archive of what needs to be
+		// streamed into the volume.
+		go func() {
+			defer writer.Close()
+			getOptions := copier.GetOptions{
+				KeepDirectoryNames: false,
+			}
+			errChan <- copier.Get(mountpoint, "", getOptions, []string{v.Dest + "/."}, writer)
+		}()
+
+		// Copy, volume side: stream what we've written to the pipe, into
+		// the volume.
+		copyOpts := copier.PutOptions{}
+		if err := copier.Put(volMount, "", copyOpts, reader); err != nil {
+			err2 := <-errChan
+			if err2 != nil {
+				logrus.Errorf("Error streaming contents of container %s directory for volume copy-up: %v", c.ID(), err2)
+			}
+			return nil, errors.Wrapf(err, "error copying up to volume %s", vol.Name())
+		}
+
+		if err := <-errChan; err != nil {
+			return nil, errors.Wrapf(err, "error streaming container content for copy up into volume %s", vol.Name())
 		}
 	}
 	return vol, nil
@@ -2058,17 +2096,6 @@ func (c *Container) unmount(force bool) error {
 	}
 
 	return nil
-}
-
-// this should be from chrootarchive.
-// Container MUST be mounted before calling.
-func (c *Container) copyWithTarFromImage(source, dest string) error {
-	mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
-	a := archive.NewArchiver(mappings)
-	if err := c.copyOwnerAndPerms(source, dest); err != nil {
-		return err
-	}
-	return a.CopyWithTar(source, dest)
 }
 
 // checkReadyForRemoval checks whether the given container is ready to be
