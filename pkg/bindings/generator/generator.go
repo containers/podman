@@ -27,79 +27,31 @@ This file is generated automatically by go generate.  Do not edit.
 
 // Changed
 func (o *{{.StructName}}) Changed(fieldName string) bool {
-	r := reflect.ValueOf(o)
-	value := reflect.Indirect(r).FieldByName(fieldName)
-	return !value.IsNil()
+	return util.Changed(o, fieldName)
 }
 
 // ToParams
 func (o *{{.StructName}}) ToParams() (url.Values, error) {
-	params := url.Values{}
-	if o == nil {
-		return params, nil
-	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	s := reflect.ValueOf(o)
-	if reflect.Ptr == s.Kind() {
-		s = s.Elem()
-	}
-	sType := s.Type()
-	for i := 0; i < s.NumField(); i++ {
-		fieldName := sType.Field(i).Name
-		if !o.Changed(fieldName) {
-			continue
-		}
-		fieldName = strings.ToLower(fieldName)
-		f := s.Field(i)
-		if reflect.Ptr == f.Kind() {
-			f = f.Elem()
-		}
-		switch {
-		case util.IsSimpleType(f):
-			params.Set(fieldName, util.SimpleTypeToParam(f))
-		case f.Kind() == reflect.Slice:
-			for i := 0; i < f.Len(); i++ {
-				elem := f.Index(i)
-				if util.IsSimpleType(elem) {
-					params.Add(fieldName, util.SimpleTypeToParam(elem))
-				} else {
-					return nil, errors.New("slices must contain only simple types")
-				}
-			}
-		case f.Kind() == reflect.Map:
-			lowerCaseKeys := make(map[string][]string)
-			iter := f.MapRange()
-			for iter.Next() {
-				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
-			}
-			s, err := json.MarshalToString(lowerCaseKeys)
-			if err != nil {
-				return nil, err
-			}
-
-			params.Set(fieldName, s)
-		}
-	}
-	return params, nil
+	return util.ToParams(o)
 }
-`
 
-var fieldTmpl = `
+{{range $field := .Fields}}
 // With{{.Name}}
-func(o *{{.StructName}}) With{{.Name}}(value {{.Type}}) *{{.StructName}} {
-	v := {{.TypedValue}}
-	o.{{.Name}} = v
+func(o *{{$field.StructName}}) With{{$field.Name}}(value {{$field.Type}}) *{{$field.StructName}} {
+	v := {{$field.TypedValue}}
+	o.{{$field.Name}} = v
 	return o
 }
 
 // Get{{.Name}}
-func(o *{{.StructName}}) Get{{.Name}}() {{.Type}} {
-	var {{.ZeroName}} {{.Type}}
-	if o.{{.Name}} == nil {
-		return {{.ZeroName}}
+func(o *{{$field.StructName}}) Get{{$field.Name}}() {{$field.Type}} {
+	var {{$field.ZeroName}} {{$field.Type}}
+	if o.{{$field.Name}} == nil {
+		return {{$field.ZeroName}}
 	}
-	return {{.TypedName}}
+	return {{$field.TypedName}}
 }
+{{end}}
 `
 
 type fieldStruct struct {
@@ -143,20 +95,7 @@ func main() {
 			out.Close()
 		}
 	}()
-	bodyStruct := struct {
-		PackageName string
-		Imports     []string
-		Date        string
-		StructName  string
-	}{
-		PackageName: pkg,
-		Imports:     imports,
-		Date:        time.Now().String(),
-		StructName:  inputStructName,
-	}
 
-	body := template.Must(template.New("body").Parse(bodyTmpl))
-	fields := template.Must(template.New("fields").Parse(fieldTmpl))
 	ast.Inspect(f, func(n ast.Node) bool {
 		ref, refOK := n.(*ast.TypeSpec)
 		if refOK {
@@ -200,18 +139,26 @@ func main() {
 					fieldStructs = append(fieldStructs, fStruct)
 				} // for
 
+				bodyStruct := struct {
+					PackageName string
+					Imports     []string
+					Date        string
+					StructName  string
+					Fields      []fieldStruct
+				}{
+					PackageName: pkg,
+					Imports:     imports,
+					Date:        time.Now().String(),
+					StructName:  inputStructName,
+					Fields:      fieldStructs,
+				}
+
+				body := template.Must(template.New("body").Parse(bodyTmpl))
+
 				// create the body
 				if err := body.Execute(out, bodyStruct); err != nil {
 					fmt.Println(err)
 					os.Exit(1)
-				}
-
-				// create with func from the struct fields
-				for _, fs := range fieldStructs {
-					if err := fields.Execute(out, fs); err != nil {
-						fmt.Println(err)
-						os.Exit(1)
-					}
 				}
 
 				// close out file
