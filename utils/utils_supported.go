@@ -81,16 +81,9 @@ func getCgroupProcess(procFile string) (string, error) {
 			cgroup = line[3:]
 			break
 		}
-		// root cgroup, skip it
-		if parts[2] == "/" {
-			continue
+		if len(parts[2]) > len(cgroup) {
+			cgroup = parts[2]
 		}
-		// The process must have the same cgroup path for all controllers
-		// The OCI runtime spec file allow us to specify only one path.
-		if cgroup != "/" && cgroup != parts[2] {
-			return "", errors.Errorf("cgroup configuration not supported, the process is in two different cgroups")
-		}
-		cgroup = parts[2]
 	}
 	if cgroup == "/" {
 		return "", errors.Errorf("could not find cgroup mount in %q", procFile)
