@@ -150,6 +150,11 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 			// If it is not using unified mode, the cgroup v2 hierarchy is
 			// usually mounted under /sys/fs/cgroup/unified
 			cgroupRoot = filepath.Join(cgroupRoot, "unified")
+
+			// Ignore the unified mount if it doesn't exist
+			if _, err := os.Stat(cgroupRoot); err != nil && os.IsNotExist(err) {
+				continue
+			}
 		} else if parts[1] != "" {
 			// Assume the controller is mounted at /sys/fs/cgroup/$CONTROLLER.
 			controller := strings.TrimPrefix(parts[1], "name=")
