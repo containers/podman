@@ -6,6 +6,7 @@
 name: check_cirrus_cron
 
 on:
+    # Note: This only applies to the master branch.
     schedule:
         # Assume cirrus cron jobs runs at least once per day
         - cron:  '59 23 * * *'
@@ -53,6 +54,7 @@ jobs:
                 echo ""
                 echo "# Source: ${{ github.workflow }} workflow on ${{ github.repository }}."
                 # Separate content from sendgrid.com automatic footer.
+                echo ""
                 echo ""
                 ) > ./artifacts/email_body.txt
 
