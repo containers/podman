@@ -166,7 +166,7 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 			parentCgroup = parts[2]
 		}
 		newCgroup := filepath.Join(cgroupRoot, parentCgroup, subtree)
-		if err := os.Mkdir(newCgroup, 0755); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(newCgroup, 0755); err != nil && !os.IsExist(err) {
 			return err
 		}
 
