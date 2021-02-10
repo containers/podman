@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 	"strings"
@@ -57,7 +57,7 @@ Options:
 
 var (
 	rootCmd = &cobra.Command{
-		Use:                   path.Base(os.Args[0]) + " [options]",
+		Use:                   filepath.Base(os.Args[0]) + " [options]",
 		Long:                  "Manage pods, containers and images",
 		SilenceUsage:          true,
 		SilenceErrors:         true,
