@@ -15,10 +15,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/coreos/go-systemd/activation"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/docker/daemon/caps"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -735,18 +737,23 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 // TODO: Add --detach support
 // TODO: Convert to use conmon
 // TODO: add --pid-file and use that to generate exec session tracking
-func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string) (*exec.Cmd, error) {
+func (r *OCIRuntime) execContainer(c *Container, cmd, env []string, tty bool, cwd, user, sessionID string, privileged bool) (*exec.Cmd, string, error) {
 	if len(cmd) == 0 {
-		return nil, errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
+		return nil, "", errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
 	}
 
 	if sessionID == "" {
-		return nil, errors.Wrapf(ErrEmptyID, "must provide a session ID for exec")
+		return nil, "", errors.Wrapf(ErrEmptyID, "must provide a session ID for exec")
 	}
 
 	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
-		return nil, err
+		return nil, "", err
+	}
+
+	processFile, err := prepareProcessExec(c, cmd, env, tty, cwd, user, sessionID, privileged)
+	if err != nil {
+		return nil, "", err
 	}
 
 	args := []string{}
@@ -756,32 +763,12 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 
 	args = append(args, "exec")
 
-	if cwd != "" {
-		args = append(args, "--cwd", cwd)
-	}
+	args = append(args, "--process", processFile)
 
 	args = append(args, "--pid-file", c.execPidPath(sessionID))
 
-	if tty {
-		args = append(args, "--tty")
-	} else {
-		args = append(args, "--tty=false")
-	}
-
-	if user != "" {
-		args = append(args, "--user", user)
-	}
-
 	if c.config.Spec.Process.NoNewPrivileges {
 		args = append(args, "--no-new-privs")
-	}
-
-	for _, cap := range capAdd {
-		args = append(args, "--cap", cap)
-	}
-
-	for _, envVar := range env {
-		args = append(args, "--env", envVar)
 	}
 
 	// Append container ID and command
@@ -797,10 +784,10 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 
 	if err := execCmd.Start(); err != nil {
-		return nil, errors.Wrapf(err, "cannot start container %s", c.ID())
+		return nil, "", errors.Wrapf(err, "cannot start container %s", c.ID())
 	}
 
-	return execCmd, nil
+	return execCmd, processFile, nil
 }
 
 // execStopContainer stops all active exec sessions in a container
@@ -891,4 +878,111 @@ func (r *OCIRuntime) checkpointContainer(ctr *Container, options ContainerCheckp
 	}
 	args = append(args, ctr.ID())
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
+}
+
+// prepareProcessExec returns the path of the process.json used in runc exec -p.
+// Returns path to the created exec process file. This will need to be removed
+// by the caller when they're done, best effort.
+func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, sessionID string, privileged bool) (string, error) {
+	filename := filepath.Join(c.bundlePath(), fmt.Sprintf("exec-process-%s", sessionID))
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	pspec := c.config.Spec.Process
+	pspec.SelinuxLabel = c.config.ProcessLabel
+	pspec.Args = cmd
+	// We need to default this to false else it will inherit terminal as true
+	// from the container.
+	pspec.Terminal = false
+	if tty {
+		pspec.Terminal = true
+	}
+	if len(env) > 0 {
+		pspec.Env = append(pspec.Env, env...)
+	}
+
+	if cwd != "" {
+		pspec.Cwd = cwd
+
+	}
+
+	var addGroups []string
+	var sgids []uint32
+
+	// if the user is empty, we should inherit the user that the container is currently running with
+	if user == "" {
+		user = c.config.User
+		addGroups = c.config.Groups
+	}
+
+	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if len(addGroups) > 0 {
+		sgids, err = lookup.GetContainerGroups(addGroups, c.state.Mountpoint, nil)
+		if err != nil {
+			return "", errors.Wrapf(err, "error looking up supplemental groups for container %s exec session %s", c.ID(), sessionID)
+		}
+	}
+
+	// If user was set, look it up in the container to get a UID to use on
+	// the host
+	if user != "" || len(sgids) > 0 {
+		if user != "" {
+			for _, sgid := range execUser.Sgids {
+				sgids = append(sgids, uint32(sgid))
+			}
+		}
+		processUser := spec.User{
+			UID:            uint32(execUser.Uid),
+			GID:            uint32(execUser.Gid),
+			AdditionalGids: sgids,
+		}
+
+		pspec.User = processUser
+	}
+
+	allCaps := caps.GetAllCapabilities()
+	pspec.Capabilities.Effective = []string{}
+	if privileged {
+		pspec.Capabilities.Bounding = allCaps
+	} else {
+		pspec.Capabilities.Bounding = []string{}
+	}
+	pspec.Capabilities.Inheritable = pspec.Capabilities.Bounding
+	if execUser.Uid == 0 {
+		pspec.Capabilities.Effective = pspec.Capabilities.Bounding
+		pspec.Capabilities.Permitted = pspec.Capabilities.Bounding
+		pspec.Capabilities.Ambient = pspec.Capabilities.Bounding
+	} else {
+		pspec.Capabilities.Permitted = pspec.Capabilities.Effective
+		pspec.Capabilities.Ambient = pspec.Capabilities.Effective
+	}
+
+	hasHomeSet := false
+	for _, s := range pspec.Env {
+		if strings.HasPrefix(s, "HOME=") {
+			hasHomeSet = true
+			break
+		}
+	}
+	if !hasHomeSet {
+		pspec.Env = append(pspec.Env, fmt.Sprintf("HOME=%s", execUser.Home))
+	}
+
+	processJSON, err := json.Marshal(pspec)
+	if err != nil {
+		return "", err
+	}
+
+	if err := ioutil.WriteFile(filename, processJSON, 0644); err != nil {
+		return "", err
+	}
+
+	return filename, nil
 }
