@@ -304,6 +304,24 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(separateVolumeSession.OutputToString()).To(Equal(baselineOutput))
 	})
 
+	It("podman named volume copyup symlink", func() {
+		imgName := "testimg"
+		dockerfile := `FROM alpine
+RUN touch /testfile
+RUN sh -c "cd /etc/apk && ln -s ../../testfile"`
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", imgName, "ls", "/etc/apk/"})
+		baselineSession.WaitWithDefaultTimeout()
+		Expect(baselineSession.ExitCode()).To(Equal(0))
+		baselineOutput := baselineSession.OutputToString()
+
+		outputSession := podmanTest.Podman([]string{"run", "-t", "-i", "-v", "/etc/apk/", imgName, "ls", "/etc/apk/"})
+		outputSession.WaitWithDefaultTimeout()
+		Expect(outputSession.ExitCode()).To(Equal(0))
+		Expect(outputSession.OutputToString()).To(Equal(baselineOutput))
+	})
+
 	It("podman read-only tmpfs conflict with volume", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "--read-only", "-v", "tmp_volume:" + dest, ALPINE, "touch", dest + "/a"})
 		session.WaitWithDefaultTimeout()
