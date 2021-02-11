@@ -18,7 +18,7 @@ import (
 // mountPoint (e.g., via a mount or volume), the resolved root (e.g., container
 // mount, bind mount or volume) and the resolved path on the root (absolute to
 // the host).
-func (container *Container) resolvePath(mountPoint string, containerPath string) (string, string, error) {
+func (c *Container) resolvePath(mountPoint string, containerPath string) (string, string, error) {
 	// Let's first make sure we have a path relative to the mount point.
 	pathRelativeToContainerMountPoint := containerPath
 	if !filepath.IsAbs(containerPath) {
@@ -26,7 +26,7 @@ func (container *Container) resolvePath(mountPoint string, containerPath string)
 		// container's working dir.  To be extra careful, let's first
 		// join the working dir with "/", and the add the containerPath
 		// to it.
-		pathRelativeToContainerMountPoint = filepath.Join(filepath.Join("/", container.WorkingDir()), containerPath)
+		pathRelativeToContainerMountPoint = filepath.Join(filepath.Join("/", c.WorkingDir()), containerPath)
 	}
 	resolvedPathOnTheContainerMountPoint := filepath.Join(mountPoint, pathRelativeToContainerMountPoint)
 	pathRelativeToContainerMountPoint = strings.TrimPrefix(pathRelativeToContainerMountPoint, mountPoint)
@@ -43,7 +43,7 @@ func (container *Container) resolvePath(mountPoint string, containerPath string)
 
 	searchPath := pathRelativeToContainerMountPoint
 	for {
-		volume, err := findVolume(container, searchPath)
+		volume, err := findVolume(c, searchPath)
 		if err != nil {
 			return "", "", err
 		}
@@ -74,7 +74,7 @@ func (container *Container) resolvePath(mountPoint string, containerPath string)
 			return mountPoint, absolutePathOnTheVolumeMount, nil
 		}
 
-		if mount := findBindMount(container, searchPath); mount != nil {
+		if mount := findBindMount(c, searchPath); mount != nil {
 			logrus.Debugf("Container path %q resolved to bind mount %q:%q on path %q", containerPath, mount.Source, mount.Destination, searchPath)
 			// We found a matching bind mount for searchPath.  We
 			// now need to first find the relative path of our

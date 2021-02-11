@@ -20,7 +20,6 @@ linters:
     # All these break for one reason or another
     - nolintlint
     - gocognit
-    - stylecheck
     - testpackage
     - goerr113
     - exhaustivestruct

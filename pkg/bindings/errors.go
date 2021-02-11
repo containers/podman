@@ -20,12 +20,12 @@ func handleError(data []byte) error {
 	return e
 }
 
-func (a APIResponse) Process(unmarshalInto interface{}) error {
-	data, err := ioutil.ReadAll(a.Response.Body)
+func (h APIResponse) Process(unmarshalInto interface{}) error {
+	data, err := ioutil.ReadAll(h.Response.Body)
 	if err != nil {
 		return errors.Wrap(err, "unable to process API response")
 	}
-	if a.IsSuccess() || a.IsRedirection() {
+	if h.IsSuccess() || h.IsRedirection() {
 		if unmarshalInto != nil {
 			return json.Unmarshal(data, unmarshalInto)
 		}
