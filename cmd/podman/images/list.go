@@ -275,7 +275,6 @@ func tokenRepoTag(ref string) (string, string, error) {
 	}
 
 	return name, tag, nil
-
 }
 
 func sortFunc(key string, data []imageReporter) func(i, j int) bool {

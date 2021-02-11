@@ -64,7 +64,6 @@ func init() {
 			os.Exit(1)
 		}
 	})
-
 }
 
 func loadConfig(r io.Reader) (*Config, io.ReadCloser, io.WriteCloser, error) {

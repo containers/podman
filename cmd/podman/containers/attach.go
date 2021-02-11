@@ -68,7 +68,6 @@ func init() {
 	})
 	attachFlags(containerAttachCommand)
 	validate.AddLatestFlag(containerAttachCommand, &attachOpts.Latest)
-
 }
 
 func attach(cmd *cobra.Command, args []string) error {

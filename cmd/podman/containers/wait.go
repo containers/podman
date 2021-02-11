@@ -56,7 +56,6 @@ func waitFlags(cmd *cobra.Command) {
 	conditionFlagName := "condition"
 	flags.StringVar(&waitCondition, conditionFlagName, "stopped", "Condition to wait on")
 	_ = cmd.RegisterFlagCompletionFunc(conditionFlagName, common.AutocompleteWaitCondition)
-
 }
 
 func init() {

@@ -75,7 +75,6 @@ func validateBridgeOptions(options entities.NetworkCreateOptions) error {
 	}
 
 	return nil
-
 }
 
 // parseMTU parses the mtu option

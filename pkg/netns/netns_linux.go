@@ -51,7 +51,6 @@ func getNSRunDir() (string, error) {
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
 // an object representing that namespace, without switching to it.
 func NewNS() (ns.NetNS, error) {
-
 	nsRunDir, err := getNSRunDir()
 	if err != nil {
 		return nil, err
@@ -92,7 +91,6 @@ func NewNS() (ns.NetNS, error) {
 		if err != nil {
 			return nil, fmt.Errorf("mount --make-rshared %s failed: %q", nsRunDir, err)
 		}
-
 	}
 
 	nsName := fmt.Sprintf("cni-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])

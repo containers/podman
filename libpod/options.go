@@ -1108,7 +1108,6 @@ func WithLogTag(tag string) CtrCreateOption {
 
 		return nil
 	}
-
 }
 
 // WithCgroupsMode disables the creation of CGroups for the conmon process.
@@ -1130,7 +1129,6 @@ func WithCgroupsMode(mode string) CtrCreateOption {
 
 		return nil
 	}
-
 }
 
 // WithCgroupParent sets the Cgroup Parent of the new container.
@@ -1429,7 +1427,6 @@ func WithOverlayVolumes(volumes []*ContainerOverlayVolume) CtrCreateOption {
 		}
 
 		for _, vol := range volumes {
-
 			ctr.config.OverlayVolumes = append(ctr.config.OverlayVolumes, &ContainerOverlayVolume{
 				Dest:   vol.Dest,
 				Source: vol.Source,

@@ -52,7 +52,6 @@ func generatePruneFilterFuncs(filter, filterValue string) (ImageFilter, error) {
 			}
 			return false
 		}, nil
-
 	}
 	return nil, nil
 }
@@ -170,7 +169,6 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 				Size: uint64(imgSize),
 			})
 		}
-
 	}
 	return preports, nil
 }

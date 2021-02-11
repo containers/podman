@@ -8,7 +8,6 @@ import (
 )
 
 func TestFilterPodFlags(t *testing.T) {
-
 	tests := []struct {
 		input []string
 	}{

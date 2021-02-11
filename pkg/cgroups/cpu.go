@@ -155,7 +155,6 @@ func GetSystemCPUUsage() (uint64, error) {
 			}
 			total += v * 1000
 		}
-
 	}
 	return total, nil
 }

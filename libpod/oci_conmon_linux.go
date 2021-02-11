@@ -1228,7 +1228,6 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 
 	if options.Cwd != "" {
 		pspec.Cwd = options.Cwd
-
 	}
 
 	var addGroups []string
@@ -1798,5 +1797,4 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 			return err
 		}
 	}
-
 }

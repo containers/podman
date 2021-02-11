@@ -50,7 +50,6 @@ func init() {
 	formatFlagName := "format"
 	flags.StringVar(&dfOptions.Format, formatFlagName, "", "Pretty-print images using a Go template")
 	_ = dfSystemCommand.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
-
 }
 
 func df(cmd *cobra.Command, args []string) error {

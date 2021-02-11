@@ -272,7 +272,6 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		endpointsConfig := cc.NetworkingConfig.EndpointsConfig
 		cniNetworks := make([]string, 0, len(endpointsConfig))
 		for netName, endpoint := range endpointsConfig {
-
 			cniNetworks = append(cniNetworks, netName)
 
 			if endpoint == nil {

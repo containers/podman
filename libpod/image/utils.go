@@ -45,7 +45,6 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 		}
 	}
 	if len(candidates) == 0 {
-
 		return nil, errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", searchName)
 	}
 

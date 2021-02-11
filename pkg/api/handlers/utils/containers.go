@@ -141,7 +141,6 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 type containerWaitFn func(conditions ...define.ContainerStatus) (int32, error)
 
 func createContainerWaitFn(ctx context.Context, containerName string, interval time.Duration) containerWaitFn {
-
 	runtime := ctx.Value("runtime").(*libpod.Runtime)
 	var containerEngine entities.ContainerEngine = &abi.ContainerEngine{Libpod: runtime}
 
@@ -170,7 +169,6 @@ func isValidDockerCondition(cond string) bool {
 }
 
 func waitDockerCondition(ctx context.Context, containerName string, interval time.Duration, dockerCondition string) (int32, error) {
-
 	containerWait := createContainerWaitFn(ctx, containerName, interval)
 
 	var err error

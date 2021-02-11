@@ -146,7 +146,6 @@ func NewRuntime(ctx context.Context, options ...RuntimeOption) (*Runtime, error)
 // An error will be returned if the configuration file at the given path does
 // not exist or cannot be loaded
 func NewRuntimeFromConfig(ctx context.Context, userConfig *config.Config, options ...RuntimeOption) (*Runtime, error) {
-
 	return newRuntimeFromConfig(ctx, userConfig, options...)
 }
 
@@ -382,7 +381,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.Engine.OCIRuntimes {
-
 		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 		if err != nil {
 			// Don't fatally error.
@@ -437,7 +435,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	// Set up the CNI net plugin
 	if !rootless.IsRootless() {
-
 		netPlugin, err := ocicni.InitCNI(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, runtime.config.Network.CNIPluginDirs...)
 		if err != nil {
 			return errors.Wrapf(err, "error configuring CNI network plugin")
@@ -484,7 +481,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			if became {
 				os.Exit(ret)
 			}
-
 		}
 		// If the file doesn't exist, we need to refresh the state
 		// This will trigger on first use as well, but refreshing an
@@ -787,7 +783,6 @@ type DBConfig struct {
 
 // mergeDBConfig merges the configuration from the database.
 func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
-
 	c := &r.config.Engine
 	if !r.storageSet.RunRootSet && dbConfig.StorageTmp != "" {
 		if r.storageConfig.RunRoot != dbConfig.StorageTmp &&

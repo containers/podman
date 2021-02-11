@@ -80,7 +80,6 @@ func init() {
 		Parent:  networkCmd,
 	})
 	networkCreateFlags(networkCreateCommand)
-
 }
 
 func networkCreate(cmd *cobra.Command, args []string) error {

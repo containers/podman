@@ -1688,7 +1688,6 @@ func (i *Image) GetConfigBlob(ctx context.Context) (*manifest.Schema2Image, erro
 		return nil, errors.Wrapf(err, "unable to parse image blob for %s", i.ID())
 	}
 	return &blob, nil
-
 }
 
 // GetHealthCheck returns a HealthConfig for an image.  This function only works with

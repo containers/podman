@@ -39,7 +39,6 @@ linters:
     - staticcheck
     - forbidigo
     - exhaustive
-    - whitespace
     - unparam
     - gofumpt
     - gci

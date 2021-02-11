@@ -202,7 +202,6 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		ProgressDetail: map[string]string{},
 		Id:             iid,
 	})
-
 }
 
 func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
