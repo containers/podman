@@ -30,7 +30,7 @@ func Stat(ctx context.Context, nameOrID string, path string) (*entities.Containe
 
 	var finalErr error
 	if response.StatusCode == http.StatusNotFound {
-		finalErr = copy.ENOENT
+		finalErr = copy.ErrENOENT
 	} else if response.StatusCode != http.StatusOK {
 		finalErr = errors.New(response.Status)
 	}

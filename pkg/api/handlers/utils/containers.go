@@ -130,10 +130,9 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			ContainerNotFound(w, name, err)
 			return
-		} else {
-			InternalServerError(w, err)
-			return
 		}
+		InternalServerError(w, err)
+		return
 	}
 	WriteResponse(w, http.StatusOK, strconv.Itoa(int(exitCode)))
 }
@@ -200,9 +199,8 @@ func waitRemoved(ctrWait containerWaitFn) (int32, error) {
 	code, err := ctrWait(define.ContainerStateUnknown)
 	if err != nil && errors.Cause(err) == define.ErrNoSuchCtr {
 		return code, nil
-	} else {
-		return code, err
 	}
+	return code, err
 }
 
 func waitNextExit(ctrWait containerWaitFn) (int32, error) {

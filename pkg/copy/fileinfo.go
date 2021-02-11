@@ -16,9 +16,9 @@ import (
 // base64 encoded JSON payload of stating a path in a container.
 const XDockerContainerPathStatHeader = "X-Docker-Container-Path-Stat"
 
-// ENOENT mimics the stdlib's ENOENT and can be used to implement custom logic
+// ErrENOENT mimics the stdlib's ErrENOENT and can be used to implement custom logic
 // while preserving the user-visible error message.
-var ENOENT = errors.New("No such file or directory")
+var ErrENOENT = errors.New("No such file or directory")
 
 // FileInfo describes a file or directory and is returned by
 // (*CopyItem).Stat().
@@ -70,7 +70,7 @@ func ResolveHostPath(path string) (*FileInfo, error) {
 	statInfo, err := os.Stat(resolvedHostPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, ENOENT
+			return nil, ErrENOENT
 		}
 		return nil, err
 	}

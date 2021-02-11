@@ -241,9 +241,8 @@ func (p *VolumePlugin) makeErrorResponse(err, endpoint, volName string) error {
 	}
 	if volName != "" {
 		return errors.Wrapf(errors.New(err), "error on %s on volume %s in volume plugin %s", endpoint, volName, p.Name)
-	} else {
-		return errors.Wrapf(errors.New(err), "error on %s in volume plugin %s", endpoint, p.Name)
 	}
+	return errors.Wrapf(errors.New(err), "error on %s in volume plugin %s", endpoint, p.Name)
 }
 
 // Handle error responses from plugin

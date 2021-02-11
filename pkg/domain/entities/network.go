@@ -31,7 +31,7 @@ type NetworkReloadOptions struct {
 
 // NetworkReloadReport describes the results of reloading a container network.
 type NetworkReloadReport struct {
-	// nolint:stylecheck
+	// nolint:stylecheck,golint
 	Id  string
 	Err error
 }

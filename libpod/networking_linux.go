@@ -480,9 +480,8 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	if havePortMapping {
 		if isSlirpHostForward {
 			return r.setupRootlessPortMappingViaSlirp(ctr, cmd, apiSocket)
-		} else {
-			return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
 		}
+		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
 	}
 	return nil
 }
