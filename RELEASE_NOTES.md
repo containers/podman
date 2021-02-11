@@ -112,6 +112,10 @@
 - Fixed a bug where failures during the resizing of a container's TTY would print the wrong error.
 - Fixed a bug where the `podman network disconnect` command could cause the `podman inspect` command to fail for a container until it was restarted ([#9234](https://github.com/containers/podman/issues/9234)).
 - Fixed a bug where containers created from a read-only rootfs (using the `--rootfs` option to `podman create` and `podman run`) would fail ([#9230](https://github.com/containers/podman/issues/9230)).
+- Fixed a bug where specifying Go templates to the `--format` option to multiple Podman commands did not support the `join` function ([#8773](https://github.com/containers/podman/issues/8773)).
+- Fixed a bug where the `podman rmi` command could, when run in parallel on multiple images, return `layer not known` errors ([#6510](https://github.com/containers/podman/issues/6510)).
+- Fixed a bug where the `podman inspect` command on containers displayed unlimited ulimits incorrectly ([#9303](https://github.com/containers/podman/issues/9303)).
+- Fixed a bug where Podman would fail to start when a volume was mounted over a directory in a container that contained symlinks that terminated outside the directory and its subdirectories ([#6003](https://github.com/containers/podman/issues/6003)).
 
 ### API
 - Libpod API version has been bumped to v3.0.0.
@@ -134,10 +138,12 @@
 - Fixed a bug where the Compat Load API for Images did not properly clean up temporary files.
 - Fixed a bug where the Compat Create API for Networks could panic when an empty IPAM configuration was specified.
 - Fixed a bug where the Compat Inspect and List APIs for Networks did not include Scope.
+- Fixed a bug where the Compat Wait endpoint for Containers did not support the same wait conditions that Docker did.
 
 ### Misc
 - Updated Buildah to v1.19.2
 - Updated the containers/storage library to v1.24.5
+- Updated the containers/image library to v5.10.2
 - Updated the containers/common library to v0.33.4
 
 ## v2.2.1
