@@ -269,9 +269,9 @@ func (s *BoltState) Refresh() error {
 				if err != nil {
 					return err
 				}
-				for _, execId := range toRemove {
-					if err := ctrExecBkt.Delete([]byte(execId)); err != nil {
-						return errors.Wrapf(err, "error removing exec session %s from container %s", execId, string(id))
+				for _, execID := range toRemove {
+					if err := ctrExecBkt.Delete([]byte(execID)); err != nil {
+						return errors.Wrapf(err, "error removing exec session %s from container %s", execID, string(id))
 					}
 				}
 			}

@@ -102,7 +102,7 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.NetworkListRep
 }
 
 // Disconnect removes a container from a given network
-func Disconnect(ctx context.Context, networkName string, ContainerNameOrId string, options *DisconnectOptions) error {
+func Disconnect(ctx context.Context, networkName string, ContainerNameOrID string, options *DisconnectOptions) error {
 	if options == nil {
 		options = new(DisconnectOptions)
 	}
@@ -117,7 +117,7 @@ func Disconnect(ctx context.Context, networkName string, ContainerNameOrId strin
 		Container string
 		Force     bool
 	}{
-		Container: ContainerNameOrId,
+		Container: ContainerNameOrID,
 	}
 	if force := options.GetForce(); options.Changed("Force") {
 		disconnect.Force = force
@@ -136,7 +136,7 @@ func Disconnect(ctx context.Context, networkName string, ContainerNameOrId strin
 }
 
 // Connect adds a container to a network
-func Connect(ctx context.Context, networkName string, ContainerNameOrId string, options *ConnectOptions) error {
+func Connect(ctx context.Context, networkName string, ContainerNameOrID string, options *ConnectOptions) error {
 	if options == nil {
 		options = new(ConnectOptions)
 	}
@@ -151,7 +151,7 @@ func Connect(ctx context.Context, networkName string, ContainerNameOrId string, 
 		Container string
 		Aliases   []string
 	}{
-		Container: ContainerNameOrId,
+		Container: ContainerNameOrID,
 	}
 	if aliases := options.GetAliases(); options.Changed("Aliases") {
 		connect.Aliases = aliases
