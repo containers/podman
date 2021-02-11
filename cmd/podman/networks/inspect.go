@@ -39,5 +39,4 @@ func init() {
 func networkInspect(_ *cobra.Command, args []string) error {
 	inspectOpts.Type = inspect.NetworkType
 	return inspect.Inspect(args, *inspectOpts)
-
 }

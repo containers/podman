@@ -796,7 +796,6 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	if c.config.UTSNsCtr != "" {
 		utsMode = fmt.Sprintf("container:%s", c.config.UTSNsCtr)
 	} else if ctrSpec.Linux != nil {
-
 		// Locate the spec's UTS namespace.
 		// If there is none, it's uts=host.
 		// If there is one and it has a path, it's "ns:".

@@ -86,14 +86,12 @@ func (c *Container) resolvePath(mountPoint string, containerPath string) (string
 				return "", "", err
 			}
 			return mount.Source, absolutePathOnTheBindMount, nil
-
 		}
 
 		if searchPath == "/" {
 			// Cannot go beyond "/", so we're done.
 			break
 		}
-
 		// Walk *down* the path (e.g., "/foo/bar/x" -> "/foo/bar").
 		searchPath = filepath.Dir(searchPath)
 	}

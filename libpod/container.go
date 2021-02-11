@@ -1057,7 +1057,6 @@ func (c *Container) NetworkDisabled() (bool, error) {
 		return container.NetworkDisabled()
 	}
 	return networkDisabled(c)
-
 }
 
 func networkDisabled(c *Container) (bool, error) {

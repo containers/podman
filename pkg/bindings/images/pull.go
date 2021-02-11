@@ -93,7 +93,6 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 		default:
 			return images, errors.New("failed to parse pull results stream, unexpected input")
 		}
-
 	}
 	return images, mErr
 }

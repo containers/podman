@@ -8,7 +8,6 @@ import (
 )
 
 func Test_validateBridgeOptions(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		subnet  net.IPNet

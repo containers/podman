@@ -16,7 +16,6 @@ import (
 
 // Reset removes all storage
 func (r *Runtime) Reset(ctx context.Context) error {
-
 	pods, err := r.GetAllPods()
 	if err != nil {
 		return err

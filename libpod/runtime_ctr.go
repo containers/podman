@@ -1139,7 +1139,6 @@ func (r *Runtime) IsStorageContainerMounted(id string) (bool, string, error) {
 // StorageContainers returns a list of containers from containers/storage that
 // are not currently known to Podman.
 func (r *Runtime) StorageContainers() ([]storage.Container, error) {
-
 	if r.store == nil {
 		return nil, define.ErrStoreNotInitialized
 	}

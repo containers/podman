@@ -76,7 +76,6 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 			Err: secrets.Remove(ic.ClientCtx, name),
 			ID:  secret.ID,
 		})
-
 	}
 	return allRm, nil
 }

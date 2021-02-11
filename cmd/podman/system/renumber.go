@@ -39,7 +39,6 @@ func init() {
 		Command: renumberCommand,
 		Parent:  systemCmd,
 	})
-
 }
 func renumber(cmd *cobra.Command, args []string) {
 	// Shutdown all running engines, `renumber` will hijack all methods

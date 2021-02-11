@@ -17,7 +17,6 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
 		return
-
 	}
 	history, err := newImage.History(r.Context())
 	if err != nil {

@@ -179,7 +179,6 @@ func CreateTmpFile(dir, pattern string, content []byte) (string, error) {
 
 	if _, err := tmpfile.Write(content); err != nil {
 		return "", err
-
 	}
 	return tmpfile.Name(), nil
 }

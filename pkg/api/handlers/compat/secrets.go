@@ -58,7 +58,6 @@ func InspectSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, reports[0])
-
 }
 
 func RemoveSecret(w http.ResponseWriter, r *http.Request) {

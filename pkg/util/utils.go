@@ -388,7 +388,6 @@ func GetKeepIDMapping() (*storage.IDMappingOptions, int, int, error) {
 
 		options.HostUIDMapping = false
 		options.HostGIDMapping = false
-
 	}
 	// Simply ignore the setting and do not setup an inner namespace for root as it is a no-op
 	return &options, uid, gid, nil

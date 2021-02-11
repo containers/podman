@@ -71,7 +71,6 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 			iter := f.MapRange()
 			for iter.Next() {
 				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
-
 			}
 			s, err := json.MarshalToString(lowerCaseKeys)
 			if err != nil {
@@ -80,7 +79,6 @@ func (o *{{.StructName}}) ToParams() (url.Values, error) {
 
 			params.Set(fieldName, s)
 		}
-
 	}
 	return params, nil
 }
@@ -239,7 +237,6 @@ func main() {
 					os.Exit(1)
 				}
 			}
-
 		}
 		return true
 	})

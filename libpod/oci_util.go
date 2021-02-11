@@ -103,7 +103,6 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 			}
 		default:
 			return nil, fmt.Errorf("unknown protocol %s", i.Protocol)
-
 		}
 	}
 	return files, nil

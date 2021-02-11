@@ -41,7 +41,6 @@ func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, HeaderAut
 	case has(XRegistryAuthHeader):
 		c, f, err := getAuthCredentials(r)
 		return c, f, XRegistryAuthHeader, err
-
 	}
 	return nil, "", "", nil
 }

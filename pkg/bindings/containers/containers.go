@@ -137,7 +137,6 @@ func Kill(ctx context.Context, nameOrID string, options *KillOptions) error {
 		return err
 	}
 	return response.Process(nil)
-
 }
 
 // Pause pauses a given container.  The nameOrID can be a container name

@@ -1614,7 +1614,6 @@ func (c *Container) makeBindMounts() error {
 				return errors.Wrapf(err, "error setting timezone for container %s", c.ID())
 			}
 			c.state.BindMounts["/etc/localtime"] = localtimePath
-
 		}
 	}
 

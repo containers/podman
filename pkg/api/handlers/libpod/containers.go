@@ -48,7 +48,6 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 		}
 		utils.InternalServerError(w, err)
 		return
-
 	}
 	if report.Value {
 		utils.WriteResponse(w, http.StatusNoContent, "")
@@ -162,7 +161,6 @@ func UnmountContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
-
 }
 func MountContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
@@ -361,7 +359,6 @@ func ShouldRestart(w http.ResponseWriter, r *http.Request) {
 		}
 		utils.InternalServerError(w, err)
 		return
-
 	}
 	if report.Value {
 		utils.WriteResponse(w, http.StatusNoContent, "")

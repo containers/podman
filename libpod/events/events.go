@@ -97,7 +97,6 @@ func newEventFromJSONString(event string) (*Event, error) {
 		return nil, err
 	}
 	return &e, nil
-
 }
 
 // ToString converts a Type to a string

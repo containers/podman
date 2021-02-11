@@ -128,7 +128,6 @@ func systemd(cmd *cobra.Command, args []string) error {
 	default:
 		return errors.Errorf("unknown --format argument: %s", format)
 	}
-
 }
 
 func printDefault(units map[string]string) error {
