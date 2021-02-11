@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	. "github.com/containers/podman/v2/test/utils"
@@ -208,6 +209,22 @@ var _ = Describe("Podman ps", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.IsJSONOutputValid()).To(BeTrue())
+	})
+
+	It("podman ps json format Created field is int64", func() {
+		session := podmanTest.RunTopContainer("test1")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"ps", "--format", "json"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		// Make sure Created field is an int64
+		created, err := result.jq(".[0].Created")
+		Expect(err).To(BeNil())
+		_, err = strconv.ParseInt(created, 10, 64)
+		Expect(err).To(BeNil())
 	})
 
 	It("podman ps print a human-readable `Status` with json format", func() {
