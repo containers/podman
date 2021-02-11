@@ -130,11 +130,18 @@ func (v *Volume) MountPoint() (string, error) {
 		if err := v.update(); err != nil {
 			return "", err
 		}
-
-		return v.state.MountPoint, nil
 	}
 
-	return v.config.MountPoint, nil
+	return v.mountPoint(), nil
+}
+
+// Internal-only helper for volume mountpoint
+func (v *Volume) mountPoint() string {
+	if v.UsesVolumeDriver() {
+		return v.state.MountPoint
+	}
+
+	return v.config.MountPoint
 }
 
 // Options return the volume's options
