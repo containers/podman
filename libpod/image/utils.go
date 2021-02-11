@@ -75,9 +75,8 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 		}
 		if rwImageCnt > 1 {
 			return nil, errors.Wrapf(define.ErrMultipleImages, "found multiple read/write images %s", strings.Join(keys, ","))
-		} else {
-			return nil, errors.Wrapf(define.ErrMultipleImages, "found multiple read/only images %s", strings.Join(keys, ","))
 		}
+		return nil, errors.Wrapf(define.ErrMultipleImages, "found multiple read/only images %s", strings.Join(keys, ","))
 	}
 	return candidates[0].image.image, nil
 }

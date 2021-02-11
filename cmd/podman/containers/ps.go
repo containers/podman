@@ -254,12 +254,12 @@ func ps(cmd *cobra.Command, _ []string) error {
 		// responses will grow to the largest number of processes reported on, but will not thrash the gc
 		var responses []psReporter
 		for ; ; responses = responses[:0] {
-			if ctnrs, err := getResponses(); err != nil {
+			ctnrs, err := getResponses()
+			if err != nil {
 				return err
-			} else {
-				for _, r := range ctnrs {
-					responses = append(responses, psReporter{r})
-				}
+			}
+			for _, r := range ctnrs {
+				responses = append(responses, psReporter{r})
 			}
 
 			tm.Clear()

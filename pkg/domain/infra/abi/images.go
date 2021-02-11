@@ -40,10 +40,9 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.Boo
 	if err != nil {
 		if errors.Cause(err) == define.ErrMultipleImages {
 			return &entities.BoolReport{Value: true}, nil
-		} else {
-			if errors.Cause(err) != define.ErrNoSuchImage {
-				return nil, err
-			}
+		}
+		if errors.Cause(err) != define.ErrNoSuchImage {
+			return nil, err
 		}
 	}
 	return &entities.BoolReport{Value: err == nil}, nil

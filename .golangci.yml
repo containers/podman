@@ -51,7 +51,6 @@ linters:
     - gochecknoinits
     - goconst
     - gocyclo
-    - golint
     - lll
     - structcheck
     - typecheck

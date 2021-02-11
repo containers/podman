@@ -35,7 +35,7 @@ func (ic *ContainerEngine) containerStat(container *libpod.Container, containerM
 		// ENOENT let's the API handlers return the correct status code
 		// which is crucial for the remote client.
 		if os.IsNotExist(err) || strings.Contains(statInfoErr.Error(), "o such file or directory") {
-			statInfoErr = copy.ENOENT
+			statInfoErr = copy.ErrENOENT
 		}
 		//  If statInfo is nil, there's nothing we can do anymore.  A
 		//  non-nil statInfo may indicate a symlink where we must have
@@ -129,7 +129,7 @@ func secureStat(root string, path string) (*buildahCopiah.StatForItem, error) {
 
 	stat, exists := globStats[0].Results[glob] // only one glob passed, so that's okay
 	if !exists {
-		return nil, copy.ENOENT
+		return nil, copy.ErrENOENT
 	}
 
 	var statErr error

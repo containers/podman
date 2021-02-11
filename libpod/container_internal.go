@@ -264,7 +264,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	c.newContainerEvent(events.Restart)
 
 	// Increment restart count
-	c.state.RestartCount += 1
+	c.state.RestartCount++
 	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
 	if err := c.save(); err != nil {
 		return false, err
