@@ -400,6 +400,9 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
+	type response struct {
+		NetworksDeleted []string
+	}
 	var prunedNetworks []string //nolint
 	for _, pr := range pruneReports {
 		if pr.Error != nil {
@@ -408,5 +411,5 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 		}
 		prunedNetworks = append(prunedNetworks, pr.Name)
 	}
-	utils.WriteResponse(w, http.StatusOK, prunedNetworks)
+	utils.WriteResponse(w, http.StatusOK, response{NetworksDeleted: prunedNetworks})
 }
