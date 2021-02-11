@@ -1,3 +1,95 @@
+- Changelog for v3.0.0 (2021-02-11):
+  * Update release notes for v3.0 final
+  * Rewrite copy-up to use buildah Copier
+  * Display correct value for unlimited ulimit
+  * make `podman rmi` more robust
+  * Allow path completion for podman create/run --rootfs
+  * vendor github.com/containers/image v5.10.2
+  * Add default template functions
+  * Fix per review request
+  * Increase timeouts in some tests
+  * Add test for Docker APIv2 wait
+  * Implement Docker wait conditions
+  * Improve ContainerEngine.ContainerWait()
+  * Improve container libpod.Wait*() functions
+  * [NO TESTS NEEDED] style: indendation
+  * [NO TESTS NEEDED] fixup: remove debug code
+  * [NO TESTS NEEDED] Generated files
+  * Cleanup bindings for image pull
+  * [NO TESTS NEEDED] Improve generator
+  * Fix invalid wait condition on kill
+  * Switch podman image push handlers to use abi
+  * podman-remote ps --external --pod --sort do not work.
+  * Fix --arch and --os flags to work correctly
+  * Switch podman stop/kill/wait handlers to use abi
+  * Fix handling of container remove
+  * Bump to v3.0.0-dev
+  * Bump to v3.0.0-RC3
+  * Further release notes for v3.0
+  * Bump remote API version to 3.0.0
+  * fix logic when not creating a workdir
+  * play kube selinux test case
+  * play kube selinux test case
+  * play kube selinux label test case
+  * play kube selinux label issue
+  * Fix podman network disconnect wrong NetworkStatus number
+  * Bump to v0.33.4
+  * Bump github.com/containernetworking/cni from 0.8.0 to 0.8.1
+  * Update release notes for v3.0.0-RC3
+  * generate kube: handle entrypoint
+  * Allow pods to use --net=none
+  * Report StatusConflict on Pod opt partial failures
+  * bindings: attach: warn correct error
+  * Make slirp MTU configurable (network_cmd_options)
+  * Fix podman generate systemd --new special char handling
+  * Fix --network parsing for podman pod create
+  * Endpoint that lists containers does not return correct Status value
+  * Docker ignores mount flags that begin with constency
+  * podman generate kube ignores --network=host
+  * Honor custom DNS in play|generate kube
+  * Don't fail if one of the cgroups is not setup
+  * Fix #9100 Change console mode message to debug
+  * Update release notes from master
+  * libpod: move slirp magic IPs to consts
+  * rootlessport: set source IP to slirp4netns device
+  * Bump rootless-containers/rootlesskit to v0.12.0
+  * Gating tests: diff test: workaround for RHEL8 failure
+  * Bump to containers/common v0.33.3
+  * add macvlan as a supported network driver
+  * podman build --pull: refine help message and docs
+  * Cirrus: Build static podman-remote
+  * Fix static build cache by using cachix
+  * Cirrus: Fix running Validate task on branches
+  * Bump to v3.0.0-dev
+  * Bump to v3.0.0-RC2
+  * Cirrus: add bindings checks
+  * make bindings generation explicit
+  * make bindings generation more robuts
+  * simplify bindings generation
+  * make: generate bindings: use vendor
+  * Make generate systemd --new robust against double curly braces
+  * Ensure shutdown handler access is syncronized
+  * workdir presence checks
+  * libpod: add (*Container).ResolvePath()
+  * Add default net info in container inspect
+  * Fix podman history --no-trunc for the CREATED BY field
+  * Ensure the Volumes field in Compat Create is honored
+  * remote exec: write conmon error on hijacked connection
+  * Add support for rootless network-aliases
+  * Allow static ip and mac with rootless cni network
+  * [CI:DOCS]Correct static API html path
+  * disable dnsname when --internal
+  * Use random network names in the e2e tests
+  * [v3.0] fix RHEL gating test: the /sys thing
+  * Bump golang.org/x/crypto v3.0
+  * Set log driver for compatability containers
+  * [CI:DOCS] Cirrus: Skip smoke task on branch-push
+  * [CI:DOCS]Do not run compose tests with CI:DOCS
+  * Add binding options for container|pod exists
+  * runner.sh : deal with bash 'set -e'
+  * [CI:DOCS]Add readthedoc link for 3.0 docs
+  * [CI:DOCS]Add static HTML for api docs for v3.0
+
 - Changelog for v3.0.0-rc1 (2021-01-17):
   * Create release notes for V3.0.0
   * Rename AutocompletePortCommand func
