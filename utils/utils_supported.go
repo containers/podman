@@ -81,16 +81,9 @@ func getCgroupProcess(procFile string) (string, error) {
 			cgroup = line[3:]
 			break
 		}
-		// root cgroup, skip it
-		if parts[2] == "/" {
-			continue
+		if len(parts[2]) > len(cgroup) {
+			cgroup = parts[2]
 		}
-		// The process must have the same cgroup path for all controllers
-		// The OCI runtime spec file allow us to specify only one path.
-		if cgroup != "/" && cgroup != parts[2] {
-			return "", errors.Errorf("cgroup configuration not supported, the process is in two different cgroups")
-		}
-		cgroup = parts[2]
 	}
 	if cgroup == "/" {
 		return "", errors.Errorf("could not find cgroup mount in %q", procFile)
@@ -150,6 +143,11 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 			// If it is not using unified mode, the cgroup v2 hierarchy is
 			// usually mounted under /sys/fs/cgroup/unified
 			cgroupRoot = filepath.Join(cgroupRoot, "unified")
+
+			// Ignore the unified mount if it doesn't exist
+			if _, err := os.Stat(cgroupRoot); err != nil && os.IsNotExist(err) {
+				continue
+			}
 		} else if parts[1] != "" {
 			// Assume the controller is mounted at /sys/fs/cgroup/$CONTROLLER.
 			controller := strings.TrimPrefix(parts[1], "name=")
@@ -161,7 +159,7 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 			parentCgroup = parts[2]
 		}
 		newCgroup := filepath.Join(cgroupRoot, parentCgroup, subtree)
-		if err := os.Mkdir(newCgroup, 0755); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(newCgroup, 0755); err != nil && !os.IsExist(err) {
 			return err
 		}
 
@@ -183,6 +181,9 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 				return err
 			}
 			for _, pid := range bytes.Split(processesData, []byte("\n")) {
+				if len(pid) == 0 {
+					continue
+				}
 				if _, err := f.Write(pid); err != nil {
 					logrus.Warnf("Cannot move process %s to cgroup %q", string(pid), newCgroup)
 				}
