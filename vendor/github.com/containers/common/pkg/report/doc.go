@@ -38,17 +38,7 @@ Helpers:
 		... process JSON and output
 	}
 
-Template Functions:
-
-The following template functions are added to the template when parsed:
-	- join  strings.Join, {{join .Field separator}}
-	- lower strings.ToLower {{ .Field | lower }}
-	- split strings.Split {{ .Field | split }}
-	- title strings.Title {{ .Field | title }}
-	- upper strings.ToUpper {{ .Field | upper }}
-
-report.Funcs() may be used to add additional template functions.
-Adding an existing function will replace that function for the life of that template.
+and
 
 
 Note: Your code should not ignore errors

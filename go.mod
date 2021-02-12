@@ -71,3 +71,5 @@ require (
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace github.com/containers/common => github.com/containers/common v0.33.1-0.20210130125707-da196fb0f743
