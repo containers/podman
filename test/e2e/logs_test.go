@@ -158,7 +158,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald for container with container tag", func() {
-		Skip("need to verify images have correct packages for journald")
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt=tag={{.ImageName}}", "-d", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
@@ -175,7 +174,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald for container name", func() {
-		Skip("need to verify images have correct packages for journald")
 		containerName := "inside-journal"
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-d", "--name", containerName, ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
 		logc.WaitWithDefaultTimeout()
@@ -193,7 +191,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald for container", func() {
-		Skip("need to verify images have correct packages for journald")
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
@@ -207,7 +204,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald tail two lines", func() {
-		Skip("need to verify images have correct packages for journald")
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
@@ -219,7 +215,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald tail 99 lines", func() {
-		Skip("need to verify images have correct packages for journald")
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
@@ -232,7 +227,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald tail 2 lines with timestamps", func() {
-		Skip("need to verify images have correct packages for journald")
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
@@ -245,7 +239,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald since time 2017-08-07", func() {
-		Skip("need to verify images have correct packages for journald")
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
@@ -258,7 +251,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald with duration 10m", func() {
-		Skip("need to verify images have correct packages for journald")
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
