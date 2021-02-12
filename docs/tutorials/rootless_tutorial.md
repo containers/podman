@@ -45,11 +45,11 @@ If Podman is used before fuse-overlayfs is installed, it may be necessary to adj
 
   (...)
 
-  [storage.options]
+[storage.options]
 
-    (...)
+  (...)
 
-    mount_program = "/usr/bin/fuse-overlayfs"
+  mount_program = "/usr/bin/fuse-overlayfs"
 ```
 
 ### Enable user namespaces (on RHEL7 machines)
