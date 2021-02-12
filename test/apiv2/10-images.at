@@ -41,7 +41,7 @@ t GET images/$iid/json 200 \
   .Id=sha256:$iid \
   .RepoTags[0]=$IMAGE
 
-t POST "images/create?fromImage=alpine" '' 200
+t POST "images/create?fromImage=alpine" '' 200 .error=null .status~".*Download complete.*"
 
 t POST "images/create?fromImage=alpine&tag=latest" '' 200
 
